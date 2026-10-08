@@ -1,0 +1,4 @@
+   .env.local
+   .mcp.json
+   node_modules
+   .next
