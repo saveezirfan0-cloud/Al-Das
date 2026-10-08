@@ -1,0 +1,5 @@
+comment = 'LOCAL TEST STUB of pg_net (no HTTP calls happen)'
+default_version = '0.14'
+schema = 'net'
+relocatable = false
+superuser = true

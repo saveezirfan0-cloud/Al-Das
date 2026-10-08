@@ -1,0 +1,5 @@
+comment = 'LOCAL TEST STUB of pg_cron (no scheduling happens)'
+default_version = '1.6'
+schema = 'cron'
+relocatable = false
+superuser = true
