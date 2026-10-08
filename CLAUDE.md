@@ -45,6 +45,8 @@ supabase start               # local stack
 pnpm db:migrate              # supabase migration up + gen types
 pnpm db:seed                 # fake data only
 pnpm test / pnpm e2e
+pnpm test:db                 # RLS + jobs tests on plain Postgres (supabase/test/README.md)
+pnpm jobs:run <queue>        # drain a queue through /api/jobs like pg_cron does
 pnpm wa:simulate <fixture>   # post a sample Meta webhook locally
 pnpm import:airtable --dry-run
 pnpm import:sanoflow --dry-run
