@@ -1,0 +1,17 @@
+{
+  "_comment": "Copy to .mcp.json at the repo root (gitignored if it holds tokens). Lets Claude Code read Airtable + Make directly during Phase 0 and the migration. Verify the Airtable URL against Airtable's MCP setup docs before use.",
+  "mcpServers": {
+    "make": {
+      "type": "http",
+      "url": "https://mcp.make.com"
+    },
+    "airtable": {
+      "type": "http",
+      "url": "https://mcp.airtable.com/mcp"
+    },
+    "supabase": {
+      "type": "http",
+      "url": "https://mcp.supabase.com/mcp?project_ref=<YOUR_PROJECT_REF>"
+    }
+  }
+}

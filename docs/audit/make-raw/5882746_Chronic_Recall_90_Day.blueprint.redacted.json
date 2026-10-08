@@ -1,0 +1,3262 @@
+{
+ "id": 5882746,
+ "name": "Chronic Recall - 90 Day",
+ "teamId": 1494412,
+ "hookId": null,
+ "devices": [],
+ "deviceId": null,
+ "deviceScope": null,
+ "concept": false,
+ "description": "Chronic 90-day recall. INACTIVE. Test/live controlled by SEND_MODE variable in module 1. Template IDs come from Airtable field Chronic Recall Template ID.",
+ "folderId": null,
+ "slots": null,
+ "isinvalid": false,
+ "islinked": true,
+ "islocked": false,
+ "isPaused": false,
+ "usedPackages": [
+  "airtable",
+  "http",
+  "airtable",
+  "airtable",
+  "builtin",
+  "http",
+  "builtin",
+  "builtin",
+  "util",
+  "builtin",
+  "util",
+  "http",
+  "http"
+ ],
+ "lastEdit": "2026-08-28T02:23:19.000Z",
+ "scheduling": {
+  "type": "indefinitely",
+  "interval": 900,
+  "restrict": [
+   {
+    "days": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     0
+    ],
+    "time": [
+     "12:15",
+     "12:16"
+    ]
+   }
+  ]
+ },
+ "iswaiting": false,
+ "dlqCount": 0,
+ "allDlqCount": 0,
+ "createdByUser": {
+  "id": 2310898,
+  "name": "Saveez Irfan",
+  "email": "saveezirfan@gmail.com"
+ },
+ "updatedByUser": {
+  "id": 2310898,
+  "name": "Saveez Irfan",
+  "email": "saveezirfan@gmail.com"
+ },
+ "nextExec": "2026-10-09T08:15:00.000Z",
+ "created": "2026-08-07T18:47:06.951Z",
+ "chainingRole": "none",
+ "type": "scenario",
+ "isShared": false,
+ "isActive": true,
+ "labels": [],
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {
+     "base": "app7QJ2pvhADHQeBP",
+     "view": "viwXMAipcLg0wpcVt",
+     "table": "tbl9856qJP9S7OEqB",
+     "formula": "{Chronic Recall Eligible} = 1",
+     "maxRecords": "100",
+     "useColumnId": false
+    },
+    "module": "airtable:ActionSearchRecords",
+    "version": 3,
+    "metadata": {
+     "expect": [
+      {
+       "name": "base",
+       "type": "select",
+       "label": "Base",
+       "required": true
+      },
+      {
+       "name": "useColumnId",
+       "type": "boolean",
+       "label": "Use Column ID",
+       "required": true
+      },
+      {
+       "name": "table",
+       "type": "select",
+       "label": "Table",
+       "required": true
+      },
+      {
+       "name": "formula",
+       "type": "text",
+       "label": "Formula"
+      },
+      {
+       "name": "maxRecords",
+       "type": "integer",
+       "label": "Limit"
+      },
+      {
+       "name": "sort",
+       "spec": [
+        {
+         "name": "field",
+         "type": "select",
+         "label": "Field",
+         "dynamic": true,
+         "options": []
+        },
+        {
+         "name": "direction",
+         "type": "select",
+         "label": "Direction",
+         "options": [
+          {
+           "label": "Descending",
+           "value": "desc"
+          },
+          {
+           "label": "Ascending",
+           "value": "asc"
+          }
+         ]
+        }
+       ],
+       "type": "array",
+       "label": "Sort"
+      },
+      {
+       "name": "view",
+       "type": "select",
+       "label": "View"
+      },
+      {
+       "name": "fields",
+       "type": "select",
+       "label": "Output Fields",
+       "multiple": true
+      }
+     ],
+     "restore": {
+      "expect": {
+       "base": {
+        "mode": "chose",
+        "label": "Unite"
+       },
+       "sort": {
+        "mode": "chose"
+       },
+       "view": {
+        "mode": "chose",
+        "label": "Chronic"
+       },
+       "table": {
+        "mode": "chose",
+        "label": "Unite"
+       },
+       "fields": {
+        "mode": "chose"
+       },
+       "useColumnId": {
+        "mode": "chose"
+       }
+      },
+      "parameters": {
+       "__IMTCONN__": {
+        "data": {
+         "scoped": "true",
+         "connection": "airtable3"
+        },
+        "label": "Al Das Clinic (User ID: usr17UaGhbLqsH0hk)"
+       }
+      }
+     },
+     "designer": {
+      "x": 300,
+      "y": 300,
+      "name": "Find Patients Due for Chronic Recall"
+     },
+     "interface": [
+      {
+       "name": "__IMTLENGTH__",
+       "type": "uinteger",
+       "label": "Total number of bundles"
+      },
+      {
+       "name": "__IMTINDEX__",
+       "type": "uinteger",
+       "label": "Bundle order position"
+      },
+      {
+       "name": "id",
+       "type": "text",
+       "label": "ID"
+      },
+      {
+       "name": "createdTime",
+       "type": "date",
+       "label": "Created Time"
+      },
+      {
+       "name": "Patient Name",
+       "type": "text",
+       "label": "Patient Name"
+      },
+      {
+       "name": "Patient Pin",
+       "type": "text",
+       "label": "Patient Pin"
+      },
+      {
+       "name": "Sanoflow Contact Id",
+       "type": "text",
+       "label": "Sanoflow Contact Id"
+      },
+      {
+       "name": "Phone",
+       "type": "text",
+       "label": "Phone"
+      },
+      {
+       "name": "number",
+       "type": "text",
+       "label": "number"
+      },
+      {
+       "name": "Email",
+       "type": "text",
+       "label": "Email"
+      },
+      {
+       "name": "Nationality -t",
+       "type": "text",
+       "label": "Nationality -t"
+      },
+      {
+       "name": "Nationality -t copy",
+       "type": "text",
+       "label": "Nationality -t copy"
+      },
+      {
+       "name": "Gender",
+       "type": "text",
+       "label": "Gender"
+      },
+      {
+       "name": "DOB",
+       "time": false,
+       "type": "date",
+       "label": "DOB"
+      },
+      {
+       "name": "DOB (DD-MM)",
+       "type": "text",
+       "label": "DOB (DD-MM)"
+      },
+      {
+       "name": "Birth Month",
+       "type": "text",
+       "label": "Birth Month"
+      },
+      {
+       "name": "Address",
+       "type": "text",
+       "label": "Address",
+       "multiline": true
+      },
+      {
+       "name": "First Visit Date",
+       "time": false,
+       "type": "date",
+       "label": "First Visit Date"
+      },
+      {
+       "name": "Last Visit Date",
+       "time": false,
+       "type": "date",
+       "label": "Last Visit Date"
+      },
+      {
+       "name": "Dr. Name",
+       "type": "text",
+       "label": "Dr. Name"
+      },
+      {
+       "name": "Dr. Name copy",
+       "type": "text",
+       "label": "Dr. Name copy"
+      },
+      {
+       "name": "Clinic",
+       "type": "text",
+       "label": "Clinic"
+      },
+      {
+       "name": "Department",
+       "type": "text",
+       "label": "Department"
+      },
+      {
+       "name": "Department copy",
+       "type": "text",
+       "label": "Department copy"
+      },
+      {
+       "name": "Follow Up Visit",
+       "type": "text",
+       "label": "Follow Up Visit"
+      },
+      {
+       "name": "Annual Checkup Reminder Date",
+       "type": "text",
+       "label": "Annual Checkup Reminder Date"
+      },
+      {
+       "name": "330 Days",
+       "type": "text",
+       "label": "330 Days"
+      },
+      {
+       "name": "Sano Id",
+       "type": "text",
+       "label": "Sano Id"
+      },
+      {
+       "name": "Phone Number After Dash",
+       "type": "text",
+       "label": "Phone Number After Dash"
+      },
+      {
+       "name": "First Name",
+       "type": "text",
+       "label": "First Name"
+      },
+      {
+       "name": "Last Name",
+       "type": "text",
+       "label": "Last Name"
+      },
+      {
+       "name": "Age",
+       "type": "text",
+       "label": "Age"
+      },
+      {
+       "name": "Birthday Message",
+       "type": "text",
+       "label": "Birthday Message"
+      },
+      {
+       "name": "Birthday Offer",
+       "type": "text",
+       "label": "Birthday Offer"
+      },
+      {
+       "name": "Annual Checkup Reminder",
+       "type": "text",
+       "label": "Annual Checkup Reminder"
+      },
+      {
+       "name": "Pap Smear Reminder",
+       "type": "text",
+       "label": "Pap Smear Reminder"
+      },
+      {
+       "name": "Annual Dental Checkup",
+       "type": "text",
+       "label": "Annual Dental Checkup"
+      },
+      {
+       "name": "Skin Cancer Screening & Mole Check",
+       "type": "text",
+       "label": "Skin Cancer Screening & Mole Check"
+      },
+      {
+       "name": "Colonoscopy Screening",
+       "type": "text",
+       "label": "Colonoscopy Screening"
+      },
+      {
+       "name": "Pre-Menopause Assessment",
+       "type": "text",
+       "label": "Pre-Menopause Assessment"
+      },
+      {
+       "name": "Menopause Assessment",
+       "type": "text",
+       "label": "Menopause Assessment"
+      },
+      {
+       "name": "Dormant Reactivation Message",
+       "type": "text",
+       "label": "Dormant Reactivation Message"
+      },
+      {
+       "name": "Medical Records Data",
+       "spec": {
+        "label": "Record ID"
+       },
+       "type": "array",
+       "label": "Medical Records Data"
+      },
+      {
+       "name": "Diagnosis (from Medical Records Data)",
+       "type": "array",
+       "label": "Diagnosis (from Medical Records Data)"
+      },
+      {
+       "name": "Count (Medical Records Data)",
+       "type": "number",
+       "label": "Count (Medical Records Data)"
+      },
+      {
+       "name": "Chronic Diagnosis",
+       "spec": {
+        "label": "Record ID"
+       },
+       "type": "array",
+       "label": "Chronic Diagnosis"
+      },
+      {
+       "name": "Top 30 (from Chronic Diagnosis)",
+       "type": "array",
+       "label": "Top 30 (from Chronic Diagnosis)"
+      },
+      {
+       "name": "Mapped condition group (from Chronic Diagnosis)",
+       "type": "array",
+       "label": "Mapped condition group (from Chronic Diagnosis)"
+      },
+      {
+       "name": "Typical visit CPT (established) (from Chronic Diagnosis)",
+       "type": "array",
+       "label": "Typical visit CPT (established) (from Chronic Diagnosis)"
+      },
+      {
+       "name": "Monitoring procedures/other (CPT) (from Chronic Diagnosis)",
+       "type": "array",
+       "label": "Monitoring procedures/other (CPT) (from Chronic Diagnosis)"
+      },
+      {
+       "name": "Monitoring labs (CPT) (from Chronic Diagnosis)",
+       "type": "array",
+       "label": "Monitoring labs (CPT) (from Chronic Diagnosis)"
+      },
+      {
+       "name": "Regular medication (examples) (from Chronic Diagnosis)",
+       "type": "array",
+       "label": "Regular medication (examples) (from Chronic Diagnosis)"
+      },
+      {
+       "name": "Follow-up interval (for chronic monitoring) (from Chronic Diagnosis)",
+       "type": "array",
+       "label": "Follow-up interval (for chronic monitoring) (from Chronic Diagnosis)"
+      },
+      {
+       "name": "SHORT DESCRIPTION (VALID ICD-10 FY2026) (from Chronic Diagnosis)",
+       "type": "array",
+       "label": "SHORT DESCRIPTION (VALID ICD-10 FY2026) (from Chronic Diagnosis)"
+      },
+      {
+       "name": "Last Modified By",
+       "type": "date",
+       "label": "Last Modified By"
+      },
+      {
+       "name": "Visit Date (from Medical Records Data)",
+       "type": "array",
+       "label": "Visit Date (from Medical Records Data)"
+      },
+      {
+       "name": "Dosage Days (from Medical Records Data)",
+       "type": "array",
+       "label": "Dosage Days (from Medical Records Data)"
+      },
+      {
+       "name": "60 days >",
+       "type": "text",
+       "label": "60 days >"
+      },
+      {
+       "name": "Medication (from Medical Records Data)",
+       "type": "array",
+       "label": "Medication (from Medical Records Data)"
+      },
+      {
+       "name": "Name (from Medication) (from Medical Records Data)",
+       "type": "array",
+       "label": "Name (from Medication) (from Medical Records Data)"
+      },
+      {
+       "name": "Medication",
+       "spec": {
+        "label": "Record ID"
+       },
+       "type": "array",
+       "label": "Medication"
+      },
+      {
+       "name": "Trade Name (from Medication)",
+       "type": "array",
+       "label": "Trade Name (from Medication)"
+      },
+      {
+       "name": "Medicine Name",
+       "type": "text",
+       "label": "Medicine Name",
+       "multiline": true
+      },
+      {
+       "name": "Chronic (from Medical Records Data)",
+       "type": "array",
+       "label": "Chronic (from Medical Records Data)"
+      },
+      {
+       "name": "nmdr-25",
+       "type": "boolean",
+       "label": "nmdr-25"
+      },
+      {
+       "name": "Insurance Plan",
+       "type": "text",
+       "label": "Insurance Plan"
+      },
+      {
+       "name": "Dosage Days (from Medical Records Data) 2",
+       "type": "array",
+       "label": "Dosage Days (from Medical Records Data) 2"
+      },
+      {
+       "name": "Time Elapsed (Days)",
+       "type": "text",
+       "label": "Time Elapsed (Days)"
+      },
+      {
+       "name": "Created",
+       "type": "date",
+       "label": "Created"
+      },
+      {
+       "name": "Created 2",
+       "type": "date",
+       "label": "Created 2"
+      },
+      {
+       "name": "Chronic Recall Sent On",
+       "time": false,
+       "type": "date",
+       "label": "Chronic Recall Sent On"
+      },
+      {
+       "name": "Chronic Recall Condition",
+       "type": "text",
+       "label": "Chronic Recall Condition"
+      },
+      {
+       "name": "Chronic Recall Groups",
+       "type": "text",
+       "label": "Chronic Recall Groups"
+      },
+      {
+       "name": "Chronic Recall Primary Condition",
+       "type": "text",
+       "label": "Chronic Recall Primary Condition"
+      },
+      {
+       "name": "Chronic Recall Eligible",
+       "type": "text",
+       "label": "Chronic Recall Eligible"
+      },
+      {
+       "name": "Chronic Recall Template ID",
+       "type": "text",
+       "label": "Chronic Recall Template ID"
+      },
+      {
+       "name": "Primary Diagnosis (from Medical Records Data)",
+       "type": "array",
+       "label": "Primary Diagnosis (from Medical Records Data)"
+      }
+     ],
+     "parameters": [
+      {
+       "name": "__IMTCONN__",
+       "type": "account:airtable3,airtable2",
+       "label": "Connection",
+       "required": true
+      }
+     ]
+    },
+    "parameters": {
+     "__IMTCONN__": 6448605
+    }
+   },
+   {
+    "id": 2,
+    "filter": {
+     "name": "Destination phone must not be empty",
+     "conditions": [
+      [
+       {
+        "a": "{{1.Phone}}",
+        "o": "exist"
+       }
+      ]
+     ]
+    },
+    "mapper": {
+     "ca": "",
+     "qs": [],
+     "url": "https://developers.sanoflow.io/api/v1.1/messages/whatsapp/send-template",
+     "data": "{\n  \"template_id\": {{1.`Chronic Recall Template ID`}},\n  \"phone\": \"{{1.Phone}}\",\n  \"mapper_value\": [\n    \"{{ifempty(first(split(startcase(lower(1.`Patient Name`)); space)); \"Patient\")}}\"\n  ]\n}",
+     "gzip": true,
+     "method": "post",
+     "headers": [
+      {
+       "name": "Content-type",
+       "value": "application/json"
+      },
+      {
+       "name": "access-token",
+       "value": "[REDACTED]"
+      }
+     ],
+     "timeout": "",
+     "useMtls": false,
+     "authPass": "",
+     "authUser": "",
+     "bodyType": "raw",
+     "contentType": "application/json",
+     "serializeUrl": false,
+     "shareCookies": false,
+     "parseResponse": true,
+     "followRedirect": true,
+     "useQuerystring": false,
+     "followAllRedirects": true,
+     "rejectUnauthorized": true
+    },
+    "module": "http:ActionSendData",
+    "version": 3,
+    "metadata": {
+     "expect": [
+      {
+       "name": "url",
+       "type": "url",
+       "label": "URL",
+       "required": true
+      },
+      {
+       "name": "serializeUrl",
+       "type": "boolean",
+       "label": "Serialize URL",
+       "required": true
+      },
+      {
+       "name": "method",
+       "type": "select",
+       "label": "Method",
+       "required": true,
+       "validate": {
+        "enum": [
+         "get",
+         "head",
+         "post",
+         "put",
+         "patch",
+         "delete",
+         "options"
+        ]
+       }
+      },
+      {
+       "name": "headers",
+       "spec": [
+        {
+         "name": "name",
+         "type": "text",
+         "label": "Name",
+         "required": true
+        },
+        {
+         "name": "value",
+         "type": "text",
+         "label": "Value"
+        }
+       ],
+       "type": "array",
+       "label": "Headers"
+      },
+      {
+       "name": "qs",
+       "spec": [
+        {
+         "name": "name",
+         "type": "text",
+         "label": "Name",
+         "required": true
+        },
+        {
+         "name": "value",
+         "type": "text",
+         "label": "Value"
+        }
+       ],
+       "type": "array",
+       "label": "Query String"
+      },
+      {
+       "name": "bodyType",
+       "type": "select",
+       "label": "Body type",
+       "validate": {
+        "enum": [
+         "raw",
+         "x_www_form_urlencoded",
+         "multipart_form_data"
+        ]
+       }
+      },
+      {
+       "name": "parseResponse",
+       "type": "boolean",
+       "label": "Parse response",
+       "required": true
+      },
+      {
+       "name": "authUser",
+       "type": "text",
+       "label": "User name"
+      },
+      {
+       "name": "authPass",
+       "type": "password",
+       "label": "Password"
+      },
+      {
+       "name": "timeout",
+       "type": "uinteger",
+       "label": "Timeout",
+       "validate": {
+        "max": 300,
+        "min": 1
+       }
+      },
+      {
+       "name": "shareCookies",
+       "type": "boolean",
+       "label": "Share cookies with other HTTP modules",
+       "required": true
+      },
+      {
+       "name": "ca",
+       "type": "cert",
+       "label": "Self-signed certificate"
+      },
+      {
+       "name": "rejectUnauthorized",
+       "type": "boolean",
+       "label": "Reject connections that are using unverified (self-signed) certificates",
+       "required": true
+      },
+      {
+       "name": "followRedirect",
+       "type": "boolean",
+       "label": "Follow redirect",
+       "required": true
+      },
+      {
+       "name": "useQuerystring",
+       "type": "boolean",
+       "label": "Disable serialization of multiple same query string keys as arrays",
+       "required": true
+      },
+      {
+       "name": "gzip",
+       "type": "boolean",
+       "label": "Request compressed content",
+       "required": true
+      },
+      {
+       "name": "useMtls",
+       "type": "boolean",
+       "label": "Use Mutual TLS",
+       "required": true
+      },
+      {
+       "name": "contentType",
+       "type": "select",
+       "label": "Content type",
+       "validate": {
+        "enum": [
+         "text/plain",
+         "application/json",
+         "application/xml",
+         "text/xml",
+         "text/html",
+         "custom"
+        ]
+       }
+      },
+      {
+       "name": "data",
+       "type": "buffer",
+       "label": "Request content"
+      },
+      {
+       "name": "followAllRedirects",
+       "type": "boolean",
+       "label": "Follow all redirect",
+       "required": true
+      }
+     ],
+     "restore": {
+      "expect": {
+       "qs": {
+        "mode": "chose"
+       },
+       "method": {
+        "mode": "chose",
+        "label": "POST"
+       },
+       "headers": {
+        "mode": "chose",
+        "items": [
+         null,
+         null
+        ]
+       },
+       "bodyType": {
+        "label": "Raw"
+       },
+       "contentType": {
+        "label": "JSON (application/json)"
+       }
+      }
+     },
+     "advanced": true,
+     "designer": {
+      "x": 600,
+      "y": 300,
+      "name": "Send Template"
+     },
+     "parameters": [
+      {
+       "name": "handleErrors",
+       "type": "boolean",
+       "label": "Evaluate all states as errors (except for 2xx and 3xx )",
+       "required": true
+      },
+      {
+       "name": "useNewZLibDeCompress",
+       "type": "hidden"
+      }
+     ]
+    },
+    "parameters": {
+     "handleErrors": true,
+     "useNewZLibDeCompress": true
+    }
+   },
+   {
+    "id": 3,
+    "mapper": {
+     "base": "appkOnjPr1SMD83CP",
+     "table": "tbldCbNEKeF5NrTCs",
+     "record": {
+      "fld01KXt1biCwWS55": "{{now}}",
+      "fld6a8W0nUzktk9o5": "{{1.`Last Visit Date`}}",
+      "fldCn3wXKEXGRxmMp": "{{1.`Patient Name`}}",
+      "fldFD99GmktfyJ7Xa": "{{1.id}}",
+      "fldFulU3YySov9d4P": "{{1.Phone}}",
+      "fldJMpPFmXguYJTp0": "No",
+      "fldO6ql2L51mNEmJt": "Live",
+      "fldWUAkSRmbstj93Q": "Sent",
+      "fldY4zg5P4pTRFD90": "No",
+      "fldczA3OSrSQAEFE2": "{{1.`Time Elapsed (Days)`}}",
+      "fldmqIT40DYyGAe8q": "{{1.`Patient Pin`}}",
+      "fldoG6VR5IIm5I2b5": "Sent to: {{1.Phone}}",
+      "fldvLFVogNna9clyG": "{{1.`Chronic Recall Primary Condition`}}",
+      "fldzdrQ26RpvigSUE": "{{1.`Chronic Recall Template ID`}}"
+     },
+     "typecast": true,
+     "useColumnId": false
+    },
+    "module": "airtable:ActionCreateRecord",
+    "version": 3,
+    "metadata": {
+     "expect": [
+      {
+       "name": "base",
+       "type": "select",
+       "label": "Base",
+       "required": true
+      },
+      {
+       "name": "typecast",
+       "type": "boolean",
+       "label": "Smart links",
+       "required": true
+      },
+      {
+       "name": "useColumnId",
+       "type": "boolean",
+       "label": "Use Column ID",
+       "required": true
+      },
+      {
+       "name": "table",
+       "type": "select",
+       "label": "Table",
+       "required": true
+      },
+      {
+       "name": "record",
+       "spec": [
+        {
+         "name": "fldCn3wXKEXGRxmMp",
+         "type": "text",
+         "label": "Patient Name"
+        },
+        {
+         "name": "fldmqIT40DYyGAe8q",
+         "type": "text",
+         "label": "Patient Pin"
+        },
+        {
+         "name": "fldFD99GmktfyJ7Xa",
+         "type": "text",
+         "label": "Unite Record ID"
+        },
+        {
+         "name": "fldFulU3YySov9d4P",
+         "type": "text",
+         "label": "Phone"
+        },
+        {
+         "mode": "edit",
+         "name": "fldvLFVogNna9clyG",
+         "type": "select",
+         "label": "Condition"
+        },
+        {
+         "name": "fldzdrQ26RpvigSUE",
+         "type": "text",
+         "label": "Template ID"
+        },
+        {
+         "name": "fld6a8W0nUzktk9o5",
+         "time": false,
+         "type": "date",
+         "label": "Last Visit Date"
+        },
+        {
+         "name": "fldczA3OSrSQAEFE2",
+         "type": "number",
+         "label": "Days Since Last Visit"
+        },
+        {
+         "name": "fld01KXt1biCwWS55",
+         "time": true,
+         "type": "date",
+         "label": "Message Sent On"
+        },
+        {
+         "mode": "edit",
+         "name": "fldO6ql2L51mNEmJt",
+         "type": "select",
+         "label": "Send Mode"
+        },
+        {
+         "mode": "edit",
+         "name": "fldWUAkSRmbstj93Q",
+         "type": "select",
+         "label": "Send Status"
+        },
+        {
+         "mode": "edit",
+         "name": "fldY4zg5P4pTRFD90",
+         "type": "select",
+         "label": "Patient Replied"
+        },
+        {
+         "name": "fld1VuzlSX4IrKblI",
+         "time": false,
+         "type": "date",
+         "label": "Reply Date"
+        },
+        {
+         "mode": "edit",
+         "name": "fldJMpPFmXguYJTp0",
+         "type": "select",
+         "label": "Appointment Booked"
+        },
+        {
+         "name": "fldhv2BcULV9m5k97",
+         "time": false,
+         "type": "date",
+         "label": "Booking Date"
+        },
+        {
+         "name": "fldeAsuTofDH8LkdO",
+         "type": "text",
+         "label": "Assigned for Follow-Up"
+        },
+        {
+         "name": "fldoG6VR5IIm5I2b5",
+         "type": "text",
+         "label": "Notes"
+        }
+       ],
+       "type": "collection",
+       "label": "Record"
+      }
+     ],
+     "restore": {
+      "expect": {
+       "base": {
+        "label": "Campaigns - Message Log"
+       },
+       "table": {
+        "label": "Chronic Recall Messages",
+        "nested": [
+         {
+          "name": "record",
+          "spec": [
+           {
+            "name": "fldCn3wXKEXGRxmMp",
+            "type": "text",
+            "label": "Patient Name"
+           },
+           {
+            "name": "fldmqIT40DYyGAe8q",
+            "type": "text",
+            "label": "Patient Pin"
+           },
+           {
+            "name": "fldFD99GmktfyJ7Xa",
+            "type": "text",
+            "label": "Unite Record ID"
+           },
+           {
+            "name": "fldFulU3YySov9d4P",
+            "type": "text",
+            "label": "Phone"
+           },
+           {
+            "mode": "edit",
+            "name": "fldvLFVogNna9clyG",
+            "type": "select",
+            "label": "Condition",
+            "dynamic": true,
+            "options": [
+             {
+              "label": "Hypertension / Hypertensive disease",
+              "value": "Hypertension / Hypertensive disease"
+             },
+             {
+              "label": "Diabetes mellitus (Type 1/2/other)",
+              "value": "Diabetes mellitus (Type 1/2/other)"
+             },
+             {
+              "label": "Hyperlipidemia",
+              "value": "Hyperlipidemia"
+             },
+             {
+              "label": "Hypothyroidism",
+              "value": "Hypothyroidism"
+             },
+             {
+              "label": "Chronic kidney disease",
+              "value": "Chronic kidney disease"
+             },
+             {
+              "label": "Asthma",
+              "value": "Asthma"
+             },
+             {
+              "label": "COPD",
+              "value": "COPD"
+             },
+             {
+              "label": "Rheumatoid arthritis",
+              "value": "Rheumatoid arthritis"
+             },
+             {
+              "label": "Atrial fibrillation / flutter",
+              "value": "Atrial fibrillation / flutter"
+             },
+             {
+              "label": "Epilepsy",
+              "value": "Epilepsy"
+             }
+            ],
+            "validate": false
+           },
+           {
+            "name": "fldzdrQ26RpvigSUE",
+            "type": "text",
+            "label": "Template ID"
+           },
+           {
+            "name": "fld6a8W0nUzktk9o5",
+            "time": false,
+            "type": "date",
+            "label": "Last Visit Date"
+           },
+           {
+            "name": "fldczA3OSrSQAEFE2",
+            "type": "number",
+            "label": "Days Since Last Visit"
+           },
+           {
+            "name": "fld01KXt1biCwWS55",
+            "time": true,
+            "type": "date",
+            "label": "Message Sent On"
+           },
+           {
+            "mode": "edit",
+            "name": "fldO6ql2L51mNEmJt",
+            "type": "select",
+            "label": "Send Mode",
+            "dynamic": true,
+            "options": [
+             {
+              "label": "Test",
+              "value": "Test"
+             },
+             {
+              "label": "Live",
+              "value": "Live"
+             }
+            ],
+            "validate": false
+           },
+           {
+            "mode": "edit",
+            "name": "fldWUAkSRmbstj93Q",
+            "type": "select",
+            "label": "Send Status",
+            "dynamic": true,
+            "options": [
+             {
+              "label": "Sent",
+              "value": "Sent"
+             },
+             {
+              "label": "Failed",
+              "value": "Failed"
+             }
+            ],
+            "validate": false
+           },
+           {
+            "mode": "edit",
+            "name": "fldY4zg5P4pTRFD90",
+            "type": "select",
+            "label": "Patient Replied",
+            "dynamic": true,
+            "options": [
+             {
+              "label": "Yes",
+              "value": "Yes"
+             },
+             {
+              "label": "No",
+              "value": "No"
+             }
+            ],
+            "validate": false
+           },
+           {
+            "name": "fld1VuzlSX4IrKblI",
+            "time": false,
+            "type": "date",
+            "label": "Reply Date"
+           },
+           {
+            "mode": "edit",
+            "name": "fldJMpPFmXguYJTp0",
+            "type": "select",
+            "label": "Appointment Booked",
+            "dynamic": true,
+            "options": [
+             {
+              "label": "Yes",
+              "value": "Yes"
+             },
+             {
+              "label": "No",
+              "value": "No"
+             }
+            ],
+            "validate": false
+           },
+           {
+            "name": "fldhv2BcULV9m5k97",
+            "time": false,
+            "type": "date",
+            "label": "Booking Date"
+           },
+           {
+            "name": "fldeAsuTofDH8LkdO",
+            "type": "text",
+            "label": "Assigned for Follow-Up"
+           },
+           {
+            "name": "fldoG6VR5IIm5I2b5",
+            "type": "text",
+            "label": "Notes",
+            "multiline": true
+           }
+          ],
+          "type": "collection",
+          "label": "Record"
+         }
+        ]
+       },
+       "record": {
+        "nested": {
+         "fldJMpPFmXguYJTp0": {
+          "mode": "edit"
+         },
+         "fldO6ql2L51mNEmJt": {
+          "mode": "chose",
+          "label": "Live"
+         },
+         "fldWUAkSRmbstj93Q": {
+          "mode": "edit"
+         },
+         "fldY4zg5P4pTRFD90": {
+          "mode": "edit"
+         },
+         "fldvLFVogNna9clyG": {
+          "mode": "edit"
+         }
+        }
+       },
+       "typecast": {
+        "mode": "chose"
+       },
+       "useColumnId": {
+        "mode": "chose"
+       }
+      },
+      "parameters": {
+       "__IMTCONN__": {
+        "data": {
+         "scoped": "true",
+         "connection": "airtable3"
+        },
+        "label": "Al Das Clinic (User ID: usr17UaGhbLqsH0hk)"
+       }
+      }
+     },
+     "designer": {
+      "x": 900,
+      "y": 300,
+      "name": "Log Send"
+     },
+     "interface": [
+      {
+       "name": "id",
+       "type": "text",
+       "label": "ID"
+      },
+      {
+       "name": "createdTime",
+       "type": "date",
+       "label": "Created Time"
+      },
+      {
+       "name": "Patient Name",
+       "type": "text",
+       "label": "Patient Name"
+      },
+      {
+       "name": "Patient Pin",
+       "type": "text",
+       "label": "Patient Pin"
+      },
+      {
+       "name": "Unite Record ID",
+       "type": "text",
+       "label": "Unite Record ID"
+      },
+      {
+       "name": "Phone",
+       "type": "text",
+       "label": "Phone"
+      },
+      {
+       "name": "Condition",
+       "type": "text",
+       "label": "Condition"
+      },
+      {
+       "name": "Template ID",
+       "type": "text",
+       "label": "Template ID"
+      },
+      {
+       "name": "Last Visit Date",
+       "time": false,
+       "type": "date",
+       "label": "Last Visit Date"
+      },
+      {
+       "name": "Days Since Last Visit",
+       "type": "number",
+       "label": "Days Since Last Visit"
+      },
+      {
+       "name": "Message Sent On",
+       "time": true,
+       "type": "date",
+       "label": "Message Sent On"
+      },
+      {
+       "name": "Send Mode",
+       "type": "text",
+       "label": "Send Mode"
+      },
+      {
+       "name": "Send Status",
+       "type": "text",
+       "label": "Send Status"
+      },
+      {
+       "name": "Patient Replied",
+       "type": "text",
+       "label": "Patient Replied"
+      },
+      {
+       "name": "Reply Date",
+       "time": false,
+       "type": "date",
+       "label": "Reply Date"
+      },
+      {
+       "name": "Appointment Booked",
+       "type": "text",
+       "label": "Appointment Booked"
+      },
+      {
+       "name": "Booking Date",
+       "time": false,
+       "type": "date",
+       "label": "Booking Date"
+      },
+      {
+       "name": "Notes",
+       "type": "text",
+       "label": "Notes",
+       "multiline": true
+      },
+      {
+       "name": "Days Since Message Sent",
+       "type": "text",
+       "label": "Days Since Message Sent"
+      },
+      {
+       "name": "Follow-Up Due",
+       "type": "text",
+       "label": "Follow-Up Due"
+      },
+      {
+       "name": "Follow Up Status",
+       "type": "text",
+       "label": "Follow Up Status"
+      },
+      {
+       "name": "Recall Overdue Flag",
+       "type": "text",
+       "label": "Recall Overdue Flag"
+      },
+      {
+       "name": "Week Starting",
+       "type": "text",
+       "label": "Week Starting"
+      }
+     ],
+     "parameters": [
+      {
+       "name": "__IMTCONN__",
+       "type": "account:airtable3,airtable2",
+       "label": "Connection",
+       "required": true
+      }
+     ]
+    },
+    "parameters": {
+     "__IMTCONN__": 6448605
+    }
+   },
+   {
+    "id": 4,
+    "mapper": {
+     "id": "{{1.id}}",
+     "base": "app7QJ2pvhADHQeBP",
+     "table": "tbl9856qJP9S7OEqB",
+     "record": {
+      "fldGJULCGakWZOt5S": "{{formatDate(now; \"YYYY-MM-DD\")}}",
+      "flduLqrsCl6CvaHec": "{{1.`Chronic Recall Primary Condition`}}"
+     },
+     "typecast": true,
+     "useColumnId": false
+    },
+    "module": "airtable:ActionUpdateRecords",
+    "version": 3,
+    "metadata": {
+     "expect": [
+      {
+       "name": "base",
+       "type": "select",
+       "label": "Base",
+       "required": true
+      },
+      {
+       "name": "typecast",
+       "type": "boolean",
+       "label": "Smart links",
+       "required": true
+      },
+      {
+       "name": "useColumnId",
+       "type": "boolean",
+       "label": "Use Column ID",
+       "required": true
+      },
+      {
+       "name": "table",
+       "type": "select",
+       "label": "Table",
+       "required": true
+      },
+      {
+       "name": "id",
+       "type": "text",
+       "label": "Record ID",
+       "required": true
+      },
+      {
+       "name": "record",
+       "spec": [
+        {
+         "name": "fldcF6Tlh1q8SYNsI",
+         "type": "text",
+         "label": "Patient Name"
+        },
+        {
+         "name": "fldGW2uKUvJ8Go98Q",
+         "type": "text",
+         "label": "Patient Pin"
+        },
+        {
+         "name": "fldm649QE0vG2RxkG",
+         "type": "text",
+         "label": "Sanoflow Contact Id"
+        },
+        {
+         "name": "flddF5X0a7DtDJRNf",
+         "type": "text",
+         "label": "Phone"
+        },
+        {
+         "name": "fldikPNTGpc52GqOW",
+         "type": "text",
+         "label": "Email"
+        },
+        {
+         "name": "fldWCINbQSFZUrBBd",
+         "type": "text",
+         "label": "Nationality -t"
+        },
+        {
+         "mode": "edit",
+         "name": "fldb5otM9QGYPGcfY",
+         "type": "select",
+         "label": "Nationality -t copy"
+        },
+        {
+         "mode": "edit",
+         "name": "fldXgsBUYTP2xvUv1",
+         "type": "select",
+         "label": "Gender"
+        },
+        {
+         "name": "fld1Zt1g7IGjk2mOX",
+         "time": false,
+         "type": "date",
+         "label": "DOB"
+        },
+        {
+         "name": "fldluzXiKHaK4RfaW",
+         "type": "text",
+         "label": "Address"
+        },
+        {
+         "name": "fldZHFmhmfL6INxWR",
+         "time": false,
+         "type": "date",
+         "label": "First Visit Date"
+        },
+        {
+         "name": "fldwTnnvCipJeVvco",
+         "time": false,
+         "type": "date",
+         "label": "Last Visit Date"
+        },
+        {
+         "name": "fld0rZhF2bjTxyiNS",
+         "type": "text",
+         "label": "Dr. Name"
+        },
+        {
+         "mode": "edit",
+         "name": "fldgBy5vqiCQacYs5",
+         "type": "select",
+         "label": "Dr. Name copy"
+        },
+        {
+         "mode": "edit",
+         "name": "fldsA7v4aGIVzv0S8",
+         "type": "select",
+         "label": "Clinic"
+        },
+        {
+         "name": "fldHk1eGk61Hqr3yB",
+         "type": "text",
+         "label": "Department"
+        },
+        {
+         "mode": "edit",
+         "name": "fldFH9a3OL0fGEqNu",
+         "type": "select",
+         "label": "Department copy"
+        },
+        {
+         "name": "fldgSGQs00acVQccE",
+         "type": "text",
+         "label": "Follow Up Visit"
+        },
+        {
+         "mode": "edit",
+         "name": "fldKENME489G7LCbC",
+         "type": "select",
+         "label": "Sano Id"
+        },
+        {
+         "mode": "edit",
+         "name": "fldRoTvJFjvyGiPIK",
+         "type": "select",
+         "label": "Birthday Message"
+        },
+        {
+         "mode": "edit",
+         "name": "fldL02KcYhX8DUbpY",
+         "type": "select",
+         "label": "Birthday Offer"
+        },
+        {
+         "mode": "edit",
+         "name": "fldrEBcMdlyc2wD1Q",
+         "type": "select",
+         "label": "Annual Checkup Reminder"
+        },
+        {
+         "mode": "edit",
+         "name": "fldnjiYH4flVeGtJ9",
+         "type": "select",
+         "label": "Pap Smear Reminder"
+        },
+        {
+         "mode": "edit",
+         "name": "fldPTE2UPWTwh9E6l",
+         "type": "select",
+         "label": "Annual Dental Checkup"
+        },
+        {
+         "mode": "edit",
+         "name": "fldOmR7MIOAPc6Vac",
+         "type": "select",
+         "label": "Skin Cancer Screening & Mole Check"
+        },
+        {
+         "mode": "edit",
+         "name": "fldCO5R7Dm4KnI2O9",
+         "type": "select",
+         "label": "Colonoscopy Screening"
+        },
+        {
+         "mode": "edit",
+         "name": "fldE9tH7TLFk52XKa",
+         "type": "select",
+         "label": "Pre-Menopause Assessment"
+        },
+        {
+         "mode": "edit",
+         "name": "fldUPXnKkW8PvMntH",
+         "type": "select",
+         "label": "Menopause Assessment"
+        },
+        {
+         "mode": "edit",
+         "name": "fld6pcu9FExk8aDyA",
+         "type": "select",
+         "label": "Dormant Reactivation Message"
+        },
+        {
+         "name": "flda3KM4KzJ9ANR7E",
+         "spec": {
+          "name": "value",
+          "label": "Record ID"
+         },
+         "type": "array",
+         "label": "Medical Records Data"
+        },
+        {
+         "name": "fld9gw5nJNzgywljY",
+         "spec": {
+          "name": "value",
+          "label": "Record ID"
+         },
+         "type": "array",
+         "label": "Chronic Diagnosis"
+        },
+        {
+         "mode": "edit",
+         "name": "fldXbiS53VgVfJaq3",
+         "type": "select",
+         "label": "60 days >"
+        },
+        {
+         "name": "fldZgI4a9JcG7Bi1L",
+         "spec": {
+          "name": "value",
+          "label": "Record ID"
+         },
+         "type": "array",
+         "label": "Medication"
+        },
+        {
+         "name": "fldWEUhXYYrN0Pstt",
+         "type": "text",
+         "label": "Medicine Name"
+        },
+        {
+         "name": "flddCd5RFHVjD4uwb",
+         "type": "boolean",
+         "label": "nmdr-25"
+        },
+        {
+         "mode": "edit",
+         "name": "fldsXPzDxNdHqwET8",
+         "type": "select",
+         "label": "Insurance Plan"
+        },
+        {
+         "name": "fldGJULCGakWZOt5S",
+         "time": false,
+         "type": "date",
+         "label": "Chronic Recall Sent On"
+        },
+        {
+         "name": "flduLqrsCl6CvaHec",
+         "type": "text",
+         "label": "Chronic Recall Condition"
+        }
+       ],
+       "type": "collection",
+       "label": "Record"
+      }
+     ],
+     "restore": {
+      "expect": {
+       "base": {
+        "label": "Unite"
+       },
+       "table": {
+        "label": "Unite"
+       },
+       "record": {
+        "nested": {
+         "fld6pcu9FExk8aDyA": {
+          "mode": "edit"
+         },
+         "fld9gw5nJNzgywljY": {
+          "mode": "chose"
+         },
+         "fldCO5R7Dm4KnI2O9": {
+          "mode": "edit"
+         },
+         "fldE9tH7TLFk52XKa": {
+          "mode": "edit"
+         },
+         "fldFH9a3OL0fGEqNu": {
+          "mode": "edit"
+         },
+         "fldKENME489G7LCbC": {
+          "mode": "edit"
+         },
+         "fldL02KcYhX8DUbpY": {
+          "mode": "edit"
+         },
+         "fldOmR7MIOAPc6Vac": {
+          "mode": "edit"
+         },
+         "fldPTE2UPWTwh9E6l": {
+          "mode": "edit"
+         },
+         "fldRoTvJFjvyGiPIK": {
+          "mode": "edit"
+         },
+         "fldUPXnKkW8PvMntH": {
+          "mode": "edit"
+         },
+         "fldXbiS53VgVfJaq3": {
+          "mode": "edit"
+         },
+         "fldXgsBUYTP2xvUv1": {
+          "mode": "edit"
+         },
+         "fldZgI4a9JcG7Bi1L": {
+          "mode": "chose"
+         },
+         "flda3KM4KzJ9ANR7E": {
+          "mode": "chose"
+         },
+         "fldb5otM9QGYPGcfY": {
+          "mode": "edit"
+         },
+         "flddCd5RFHVjD4uwb": {
+          "mode": "chose"
+         },
+         "fldgBy5vqiCQacYs5": {
+          "mode": "edit"
+         },
+         "fldnjiYH4flVeGtJ9": {
+          "mode": "edit"
+         },
+         "fldrEBcMdlyc2wD1Q": {
+          "mode": "edit"
+         },
+         "fldsA7v4aGIVzv0S8": {
+          "mode": "edit"
+         },
+         "fldsXPzDxNdHqwET8": {
+          "mode": "edit"
+         }
+        }
+       },
+       "typecast": {
+        "mode": "chose"
+       },
+       "useColumnId": {
+        "mode": "chose"
+       }
+      },
+      "parameters": {
+       "__IMTCONN__": {
+        "data": {
+         "scoped": "true",
+         "connection": "airtable3"
+        },
+        "label": "Al Das Clinic (User ID: usr17UaGhbLqsH0hk)"
+       }
+      }
+     },
+     "designer": {
+      "x": 1200,
+      "y": 300,
+      "name": "Mark Recall Sent (Live only)"
+     },
+     "interface": [
+      {
+       "name": "id",
+       "type": "text",
+       "label": "ID"
+      },
+      {
+       "name": "createdTime",
+       "type": "date",
+       "label": "Created Time"
+      },
+      {
+       "name": "Patient Name",
+       "type": "text",
+       "label": "Patient Name"
+      },
+      {
+       "name": "Patient Pin",
+       "type": "text",
+       "label": "Patient Pin"
+      },
+      {
+       "name": "Sanoflow Contact Id",
+       "type": "text",
+       "label": "Sanoflow Contact Id"
+      },
+      {
+       "name": "Phone",
+       "type": "text",
+       "label": "Phone"
+      },
+      {
+       "name": "number",
+       "type": "text",
+       "label": "number"
+      },
+      {
+       "name": "Email",
+       "type": "text",
+       "label": "Email"
+      },
+      {
+       "name": "Nationality -t",
+       "type": "text",
+       "label": "Nationality -t"
+      },
+      {
+       "name": "Nationality -t copy",
+       "type": "text",
+       "label": "Nationality -t copy"
+      },
+      {
+       "name": "Gender",
+       "type": "text",
+       "label": "Gender"
+      },
+      {
+       "name": "DOB",
+       "time": false,
+       "type": "date",
+       "label": "DOB"
+      },
+      {
+       "name": "DOB (DD-MM)",
+       "type": "text",
+       "label": "DOB (DD-MM)"
+      },
+      {
+       "name": "Birth Month",
+       "type": "text",
+       "label": "Birth Month"
+      },
+      {
+       "name": "Address",
+       "type": "text",
+       "label": "Address",
+       "multiline": true
+      },
+      {
+       "name": "First Visit Date",
+       "time": false,
+       "type": "date",
+       "label": "First Visit Date"
+      },
+      {
+       "name": "Last Visit Date",
+       "time": false,
+       "type": "date",
+       "label": "Last Visit Date"
+      },
+      {
+       "name": "Dr. Name",
+       "type": "text",
+       "label": "Dr. Name"
+      },
+      {
+       "name": "Dr. Name copy",
+       "type": "text",
+       "label": "Dr. Name copy"
+      },
+      {
+       "name": "Clinic",
+       "type": "text",
+       "label": "Clinic"
+      },
+      {
+       "name": "Department",
+       "type": "text",
+       "label": "Department"
+      },
+      {
+       "name": "Department copy",
+       "type": "text",
+       "label": "Department copy"
+      },
+      {
+       "name": "Follow Up Visit",
+       "type": "text",
+       "label": "Follow Up Visit"
+      },
+      {
+       "name": "Annual Checkup Reminder Date",
+       "type": "text",
+       "label": "Annual Checkup Reminder Date"
+      },
+      {
+       "name": "330 Days",
+       "type": "text",
+       "label": "330 Days"
+      },
+      {
+       "name": "Sano Id",
+       "type": "text",
+       "label": "Sano Id"
+      },
+      {
+       "name": "Phone Number After Dash",
+       "type": "text",
+       "label": "Phone Number After Dash"
+      },
+      {
+       "name": "First Name",
+       "type": "text",
+       "label": "First Name"
+      },
+      {
+       "name": "Last Name",
+       "type": "text",
+       "label": "Last Name"
+      },
+      {
+       "name": "Age",
+       "type": "text",
+       "label": "Age"
+      },
+      {
+       "name": "Birthday Message",
+       "type": "text",
+       "label": "Birthday Message"
+      },
+      {
+       "name": "Birthday Offer",
+       "type": "text",
+       "label": "Birthday Offer"
+      },
+      {
+       "name": "Annual Checkup Reminder",
+       "type": "text",
+       "label": "Annual Checkup Reminder"
+      },
+      {
+       "name": "Pap Smear Reminder",
+       "type": "text",
+       "label": "Pap Smear Reminder"
+      },
+      {
+       "name": "Annual Dental Checkup",
+       "type": "text",
+       "label": "Annual Dental Checkup"
+      },
+      {
+       "name": "Skin Cancer Screening & Mole Check",
+       "type": "text",
+       "label": "Skin Cancer Screening & Mole Check"
+      },
+      {
+       "name": "Colonoscopy Screening",
+       "type": "text",
+       "label": "Colonoscopy Screening"
+      },
+      {
+       "name": "Pre-Menopause Assessment",
+       "type": "text",
+       "label": "Pre-Menopause Assessment"
+      },
+      {
+       "name": "Menopause Assessment",
+       "type": "text",
+       "label": "Menopause Assessment"
+      },
+      {
+       "name": "Dormant Reactivation Message",
+       "type": "text",
+       "label": "Dormant Reactivation Message"
+      },
+      {
+       "name": "Medical Records Data",
+       "spec": {
+        "label": "Record ID"
+       },
+       "type": "array",
+       "label": "Medical Records Data"
+      },
+      {
+       "name": "Diagnosis (from Medical Records Data)",
+       "type": "array",
+       "label": "Diagnosis (from Medical Records Data)"
+      },
+      {
+       "name": "Count (Medical Records Data)",
+       "type": "number",
+       "label": "Count (Medical Records Data)"
+      },
+      {
+       "name": "Chronic Diagnosis",
+       "spec": {
+        "label": "Record ID"
+       },
+       "type": "array",
+       "label": "Chronic Diagnosis"
+      },
+      {
+       "name": "Top 30 (from Chronic Diagnosis)",
+       "type": "array",
+       "label": "Top 30 (from Chronic Diagnosis)"
+      },
+      {
+       "name": "Mapped condition group (from Chronic Diagnosis)",
+       "type": "array",
+       "label": "Mapped condition group (from Chronic Diagnosis)"
+      },
+      {
+       "name": "Typical visit CPT (established) (from Chronic Diagnosis)",
+       "type": "array",
+       "label": "Typical visit CPT (established) (from Chronic Diagnosis)"
+      },
+      {
+       "name": "Monitoring procedures/other (CPT) (from Chronic Diagnosis)",
+       "type": "array",
+       "label": "Monitoring procedures/other (CPT) (from Chronic Diagnosis)"
+      },
+      {
+       "name": "Monitoring labs (CPT) (from Chronic Diagnosis)",
+       "type": "array",
+       "label": "Monitoring labs (CPT) (from Chronic Diagnosis)"
+      },
+      {
+       "name": "Regular medication (examples) (from Chronic Diagnosis)",
+       "type": "array",
+       "label": "Regular medication (examples) (from Chronic Diagnosis)"
+      },
+      {
+       "name": "Follow-up interval (for chronic monitoring) (from Chronic Diagnosis)",
+       "type": "array",
+       "label": "Follow-up interval (for chronic monitoring) (from Chronic Diagnosis)"
+      },
+      {
+       "name": "SHORT DESCRIPTION (VALID ICD-10 FY2026) (from Chronic Diagnosis)",
+       "type": "array",
+       "label": "SHORT DESCRIPTION (VALID ICD-10 FY2026) (from Chronic Diagnosis)"
+      },
+      {
+       "name": "Last Modified By",
+       "type": "date",
+       "label": "Last Modified By"
+      },
+      {
+       "name": "Visit Date (from Medical Records Data)",
+       "type": "array",
+       "label": "Visit Date (from Medical Records Data)"
+      },
+      {
+       "name": "Dosage Days (from Medical Records Data)",
+       "type": "array",
+       "label": "Dosage Days (from Medical Records Data)"
+      },
+      {
+       "name": "60 days >",
+       "type": "text",
+       "label": "60 days >"
+      },
+      {
+       "name": "Medication (from Medical Records Data)",
+       "type": "array",
+       "label": "Medication (from Medical Records Data)"
+      },
+      {
+       "name": "Name (from Medication) (from Medical Records Data)",
+       "type": "array",
+       "label": "Name (from Medication) (from Medical Records Data)"
+      },
+      {
+       "name": "Medication",
+       "spec": {
+        "label": "Record ID"
+       },
+       "type": "array",
+       "label": "Medication"
+      },
+      {
+       "name": "Trade Name (from Medication)",
+       "type": "array",
+       "label": "Trade Name (from Medication)"
+      },
+      {
+       "name": "Medicine Name",
+       "type": "text",
+       "label": "Medicine Name",
+       "multiline": true
+      },
+      {
+       "name": "Chronic (from Medical Records Data)",
+       "type": "array",
+       "label": "Chronic (from Medical Records Data)"
+      },
+      {
+       "name": "nmdr-25",
+       "type": "boolean",
+       "label": "nmdr-25"
+      },
+      {
+       "name": "Insurance Plan",
+       "type": "text",
+       "label": "Insurance Plan"
+      },
+      {
+       "name": "Dosage Days (from Medical Records Data) 2",
+       "type": "array",
+       "label": "Dosage Days (from Medical Records Data) 2"
+      },
+      {
+       "name": "Time Elapsed (Days)",
+       "type": "text",
+       "label": "Time Elapsed (Days)"
+      },
+      {
+       "name": "Created",
+       "type": "date",
+       "label": "Created"
+      },
+      {
+       "name": "Created 2",
+       "type": "date",
+       "label": "Created 2"
+      },
+      {
+       "name": "Chronic Recall Sent On",
+       "time": false,
+       "type": "date",
+       "label": "Chronic Recall Sent On"
+      },
+      {
+       "name": "Chronic Recall Condition",
+       "type": "text",
+       "label": "Chronic Recall Condition"
+      },
+      {
+       "name": "Chronic Recall Groups",
+       "type": "text",
+       "label": "Chronic Recall Groups"
+      },
+      {
+       "name": "Chronic Recall Primary Condition",
+       "type": "text",
+       "label": "Chronic Recall Primary Condition"
+      },
+      {
+       "name": "Chronic Recall Eligible",
+       "type": "text",
+       "label": "Chronic Recall Eligible"
+      },
+      {
+       "name": "Chronic Recall Template ID",
+       "type": "text",
+       "label": "Chronic Recall Template ID"
+      }
+     ],
+     "parameters": [
+      {
+       "name": "__IMTCONN__",
+       "type": "account:airtable3,airtable2",
+       "label": "Connection",
+       "required": true
+      }
+     ]
+    },
+    "parameters": {
+     "__IMTCONN__": 6448605
+    }
+   },
+   {
+    "id": 23,
+    "mapper": null,
+    "module": "builtin:BasicRouter",
+    "routes": [
+     {
+      "flow": [
+       {
+        "id": 13,
+        "mapper": {
+         "ca": "",
+         "qs": [
+          {
+           "name": "phone",
+           "value": "{{4.number}}"
+          }
+         ],
+         "url": "https://developers.sanoflow.io/api/v1.1/contacts/list",
+         "data": "",
+         "gzip": true,
+         "method": "get",
+         "headers": [
+          {
+           "name": "Content-Type",
+           "value": "application/json"
+          },
+          {
+           "name": "access-token",
+           "value": "[REDACTED]"
+          }
+         ],
+         "timeout": "2",
+         "useMtls": false,
+         "authPass": "",
+         "authUser": "",
+         "bodyType": "raw",
+         "contentType": "text/plain",
+         "serializeUrl": false,
+         "shareCookies": false,
+         "parseResponse": true,
+         "followRedirect": true,
+         "useQuerystring": false,
+         "followAllRedirects": true,
+         "rejectUnauthorized": true
+        },
+        "module": "http:ActionSendData",
+        "version": 3,
+        "metadata": {
+         "expect": [
+          {
+           "name": "url",
+           "type": "url",
+           "label": "URL",
+           "required": true
+          },
+          {
+           "name": "serializeUrl",
+           "type": "boolean",
+           "label": "Serialize URL",
+           "required": true
+          },
+          {
+           "name": "method",
+           "type": "select",
+           "label": "Method",
+           "required": true,
+           "validate": {
+            "enum": [
+             "get",
+             "head",
+             "post",
+             "put",
+             "patch",
+             "delete",
+             "options"
+            ]
+           }
+          },
+          {
+           "name": "headers",
+           "spec": [
+            {
+             "name": "name",
+             "type": "text",
+             "label": "Name",
+             "required": true
+            },
+            {
+             "name": "value",
+             "type": "text",
+             "label": "Value"
+            }
+           ],
+           "type": "array",
+           "label": "Headers"
+          },
+          {
+           "name": "qs",
+           "spec": [
+            {
+             "name": "name",
+             "type": "text",
+             "label": "Name",
+             "required": true
+            },
+            {
+             "name": "value",
+             "type": "text",
+             "label": "Value"
+            }
+           ],
+           "type": "array",
+           "label": "Query String"
+          },
+          {
+           "name": "bodyType",
+           "type": "select",
+           "label": "Body type",
+           "validate": {
+            "enum": [
+             "raw",
+             "x_www_form_urlencoded",
+             "multipart_form_data"
+            ]
+           }
+          },
+          {
+           "name": "parseResponse",
+           "type": "boolean",
+           "label": "Parse response",
+           "required": true
+          },
+          {
+           "name": "authUser",
+           "type": "text",
+           "label": "User name"
+          },
+          {
+           "name": "authPass",
+           "type": "password",
+           "label": "Password"
+          },
+          {
+           "name": "timeout",
+           "type": "uinteger",
+           "label": "Timeout",
+           "validate": {
+            "max": 300,
+            "min": 1
+           }
+          },
+          {
+           "name": "shareCookies",
+           "type": "boolean",
+           "label": "Share cookies with other HTTP modules",
+           "required": true
+          },
+          {
+           "name": "ca",
+           "type": "cert",
+           "label": "Self-signed certificate"
+          },
+          {
+           "name": "rejectUnauthorized",
+           "type": "boolean",
+           "label": "Reject connections that are using unverified (self-signed) certificates",
+           "required": true
+          },
+          {
+           "name": "followRedirect",
+           "type": "boolean",
+           "label": "Follow redirect",
+           "required": true
+          },
+          {
+           "name": "useQuerystring",
+           "type": "boolean",
+           "label": "Disable serialization of multiple same query string keys as arrays",
+           "required": true
+          },
+          {
+           "name": "gzip",
+           "type": "boolean",
+           "label": "Request compressed content",
+           "required": true
+          },
+          {
+           "name": "useMtls",
+           "type": "boolean",
+           "label": "Use Mutual TLS",
+           "required": true
+          },
+          {
+           "name": "contentType",
+           "type": "select",
+           "label": "Content type",
+           "validate": {
+            "enum": [
+             "text/plain",
+             "application/json",
+             "application/xml",
+             "text/xml",
+             "text/html",
+             "custom"
+            ]
+           }
+          },
+          {
+           "name": "data",
+           "type": "buffer",
+           "label": "Request content"
+          },
+          {
+           "name": "followAllRedirects",
+           "type": "boolean",
+           "label": "Follow all redirect",
+           "required": true
+          }
+         ],
+         "restore": {
+          "expect": {
+           "qs": {
+            "mode": "chose",
+            "items": [
+             null
+            ]
+           },
+           "method": {
+            "mode": "chose",
+            "label": "GET"
+           },
+           "headers": {
+            "mode": "chose",
+            "items": [
+             null,
+             null
+            ]
+           },
+           "bodyType": {
+            "label": "Raw"
+           },
+           "contentType": {
+            "label": "Text (text/plain)"
+           }
+          }
+         },
+         "advanced": true,
+         "designer": {
+          "x": 1800,
+          "y": 150,
+          "name": "Get Contact"
+         },
+         "parameters": [
+          {
+           "name": "handleErrors",
+           "type": "boolean",
+           "label": "Evaluate all states as errors (except for 2xx and 3xx )",
+           "required": true
+          },
+          {
+           "name": "useNewZLibDeCompress",
+           "type": "hidden"
+          }
+         ]
+        },
+        "parameters": {
+         "handleErrors": true,
+         "useNewZLibDeCompress": true
+        }
+       },
+       {
+        "id": 14,
+        "mapper": {
+         "array": "{{13.data.contact_list.data}}"
+        },
+        "module": "builtin:BasicFeeder",
+        "version": 1,
+        "metadata": {
+         "expect": [
+          {
+           "mode": "edit",
+           "name": "array",
+           "spec": [],
+           "type": "array",
+           "label": "Array"
+          }
+         ],
+         "restore": {
+          "expect": {
+           "array": {
+            "mode": "edit"
+           }
+          }
+         },
+         "designer": {
+          "x": 2100,
+          "y": 150
+         }
+        },
+        "parameters": {}
+       },
+       {
+        "id": 15,
+        "filter": {
+         "name": "",
+         "conditions": [
+          [
+           {
+            "a": "{{14.contact_id}}",
+            "o": "exist"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "array": "{{14.tags}}"
+        },
+        "module": "builtin:BasicFeeder",
+        "version": 1,
+        "metadata": {
+         "expect": [
+          {
+           "mode": "edit",
+           "name": "array",
+           "spec": [],
+           "type": "array",
+           "label": "Array"
+          }
+         ],
+         "restore": {
+          "expect": {
+           "array": {
+            "mode": "edit"
+           }
+          }
+         },
+         "designer": {
+          "x": 2400,
+          "y": 150
+         }
+        },
+        "parameters": {}
+       },
+       {
+        "id": 16,
+        "mapper": {
+         "value": "{{15.tag_id}}"
+        },
+        "module": "util:TextAggregator",
+        "version": 1,
+        "metadata": {
+         "expect": [
+          {
+           "name": "value",
+           "type": "text",
+           "label": "Text"
+          }
+         ],
+         "restore": {
+          "extra": {
+           "feeder": {
+            "label": "Iterator [3]"
+           }
+          },
+          "parameters": {
+           "rowSeparator": {
+            "label": "Other"
+           }
+          }
+         },
+         "advanced": true,
+         "designer": {
+          "x": 2700,
+          "y": 150
+         },
+         "parameters": [
+          {
+           "name": "rowSeparator",
+           "type": "select",
+           "label": "Row separator",
+           "validate": {
+            "enum": [
+             "\n",
+             "\t",
+             "other"
+            ]
+           }
+          },
+          {
+           "name": "otherRowSeparator",
+           "type": "text",
+           "label": "Separator"
+          }
+         ]
+        },
+        "parameters": {
+         "feeder": 15,
+         "rowSeparator": "other",
+         "otherRowSeparator": ", "
+        }
+       },
+       {
+        "id": 17,
+        "mapper": null,
+        "module": "builtin:BasicRouter",
+        "routes": [
+         {
+          "flow": [
+           {
+            "id": 18,
+            "filter": {
+             "name": "",
+             "conditions": [
+              [
+               {
+                "a": "{{16.text}}",
+                "o": "exist"
+               }
+              ]
+             ]
+            },
+            "mapper": {
+             "name": "ids",
+             "scope": "roundtrip",
+             "value": "{{ifempty(16.text + \", 4654\"; 4654)}}"
+            },
+            "module": "util:SetVariable2",
+            "version": 1,
+            "metadata": {
+             "expect": [
+              {
+               "name": "name",
+               "type": "text",
+               "label": "Variable name",
+               "required": true
+              },
+              {
+               "name": "scope",
+               "type": "select",
+               "label": "Variable lifetime",
+               "required": true,
+               "validate": {
+                "enum": [
+                 "roundtrip",
+                 "execution"
+                ]
+               }
+              },
+              {
+               "name": "value",
+               "type": "any",
+               "label": "Variable value"
+              }
+             ],
+             "restore": {
+              "expect": {
+               "scope": {
+                "label": "One cycle"
+               }
+              }
+             },
+             "designer": {
+              "x": 3300,
+              "y": 0
+             },
+             "interface": [
+              {
+               "name": "ids",
+               "type": "any",
+               "label": "ids"
+              }
+             ]
+            },
+            "parameters": {}
+           },
+           {
+            "id": 19,
+            "mapper": {
+             "ca": "",
+             "qs": [],
+             "url": "https://developers.sanoflow.io/api/v1.1/contacts/edit",
+             "data": "{\n  \"contact_id\":{{14.contact_id}},\n  \"first_name\": \"{{14.first_name}}\",\n  \"last_name\": \"{{14.last_name}}\",\n  \"label\": 1800,\n  \"tags\": [\n     {{18.ids}}\n  ]\n}",
+             "gzip": true,
+             "method": "post",
+             "headers": [
+              {
+               "name": "Content-Type",
+               "value": "application/json"
+              },
+              {
+               "name": "access-token",
+               "value": "[REDACTED]"
+              }
+             ],
+             "timeout": "2",
+             "useMtls": false,
+             "authPass": "",
+             "authUser": "",
+             "bodyType": "raw",
+             "contentType": "text/plain",
+             "serializeUrl": false,
+             "shareCookies": false,
+             "parseResponse": true,
+             "followRedirect": true,
+             "useQuerystring": false,
+             "followAllRedirects": true,
+             "rejectUnauthorized": true
+            },
+            "module": "http:ActionSendData",
+            "version": 3,
+            "metadata": {
+             "expect": [
+              {
+               "name": "url",
+               "type": "url",
+               "label": "URL",
+               "required": true
+              },
+              {
+               "name": "serializeUrl",
+               "type": "boolean",
+               "label": "Serialize URL",
+               "required": true
+              },
+              {
+               "name": "method",
+               "type": "select",
+               "label": "Method",
+               "required": true,
+               "validate": {
+                "enum": [
+                 "get",
+                 "head",
+                 "post",
+                 "put",
+                 "patch",
+                 "delete",
+                 "options"
+                ]
+               }
+              },
+              {
+               "name": "headers",
+               "spec": [
+                {
+                 "name": "name",
+                 "type": "text",
+                 "label": "Name",
+                 "required": true
+                },
+                {
+                 "name": "value",
+                 "type": "text",
+                 "label": "Value"
+                }
+               ],
+               "type": "array",
+               "label": "Headers"
+              },
+              {
+               "name": "qs",
+               "spec": [
+                {
+                 "name": "name",
+                 "type": "text",
+                 "label": "Name",
+                 "required": true
+                },
+                {
+                 "name": "value",
+                 "type": "text",
+                 "label": "Value"
+                }
+               ],
+               "type": "array",
+               "label": "Query String"
+              },
+              {
+               "name": "bodyType",
+               "type": "select",
+               "label": "Body type",
+               "validate": {
+                "enum": [
+                 "raw",
+                 "x_www_form_urlencoded",
+                 "multipart_form_data"
+                ]
+               }
+              },
+              {
+               "name": "parseResponse",
+               "type": "boolean",
+               "label": "Parse response",
+               "required": true
+              },
+              {
+               "name": "authUser",
+               "type": "text",
+               "label": "User name"
+              },
+              {
+               "name": "authPass",
+               "type": "password",
+               "label": "Password"
+              },
+              {
+               "name": "timeout",
+               "type": "uinteger",
+               "label": "Timeout",
+               "validate": {
+                "max": 300,
+                "min": 1
+               }
+              },
+              {
+               "name": "shareCookies",
+               "type": "boolean",
+               "label": "Share cookies with other HTTP modules",
+               "required": true
+              },
+              {
+               "name": "ca",
+               "type": "cert",
+               "label": "Self-signed certificate"
+              },
+              {
+               "name": "rejectUnauthorized",
+               "type": "boolean",
+               "label": "Reject connections that are using unverified (self-signed) certificates",
+               "required": true
+              },
+              {
+               "name": "followRedirect",
+               "type": "boolean",
+               "label": "Follow redirect",
+               "required": true
+              },
+              {
+               "name": "useQuerystring",
+               "type": "boolean",
+               "label": "Disable serialization of multiple same query string keys as arrays",
+               "required": true
+              },
+              {
+               "name": "gzip",
+               "type": "boolean",
+               "label": "Request compressed content",
+               "required": true
+              },
+              {
+               "name": "useMtls",
+               "type": "boolean",
+               "label": "Use Mutual TLS",
+               "required": true
+              },
+              {
+               "name": "contentType",
+               "type": "select",
+               "label": "Content type",
+               "validate": {
+                "enum": [
+                 "text/plain",
+                 "application/json",
+                 "application/xml",
+                 "text/xml",
+                 "text/html",
+                 "custom"
+                ]
+               }
+              },
+              {
+               "name": "data",
+               "type": "buffer",
+               "label": "Request content"
+              },
+              {
+               "name": "followAllRedirects",
+               "type": "boolean",
+               "label": "Follow all redirect",
+               "required": true
+              }
+             ],
+             "restore": {
+              "expect": {
+               "qs": {
+                "mode": "chose"
+               },
+               "method": {
+                "mode": "chose",
+                "label": "POST"
+               },
+               "headers": {
+                "mode": "chose",
+                "items": [
+                 null,
+                 null
+                ]
+               },
+               "bodyType": {
+                "label": "Raw"
+               },
+               "contentType": {
+                "label": "Text (text/plain)"
+               }
+              }
+             },
+             "advanced": true,
+             "designer": {
+              "x": 3600,
+              "y": 0,
+              "name": "Update Tag"
+             },
+             "parameters": [
+              {
+               "name": "handleErrors",
+               "type": "boolean",
+               "label": "Evaluate all states as errors (except for 2xx and 3xx )",
+               "required": true
+              },
+              {
+               "name": "useNewZLibDeCompress",
+               "type": "hidden"
+              }
+             ]
+            },
+            "parameters": {
+             "handleErrors": true,
+             "useNewZLibDeCompress": true
+            }
+           }
+          ]
+         },
+         {
+          "flow": [
+           {
+            "id": 21,
+            "filter": {
+             "name": "",
+             "conditions": [
+              [
+               {
+                "a": "{{16.text}}",
+                "o": "notexist"
+               }
+              ]
+             ]
+            },
+            "mapper": {
+             "ca": "",
+             "qs": [],
+             "url": "https://developers.sanoflow.io/api/v1.1/contacts/edit",
+             "data": "{\n  \"contact_id\":{{14.contact_id}},\n  \"first_name\": \"{{14.first_name}}\",\n  \"last_name\": \"{{14.last_name}}\",\n  \"label\": 1800,\n  \"tags\": [\n     4654\n  ]\n}",
+             "gzip": true,
+             "method": "post",
+             "headers": [
+              {
+               "name": "Content-Type",
+               "value": "application/json"
+              },
+              {
+               "name": "access-token",
+               "value": "[REDACTED]"
+              }
+             ],
+             "timeout": "2",
+             "useMtls": false,
+             "authPass": "",
+             "authUser": "",
+             "bodyType": "raw",
+             "contentType": "text/plain",
+             "serializeUrl": false,
+             "shareCookies": false,
+             "parseResponse": true,
+             "followRedirect": true,
+             "useQuerystring": false,
+             "followAllRedirects": true,
+             "rejectUnauthorized": true
+            },
+            "module": "http:ActionSendData",
+            "version": 3,
+            "metadata": {
+             "expect": [
+              {
+               "name": "url",
+               "type": "url",
+               "label": "URL",
+               "required": true
+              },
+              {
+               "name": "serializeUrl",
+               "type": "boolean",
+               "label": "Serialize URL",
+               "required": true
+              },
+              {
+               "name": "method",
+               "type": "select",
+               "label": "Method",
+               "required": true,
+               "validate": {
+                "enum": [
+                 "get",
+                 "head",
+                 "post",
+                 "put",
+                 "patch",
+                 "delete",
+                 "options"
+                ]
+               }
+              },
+              {
+               "name": "headers",
+               "spec": [
+                {
+                 "name": "name",
+                 "type": "text",
+                 "label": "Name",
+                 "required": true
+                },
+                {
+                 "name": "value",
+                 "type": "text",
+                 "label": "Value"
+                }
+               ],
+               "type": "array",
+               "label": "Headers"
+              },
+              {
+               "name": "qs",
+               "spec": [
+                {
+                 "name": "name",
+                 "type": "text",
+                 "label": "Name",
+                 "required": true
+                },
+                {
+                 "name": "value",
+                 "type": "text",
+                 "label": "Value"
+                }
+               ],
+               "type": "array",
+               "label": "Query String"
+              },
+              {
+               "name": "bodyType",
+               "type": "select",
+               "label": "Body type",
+               "validate": {
+                "enum": [
+                 "raw",
+                 "x_www_form_urlencoded",
+                 "multipart_form_data"
+                ]
+               }
+              },
+              {
+               "name": "parseResponse",
+               "type": "boolean",
+               "label": "Parse response",
+               "required": true
+              },
+              {
+               "name": "authUser",
+               "type": "text",
+               "label": "User name"
+              },
+              {
+               "name": "authPass",
+               "type": "password",
+               "label": "Password"
+              },
+              {
+               "name": "timeout",
+               "type": "uinteger",
+               "label": "Timeout",
+               "validate": {
+                "max": 300,
+                "min": 1
+               }
+              },
+              {
+               "name": "shareCookies",
+               "type": "boolean",
+               "label": "Share cookies with other HTTP modules",
+               "required": true
+              },
+              {
+               "name": "ca",
+               "type": "cert",
+               "label": "Self-signed certificate"
+              },
+              {
+               "name": "rejectUnauthorized",
+               "type": "boolean",
+               "label": "Reject connections that are using unverified (self-signed) certificates",
+               "required": true
+              },
+              {
+               "name": "followRedirect",
+               "type": "boolean",
+               "label": "Follow redirect",
+               "required": true
+              },
+              {
+               "name": "useQuerystring",
+               "type": "boolean",
+               "label": "Disable serialization of multiple same query string keys as arrays",
+               "required": true
+              },
+              {
+               "name": "gzip",
+               "type": "boolean",
+               "label": "Request compressed content",
+               "required": true
+              },
+              {
+               "name": "useMtls",
+               "type": "boolean",
+               "label": "Use Mutual TLS",
+               "required": true
+              },
+              {
+               "name": "contentType",
+               "type": "select",
+               "label": "Content type",
+               "validate": {
+                "enum": [
+                 "text/plain",
+                 "application/json",
+                 "application/xml",
+                 "text/xml",
+                 "text/html",
+                 "custom"
+                ]
+               }
+              },
+              {
+               "name": "data",
+               "type": "buffer",
+               "label": "Request content"
+              },
+              {
+               "name": "followAllRedirects",
+               "type": "boolean",
+               "label": "Follow all redirect",
+               "required": true
+              }
+             ],
+             "restore": {
+              "expect": {
+               "qs": {
+                "mode": "chose"
+               },
+               "method": {
+                "mode": "chose",
+                "label": "POST"
+               },
+               "headers": {
+                "mode": "chose",
+                "items": [
+                 null,
+                 null
+                ]
+               },
+               "bodyType": {
+                "label": "Raw"
+               },
+               "contentType": {
+                "label": "Text (text/plain)"
+               }
+              }
+             },
+             "advanced": true,
+             "designer": {
+              "x": 3300,
+              "y": 300,
+              "name": "Update Tag"
+             },
+             "parameters": [
+              {
+               "name": "handleErrors",
+               "type": "boolean",
+               "label": "Evaluate all states as errors (except for 2xx and 3xx )",
+               "required": true
+              },
+              {
+               "name": "useNewZLibDeCompress",
+               "type": "hidden"
+              }
+             ]
+            },
+            "parameters": {
+             "handleErrors": true,
+             "useNewZLibDeCompress": true
+            }
+           }
+          ]
+         }
+        ],
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 3000,
+          "y": 150
+         }
+        }
+       }
+      ]
+     }
+    ],
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 1500,
+      "y": 300
+     }
+    }
+   }
+  ],
+  "name": "Chronic Recall - 90 Day",
+  "metadata": {
+   "instant": false,
+   "version": 1,
+   "designer": {
+    "orphans": []
+   },
+   "scenario": {
+    "dlq": false,
+    "slots": null,
+    "dataloss": false,
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": false,
+    "confidential": false,
+    "freshVariables": false,
+    "autoCommitTriggerLast": true
+   }
+  },
+  "scheduling": {
+   "type": "indefinitely",
+   "interval": 900,
+   "restrict": [
+    {
+     "days": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      0
+     ],
+     "time": [
+      "12:15",
+      "12:16"
+     ]
+    }
+   ]
+  },
+  "interface": {
+   "input": [],
+   "output": []
+  }
+ }
+}
