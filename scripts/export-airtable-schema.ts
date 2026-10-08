@@ -31,7 +31,10 @@ fs.mkdirSync(OUT, { recursive: true });
 async function api(url: string) {
   for (let attempt = 0; attempt < 5; attempt++) {
     const res = await fetch(url, { headers: { Authorization: `Bearer ${PAT}` } });
-    if (res.status === 429) { await new Promise(r => setTimeout(r, 30_000)); continue; } // Airtable: 5 req/s per base
+    if (res.status === 429) {
+      await new Promise((r) => setTimeout(r, 30_000));
+      continue;
+    } // Airtable: 5 req/s per base
     if (!res.ok) throw new Error(`${res.status} ${url} ${await res.text()}`);
     return res.json();
   }
@@ -40,12 +43,19 @@ async function api(url: string) {
 
 for (const [baseId, name] of Object.entries(BASES)) {
   // Meta API: tables incl. fields (with options, links, descriptions) and views
-  const schema = await api(`https://api.airtable.com/v0/meta/bases/${baseId}/tables?include=visibleFieldIds`);
+  const schema = await api(
+    `https://api.airtable.com/v0/meta/bases/${baseId}/tables?include=visibleFieldIds`,
+  );
   const file = path.join(OUT, `${baseId}.json`);
-  fs.writeFileSync(file, JSON.stringify({ baseId, name, exportedAt: new Date().toISOString(), ...schema }, null, 2));
+  fs.writeFileSync(
+    file,
+    JSON.stringify({ baseId, name, exportedAt: new Date().toISOString(), ...schema }, null, 2),
+  );
   const tables = schema.tables as any[];
-  console.log(`✔ ${name}: ${tables.length} tables, ${tables.reduce((n, t) => n + t.fields.length, 0)} fields → ${file}`);
-  await new Promise(r => setTimeout(r, 300));
+  console.log(
+    `✔ ${name}: ${tables.length} tables, ${tables.reduce((n, t) => n + t.fields.length, 0)} fields → ${file}`,
+  );
+  await new Promise((r) => setTimeout(r, 300));
 }
 
 // Optional: record COUNTS only (needs data.records:read) — useful for migration sizing, still no PHI written
@@ -53,15 +63,17 @@ if (process.argv.includes("--counts")) {
   for (const [baseId] of Object.entries(BASES)) {
     const { tables } = JSON.parse(fs.readFileSync(path.join(OUT, `${baseId}.json`), "utf8"));
     for (const t of tables) {
-      let count = 0, offset: string | undefined;
+      let count = 0,
+        offset: string | undefined;
       do {
         const u = new URL(`https://api.airtable.com/v0/${baseId}/${t.id}`);
         u.searchParams.set("pageSize", "100");
         u.searchParams.append("fields[]", t.primaryFieldId);
         if (offset) u.searchParams.set("offset", offset);
         const page = await api(u.toString());
-        count += page.records.length; offset = page.offset;
-        await new Promise(r => setTimeout(r, 220));
+        count += page.records.length;
+        offset = page.offset;
+        await new Promise((r) => setTimeout(r, 220));
       } while (offset);
       console.log(`  ${baseId} / ${t.name}: ${count} records`);
     }
