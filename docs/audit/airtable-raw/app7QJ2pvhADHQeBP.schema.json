@@ -1,0 +1,2264 @@
+{
+ "baseId": "app7QJ2pvhADHQeBP",
+ "name": "Unite",
+ "exportedAt": "2026-10-08T12:30:00Z",
+ "source": "airtable-mcp (schema only, no records)",
+ "tables": [
+  {
+   "id": "tbl9856qJP9S7OEqB",
+   "name": "Unite",
+   "primaryFieldId": "fldcF6Tlh1q8SYNsI",
+   "fields": [
+    {
+     "id": "fldcF6Tlh1q8SYNsI",
+     "name": "Patient Name",
+     "type": "singleLineText"
+    },
+    {
+     "id": "fldGW2uKUvJ8Go98Q",
+     "name": "Patient Pin",
+     "type": "singleLineText"
+    },
+    {
+     "id": "fldm649QE0vG2RxkG",
+     "name": "Sanoflow Contact Id",
+     "type": "singleLineText"
+    },
+    {
+     "id": "flddF5X0a7DtDJRNf",
+     "name": "Phone",
+     "type": "phoneNumber"
+    },
+    {
+     "id": "fldOW9sCfJ8k5Yp3g",
+     "name": "number",
+     "type": "formula",
+     "description": "Extracts the numbers after the dash '-' in the Phone field.",
+     "formula": "IF(\n  FIND(\"-\", {flddF5X0a7DtDJRNf}),\n  MID(\n    {flddF5X0a7DtDJRNf},\n    FIND(\"-\", {flddF5X0a7DtDJRNf}) + 1,\n    LEN({flddF5X0a7DtDJRNf}) - FIND(\"-\", {flddF5X0a7DtDJRNf})\n  ),\n  BLANK()\n)",
+     "resultType": "singleLineText",
+     "referencedFieldIds": [
+      "flddF5X0a7DtDJRNf"
+     ]
+    },
+    {
+     "id": "fldikPNTGpc52GqOW",
+     "name": "Email",
+     "type": "email"
+    },
+    {
+     "id": "fldWCINbQSFZUrBBd",
+     "name": "Nationality -t",
+     "type": "singleLineText"
+    },
+    {
+     "id": "fldb5otM9QGYPGcfY",
+     "name": "Nationality -t copy",
+     "type": "singleSelect",
+     "choices": [
+      "Iran, Islamic Republic Of",
+      "United States",
+      "Belgium",
+      "United Kingdom",
+      "United Arab Emirates",
+      "Lebanon",
+      "Canada",
+      "Belarus",
+      "Italy",
+      "Russian Federation",
+      "India",
+      "Bulgaria",
+      "Lithuania",
+      "Jordan",
+      "New Zealand",
+      "Spain",
+      "Sweden",
+      "Germany",
+      "Norway",
+      "Monaco",
+      "France",
+      "Romania",
+      "Philippines",
+      "Poland",
+      "Qatar",
+      "Netherlands",
+      "Turkey",
+      "Venezuela, Bolivarian Republic of",
+      "South Africa",
+      "Mexico",
+      "Finland",
+      "Japan",
+      "Australia",
+      "Saudi Arabia",
+      "Slovakia",
+      "China",
+      "Ireland",
+      "Egypt",
+      "Pakistan",
+      "Malaysia",
+      "Denmark",
+      "Switzerland",
+      "Israel",
+      "Rwanda",
+      "Syrian Arab Republic",
+      "Korea, Republic of",
+      "Morocco",
+      "Cuba",
+      "Tunisia",
+      "Cyprus",
+      "Georgia",
+      "Brazil",
+      "Serbia",
+      "Austria",
+      "Greece",
+      "Armenia",
+      "Albania",
+      "Moldova, Republic of",
+      "Dominica",
+      "Colombia",
+      "Kenya",
+      "Argentina",
+      "Thailand",
+      "Tajikistan",
+      "Kuwait",
+      "British Indian Ocean Territory",
+      "Ukraine",
+      "Ethiopia",
+      "Oman",
+      "Maldives",
+      "Czech Republic",
+      "Iraq",
+      "Kazakhstan",
+      "Afghanistan",
+      "Montenegro",
+      "Kyrgyzstan",
+      "Cambodia",
+      "Latvia",
+      "Azerbaijan",
+      "Luxembourg",
+      "Sri Lanka",
+      "Zimbabwe",
+      "Portugal",
+      "Algeria",
+      "Turkmenistan",
+      "Korea, Democratic People's Republic Of",
+      "Macedonia, the Former Yugoslav Republic Of",
+      "Singapore",
+      "Grenada",
+      "Mauritania",
+      "Saint Kitts And Nevis",
+      "Slovenia",
+      "Bolivia, Plurinational State Of",
+      "Chile",
+      "Guatemala",
+      "Namibia",
+      "Indonesia",
+      "Croatia",
+      "Uzbekistan",
+      "Vanuatu",
+      "Costa Rica",
+      "Nepal",
+      "Viet Nam",
+      "Sierra Leone",
+      "Uganda",
+      "Peru",
+      "Nigeria",
+      "Seychelles",
+      "Estonia",
+      "Hungary",
+      "Tanzania, United Republic of",
+      "Virgin Islands, British",
+      "Bosnia and Herzegovina",
+      "Angola",
+      "Uruguay",
+      "Yemen",
+      "Malta",
+      "Mauritius",
+      "Ecuador",
+      "Hong Kong",
+      "Sudan",
+      "American Samoa",
+      "Liechtenstein",
+      "Honduras",
+      "Congo, The Democratic Republic Of The",
+      "Other",
+      "Antigua and Barbuda",
+      "Paraguay",
+      "Ghana",
+      "Iceland",
+      "Bahrain",
+      "Dominican Republic",
+      "Madagascar",
+      "Panama",
+      "Andorra",
+      "Bangladesh",
+      "Aruba",
+      "Togo",
+      "El Salvador",
+      "Comoros",
+      "Palestine",
+      "Central African Republic",
+      "Malawi",
+      "Mali",
+      "South Sudan",
+      "San Marino"
+     ]
+    },
+    {
+     "id": "fldXgsBUYTP2xvUv1",
+     "name": "Gender",
+     "type": "singleSelect",
+     "choices": [
+      "F",
+      "M",
+      "U"
+     ]
+    },
+    {
+     "id": "fld1Zt1g7IGjk2mOX",
+     "name": "DOB",
+     "type": "date",
+     "options": {
+      "dateFormat": {
+       "name": "local",
+       "format": "l"
+      }
+     }
+    },
+    {
+     "id": "fldPsGjpw4wXtEgsi",
+     "name": "DOB (DD-MM)",
+     "type": "formula",
+     "description": "Shows the date of birth in day-month (DD-MM) format.",
+     "formula": "DATETIME_FORMAT({fld1Zt1g7IGjk2mOX}, 'DD-MM')",
+     "resultType": "singleLineText",
+     "referencedFieldIds": [
+      "fld1Zt1g7IGjk2mOX"
+     ]
+    },
+    {
+     "id": "fldqI3DlerhG3rsOG",
+     "name": "Birth Month",
+     "type": "formula",
+     "description": "Extracts the month (1-12) from the DOB field.",
+     "formula": "MONTH({fld1Zt1g7IGjk2mOX})",
+     "resultType": "number",
+     "referencedFieldIds": [
+      "fld1Zt1g7IGjk2mOX"
+     ]
+    },
+    {
+     "id": "fldluzXiKHaK4RfaW",
+     "name": "Address",
+     "type": "multilineText"
+    },
+    {
+     "id": "fldZHFmhmfL6INxWR",
+     "name": "First Visit Date",
+     "type": "date",
+     "options": {
+      "dateFormat": {
+       "name": "european",
+       "format": "D/M/YYYY"
+      }
+     }
+    },
+    {
+     "id": "fldwTnnvCipJeVvco",
+     "name": "Last Visit Date",
+     "type": "date",
+     "options": {
+      "dateFormat": {
+       "name": "european",
+       "format": "D/M/YYYY"
+      }
+     }
+    },
+    {
+     "id": "fld0rZhF2bjTxyiNS",
+     "name": "Dr. Name",
+     "type": "singleLineText"
+    },
+    {
+     "id": "fldgBy5vqiCQacYs5",
+     "name": "Dr. Name copy",
+     "type": "singleSelect",
+     "choices": [
+      "Dr. Mehernoosh Dehbozorgi",
+      "Dr. Raef Ghattas",
+      "Dr. Claudia Marcela Jimenez Gutierrez",
+      "Dr. Ljudmila Vukosavljevic",
+      "Dr. Snezhana Cheshelkoska",
+      "Dr Matthias Roux",
+      "Dr. Ana Kochoska",
+      "Dr Jessica Alejandra Vargas",
+      "Dr. Tod Cahil",
+      "Dr. Lorene Saad",
+      "Dr. Rayya Al Shohef",
+      "Dr. LINA ALEJANDRA RENGIFO ANGEL",
+      "Dr. Ayse Ekin Clemente",
+      "Dr. Riham Ammar",
+      "Dr. Sevdalina Velizarova",
+      "Luka Ciglic",
+      "Dr. Andreja Smajila",
+      "Dr. Sergio Mazzei",
+      "Mariam Abdel Malek",
+      "Ranka Jakovljevic",
+      "Dr. Arianna Huerta Martinez",
+      "Dr. Lyana Kozhokova",
+      "Dr. Latife cilli",
+      "Dr. Sofia Iftikar  Modak",
+      "Dr. Marwa Bou Zein Eddine",
+      "Dr. Gulben Efes",
+      "Dr. Ovik Bitar",
+      "Dr. Giovanni Leonetti",
+      "Dr. Suhel Ashraff",
+      "Dr. Nahla Elawady",
+      "Dr. Ertugrul Karanlik",
+      "Deepa Mer"
+     ]
+    },
+    {
+     "id": "fldsA7v4aGIVzv0S8",
+     "name": "Clinic",
+     "type": "singleSelect",
+     "choices": [
+      "Al Das Medical Clinic - Meadows",
+      "Al Das Medical Clinic - Palm Jumeirah",
+      "Al Das Medical Clinic - Golden Mile"
+     ]
+    },
+    {
+     "id": "fldHk1eGk61Hqr3yB",
+     "name": "Department",
+     "type": "singleLineText"
+    },
+    {
+     "id": "fldFH9a3OL0fGEqNu",
+     "name": "Department copy",
+     "type": "singleSelect",
+     "choices": [
+      "Dental",
+      "General",
+      "Bioresonance and Accupuncture",
+      "Dermatology",
+      "Chiropractor",
+      "Pediatrician",
+      "Ob-Gyne",
+      "INTERNAL MEDICINE",
+      "Physiotherapist",
+      "General Surgery",
+      "Beauty Therapist",
+      "Aesthetic Dermatologist",
+      "RADIOLOGY",
+      "ENDOCRINOLOGY",
+      "Sports Medicine",
+      "Nutrition"
+     ]
+    },
+    {
+     "id": "fldgSGQs00acVQccE",
+     "name": "Follow Up Visit",
+     "type": "singleLineText"
+    },
+    {
+     "id": "fldWgrSZwlTSw5VWF",
+     "name": "Annual Checkup Reminder Date",
+     "type": "formula",
+     "description": "Calculates the date that is 330 days after the Last Visit Date.",
+     "formula": "DATESTR(DATEADD({fldwTnnvCipJeVvco}, 330, 'days'))",
+     "resultType": "singleLineText",
+     "referencedFieldIds": [
+      "fldwTnnvCipJeVvco"
+     ]
+    },
+    {
+     "id": "fldP7oMHDfxHVE7Sk",
+     "name": "330 Days",
+     "type": "formula",
+     "description": "Checks if today is exactly 330 days after the Last Visit Date.",
+     "formula": "IF(\n  IS_SAME(DATEADD({fldwTnnvCipJeVvco}, 330, 'days'), TODAY(), 'day'),\n  \"Yes\",\n  \"No\"\n)",
+     "resultType": "singleLineText",
+     "referencedFieldIds": [
+      "fldwTnnvCipJeVvco"
+     ]
+    },
+    {
+     "id": "fldKENME489G7LCbC",
+     "name": "Sano Id",
+     "type": "singleSelect",
+     "choices": [
+      "Yes",
+      "No",
+      "NF"
+     ]
+    },
+    {
+     "id": "fld3C0YR4HD6y6ins",
+     "name": "Phone Number After Dash",
+     "type": "formula",
+     "description": "Extracts the digits after the dash '-' in the Phone field.",
+     "formula": "MID({flddF5X0a7DtDJRNf}, FIND(\"-\", {flddF5X0a7DtDJRNf}) + 1, LEN({flddF5X0a7DtDJRNf}) - FIND(\"-\", {flddF5X0a7DtDJRNf}))",
+     "resultType": "singleLineText",
+     "referencedFieldIds": [
+      "flddF5X0a7DtDJRNf"
+     ]
+    },
+    {
+     "id": "fldKCzOUiobmu5rCG",
+     "name": "First Name",
+     "type": "formula",
+     "description": "Extracts the first name (first word) from the Patient Name field.",
+     "formula": "LEFT({fldcF6Tlh1q8SYNsI}, FIND(\" \", {fldcF6Tlh1q8SYNsI} & \" \") - 1)",
+     "resultType": "singleLineText",
+     "referencedFieldIds": [
+      "fldcF6Tlh1q8SYNsI"
+     ]
+    },
+    {
+     "id": "fldDAfHKAj7F5I6KR",
+     "name": "Last Name",
+     "type": "formula",
+     "description": "Extracts the last word (last name) from the Patient Name field.",
+     "formula": "IF(\n  FIND(\" \", {fldcF6Tlh1q8SYNsI}),\n  RIGHT(\n    {fldcF6Tlh1q8SYNsI},\n    LEN({fldcF6Tlh1q8SYNsI}) - FIND(\" \", {fldcF6Tlh1q8SYNsI}, LEN({fldcF6Tlh1q8SYNsI}) - LEN(SUBSTITUTE({fldcF6Tlh1q8SYNsI}, \" \", \"\")))\n  ),\n  {fldcF6Tlh1q8SYNsI}\n)",
+     "resultType": "singleLineText",
+     "referencedFieldIds": [
+      "fldcF6Tlh1q8SYNsI"
+     ]
+    },
+    {
+     "id": "fldlbRJ3Gd7uorljW",
+     "name": "Age",
+     "type": "formula",
+     "description": "Calculates the current age based on the DOB field.",
+     "formula": "IF(\n  {fld1Zt1g7IGjk2mOX},\n  YEAR(TODAY()) - YEAR({fld1Zt1g7IGjk2mOX}) - IF(\n    OR(\n      MONTH(TODAY()) < MONTH({fld1Zt1g7IGjk2mOX}),\n      AND(MONTH(TODAY()) = MONTH({fld1Zt1g7IGjk2mOX}), DAY(TODAY()) < DAY({fld1Zt1g7IGjk2mOX}))\n    ),\n    1,\n    0\n  ),\n  BLANK()\n)",
+     "resultType": "number",
+     "referencedFieldIds": [
+      "fld1Zt1g7IGjk2mOX"
+     ]
+    },
+    {
+     "id": "fldRoTvJFjvyGiPIK",
+     "name": "Birthday Message",
+     "type": "singleSelect",
+     "choices": [
+      "Sent",
+      "Pending"
+     ]
+    },
+    {
+     "id": "fldL02KcYhX8DUbpY",
+     "name": "Birthday Offer",
+     "type": "singleSelect",
+     "choices": [
+      "Not Redeemed",
+      "Redeemed"
+     ]
+    },
+    {
+     "id": "fldrEBcMdlyc2wD1Q",
+     "name": "Annual Checkup Reminder",
+     "type": "singleSelect",
+     "choices": [
+      "Pending",
+      "Sent",
+      "NA"
+     ]
+    },
+    {
+     "id": "fldnjiYH4flVeGtJ9",
+     "name": "Pap Smear Reminder",
+     "type": "singleSelect",
+     "choices": [
+      "Pending",
+      "Sent",
+      "NA"
+     ]
+    },
+    {
+     "id": "fldPTE2UPWTwh9E6l",
+     "name": "Annual Dental Checkup",
+     "type": "singleSelect",
+     "choices": [
+      "Pending",
+      "Sent",
+      "NA"
+     ]
+    },
+    {
+     "id": "fldOmR7MIOAPc6Vac",
+     "name": "Skin Cancer Screening & Mole Check",
+     "type": "singleSelect",
+     "choices": [
+      "Pending",
+      "Sent",
+      "NA"
+     ]
+    },
+    {
+     "id": "fldCO5R7Dm4KnI2O9",
+     "name": "Colonoscopy Screening",
+     "type": "singleSelect",
+     "choices": [
+      "Pending",
+      "Sent",
+      "NA"
+     ]
+    },
+    {
+     "id": "fldE9tH7TLFk52XKa",
+     "name": "Pre-Menopause Assessment",
+     "type": "singleSelect",
+     "choices": [
+      "Pending",
+      "Sent",
+      "NA"
+     ]
+    },
+    {
+     "id": "fldUPXnKkW8PvMntH",
+     "name": "Menopause Assessment",
+     "type": "singleSelect",
+     "choices": [
+      "Pending",
+      "Sent",
+      "NA"
+     ]
+    },
+    {
+     "id": "fld6pcu9FExk8aDyA",
+     "name": "Dormant Reactivation Message",
+     "type": "singleSelect",
+     "choices": [
+      "Pending",
+      "Sent",
+      "NA"
+     ]
+    },
+    {
+     "id": "flda3KM4KzJ9ANR7E",
+     "name": "Medical Records Data",
+     "type": "multipleRecordLinks",
+     "linkedTableId": "tblllKPKIY9qvMoEU",
+     "inverseLinkFieldId": "fldtxNjAanspw8h40"
+    },
+    {
+     "id": "fldGq2Fqkkhy6Poly",
+     "name": "Diagnosis (from Medical Records Data)",
+     "type": "multipleLookupValues",
+     "recordLinkFieldId": "flda3KM4KzJ9ANR7E",
+     "fieldIdInLinkedTable": "fldsrglawqYEoNqZu"
+    },
+    {
+     "id": "fldwXLQuKnBOQQelP",
+     "name": "Count (Medical Records Data)",
+     "type": "count",
+     "recordLinkFieldId": "flda3KM4KzJ9ANR7E"
+    },
+    {
+     "id": "fld9gw5nJNzgywljY",
+     "name": "Chronic Diagnosis",
+     "type": "multipleRecordLinks",
+     "linkedTableId": "tblZqf4Zcw5Kweadh",
+     "inverseLinkFieldId": "fldrYIl9ThLNImcZZ"
+    },
+    {
+     "id": "flddyNe5c5reWAMyL",
+     "name": "Top 30 (from Chronic Diagnosis)",
+     "type": "multipleLookupValues",
+     "recordLinkFieldId": "fld9gw5nJNzgywljY",
+     "fieldIdInLinkedTable": "fldFVPiTP5g4AGaV2"
+    },
+    {
+     "id": "fldCLyNOOBpbLAkGp",
+     "name": "Mapped condition group (from Chronic Diagnosis)",
+     "type": "multipleLookupValues",
+     "recordLinkFieldId": "fld9gw5nJNzgywljY",
+     "fieldIdInLinkedTable": "fldyz11Dj5wK2y2S8"
+    },
+    {
+     "id": "fld5RICCcp4rBLBzL",
+     "name": "Typical visit CPT (established) (from Chronic Diagnosis)",
+     "type": "multipleLookupValues",
+     "recordLinkFieldId": "fld9gw5nJNzgywljY",
+     "fieldIdInLinkedTable": "fldBQJcawPXqJc6it"
+    },
+    {
+     "id": "fldOBH1g2DMG5Paus",
+     "name": "Monitoring procedures/other (CPT) (from Chronic Diagnosis)",
+     "type": "multipleLookupValues",
+     "recordLinkFieldId": "fld9gw5nJNzgywljY",
+     "fieldIdInLinkedTable": "fldkUbUTXumjsRkFm"
+    },
+    {
+     "id": "fldj3txZ3jVDBTbdv",
+     "name": "Monitoring labs (CPT) (from Chronic Diagnosis)",
+     "type": "multipleLookupValues",
+     "recordLinkFieldId": "fld9gw5nJNzgywljY",
+     "fieldIdInLinkedTable": "fldiGELdzlLp7i46d"
+    },
+    {
+     "id": "fldClpADJHgFPe80u",
+     "name": "Regular medication (examples) (from Chronic Diagnosis)",
+     "type": "multipleLookupValues",
+     "recordLinkFieldId": "fld9gw5nJNzgywljY",
+     "fieldIdInLinkedTable": "fldfhJrKlgXaxHuQO"
+    },
+    {
+     "id": "fldSHT652Dabbt0Ic",
+     "name": "Follow-up interval (for chronic monitoring) (from Chronic Diagnosis)",
+     "type": "multipleLookupValues",
+     "recordLinkFieldId": "fld9gw5nJNzgywljY",
+     "fieldIdInLinkedTable": "fldSqRWz914hDYRBf"
+    },
+    {
+     "id": "fld0W92DbyfAqK1x4",
+     "name": "SHORT DESCRIPTION (VALID ICD-10 FY2026) (from Chronic Diagnosis)",
+     "type": "multipleLookupValues",
+     "recordLinkFieldId": "fld9gw5nJNzgywljY",
+     "fieldIdInLinkedTable": "fldlgGXBFovQBgr7N"
+    },
+    {
+     "id": "fldHHGs0WC77TBEwm",
+     "name": "Last Modified By",
+     "type": "lastModifiedTime",
+     "options": {
+      "isValid": true,
+      "referencedFieldIds": [
+       "fldwTnnvCipJeVvco"
+      ],
+      "result": {
+       "type": "dateTime",
+       "options": {
+        "dateFormat": {
+         "name": "local",
+         "format": "l"
+        },
+        "timeFormat": {
+         "name": "12hour",
+         "format": "h:mma"
+        },
+        "timeZone": "client"
+       }
+      }
+     }
+    },
+    {
+     "id": "fldZSg1gJ0DQeeSfJ",
+     "name": "Visit Date (from Medical Records Data)",
+     "type": "multipleLookupValues",
+     "recordLinkFieldId": "flda3KM4KzJ9ANR7E",
+     "fieldIdInLinkedTable": "fldKuI5eXoDJIiOcu"
+    },
+    {
+     "id": "fldWmLauQFB1OzOaI",
+     "name": "Dosage Days (from Medical Records Data)",
+     "type": "multipleLookupValues",
+     "recordLinkFieldId": "flda3KM4KzJ9ANR7E",
+     "fieldIdInLinkedTable": "fldw8Oyu3hhgAS3gV"
+    },
+    {
+     "id": "fldXbiS53VgVfJaq3",
+     "name": "60 days >",
+     "type": "singleSelect",
+     "choices": [
+      "True",
+      "False"
+     ]
+    },
+    {
+     "id": "fldsKUWwiNd017yAq",
+     "name": "Medication (from Medical Records Data)",
+     "type": "multipleLookupValues",
+     "recordLinkFieldId": "flda3KM4KzJ9ANR7E",
+     "fieldIdInLinkedTable": "fldIBSKJNAyz1kKlo"
+    },
+    {
+     "id": "fld1zUkP31AzkAdy1",
+     "name": "Name (from Medication) (from Medical Records Data)",
+     "type": "multipleLookupValues",
+     "recordLinkFieldId": "flda3KM4KzJ9ANR7E",
+     "fieldIdInLinkedTable": "flddh8qycN8eMqr0z"
+    },
+    {
+     "id": "fldZgI4a9JcG7Bi1L",
+     "name": "Medication",
+     "type": "multipleRecordLinks",
+     "linkedTableId": "tblLM2BXjA680GQws",
+     "inverseLinkFieldId": "fldqajLnh3yZU4hf8"
+    },
+    {
+     "id": "fld0zpzfXji5Ug1Pn",
+     "name": "Trade Name (from Medication)",
+     "type": "multipleLookupValues",
+     "recordLinkFieldId": "fldZgI4a9JcG7Bi1L",
+     "fieldIdInLinkedTable": "fldvBHlyQEFGX1UFS"
+    },
+    {
+     "id": "fldWEUhXYYrN0Pstt",
+     "name": "Medicine Name",
+     "type": "multilineText"
+    },
+    {
+     "id": "fld1rcfyHtRqU4smN",
+     "name": "Chronic (from Medical Records Data)",
+     "type": "multipleLookupValues",
+     "recordLinkFieldId": "flda3KM4KzJ9ANR7E",
+     "fieldIdInLinkedTable": "fldGDbAITA479dzHZ"
+    },
+    {
+     "id": "flddCd5RFHVjD4uwb",
+     "name": "nmdr-25",
+     "type": "checkbox",
+     "options": {
+      "icon": "check",
+      "color": "greenBright"
+     }
+    },
+    {
+     "id": "fldsXPzDxNdHqwET8",
+     "name": "Insurance Plan",
+     "type": "singleSelect",
+     "choices": [
+      "Mednet",
+      "AXA"
+     ]
+    },
+    {
+     "id": "fldKuHeI2ELyYI5P1",
+     "name": "Dosage Days (from Medical Records Data) 2",
+     "type": "multipleLookupValues",
+     "recordLinkFieldId": "flda3KM4KzJ9ANR7E",
+     "fieldIdInLinkedTable": "fldw8Oyu3hhgAS3gV"
+    },
+    {
+     "id": "fld9DJRSuMhP0uyv2",
+     "name": "Time Elapsed (Days)",
+     "type": "formula",
+     "description": "Calculates the number of days elapsed since the Last Visit Date until today.",
+     "formula": "DATETIME_DIFF(TODAY(), {fldwTnnvCipJeVvco}, 'days')",
+     "resultType": "number",
+     "referencedFieldIds": [
+      "fldwTnnvCipJeVvco"
+     ]
+    },
+    {
+     "id": "fldfZP0baTGepB1CH",
+     "name": "Created",
+     "type": "createdTime",
+     "options": {
+      "result": {
+       "type": "dateTime",
+       "options": {
+        "dateFormat": {
+         "name": "local",
+         "format": "l"
+        },
+        "timeFormat": {
+         "name": "12hour",
+         "format": "h:mma"
+        },
+        "timeZone": "client"
+       }
+      }
+     }
+    },
+    {
+     "id": "fld1qzi3GmVYwAT4F",
+     "name": "Created 2",
+     "type": "createdTime",
+     "options": {
+      "result": {
+       "type": "date",
+       "options": {
+        "dateFormat": {
+         "name": "local",
+         "format": "l"
+        }
+       }
+      }
+     }
+    },
+    {
+     "id": "fldGJULCGakWZOt5S",
+     "name": "Chronic Recall Sent On",
+     "type": "date",
+     "description": "Set by Make scenario 'Chronic Recall — 90 Day' when the chronic follow-up WhatsApp template has been sent. Blank = eligible. Prevents the daily scenario from re-firing on the same patient.",
+     "options": {
+      "dateFormat": {
+       "name": "iso",
+       "format": "YYYY-MM-DD"
+      }
+     }
+    },
+    {
+     "id": "flduLqrsCl6CvaHec",
+     "name": "Chronic Recall Condition",
+     "type": "singleLineText",
+     "description": "The mapped condition group the chronic recall message was sent for. Written by Make at send time so the log and the patient record agree."
+    },
+    {
+     "id": "fldTnPcF0Y96Oe5so",
+     "name": "Chronic Recall Groups",
+     "type": "formula",
+     "description": "Rewrite to split on the comma-separated string Airtable actually produces for this select lookup, and strip mental-health groups positionally via regex rather than SUBSTITUTE (which misses consecutive duplicates).",
+     "formula": "TRIM(REGEX_REPLACE(REGEX_REPLACE(REGEX_REPLACE(REGEX_REPLACE({fldCLyNOOBpbLAkGp} & \"\", \"Depression \\\\(major\\\\)|Anxiety disorders\", \"\"), \"\\\\s*,\\\\s*\", \",\"), \",+\", \",\"), \"^,|,$\", \"\"))",
+     "resultType": "singleLineText",
+     "referencedFieldIds": [
+      "fldCLyNOOBpbLAkGp"
+     ]
+    },
+    {
+     "id": "fldB3w0oECaHSvdvO",
+     "name": "Chronic Recall Primary Condition",
+     "type": "formula",
+     "description": "Split on comma to match the corrected Chronic Recall Groups format.",
+     "formula": "IF(LEN({fldTnPcF0Y96Oe5so}) > 0, TRIM(REGEX_REPLACE({fldTnPcF0Y96Oe5so}, \",.*\", \"\")), \"\")",
+     "resultType": "singleLineText",
+     "referencedFieldIds": [
+      "fldTnPcF0Y96Oe5so"
+     ]
+    },
+    {
+     "id": "fldfaqFDZuQQlVsEH",
+     "name": "Chronic Recall Eligible",
+     "type": "formula",
+     "description": "1 = due for a chronic recall message. Requires: 90+ days since last visit (Follow-up interval on all Top 30 codes is 'Every 3 months'), a messageable chronic condition, a phone number, and not already sent. This is the single field the Make scenario filters on.",
+     "formula": "IF(AND({fld9DJRSuMhP0uyv2} >= 30, {fldGJULCGakWZOt5S} = BLANK(), LEN({flddF5X0a7DtDJRNf} & \"\") > 0, LEN({fldB3w0oECaHSvdvO}) > 0), 1, 0)",
+     "resultType": "number",
+     "referencedFieldIds": [
+      "fld9DJRSuMhP0uyv2",
+      "fldGJULCGakWZOt5S",
+      "flddF5X0a7DtDJRNf",
+      "fldB3w0oECaHSvdvO"
+     ]
+    },
+    {
+     "id": "fld2bvMSsTi0mpDo3",
+     "name": "Chronic Recall Template ID",
+     "type": "formula",
+     "formula": "SWITCH({fldB3w0oECaHSvdvO}, \"Hypertension / Hypertensive disease\", 13159, \"Diabetes mellitus (Type 1/2/other)\", 13164, \"Hyperlipidemia\", 13163, \"Hypothyroidism\", 13169, \"Chronic kidney disease\", 13168, \"Asthma\", 13162, \"COPD\", 13165, \"Rheumatoid arthritis\", 13161, \"Atrial fibrillation / flutter\", 13167, \"Epilepsy\", 13166, 13170)",
+     "resultType": "number",
+     "referencedFieldIds": [
+      "fldB3w0oECaHSvdvO"
+     ]
+    },
+    {
+     "id": "fldQtGSC8RwtOy1pV",
+     "name": "Primary Diagnosis (from Medical Records Data)",
+     "type": "multipleLookupValues",
+     "recordLinkFieldId": "flda3KM4KzJ9ANR7E",
+     "fieldIdInLinkedTable": "fldSIH4uHnviEYYel"
+    },
+    {
+     "id": "fld0NR4XBFjQG6D4j",
+     "name": "Chronic Status",
+     "type": "singleSelect",
+     "choices": [
+      "Yes"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "tblllKPKIY9qvMoEU",
+   "name": "Medical Records Data",
+   "primaryFieldId": "fldtMJzbQovI9IliR",
+   "fields": [
+    {
+     "id": "fldtMJzbQovI9IliR",
+     "name": "Patient Name",
+     "type": "singleLineText"
+    },
+    {
+     "id": "fldtxNjAanspw8h40",
+     "name": "Unite",
+     "type": "multipleRecordLinks",
+     "linkedTableId": "tbl9856qJP9S7OEqB",
+     "inverseLinkFieldId": "flda3KM4KzJ9ANR7E"
+    },
+    {
+     "id": "fldsWMY4lxXq5pLlm",
+     "name": "Last Visit Date (from Unite)",
+     "type": "multipleLookupValues",
+     "recordLinkFieldId": "fldtxNjAanspw8h40",
+     "fieldIdInLinkedTable": "fldwTnnvCipJeVvco"
+    },
+    {
+     "id": "fldFyoQfT4QF90Ue5",
+     "name": "Patient Pin (from Unite)",
+     "type": "multipleLookupValues",
+     "recordLinkFieldId": "fldtxNjAanspw8h40",
+     "fieldIdInLinkedTable": "fldGW2uKUvJ8Go98Q"
+    },
+    {
+     "id": "fldKuI5eXoDJIiOcu",
+     "name": "Visit Date",
+     "type": "date",
+     "options": {
+      "dateFormat": {
+       "name": "local",
+       "format": "l"
+      }
+     }
+    },
+    {
+     "id": "fldJajCqvONmaX3XL",
+     "name": "Height",
+     "type": "singleLineText"
+    },
+    {
+     "id": "fldzdjzBPCdvG9U8U",
+     "name": "Weight Measured",
+     "type": "singleLineText"
+    },
+    {
+     "id": "fldQWA9jjupL6EF3L",
+     "name": "Body Temperature",
+     "type": "singleLineText"
+    },
+    {
+     "id": "fldOVaKPQc3VUwJnh",
+     "name": "Pulse",
+     "type": "singleLineText"
+    },
+    {
+     "id": "fldQEoJfTLKODHoq7",
+     "name": "BP Systolic",
+     "type": "singleLineText"
+    },
+    {
+     "id": "fldz0AtfcKuYy52FV",
+     "name": "BP Diastolic",
+     "type": "singleLineText"
+    },
+    {
+     "id": "fldFzXAhtt2fcRTDy",
+     "name": "O2 % BldC Oximetry",
+     "type": "singleLineText"
+    },
+    {
+     "id": "fld5eftp6BVHSyPQd",
+     "name": "Desc",
+     "type": "multilineText"
+    },
+    {
+     "id": "fldsrglawqYEoNqZu",
+     "name": "Diagnosis",
+     "type": "multipleRecordLinks",
+     "linkedTableId": "tblZqf4Zcw5Kweadh",
+     "inverseLinkFieldId": "fldhZEmogfSr6ImNV"
+    },
+    {
+     "id": "fld90bi0NddIgW5fO",
+     "name": "Description (from Diagnosis)",
+     "type": "multipleLookupValues",
+     "recordLinkFieldId": "fldsrglawqYEoNqZu",
+     "fieldIdInLinkedTable": "fldlgGXBFovQBgr7N"
+    },
+    {
+     "id": "fldIBSKJNAyz1kKlo",
+     "name": "Medication",
+     "type": "multipleRecordLinks",
+     "linkedTableId": "tblLM2BXjA680GQws",
+     "inverseLinkFieldId": "fldpryRGaMe7cCqkd"
+    },
+    {
+     "id": "flddh8qycN8eMqr0z",
+     "name": "Name (from Medication)",
+     "type": "multipleLookupValues",
+     "recordLinkFieldId": "fldIBSKJNAyz1kKlo",
+     "fieldIdInLinkedTable": "fldvBHlyQEFGX1UFS"
+    },
+    {
+     "id": "fldw8Oyu3hhgAS3gV",
+     "name": "Dosage Days",
+     "type": "singleLineText"
+    },
+    {
+     "id": "fld2m2sHEXFI3hCvl",
+     "name": "Total Quantity (from Medication)",
+     "type": "singleLineText"
+    },
+    {
+     "id": "fld0m9i56euiz70Wd",
+     "name": "Roa Description (from Medication)",
+     "type": "singleLineText"
+    },
+    {
+     "id": "fld5GjbpREf5EvHRS",
+     "name": "Items",
+     "type": "multipleRecordLinks",
+     "linkedTableId": "tblTJtk6aIMbwpoA2",
+     "inverseLinkFieldId": "fld8rbMC3zSkDqC8J"
+    },
+    {
+     "id": "fldE7j7ikeCoY79Q3",
+     "name": "Description (from Items)",
+     "type": "multipleLookupValues",
+     "recordLinkFieldId": "fld5GjbpREf5EvHRS",
+     "fieldIdInLinkedTable": "fldB4i14uDiaFt0Qv"
+    },
+    {
+     "id": "fldZsPHI9BBzWWgap",
+     "name": "Complaints",
+     "type": "multilineText"
+    },
+    {
+     "id": "fldX8Chw8INeRhuTD",
+     "name": "Nurse Notes",
+     "type": "singleLineText"
+    },
+    {
+     "id": "fld5ONgPlFlyJFZYy",
+     "name": "Doctor Notes",
+     "type": "singleLineText"
+    },
+    {
+     "id": "fldx5AdhYb49W946I",
+     "name": "Therapy Notes",
+     "type": "multilineText"
+    },
+    {
+     "id": "fldVWIrd7336dmS6x",
+     "name": "Procedure Notes",
+     "type": "multilineText"
+    },
+    {
+     "id": "fldpNQHsUjrA9XG8a",
+     "name": "Observations/Physical Examination",
+     "type": "multilineText"
+    },
+    {
+     "id": "fldJQiC2fplhNXa1N",
+     "name": "History Of Present Illness",
+     "type": "multilineText"
+    },
+    {
+     "id": "fldUGZGwjklowwHJI",
+     "name": "Review Of Systems",
+     "type": "singleLineText"
+    },
+    {
+     "id": "fldhDyDyi1V5soDiO",
+     "name": "Plan of Treatment",
+     "type": "multilineText"
+    },
+    {
+     "id": "fldezCsEahKg8AnGL",
+     "name": "Created",
+     "type": "createdTime",
+     "options": {
+      "result": {
+       "type": "dateTime",
+       "options": {
+        "dateFormat": {
+         "name": "local",
+         "format": "l"
+        },
+        "timeFormat": {
+         "name": "12hour",
+         "format": "h:mma"
+        },
+        "timeZone": "client"
+       }
+      }
+     }
+    },
+    {
+     "id": "fldGDbAITA479dzHZ",
+     "name": "Chronic (from Diagnosis)",
+     "type": "multipleLookupValues",
+     "recordLinkFieldId": "fldsrglawqYEoNqZu",
+     "fieldIdInLinkedTable": "fldIGBzWtu2QFP0Yk"
+    },
+    {
+     "id": "fld1qsBahGnH8MKjs",
+     "name": "Top 30",
+     "type": "multipleLookupValues",
+     "recordLinkFieldId": "fldsrglawqYEoNqZu",
+     "fieldIdInLinkedTable": "fldFVPiTP5g4AGaV2"
+    },
+    {
+     "id": "fldZiy0HG9KGApOtc",
+     "name": "Doctor Name",
+     "type": "singleLineText"
+    },
+    {
+     "id": "fldSIH4uHnviEYYel",
+     "name": "Primary Diagnosis",
+     "type": "singleLineText"
+    },
+    {
+     "id": "fldDJcDJYLqffQ5A0",
+     "name": "Primary Diagnosis Link",
+     "type": "multipleRecordLinks",
+     "linkedTableId": "tblZqf4Zcw5Kweadh",
+     "inverseLinkFieldId": "fld3Jg5CLuPVCP6Wd"
+    },
+    {
+     "id": "fldTVFyiKlZAhzUe6",
+     "name": "Acute Sync On",
+     "type": "date",
+     "description": "Written by Make scenario 'Acute Follow-Up — MRD Sync' when this visit has been pushed to the Acute Clinical Follow-Up Automation base (appH2jHpsNR1nqEQ2). Blank = not yet synced. Do not edit manually.",
+     "options": {
+      "dateFormat": {
+       "name": "iso",
+       "format": "YYYY-MM-DD"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "tblZqf4Zcw5Kweadh",
+   "name": "Diagnosis",
+   "primaryFieldId": "fldld9DKnsoLK9ADK",
+   "fields": [
+    {
+     "id": "fldld9DKnsoLK9ADK",
+     "name": "Code",
+     "type": "singleLineText"
+    },
+    {
+     "id": "fldlgGXBFovQBgr7N",
+     "name": "SHORT DESCRIPTION (VALID ICD-10 FY2026)",
+     "type": "singleLineText"
+    },
+    {
+     "id": "fldXgTWsfTbPrlreE",
+     "name": "LONG DESCRIPTION (VALID ICD-10 FY2026)",
+     "type": "multilineText"
+    },
+    {
+     "id": "fldhZEmogfSr6ImNV",
+     "name": "Medical Records Data",
+     "type": "multipleRecordLinks",
+     "linkedTableId": "tblllKPKIY9qvMoEU",
+     "inverseLinkFieldId": "fldsrglawqYEoNqZu"
+    },
+    {
+     "id": "fldSqRWz914hDYRBf",
+     "name": "Follow-up interval (for chronic monitoring)",
+     "type": "singleSelect",
+     "choices": [
+      "Every 3 months"
+     ]
+    },
+    {
+     "id": "fldfhJrKlgXaxHuQO",
+     "name": "Regular medication (examples)",
+     "type": "singleSelect",
+     "choices": [
+      "Levothyroxine (dose adjusted)",
+      "Metformin; SGLT2 inhibitor; GLP-1 RA; Insulin (as indicated)",
+      "Statin; Ezetimibe; PCSK9 inhibitor (as indicated)",
+      "SSRI/SNRI; other antidepressant (as indicated)",
+      "SSRI/SNRI; Buspirone; short-term anxiolytic (as indicated)",
+      "Antiepileptic drug(s) (as indicated)",
+      "ACEi/ARB; Thiazide; CCB; Beta-blocker (as indicated)",
+      "Rate/rhythm control; Anticoagulant (as indicated)",
+      "LAMA; LABA; ICS (as indicated); Rescue bronchodilator",
+      "ICS; ICS/LABA; SABA rescue; Biologic (as indicated)",
+      "DMARD (e.g., methotrexate); Biologic (as indicated)",
+      "ACEi/ARB; SGLT2 inhibitor; bicarbonate; phosphate binder (as indicated)"
+     ]
+    },
+    {
+     "id": "fldiGELdzlLp7i46d",
+     "name": "Monitoring labs (CPT)",
+     "type": "singleSelect",
+     "choices": [
+      "TSH 84443; Free T4 84439 (as indicated)",
+      "HbA1c 83036/83037; CMP 80053; Lipid panel 80061; Urine microalbumin 82043/82044; Creatinine 82565",
+      "Lipid panel 80061; Hepatic function panel 80076 (as indicated); CK 82550 (myalgia)",
+      "Therapeutic drug levels (varies): valproic acid 80164; carbamazepine 80156 (as indicated)",
+      "BMP 80048 (or CMP 80053); Creatinine 82565; Lipid panel 80061 (risk-based)",
+      "INR 85610 (if warfarin); BMP 80048 (if on certain agents)",
+      "CBC 85025; ESR 85652; CRP 86140; Hepatic function panel 80076",
+      "CMP 80053; Creatinine 82565; Urinalysis 81001; Urine protein 84156; PTH 83970; Vitamin D 82306 (risk-based)"
+     ]
+    },
+    {
+     "id": "fldkUbUTXumjsRkFm",
+     "name": "Monitoring procedures/other (CPT)",
+     "type": "singleSelect",
+     "choices": [
+      "RPM (glucose) 99453/99454/99457/99458 (if used)",
+      "Brief emotional/behavioral assessment 96127",
+      "EEG 95816 (as indicated)",
+      "EKG 93000 (as indicated); Ambulatory BP 93784; Home BP review 99474",
+      "EKG 93000 (as indicated); Anticoag mgmt 93792/93793 (warfarin)",
+      "Spirometry 94010 (as indicated)",
+      "Spirometry 94010; Bronchodilator response 94060 (as indicated)"
+     ]
+    },
+    {
+     "id": "fldBQJcawPXqJc6it",
+     "name": "Typical visit CPT (established)",
+     "type": "singleSelect",
+     "choices": [
+      "99213–99214",
+      "99214 (most cases)",
+      "99214 (med management)",
+      "99214",
+      "99213–99214 (often 99214 with Rx management)",
+      "99214–99215 (stage-dependent)"
+     ]
+    },
+    {
+     "id": "fldyz11Dj5wK2y2S8",
+     "name": "Mapped condition group",
+     "type": "singleSelect",
+     "choices": [
+      "Hypothyroidism",
+      "Diabetes mellitus (Type 1/2/other)",
+      "Hyperlipidemia",
+      "Depression (major)",
+      "Anxiety disorders",
+      "Epilepsy",
+      "Hypertension / Hypertensive disease",
+      "Atrial fibrillation / flutter",
+      "COPD",
+      "Asthma",
+      "Rheumatoid arthritis",
+      "Chronic kidney disease"
+     ]
+    },
+    {
+     "id": "fldrYIl9ThLNImcZZ",
+     "name": "Unite",
+     "type": "multipleRecordLinks",
+     "linkedTableId": "tbl9856qJP9S7OEqB",
+     "inverseLinkFieldId": "fld9gw5nJNzgywljY"
+    },
+    {
+     "id": "fldFVPiTP5g4AGaV2",
+     "name": "Top 30",
+     "type": "checkbox",
+     "options": {
+      "icon": "check",
+      "color": "greenBright"
+     }
+    },
+    {
+     "id": "fldIGBzWtu2QFP0Yk",
+     "name": "Chronic",
+     "type": "checkbox",
+     "options": {
+      "icon": "check",
+      "color": "greenBright"
+     }
+    },
+    {
+     "id": "fldBrKtpGsjwZz6Qw",
+     "name": "Unite 2",
+     "type": "singleLineText"
+    },
+    {
+     "id": "fldcjL0XTK3ruAiuj",
+     "name": "new",
+     "type": "checkbox",
+     "options": {
+      "icon": "check",
+      "color": "greenBright"
+     }
+    },
+    {
+     "id": "fldZ1GJURbssClWC6",
+     "name": "Updated",
+     "type": "checkbox",
+     "options": {
+      "icon": "check",
+      "color": "greenBright"
+     }
+    },
+    {
+     "id": "fldgC3rVdSM5ehgtQ",
+     "name": "NF",
+     "type": "checkbox",
+     "options": {
+      "icon": "check",
+      "color": "greenBright"
+     }
+    },
+    {
+     "id": "fld3Jg5CLuPVCP6Wd",
+     "name": "Medical Records Data 2",
+     "type": "multipleRecordLinks",
+     "linkedTableId": "tblllKPKIY9qvMoEU",
+     "inverseLinkFieldId": "fldDJcDJYLqffQ5A0"
+    }
+   ]
+  },
+  {
+   "id": "tblTJtk6aIMbwpoA2",
+   "name": "Items",
+   "primaryFieldId": "fld0i0BQItTWZpTm5",
+   "fields": [
+    {
+     "id": "fld0i0BQItTWZpTm5",
+     "name": "Code",
+     "type": "singleLineText"
+    },
+    {
+     "id": "fldB4i14uDiaFt0Qv",
+     "name": "Description",
+     "type": "multilineText"
+    },
+    {
+     "id": "fldDUW6cM6saCg5m8",
+     "name": "Item Type",
+     "type": "singleSelect",
+     "choices": [
+      "ItemType",
+      "CONSUMABLES",
+      "Consumables",
+      "INTRAVENOUS THERAPY",
+      "DRUGS",
+      "VACCINE",
+      "PROCEDURES",
+      "SERVICE",
+      "RETAIL PRODUCT",
+      "RADIOLOGY",
+      "TEST",
+      "Other Services",
+      "DENTAL PROCEDURES",
+      "Drugs",
+      "OTHER SERVICES",
+      "Vaccine",
+      "HOME HEALTHCARE",
+      "Other services",
+      "EVENTS"
+     ]
+    },
+    {
+     "id": "fld8rbMC3zSkDqC8J",
+     "name": "Medical Records Data",
+     "type": "multipleRecordLinks",
+     "linkedTableId": "tblllKPKIY9qvMoEU",
+     "inverseLinkFieldId": "fld5GjbpREf5EvHRS"
+    }
+   ]
+  },
+  {
+   "id": "tblLM2BXjA680GQws",
+   "name": "Medication",
+   "primaryFieldId": "fld7kgxlA3c0kjFdW",
+   "fields": [
+    {
+     "id": "fld7kgxlA3c0kjFdW",
+     "name": "DDC Code",
+     "type": "singleLineText"
+    },
+    {
+     "id": "fldvBHlyQEFGX1UFS",
+     "name": "Trade Name",
+     "type": "singleLineText"
+    },
+    {
+     "id": "fldpryRGaMe7cCqkd",
+     "name": "Medical Records Data",
+     "type": "multipleRecordLinks",
+     "linkedTableId": "tblllKPKIY9qvMoEU",
+     "inverseLinkFieldId": "fldIBSKJNAyz1kKlo"
+    },
+    {
+     "id": "fldDwPzpHS7bHGZbj",
+     "name": "Status",
+     "type": "singleLineText"
+    },
+    {
+     "id": "fld6erxHG8rlNl7Zr",
+     "name": "SCIENTIFIC_CODE",
+     "type": "singleLineText"
+    },
+    {
+     "id": "fldIea5PEr6Tk50tY",
+     "name": "SCIENTIFIC_NAME",
+     "type": "singleLineText"
+    },
+    {
+     "id": "fldsXKIf7k6HF3jhW",
+     "name": "INGREDIENT_STRENGTH",
+     "type": "singleLineText"
+    },
+    {
+     "id": "fld7ovnGh11wewXqw",
+     "name": "DOSAGE_FORM_PACKAGE",
+     "type": "singleLineText"
+    },
+    {
+     "id": "flduJNhd0tBaFqDoT",
+     "name": "ROUTE_OF_ADMIN",
+     "type": "singleLineText"
+    },
+    {
+     "id": "fldQPwna6WcQkIsrb",
+     "name": "PACKAGE_PRICE",
+     "type": "singleLineText"
+    },
+    {
+     "id": "fldGFRp4X68CfAO6k",
+     "name": "GRANULAR_UNIT",
+     "type": "singleLineText"
+    },
+    {
+     "id": "fldlWj6a725a6l54H",
+     "name": "REGISTERED_OWNER",
+     "type": "singleSelect",
+     "choices": [
+      "REGISTERED_OWNER",
+      "MODERN PHARMACEUTICAL CO.",
+      "GULF DRUG EST.",
+      "CITY PHARMACY CO.",
+      "NEW COUNTRY MEDICAL SUPPLIES",
+      "JULPHAR",
+      "AL BAKER TRADING EST.",
+      "AL RAZI PHARMACY",
+      "N/A",
+      "NEW MEDICAL CENTRE",
+      "ALPHAMED CO. (AUH) LTD.",
+      "AMREET TRADING CO. LTD.",
+      "AMREET MEDICAL SUPPLIES EST.",
+      "AL MAZROUI MEDICAL & CHEMICAL SUPPLIES",
+      "AL HAYAT PHARMACEUTICALS",
+      "PHARMALINK",
+      "PHARMATRADE",
+      "MEDICAL SCIENTIFIC EST.",
+      "METROPOLITAN MEDICAL MARKETING",
+      "IBN KHALDOON DRUG STORE",
+      "SHARJAH DRUG STORE",
+      "AL AMER ESTABLISHMENT",
+      "PROPHARMA MEDICAL SUPPLIES",
+      "ARABIAN ETHICALS CO.",
+      "PHARMAWORLD",
+      "MATERIAL MEDICAL EST.",
+      "AL ITTIHAD DRUG STORE",
+      "EXPERT DRUG STORE",
+      "ALPHAMED SHARJAH EST.",
+      "MUSCAT PHARMACEUTICAL TRADING L.L.C.",
+      "AL MAFRAQ PHARMACEUTICAL EST.",
+      "TAIBA AL KHALEEJ STORE LLC",
+      "QUADRI PHARMACEUTICALS STORE L.L.C.",
+      "AL MUFID PHARMACEUTICALS",
+      "BIOLOGIX FZE",
+      "DUPHARM",
+      "BALSAM DRUG STORE & MEDICAL EQUIPMENT",
+      "AL NOOR MEDICAL STORE",
+      "THE POLARIZER FOR MEDICAL & CHEMICAL SUPPLIES",
+      "ABU DHABI INTERNATIONAL MEDICAL SERVICES",
+      "ASIA EMIRATES MEDICAL L.L.C.",
+      "ALPHAMED GENERAL TRADING",
+      "MEDICARE",
+      "ULTRAMED",
+      "LUNATUS DRUG STORE",
+      "AL MUHAIRY GENERAL TRADING CO.",
+      "FUJAIRAH DRUG STORE",
+      "NATIONAL TRADING & DEVELOPING EST. (SMOKER'S CENTRE)",
+      "HORIZON MEDICAL SUPPLIES",
+      "KAPPA MEDICAL EST.",
+      "LABGULF FZC",
+      "SARA INTERNATIONAL FOR MEDICINES & MEDICAL EQUIPMENT",
+      "BIOTECH PHARMA SERVICES",
+      "SERUM INDO GULF L.L.C.",
+      "AL SULTAN PHARMACEUTICAL & MEDICAL EQUIPMENT",
+      "AL BADAE MEDICAL INSTRUMENTS",
+      "AL HALLAMI ENTERPRISES",
+      "VITAVISION MEDICAL SUPPLIES",
+      "UNIMED",
+      "U.A.E. EMBASSY - LONDON",
+      "AL BORJ MEDICINE TRADING",
+      "HEALTH CARE TRADING CO. LLC",
+      "YAQOOB BAKER PHARMACEUTICAL DISTRIBUTION",
+      "AL RAZI NUTRITION FOOD ESTABLISHMENT",
+      "AL NOOR MEDICAL CO.",
+      "GIGI DRUG STORES",
+      "LABCO FZCO",
+      "HEALTH GATE",
+      "OMAN PHARMACY CO.",
+      "ABR AL ADWIYA DRUG STORE (DXB)",
+      "AL MANARAH MEDICAL STORE LLC",
+      "GULF INJECT L.L.C.",
+      "PHOENIX MEDICINES L.L.C.",
+      "MAYNE PHARMA (ME & NA)",
+      "INMA DRUG STORE AND MEDICAL EQUIPMENT",
+      "AL ZAHRAWI MEDICINES TRADING EST.",
+      "PHARMALINES MEDICAL STORE",
+      "SAHARA PHARMACEUTICAL",
+      "ASTER HOSPITAL",
+      "PHARMAPLUS",
+      "AL RAAYA DRUG STORE",
+      "GLOBALPHARMA CO. L.L.C.",
+      "TRANS ARABIA DRUG STORE LLC",
+      "OMAN PHARMACY",
+      "TRANS-WORLD TRADITIONAL CHINESE HERBAL MEDICINE CO.",
+      "ATLAS MEDICAL",
+      "AL ABRAJ MEDICAL SERVICES",
+      "GULF RIDER DRUG STORE",
+      "PHARMA SERVICE EST.",
+      "AYOUB PHARMACEUTICAL CO. LLC",
+      "AL MUFID TRADING CO. L.L.C.",
+      "ABCON INTERNATIONAL DRUG STORE",
+      "DELTA MEDICAL EST.",
+      "GULF RIDER VETERINARY MEDICINE AND EQUIPMENT TRADING",
+      "BETA STAR",
+      "MEDICLINIC",
+      "AL MULTAQA DRUGS AND PHARMACEUTICAL",
+      "AL RAHMA MEDIC DRUG STORE",
+      "ABDULLA AL MUTAWA PHARMACEUTICAL STORE & CHEMICALS",
+      "VITABIOTICS",
+      "CURE MEDICAL",
+      "AL ZAHRA TECHNOLOGY LLC, DUBAI",
+      "KALIUM DRUG STORE",
+      "RADIOPHARMA",
+      "LIFELINE DRUG STORE",
+      "HOSPIRA FZE",
+      "AL SHARJAH DRUG STORE",
+      "INTERNATIONAL ADVANCE TRADING",
+      "HERBA LINES DRUG STORE",
+      "GULF MED FZE",
+      "AL SHORAFAA MEDICAL STORE",
+      "TRANS EMIRATES HOSPITAL SUPPLIES",
+      "BEST VALUE PHARMACEUTICALS FZE",
+      "ALPHAMED DRUG STORE",
+      "WORLD ENERGY GROUP, ABU DHABI",
+      "NEW COUNTRY HEALTHCARE L.L.C.",
+      "ITROM TRADING, DUBAI",
+      "AL RAZI PHARMACEUTICALS CO.",
+      "NATURE'S BOUNTY",
+      "IBN AL BEETAR TRADING EST.",
+      "HAMAD DRUG STORE L.L.C.",
+      "BEELINE MEDICINE TRADING",
+      "UNITED AMERICAN MEDICAL SUPPLY",
+      "GLOBAL RX",
+      "TRIANGLE MEDICAL TRADING",
+      "AL AMIN UNITED DRUG STORE",
+      "ALPHAPHARM HEALTHCARE LLC",
+      "AHMED KHALIL AL BAKER MEDICAL SUPPLIES COMPANY",
+      "BIOPHARMA S A MEDICAL STORE, DUBAI",
+      "AVEVA DRUG DELIVERY SYSTEM INC., USA",
+      "ORPHAN EUROPE, USA",
+      "ALPHAMED ",
+      "NATIONAL TRADING & DEVELOPING EST.",
+      "PFIZER GULF FZ-LLC",
+      "PIERRE FABRE",
+      "NATIONAL TRADING AND PHARMACEUTICAL ESTABLISHMENT",
+      "AL MANSOURI HEALTH PRODUCTS",
+      "PHARMA STORE",
+      "VALUE PHARMA",
+      "AMANA RX FZC",
+      "GIS MEDICAL & SURGICAL SUPPLIES",
+      "AL QABAS MEDICAL TRADING",
+      "GREEN PHARMA STORES",
+      "ECKHART GULF PHARM & MEDICAL EQUIPMENT STORE",
+      "BIOTHERA MEDICINES L.L.C",
+      "PULSEMED",
+      "DHA",
+      "ORIENT DRUG STORE CO",
+      "EMPA MIDDLE EAST FZCO",
+      "ORIENT LINE DRUG STORE",
+      "PHARMAPAL",
+      "NUTRIPHARM",
+      "FIRST NATIONAL MEDICAL PHARMA",
+      "SAHARA MEDICAL & SCIENTIFIC SUPPLIES",
+      "PRIVATE HOSPITAL",
+      "CARDINAL PHARMACEUTICALS STORE LLC",
+      "ADVANCED INTERNATIONAL PHARMACEUTICALS",
+      "INTERNATIONAL PHARMACEUTICAL CO. STORE",
+      "NUPAL REMEDIES TRADING L.L.C.",
+      "AL AMIR MEDICAL EQUIPMENT AND SUPPLIES",
+      "METROMED",
+      "BEST STAR PHARMA TRADING L.L.C",
+      "IPHARMA DRUG STORE",
+      "ZIAD DRUG STORE L.L.C",
+      "GOLDEN FALCON GENERAL TRADING LLC",
+      "MINA DRUG STORE",
+      "PROFMED GENERAL TRADING LLC",
+      "OASIS MODERN MEDICAL SUPPLIES",
+      "MEDICA TRADING LLC",
+      "EXTRA CARE MEDICAL TRADING",
+      "BDH MIDDLE EAST LLC",
+      "HESSA MEDICAL EQUIPMENTS CO. LLC.",
+      "MOH",
+      "AL HIKMA MEDICINE & MEDICAL SUPPLIES",
+      "DERMA HEALTH COSMETICS TR",
+      "AL SHIRAA DRUG STORE LLC",
+      "UNIQUE LIFE MEDICINES TRADING LLC",
+      "GTE MEDICAL PHARMA",
+      "AL HAMRIYA DRUG STORE",
+      "ZULEKHA MEDICINE AND MEDICAL EQUIPMENT STORES LLC",
+      "WISDOM MEDICAL SUPPLIES; DUBAI",
+      "ULTRA MEDICAL STORE; UAE",
+      "STARLINK DRUG STORE L.L.C",
+      "ABU DHABI MEDICINES & MEDICAL EQUIPMENT STORE LLC",
+      "ZIL PHARMA",
+      "AL JALILA CHILDREN'S SPECIALTY HOSPITAL",
+      "AMERICAN HOSPITAL - DUBAI",
+      "EMIRATES SPECIALITY HOSPITAL",
+      "MEDICLINIC CITY HOSPITAL",
+      "PRIME HOSPITAL",
+      "INTERNATIONAL MODERN HOSPITAL",
+      "MILLER & MILLER ( CHEMICALS ) LTD",
+      "AL TAWAKAL MEDICINE & MEDICAL EQUIP STORE.LLC.",
+      "BAXTER AG",
+      "NMC HOSPITALS",
+      "WASP INTERNATIONAL DRUG STORE",
+      "ZULEKHA HOSPITALS",
+      "BIN SAQAR AL MUFID PHARMACEUTICALS",
+      "AL ZAHRA PRIVATE HOSPITAL SHARJAH",
+      "MEDCARE HOSPITALS AND MEDICAL CENTRES",
+      "BIN ALI MEDICAL SUPPLIES",
+      "NMC TRADING L L C",
+      "LIFEPHARMA FZE",
+      "LIMAR DRUG STORE",
+      "CANADIAN SPECIALIST HOSPITAL",
+      "RIAD MEDICINE & MEDICAL EQUIPMENT STORE; SHARJAH",
+      "WELLPHARMA MEDICAL SOLUTION LLC",
+      "ROYAL PHARMACEUTICAL DRUG STORE L.L.C",
+      "UAE. EMBASSY-GERMANY",
+      "MEDBAR UK PHARMACEUTICAL TRADING L.L.C",
+      "GLAXO SMITH KLINE EXPORT LIMITED (DUBAI BRANCH )",
+      "F. HOFFMANN LA ROCHE LTD",
+      "PHARMAMED ESTABLISHMENT",
+      "PHARMA HOUSE PHARMACEUTICALS L.L.C",
+      "MEDPHARMA PHARMACEUTICAL & CHEMICALS INDUSTRIES LLC",
+      "GLAXOSMITHKLINE",
+      "LOGICHEM LTD",
+      "CITY MEDICAL STORE",
+      "RECKITT BENCKISER ARABIA FZE",
+      "U.A.E. EMBASSY, AUSTRALIA",
+      "NEOPHARMA, UAE",
+      "AL AMEEN PHARMACY",
+      "GLENMARK PHARMACEUTICALS FZE",
+      "NORGINE",
+      "PHARMA SOLUTION DRUG STORE",
+      "SKY HEALTH",
+      "ALRAZI DRUG STORE",
+      "ALNAFEES DRUG STORE",
+      "NEOBIOCON",
+      "NOORAN MEDICAL STORE",
+      "GULF DRUG LLC",
+      "AL KHOUR DRUG STORE AND MEDICAL EQUIPMENT, UAE",
+      "IBN BATUTA MEDICINE & MEDICAL EQUIPMENT STORE, UAE",
+      "AL MANARAH MEDICINE STORE LLC",
+      "COMPLETES INTERPHARM L.L.C.",
+      "GERMAN MEDICAL STORE LLC",
+      "EMIRATES PHARMASERVE",
+      "INNOVATE MEDICAL SYSTEM (DUBAI, UAE)",
+      "AL JAWDAH MEDICAL STORE",
+      "UAE.EMBASSY-USA",
+      "AXIS MEDICAL TECHNOLOGIES",
+      "BIRTLEY PHARMA STORE",
+      "AL ROWAIS STORE FOR PHARMACEUTICALS & MEDICAL EQUIPMENT",
+      "PHARMAZONE MEDICAL EQUIPMENTS",
+      "BEWELL PHARMACEUTICALS & MEDICAL EQUIPMENT TRADING",
+      "JAPAN EMIRATES DRUGS STORE",
+      "PHARMA STORE SLLC., DUBAI",
+      "MEDICLINIC WELCARE HOSPITAL",
+      "EMIRATES HOSPITAL",
+      "AL JAWAHIR MEDICAL SUPPLIES L.L.C",
+      "BIOLINK DRUG STORE",
+      "BELHOUL SPECIALITY HOSPITAL",
+      "ADVANCED CARE ONCOLOGY CENTER",
+      "CBC MEDICAL STORE",
+      "AGHRASS PHARMACEUTICAL",
+      "PHARMAETHICS MEDICAL SUPPLIES",
+      "ALZAHRA PRIVATE HOSPITAL DUBAI",
+      "UNITED MEDICAL CENTER",
+      "SAUDI GERMAN HOSPITAL",
+      "APCORP DRUG STORE LLC",
+      "CIGALAH DRUG STORE",
+      "AL GARHOUD PRIVATE HOSPITAL",
+      "BELHOUL EUROPEAN HOSPITAL",
+      "BURJEEL HOSPITALS",
+      "DR SULAIMAN AL HABIB HOSPITALS",
+      "NEW MARK MEDICINES TRADING",
+      "AL MUFID DRUG STORE",
+      "ALL CARE MEDICAL SUPPLIES L.L.C",
+      "PHARMALAB DRUG STORE LLC",
+      "FLUX DRUG STORE",
+      "COSMETICA MEDICAL EQUIPMENT TRADING",
+      "KING'S COLLEGE HOSPITAL",
+      "MEDSHOP DRUG STORE",
+      "GULF INTER GLOBAL MEDICAL EQUIPMENT",
+      "GULF INTERNATIONAL",
+      "ALPHA PLUS DRUG STORE",
+      "PHARMA VISION",
+      "LABORATOIRES STEROP",
+      "THESAY PHARMA",
+      "GARGASH HOSPITAL",
+      "ULTRAPHARMA DRUG STORE",
+      "CASA FARMACEUTICA",
+      "AL DAWAA",
+      "MEDICAL INNOVATION TRADING",
+      "GLOBAL MEDICAL SUPPLYCHAIN LLC",
+      "MEDOZ MEDICAL STORE LLC",
+      "IYAD MASROUJI DRUG STORE",
+      "MEDWING PHARMA",
+      "UNICARE",
+      "PHARMALINK STORE",
+      "MEDWING MEDICAL",
+      "AL KENZ PHARMACEUTICALS PRODUCTS",
+      "SHEIKH ZAYED MILITARY HOSPITAL",
+      "GLOBAL MEDICAL SUPPLY CHAIN",
+      "AZALEA PHARMA LLC",
+      "SERUM LIFE SCIENCES LIMITED",
+      "ALPHAMED CO.ABUDHABI LTD.LLC",
+      "ACORUS",
+      "TOTAL CARE DRUG STORE",
+      "AMINA HOSPITALS",
+      "BASLE PHARMACEUTICALS",
+      "AL INAYAH AL SAHIYA DRUG STORE",
+      "EMPA HEALTH CARE",
+      "BE WELL FOR PHARMACEUTICALS AND MEDICAL EQUIPMENT",
+      "PDC DRUG STORE",
+      "SULTAN GROUP HEALTHCARE",
+      "PHARMA STORES",
+      "TRANS CARE MEDICAL EQUIPMENTS TRADING L.L.C",
+      "FAKEEH UNIVERSITY HOSPITAL",
+      "NEO LIFE MEDICINE STORE L.L.C",
+      "PHARMA CARE",
+      "NEW AL HAYAT PHARMACEUTICALS",
+      "S A A F MEDICAL SURGICAL EQUIPMENT AND INSTRUMENTS TRADING",
+      "ZONE 4 PHARMACEUTICALS",
+      "AMDIS",
+      "GUARDIAN PHARMACEUTICALS STORE LLC",
+      "SHAHIN MEDICINES AND PHARMACEUTICAL STORE",
+      "PHARMANET DRUG STORE L.L.C",
+      "ATIQ PLASTIC INDUSTRY",
+      "PHARMAPOINT DRUG STORE LLC",
+      "SEHA PHARMACEUTICALS TRADING L.L.C",
+      "ELAN VITAL DRUG STORE L.L.C",
+      "ARABIAN PHARMA LLC",
+      "STRATHEALTH PHARMA DRUG STORE",
+      "DOHA DRUG & MEDICAL EQUIPMENT STORE",
+      "INNOGENEX MEDICAL ARTICLES & REQUISITES TRADING LLC",
+      "SMARTWAY PHARMACEUTICALS LLC",
+      "AL TADAWI SPECIALTY HOSPITAL",
+      "ALAIN MEDICAL STORE",
+      "GULF MED MEDICINES L.L.C.",
+      "ARASCA MEDICAL EQUIPMENT TRADING (LLC)",
+      "VITALITY DRUG STORE LLC",
+      "AL ZAHRAWI MEDICAL SUPPLIES L.L.C",
+      "GENQORE DRUG STORE",
+      "NAJM ALSHRIQ PHARMA",
+      "HI DENT TRADERS & EXPORTERS L.L.C",
+      "CLEMENCEAU MEDICAL CENTER",
+      "DAHC",
+      "AL HAMRIA DRUG STORE",
+      "ETHIOSMED DRUG STORE",
+      "LOREAL UAE GENERAL TRADING L.L.C",
+      "ASHRO DRUG STORE",
+      "AL YAMAMA DRUG STORE",
+      "ALFA ONE DRUG STORE",
+      "CARE PLUS LIFE DRUG STORE",
+      "BARRAQUER EYE HOSPITAL",
+      "HEALTH CHOICE GENERAL TRADING",
+      "ABU DHABI PORTS MEDICAL STORE",
+      "ALMKAREM DRUG STORE",
+      "GAELAN MEDICAL TRADE",
+      "ALIF ONE PHARMA STORE",
+      "MEDILICA DRUG STORE",
+      "OXYGEN HEALTHCARE",
+      "EXPERTS DRUG STORE",
+      "INNOVIA DRUG STORE",
+      "PHARMA 1 DRUG STORE",
+      "BAIT AL MAS DRUG STORE",
+      "MOORFIELDS EYE HOSPITAL",
+      "AL FUTTAIM HEALTH",
+      "EMIRATES AND WORLD MEDICAL SUPPLIES",
+      "LACASA-PHARMA LLC",
+      "RELEVA DRUG STORE LLC",
+      "BETTER CARE TRADING L.L.C",
+      "PHARMAPLAN TRADING",
+      "RUKN AL RAMS MEDICAL STORE",
+      "CHEMIST DRUG STORE",
+      "HORIZON LINE MEDICAL SUPPLIES",
+      "LA VIE MEDICAL STORE",
+      "GULF PHARMACEUTICAL INDUSTRIES",
+      "MEDICAL IDEA MEDICAL SURGICAL ARTICLES & REQUISITES TRADING LLC",
+      "MEDISURE MEDICAL SUPPLIES",
+      "IGC MIDDLE EAST GROUP LLC",
+      "MED SHOP DRUGS STORE LLC",
+      "GLOBAL MEDILINK DRUG STORE",
+      "S R M DRUG STORE",
+      "PHARMA SERVICE",
+      "PHARMASPARK DRUG STORE",
+      "RIOMED MEDICAL SUPPLIES",
+      "DUBAI LONDON HOSPITAL",
+      "HAYAT MEDICATIONS TRADING SOLE PROPRIETORSHIP LLC",
+      "BIOTECH PHARMA DRUG STORE",
+      "OREX MEDICAL TRADING",
+      "PRIME MEDICAL STORE",
+      "PROTECTOL HEALTH DRUG STORE LLC",
+      "PHARMASTREAM MEDICAL SUPPLIES TRADING LLC",
+      "AL ABAD DRUG STORE LLC",
+      "AL SHARQ HOSPITAL",
+      "PRANIC DRUG STORE LLC",
+      "WAHAT AL JAZEERA DRUG STORE",
+      "AL WAHDA MEDICAL STORE",
+      "TRIOUS PHARMA DRUG STORE LLC",
+      "UNITED MEDICAL SUPPLIES (UNIMED) LLC",
+      "AWAFI DRUG STORE",
+      "OPTITECT DRUG STORE",
+      "GERMANMED TRADING LLC",
+      "AL HASEEN DRUG STORE",
+      "AHMED KHALIL AL BAKER MEDICAL SUPPLIES",
+      "SCHERING DRUG STORE LLC",
+      "PHARMAXXI PHARMACEUTICAL PRODUCTS TRADING",
+      "ADAM VITAL HOSPITAL",
+      "SHIFA MEDICO DRUG STORE",
+      "ALMAAHI DRUG STORE LLC",
+      "BAWABAT AL DAWA MEDICINE STORE LLC",
+      "ARABCO",
+      "ONE HEALTH L.L.C",
+      "HAYAT ALHIKMAH DRUG STORE LLC",
+      "ERADA CENTER FOR TREATMENT AND REHABILITATION",
+      "SKY WAY PHARMACEUTICALS STORE LLC",
+      "ALLEGIANCE DRUG STORE LLC",
+      "AL FARES PHARMA LLC",
+      "CENTRIC MEDICATIONS TRADING",
+      "ASD INTERNATIONAL MEDICAL REQUISITES LLC",
+      "HOPE PHARMA MEDICINE TRADING",
+      "MEDICLASS GLOBAL TRADING",
+      "WEKAYAH PHARMA TRADING LLC",
+      "BND BIO DRUG STORE LLC",
+      "HEALTHY PHARMA",
+      "FIRST CHOICE MEDICAL EQUIPMENT TRADING CO LLC",
+      "SPENDIX PARA PHARMACEUTICAL PRODUCTS TRADING",
+      "MEDICA MEDICINE TRADING",
+      "ALMKARIM DRUG STORE L.L.C",
+      "FAMILY HEALTH DRUG STORE AND MEDICAL EQUIPMENT LLC",
+      "HELCIMA DRUG STORE LLC",
+      "MEDICMED DRUG STORE",
+      "AMREET TRADING COMPANY",
+      "AESTHETICA PRO DRUG STORE",
+      "GOTAG MEDICA SUPPLIES & EQUIPMENT L.L.C",
+      "VITATECK MEDICINES TRADING LLC",
+      "PRODERMA DRUG STORE LLC",
+      "EMIPHARMA LLC",
+      "CAPLINE DRUG STORE L.L.C",
+      "VITABIOHEALTH DRUG STORE L.L.C S.O.C",
+      "VITABIOHEALTH DRUG STORE",
+      "MEDEOR HOSPITAL",
+      "GROWMORE PHARMACEUTICALS LLC",
+      "BATEEL DRUG STORE LLC",
+      "AMDIS HEALTH SCIENCES DRUG STORE",
+      "CLIP MEDICAL SUPPLIES",
+      "MEDOLOGY DRUG STORE LLC",
+      "CAREGEN PHARMA DRUG STORE",
+      "AL SAHA & AL JAWDAH DRUG STORE"
+     ]
+    },
+    {
+     "id": "fldGvn9X6b6sNY9Xi",
+     "name": "UPDATED_DATE",
+     "type": "date",
+     "options": {
+      "dateFormat": {
+       "name": "local",
+       "format": "l"
+      }
+     }
+    },
+    {
+     "id": "fldkhVVFyNnSz5T4n",
+     "name": "SOURCE",
+     "type": "singleSelect",
+     "choices": [
+      "SOURCE",
+      "HAAD",
+      "MOH",
+      "DHA",
+      "UNKNOWN",
+      "DAHC",
+      "PRIVATE HOSPITAL",
+      "EHL",
+      "DUBAI MUNICIPALITY",
+      "DHA + AJCH"
+     ]
+    },
+    {
+     "id": "fldQQsGZMJDEmcIkL",
+     "name": "IS_EBP",
+     "type": "singleSelect",
+     "choices": [
+      "IS_EBP",
+      "false",
+      "true"
+     ]
+    },
+    {
+     "id": "fldqajLnh3yZU4hf8",
+     "name": "Unite",
+     "type": "multipleRecordLinks",
+     "linkedTableId": "tbl9856qJP9S7OEqB",
+     "inverseLinkFieldId": "fldZgI4a9JcG7Bi1L"
+    },
+    {
+     "id": "fldxCZs4yk0jdXKtM",
+     "name": "Updated",
+     "type": "checkbox",
+     "options": {
+      "icon": "check",
+      "color": "greenBright"
+     }
+    },
+    {
+     "id": "fldOr4Wf4rSrjTDwV",
+     "name": "MEDICINE TYPE",
+     "type": "singleSelect",
+     "choices": [
+      "IV Fluid & Electrolyte",
+      "Vitamin & Supplement",
+      "Dermatological",
+      "Respiratory & Allergy",
+      "Hormonal & Endocrine",
+      "Cardiovascular",
+      "Antidiabetic",
+      "Painkiller",
+      "Psychiatric & CNS",
+      "Antiparasitic",
+      "Anaesthetic",
+      "Corticosteroid",
+      "Oncology & Haematology",
+      "Urological & Renal",
+      "Antibiotic",
+      "Neurological",
+      "Gastrointestinal",
+      "Vaccine",
+      "Antiviral",
+      "Antiseptic",
+      "Antifungal",
+      "Other Specialty",
+      "Ophthalmic & ENT",
+      "Obstetric & Fertility",
+      "Diagnostic Agent",
+      "Blood Products & Biologics",
+      "Musculoskeletal",
+      "Dental",
+      "Antidote"
+     ]
+    },
+    {
+     "id": "fld15ltyTEfiugYam",
+     "name": "All Medicine Types",
+     "type": "singleSelect",
+     "choices": [
+      "IV Fluid & Electrolyte",
+      "Vitamin & Supplement",
+      "Dermatological",
+      "Respiratory & Allergy",
+      "Hormonal & Endocrine",
+      "Cardiovascular",
+      "Antidiabetic",
+      "Painkiller",
+      "Psychiatric & CNS + Painkiller",
+      "Painkiller + Respiratory & Allergy",
+      "Antiparasitic",
+      "Anaesthetic",
+      "Corticosteroid",
+      "Oncology & Haematology",
+      "Urological & Renal + IV Fluid & Electrolyte + Gastrointestinal",
+      "Antibiotic",
+      "Urological & Renal + IV Fluid & Electrolyte + Painkiller + Respiratory & Allergy",
+      "Urological & Renal + Painkiller + Respiratory & Allergy",
+      "Psychiatric & CNS",
+      "Urological & Renal",
+      "Neurological",
+      "Gastrointestinal",
+      "Vitamin & Supplement + Cardiovascular",
+      "Vaccine",
+      "Antiviral",
+      "Antiseptic",
+      "Corticosteroid + Antibiotic",
+      "Antifungal",
+      "Other Specialty",
+      "Ophthalmic & ENT",
+      "Vitamin & Supplement + IV Fluid & Electrolyte",
+      "Obstetric & Fertility",
+      "Painkiller + Dermatological + Respiratory & Allergy",
+      "Painkiller + Dermatological + Antiseptic",
+      "Painkiller + Dermatological + Respiratory & Allergy + Vitamin & Supplement",
+      "Antiseptic + Dermatological",
+      "Corticosteroid + Dermatological",
+      "Antifungal + Corticosteroid",
+      "IV Fluid & Electrolyte + Anaesthetic",
+      "Antiseptic + Anaesthetic",
+      "IV Fluid & Electrolyte + Neurological",
+      "IV Fluid & Electrolyte + Dermatological",
+      "Dermatological + Gastrointestinal",
+      "Dermatological + Corticosteroid",
+      "Vitamin & Supplement + Dermatological",
+      "Respiratory & Allergy + Psychiatric & CNS + Painkiller",
+      "Cardiovascular + Vitamin & Supplement",
+      "Diagnostic Agent",
+      "Anaesthetic + Vitamin & Supplement",
+      "Anaesthetic + Corticosteroid + Vitamin & Supplement",
+      "IV Fluid & Electrolyte + Painkiller + Respiratory & Allergy",
+      "Painkiller + Vitamin & Supplement",
+      "Anaesthetic + Cardiovascular",
+      "Vitamin & Supplement + Psychiatric & CNS",
+      "Respiratory & Allergy + Painkiller",
+      "Blood Products & Biologics",
+      "Musculoskeletal",
+      "IV Fluid & Electrolyte + Gastrointestinal + Urological & Renal",
+      "Painkiller + Psychiatric & CNS",
+      "Anaesthetic + Antibiotic + Corticosteroid",
+      "Gastrointestinal + IV Fluid & Electrolyte",
+      "Cardiovascular + Painkiller",
+      "Hormonal & Endocrine + Antibiotic",
+      "Antibiotic + Corticosteroid",
+      "Vitamin & Supplement + Gastrointestinal",
+      "Gastrointestinal + Vitamin & Supplement",
+      "Antiseptic + Gastrointestinal",
+      "Anaesthetic + Gastrointestinal",
+      "Vitamin & Supplement + Painkiller",
+      "Ophthalmic & ENT + Vitamin & Supplement",
+      "Vitamin & Supplement + Ophthalmic & ENT",
+      "Cardiovascular + Antidiabetic",
+      "Vitamin & Supplement + Gastrointestinal + Urological & Renal",
+      "IV Fluid & Electrolyte + Vitamin & Supplement",
+      "Dermatological + Vitamin & Supplement",
+      "Cardiovascular + Urological & Renal + Painkiller + Vitamin & Supplement",
+      "Vitamin & Supplement + Antibiotic",
+      "Corticosteroid + Antiseptic",
+      "Antiseptic + Antifungal + Antibiotic + Corticosteroid",
+      "Urological & Renal + Gastrointestinal + IV Fluid & Electrolyte",
+      "Dermatological + Antifungal",
+      "Anaesthetic + Diagnostic Agent",
+      "Dermatological + Cardiovascular",
+      "Antiseptic + Vitamin & Supplement",
+      "IV Fluid & Electrolyte + Gastrointestinal",
+      "Dermatological + Anaesthetic + Corticosteroid + Vitamin & Supplement",
+      "IV Fluid & Electrolyte + Urological & Renal",
+      "Painkiller + Antibiotic",
+      "Ophthalmic & ENT + IV Fluid & Electrolyte",
+      "Respiratory & Allergy + Vitamin & Supplement",
+      "Diagnostic Agent + IV Fluid & Electrolyte",
+      "IV Fluid & Electrolyte + Diagnostic Agent",
+      "Corticosteroid + Antifungal",
+      "Anaesthetic + IV Fluid & Electrolyte",
+      "Respiratory & Allergy + Antibiotic + Gastrointestinal",
+      "Urological & Renal + IV Fluid & Electrolyte",
+      "Cardiovascular + IV Fluid & Electrolyte + Respiratory & Allergy",
+      "Cardiovascular + Vitamin & Supplement + IV Fluid & Electrolyte",
+      "Antiseptic + Respiratory & Allergy",
+      "Dermatological + Cardiovascular + Painkiller",
+      "Anaesthetic + Antiseptic",
+      "Cardiovascular + Respiratory & Allergy",
+      "Vitamin & Supplement + Gastrointestinal + IV Fluid & Electrolyte",
+      "Corticosteroid + Anaesthetic",
+      "Corticosteroid + Respiratory & Allergy",
+      "Gastrointestinal + Ophthalmic & ENT",
+      "Ophthalmic & ENT + Gastrointestinal",
+      "Cardiovascular + Antibiotic",
+      "IV Fluid & Electrolyte + Gastrointestinal + Painkiller + Anaesthetic",
+      "Respiratory & Allergy + Urological & Renal",
+      "Anaesthetic + Respiratory & Allergy",
+      "IV Fluid & Electrolyte + Painkiller",
+      "Cardiovascular + Respiratory & Allergy + Antibiotic",
+      "IV Fluid & Electrolyte + Respiratory & Allergy",
+      "Dermatological + Anaesthetic + Corticosteroid",
+      "Respiratory & Allergy + Corticosteroid",
+      "Antibiotic + Cardiovascular",
+      "Vaccine + Antidiabetic",
+      "Cardiovascular + Psychiatric & CNS + Painkiller",
+      "Vitamin & Supplement + IV Fluid & Electrolyte + Urological & Renal",
+      "Cardiovascular + Anaesthetic",
+      "Cardiovascular + Respiratory & Allergy + Painkiller",
+      "Anaesthetic + Painkiller",
+      "Gastrointestinal + Painkiller",
+      "Vitamin & Supplement + Respiratory & Allergy",
+      "Vitamin & Supplement + Respiratory & Allergy + Dermatological",
+      "Ophthalmic & ENT + Dermatological",
+      "Dermatological + Ophthalmic & ENT + Vitamin & Supplement",
+      "Vitamin & Supplement + IV Fluid & Electrolyte + Ophthalmic & ENT",
+      "Dermatological + Vitamin & Supplement + IV Fluid & Electrolyte",
+      "Vitamin & Supplement + Ophthalmic & ENT + IV Fluid & Electrolyte",
+      "Respiratory & Allergy + Painkiller + Urological & Renal + IV Fluid & Electrolyte",
+      "Vitamin & Supplement + Dermatological + Cardiovascular",
+      "Dermatological + Cardiovascular + Vitamin & Supplement",
+      "IV Fluid & Electrolyte + Anaesthetic + Vitamin & Supplement",
+      "Dermatological + Vitamin & Supplement + Ophthalmic & ENT",
+      "Vitamin & Supplement + Gastrointestinal + Other Specialty",
+      "Dermatological + Painkiller",
+      "Vitamin & Supplement + Dermatological + IV Fluid & Electrolyte + Ophthalmic & ENT + Gastrointestinal",
+      "Vitamin & Supplement + Dermatological + Ophthalmic & ENT",
+      "Dermatological + Anaesthetic",
+      "Vitamin & Supplement + Urological & Renal",
+      "Antiseptic + Ophthalmic & ENT + IV Fluid & Electrolyte + Gastrointestinal",
+      "IV Fluid & Electrolyte + Ophthalmic & ENT + Antiseptic + Gastrointestinal",
+      "Gastrointestinal + IV Fluid & Electrolyte + Urological & Renal",
+      "Painkiller + IV Fluid & Electrolyte",
+      "Painkiller + Anaesthetic",
+      "Vitamin & Supplement + Dermatological + Gastrointestinal + IV Fluid & Electrolyte",
+      "Vitamin & Supplement + Anaesthetic",
+      "Vitamin & Supplement + Urological & Renal + IV Fluid & Electrolyte",
+      "Ophthalmic & ENT + Anaesthetic + Cardiovascular",
+      "Dermatological + Ophthalmic & ENT",
+      "Vitamin & Supplement + Dermatological + Gastrointestinal",
+      "Vitamin & Supplement + Gastrointestinal + Dermatological",
+      "Ophthalmic & ENT + Vitamin & Supplement + Antiseptic",
+      "Vitamin & Supplement + Gastrointestinal + Dermatological + Cardiovascular",
+      "Dental",
+      "Painkiller + Vitamin & Supplement + Respiratory & Allergy",
+      "Respiratory & Allergy + Cardiovascular",
+      "Other Specialty + Gastrointestinal + Vitamin & Supplement",
+      "Hormonal & Endocrine + Vitamin & Supplement",
+      "Dermatological + Vitamin & Supplement + IV Fluid & Electrolyte + Gastrointestinal",
+      "Gastrointestinal + IV Fluid & Electrolyte + Other Specialty + Vitamin & Supplement",
+      "IV Fluid & Electrolyte + Gastrointestinal + Vitamin & Supplement + Urological & Renal",
+      "Painkiller + Cardiovascular",
+      "Dermatological + Vitamin & Supplement + Gastrointestinal + IV Fluid & Electrolyte",
+      "Dermatological + Vitamin & Supplement + Gastrointestinal",
+      "IV Fluid & Electrolyte + Vitamin & Supplement + Anaesthetic",
+      "IV Fluid & Electrolyte + Vitamin & Supplement + Dental",
+      "Musculoskeletal + Painkiller",
+      "Vitamin & Supplement + IV Fluid & Electrolyte + Urological & Renal + Dental",
+      "Vitamin & Supplement + IV Fluid & Electrolyte + Dental + Urological & Renal",
+      "Vitamin & Supplement + Urological & Renal + Gastrointestinal + IV Fluid & Electrolyte + Dental",
+      "IV Fluid & Electrolyte + Vitamin & Supplement + Gastrointestinal",
+      "Ophthalmic & ENT + Antiseptic + IV Fluid & Electrolyte + Gastrointestinal",
+      "Respiratory & Allergy + Gastrointestinal + IV Fluid & Electrolyte + Vitamin & Supplement",
+      "Antiseptic + Antibiotic + Antifungal + Corticosteroid",
+      "Antibiotic + Antifungal + Corticosteroid",
+      "Ophthalmic & ENT + Cardiovascular",
+      "Antidote",
+      "Cardiovascular + Dermatological",
+      "Antiseptic + IV Fluid & Electrolyte + Vitamin & Supplement",
+      "Respiratory & Allergy + Dental + Dermatological",
+      "Dermatological + Gastrointestinal + Vitamin & Supplement",
+      "IV Fluid & Electrolyte + Vitamin & Supplement + Urological & Renal",
+      "Antibiotic + Anaesthetic",
+      "Dermatological + IV Fluid & Electrolyte",
+      "Vitamin & Supplement + IV Fluid & Electrolyte + Urological & Renal + Dental + Gastrointestinal",
+      "Vitamin & Supplement + Dental + Urological & Renal + IV Fluid & Electrolyte",
+      "Gastrointestinal + Vitamin & Supplement + IV Fluid & Electrolyte + Dental + Urological & Renal",
+      "Vitamin & Supplement + Other Specialty + Gastrointestinal",
+      "Antibiotic + IV Fluid & Electrolyte",
+      "Dental + Painkiller",
+      "Painkiller + Gastrointestinal + Vitamin & Supplement",
+      "Gastrointestinal + Painkiller + Vitamin & Supplement",
+      "Gastrointestinal + Painkiller + Respiratory & Allergy + Urological & Renal + Vitamin & Supplement",
+      "Corticosteroid + Respiratory & Allergy + Anaesthetic",
+      "Other Specialty + Vaccine",
+      "Dermatological + Gastrointestinal + Vitamin & Supplement + IV Fluid & Electrolyte",
+      "Vitamin & Supplement + Gastrointestinal + IV Fluid & Electrolyte + Dermatological",
+      "Dermatological + Vitamin & Supplement + Painkiller",
+      "Vitamin & Supplement + Dental",
+      "Dermatological + Painkiller + Vitamin & Supplement + Ophthalmic & ENT",
+      "IV Fluid & Electrolyte + Ophthalmic & ENT",
+      "Respiratory & Allergy + Dermatological",
+      "Ophthalmic & ENT + Antibiotic",
+      "Painkiller + Musculoskeletal",
+      "Respiratory & Allergy + Vitamin & Supplement + Painkiller",
+      "Vitamin & Supplement + Antiseptic + Anaesthetic",
+      "Painkiller + Respiratory & Allergy + Psychiatric & CNS",
+      "IV Fluid & Electrolyte + Vitamin & Supplement + Dental + Gastrointestinal",
+      "IV Fluid & Electrolyte + Vitamin & Supplement + Gastrointestinal + Dental",
+      "Antiseptic + Ophthalmic & ENT",
+      "Oncology & Haematology + Other Specialty",
+      "IV Fluid & Electrolyte + Gastrointestinal + Vitamin & Supplement",
+      "Ophthalmic & ENT + Dermatological + Vitamin & Supplement",
+      "Dermatological + Vitamin & Supplement + Gastrointestinal + Cardiovascular",
+      "Dermatological + Gastrointestinal + Vitamin & Supplement + IV Fluid & Electrolyte + Urological & Renal",
+      "Ophthalmic & ENT + Dental + Antiseptic",
+      "Urological & Renal + Vitamin & Supplement",
+      "Dermatological + Antibiotic",
+      "Gastrointestinal + Dermatological",
+      "Dermatological + Vitamin & Supplement + Urological & Renal + Gastrointestinal + IV Fluid & Electrolyte",
+      "Dermatological + Gastrointestinal + Vitamin & Supplement + Ophthalmic & ENT + IV Fluid & Electrolyte + Urological & Renal",
+      "Dermatological + Vitamin & Supplement + Cardiovascular",
+      "Antibiotic + Ophthalmic & ENT",
+      "Ophthalmic & ENT + Antiseptic",
+      "Psychiatric & CNS + Painkiller + Cardiovascular",
+      "IV Fluid & Electrolyte + Antibiotic",
+      "Gastrointestinal + Urological & Renal + IV Fluid & Electrolyte",
+      "Corticosteroid + Anaesthetic + Respiratory & Allergy",
+      "Antibiotic + Dermatological",
+      "Gastrointestinal + Vitamin & Supplement + Dermatological + Ophthalmic & ENT + IV Fluid & Electrolyte + Cardiovascular",
+      "Dermatological + Gastrointestinal + Ophthalmic & ENT + Vitamin & Supplement + Cardiovascular + Dental",
+      "Vitamin & Supplement + Antidiabetic",
+      "Vitamin & Supplement + Antiseptic + Dental",
+      "IV Fluid & Electrolyte + Antiseptic",
+      "Painkiller + Gastrointestinal",
+      "Gastrointestinal + Dermatological + Ophthalmic & ENT",
+      "Dermatological + Gastrointestinal + Vitamin & Supplement + Painkiller",
+      "Vitamin & Supplement + Dermatological + Gastrointestinal + Painkiller",
+      "IV Fluid & Electrolyte + Vitamin & Supplement + Ophthalmic & ENT",
+      "Ophthalmic & ENT + Vitamin & Supplement + IV Fluid & Electrolyte + Gastrointestinal",
+      "Psychiatric & CNS + Vitamin & Supplement",
+      "Vitamin & Supplement + Respiratory & Allergy + Painkiller + Gastrointestinal",
+      "Respiratory & Allergy + IV Fluid & Electrolyte",
+      "Antiparasitic + Corticosteroid",
+      "Gastrointestinal + Dermatological + Vitamin & Supplement + Ophthalmic & ENT + Dental + Antidiabetic",
+      "Gastrointestinal + Antiseptic",
+      "Gastrointestinal + Antiseptic + Dermatological + Ophthalmic & ENT",
+      "Vitamin & Supplement + Other Specialty",
+      "Vitamin & Supplement + Antiseptic + Painkiller",
+      "Ophthalmic & ENT + Vitamin & Supplement + Dermatological + IV Fluid & Electrolyte",
+      "Corticosteroid + Antibiotic + Anaesthetic",
+      "Anaesthetic + Gastrointestinal + Painkiller + Psychiatric & CNS + Neurological",
+      "Dermatological + Ophthalmic & ENT + IV Fluid & Electrolyte",
+      "Gastrointestinal + Urological & Renal + IV Fluid & Electrolyte + Vitamin & Supplement",
+      "Oncology & Haematology + Dermatological",
+      "Vitamin & Supplement + IV Fluid & Electrolyte + Dermatological",
+      "Respiratory & Allergy + Anaesthetic + Vitamin & Supplement + Painkiller",
+      "Dermatological + Antiseptic",
+      "Dermatological + Respiratory & Allergy",
+      "Hormonal & Endocrine + Gastrointestinal",
+      "Other Specialty + Gastrointestinal",
+      "Gastrointestinal + Vitamin & Supplement + IV Fluid & Electrolyte",
+      "Vitamin & Supplement + Antibiotic + Dermatological",
+      "Antiseptic + Ophthalmic & ENT + Dermatological",
+      "Blood Products & Biologics + Vitamin & Supplement",
+      "Vitamin & Supplement + Antiseptic",
+      "Blood Products & Biologics + Oncology & Haematology",
+      "Antibiotic + Gastrointestinal",
+      "Vitamin & Supplement + IV Fluid & Electrolyte + Gastrointestinal",
+      "Hormonal & Endocrine + Neurological",
+      "Ophthalmic & ENT + Corticosteroid",
+      "Vitamin & Supplement + IV Fluid & Electrolyte + Dermatological + Gastrointestinal",
+      "Gastrointestinal + Ophthalmic & ENT + IV Fluid & Electrolyte",
+      "Dermatological + Vitamin & Supplement + Antiseptic + Cardiovascular",
+      "Vitamin & Supplement + Respiratory & Allergy + Painkiller",
+      "Vitamin & Supplement + Cardiovascular + Dermatological",
+      "Gastrointestinal + Vitamin & Supplement + Dermatological",
+      "Dental + Vitamin & Supplement + Dermatological + Gastrointestinal + Cardiovascular",
+      "Gastrointestinal + Dermatological + IV Fluid & Electrolyte + Vitamin & Supplement",
+      "Dermatological + Gastrointestinal + Vitamin & Supplement + Cardiovascular",
+      "Dermatological + Ophthalmic & ENT + Gastrointestinal",
+      "Vitamin & Supplement + Gastrointestinal + Ophthalmic & ENT + IV Fluid & Electrolyte + Antiseptic + Dermatological",
+      "Painkiller + Respiratory & Allergy + Cardiovascular",
+      "IV Fluid & Electrolyte + Gastrointestinal + Ophthalmic & ENT",
+      "Antiseptic + Anaesthetic + Vitamin & Supplement",
+      "IV Fluid & Electrolyte + Dermatological + Gastrointestinal + Vitamin & Supplement",
+      "IV Fluid & Electrolyte + Urological & Renal + Gastrointestinal",
+      "Antiseptic + IV Fluid & Electrolyte",
+      "Ophthalmic & ENT + Antidiabetic",
+      "Antidiabetic + Vitamin & Supplement",
+      "Cardiovascular + Urological & Renal",
+      "IV Fluid & Electrolyte + Urological & Renal + Vitamin & Supplement + Gastrointestinal + Dermatological",
+      "Vitamin & Supplement + Dermatological + IV Fluid & Electrolyte + Ophthalmic & ENT + Dental + Antidiabetic + Gastrointestinal",
+      "Vitamin & Supplement + Dental + Dermatological + Ophthalmic & ENT + Respiratory & Allergy + Gastrointestinal",
+      "Dermatological + Antiparasitic",
+      "Vitamin & Supplement + Ophthalmic & ENT + Gastrointestinal",
+      "Ophthalmic & ENT + Respiratory & Allergy",
+      "Anaesthetic + Corticosteroid",
+      "Vitamin & Supplement + IV Fluid & Electrolyte + Urological & Renal + Gastrointestinal",
+      "Dermatological + IV Fluid & Electrolyte + Vitamin & Supplement + Gastrointestinal",
+      "Vitamin & Supplement + IV Fluid & Electrolyte + Other Specialty",
+      "Hormonal & Endocrine + Psychiatric & CNS",
+      "Dental + IV Fluid & Electrolyte + Dermatological"
+     ]
+    },
+    {
+     "id": "fldma2rcVXZDIDsuY",
+     "name": "ICD Codes",
+     "type": "singleLineText"
+    }
+   ]
+  }
+ ]
+}

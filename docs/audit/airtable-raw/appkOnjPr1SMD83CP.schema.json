@@ -1,0 +1,106 @@
+{
+ "baseId": "appkOnjPr1SMD83CP",
+ "name": "Campaigns - Message Log",
+ "exportedAt": "2026-10-08T12:30:00Z",
+ "source": "airtable-mcp (schema only, no records)",
+ "tables": [
+  {
+   "id": "tblhoSfiSjO4zh9cf", "name": "Appointment Messages", "primaryFieldId": "fldXNoDvRSfmxHT3e",
+   "fields": [
+    {"id": "fldXNoDvRSfmxHT3e", "name": "Patient Name", "type": "singleLineText"},
+    {"id": "fldlE1a7BlurxGn1c", "name": "Status", "type": "singleSelect", "choices": ["Appointment", "Birthday"]},
+    {"id": "fldEjNPjzAlgKyae9", "name": "Appointment Status", "type": "singleSelect", "choices": ["AAC", "ACF", "APH", "CNR", "CVI", "YTC", "NSW"]},
+    {"id": "fldMpGtsHnKw3DP5z", "name": "Clinic ID", "type": "singleLineText"},
+    {"id": "fldqMvqY7Ezx6U8Wi", "name": "Clinic", "type": "singleSelect", "choices": ["Golden Mile", "Meadows", "Palm Jumeirah"]},
+    {"id": "fld4B0oauTX8Q2qfN", "name": "Appointment Start Time", "type": "dateTime", "options": {"timeZone": "client"}},
+    {"id": "fldZzUkNgSivq82JM", "name": "Appointment End Time", "type": "dateTime", "options": {"timeZone": "client"}},
+    {"id": "fldluFMx5NiNs8NuC", "name": "Doctor Name", "type": "singleLineText"},
+    {"id": "fldNHDnfMQ3bD9vA1", "name": "Doctor ID", "type": "singleLineText"},
+    {"id": "fldmxRuElZh9zTWSc", "name": "Phone", "type": "phoneNumber"},
+    {"id": "fldVKZTdSimmoaCEW", "name": "Nationality", "type": "singleLineText"},
+    {"id": "fldJHqmrkU4gHdrAr", "name": "Created By", "type": "singleLineText"},
+    {"id": "fldjRghFRS8xkpkWa", "name": "Appointment ID", "type": "singleLineText"},
+    {"id": "fldkmbCGn5ovZIxHF", "name": "Patient Pin", "type": "singleLineText"},
+    {"id": "fldkI33eF320eoe0F", "name": "Remarks", "type": "multilineText"},
+    {"id": "fld5m4VQXx6JQYAIk", "name": "Message Sent On", "type": "date"},
+    {"id": "fldMJWq5zg82ZIBUR", "name": "Birthday This Week", "type": "formula", "resultType": "number", "formula": "WEEKNUM(TODAY())=WEEKNUM({fld4B0oauTX8Q2qfN})"},
+    {"id": "fldqPmWC1ypnA71tf", "name": "Birthday This Month", "type": "formula", "resultType": "number", "formula": "MONTH(TODAY())=MONTH({fld4B0oauTX8Q2qfN})"},
+    {"id": "fldj3SRkmpVjTp9ev", "name": "Message Sent?", "type": "formula", "resultType": "number", "formula": "IF({fld5m4VQXx6JQYAIk}, TRUE(), FALSE())"},
+    {"id": "fldWSWXkv4hyVjwBB", "name": "Upcoming Appointment?", "type": "formula", "resultType": "number", "formula": "AND({fld4B0oauTX8Q2qfN}>=TODAY(), {fld4B0oauTX8Q2qfN}<=DATEADD(TODAY(), 7, 'days'))"},
+    {"id": "flde1nmmJyhDYpFqm", "name": "Age from DOB", "type": "formula", "resultType": "number", "formula": "IF({fld4B0oauTX8Q2qfN}, DATETIME_DIFF({fld4B0oauTX8Q2qfN}, TODAY(), 'years'), BLANK())"}
+   ]
+  },
+  {
+   "id": "tblHTlF6LXMK5p4mU", "name": "Birthday Messages", "primaryFieldId": "fldXVNfbTvnrC3mQf",
+   "fields": [
+    {"id": "fldXVNfbTvnrC3mQf", "name": "Patient Name", "type": "singleLineText"},
+    {"id": "fldUYm1BW2qck0zTm", "name": "Unite Patient ID", "type": "singleLineText"},
+    {"id": "fld4AGplhBuTMcFtE", "name": "Sanoflow Patient ID", "type": "singleLineText"},
+    {"id": "fldJA8wk04TfEVCAm", "name": "Message Sent On", "type": "date", "options": {"dateFormat": "D/M/YYYY"}},
+    {"id": "fld6zgRMRFHz8jAO9", "name": "Phone", "type": "phoneNumber"},
+    {"id": "fldYCemm5zEn6qB1z", "name": "DOB", "type": "singleLineText"},
+    {"id": "fldIJFyFtrksbVe5C", "name": "First Name", "type": "singleLineText"},
+    {"id": "fld4NF7BsDK8HlmVy", "name": "Last Name", "type": "singleLineText"},
+    {"id": "fld6Rlp4uzQLuJf3m", "name": "Age", "type": "number", "options": {"precision": 1}}
+   ]
+  },
+  {
+   "id": "tblpWst9QqYNuKpwZ", "name": "Website", "primaryFieldId": "fld44pzWF1WiW96XW",
+   "recordCountAtAudit": 84,
+   "fields": [
+    {"id": "fld44pzWF1WiW96XW", "name": "Section", "type": "singleLineText"},
+    {"id": "fld87i81Uv5xEbCjh", "name": "Source", "type": "singleLineText"},
+    {"id": "fldeVUgOhIlFt0fPu", "name": "Number", "type": "singleLineText"},
+    {"id": "fldMXt1bD5N6aTNbR", "name": "Message", "type": "multilineText"},
+    {"id": "fldySS9CEPFLYnWVP", "name": "Route", "type": "singleLineText"},
+    {"id": "fld4cpDJ3LsB3Fq7k", "name": "Priority", "type": "singleLineText"},
+    {"id": "fld6BmbGE4MDFZENr", "name": "Dynamic", "type": "singleLineText"}
+   ]
+  },
+  {
+   "id": "tbldCbNEKeF5NrTCs", "name": "Chronic Recall Messages", "primaryFieldId": "fldCn3wXKEXGRxmMp",
+   "description": "Send/reply/booking log for the 90-day chronic condition recall campaign. One row per message sent. Written by Make scenario 'Chronic Recall - 90 Day'. Sits alongside Appointment Messages and Birthday Messages.",
+   "fields": [
+    {"id": "fldCn3wXKEXGRxmMp", "name": "Patient Name", "type": "singleLineText"},
+    {"id": "fldmqIT40DYyGAe8q", "name": "Patient Pin", "type": "singleLineText"},
+    {"id": "fldFD99GmktfyJ7Xa", "name": "Unite Record ID", "type": "singleLineText", "description": "Airtable record ID in the Unite base patient table. Used to join replies/bookings back to the patient."},
+    {"id": "fldFulU3YySov9d4P", "name": "Phone", "type": "phoneNumber"},
+    {"id": "fldvLFVogNna9clyG", "name": "Condition", "type": "singleSelect", "description": "Mapped condition group the recall was sent for.",
+     "choices": ["Hypertension / Hypertensive disease", "Diabetes mellitus (Type 1/2/other)", "Hyperlipidemia", "Hypothyroidism", "Chronic kidney disease", "Asthma", "COPD", "Rheumatoid arthritis", "Atrial fibrillation / flutter", "Epilepsy"]},
+    {"id": "fldzdrQ26RpvigSUE", "name": "Template ID", "type": "singleLineText", "description": "Sanoflow template_id used for the recall message. Per-condition templates from Saeed are live as of Aug 2026 — each condition group sends its own approved template (e.g. 13159 Hypertension, 13162 Asthma, 13163 Hyperlipidemia, 13164 Diabetes). The old placeholder 55 is no longer in use on any record."},
+    {"id": "fld6a8W0nUzktk9o5", "name": "Last Visit Date", "type": "date"},
+    {"id": "fldczA3OSrSQAEFE2", "name": "Days Since Last Visit", "type": "number", "options": {"precision": 0}},
+    {"id": "fld01KXt1biCwWS55", "name": "Message Sent On", "type": "dateTime", "options": {"timeZone": "Asia/Dubai"}},
+    {"id": "fldO6ql2L51mNEmJt", "name": "Send Mode", "type": "singleSelect", "choices": ["Test", "Live"], "description": "Test = routed to internal validation numbers during the sign-off week. Live = sent to the real patient."},
+    {"id": "fldWUAkSRmbstj93Q", "name": "Send Status", "type": "singleSelect", "choices": ["Sent", "Failed"]},
+    {"id": "fldY4zg5P4pTRFD90", "name": "Patient Replied", "type": "singleSelect", "choices": ["Yes", "No"]},
+    {"id": "fld1VuzlSX4IrKblI", "name": "Reply Date", "type": "date"},
+    {"id": "fldJMpPFmXguYJTp0", "name": "Appointment Booked", "type": "singleSelect", "choices": ["Yes", "No"]},
+    {"id": "fldhv2BcULV9m5k97", "name": "Booking Date", "type": "date"},
+    {"id": "fldoG6VR5IIm5I2b5", "name": "Notes", "type": "multilineText"},
+    {"id": "fldHUoJP5cOzsUl9A", "name": "Days Since Message Sent", "type": "formula", "resultType": "number",
+     "description": "Calendar days elapsed since the recall message was sent. Blank once a reply is recorded. Drives the follow-up escalation view — see 'Follow-Up Due' for the 3-day trigger flag.",
+     "formula": "IF(AND({fld01KXt1biCwWS55}, NOT({fld1VuzlSX4IrKblI})), DATETIME_DIFF(TODAY(), {fld01KXt1biCwWS55}, 'days'), BLANK())"},
+    {"id": "fld0Wh9UIUthSVq2A", "name": "Follow-Up Due", "type": "formula", "resultType": "singleLineText",
+     "description": "Escalation flag per go-live feedback item 3: a live send with no reply after 3 working days moves to the care coordinator's active call list. 'Call now' = due. Blank means replied, still inside the 3-day window, failed, test traffic, OR Follow Up Status = 'Booked'. Setting Follow Up Status to 'Booked' clears this flag, which removes the patient from the call list view — record the appointment date in Booking Date at the same time. Message Sent On is coerced to a date because WORKDAY_DIFF errors on a raw dateTime.",
+     "formula": "IF(AND({fldO6ql2L51mNEmJt} = 'Live', {fldWUAkSRmbstj93Q} = 'Sent', {fld01KXt1biCwWS55}, NOT({fld1VuzlSX4IrKblI}), {fldqgbYSfHGYq8LVV} != 'Booked', WORKDAY_DIFF(DATETIME_PARSE(DATETIME_FORMAT({fld01KXt1biCwWS55}, 'YYYY-MM-DD'), 'YYYY-MM-DD'), TODAY()) >= 3), 'Call now', BLANK())"},
+    {"id": "fldqgbYSfHGYq8LVV", "name": "Follow Up Status", "type": "singleSelect", "choices": ["Called", "No Response", "Booked"],
+     "description": "Outcome of the care coordinator's follow-up call on a non-responding patient. Called = phoned, no appointment yet (stays on the call list). No Response = could not reach (stays on the call list). Booked = appointment made — this clears Follow-Up Due and removes the patient from the call list. Always fill in Booking Date when setting this to Booked."},
+    {"id": "fldvyaQ3eeAOV768d", "name": "Recall Overdue Flag", "type": "formula", "resultType": "singleLineText",
+     "description": "Alert threshold per go-live feedback item 7. 'OVERDUE' = Days Since Last Visit over 120, meaning the recall caught a very late patient rather than one on schedule. Use this to colour-code the call list and to build an over-120 count element. NOTE: feedback cites an 85-day target while the dashboard subtitle says ~90 — confirm which is correct.",
+     "formula": "IF({fldczA3OSrSQAEFE2} > 120, 'OVERDUE', IF({fldczA3OSrSQAEFE2}, 'On track', BLANK()))"},
+    {"id": "fldgU2byPEvccm8lW", "name": "Week Starting", "type": "formula", "resultType": "singleLineText",
+     "description": "Monday of the week the recall was sent. Exists so interface charts can plot a weekly rollup (go-live feedback item 4) — the chart element API cannot set a weekly date bucket directly, so it groups on this field instead.",
+     "formula": "IF({fld01KXt1biCwWS55}, DATETIME_FORMAT(DATEADD({fld01KXt1biCwWS55}, -1 * MOD(WEEKDAY({fld01KXt1biCwWS55}, 'Monday'), 7), 'days'), 'YYYY-MM-DD'), BLANK())"},
+    {"id": "fldeAsuTofDH8LkdO", "name": "Assigned for Follow-Up", "type": "singleLineText", "description": "Seen in the Make 'Chronic Update' module interface; not returned by the current schema listing (probably deleted). Kept for importer tolerance."}
+   ]
+  }
+ ],
+ "interfaces": [
+  {"id": "pbdvNXhK2FuSzfZZo", "name": "Patient Messaging", "pages": ["Patient Messaging Overview (dashboard)"]},
+  {"id": "pbdFEDWfL5MNIpauh", "name": "Today's Actions", "pages": ["Today's Appointment Message Actions (list)"]},
+  {"id": "pbdlo9uVQSSbvTesd", "name": "Doctor & Department Performance", "pages": ["Doctor / Department Performance (dashboard)"]},
+  {"id": "pbd2kKHy43zMyX7P9", "name": "Birthday Campaign Tracking", "pages": ["Birthday Campaign Inbox (list)"]},
+  {"id": "pbdNMdNCULR9D6sGe", "name": "Chronic Recall Tracking", "pages": ["Chronic Recall Performance v2 (dashboard: live sends, unique patients, reply rate, booking rate target 30%, avg days since last visit, delivery outcome donut, volume by condition, daily/weekly sends, funnel by condition, call list longest-wait-first, over-120 cohort, failed sends, template coverage, send mode vs status)"]}
+ ]
+}

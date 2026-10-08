@@ -1,4 +1,7 @@
-   .env.local
-   .mcp.json
-   node_modules
-   .next
+.env.local
+.mcp.json
+node_modules
+.next
+docs/audit/airtable-raw/*records*
+docs/audit/import-report-*.md
+supabase/.temp/

@@ -1,0 +1,45 @@
+{
+ "baseId": "appVsJVw5jjj5YiMp",
+ "name": "Clinical Follow-Up & Care Automation",
+ "exportedAt": "2026-10-08T12:30:00Z",
+ "source": "airtable-mcp (schema only, no records)",
+ "status": "Superseded by appH2jHpsNR1nqEQ2 (Acute). Import history only.",
+ "tables": [
+  {
+   "id": "tblJvIh3Wf7z8Qn8k", "name": "Follow-Up Queue", "primaryFieldId": "fld6OhLP42w2HIQSe",
+   "fields": [
+    {"id": "fld6OhLP42w2HIQSe", "name": "Patient ID", "type": "singleLineText"},
+    {"id": "fldtI12OUP7Ag4DGK", "name": "Patient Name", "type": "singleLineText"},
+    {"id": "fldp5Gqkk1o4ZLf98", "name": "Phone", "type": "phoneNumber"},
+    {"id": "fld1Qy2QnqH1lg8iO", "name": "DOB", "type": "date"},
+    {"id": "fldtregvNGHaJ750F", "name": "Age", "type": "formula", "resultType": "number", "formula": "DATETIME_DIFF(TODAY(), {fld1Qy2QnqH1lg8iO}, 'years')"},
+    {"id": "fldbjbf9UTdKr9Thc", "name": "Gender", "type": "singleSelect", "choices": ["Male", "Female"]},
+    {"id": "fld4kay6bt0l2Jm0m", "name": "Doctor", "type": "singleSelect", "choices": ["Doctor 1", "Doctor 2", "Doctor 3", "Dr. Sharma", "Dr. Verma", "Dr. Kapoor"], "note": "placeholder values from the prototype"},
+    {"id": "fldm8K33wuLuBcJ7X", "name": "Department", "type": "singleSelect", "choices": ["Paediatrics", "Dermatology", "Cardiology", "Endocrinology", "Orthopedics"]},
+    {"id": "fldsCFssERLY68rxI", "name": "Visit Date", "type": "date"},
+    {"id": "fldk9al97BKQHIchQ", "name": "Temperature (°C)", "type": "singleLineText"},
+    {"id": "fldggR8OPHySFrm5t", "name": "BP", "type": "singleLineText"},
+    {"id": "fldFqm1CLiBDCWDeM", "name": "Diagnosis (ICD)", "type": "multilineText"},
+    {"id": "fldXjR8LAzQKuEt6Z", "name": "Procedures", "type": "multilineText"},
+    {"id": "fldNpNzdHpJXrqjDk", "name": "Investigations Ordered", "type": "multilineText"},
+    {"id": "fldIUKdeBXRJGuMmN", "name": "Medications Prescribed", "type": "multilineText"},
+    {"id": "fldyHBfD63N9Ph7Sh", "name": "Plan of Treatment", "type": "multilineText"},
+    {"id": "fldudFf3Pwv9ExPDM", "name": "Follow-Up Mentioned", "type": "formula", "resultType": "number", "formula": "IF(FIND(\"follow\", LOWER({fldyHBfD63N9Ph7Sh})), 1, 0)"},
+    {"id": "fldAhGjL3xEYIIQXH", "name": "Auto Follow-Up Trigger", "type": "formula", "resultType": "singleLineText",
+     "formula": "IF(\n  OR(\n    {fldk9al97BKQHIchQ} >= 39,\n    AND({fldm8K33wuLuBcJ7X} = \"Paediatrics\", {fldtregvNGHaJ750F} < 2, {fldk9al97BKQHIchQ} >= 38),\n    FIND(\"infection\", LOWER({fldFqm1CLiBDCWDeM})),\n    FIND(\"procedure\", LOWER({fldXjR8LAzQKuEt6Z})),\n    FIND(\"culture\", LOWER({fldNpNzdHpJXrqjDk})),\n    {fldudFf3Pwv9ExPDM} = 1\n  ),\n  \"YES\",\n  \"NO\"\n)"},
+    {"id": "fld4tEf9E9vreKr5P", "name": "Follow-Up Type", "type": "formula", "resultType": "singleLineText",
+     "formula": "IF(\n  {fldm8K33wuLuBcJ7X} = \"Paediatrics\",\n  \"Paediatric High-Concern\",\n  IF(\n    {fldXjR8LAzQKuEt6Z} != \"\",\n    \"Post-Procedure\",\n    \"Clinical Check\"\n  )\n)"},
+    {"id": "fldhXWgslD9v3BSzK", "name": "Follow-Up Due Date", "type": "formula", "resultType": "date",
+     "formula": "IF(\n  {fld4tEf9E9vreKr5P} = \"Paediatric High-Concern\", \n  DATEADD({fldsCFssERLY68rxI}, 1, 'day'),\n  DATEADD({fldsCFssERLY68rxI}, 2, 'day')\n)"},
+    {"id": "fldnzYPCN4lf0C9Dj", "name": "Assigned To", "type": "singleSelect", "choices": ["Nurse", "Call Centre", "Nurse Priya", "Nurse Amit"]},
+    {"id": "fldjPQXHBjuUJRLNq", "name": "Call Status", "type": "singleSelect", "choices": ["Pending", "Completed", "Escalated", "No Answer"]},
+    {"id": "fldkPuFbyq2tntnUN", "name": "Outcome", "type": "singleSelect", "choices": ["Improving", "Same", "Worse", "Not Reached", "Reached"]},
+    {"id": "fldAH6K7B4jUIVRO1", "name": "Doctor Alert Required", "type": "checkbox"},
+    {"id": "fldQ6rcJt7yGrvB2H", "name": "Follow-Up Notes", "type": "multilineText"},
+    {"id": "fldiKRrQAn7rV4AvV", "name": "Last Updated", "type": "lastModifiedTime"},
+    {"id": "fldVSf9u8lD3O97vp", "name": "Escalation Status", "type": "singleSelect", "choices": ["Open", "Resolved", "None", "Escalated"]},
+    {"id": "fldfDWGbyIjyUKGy5", "name": "Doctor Response Notes", "type": "multilineText"}
+   ]
+  }
+ ]
+}
