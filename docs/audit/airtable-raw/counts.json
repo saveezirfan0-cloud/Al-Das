@@ -1,0 +1,35 @@
+{
+ "countedAt": "2026-10-08",
+ "method": "Airtable connector, totalRecordCount only. No record content was read for these tables except the non-PHI configuration tables listed under configTablesRead.",
+ "counts": {
+  "app7QJ2pvhADHQeBP": {
+   "tbl9856qJP9S7OEqB (Unite / patients)": 10652,
+   "tblllKPKIY9qvMoEU (Medical Records Data / visits)": 11656,
+   "tblZqf4Zcw5Kweadh (Diagnosis)": 4107,
+   "tblZqf4Zcw5Kweadh (Diagnosis, Top 30 = true)": 30,
+   "tblLM2BXjA680GQws (Medication)": 13534,
+   "tblTJtk6aIMbwpoA2 (Items)": 1981
+  },
+  "appkOnjPr1SMD83CP": {
+   "tblhoSfiSjO4zh9cf (Appointment Messages)": 8102,
+   "tbldCbNEKeF5NrTCs (Chronic Recall Messages)": 56,
+   "tblpWst9QqYNuKpwZ (Website)": 84,
+   "tblHTlF6LXMK5p4mU (Birthday Messages)": null
+  },
+  "appH2jHpsNR1nqEQ2": {
+   "tblyOweSP3FfeY9q0 (Visits)": 1815,
+   "tbl69r1kelxG4g93L (Settings)": 30,
+   "tbl2xmInmphVGkkFY (Test Plan)": 20,
+   "tblnCsSkyw4Tu9Ak7 (Message Templates)": 10,
+   "tblIxa5xUOG3GRwmt (Medication Reference)": 0
+  }
+ },
+ "configTablesRead": [
+  "appH2jHpsNR1nqEQ2/tbl69r1kelxG4g93L Settings (parameters, no patient data)",
+  "appH2jHpsNR1nqEQ2/tbl2xmInmphVGkkFY Test Plan (synthetic boundary cases)",
+  "appH2jHpsNR1nqEQ2/tblnCsSkyw4Tu9Ak7 Message Templates (template register)",
+  "appkOnjPr1SMD83CP/tblpWst9QqYNuKpwZ Website (website CTA routing map)",
+  "app7QJ2pvhADHQeBP/tblZqf4Zcw5Kweadh Diagnosis, Top 30 rows only (ICD-10 reference)"
+ ],
+ "notCounted": "Birthday Messages, the two older bases, and the Unite backup bases (Unite (Copy), Unite (April 23, 2026), 2025). Run scripts/export-airtable-schema.ts --counts for a full count."
+}

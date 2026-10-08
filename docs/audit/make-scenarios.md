@@ -65,3 +65,18 @@ Re-pull everything with `scripts/export-make.ts`.
 | Acute Follow-Up — MRD Sync | ☐ | ☐ | ☐ | ☐ |
 
 > In parallel runs, the native side must run in **Test send mode** (internal numbers only) so patients never get duplicate messages.
+
+---
+
+## 5. Corrections found in Phase 0 (8 Oct 2026, blueprints read live)
+
+The three active blueprints missing from `make-raw/` (Token, Chronic Update, MRD Sync) were read through the Make connector and summarised in `make-raw/*_summary.md` (redacted; the Token blueprint holds three Unite credential pairs and the Chronic Update sample holds a real patient, so neither raw blueprint is committed).
+
+1. **Reminders are ~24 h, not 48 h.** Both reminder scenarios query `from_date = to_date = tomorrow` and run at 12:00 and 18:00; only the 18:00 run dedupes by Appointment ID (OQ-19).
+2. **Hard-coded exclusions** in the reminder filters: placeholder names (SHORELINE, block, break, golden mile, meadows) and five doctors (OQ-21). Seeded into `reminder_exclusions` in the drafts.
+3. **The Google Sheet "Appointment Reminders"** is written only in the Sanoflow-send **error handler**: it is a failed-send fallback list with wa.me links (OQ-42), not a doctor/template mapping.
+4. **Birthday** bands/templates: M 20–29 → 12294, 30–39 → 12295, ≥ 40 → 12296; F 18–35 → 12289, 36–45 → 12291, 46–65 → 12291. `Birthday Message = Sent` is never reset (one message ever per patient); uncovered bands get nothing (OQ-17).
+5. **Chronic Update** matches by phone and updates every recall row for that number (OQ-22). Its sample payload: `{Mobile, Status ∈ Replied|Booked, Trigger Data}`.
+6. **MRD Sync** performs no negation scrubbing despite its description; classifies drugs by `contains()` on the Unite medicine-type text; caps at 10 visits/night and 20 medications/visit; never sets Secondary Diagnosis Codes, Symptomatic or the Patient link; Pap Result is the constant "Not available in Unite".
+7. **Token** scenario cannot keep a 240 s token valid on a 3×/day schedule; consumers rely on `authorize` re-issuing. Response status is in the JSON body (HTTP always 200).
+8. The replacement design, parallel-run method and cut-over per scenario are in `make-replacement-design.md`; §4 above is superseded by its checklist (§10).
