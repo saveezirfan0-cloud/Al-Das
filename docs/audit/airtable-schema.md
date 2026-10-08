@@ -129,3 +129,22 @@ Visit Date, vitals as **strings** (Height, Weight, Temp, Pulse, BP Systolic/Dias
 | `wa_templates` (+ clinical approval) | Acute.Message Templates |
 | `lab_orders` (Phase 2) | PTF.Laboratory & Diagnostic Test |
 | Interfaces → portal screens | Chronic Recall call list, Follow-Up Queue, Data Quality Exceptions view, weekly recall charts |
+
+---
+
+## 6. Corrections found in Phase 0 (8 Oct 2026, live schema pull)
+
+Verified against the live field configurations (`airtable-raw/*.schema.json`). The sections above stay as the original audit; where they disagree with the live base, the live base wins.
+
+1. **Chronic recall threshold is 30 days, not 90.** The `Chronic Recall Eligible` formula tests `Time Elapsed (Days) >= 30`; only its *description* says "90+ days". Together with the 85-day feedback note this is a three-way open question (OQ-01).
+2. **Negation scrubbing is not implemented.** The `TRIGGER GP` / `Trigger Category` descriptions say Observation Notes is "negation-scrubbed at ingest by the Make sync"; the MRD Sync blueprint simply concatenates Complaints + HPI + Doctor Notes + Nurse Notes (OQ-31).
+3. **Medication Reference is empty (0 rows).** Drug class is derived in Make by substring on the Unite Medication table's `MEDICINE TYPE` / `All Medicine Types`, not by local code (OQ-13).
+4. **Doctor routing lists in `Department Effective` are empty**, so only the under-14 override is active (OQ-08).
+5. `Follow-Up Due Date` = WORKDAY(+1) for Paediatric High-Concern / Vitals / Bleeding / Infection-Labs, WORKDAY(+2) otherwise, Mon–Fri assumption, no holidays (OQ-07).
+6. The chronic template SWITCH has a **default 13170** for unmapped groups (OQ-24); mental-health groups are removed by regex before that.
+7. All 20 Test Plan rows are "Not tested"; 4 Settings rows are BLOCKING and 20 "Awaiting sign-off".
+8. The Unite base has **two native Airtable automations** (record created → update record; record enters view "Chronic" → Google Sheets row) that the Make audit did not cover (OQ-41). The Campaigns and Acute bases have none.
+9. Record counts: patients 10,652 · MRD visits 11,656 · Diagnosis 4,107 (30 Top-30) · Medication 13,534 · Items 1,981 · Appointment Messages 8,102 · Chronic Recall Messages 56 · Acute Visits 1,815 · Website 84.
+10. Interfaces exist only on the Campaigns base (Patient Messaging Overview, Today's Actions, Doctor & Department Performance, Birthday Campaign Tracking, Chronic Recall Performance v2). They are inventoried in `airtable-raw/appkOnjPr1SMD83CP.schema.json`.
+
+Field-level mapping: `data-model-mapping.md`. Rules: `clinical-rules.md`. Questions: `open-questions.md`.
