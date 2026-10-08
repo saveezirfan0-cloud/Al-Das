@@ -14,7 +14,7 @@ create table if not exists public.unite_appointment_status_map (
 );
 
 create or replace function public.seed_unite_appointment_status_map(p_org uuid)
-returns void language sql as $$
+returns void language sql set search_path = '' as $$
   insert into public.unite_appointment_status_map (org_id, code, status, label, counts_as_no_show) values
     (p_org, 'AAC', null, 'Unite code AAC (meaning to confirm)', false),
     (p_org, 'ACF', null, 'Unite code ACF (confirmed?)',         false),
@@ -56,7 +56,7 @@ create table if not exists public.reminder_exclusions (
 );
 
 create or replace function public.seed_reminder_exclusions(p_org uuid)
-returns void language sql as $$
+returns void language sql set search_path = '' as $$
   insert into public.reminder_exclusions (org_id, kind, match_type, value, reason) values
     (p_org, 'placeholder_name', 'equals',   'SHORELINE',   'Unite placeholder booking (from Make filter)'),
     (p_org, 'placeholder_name', 'equals',   'block',       'Unite placeholder booking (from Make filter)'),
@@ -96,14 +96,7 @@ from public.appointment_reminders r
 join public.appointments a on a.id = r.appointment_id
 group by a.org_id, a.location_id, a.specialist_id, a.external_status, date_trunc('day', r.sent_at)::date;
 
-do $$
-declare t text;
-begin
-  foreach t in array array['unite_appointment_status_map','reminder_exclusions'] loop
-    execute format('alter table public.%I enable row level security', t);
-    execute format('drop policy if exists %I on public.%I', t || '_member', t);
-    execute format('create policy %I on public.%I for all using (public.is_org_member(org_id)) with check (public.is_org_member(org_id))', t || '_member', t);
-  end loop;
-  drop trigger if exists set_updated_at on public.reminder_exclusions;
-  create trigger set_updated_at before update on public.reminder_exclusions for each row execute function public.set_updated_at();
-end $$;
+select app.add_tenant_rls('unite_appointment_status_map', 'appointments.manage');
+select app.add_tenant_rls('reminder_exclusions',          'appointments.manage');
+revoke all on function public.seed_unite_appointment_status_map(uuid), public.seed_reminder_exclusions(uuid) from public, anon, authenticated;
+grant execute on function public.seed_unite_appointment_status_map(uuid), public.seed_reminder_exclusions(uuid) to service_role;

@@ -269,17 +269,14 @@ group by p.org_id, p.medication_code;
 -- ---------------------------------------------------------------------------
 -- RLS + updated_at
 -- ---------------------------------------------------------------------------
-do $$
-declare t text;
-begin
-  foreach t in array array['clinic_calendar','visits','visit_diagnoses','visit_items','contact_chronic_conditions',
-                           'contact_regular_medications','prescriptions','prescription_sequences','visit_rule_evaluations'] loop
-    execute format('alter table public.%I enable row level security', t);
-    execute format('drop policy if exists %I on public.%I', t || '_member', t);
-    execute format('create policy %I on public.%I for all using (public.is_org_member(org_id)) with check (public.is_org_member(org_id))', t || '_member', t);
-  end loop;
-  foreach t in array array['clinic_calendar','visits','prescriptions','prescription_sequences','visit_rule_evaluations'] loop
-    execute format('drop trigger if exists set_updated_at on public.%I', t);
-    execute format('create trigger set_updated_at before update on public.%I for each row execute function public.set_updated_at()', t);
-  end loop;
-end $$;
+-- Clinical data is written by the Unite sync and lib/clinical (service role); staff read it.
+-- The clinic calendar and per-prescription sequence overrides are maintained in the portal.
+select app.add_tenant_rls('clinic_calendar', 'portal.clinic_calendar.write');
+select app.add_tenant_rls('visits');
+select app.add_tenant_rls('visit_diagnoses');
+select app.add_tenant_rls('visit_items');
+select app.add_tenant_rls('contact_chronic_conditions');
+select app.add_tenant_rls('contact_regular_medications');
+select app.add_tenant_rls('prescriptions');
+select app.add_tenant_rls('prescription_sequences', 'portal.prescription_sequences.write');
+select app.add_tenant_rls('visit_rule_evaluations');

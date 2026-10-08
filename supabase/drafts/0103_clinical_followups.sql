@@ -159,14 +159,7 @@ where f.closed_at is null;
 -- ---------------------------------------------------------------------------
 -- RLS + updated_at
 -- ---------------------------------------------------------------------------
-do $$
-declare t text;
-begin
-  foreach t in array array['clinical_followups','clinical_feedback','clinical_message_log','clinical_call_scripts'] loop
-    execute format('alter table public.%I enable row level security', t);
-    execute format('drop policy if exists %I on public.%I', t || '_member', t);
-    execute format('create policy %I on public.%I for all using (public.is_org_member(org_id)) with check (public.is_org_member(org_id))', t || '_member', t);
-    execute format('drop trigger if exists set_updated_at on public.%I', t);
-    execute format('create trigger set_updated_at before update on public.%I for each row execute function public.set_updated_at()', t);
-  end loop;
-end $$;
+select app.add_tenant_rls('clinical_followups',   'portal.clinical_followups.write');
+select app.add_tenant_rls('clinical_feedback',     'portal.clinical_feedback.write');
+select app.add_tenant_rls('clinical_message_log');                                   -- written by the sequence engine only
+select app.add_tenant_rls('clinical_call_scripts', 'clinical.settings.manage');

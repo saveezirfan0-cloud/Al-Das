@@ -209,7 +209,7 @@ group by rs.org_id, rs.programme_id, rs.send_mode, date_trunc('week', rs.sent_at
 -- Seed: programmes + legacy template map. Run per org: select public.seed_recall_programmes('<org uuid>');
 -- ---------------------------------------------------------------------------
 create or replace function public.seed_recall_programmes(p_org uuid)
-returns void language plpgsql as $$
+returns void language plpgsql set search_path = '' as $$
 declare chronic uuid; bday uuid;
 begin
   insert into public.recall_programmes (org_id, key, name, kind, status, eligibility_view, cron_expression, repeat_policy, max_per_run, requires_marketing_opt_in, requires_clinical_consent, config)
@@ -257,14 +257,8 @@ end $$;
 -- ---------------------------------------------------------------------------
 -- RLS + updated_at
 -- ---------------------------------------------------------------------------
-do $$
-declare t text;
-begin
-  foreach t in array array['recall_programmes','recall_programme_templates','recall_sends'] loop
-    execute format('alter table public.%I enable row level security', t);
-    execute format('drop policy if exists %I on public.%I', t || '_member', t);
-    execute format('create policy %I on public.%I for all using (public.is_org_member(org_id)) with check (public.is_org_member(org_id))', t || '_member', t);
-    execute format('drop trigger if exists set_updated_at on public.%I', t);
-    execute format('create trigger set_updated_at before update on public.%I for each row execute function public.set_updated_at()', t);
-  end loop;
-end $$;
+select app.add_tenant_rls('recall_programmes',          'campaigns.create');
+select app.add_tenant_rls('recall_programme_templates', 'templates.manage');
+select app.add_tenant_rls('recall_sends',               'portal.recall_sends.write');   -- call-list edits (follow_up_status, booked_at)
+revoke all on function public.seed_recall_programmes(uuid) from public, anon, authenticated;
+grant execute on function public.seed_recall_programmes(uuid) to service_role;

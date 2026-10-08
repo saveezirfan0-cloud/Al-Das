@@ -41,13 +41,8 @@ create table if not exists public.clinical_settings (
     check (sign_off_status <> 'approved' or (approved_value is not null and signed_by is not null and signed_at is not null))
 );
 
-alter table public.clinical_settings enable row level security;
-drop policy if exists clinical_settings_member on public.clinical_settings;
-create policy clinical_settings_member on public.clinical_settings
-  for all using (public.is_org_member(org_id)) with check (public.is_org_member(org_id));
-drop trigger if exists set_updated_at on public.clinical_settings;
-create trigger set_updated_at before update on public.clinical_settings
-  for each row execute function public.set_updated_at();
+-- members read; clinical sign-off (approved_value, signed_by, signed_at) needs clinical.settings.manage
+select app.add_tenant_rls('clinical_settings', 'clinical.settings.manage');
 
 -- Audit every change to a clinical setting (DHA-defensible trail).
 create table if not exists public.clinical_settings_history (
@@ -60,12 +55,12 @@ create table if not exists public.clinical_settings_history (
   new_row       jsonb
 );
 alter table public.clinical_settings_history enable row level security;
-drop policy if exists clinical_settings_history_member on public.clinical_settings_history;
-create policy clinical_settings_history_member on public.clinical_settings_history
-  for select using (public.is_org_member(org_id));
+drop policy if exists clinical_settings_history_select on public.clinical_settings_history;
+create policy clinical_settings_history_select on public.clinical_settings_history
+  for select to authenticated using (app.has_perm(org_id, 'clinical.settings.manage'));
 
 create or replace function public.clinical_settings_audit()
-returns trigger language plpgsql security definer set search_path = public as $$
+returns trigger language plpgsql security definer set search_path = '' as $$
 begin
   insert into public.clinical_settings_history (org_id, setting_key, changed_by, old_row, new_row)
   values (coalesce(new.org_id, old.org_id), coalesce(new.key, old.key), auth.uid(),
@@ -114,7 +109,7 @@ $$;
 -- Run per org: select public.seed_clinical_settings('<org uuid>');
 -- ---------------------------------------------------------------------------
 create or replace function public.seed_clinical_settings(p_org uuid)
-returns void language plpgsql as $$
+returns void language plpgsql set search_path = '' as $$
 begin
 insert into public.clinical_settings
   (org_id, key, label, category, value_type, proposed_value, live_value, sign_off_status, owner, notes, source, airtable_record_id)
@@ -237,3 +232,5 @@ update public.clinical_settings
    and key in ('governance_doctor_approved_templates_only','governance_no_diagnosis_over_whatsapp',
                'governance_audit_trail_retention','unite_min_interval_ms');
 end $$;
+revoke all on function public.seed_clinical_settings(uuid) from public, anon, authenticated;
+grant execute on function public.seed_clinical_settings(uuid) to service_role;
