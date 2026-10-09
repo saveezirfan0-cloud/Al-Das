@@ -44,14 +44,18 @@ const TYPE_LABELS: Record<CustomFieldType, string> = {
   phone: "Phone",
 };
 
-type Props =
+type Props = (
   | { mode: "create"; field?: undefined; open?: undefined; onOpenChange?: undefined }
   | {
       mode: "edit";
       field: CustomFieldDef & { id: string };
       open: boolean;
       onOpenChange: (o: boolean) => void;
-    };
+    }
+) & {
+  /** Which record type the field belongs to. Defaults to contact. */
+  entity?: "contact" | "enquiry";
+};
 
 export function CustomFieldDialog(props: Props) {
   const [internalOpen, setInternalOpen] = React.useState(false);
@@ -101,7 +105,7 @@ export function CustomFieldDialog(props: Props) {
       const res =
         props.mode === "create"
           ? await createCustomField({
-              entity: "contact",
+              entity: props.entity ?? "contact",
               key,
               label,
               type,

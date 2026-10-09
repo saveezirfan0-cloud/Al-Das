@@ -21,6 +21,7 @@ export default async function SettingsLayout({ children }: { children: React.Rea
           { href: "/settings/api-keys", label: "API keys" },
           { href: "/settings/webhooks", label: "Webhooks" },
           { href: "/settings/appointments", label: "Appointments" },
+          { href: "/settings/enquiries", label: "Enquiries" },
           { href: "/settings/unite", label: "Unite EMR" },
         ]
       : []),

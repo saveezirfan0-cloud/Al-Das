@@ -74,6 +74,7 @@ export type InboxProps = {
     viewAll: boolean;
     contactsManage: boolean;
     settings: boolean;
+    enquiriesManage: boolean;
     appointmentsManage: boolean;
   };
   /** AI assist is usable here: the member has ai.use AND the workspace switched it on. */

@@ -10,7 +10,12 @@ export type TagOption = { id: string; name: string; color: string };
 export type ContactsBootstrap = {
   userId: string;
   timezone: string;
-  can: { manage: boolean; export: boolean };
+  can: {
+    manage: boolean;
+    export: boolean;
+    enquiriesView: boolean;
+    enquiriesManage: boolean;
+  };
   customFields: CustomFieldDef[];
   fields: ClientField[];
   tags: TagOption[];

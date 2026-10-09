@@ -239,6 +239,7 @@ export default async function InboxPage({
       contactsManage: can(member, "contacts.manage"),
       appointmentsManage: can(member, "appointments.manage"),
       settings: can(member, "settings.manage"),
+      enquiriesManage: can(member, "enquiries.manage"),
     },
     ai: { available: can(member, "ai.use") && readAiSettings(org?.settings).enabled },
     query,

@@ -198,12 +198,17 @@ export function DataGrid<T extends { id: string }>(props: DataGridProps<T>) {
                       style={{ width: header.getSize() }}
                       className="text-muted-foreground group relative h-9 px-2 text-left text-xs font-medium whitespace-nowrap select-none"
                     >
-                      {header.isPlaceholder ? null : (
+                      {header.isPlaceholder ? null : !sortable ? (
+                        // Not sortable: a plain cell, so a checkbox header (select all) is never nested in a button.
+                        <div className="flex w-full items-center gap-1 truncate">
+                          <span className="truncate">
+                            {flexRender(header.column.columnDef.header, header.getContext())}
+                          </span>
+                        </div>
+                      ) : (
                         <button
                           type="button"
-                          disabled={!sortable}
                           onClick={() => {
-                            if (!sortable) return;
                             onSortingChange(
                               sorted
                                 ? sorted.desc
@@ -212,10 +217,7 @@ export function DataGrid<T extends { id: string }>(props: DataGridProps<T>) {
                                 : [{ id: header.column.id, desc: false }],
                             );
                           }}
-                          className={cn(
-                            "flex w-full items-center gap-1 truncate",
-                            sortable && "hover:text-foreground cursor-pointer",
-                          )}
+                          className="hover:text-foreground flex w-full cursor-pointer items-center gap-1 truncate"
                         >
                           <span className="truncate">
                             {flexRender(header.column.columnDef.header, header.getContext())}
