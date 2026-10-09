@@ -444,7 +444,31 @@ export function ContactDrawer({
                   <ContactAppointments contactId={contact.id} />
                 </TabsContent>
                 <TabsContent value="campaigns" className="pt-3">
-                  <Placeholder text="Campaigns this contact received appear here (Phase 7)." />
+                  {detail && detail.campaigns.length > 0 ? (
+                    <ul className="divide-y rounded-lg border text-sm">
+                      {detail.campaigns.map((c) => (
+                        <li
+                          key={c.id}
+                          className="flex items-center justify-between gap-3 px-3 py-2"
+                        >
+                          <a
+                            href={`/campaigns?c=${c.campaign_id}`}
+                            className="font-medium hover:underline"
+                          >
+                            {c.name}
+                          </a>
+                          <span className="text-muted-foreground text-xs">
+                            {c.status === "skipped" && c.skip_reason
+                              ? `skipped: ${c.skip_reason.replace(/_/g, " ")}`
+                              : c.status}
+                            {c.replied_at ? " · replied" : ""}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <Placeholder text="Campaigns this contact was part of appear here." />
+                  )}
                 </TabsContent>
               </Tabs>
             </div>

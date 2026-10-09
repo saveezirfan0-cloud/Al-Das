@@ -36,6 +36,10 @@ const nextConfig: NextConfig = {
   // node_modules at runtime instead (used only by the kb_ingest handler for PDF sources).
   serverExternalPackages: ["unpdf"],
   poweredByHeader: false,
+  experimental: {
+    // Campaign CSV audiences (up to 50k rows) are posted to a server action.
+    serverActions: { bodySizeLimit: "16mb" },
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

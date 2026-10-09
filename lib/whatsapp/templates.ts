@@ -143,6 +143,8 @@ export type TemplatePreview = {
   body: string;
   footer: string | null;
   buttons: Array<{ type: string; text: string }>;
+  /** Carousel cards (media kind, text and button labels). */
+  cards: Array<{ media: "image" | "video" | null; body: string; buttons: string[] }>;
   missing: string[]; // variable keys without a value
 };
 
@@ -158,6 +160,7 @@ export function renderTemplatePreview(
     body: "",
     footer: null,
     buttons: [],
+    cards: [],
     missing: [],
   };
   for (const c of components) {
@@ -176,6 +179,20 @@ export function renderTemplatePreview(
       );
     } else if (c.type === "FOOTER") {
       preview.footer = (c as Extract<MetaTemplateComponent, { type: "FOOTER" }>).text;
+    } else if (c.type === "CAROUSEL") {
+      for (const card of (c as Extract<MetaTemplateComponent, { type: "CAROUSEL" }>).cards) {
+        const head = card.components.find((x) => x.type === "HEADER") as
+          Extract<MetaTemplateComponent, { type: "HEADER" }> | undefined;
+        const body = card.components.find((x) => x.type === "BODY") as
+          Extract<MetaTemplateComponent, { type: "BODY" }> | undefined;
+        const btns = card.components.find((x) => x.type === "BUTTONS") as
+          Extract<MetaTemplateComponent, { type: "BUTTONS" }> | undefined;
+        preview.cards.push({
+          media: head?.format === "VIDEO" ? "video" : head ? "image" : null,
+          body: body?.text ?? "",
+          buttons: (btns?.buttons ?? []).map((b) => ("text" in b && b.text ? b.text : b.type)),
+        });
+      }
     } else if (c.type === "BUTTONS") {
       for (const b of (c as Extract<MetaTemplateComponent, { type: "BUTTONS" }>).buttons) {
         preview.buttons.push({
