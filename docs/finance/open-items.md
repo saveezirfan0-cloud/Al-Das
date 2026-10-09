@@ -34,3 +34,5 @@
 10. **Payment keys.** Two payments with the same instalment and receipt (both often blank) are keyed `…#2`, `…#3` in delivery order. Confirm that order is stable across re-deliveries once real data is seen.
 11. **The first live run** must be deliberate and watched: batches per run = 1, then check the batch log, row counts against the Unite UI, and the invoice number gap report before raising it.
 12. **Raw payload retention.** The 90-day PII strip of `fin_raw_unite_batches.payload` is not built yet (phase F6).
+13. **IP allow-listing.** Vercel has no fixed outbound IPs. If Unite restricts by IP, a static-IP add-on or a fixed-IP relay is needed before the first run (email question 15).
+14. **Make estate facts (read 9 Oct 2026).** Data store "Token" (61544) is used by 10 scenarios; the TEST finance data store (167670) holds 16 records (not 2) and must be deleted after use; see `go-live-runbook.md` section 2.
