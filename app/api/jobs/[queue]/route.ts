@@ -5,6 +5,7 @@ import "@/lib/jobs/handlers";
 import { serverEnv } from "@/lib/env";
 import { dbDrainDeps, dbSchedulerDeps } from "@/lib/jobs/db";
 import { isQueueName, SCHEDULER_QUEUE } from "@/lib/jobs/queues";
+import { checkRateLimit, clientIp, RATE_RULES, tooManyRequests } from "@/lib/rate-limit";
 import { getHandler } from "@/lib/jobs/registry";
 import { consoleLogger, drainQueue, errorMessage } from "@/lib/jobs/runner";
 import { secretMatches } from "@/lib/jobs/secret";
@@ -26,6 +27,13 @@ export async function POST(
 ) {
   const env = serverEnv();
   if (!secretMatches(request.headers.get("x-job-secret"), env.JOB_SECRET)) {
+    const limited = await checkRateLimit(
+      createAdminClient(),
+      "jobs-bad-secret",
+      clientIp(request.headers),
+      RATE_RULES.jobsBadSecret,
+    );
+    if (!limited.allowed) return tooManyRequests(limited);
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

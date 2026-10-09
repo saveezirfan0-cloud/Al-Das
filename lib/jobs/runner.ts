@@ -5,6 +5,7 @@
  */
 import { getHandler } from "@/lib/jobs/registry";
 import type { QueueName } from "@/lib/jobs/queues";
+import { redactMeta, redactText } from "@/lib/redact";
 import type {
   DrainResult,
   JobContext,
@@ -32,8 +33,9 @@ export type DrainDeps = {
 export const DEFAULTS = { batchSize: 50, visibilityTimeout: 60, maxReads: 5 } as const;
 
 export function errorMessage(err: unknown): string {
-  if (err instanceof Error) return `${err.name}: ${err.message}`.slice(0, 2000);
-  return String(err).slice(0, 2000);
+  // Persisted to job_runs / dead_letters: strip tokens, phones and e-mails first (CLAUDE.md rule 9).
+  if (err instanceof Error) return redactText(`${err.name}: ${err.message}`, 2000);
+  return redactText(String(err), 2000);
 }
 
 function isPermanent(err: unknown): boolean {
@@ -43,9 +45,9 @@ function isPermanent(err: unknown): boolean {
 }
 
 export const consoleLogger: JobLogger = {
-  info: (msg, meta) => console.info(`[jobs] ${msg}`, meta ?? ""),
-  warn: (msg, meta) => console.warn(`[jobs] ${msg}`, meta ?? ""),
-  error: (msg, meta) => console.error(`[jobs] ${msg}`, meta ?? ""),
+  info: (msg, meta) => console.info(`[jobs] ${msg}`, redactMeta(meta) ?? ""),
+  warn: (msg, meta) => console.warn(`[jobs] ${msg}`, redactMeta(meta) ?? ""),
+  error: (msg, meta) => console.error(`[jobs] ${msg}`, redactMeta(meta) ?? ""),
 };
 
 export async function drainQueue(

@@ -1323,6 +1323,25 @@ export type Database = {
           },
         ];
       };
+      rate_limit_hits: {
+        Row: {
+          hits: number;
+          key: string;
+          window_start: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          hits?: number;
+          key: string;
+          window_start: string;
+        };
+        Update: {
+          hits?: number;
+          key?: string;
+          window_start?: string;
+        };
+        Relationships: [];
+      };
       roles: {
         Row: {
           created_at: string;
@@ -2091,6 +2110,14 @@ export type Database = {
       };
       pgp_armor_headers: { Args: { "": string }; Returns: Record<string, unknown>[] };
       pick_round_robin_assignee: { Args: { p_org_id: string; p_team_id: string }; Returns: string };
+      rate_limit_hit: {
+        Args: { p_key: string; p_limit: number; p_window_seconds: number };
+        Returns: {
+          allowed: boolean;
+          hits: number;
+          retry_after: number;
+        }[];
+      };
       set_presence: { Args: { p_org_id: string; p_presence: string }; Returns: undefined };
       show_limit: { Args: Record<PropertyKey, never>; Returns: number };
       show_trgm: { Args: { "": string }; Returns: string[] };

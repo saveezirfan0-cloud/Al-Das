@@ -2,12 +2,17 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { serverEnv } from "@/lib/env";
 import { enqueue } from "@/lib/jobs/enqueue";
+import { checkRateLimit, clientIp, RATE_RULES, tooManyRequests } from "@/lib/rate-limit";
+import { redactText } from "@/lib/redact";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/types";
 import { verifyMetaSignature } from "@/lib/whatsapp/signature";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+/** Meta posts are a few KB; anything near this is not Meta. Rejected before hashing. */
+export const MAX_WEBHOOK_BYTES = 1_048_576;
 
 /**
  * GET: Meta's verification handshake (hub.mode / hub.verify_token / hub.challenge).
@@ -35,8 +40,23 @@ export async function POST(request: NextRequest) {
   if (!env.META_APP_SECRET) {
     return NextResponse.json({ error: "webhook not configured" }, { status: 503 });
   }
+  const declared = Number(request.headers.get("content-length") ?? 0);
+  if (declared > MAX_WEBHOOK_BYTES) {
+    return NextResponse.json({ error: "payload too large" }, { status: 413 });
+  }
   const raw = await request.text();
+  if (Buffer.byteLength(raw) > MAX_WEBHOOK_BYTES) {
+    return NextResponse.json({ error: "payload too large" }, { status: 413 });
+  }
   if (!verifyMetaSignature(raw, request.headers.get("x-hub-signature-256"), env.META_APP_SECRET)) {
+    // Only failed attempts are counted, so genuine Meta traffic is never throttled.
+    const limited = await checkRateLimit(
+      createAdminClient(),
+      "webhook-bad-signature",
+      clientIp(request.headers),
+      RATE_RULES.webhookBadSignature,
+    );
+    if (!limited.allowed) return tooManyRequests(limited);
     return NextResponse.json({ error: "invalid signature" }, { status: 401 });
   }
 
@@ -62,7 +82,7 @@ export async function POST(request: NextRequest) {
     await enqueue("meta_events", { event_id: data.id });
   } catch (err) {
     console.error("[webhooks/meta] enqueue failed", {
-      error: err instanceof Error ? err.message : String(err),
+      error: redactText(err),
     });
     // The row is stored; the housekeeping sweep (lib/jobs/handlers/meta-events) re-queues unprocessed rows.
   }
