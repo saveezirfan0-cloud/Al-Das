@@ -41,6 +41,7 @@ export default async function InboxPage({
     { data: templates },
     { data: members },
     { data: org },
+    { data: shortcuts },
   ] = await Promise.all([
     supabase
       .from("team_members")
@@ -91,6 +92,14 @@ export default async function InboxPage({
       .eq("org_id", member.orgId)
       .eq("status", "active"),
     supabase.from("orgs").select("settings").eq("id", member.orgId).single(),
+    supabase
+      .from("flows")
+      .select("id, name, channel_id, trigger_config")
+      .eq("org_id", member.orgId)
+      .eq("status", "active")
+      .eq("trigger_type", "shortcut")
+      .gte("version", 1)
+      .order("name"),
   ]);
 
   const teamIds = (myTeams ?? []).map((t) => t.team_id);
@@ -250,6 +259,15 @@ export default async function InboxPage({
     categories: categories ?? [],
     views: (views ?? []).map((v) => ({ ...v, shared_team_ids: v.shared_team_ids ?? [] })),
     quickReplies: quickReplies ?? [],
+    shortcuts: can(member, "inbox.send")
+      ? (shortcuts ?? []).map((f) => ({
+          id: f.id,
+          name: f.name,
+          channelId:
+            ((f.trigger_config as { channel_id?: string } | null)?.channel_id ?? f.channel_id) ||
+            null,
+        }))
+      : [],
     templates: (templates ?? []).map((t) => ({
       ...t,
       components: t.components as unknown as MetaTemplateComponent[],

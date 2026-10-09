@@ -61,7 +61,8 @@ async function humanTakeover(
   orgId: string,
   conversation: { id: string; bot_active: boolean },
 ) {
-  if (conversation.bot_active) await cancelConversationRuns(admin, orgId, conversation.id, "takeover");
+  if (conversation.bot_active)
+    await cancelConversationRuns(admin, orgId, conversation.id, "takeover");
 }
 
 /** Replaces {contact.first_name} style variables in quick replies / free text. */
@@ -581,18 +582,10 @@ export async function toggleConversationLabel(
   return { ok: true, data: undefined };
 }
 
+/** Kept for callers of the Phase 3 toggle: taking over stops the run; handing to a bot is "Run a flow". */
 export async function setBotActive(conversationId: string, active: boolean): Promise<ActionResult> {
-  const member = await requireMember();
-  const { error, conversation } = await visibleConversation(member, conversationId);
-  if (error || !conversation) return { ok: false, error: error ?? "Conversation not found." };
-  const admin = createAdminClient();
-  await admin.from("conversations").update({ bot_active: active }).eq("id", conversation.id);
-  refresh();
-  return {
-    ok: true,
-    message: active ? "Handed to the bot." : "You took over from the bot.",
-    data: undefined,
-  };
+  if (active) return { ok: false, error: "Choose a flow to run from the conversation menu." };
+  return takeOverConversation(conversationId);
 }
 
 // ---------------------------------------------------------------------------
@@ -864,9 +857,7 @@ export async function mergeContacts(primaryId: string, duplicateId: string): Pro
 }
 
 /** Conversations for a contact (Contacts drawer → Inbox tab). RLS decides what the caller sees. */
-export async function listContactConversations(
-  contactId: string,
-): Promise<
+export async function listContactConversations(contactId: string): Promise<
   ActionResult<
     Array<{
       id: string;

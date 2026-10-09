@@ -88,6 +88,8 @@ export type InboxProps = {
   views: ViewInfo[];
   quickReplies: QuickReply[];
   templates: TemplateInfo[];
+  /** Active "Shortcut" flows a person can start on the open conversation. */
+  shortcuts: Array<{ id: string; name: string; channelId: string | null }>;
   people: Person[];
   settings: { require_category_on_close: boolean; require_summary_on_close: boolean };
   conversations: ConversationListRow[];
