@@ -20,7 +20,8 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { PERMISSION_GROUPS, PERMISSIONS } from "@/lib/auth/permissions";
+import { PERMISSION_GROUPS, PERMISSION_KEYS, PERMISSIONS } from "@/lib/auth/permissions";
+import { portalObjectPermissionKeys } from "@/lib/portal/permissions";
 
 import { createRole, updateRole } from "./actions";
 
@@ -54,6 +55,12 @@ export function RoleDialog(props: Props) {
         group: g,
         items: PERMISSIONS.filter((p) => p.group === g),
       })).filter((g) => g.items.length > 0),
+    [],
+  );
+
+  // Per-object portal keys (portal.<object>.read | .write), generated from the portal registry.
+  const portalKeys = useMemo(
+    () => portalObjectPermissionKeys().filter((k) => !PERMISSION_KEYS.includes(k.key)),
     [],
   );
 
@@ -157,6 +164,28 @@ export function RoleDialog(props: Props) {
                     ))}
                   </fieldset>
                 ))}
+                <fieldset className="flex flex-col gap-2">
+                  <legend className="mb-1 text-xs font-semibold tracking-wide uppercase">
+                    Portal objects
+                  </legend>
+                  {portalKeys.map((p) => (
+                    <label key={p.key} className="flex items-start gap-2 text-sm">
+                      <Checkbox
+                        className="mt-0.5"
+                        checked={perms.includes(p.key)}
+                        onCheckedChange={(c) =>
+                          setPerms((prev) =>
+                            c ? [...prev, p.key] : prev.filter((k) => k !== p.key),
+                          )
+                        }
+                      />
+                      <span>
+                        <span>{p.label}</span>
+                        <span className="text-muted-foreground block text-xs">{p.key}</span>
+                      </span>
+                    </label>
+                  ))}
+                </fieldset>
               </div>
             </ScrollArea>
           )}

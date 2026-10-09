@@ -460,3 +460,61 @@ begin
   values (v_org, v_admin, 'Unassigned', v_p1, 'table',
     '{"include":{"type":"group","logic":"and","children":[{"type":"condition","field":"assignee","op":"is_empty"}]},"exclude":null}'::jsonb, true);
 end $$;
+
+-- ---------------------------------------------------------------------------
+-- Phase 9: back-office portal. Registers the portal objects, seeds the condition groups and
+-- clinical settings the reference data hangs off, and adds a few FAKE reference rows, a shared
+-- saved view, a comment and a timeline entry. FAKE DATA ONLY (no real codes, prices or patients).
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  v_org uuid;
+  v_admin uuid := 'a0000000-0000-4000-8000-000000000001';
+  v_group uuid;
+  v_diag uuid;
+begin
+  select id into v_org from public.orgs where slug = 'al-das-dev';
+  if v_org is null then return; end if;
+
+  perform public.seed_portal_objects(v_org);
+  perform public.seed_condition_groups(v_org);
+
+  select id into v_group from public.ref_condition_groups where org_id = v_org and key = 'hypertension';
+
+  insert into public.ref_diagnoses (org_id, code, short_description, chronic, top30, condition_group_id) values
+    (v_org, 'X10.0', 'Fake chronic condition A', true, true, v_group),
+    (v_org, 'X20.1', 'Fake acute condition B', false, false, null),
+    (v_org, 'X30.9', 'Fake chronic condition C', true, false, v_group)
+  on conflict (org_id, code) do nothing;
+  insert into public.ref_medications (org_id, ddc_code, trade_name, scientific_name, strength, dosage_form, route, medicine_type, all_medicine_types) values
+    (v_org, 'FAKE-001', 'Fakecillin 500', 'fakecillin', '500 mg', 'Capsule', 'Oral', 'Antibiotic', array['Antibiotic']),
+    (v_org, 'FAKE-002', 'Placebo Plus', 'placebo', '10 mg', 'Tablet', 'Oral', 'Supplement', array['Supplement'])
+  on conflict (org_id, ddc_code) do nothing;
+  insert into public.ref_items (org_id, code, description, item_type, doctor_verified) values
+    (v_org, 'FAKE-T1', 'Fake blood test', 'TEST', true),
+    (v_org, 'FAKE-T2', 'Fake imaging study', 'RADIOLOGY', false)
+  on conflict (org_id, code) do nothing;
+  insert into public.ref_medication_classes (org_id, unite_local_code, medication_name, class) values
+    (v_org, 'FAKE-001', 'Fakecillin 500', 'antibiotic'),
+    (v_org, 'FAKE-002', 'Placebo Plus', 'unclassified')
+  on conflict (org_id, unite_local_code) do nothing;
+  insert into public.website_entry_points (org_id, section, source_key, channel_phone, prefill_message, route_to, priority_key, is_dynamic) values
+    (v_org, '01. General Booking', 'Home', '+971 4 000 0000', 'Hi, I would like to book an appointment', 'General receptionist triage', '14 - General Triage', false),
+    (v_org, '04. Doctor-Specific', 'DoctorProfile — Dr Fake', '+971 4 000 0000', 'Hi, I would like to see Dr Fake', 'Dr Fake schedule', '1 - Doctor Name', true)
+  on conflict (org_id, section, source_key) do nothing;
+
+  insert into public.saved_views (org_id, object_key, owner_id, name, filter, sort, shared_all)
+  select v_org, 'ref_diagnoses', v_admin, 'Chronic only',
+    jsonb_build_object('include', jsonb_build_object('type', 'group', 'logic', 'and', 'children',
+      jsonb_build_array(jsonb_build_object('type', 'condition', 'field', 'chronic', 'op', 'is_true')))),
+    '[{"field":"code","dir":"asc"}]'::jsonb, true
+  where not exists (select 1 from public.saved_views where org_id = v_org and object_key = 'ref_diagnoses' and name = 'Chronic only');
+
+  select id into v_diag from public.ref_diagnoses where org_id = v_org and code = 'X10.0';
+  if v_diag is not null and not exists (select 1 from public.portal_comments where org_id = v_org and record_id = v_diag) then
+    insert into public.portal_comments (org_id, object_key, record_id, author_id, body)
+    values (v_org, 'ref_diagnoses', v_diag, v_admin, 'Fake example comment on a reference record.');
+    insert into public.portal_record_events (org_id, object_key, record_id, type, actor_id, payload)
+    values (v_org, 'ref_diagnoses', v_diag, 'comment', v_admin, '{}'::jsonb);
+  end if;
+end $$;

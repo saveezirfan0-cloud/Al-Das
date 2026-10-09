@@ -4680,6 +4680,225 @@ export type Database = {
           },
         ];
       };
+      portal_attachments: {
+        Row: {
+          content_type: string | null;
+          created_at: string;
+          file_name: string;
+          id: string;
+          object_key: string;
+          org_id: string;
+          path: string;
+          record_id: string;
+          size_bytes: number | null;
+          uploaded_by: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          content_type?: string | null;
+          created_at?: string;
+          file_name: string;
+          id?: string;
+          object_key: string;
+          org_id: string;
+          path: string;
+          record_id: string;
+          size_bytes?: number | null;
+          uploaded_by?: string | null;
+        };
+        Update: {
+          content_type?: string | null;
+          created_at?: string;
+          file_name?: string;
+          id?: string;
+          object_key?: string;
+          org_id?: string;
+          path?: string;
+          record_id?: string;
+          size_bytes?: number | null;
+          uploaded_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "portal_attachments_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "portal_attachments_uploaded_by_fkey";
+            columns: ["uploaded_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      portal_comments: {
+        Row: {
+          author_id: string | null;
+          body: string;
+          created_at: string;
+          deleted_at: string | null;
+          id: string;
+          mentioned_user_ids: string[];
+          object_key: string;
+          org_id: string;
+          record_id: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          author_id?: string | null;
+          body: string;
+          created_at?: string;
+          deleted_at?: string | null;
+          id?: string;
+          mentioned_user_ids?: string[];
+          object_key: string;
+          org_id: string;
+          record_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          author_id?: string | null;
+          body?: string;
+          created_at?: string;
+          deleted_at?: string | null;
+          id?: string;
+          mentioned_user_ids?: string[];
+          object_key?: string;
+          org_id?: string;
+          record_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "portal_comments_author_id_fkey";
+            columns: ["author_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "portal_comments_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      portal_objects: {
+        Row: {
+          config: NonNullable<Json>;
+          created_at: string;
+          enabled: boolean;
+          icon: string | null;
+          id: string;
+          key: string;
+          label: string;
+          org_id: string;
+          read_perm: string;
+          sort: number;
+          source_airtable_table: string | null;
+          table_name: string;
+          updated_at: string;
+          write_perm: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          config?: NonNullable<Json>;
+          created_at?: string;
+          enabled?: boolean;
+          icon?: string | null;
+          id?: string;
+          key: string;
+          label: string;
+          org_id: string;
+          read_perm: string;
+          sort?: number;
+          source_airtable_table?: string | null;
+          table_name: string;
+          updated_at?: string;
+          write_perm?: string | null;
+        };
+        Update: {
+          config?: NonNullable<Json>;
+          created_at?: string;
+          enabled?: boolean;
+          icon?: string | null;
+          id?: string;
+          key?: string;
+          label?: string;
+          org_id?: string;
+          read_perm?: string;
+          sort?: number;
+          source_airtable_table?: string | null;
+          table_name?: string;
+          updated_at?: string;
+          write_perm?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "portal_objects_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      portal_record_events: {
+        Row: {
+          actor_id: string | null;
+          created_at: string;
+          id: number;
+          object_key: string;
+          org_id: string;
+          payload: NonNullable<Json>;
+          record_id: string;
+          type: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          actor_id?: string | null;
+          created_at?: string;
+          id?: number;
+          object_key: string;
+          org_id: string;
+          payload?: NonNullable<Json>;
+          record_id: string;
+          type: string;
+        };
+        Update: {
+          actor_id?: string | null;
+          created_at?: string;
+          id?: number;
+          object_key?: string;
+          org_id?: string;
+          payload?: NonNullable<Json>;
+          record_id?: string;
+          type?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "portal_record_events_actor_id_fkey";
+            columns: ["actor_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "portal_record_events_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       prescription_sequences: {
         Row: {
           antibiotic_end_date: string | null;
@@ -4954,6 +5173,169 @@ export type Database = {
         };
         Relationships: [];
       };
+      ref_condition_groups: {
+        Row: {
+          created_at: string;
+          follow_up_interval_days: number | null;
+          id: string;
+          key: string;
+          messageable: boolean;
+          monitoring_labs_cpt: string | null;
+          monitoring_procedures_cpt: string | null;
+          name: string;
+          org_id: string;
+          regular_medication_examples: string | null;
+          sort: number;
+          typical_visit_cpt: string | null;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          follow_up_interval_days?: number | null;
+          id?: string;
+          key: string;
+          messageable?: boolean;
+          monitoring_labs_cpt?: string | null;
+          monitoring_procedures_cpt?: string | null;
+          name: string;
+          org_id: string;
+          regular_medication_examples?: string | null;
+          sort?: number;
+          typical_visit_cpt?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          follow_up_interval_days?: number | null;
+          id?: string;
+          key?: string;
+          messageable?: boolean;
+          monitoring_labs_cpt?: string | null;
+          monitoring_procedures_cpt?: string | null;
+          name?: string;
+          org_id?: string;
+          regular_medication_examples?: string | null;
+          sort?: number;
+          typical_visit_cpt?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ref_condition_groups_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      ref_diagnoses: {
+        Row: {
+          chronic: boolean;
+          code: string;
+          condition_group_id: string | null;
+          created_at: string;
+          id: string;
+          long_description: string | null;
+          not_found_in_unite: boolean;
+          org_id: string;
+          short_description: string | null;
+          top30: boolean;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          chronic?: boolean;
+          code: string;
+          condition_group_id?: string | null;
+          created_at?: string;
+          id?: string;
+          long_description?: string | null;
+          not_found_in_unite?: boolean;
+          org_id: string;
+          short_description?: string | null;
+          top30?: boolean;
+          updated_at?: string;
+        };
+        Update: {
+          chronic?: boolean;
+          code?: string;
+          condition_group_id?: string | null;
+          created_at?: string;
+          id?: string;
+          long_description?: string | null;
+          not_found_in_unite?: boolean;
+          org_id?: string;
+          short_description?: string | null;
+          top30?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ref_diagnoses_condition_group_id_fkey";
+            columns: ["condition_group_id"];
+            isOneToOne: false;
+            referencedRelation: "ref_condition_groups";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ref_diagnoses_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      ref_items: {
+        Row: {
+          code: string;
+          created_at: string;
+          description: string | null;
+          doctor_verified: boolean;
+          id: string;
+          item_type: string | null;
+          org_id: string;
+          patient_message_group: string | null;
+          test_category: string | null;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          code: string;
+          created_at?: string;
+          description?: string | null;
+          doctor_verified?: boolean;
+          id?: string;
+          item_type?: string | null;
+          org_id: string;
+          patient_message_group?: string | null;
+          test_category?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          code?: string;
+          created_at?: string;
+          description?: string | null;
+          doctor_verified?: boolean;
+          id?: string;
+          item_type?: string | null;
+          org_id?: string;
+          patient_message_group?: string | null;
+          test_category?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ref_items_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       ref_medication_classes: {
         Row: {
           class: Database["public"]["Enums"]["medication_class"];
@@ -4998,6 +5380,87 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "ref_medication_classes_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      ref_medications: {
+        Row: {
+          all_medicine_types: string[] | null;
+          created_at: string;
+          ddc_code: string;
+          dosage_form: string | null;
+          granular_unit: string | null;
+          icd_codes: string | null;
+          id: string;
+          is_ebp: boolean | null;
+          medicine_type: string | null;
+          org_id: string;
+          package_price: number | null;
+          registered_owner: string | null;
+          route: string | null;
+          scientific_code: string | null;
+          scientific_name: string | null;
+          source: string | null;
+          source_updated_on: string | null;
+          status: string | null;
+          strength: string | null;
+          trade_name: string | null;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          all_medicine_types?: string[] | null;
+          created_at?: string;
+          ddc_code: string;
+          dosage_form?: string | null;
+          granular_unit?: string | null;
+          icd_codes?: string | null;
+          id?: string;
+          is_ebp?: boolean | null;
+          medicine_type?: string | null;
+          org_id: string;
+          package_price?: number | null;
+          registered_owner?: string | null;
+          route?: string | null;
+          scientific_code?: string | null;
+          scientific_name?: string | null;
+          source?: string | null;
+          source_updated_on?: string | null;
+          status?: string | null;
+          strength?: string | null;
+          trade_name?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          all_medicine_types?: string[] | null;
+          created_at?: string;
+          ddc_code?: string;
+          dosage_form?: string | null;
+          granular_unit?: string | null;
+          icd_codes?: string | null;
+          id?: string;
+          is_ebp?: boolean | null;
+          medicine_type?: string | null;
+          org_id?: string;
+          package_price?: number | null;
+          registered_owner?: string | null;
+          route?: string | null;
+          scientific_code?: string | null;
+          scientific_name?: string | null;
+          source?: string | null;
+          source_updated_on?: string | null;
+          status?: string | null;
+          strength?: string | null;
+          trade_name?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ref_medications_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
@@ -5088,6 +5551,67 @@ export type Database = {
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      saved_views: {
+        Row: {
+          columns: NonNullable<Json>;
+          created_at: string;
+          filter: NonNullable<Json>;
+          id: string;
+          name: string;
+          object_key: string;
+          org_id: string;
+          owner_id: string;
+          shared_all: boolean;
+          shared_team_ids: string[];
+          sort: NonNullable<Json>;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          columns?: NonNullable<Json>;
+          created_at?: string;
+          filter?: NonNullable<Json>;
+          id?: string;
+          name: string;
+          object_key: string;
+          org_id: string;
+          owner_id: string;
+          shared_all?: boolean;
+          shared_team_ids?: string[];
+          sort?: NonNullable<Json>;
+          updated_at?: string;
+        };
+        Update: {
+          columns?: NonNullable<Json>;
+          created_at?: string;
+          filter?: NonNullable<Json>;
+          id?: string;
+          name?: string;
+          object_key?: string;
+          org_id?: string;
+          owner_id?: string;
+          shared_all?: boolean;
+          shared_team_ids?: string[];
+          sort?: NonNullable<Json>;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "saved_views_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "saved_views_owner_id_fkey";
+            columns: ["owner_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
             referencedColumns: ["id"];
           },
         ];
@@ -6651,6 +7175,77 @@ export type Database = {
           },
         ];
       };
+      website_entry_points: {
+        Row: {
+          channel_id: string | null;
+          channel_phone: string | null;
+          created_at: string;
+          id: string;
+          is_dynamic: boolean;
+          org_id: string;
+          prefill_message: string | null;
+          priority_key: string | null;
+          route_team_id: string | null;
+          route_to: string | null;
+          section: string;
+          source_key: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          channel_id?: string | null;
+          channel_phone?: string | null;
+          created_at?: string;
+          id?: string;
+          is_dynamic?: boolean;
+          org_id: string;
+          prefill_message?: string | null;
+          priority_key?: string | null;
+          route_team_id?: string | null;
+          route_to?: string | null;
+          section: string;
+          source_key: string;
+          updated_at?: string;
+        };
+        Update: {
+          channel_id?: string | null;
+          channel_phone?: string | null;
+          created_at?: string;
+          id?: string;
+          is_dynamic?: boolean;
+          org_id?: string;
+          prefill_message?: string | null;
+          priority_key?: string | null;
+          route_team_id?: string | null;
+          route_to?: string | null;
+          section?: string;
+          source_key?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "website_entry_points_channel_id_fkey";
+            columns: ["channel_id"];
+            isOneToOne: false;
+            referencedRelation: "channels";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "website_entry_points_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "website_entry_points_route_team_id_fkey";
+            columns: ["route_team_id"];
+            isOneToOne: false;
+            referencedRelation: "teams";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       working_hours: {
         Row: {
           created_at: string;
@@ -7844,6 +8439,35 @@ export type Database = {
       };
       pgp_armor_headers: { Args: { "": string }; Returns: Record<string, unknown>[] };
       pick_round_robin_assignee: { Args: { p_org_id: string; p_team_id: string }; Returns: string };
+      portal_count: {
+        Args: { p_object_key: string; p_org_id: string; p_params: Json; p_where: string };
+        Returns: number;
+      };
+      portal_ids: {
+        Args: {
+          p_limit?: number;
+          p_object_key: string;
+          p_org_id: string;
+          p_params: Json;
+          p_where: string;
+        };
+        Returns: string[];
+      };
+      portal_search: {
+        Args: {
+          p_limit?: number;
+          p_object_key: string;
+          p_offset?: number;
+          p_order_by: string;
+          p_org_id: string;
+          p_params: Json;
+          p_where: string;
+        };
+        Returns: {
+          row_data: Json;
+          total: number;
+        }[];
+      };
       rate_limit_hit: {
         Args: { p_key: string; p_limit: number; p_window_seconds: number };
         Returns: {
@@ -8033,8 +8657,10 @@ export type Database = {
       };
       reserve_send_slot: { Args: { p_cap: number; p_channel_id: string }; Returns: number };
       seed_clinical_settings: { Args: { p_org: string }; Returns: undefined };
+      seed_condition_groups: { Args: { p_org: string }; Returns: undefined };
       seed_finance_reference: { Args: { p_org_id: string }; Returns: undefined };
       seed_finance_roles: { Args: { p_org_id: string; p_roles: Json }; Returns: number };
+      seed_portal_objects: { Args: { p_org: string }; Returns: undefined };
       seed_reminder_exclusions: { Args: { p_org: string }; Returns: undefined };
       seed_unite_appointment_status_map: { Args: { p_org: string }; Returns: undefined };
       set_presence: { Args: { p_org_id: string; p_presence: string }; Returns: undefined };

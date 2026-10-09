@@ -21,24 +21,36 @@ export const UNGUARDED_OK: Record<string, string> = {
  * caller's own data, on a secret/signature, or is further constrained by RLS.
  */
 export const AUTHN_ONLY_OK: Record<string, string> = {
-  "app/(app)/contacts/actions.ts::saveGridPrefs": "Caller's own grid preferences (user_id = caller).",
-  "app/(app)/inbox/actions.ts::saveInboxView": "Caller owns the view; updates are filtered by owner_id.",
-  "app/(app)/inbox/actions.ts::deleteInboxView": "Deletes only the caller's own views (owner_id filter).",
-  "app/(app)/inbox/actions.ts::listContactConversations": "Reads through the RLS client, so visibility rules apply.",
+  "app/(app)/contacts/actions.ts::saveGridPrefs":
+    "Caller's own grid preferences (user_id = caller).",
+  "app/(app)/inbox/actions.ts::saveInboxView":
+    "Caller owns the view; updates are filtered by owner_id.",
+  "app/(app)/inbox/actions.ts::deleteInboxView":
+    "Deletes only the caller's own views (owner_id filter).",
+  "app/(app)/inbox/actions.ts::listContactConversations":
+    "Reads through the RLS client, so visibility rules apply.",
   "app/(app)/inbox/actions.ts::signedMediaUrl":
     "Strict path parse, org match, and the conversation must be visible to the caller through RLS.",
   "app/(app)/settings/account/actions.ts::updateProfile": "Caller's own profile.",
-  "app/(app)/settings/account/actions.ts::changePassword": "Caller's own credentials; current password re-verified.",
-  "app/(auth)/invite/[token]/actions.ts::acceptInvite": "Authorised by the invite token hash; rate-limited per IP.",
-  "app/api/jobs/[queue]/route.ts::POST": "Authorised by the constant-time JOB_SECRET check; failures are rate-limited.",
-  "app/(app)/inbox/ai-actions.ts::aiFeedback": "The kb_feedback row is itself the attributed record (user, conversation, rating; no draft text).",
-  "app/(app)/inbox/ai-actions.ts::saveConversationSummary": "Conversation lifecycle is recorded on the contact timeline; the summary text is health data and stays out of audit_log.",
-  "app/api/webhooks/meta/route.ts::POST": "Authorised by the X-Hub-Signature-256 HMAC; failures are rate-limited.",
-  "app/onboarding/actions.ts::createWorkspace": "First-run only: ALLOW_WORKSPACE_CREATION flag, signed-in user, rate-limited.",
+  "app/(app)/settings/account/actions.ts::changePassword":
+    "Caller's own credentials; current password re-verified.",
+  "app/(auth)/invite/[token]/actions.ts::acceptInvite":
+    "Authorised by the invite token hash; rate-limited per IP.",
+  "app/api/jobs/[queue]/route.ts::POST":
+    "Authorised by the constant-time JOB_SECRET check; failures are rate-limited.",
+  "app/(app)/inbox/ai-actions.ts::aiFeedback":
+    "The kb_feedback row is itself the attributed record (user, conversation, rating; no draft text).",
+  "app/(app)/inbox/ai-actions.ts::saveConversationSummary":
+    "Conversation lifecycle is recorded on the contact timeline; the summary text is health data and stays out of audit_log.",
+  "app/api/webhooks/meta/route.ts::POST":
+    "Authorised by the X-Hub-Signature-256 HMAC; failures are rate-limited.",
+  "app/onboarding/actions.ts::createWorkspace":
+    "First-run only: ALLOW_WORKSPACE_CREATION flag, signed-in user, rate-limited.",
   "components/shell/actions.ts::setPresence": "Caller's own membership row.",
   "components/shell/actions.ts::markAllNotificationsRead": "Caller's own notifications.",
   "components/shell/actions.ts::markNotificationRead": "Caller's own notifications.",
-  "components/shell/actions.ts::switchOrg": "Cookie switch; membership is verified on every request.",
+  "components/shell/actions.ts::switchOrg":
+    "Cookie switch; membership is verified on every request.",
 };
 
 /**
@@ -47,28 +59,42 @@ export const AUTHN_ONLY_OK: Record<string, string> = {
  * attributed elsewhere (contact timeline_events with actor, messages.sent_by_user_id, own-data prefs).
  */
 export const AUDIT_EXEMPT: Record<string, string> = {
-  "app/(app)/contacts/actions.ts::updateContact": "Field-level diff with actor goes to the contact timeline.",
-  "app/(app)/contacts/actions.ts::addContactPhone": "Recorded on the contact timeline (phone.added).",
-  "app/(app)/contacts/actions.ts::removeContactPhone": "Recorded on the contact timeline (phone.removed).",
-  "app/(app)/contacts/actions.ts::makePhonePrimary": "Recorded on the contact timeline (phone.primary_changed).",
+  "app/(app)/contacts/actions.ts::updateContact":
+    "Field-level diff with actor goes to the contact timeline.",
+  "app/(app)/contacts/actions.ts::addContactPhone":
+    "Recorded on the contact timeline (phone.added).",
+  "app/(app)/contacts/actions.ts::removeContactPhone":
+    "Recorded on the contact timeline (phone.removed).",
+  "app/(app)/contacts/actions.ts::makePhonePrimary":
+    "Recorded on the contact timeline (phone.primary_changed).",
   "app/(app)/contacts/actions.ts::setContactTags": "Recorded on the contact timeline.",
   "app/(app)/contacts/actions.ts::refreshSegmentCounts": "Derived counts only.",
   "app/(app)/contacts/actions.ts::saveGridPrefs": "Caller's own UI preferences.",
-  "app/(app)/inbox/actions.ts::addComment": "The comment is itself the attributed record (messages.sent_by_user_id) and mentions.",
+  "app/(app)/portal/actions.ts::savePortalGridPrefs": "Caller's own UI preferences.",
+  "app/(app)/inbox/actions.ts::addComment":
+    "The comment is itself the attributed record (messages.sent_by_user_id) and mentions.",
   "app/(app)/inbox/actions.ts::retryFailedMessage": "Message row carries the retry; operational.",
   "app/(app)/inbox/actions.ts::markConversationRead": "High-volume operational read marker.",
-  "app/(app)/inbox/actions.ts::assignConversation": "Conversation lifecycle is recorded on the contact timeline.",
-  "app/(app)/inbox/actions.ts::autoAssignConversation": "Conversation lifecycle is recorded on the contact timeline.",
-  "app/(app)/inbox/actions.ts::setConversationStatus": "Conversation lifecycle is recorded on the contact timeline.",
-  "app/(app)/inbox/actions.ts::closeConversation": "Conversation lifecycle (with category/summary) is recorded on the contact timeline.",
+  "app/(app)/inbox/actions.ts::assignConversation":
+    "Conversation lifecycle is recorded on the contact timeline.",
+  "app/(app)/inbox/actions.ts::autoAssignConversation":
+    "Conversation lifecycle is recorded on the contact timeline.",
+  "app/(app)/inbox/actions.ts::setConversationStatus":
+    "Conversation lifecycle is recorded on the contact timeline.",
+  "app/(app)/inbox/actions.ts::closeConversation":
+    "Conversation lifecycle (with category/summary) is recorded on the contact timeline.",
   "app/(app)/inbox/actions.ts::toggleConversationLabel": "Operational labelling.",
-  "app/(app)/inbox/actions.ts::setBotActive": "Conversation lifecycle is recorded on the contact timeline.",
+  "app/(app)/inbox/actions.ts::setBotActive":
+    "Conversation lifecycle is recorded on the contact timeline.",
   "app/(app)/inbox/actions.ts::startConversation": "The queued message carries sent_by_user_id.",
   "app/(app)/inbox/actions.ts::saveInboxView": "Caller's own saved view.",
   "app/(app)/inbox/actions.ts::deleteInboxView": "Caller's own saved view.",
-  "app/(app)/inbox/ai-actions.ts::aiFeedback": "The kb_feedback row is itself the attributed record (user, conversation, rating; no draft text).",
-  "app/(app)/inbox/ai-actions.ts::saveConversationSummary": "Conversation lifecycle is recorded on the contact timeline; the summary text is health data and stays out of audit_log.",
-  "app/api/webhooks/meta/route.ts::POST": "Raw ingress; the stored webhook_events_in row is the record.",
+  "app/(app)/inbox/ai-actions.ts::aiFeedback":
+    "The kb_feedback row is itself the attributed record (user, conversation, rating; no draft text).",
+  "app/(app)/inbox/ai-actions.ts::saveConversationSummary":
+    "Conversation lifecycle is recorded on the contact timeline; the summary text is health data and stays out of audit_log.",
+  "app/api/webhooks/meta/route.ts::POST":
+    "Raw ingress; the stored webhook_events_in row is the record.",
   "components/shell/actions.ts::setPresence": "Caller's own presence.",
   "components/shell/actions.ts::markAllNotificationsRead": "Caller's own notifications.",
   "components/shell/actions.ts::markNotificationRead": "Caller's own notifications.",

@@ -362,3 +362,14 @@ export function permissionMatches(granted: string, requested: string): boolean {
   }
   return g.length === r.length;
 }
+
+/** Per-object portal keys a role may hold: portal.<object>.read | portal.<object>.write. */
+export const PORTAL_OBJECT_PERMISSION_RE = /^portal\.[a-z][a-z0-9_]{0,48}\.(read|write)$/;
+
+/**
+ * Is this a key a role may hold? Catalogue keys, '*', and the per-object portal keys
+ * (portal.<object>.read | portal.<object>.write) generated from the portal registry.
+ */
+export function isAssignablePermission(key: string): boolean {
+  return key === "*" || PERMISSION_KEYS.includes(key) || PORTAL_OBJECT_PERMISSION_RE.test(key);
+}

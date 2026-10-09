@@ -41,7 +41,10 @@ export type DomainEventName =
   | "appointment.updated"
   | "appointment.status_changed"
   | "appointment.reminder_sent"
-  | "appointment.reminder_failed";
+  | "appointment.reminder_failed"
+  | "portal.record_created"
+  | "portal.record_updated"
+  | "portal.record_deleted";
 
 export type DomainEvent = {
   orgId: string;
