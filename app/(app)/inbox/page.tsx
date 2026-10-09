@@ -237,6 +237,7 @@ export default async function InboxPage({
       viewAll: can(member, "inbox.view_all"),
       contactsManage: can(member, "contacts.manage"),
       settings: can(member, "settings.manage"),
+      enquiriesManage: can(member, "enquiries.manage"),
     },
     query,
     counts,

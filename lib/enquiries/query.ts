@@ -3,7 +3,13 @@ import "server-only";
 import { ENQUIRY_ALIAS } from "@/lib/enquiries/registry";
 import type { Filter } from "@/lib/filters/ast";
 import type { FieldRegistry } from "@/lib/filters/field-registry";
-import { ParamBag, compileFilter, compileOrderBy, escapeLike, type SortSpec } from "@/lib/filters/to-sql";
+import {
+  ParamBag,
+  compileFilter,
+  compileOrderBy,
+  escapeLike,
+  type SortSpec,
+} from "@/lib/filters/to-sql";
 import type { AdminClient } from "@/lib/supabase/admin";
 import type { Tables } from "@/lib/supabase/types";
 
@@ -98,6 +104,21 @@ export async function queryEnquiries(admin: AdminClient, q: EnquiryQuery): Promi
   const ids = (data ?? []).map((r) => r.id);
   const total = data && data.length > 0 ? Number(data[0].total) : 0;
   return { rows: await fetchEnquiriesByIds(admin, q.orgId, ids), total, page, pageSize };
+}
+
+export async function countEnquiries(
+  admin: AdminClient,
+  q: Pick<EnquiryQuery, "orgId" | "registry" | "filter" | "search" | "timezone">,
+): Promise<number> {
+  const { sql, params } = compileEnquiryPredicate(q.registry, q.filter, q.timezone);
+  const { data, error } = await admin.rpc("enquiries_count", {
+    p_org_id: q.orgId,
+    p_where: sql,
+    p_params: params as never,
+    p_q: searchTerm(q.search) ?? undefined,
+  });
+  if (error) throw new Error(`enquiries_count failed: ${error.message}`);
+  return Number(data ?? 0);
 }
 
 /** Per-stage counts for the Kanban headers (same filter + search). */
