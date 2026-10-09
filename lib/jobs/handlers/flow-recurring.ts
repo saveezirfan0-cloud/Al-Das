@@ -1,4 +1,5 @@
 import { cronMatches } from "@/lib/cron";
+import { claimCronSlot } from "@/lib/jobs/claim";
 import { startRun } from "@/lib/flow-engine/run";
 import { createFlowDeps } from "@/lib/flow-engine/supabase-deps";
 import { registerTask } from "@/lib/jobs/tasks";
@@ -32,14 +33,10 @@ registerTask("flow_recurring", {
       };
       if (!cfg.cron || !cronMatches(cfg.cron, now, cfg.timezone ?? "Asia/Dubai")) continue;
 
-      const cutoff = new Date(now.getTime() - 55_000).toISOString();
-      const { data: claimed } = await admin
-        .from("flows")
-        .update({ last_triggered_at: now.toISOString() })
-        .eq("id", flow.id)
-        .or(`last_triggered_at.is.null,last_triggered_at.lt.${cutoff}`)
-        .select("id");
-      if (!claimed?.length) continue;
+      if (
+        !(await claimCronSlot(admin, { table: "flows", column: "last_triggered_at" }, flow.id, now))
+      )
+        continue;
       fired += 1;
 
       let contactIds: Array<string | null> = [null];

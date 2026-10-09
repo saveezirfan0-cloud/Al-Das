@@ -1,4 +1,5 @@
 import { cronMatches } from "@/lib/cron";
+import { claimCronSlot } from "@/lib/jobs/claim";
 import { runProgramme } from "@/lib/recall/engine";
 import { createRecallDeps } from "@/lib/recall/supabase-deps";
 import { syncSendStatuses } from "@/lib/recall/sync";
@@ -21,14 +22,15 @@ registerTask("recall_run", {
     const results: Array<Record<string, unknown>> = [];
     for (const p of programmes ?? []) {
       if (!p.cron_expression || !cronMatches(p.cron_expression, now, deps.timezone)) continue;
-      const cutoff = new Date(now.getTime() - 55_000).toISOString();
-      const { data: claimed } = await admin
-        .from("recall_programmes")
-        .update({ last_run_at: now.toISOString() })
-        .eq("id", p.id)
-        .or(`last_run_at.is.null,last_run_at.lt.${cutoff}`)
-        .select("id");
-      if (!claimed?.length) continue;
+      if (
+        !(await claimCronSlot(
+          admin,
+          { table: "recall_programmes", column: "last_run_at" },
+          p.id,
+          now,
+        ))
+      )
+        continue;
       try {
         const summary = await runProgramme(deps, p.id);
         log.info("recall.run", { ...summary });
