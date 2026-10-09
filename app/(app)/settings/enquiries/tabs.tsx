@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { CustomFieldDialog } from "@/app/(app)/settings/custom-fields/custom-field-dialog";
 import { CustomFieldsTable } from "@/app/(app)/settings/custom-fields/custom-fields-table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,18 +10,10 @@ import type { EnquirySettings } from "@/lib/enquiries/settings";
 import type { Lookups, OrgUser, PipelineInfo, TeamInfo } from "@/lib/enquiries/server";
 
 import { GeneralTab } from "./general-tab";
-import { LookupsTab, type LocationRow, type ServiceRow, type SpecialistRow } from "./lookups-tab";
 import { PipelinesTab } from "./pipelines-tab";
 import { RulesTab, type RuleRow } from "./rules-tab";
 
-export type SettingsLookups = Omit<Lookups, "locations" | "services" | "specialists"> & {
-  locations: LocationRow[];
-  services: ServiceRow[];
-  specialists: SpecialistRow[];
-};
-
 export function EnquirySettingsTabs({
-  orgTimezone,
   settings,
   pipelines,
   stageCounts,
@@ -29,7 +23,6 @@ export function EnquirySettingsTabs({
   users,
   lookups,
 }: {
-  orgTimezone: string;
   settings: EnquirySettings;
   pipelines: PipelineInfo[];
   stageCounts: Record<string, number>;
@@ -37,7 +30,7 @@ export function EnquirySettingsTabs({
   customFields: Array<CustomFieldDef & { id: string; entity: string; sort: number }>;
   teams: TeamInfo[];
   users: OrgUser[];
-  lookups: SettingsLookups;
+  lookups: Lookups;
 }) {
   return (
     <Tabs defaultValue="general">
@@ -81,7 +74,19 @@ export function EnquirySettingsTabs({
         )}
       </TabsContent>
       <TabsContent value="clinic" className="pt-4">
-        <LookupsTab lookups={lookups} users={users} orgTimezone={orgTimezone} />
+        <div className="max-w-3xl rounded-xl border p-5 text-sm">
+          <p className="font-medium">Locations, departments, services and specialists</p>
+          <p className="text-muted-foreground mt-1">
+            Enquiries use the same clinic lists as appointments, so they are managed once, in{" "}
+            <Link
+              href="/settings/appointments"
+              className="text-primary underline underline-offset-2"
+            >
+              Settings → Appointments
+            </Link>
+            . Inactive entries stay on the enquiries that already use them.
+          </p>
+        </div>
       </TabsContent>
     </Tabs>
   );

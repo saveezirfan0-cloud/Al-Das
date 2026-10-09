@@ -4,7 +4,7 @@ import { NAV_ITEMS, SIDEBAR_COOKIE } from "@/components/shell/nav";
 import { Sidebar } from "@/components/shell/sidebar";
 import { Topbar } from "@/components/shell/topbar";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { can } from "@/lib/auth/can";
+import { can, canAny } from "@/lib/auth/can";
 import { requireMember } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 
@@ -28,9 +28,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       ).count ?? 0)
     : 0;
 
-  const items = NAV_ITEMS.filter((i) => !i.permission || can(member, i.permission)).map((i) =>
-    i.href === "/tasks" && overdueTasks > 0 ? { ...i, badge: overdueTasks } : i,
-  );
+  const items = NAV_ITEMS.filter(
+    (i) =>
+      (!i.permission || can(member, i.permission)) &&
+      (!i.permissions || canAny(member, i.permissions)),
+  ).map((i) => (i.href === "/tasks" && overdueTasks > 0 ? { ...i, badge: overdueTasks } : i));
 
   const { data: notifications } = await supabase
     .from("notifications")

@@ -2,7 +2,7 @@
 
 One platform replacing Sanoflow (WhatsApp inbox, templates, campaigns, enquiries, appointments, bots) and the Airtable + Make.com back office. Next.js 15 + Supabase + Vercel. See `CLAUDE.md` for the rules, `docs/02_CLAUDE_CODE_BUILD_PLAN.md` for the plan.
 
-**Status:** Phases 1–3 and 5 are built (Phase 4, Templates, is still to do): auth, tenancy with RLS, roles/permissions, teams, invites, app shell and the jobs framework (Phase 1); the patient CRM — contacts grid, views, segments, filter builder, import/export, merge, custom fields, tags (Phase 2); the WhatsApp Cloud API client, webhook ingress, queue handlers, Settings → Channels / Inbox and the shared inbox (Phase 3); enquiries — pipelines, Kanban, table, saved views, bulk actions, SLA, assignment rules — with tasks and due reminders (Phase 5). Other module pages are placeholders until their phase. Details: `docs/03_PHASE_1_NOTES.md`, `docs/04_PHASE_2_NOTES.md`, `docs/05_PHASE_3_NOTES.md`, `docs/06_PHASE_5_NOTES.md`.
+**Status:** Phases 1–3, 5 and 6 are built (Phase 4, Templates, is still to do): auth, tenancy with RLS, roles/permissions, teams, invites, app shell and the jobs framework (Phase 1); the patient CRM — contacts grid, views, segments, filter builder, import/export, merge, custom fields, tags (Phase 2); the WhatsApp Cloud API client, webhook ingress, queue handlers, Settings → Channels / Inbox and the shared inbox (Phase 3). Phase 6 adds appointments (slot engine, reminders, button replies), the read-only Unite EMR sync with Sync Review, and the clinical rules engine with the Follow-Up Queue and Clinical settings (patient-facing clinical messaging stays off until signed off). Phase 5 adds enquiries — pipelines, Kanban, table, saved views, bulk actions, SLA, assignment rules — with tasks and due reminders. Other module pages are placeholders until their phase. Details: `docs/03_PHASE_1_NOTES.md`, `docs/04_PHASE_2_NOTES.md`, `docs/05_PHASE_3_NOTES.md`, `docs/06_PHASE_6_NOTES.md`, `docs/06_PHASE_5_NOTES.md`.
 
 ## Run it locally
 
@@ -35,7 +35,10 @@ pnpm test:db                                   # RLS + scheduler/queue + filter 
 pnpm e2e                                       # Playwright smoke tests
 pnpm import:sanoflow --file=contacts.csv --dry-run   # Sanoflow contact export → contacts (docs/04 for options)
 pnpm import:airtable --dry-run                       # Airtable patient tables → contacts
+pnpm audit:security                                  # static security pass (also enforced by `pnpm test`)
 ```
+
+Hardening, load tests and cut-over (Phase 11): `docs/audit/security-pass.md`, `docs/load-test.md`, `docs/06_PHASE_11_CUTOVER.md`, `docs/07_PHASE_11_NOTES.md`.
 
 ## Layout
 
@@ -46,6 +49,7 @@ lib/            auth (can, session, permissions), jobs (registry, runner, schedu
                 contacts (import, export, merge, query), supabase clients, audit, email
 supabase/       migrations, seed.sql (fake data), test/ (plain-Postgres stand-ins for tests)
 tests/          unit (vitest), db (vitest + pg), e2e (playwright)
-scripts/        audit exporters, importers (import-sanoflow, import-airtable + import/mappers), test-db.sh, run-job.ts
+scripts/        audit exporters, importers (import-sanoflow, import-airtable + import/mappers), reconcile, cutover-preflight,
+                audit-security, load/ (webhook burst, 20k send, mock Graph), test-db.sh, run-job.ts
 docs/           spec, build plan, audit, phase notes
 ```

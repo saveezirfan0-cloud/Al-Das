@@ -10,15 +10,7 @@ export const metadata = { title: "Enquiry settings" };
 export default async function EnquirySettingsPage() {
   const member = await requirePerm("settings.manage");
   const admin = createAdminClient();
-  const [
-    ctx,
-    { data: rules },
-    { data: fields },
-    { data: stageCounts },
-    { data: services },
-    { data: specialists },
-    { data: locations },
-  ] = await Promise.all([
+  const [ctx, { data: rules }, { data: fields }, { data: stageCounts }] = await Promise.all([
     loadEnquiryContext(admin, member.orgId),
     admin
       .from("enquiry_assignment_rules")
@@ -34,21 +26,6 @@ export default async function EnquirySettingsPage() {
       .order("sort")
       .order("label"),
     admin.from("enquiries").select("stage_id").eq("org_id", member.orgId).is("deleted_at", null),
-    admin
-      .from("services")
-      .select("id, name, department_id, duration_min, price")
-      .eq("org_id", member.orgId)
-      .order("name"),
-    admin
-      .from("specialists")
-      .select("id, name, title, department_id, user_id")
-      .eq("org_id", member.orgId)
-      .order("name"),
-    admin
-      .from("locations")
-      .select("id, name, timezone, address")
-      .eq("org_id", member.orgId)
-      .order("name"),
   ]);
   const perStage: Record<string, number> = {};
   for (const e of stageCounts ?? []) perStage[e.stage_id] = (perStage[e.stage_id] ?? 0) + 1;
@@ -60,7 +37,6 @@ export default async function EnquirySettingsPage() {
         description="Pipelines and stages, assignment rules, SLA, notifications, custom fields and the clinic lists enquiries use."
       />
       <EnquirySettingsTabs
-        orgTimezone={member.org.timezone}
         settings={ctx.settings}
         pipelines={ctx.pipelines}
         stageCounts={perStage}
@@ -79,13 +55,7 @@ export default async function EnquirySettingsPage() {
         }))}
         teams={ctx.teams}
         users={ctx.users}
-        lookups={{
-          locations: locations ?? [],
-          departments: ctx.lookups.departments,
-          services: services ?? [],
-          specialists: specialists ?? [],
-          channels: ctx.lookups.channels,
-        }}
+        lookups={ctx.lookups}
       />
     </div>
   );

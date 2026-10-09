@@ -236,6 +236,7 @@ export default async function InboxPage({
       send: can(member, "inbox.send"),
       viewAll: can(member, "inbox.view_all"),
       contactsManage: can(member, "contacts.manage"),
+      appointmentsManage: can(member, "appointments.manage"),
       settings: can(member, "settings.manage"),
       enquiriesManage: can(member, "enquiries.manage"),
     },

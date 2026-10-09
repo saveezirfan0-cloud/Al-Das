@@ -20,11 +20,13 @@ export type PipelineInfo = {
   stages: StageInfo[];
 };
 export type NamedOption = { id: string; name: string };
+/** Phase 6 lists carry an `active` flag: inactive entries stay on old enquiries but are not offered for new choices. */
+export type ActiveOption = NamedOption & { active: boolean };
 export type Lookups = {
-  locations: NamedOption[];
-  departments: NamedOption[];
-  services: Array<NamedOption & { department_id: string | null }>;
-  specialists: Array<NamedOption & { department_id: string | null }>;
+  locations: ActiveOption[];
+  departments: ActiveOption[];
+  services: Array<ActiveOption & { department_id: string | null }>;
+  specialists: Array<ActiveOption & { department_id: string | null }>;
   channels: NamedOption[];
 };
 export type OrgUser = { id: string; label: string };
@@ -83,10 +85,18 @@ export async function loadPipelines(admin: AdminClient, orgId: string): Promise<
 
 export async function loadLookups(admin: AdminClient, orgId: string): Promise<Lookups> {
   const [locations, departments, services, specialists, channels] = await Promise.all([
-    admin.from("locations").select("id, name").eq("org_id", orgId).order("name"),
-    admin.from("departments").select("id, name").eq("org_id", orgId).order("name"),
-    admin.from("services").select("id, name, department_id").eq("org_id", orgId).order("name"),
-    admin.from("specialists").select("id, name, department_id").eq("org_id", orgId).order("name"),
+    admin.from("locations").select("id, name, active").eq("org_id", orgId).order("name"),
+    admin.from("departments").select("id, name, active").eq("org_id", orgId).order("name"),
+    admin
+      .from("services")
+      .select("id, name, department_id, active")
+      .eq("org_id", orgId)
+      .order("name"),
+    admin
+      .from("specialists")
+      .select("id, name, department_id, active")
+      .eq("org_id", orgId)
+      .order("name"),
     admin.from("channels").select("id, name").eq("org_id", orgId).order("name"),
   ]);
   return {

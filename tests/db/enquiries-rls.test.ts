@@ -35,8 +35,14 @@ describe.skipIf(!TEST_DATABASE_URL)("enquiries + tasks RLS and SQL functions", (
   }
 
   async function seedOrg(org: string, ids: Record<string, string>, tag: string, owner: string) {
-    ids.location = await insert("insert into public.locations (org_id, name) values ($1, $2)", [org, `Loc ${tag}`]);
-    ids.department = await insert("insert into public.departments (org_id, name) values ($1, $2)", [org, `Dept ${tag}`]);
+    ids.location = await insert("insert into public.locations (org_id, name) values ($1, $2)", [
+      org,
+      `Loc ${tag}`,
+    ]);
+    ids.department = await insert("insert into public.departments (org_id, name) values ($1, $2)", [
+      org,
+      `Dept ${tag}`,
+    ]);
     ids.service = await insert(
       "insert into public.services (org_id, department_id, name) values ($1, $2, $3)",
       [org, ids.department, `Svc ${tag}`],
@@ -183,9 +189,14 @@ describe.skipIf(!TEST_DATABASE_URL)("enquiries + tasks RLS and SQL functions", (
           [orgA, a.pipeline, a.stage1],
         ),
       ).rejects.toThrow(/row-level security/);
-      expect((await c.query("update public.enquiries set title = 'hacked' where id = $1", [a.enquiry])).rowCount).toBe(0);
+      expect(
+        (await c.query("update public.enquiries set title = 'hacked' where id = $1", [a.enquiry]))
+          .rowCount,
+      ).toBe(0);
       await expect(
-        c.query("insert into public.tasks (org_id, subject, due_at) values ($1, 's', now())", [orgA]),
+        c.query("insert into public.tasks (org_id, subject, due_at) values ($1, 's', now())", [
+          orgA,
+        ]),
       ).rejects.toThrow(/row-level security/);
     });
     let deskEnquiry = "";
@@ -195,16 +206,50 @@ describe.skipIf(!TEST_DATABASE_URL)("enquiries + tasks RLS and SQL functions", (
         [orgA, a.pipeline, a.stage1],
       );
       deskEnquiry = rows[0].id;
-      expect((await c.query("update public.enquiries set title = 'renamed' where id = $1", [deskEnquiry])).rowCount).toBe(1);
+      expect(
+        (
+          await c.query("update public.enquiries set title = 'renamed' where id = $1", [
+            deskEnquiry,
+          ])
+        ).rowCount,
+      ).toBe(1);
       // enquiries.delete is a separate permission
-      expect((await c.query("delete from public.enquiries where id = $1", [deskEnquiry])).rowCount).toBe(0);
+      expect(
+        (await c.query("delete from public.enquiries where id = $1", [deskEnquiry])).rowCount,
+      ).toBe(0);
       // settings tables are admin-only
       await expect(
         c.query("insert into public.pipelines (org_id, name) values ($1, 'nope')", [orgA]),
       ).rejects.toThrow(/row-level security/);
     });
     await asUser(c, alice, async () => {
-      expect((await c.query("delete from public.enquiries where id = $1", [deskEnquiry])).rowCount).toBe(1);
+      expect(
+        (await c.query("delete from public.enquiries where id = $1", [deskEnquiry])).rowCount,
+      ).toBe(1);
+    });
+  });
+
+  it("stops org B's admin from writing into org A even with valid org A references", async () => {
+    await asUser(c, bob, async () => {
+      // The consistency trigger runs as the caller, so it cannot even see org A's pipeline: it
+      // refuses first. Either way nothing is written (the insert would also fail RLS).
+      await expect(
+        c.query(
+          "insert into public.enquiries (org_id, pipeline_id, stage_id, title) values ($1, $2, $3, 'intruder')",
+          [orgA, a.pipeline, a.stage1],
+        ),
+      ).rejects.toThrow(/row-level security|does not belong/);
+      await expect(
+        c.query(
+          "insert into public.tasks (org_id, subject, due_at) values ($1, 'intruder', now())",
+          [orgA],
+        ),
+      ).rejects.toThrow(/row-level security/);
+      expect(
+        (await c.query("update public.enquiries set title = 'x' where id = $1", [a.enquiry]))
+          .rowCount,
+      ).toBe(0);
+      expect((await c.query("delete from public.tasks where id = $1", [a.task])).rowCount).toBe(0);
     });
   });
 
@@ -223,7 +268,11 @@ describe.skipIf(!TEST_DATABASE_URL)("enquiries + tasks RLS and SQL functions", (
         ).rejects.toThrow(/does not belong to org|check_violation|belong/);
       }
       await expect(
-        c.query("update public.enquiries set pipeline_id = $1, stage_id = $2 where id = $3", [b.pipeline, b.stage1, a.enquiry]),
+        c.query("update public.enquiries set pipeline_id = $1, stage_id = $2 where id = $3", [
+          b.pipeline,
+          b.stage1,
+          a.enquiry,
+        ]),
       ).rejects.toThrow();
       await expect(
         c.query("update public.tasks set enquiry_id = $1 where id = $2", [b.enquiry, a.task]),
@@ -251,11 +300,25 @@ describe.skipIf(!TEST_DATABASE_URL)("enquiries + tasks RLS and SQL functions", (
         c.query("update public.enquiries set stage_id = $1 where id = $2", [otherStage, a.enquiry]),
       ).rejects.toThrow(/does not belong to pipeline/);
       // moving pipeline + stage together is fine and restarts the stage clock
-      const before = await c.query<{ t: Date }>("select stage_entered_at as t from public.enquiries where id = $1", [a.enquiry]);
-      await c.query("update public.enquiries set pipeline_id = $1, stage_id = $2 where id = $3", [otherPipeline, otherStage, a.enquiry]);
-      const after = await c.query<{ t: Date }>("select stage_entered_at as t from public.enquiries where id = $1", [a.enquiry]);
+      const before = await c.query<{ t: Date }>(
+        "select stage_entered_at as t from public.enquiries where id = $1",
+        [a.enquiry],
+      );
+      await c.query("update public.enquiries set pipeline_id = $1, stage_id = $2 where id = $3", [
+        otherPipeline,
+        otherStage,
+        a.enquiry,
+      ]);
+      const after = await c.query<{ t: Date }>(
+        "select stage_entered_at as t from public.enquiries where id = $1",
+        [a.enquiry],
+      );
       expect(after.rows[0].t.getTime()).toBeGreaterThanOrEqual(before.rows[0].t.getTime());
-      await c.query("update public.enquiries set pipeline_id = $1, stage_id = $2 where id = $3", [a.pipeline, a.stage1, a.enquiry]);
+      await c.query("update public.enquiries set pipeline_id = $1, stage_id = $2 where id = $3", [
+        a.pipeline,
+        a.stage1,
+        a.enquiry,
+      ]);
     });
   });
 
@@ -271,11 +334,17 @@ describe.skipIf(!TEST_DATABASE_URL)("enquiries + tasks RLS and SQL functions", (
         "insert into public.enquiries (org_id, pipeline_id, stage_id, title) values ($1, $2, $3, 'second')",
         [orgA, a.pipeline, a.stage1],
       );
-      const { rows: n } = await c.query<{ number: number }>("select number from public.enquiries where id = $1", [second]);
+      const { rows: n } = await c.query<{ number: number }>(
+        "select number from public.enquiries where id = $1",
+        [second],
+      );
       // earlier tests also created (and deleted) an enquiry, so numbers only ever go up
       expect(n[0].number).toBeGreaterThan(1);
       await expect(
-        c.query("insert into public.enquiries (org_id, number, pipeline_id, stage_id, title) values ($1, $4, $2, $3, 'dup')", [orgA, a.pipeline, a.stage1, n[0].number]),
+        c.query(
+          "insert into public.enquiries (org_id, number, pipeline_id, stage_id, title) values ($1, $4, $2, $3, 'dup')",
+          [orgA, a.pipeline, a.stage1, n[0].number],
+        ),
       ).rejects.toThrow(/duplicate key/);
     });
   });
@@ -290,26 +359,46 @@ describe.skipIf(!TEST_DATABASE_URL)("enquiries + tasks RLS and SQL functions", (
         c.query("update public.enquiries set status = 'lost' where id = $1", [id]),
       ).rejects.toThrow(/check/);
       await expect(
-        c.query("update public.enquiries set status = 'disqualified', lost_reason = '  ' where id = $1", [id]),
+        c.query(
+          "update public.enquiries set status = 'disqualified', lost_reason = '  ' where id = $1",
+          [id],
+        ),
       ).rejects.toThrow(/check/);
-      await c.query("update public.enquiries set status = 'lost', lost_reason = ' Price ' where id = $1", [id]);
-      let row = (await c.query("select status, lost_reason, closed_at from public.enquiries where id = $1", [id])).rows[0];
+      await c.query(
+        "update public.enquiries set status = 'lost', lost_reason = ' Price ' where id = $1",
+        [id],
+      );
+      let row = (
+        await c.query("select status, lost_reason, closed_at from public.enquiries where id = $1", [
+          id,
+        ])
+      ).rows[0];
       expect(row.status).toBe("lost");
       expect(row.lost_reason).toBe("Price");
       expect(row.closed_at).not.toBeNull();
       await c.query("update public.enquiries set status = 'won' where id = $1", [id]);
-      row = (await c.query("select status, lost_reason, closed_at from public.enquiries where id = $1", [id])).rows[0];
+      row = (
+        await c.query("select status, lost_reason, closed_at from public.enquiries where id = $1", [
+          id,
+        ])
+      ).rows[0];
       expect(row.lost_reason).toBeNull();
       expect(row.closed_at).not.toBeNull();
       await c.query("update public.enquiries set status = 'open' where id = $1", [id]);
-      row = (await c.query("select status, lost_reason, closed_at from public.enquiries where id = $1", [id])).rows[0];
+      row = (
+        await c.query("select status, lost_reason, closed_at from public.enquiries where id = $1", [
+          id,
+        ])
+      ).rows[0];
       expect(row.closed_at).toBeNull();
     });
   });
 
   it("keeps task done and done_at in step", async () => {
     await asServiceRole(c, async () => {
-      await expect(c.query("update public.tasks set done = true where id = $1", [a.task])).rejects.toThrow(/check/);
+      await expect(
+        c.query("update public.tasks set done = true where id = $1", [a.task]),
+      ).rejects.toThrow(/check/);
       await c.query("update public.tasks set done = true, done_at = now() where id = $1", [a.task]);
       await c.query("update public.tasks set done = false, done_at = null where id = $1", [a.task]);
     });
@@ -325,7 +414,10 @@ describe.skipIf(!TEST_DATABASE_URL)("enquiries + tasks RLS and SQL functions", (
         c.query("insert into public.timeline_events (org_id, type) values ($1, 'x')", [orgA]),
       ).rejects.toThrow(/timeline_events_subject_check/);
       await expect(
-        c.query("insert into public.timeline_events (org_id, enquiry_id, type) values ($1, $2, 'x')", [orgA, b.enquiry]),
+        c.query(
+          "insert into public.timeline_events (org_id, enquiry_id, type) values ($1, $2, 'x')",
+          [orgA, b.enquiry],
+        ),
       ).rejects.toThrow(/does not belong to org/);
     });
   });
@@ -361,11 +453,20 @@ describe.skipIf(!TEST_DATABASE_URL)("enquiries + tasks RLS and SQL functions", (
       );
       expect(rows.length).toBeGreaterThan(0);
       expect(rows.map((r) => r.id)).not.toContain(b.enquiry);
-      const byName = await c.query("select id from public.enquiries_search($1, 'true', '[]'::jsonb, 'e.created_at desc', 50, 0, 'Pat')", [orgA]);
+      const byName = await c.query(
+        "select id from public.enquiries_search($1, 'true', '[]'::jsonb, 'e.created_at desc', 50, 0, 'Pat')",
+        [orgA],
+      );
       expect(byName.rows.map((r) => r.id)).toContain(a.enquiry);
-      const byPhone = await c.query("select id from public.enquiries_search($1, 'true', '[]'::jsonb, 'e.created_at desc', 50, 0, '+9715000001')", [orgA]);
+      const byPhone = await c.query(
+        "select id from public.enquiries_search($1, 'true', '[]'::jsonb, 'e.created_at desc', 50, 0, '+9715000001')",
+        [orgA],
+      );
       expect(byPhone.rows.map((r) => r.id)).toContain(a.enquiry);
-      const total = Number((await c.query("select public.enquiries_count($1, 'true', '[]'::jsonb) as n", [orgA])).rows[0].n);
+      const total = Number(
+        (await c.query("select public.enquiries_count($1, 'true', '[]'::jsonb) as n", [orgA]))
+          .rows[0].n,
+      );
       expect(total).toBe(rows.length);
       const stages = await c.query<{ stage_id: string; total: string }>(
         "select * from public.enquiries_stage_counts($1, 'true', '[]'::jsonb)",
@@ -373,7 +474,10 @@ describe.skipIf(!TEST_DATABASE_URL)("enquiries + tasks RLS and SQL functions", (
       );
       expect(stages.rows.reduce((n, r) => n + Number(r.total), 0)).toBe(total);
       await expect(
-        c.query("select * from public.enquiries_search($1, 'true', '[]'::jsonb, 'e.id; drop table x')", [orgA]),
+        c.query(
+          "select * from public.enquiries_search($1, 'true', '[]'::jsonb, 'e.id; drop table x')",
+          [orgA],
+        ),
       ).rejects.toThrow(/invalid order by/);
     });
   });
@@ -385,14 +489,20 @@ describe.skipIf(!TEST_DATABASE_URL)("enquiries + tasks RLS and SQL functions", (
         [orgA],
       );
       expect(rows).toHaveLength(0);
-      const open = await c.query("select id from public.enquiries_search($1, '(e.status = ($1 ->> 0))', '[\"open\"]'::jsonb)", [orgA]);
+      const open = await c.query(
+        "select id from public.enquiries_search($1, '(e.status = ($1 ->> 0))', '[\"open\"]'::jsonb)",
+        [orgA],
+      );
       expect(open.rows.length).toBeGreaterThan(0);
     });
   });
 
   it("leaves custom roles untouched by the permission backfill", async () => {
     await asServiceRole(c, async () => {
-      const { rows } = await c.query("select permissions from public.roles where org_id = $1 and name = 'Viewer'", [orgA]);
+      const { rows } = await c.query(
+        "select permissions from public.roles where org_id = $1 and name = 'Viewer'",
+        [orgA],
+      );
       expect(rows[0].permissions).toEqual(["enquiries.view", "tasks.view"]);
     });
   });

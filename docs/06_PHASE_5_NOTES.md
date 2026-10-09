@@ -4,8 +4,7 @@
 
 ## Scope delivered
 
-- **Migration** `supabase/migrations/20261008001000_enquiries.sql`:
-  - **Lookups** `locations`, `departments`, `services`, `specialists` (columns per docs/02 §3, so Phase 6 extends them with `ALTER`; read by any member, written with `settings.manage`).
+- **Migration** `supabase/migrations/20261009001000_enquiries.sql` (sorts after Phase 6 and Finance; it builds on Phase 6's `locations`, `departments`, `services` and `specialists` rather than creating its own):
   - **`pipelines`** (card fields, optional `sla_minutes` override, one default per org, archive) and **`stages`**.
   - **`enquiries`**: per-org `number` from `enquiry_counters` (trigger, gap-free per org), `status` (open / won / lost / disqualified) with DB-enforced reason and `closed_at`, `stage_entered_at` maintained by trigger, stage ↔ pipeline ↔ org consistency trigger, SLA columns (`sla_due_at`, `first_touch_at`, `sla_breached_at`), `custom jsonb`, soft delete. Every cross-table FK carries an org check.
   - **`enquiry_views`** (shape of `inbox_views`, plus `mode`, `columns`, `pipeline_id`), **`enquiry_assignment_rules`**, **`tasks`**.
@@ -24,15 +23,15 @@
   - **Drawer**: stage and status (Lost / Disqualified require a reason), details incl. location → department → specialist → service (department narrows the others) and appointment date, assignee, estimated value, custom fields, linked contact (link / unlink), move pipeline, tabs **Timeline** (with notes) / **Inbox** (the contact's conversations) / **Tasks**.
   - **Bulk**: assign, move stage or pipeline, reopen / won / lost / disqualify (reason), edit fields, delete (`enquiries.delete`), export selection. Each enquiry goes through the single-record path, so timeline, events and audit stay per enquiry.
   - Wiring: the contact drawer's Enquiries tab lists the contact's enquiries; the inbox sidebar's “Create enquiry” opens `/enquiries?new=1&contact=…&channel=…` prefilled; the shared `Timeline` component was extracted from the contact drawer.
-- **Settings → Enquiries**: SLA default, task reminder lead, sources, notification rules (assignee / people / team, in-app / email); pipelines and stages (create, rename, drag to reorder, colours, per-pipeline SLA, default / archive / delete); assignment rules (user or team round-robin, ordered); enquiry custom fields (the contact custom-field UI is now entity-aware); clinic lists (locations, departments, services, specialists).
+- **Settings → Enquiries**: SLA default, task reminder lead, sources, notification rules (assignee / people / team, in-app / email); pipelines and stages (create, rename, drag to reorder, colours, per-pipeline SLA, default / archive / delete); assignment rules (user or team round-robin, ordered); enquiry custom fields (the contact custom-field UI is now entity-aware). Locations, departments, services and specialists are managed in Settings → Appointments (Phase 6).
 - **Tasks** (`/tasks`): list with Assigned to me / Everyone, Open / Overdue / Due today / Done / All, type, subject search, sorting, pagination, quick done checkbox, bulk done / reopen / assign / delete, drawer for create and edit (type, due, subject, assignee, contact, enquiry, notes, done), realtime refresh, and an overdue badge on the sidebar.
 - **`DataGrid`**: unsortable headers are now plain cells. The select-all checkbox used to sit inside a disabled sort button (invalid HTML and a hydration error on every grid, Contacts included).
-- **Tests**: 51 new unit tests (status, assignment, SLA, settings, notify plan, registry → SQL, custom merge, task due, DST-safe ranges, reminder envelope); `tests/db/enquiries-rls.test.ts` (14: isolation on every new table, permission gates, cross-org FK triggers, per-org numbering, status/closed_at integrity, timeline CHECK, view sharing, RPCs service-role only and org-pinned); `tests/db/enquiries-service.test.ts` (16, needs PostgREST: services, assignment rules, notifications, SLA and task-due jobs, pipeline/stage administration); an e2e smoke for the new routes.
+- **Tests**: 51 new unit tests (status, assignment, SLA, settings, notify plan, registry → SQL, custom merge, task due, DST-safe ranges, reminder envelope); `tests/db/enquiries-rls.test.ts` (15: isolation on every new table, permission gates, cross-org FK triggers, per-org numbering, status/closed_at integrity, timeline CHECK, view sharing, RPCs service-role only and org-pinned); `tests/db/enquiries-service.test.ts` (16, needs PostgREST: services, assignment rules, notifications, SLA and task-due jobs, pipeline/stage administration); an e2e smoke for the new routes.
 
 ## Local happy path
 
 ```bash
-pnpm db:reset                 # migrations + seed: 2 pipelines (Reception 30-min SLA, Insurance review 5-min SLA), 15 enquiries, 8 tasks, a rule, a shared view
+pnpm db:reset                 # migrations + seed: 2 pipelines (Reception 30-min SLA, Insurance review 5-min SLA), 15 enquiries, 8 tasks, a rule, a shared view (it reuses Phase 6's seeded clinic, department, service and specialist)
 pnpm dev
 # /enquiries            Kanban of the default pipeline; drag a card, open it, mark it Lost (a reason is required)
 # /enquiries?pipeline=all&scope=all&mode=table   select rows → bulk bar
@@ -48,12 +47,13 @@ pnpm jobs:run notifications   # delivers them (in-app notification for the assig
 
 - **SLA means time to first touch.** `sla_due_at = created_at + (pipeline SLA ?? org default)`. A first touch is an assignment by a person, a stage / status / pipeline change, or (planned) an outbound message. Sending a WhatsApp reply does **not** stop the clock yet: `markTouched()` exists in `lib/enquiries/service.ts` but the outbound handler does not call it. The Airtable audit implies a 5-minute SLA for “Insurance review”, hence the per-pipeline override.
 - **No manual ordering inside a Kanban column**: cards are newest-in-stage first. Moving between columns is the only drag.
-- **Phase 6 tables arrived early** (`locations`, `departments`, `services`, `specialists`) so the enquiry pickers work; Phase 6 adds hours, booking rules and the Unite `external_id` mapping on top. `specialists.external_id` exists but is unused here.
+- **Clinic lists belong to Phase 6.** This phase originally created `locations`, `departments`, `services` and `specialists` early; once Phase 6 landed on `main` with its own versions (hours, booking rules, Unite ids, an `active` flag) the early copy was dropped. Enquiries reference Phase 6's tables, pickers hide inactive entries but keep one an enquiry already uses, and the lists are edited in Settings → Appointments.
 - **Pipelines that held enquiries can only be archived**, and a stage with enquiries is deleted only after moving them (including soft-deleted ones, which still reference it).
 - **Soft delete** for enquiries; their tasks and timeline remain. Hard delete only happens through org deletion.
 - **Contact visibility**: an `enquiries.view` user without `contacts.view` cannot read contacts through RLS, so the enquiry loaders use the service role (after `can()`), show the linked contact's name and phone, and the contact picker needs `contacts.view`.
 - **Email notifications** carry the enquiry number and a link only; titles can contain patient details and stay in the app.
 - **Out of scope here**: enquiry tags (`tags.scope = 'enquiry'` exists but no join table), CSV import of enquiries, the enquiry funnel / stage-time report (`mv_enquiry_stage_times`, Phase 10), flows reacting to the new events (Phase 8), and public API / outbound webhooks (Phase 10).
+- **Merged with Phase 6 / 11.** The security-guard tests from Phase 11 caught four things in this phase, now fixed: `enquiry_counters` is declared service-only, `enquiries` is covered by the cross-org suite (its consistency trigger runs before RLS), `deleteEnquiryView` now requires `enquiries.view`, and three mutating actions (view delete, card fields, rule reorder) write audit rows.
 - **Custom roles are not backfilled** with the new permission keys; add `tasks.view` / `enquiries.export` / `enquiries.delete` to them in Settings → Roles.
 
 ## Demo checklist

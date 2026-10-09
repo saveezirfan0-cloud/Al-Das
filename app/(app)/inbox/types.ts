@@ -75,6 +75,7 @@ export type InboxProps = {
     contactsManage: boolean;
     settings: boolean;
     enquiriesManage: boolean;
+    appointmentsManage: boolean;
   };
   query: InboxQuery;
   counts: { folders: Record<FolderKey, number>; teams: Record<string, number> };

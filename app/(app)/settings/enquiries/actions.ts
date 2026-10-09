@@ -329,122 +329,13 @@ export async function reorderAssignmentRules(ids: string[]): Promise<ActionResul
         .eq("id", id),
     ),
   );
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "assignment_rule.reordered",
+    entity: "assignment_rule",
+    diff: { count: parsed.data.length },
+  });
   refresh();
   return { ok: true };
-}
-
-// ---------------------------------------------------------------------------
-// Clinic lookups: locations, departments, services, specialists
-// ---------------------------------------------------------------------------
-
-const blank = (v: unknown) => (typeof v === "string" && v.trim() === "" ? null : v);
-const optText = (max: number) =>
-  z.preprocess(blank, z.string().trim().max(max).nullable().optional());
-const optUuid = z.preprocess(blank, uuid.nullable().optional());
-const timezone = z.preprocess(
-  blank,
-  z
-    .string()
-    .nullable()
-    .optional()
-    .refine((tz) => {
-      if (!tz) return true;
-      try {
-        new Intl.DateTimeFormat("en", { timeZone: tz });
-        return true;
-      } catch {
-        return false;
-      }
-    }, "Unknown timezone"),
-);
-
-const lookupSchemas = {
-  locations: z.object({ name, timezone, address: optText(300) }),
-  departments: z.object({ name }),
-  services: z.object({
-    name,
-    department_id: optUuid,
-    duration_min: z.preprocess(
-      (v) => (v === "" || v === null ? null : Number(v)),
-      z.number().int().min(1).max(1440).nullable().optional(),
-    ),
-    price: z.preprocess(
-      (v) => (v === "" || v === null ? null : Number(v)),
-      z.number().min(0).max(1e9).nullable().optional(),
-    ),
-  }),
-  specialists: z.object({ name, title: optText(120), department_id: optUuid, user_id: optUuid }),
-} as const;
-
-export type LookupKind = keyof typeof lookupSchemas;
-
-export async function saveLookup(
-  kind: LookupKind,
-  id: string | null,
-  input: unknown,
-): Promise<ActionResult> {
-  const member = await requirePerm("settings.manage");
-  const schema = lookupSchemas[kind];
-  if (!schema) return fail("Unknown list");
-  const parsed = schema.safeParse(input);
-  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid input");
-  const admin = createAdminClient();
-  const values = parsed.data as Record<string, unknown>;
-  if (
-    typeof values.department_id === "string" &&
-    !(await ownedBy(admin, "departments", member.orgId, [values.department_id]))
-  )
-    return fail("That department does not exist.");
-  if (
-    typeof values.user_id === "string" &&
-    !(await membersOf(admin, member.orgId, [values.user_id]))
-  )
-    return fail("That user is not a member of this workspace.");
-  const table = admin.from(kind);
-  const res = id
-    ? await table
-        .update(values as never)
-        .eq("org_id", member.orgId)
-        .eq("id", id)
-        .select("id")
-        .maybeSingle()
-    : await table
-        .insert({ org_id: member.orgId, ...values } as never)
-        .select("id")
-        .maybeSingle();
-  if (res.error)
-    return fail(res.error.code === "23505" ? "That name is already in use." : "Could not save.");
-  if (!res.data) return fail("Not found.");
-  await recordAudit(admin, {
-    orgId: member.orgId,
-    userId: member.userId,
-    action: `${kind}.${id ? "updated" : "created"}`,
-    entity: kind,
-    entityId: res.data.id,
-  });
-  refresh();
-  return { ok: true, message: "Saved." };
-}
-
-export async function deleteLookup(kind: LookupKind, id: string): Promise<ActionResult> {
-  const member = await requirePerm("settings.manage");
-  if (!(kind in lookupSchemas) || !uuid.safeParse(id).success) return fail("Invalid request");
-  const admin = createAdminClient();
-  const { data, error } = await admin
-    .from(kind)
-    .delete()
-    .eq("org_id", member.orgId)
-    .eq("id", id)
-    .select("id")
-    .maybeSingle();
-  if (error || !data) return fail("Could not delete.");
-  await recordAudit(admin, {
-    orgId: member.orgId,
-    userId: member.userId,
-    action: `${kind}.deleted`,
-    entity: kind,
-    entityId: id,
-  });
-  refresh();
-  return { ok: true, message: "Deleted. Enquiries that used it keep their other details." };
 }

@@ -11,6 +11,7 @@ export type NavIcon =
   | "flows"
   | "portal"
   | "reports"
+  | "finance"
   | "settings";
 
 export type NavItem = {
@@ -20,6 +21,8 @@ export type NavItem = {
   permission?: string;
   /** Count shown next to the label (e.g. overdue tasks). */
   badge?: number;
+  /** Visible when the member holds at least one of these. */
+  permissions?: readonly string[];
 };
 
 export const NAV_ITEMS: readonly NavItem[] = [
@@ -39,6 +42,18 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { href: "/flows", label: "Flows", icon: "flows", permission: "flows.manage" },
   { href: "/portal", label: "Portal", icon: "portal" },
   { href: "/reports", label: "Reports", icon: "reports", permission: "reports.view" },
+  {
+    href: "/finance",
+    label: "Finance",
+    icon: "finance",
+    permissions: [
+      "finance.view",
+      "finance.invoices.view",
+      "finance.claims.view",
+      "finance.exceptions.manage",
+      "finance.capture.manage",
+    ],
+  },
   { href: "/settings", label: "Settings", icon: "settings" },
 ];
 

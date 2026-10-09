@@ -294,6 +294,7 @@ export const AVAILABLE_RELATIONS: readonly RelationKey[] = [
   "segment_members",
   "contact_phones",
   "mentions",
+  "appointments",
   "enquiries",
   "tasks",
 ];

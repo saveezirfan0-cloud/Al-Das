@@ -1,62 +1,9 @@
 -- Phase 5 / 1: enquiries + tasks.
--- Lookups (locations, departments, services, specialists — Phase 6 extends them),
 -- pipelines + stages, enquiries (per-org numbering, SLA columns), saved views,
 -- assignment rules, tasks, search RPCs and realtime. Every table carries org_id
 -- and is protected by RLS keyed on memberships; cross-table FKs are org-checked.
-
--- ---------------------------------------------------------------------------
--- Lookups. Phase 6 adds hours, booking rules and Unite ids via ALTER.
--- ---------------------------------------------------------------------------
-
-create table public.locations (
-  id uuid primary key default gen_random_uuid(),
-  org_id uuid not null references public.orgs (id) on delete cascade,
-  name text not null,
-  timezone text,
-  photo_path text,
-  address text,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  unique (org_id, name)
-);
-
-create table public.departments (
-  id uuid primary key default gen_random_uuid(),
-  org_id uuid not null references public.orgs (id) on delete cascade,
-  name text not null,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  unique (org_id, name)
-);
-
-create table public.services (
-  id uuid primary key default gen_random_uuid(),
-  org_id uuid not null references public.orgs (id) on delete cascade,
-  department_id uuid references public.departments (id) on delete set null,
-  name text not null,
-  duration_min integer check (duration_min is null or duration_min > 0),
-  price numeric(12, 2) check (price is null or price >= 0),
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  unique (org_id, name)
-);
-create index services_department_idx on public.services (department_id);
-
-create table public.specialists (
-  id uuid primary key default gen_random_uuid(),
-  org_id uuid not null references public.orgs (id) on delete cascade,
-  name text not null,
-  title text,
-  photo_path text,
-  department_id uuid references public.departments (id) on delete set null,
-  user_id uuid references public.profiles (id) on delete set null,
-  external_id text,                                   -- Unite doctor id (Phase 6)
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  unique (org_id, name)
-);
-create index specialists_department_idx on public.specialists (department_id);
-create unique index specialists_org_external_uidx on public.specialists (org_id, external_id) where external_id is not null;
+-- The location / department / specialist / service lists are Phase 6's tables
+-- (20261009000910_appointments.sql); enquiries reference them.
 
 -- ---------------------------------------------------------------------------
 -- Pipelines and stages
@@ -289,10 +236,6 @@ create index tasks_contact_idx on public.tasks (contact_id) where contact_id is 
 -- updated_at + org integrity triggers
 -- ---------------------------------------------------------------------------
 
-create trigger locations_set_updated_at before update on public.locations for each row execute function app.set_updated_at();
-create trigger departments_set_updated_at before update on public.departments for each row execute function app.set_updated_at();
-create trigger services_set_updated_at before update on public.services for each row execute function app.set_updated_at();
-create trigger specialists_set_updated_at before update on public.specialists for each row execute function app.set_updated_at();
 create trigger pipelines_set_updated_at before update on public.pipelines for each row execute function app.set_updated_at();
 create trigger stages_set_updated_at before update on public.stages for each row execute function app.set_updated_at();
 create trigger enquiries_set_updated_at before update on public.enquiries for each row execute function app.set_updated_at();
@@ -300,40 +243,36 @@ create trigger enquiry_views_set_updated_at before update on public.enquiry_view
 create trigger enquiry_assignment_rules_set_updated_at before update on public.enquiry_assignment_rules for each row execute function app.set_updated_at();
 create trigger tasks_set_updated_at before update on public.tasks for each row execute function app.set_updated_at();
 
-create trigger services_department_org_check before insert or update on public.services
-  for each row execute function app.check_parent_org('departments', 'department_id');
-create trigger specialists_department_org_check before insert or update on public.specialists
-  for each row execute function app.check_parent_org('departments', 'department_id');
-create trigger stages_pipeline_org_check before insert or update on public.stages
+create trigger stages_pipeline_org_check before insert or update of pipeline_id on public.stages
   for each row execute function app.check_parent_org('pipelines', 'pipeline_id');
 
-create trigger enquiries_pipeline_org_check before insert or update on public.enquiries
+create trigger enquiries_pipeline_org_check before insert or update of pipeline_id on public.enquiries
   for each row execute function app.check_parent_org('pipelines', 'pipeline_id');
-create trigger enquiries_stage_org_check before insert or update on public.enquiries
+create trigger enquiries_stage_org_check before insert or update of stage_id on public.enquiries
   for each row execute function app.check_parent_org('stages', 'stage_id');
-create trigger enquiries_contact_org_check before insert or update on public.enquiries
+create trigger enquiries_contact_org_check before insert or update of contact_id on public.enquiries
   for each row execute function app.check_parent_org('contacts', 'contact_id');
-create trigger enquiries_channel_org_check before insert or update on public.enquiries
+create trigger enquiries_channel_org_check before insert or update of channel_id on public.enquiries
   for each row execute function app.check_parent_org('channels', 'channel_id');
-create trigger enquiries_location_org_check before insert or update on public.enquiries
+create trigger enquiries_location_org_check before insert or update of location_id on public.enquiries
   for each row execute function app.check_parent_org('locations', 'location_id');
-create trigger enquiries_department_org_check before insert or update on public.enquiries
+create trigger enquiries_department_org_check before insert or update of department_id on public.enquiries
   for each row execute function app.check_parent_org('departments', 'department_id');
-create trigger enquiries_specialist_org_check before insert or update on public.enquiries
+create trigger enquiries_specialist_org_check before insert or update of specialist_id on public.enquiries
   for each row execute function app.check_parent_org('specialists', 'specialist_id');
-create trigger enquiries_service_org_check before insert or update on public.enquiries
+create trigger enquiries_service_org_check before insert or update of service_id on public.enquiries
   for each row execute function app.check_parent_org('services', 'service_id');
-create trigger enquiries_assignee_member_check before insert or update on public.enquiries
+create trigger enquiries_assignee_member_check before insert or update of assignee_id on public.enquiries
   for each row execute function app.check_member_org('assignee_id');
 
-create trigger enquiry_views_pipeline_org_check before insert or update on public.enquiry_views
+create trigger enquiry_views_pipeline_org_check before insert or update of pipeline_id on public.enquiry_views
   for each row execute function app.check_parent_org('pipelines', 'pipeline_id');
 
-create trigger tasks_contact_org_check before insert or update on public.tasks
+create trigger tasks_contact_org_check before insert or update of contact_id on public.tasks
   for each row execute function app.check_parent_org('contacts', 'contact_id');
-create trigger tasks_enquiry_org_check before insert or update on public.tasks
+create trigger tasks_enquiry_org_check before insert or update of enquiry_id on public.tasks
   for each row execute function app.check_parent_org('enquiries', 'enquiry_id');
-create trigger tasks_assignee_member_check before insert or update on public.tasks
+create trigger tasks_assignee_member_check before insert or update of assignee_id on public.tasks
   for each row execute function app.check_member_org('assignee_id');
 
 -- Timeline rows may now belong to an enquiry without a contact.
@@ -342,17 +281,13 @@ alter table public.timeline_events
   add constraint timeline_events_subject_check check (contact_id is not null or enquiry_id is not null);
 alter table public.timeline_events
   add constraint timeline_events_enquiry_fk foreign key (enquiry_id) references public.enquiries (id) on delete cascade;
-create trigger timeline_events_enquiry_org_check before insert or update on public.timeline_events
+create trigger timeline_events_enquiry_org_check before insert or update of enquiry_id on public.timeline_events
   for each row execute function app.check_parent_org('enquiries', 'enquiry_id');
 
 -- ---------------------------------------------------------------------------
 -- RLS
 -- ---------------------------------------------------------------------------
 
-alter table public.locations enable row level security;
-alter table public.departments enable row level security;
-alter table public.services enable row level security;
-alter table public.specialists enable row level security;
 alter table public.pipelines enable row level security;
 alter table public.stages enable row level security;
 alter table public.enquiry_counters enable row level security;
@@ -360,31 +295,6 @@ alter table public.enquiries enable row level security;
 alter table public.enquiry_views enable row level security;
 alter table public.enquiry_assignment_rules enable row level security;
 alter table public.tasks enable row level security;
-
--- Lookups: every member reads (they feed dropdowns); settings.manage writes.
-create policy locations_select on public.locations for select to authenticated using (app.is_org_member(org_id));
-create policy locations_insert on public.locations for insert to authenticated with check (app.has_perm(org_id, 'settings.manage'));
-create policy locations_update on public.locations for update to authenticated
-  using (app.has_perm(org_id, 'settings.manage')) with check (app.has_perm(org_id, 'settings.manage'));
-create policy locations_delete on public.locations for delete to authenticated using (app.has_perm(org_id, 'settings.manage'));
-
-create policy departments_select on public.departments for select to authenticated using (app.is_org_member(org_id));
-create policy departments_insert on public.departments for insert to authenticated with check (app.has_perm(org_id, 'settings.manage'));
-create policy departments_update on public.departments for update to authenticated
-  using (app.has_perm(org_id, 'settings.manage')) with check (app.has_perm(org_id, 'settings.manage'));
-create policy departments_delete on public.departments for delete to authenticated using (app.has_perm(org_id, 'settings.manage'));
-
-create policy services_select on public.services for select to authenticated using (app.is_org_member(org_id));
-create policy services_insert on public.services for insert to authenticated with check (app.has_perm(org_id, 'settings.manage'));
-create policy services_update on public.services for update to authenticated
-  using (app.has_perm(org_id, 'settings.manage')) with check (app.has_perm(org_id, 'settings.manage'));
-create policy services_delete on public.services for delete to authenticated using (app.has_perm(org_id, 'settings.manage'));
-
-create policy specialists_select on public.specialists for select to authenticated using (app.is_org_member(org_id));
-create policy specialists_insert on public.specialists for insert to authenticated with check (app.has_perm(org_id, 'settings.manage'));
-create policy specialists_update on public.specialists for update to authenticated
-  using (app.has_perm(org_id, 'settings.manage')) with check (app.has_perm(org_id, 'settings.manage'));
-create policy specialists_delete on public.specialists for delete to authenticated using (app.has_perm(org_id, 'settings.manage'));
 
 -- Pipelines and stages: enquiry readers see them; settings.manage edits.
 create policy pipelines_select on public.pipelines for select to authenticated using (app.has_perm(org_id, 'enquiries.view'));

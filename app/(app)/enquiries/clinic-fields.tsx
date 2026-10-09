@@ -1,6 +1,7 @@
 "use client";
 
 import { Label } from "@/components/ui/label";
+import { pickable } from "@/lib/enquiries/lookups";
 import type { Lookups } from "@/lib/enquiries/server";
 
 import { OptionSelect } from "./option-select";
@@ -30,12 +31,16 @@ export function ClinicFields({
   idPrefix: string;
 }) {
   const dep = value.department_id;
-  const specialists = lookups.specialists.filter(
-    (s) => !dep || !s.department_id || s.department_id === dep,
+  const inDepartment = <T extends { department_id: string | null }>(l: T) =>
+    !dep || !l.department_id || l.department_id === dep;
+  const specialists = pickable(lookups.specialists, value.specialist_id).filter(
+    (s) => s.id === value.specialist_id || inDepartment(s),
   );
-  const services = lookups.services.filter(
-    (s) => !dep || !s.department_id || s.department_id === dep,
+  const services = pickable(lookups.services, value.service_id).filter(
+    (s) => s.id === value.service_id || inDepartment(s),
   );
+  const locations = pickable(lookups.locations, value.location_id);
+  const departments = pickable(lookups.departments, value.department_id);
   const opts = (l: Array<{ id: string; name: string }>) =>
     l.map((x) => ({ value: x.id, label: x.name }));
   return (
@@ -46,7 +51,7 @@ export function ClinicFields({
           id={`${idPrefix}-location`}
           disabled={disabled}
           value={value.location_id}
-          options={opts(lookups.locations)}
+          options={opts(locations)}
           onChange={(v) => onChange({ ...value, location_id: v })}
         />
       </div>
@@ -56,7 +61,7 @@ export function ClinicFields({
           id={`${idPrefix}-department`}
           disabled={disabled}
           value={value.department_id}
-          options={opts(lookups.departments)}
+          options={opts(departments)}
           onChange={(v) => {
             const keepSpecialist = lookups.specialists.find((s) => s.id === value.specialist_id);
             const keepService = lookups.services.find((s) => s.id === value.service_id);

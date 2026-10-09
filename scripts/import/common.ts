@@ -7,6 +7,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
 
+import type { ImportSummary } from "@/lib/migration/reconcile";
 import type { AdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/lib/supabase/types";
 
@@ -93,4 +94,16 @@ export function counters(): Counters {
     review: 0,
     failed: 0,
   };
+}
+
+/**
+ * Machine-readable twin of the markdown report (counts only), read by `pnpm reconcile`.
+ * One file per run: docs/audit/import-summary-<source>-<timestamp>.json
+ */
+export function writeSummary(source: string, summaries: ImportSummary[]): string {
+  const dir = path.join(process.cwd(), "docs/audit");
+  fs.mkdirSync(dir, { recursive: true });
+  const file = path.join(dir, `import-summary-${source}-${nowStamp()}.json`);
+  fs.writeFileSync(file, JSON.stringify({ version: 1, source, summaries }, null, 2) + "\n");
+  return file;
 }

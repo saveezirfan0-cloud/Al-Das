@@ -25,6 +25,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { EnquiryStatus } from "@/lib/enquiries/constants";
+import { pickable } from "@/lib/enquiries/lookups";
 import type { PipelineInfo } from "@/lib/enquiries/server";
 
 import { bulkEnquiries as bulkEnquiriesOnce, removeEnquiries } from "./actions";
@@ -411,10 +412,10 @@ function BulkEditDialog({
               <OptionSelect
                 value={clinic[f]}
                 options={{
-                  location_id: bootstrap.lookups.locations,
-                  department_id: bootstrap.lookups.departments,
-                  specialist_id: bootstrap.lookups.specialists,
-                  service_id: bootstrap.lookups.services,
+                  location_id: pickable(bootstrap.lookups.locations),
+                  department_id: pickable(bootstrap.lookups.departments),
+                  specialist_id: pickable(bootstrap.lookups.specialists),
+                  service_id: pickable(bootstrap.lookups.services),
                 }[f].map((x) => ({ value: x.id, label: x.name }))}
                 onChange={(v) => setClinic((c) => ({ ...c, [f]: v }))}
               />

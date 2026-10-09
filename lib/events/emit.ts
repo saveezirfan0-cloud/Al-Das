@@ -27,7 +27,12 @@ export type DomainEventName =
   | "enquiry.sla_breached"
   | "task.created"
   | "task.completed"
-  | "task.due";
+  | "task.due"
+  | "appointment.created"
+  | "appointment.updated"
+  | "appointment.status_changed"
+  | "appointment.reminder_sent"
+  | "appointment.reminder_failed";
 
 export type DomainEvent = {
   orgId: string;

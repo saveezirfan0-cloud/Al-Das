@@ -280,12 +280,17 @@ export function Sidebar({
                 <KanbanSquare /> Create enquiry
               </Button>
             )}
-            <Button variant="outline" size="sm" disabled title="Appointments arrive in Phase 6">
-              <CalendarPlus /> Book appointment
-            </Button>
-            <p className="text-muted-foreground text-[11px]">
-              Appointments (Phase 6) plug in here.
-            </p>
+            {perms.appointmentsManage ? (
+              <Button variant="outline" size="sm" asChild>
+                <Link href={`/appointments?new=${c.id}`}>
+                  <CalendarPlus /> Book appointment
+                </Link>
+              </Button>
+            ) : (
+              <Button variant="outline" size="sm" disabled title="You need permission to book">
+                <CalendarPlus /> Book appointment
+              </Button>
+            )}
           </TabsContent>
         </ScrollArea>
       </Tabs>

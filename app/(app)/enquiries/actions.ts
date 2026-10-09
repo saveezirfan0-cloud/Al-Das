@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { recordAudit } from "@/lib/audit";
 import { can } from "@/lib/auth/can";
-import { requireMember, requirePerm } from "@/lib/auth/session";
+import { requirePerm } from "@/lib/auth/session";
 import { searchContactOptions, type ContactOption } from "@/lib/contacts/search-options";
 import { addTimelineEvent } from "@/lib/contacts/timeline";
 import { CARD_FIELD_KEYS } from "@/lib/enquiries/constants";
@@ -642,7 +642,7 @@ export async function saveEnquiryView(
 }
 
 export async function deleteEnquiryView(id: string): Promise<ActionResult> {
-  const member = await requireMember();
+  const member = await requirePerm("enquiries.view");
   if (!uuid.safeParse(id).success) return fail("Invalid id");
   const admin = createAdminClient();
   const { data } = await admin
@@ -654,6 +654,13 @@ export async function deleteEnquiryView(id: string): Promise<ActionResult> {
     .select("id")
     .maybeSingle();
   if (!data) return fail("View not found (only the owner can delete it).");
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "enquiry_view.deleted",
+    entity: "enquiry_view",
+    entityId: id,
+  });
   return { ok: true, message: "View deleted." };
 }
 
@@ -706,6 +713,14 @@ export async function savePipelineCardFields(
     .select("id")
     .maybeSingle();
   if (error || !data) return fail("Could not save the card fields.");
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "pipeline.card_fields_updated",
+    entity: "pipeline",
+    entityId: pipelineId,
+    diff: { fields: [...new Set(parsed.data)] },
+  });
   refresh();
   return { ok: true, message: "Card fields saved." };
 }

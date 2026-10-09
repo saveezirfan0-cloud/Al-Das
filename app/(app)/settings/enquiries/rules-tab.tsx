@@ -24,10 +24,10 @@ import {
   type RuleAction,
   type RuleConditions,
 } from "@/lib/enquiries/assignment";
-import type { OrgUser, PipelineInfo, TeamInfo } from "@/lib/enquiries/server";
+import { pickable } from "@/lib/enquiries/lookups";
+import type { Lookups, OrgUser, PipelineInfo, TeamInfo } from "@/lib/enquiries/server";
 
 import { deleteAssignmentRule, reorderAssignmentRules, saveAssignmentRule } from "./actions";
-import type { SettingsLookups } from "./tabs";
 
 export type RuleRow = {
   id: string;
@@ -42,7 +42,7 @@ type Refs = {
   pipelines: PipelineInfo[];
   teams: TeamInfo[];
   users: OrgUser[];
-  lookups: SettingsLookups;
+  lookups: Lookups;
   sources: string[];
 };
 
@@ -297,7 +297,7 @@ function RuleDialog({
             <div className="grid gap-1">
               <Label className="text-xs">is for location</Label>
               <MultiSelect
-                options={opts(refs.lookups.locations)}
+                options={opts(pickable(refs.lookups.locations, undefined))}
                 value={cond.location_ids ?? []}
                 onChange={(v) => set("location_ids", v)}
                 placeholder="Any location"
@@ -306,7 +306,7 @@ function RuleDialog({
             <div className="grid gap-1">
               <Label className="text-xs">is for department</Label>
               <MultiSelect
-                options={opts(refs.lookups.departments)}
+                options={opts(pickable(refs.lookups.departments, undefined))}
                 value={cond.department_ids ?? []}
                 onChange={(v) => set("department_ids", v)}
                 placeholder="Any department"
