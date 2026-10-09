@@ -7,6 +7,8 @@ import "@/lib/jobs/handlers/meta-events";
 import "@/lib/jobs/handlers/media-fetch";
 import "@/lib/jobs/handlers/outbound";
 import "@/lib/jobs/handlers/inbox-housekeeping";
+import "@/lib/jobs/handlers/campaign-fanout";
+import "@/lib/jobs/handlers/campaign-tick";
 
 import { registerKind } from "@/lib/jobs/scheduler";
 
@@ -15,5 +17,6 @@ registerKind("notification.*", "notifications");
 registerKind("email.send", "notifications");
 registerKind("outbound.send", "outbound");
 registerKind("media.fetch", "media_fetch");
+registerKind("campaign.*", "campaign_fanout");
 
 export {};

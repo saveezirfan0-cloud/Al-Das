@@ -8,6 +8,7 @@ import { registerHandler } from "@/lib/jobs/registry";
 import { PermanentJobError, type JobContext } from "@/lib/jobs/types";
 import type { QueueName } from "@/lib/jobs/queues";
 import type { AdminClient } from "@/lib/supabase/admin";
+import { guardCampaignMessage } from "@/lib/campaigns/engine";
 import { MEDIA_BUCKET } from "@/lib/jobs/handlers/media-fetch";
 import { clientForChannel } from "@/lib/whatsapp/channel";
 import { WhatsAppApiError, mapMetaError } from "@/lib/whatsapp/errors";
@@ -38,7 +39,7 @@ export async function deliverOutbound(
   const { data: message } = await admin
     .from("messages")
     .select(
-      "id, org_id, conversation_id, status, wa_message_id, payload, body, sent_by_user_id, reply_to_wa_message_id, media_meta_id, media_filename, conversations(id, status, last_inbound_at, ad_referral, opened_at, channel_id, contact_id, contacts(id, phone_e164, wa_bsuid, stop_marketing), channels(id, org_id, status, phone_number_id, waba_id, send_rate_per_sec))",
+      "id, org_id, conversation_id, status, wa_message_id, payload, body, sent_by_user_id, reply_to_wa_message_id, media_meta_id, media_filename, campaign_recipient_id, conversations(id, status, last_inbound_at, ad_referral, opened_at, channel_id, contact_id, contacts(id, phone_e164, wa_bsuid, stop_marketing), channels(id, org_id, status, phone_number_id, waba_id, send_rate_per_sec))",
     )
     .eq("id", messageId)
     .maybeSingle();
@@ -57,6 +58,20 @@ export async function deliverOutbound(
     return;
   }
   const spec = specParsed.data;
+
+  // Campaign messages are withdrawn when the campaign was paused/cancelled or the contact opted out since dispatch.
+  if (message.campaign_recipient_id) {
+    const gate = await guardCampaignMessage(
+      admin,
+      message.id,
+      message.campaign_recipient_id,
+      contact,
+    );
+    if (gate === "released") {
+      log.info("campaign message released", { messageId: message.id });
+      return;
+    }
+  }
 
   if (channel.status !== "active") {
     await markFailed(admin, message.id, -1, "The WhatsApp number is paused or disconnected.");

@@ -118,6 +118,20 @@ export async function processInbound(
     }
   }
 
+  // A campaign send created this conversation hidden; the first reply makes it a normal one and routes it.
+  let campaignPatch: Partial<ConversationRow> = {};
+  if (!opened && conversation.campaign_only) {
+    const routing = await routeNewConversation(admin, orgId, settings);
+    campaignPatch = {
+      campaign_only: false,
+      opened_at: event.timestamp.toISOString(),
+      ...(!conversation.assignee_team_id && !conversation.assignee_user_id
+        ? { assignee_team_id: routing.teamId, assignee_user_id: routing.userId }
+        : {}),
+    };
+    opened = true;
+  }
+
   const isReaction = event.type === "reaction";
   const preview = previewFor(event.type, event.body, event.media?.filename ?? null);
   const { data: message, error: msgErr } = await admin
@@ -154,6 +168,7 @@ export async function processInbound(
   }
 
   const patch: Partial<ConversationRow> = {
+    ...campaignPatch,
     last_inbound_at: event.timestamp.toISOString(),
     last_message_at: event.timestamp.toISOString(),
     last_message_preview: preview,

@@ -474,3 +474,12 @@ export class WhatsAppApiError extends Error {
     this.mapped = mapped;
   }
 }
+
+/** Error codes a campaign retry round may re-send (everything the error map marks retryable, incl. 5xx). */
+export function retryableErrorCodes(): number[] {
+  const codes = Object.entries(KNOWN)
+    .filter(([, e]) => e.retryable)
+    .map(([c]) => Number(c));
+  for (let c = 500; c <= 599; c++) codes.push(c);
+  return codes;
+}
