@@ -11,7 +11,7 @@ import {
   type SortableColumn,
 } from "@/lib/enquiries/columns";
 import { DEFAULT_PIPELINES } from "@/lib/enquiries/defaults";
-import { describeActivity, type ExportRow } from "@/lib/enquiries/export";
+import { describeActivity, type ActivityRow, type ExportRow } from "@/lib/enquiries/export";
 import {
   applyClauses,
   filterToClauses,
@@ -404,6 +404,56 @@ export async function exportRows(
       closed_at: r.closed_at ?? "",
       created_by: r.created_by_name,
       custom: Object.fromEntries(defs.map((d) => [d.key, formatCustomValue(d, r.custom[d.key])])),
+    })),
+  };
+}
+
+/** Activity (timeline events) of the enquiries a filter matches, newest first. */
+export async function exportActivity(
+  admin: AdminClient,
+  actor: Actor,
+  filter: EnquiryFilter,
+): Promise<{ rows: ActivityRow[]; truncated: boolean }> {
+  const { query } = await filteredQuery(admin, actor, filter, true);
+  const { data: enquiries, count } = await query
+    .order("number", { ascending: false })
+    .range(0, EXPORT_LIMIT - 1);
+  const numbers = new Map(
+    ((enquiries ?? []) as unknown as RawRow[]).map((e) => [e.id, Number(e.number)]),
+  );
+  const ids = [...numbers.keys()];
+  const events: Array<{
+    at: string;
+    enquiry_id: string | null;
+    type: string;
+    actor_id: string | null;
+    actor_type: string;
+    payload: Json;
+  }> = [];
+  for (let i = 0; i < ids.length; i += 200) {
+    const { data } = await admin
+      .from("timeline_events")
+      .select("at, enquiry_id, type, actor_id, actor_type, payload")
+      .eq("org_id", actor.orgId)
+      .in("enquiry_id", ids.slice(i, i + 200))
+      .like("type", "enquiry.%")
+      .order("at", { ascending: false });
+    events.push(...(data ?? []));
+  }
+  const actorIds = [...new Set(events.map((e) => e.actor_id).filter((v): v is string => !!v))];
+  const { data: profiles } = actorIds.length
+    ? await admin.from("profiles").select("id, first_name, last_name, email").in("id", actorIds)
+    : { data: [] };
+  const names = new Map((profiles ?? []).map((p) => [p.id, personName(p)]));
+  events.sort((a, b) => b.at.localeCompare(a.at));
+  return {
+    truncated: (count ?? 0) > EXPORT_LIMIT,
+    rows: events.map((e) => ({
+      at: e.at,
+      enquiry_number: e.enquiry_id ? (numbers.get(e.enquiry_id) ?? null) : null,
+      type: e.type,
+      actor: e.actor_id ? (names.get(e.actor_id) ?? "") : e.actor_type === "system" ? "System" : "",
+      detail: describeActivity(e.type, e.payload),
     })),
   };
 }

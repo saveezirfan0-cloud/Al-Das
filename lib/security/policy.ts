@@ -64,6 +64,8 @@ export const AUDIT_EXEMPT: Record<string, string> = {
   "app/(app)/inbox/actions.ts::startConversation": "The queued message carries sent_by_user_id.",
   "app/(app)/inbox/actions.ts::saveInboxView": "Caller's own saved view.",
   "app/(app)/inbox/actions.ts::deleteInboxView": "Caller's own saved view.",
+  "app/(app)/enquiries/actions.ts::saveEnquiryView": "Caller's own saved view; updates are filtered by owner_id.",
+  "app/(app)/enquiries/actions.ts::deleteEnquiryView": "Deletes only the caller's own saved view (owner_id filter).",
   "app/api/webhooks/meta/route.ts::POST": "Raw ingress; the stored webhook_events_in row is the record.",
   "components/shell/actions.ts::setPresence": "Caller's own presence.",
   "components/shell/actions.ts::markAllNotificationsRead": "Caller's own notifications.",
