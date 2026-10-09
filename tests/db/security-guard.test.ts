@@ -22,6 +22,8 @@ import {
 
 /** Tables with no API policy on purpose: only the service role (server code after can()) touches them. */
 const SERVICE_ONLY = new Set([
+  // Phase 6: per-org appointment number counter, only touched by a security-definer trigger
+  "appointment_counters",
   "channel_secrets",
   "channel_send_slots",
   "dead_letters",
