@@ -9,6 +9,9 @@ import "@/lib/jobs/handlers/outbound";
 import "@/lib/jobs/handlers/inbox-housekeeping";
 import "@/lib/jobs/handlers/flow-steps";
 import "@/lib/jobs/handlers/flow-recurring";
+import "@/lib/jobs/handlers/recall-run";
+import "@/lib/jobs/handlers/parallel-run";
+import "@/lib/recall/listeners";
 import "@/lib/flow-engine/listeners";
 
 import { registerKind } from "@/lib/jobs/scheduler";

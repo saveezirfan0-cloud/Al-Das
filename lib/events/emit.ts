@@ -18,7 +18,14 @@ export type DomainEventName =
   | "contact.created"
   | "contact.stop_marketing"
   | "channel.quality_changed"
-  | "template.status_changed";
+  | "template.status_changed"
+  // Phase 5/6 emit these; flows and recall already listen for them.
+  | "enquiry.created"
+  | "enquiry.stage_changed"
+  | "enquiry.status_changed"
+  | "appointment.created"
+  | "appointment.updated"
+  | "appointment.status_changed";
 
 export type DomainEvent = {
   orgId: string;
