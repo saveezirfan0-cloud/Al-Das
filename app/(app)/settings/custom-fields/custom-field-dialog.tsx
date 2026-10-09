@@ -6,11 +6,29 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CUSTOM_FIELD_TYPES, type CustomFieldDef, type CustomFieldType } from "@/lib/contacts/custom-values";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  CUSTOM_FIELD_TYPES,
+  type CustomFieldDef,
+  type CustomFieldType,
+} from "@/lib/contacts/custom-values";
 
 import { createCustomField, slugifyKey, updateCustomField } from "./actions";
 
@@ -28,7 +46,12 @@ const TYPE_LABELS: Record<CustomFieldType, string> = {
 
 type Props =
   | { mode: "create"; field?: undefined; open?: undefined; onOpenChange?: undefined }
-  | { mode: "edit"; field: CustomFieldDef & { id: string }; open: boolean; onOpenChange: (o: boolean) => void };
+  | {
+      mode: "edit";
+      field: CustomFieldDef & { id: string };
+      open: boolean;
+      onOpenChange: (o: boolean) => void;
+    };
 
 export function CustomFieldDialog(props: Props) {
   const [internalOpen, setInternalOpen] = React.useState(false);
@@ -39,7 +62,9 @@ export function CustomFieldDialog(props: Props) {
   const [key, setKey] = React.useState(props.field?.key ?? "");
   const [keyTouched, setKeyTouched] = React.useState(props.mode === "edit");
   const [type, setType] = React.useState<CustomFieldType>(props.field?.type ?? "text");
-  const [options, setOptions] = React.useState<Array<{ value: string; label: string }>>(props.field?.options ?? []);
+  const [options, setOptions] = React.useState<Array<{ value: string; label: string }>>(
+    props.field?.options ?? [],
+  );
   const [required, setRequired] = React.useState(props.field?.required ?? false);
   const [error, setError] = React.useState<string | null>(null);
   const [pending, startTransition] = React.useTransition();
@@ -69,12 +94,26 @@ export function CustomFieldDialog(props: Props) {
   function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    const cleanOptions = options.map((o) => ({ value: o.value.trim() || o.label.trim(), label: o.label.trim() })).filter((o) => o.label);
+    const cleanOptions = options
+      .map((o) => ({ value: o.value.trim() || o.label.trim(), label: o.label.trim() }))
+      .filter((o) => o.label);
     startTransition(async () => {
       const res =
         props.mode === "create"
-          ? await createCustomField({ entity: "contact", key, label, type, options: hasOptions ? cleanOptions : [], required })
-          : await updateCustomField(props.field.id, { label, type, options: hasOptions ? cleanOptions : [], required });
+          ? await createCustomField({
+              entity: "contact",
+              key,
+              label,
+              type,
+              options: hasOptions ? cleanOptions : [],
+              required,
+            })
+          : await updateCustomField(props.field.id, {
+              label,
+              type,
+              options: hasOptions ? cleanOptions : [],
+              required,
+            });
       if (!res.ok) {
         setError(res.error);
         return;
@@ -95,13 +134,24 @@ export function CustomFieldDialog(props: Props) {
       )}
       <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{props.mode === "create" ? "New custom field" : `Edit ${props.field.label}`}</DialogTitle>
-          <DialogDescription>The key is stored with each contact and used in filters and imports; it cannot change later.</DialogDescription>
+          <DialogTitle>
+            {props.mode === "create" ? "New custom field" : `Edit ${props.field.label}`}
+          </DialogTitle>
+          <DialogDescription>
+            The key is stored with each contact and used in filters and imports; it cannot change
+            later.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="flex flex-col gap-4">
           <div className="grid gap-2">
             <Label htmlFor="cf-label">Label</Label>
-            <Input id="cf-label" value={label} onChange={(e) => setLabel(e.target.value)} required placeholder="e.g. Insurance plan" />
+            <Input
+              id="cf-label"
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              required
+              placeholder="e.g. Insurance plan"
+            />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="cf-key">Key</Label>
@@ -132,7 +182,10 @@ export function CustomFieldDialog(props: Props) {
               </SelectContent>
             </Select>
             {props.mode === "edit" && type !== props.field.type && (
-              <p className="text-muted-foreground text-xs">Changing the type does not convert existing values; values that no longer fit read as empty.</p>
+              <p className="text-muted-foreground text-xs">
+                Changing the type does not convert existing values; values that no longer fit read
+                as empty.
+              </p>
             )}
           </div>
           {hasOptions && (
@@ -140,20 +193,52 @@ export function CustomFieldDialog(props: Props) {
               <Label>Options</Label>
               {options.map((o, i) => (
                 <div key={i} className="flex gap-2">
-                  <Input value={o.label} onChange={(e) => setOptions(options.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} placeholder="Label" aria-label={`Option ${i + 1} label`} />
-                  <Input value={o.value} onChange={(e) => setOptions(options.map((x, j) => (j === i ? { ...x, value: e.target.value } : x)))} placeholder="value (optional)" aria-label={`Option ${i + 1} value`} className="w-40" />
-                  <Button type="button" variant="ghost" size="icon" aria-label="Remove option" onClick={() => setOptions(options.filter((_, j) => j !== i))}>
+                  <Input
+                    value={o.label}
+                    onChange={(e) =>
+                      setOptions(
+                        options.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)),
+                      )
+                    }
+                    placeholder="Label"
+                    aria-label={`Option ${i + 1} label`}
+                  />
+                  <Input
+                    value={o.value}
+                    onChange={(e) =>
+                      setOptions(
+                        options.map((x, j) => (j === i ? { ...x, value: e.target.value } : x)),
+                      )
+                    }
+                    placeholder="value (optional)"
+                    aria-label={`Option ${i + 1} value`}
+                    className="w-40"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Remove option"
+                    onClick={() => setOptions(options.filter((_, j) => j !== i))}
+                  >
                     <Trash2 />
                   </Button>
                 </div>
               ))}
-              <Button type="button" variant="outline" size="sm" className="w-fit" onClick={() => setOptions([...options, { value: "", label: "" }])}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="w-fit"
+                onClick={() => setOptions([...options, { value: "", label: "" }])}
+              >
                 <Plus /> Add option
               </Button>
             </div>
           )}
           <label className="flex items-center gap-2 text-sm">
-            <Checkbox checked={required} onCheckedChange={(v) => setRequired(!!v)} /> Required when editing a contact
+            <Checkbox checked={required} onCheckedChange={(v) => setRequired(!!v)} /> Required when
+            editing a contact
           </label>
           {error && (
             <p className="text-destructive text-sm" role="alert">
@@ -165,7 +250,8 @@ export function CustomFieldDialog(props: Props) {
               Cancel
             </Button>
             <Button type="submit" disabled={pending}>
-              {pending && <Loader2 className="animate-spin" />} {props.mode === "create" ? "Create field" : "Save"}
+              {pending && <Loader2 className="animate-spin" />}{" "}
+              {props.mode === "create" ? "Create field" : "Save"}
             </Button>
           </DialogFooter>
         </form>

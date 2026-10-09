@@ -1,0 +1,49 @@
+{
+  "object": "whatsapp_business_account",
+  "entry": [
+    {
+      "id": "200000000000001",
+      "changes": [
+        {
+          "field": "messages",
+          "value": {
+            "messaging_product": "whatsapp",
+            "metadata": {
+              "display_phone_number": "+971 4 000 0000",
+              "phone_number_id": "100000000000001"
+            },
+            "contacts": [
+              {
+                "profile": {
+                  "name": "Test Patient"
+                },
+                "wa_id": "971500000001"
+              }
+            ],
+            "messages": [
+              {
+                "from": "971500000001",
+                "id": "wamid.FIXTURE_REF",
+                "timestamp": "1760000000",
+                "type": "text",
+                "referral": {
+                  "source_url": "https://fb.me/ad-example",
+                  "source_id": "120000000000001",
+                  "source_type": "ad",
+                  "headline": "Book a check-up",
+                  "body": "Same-day appointments",
+                  "media_type": "image",
+                  "image_url": "https://example.invalid/ad.jpg",
+                  "ctwa_clid": "CLID_EXAMPLE"
+                },
+                "text": {
+                  "body": "Hi, I saw your ad"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

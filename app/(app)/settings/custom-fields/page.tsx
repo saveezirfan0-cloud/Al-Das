@@ -18,16 +18,25 @@ export default async function CustomFieldsPage() {
     .eq("entity", "contact")
     .order("sort")
     .order("label");
-  const rows = (data ?? []).map((r) => ({ id: r.id, entity: r.entity, sort: r.sort, ...toCustomFieldDef(r) }));
+  const rows = (data ?? []).map((r) => ({
+    id: r.id,
+    entity: r.entity,
+    sort: r.sort,
+    ...toCustomFieldDef(r),
+  }));
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Custom fields" description="Extra contact fields shown in the contact drawer, the grid, filters, imports and exports.">
+      <PageHeader
+        title="Custom fields"
+        description="Extra contact fields shown in the contact drawer, the grid, filters, imports and exports."
+      >
         <CustomFieldDialog mode="create" />
       </PageHeader>
       {rows.length === 0 ? (
         <p className="text-muted-foreground rounded-xl border border-dashed p-10 text-center text-sm">
-          No custom fields yet. Add one to capture data the standard contact record does not have (insurance plan, preferred branch, consent…).
+          No custom fields yet. Add one to capture data the standard contact record does not have
+          (insurance plan, preferred branch, consent…).
         </p>
       ) : (
         <CustomFieldsTable rows={rows} />

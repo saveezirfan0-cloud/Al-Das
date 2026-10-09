@@ -6,9 +6,10 @@ import { serverEnv } from "@/lib/env";
 import { dbDrainDeps, dbSchedulerDeps } from "@/lib/jobs/db";
 import { isQueueName, SCHEDULER_QUEUE } from "@/lib/jobs/queues";
 import { getHandler } from "@/lib/jobs/registry";
-import { drainQueue } from "@/lib/jobs/runner";
+import { consoleLogger, drainQueue, errorMessage } from "@/lib/jobs/runner";
 import { secretMatches } from "@/lib/jobs/secret";
 import { runScheduler } from "@/lib/jobs/scheduler";
+import { getTask } from "@/lib/jobs/tasks";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -36,6 +37,22 @@ export async function POST(
       worker: `vercel:${process.env.VERCEL_REGION ?? "local"}`,
     });
     return NextResponse.json({ queue, ...result });
+  }
+
+  const task = getTask(queue);
+  if (task) {
+    const deps = dbDrainDeps(admin);
+    const runId = await deps.startRun(queue, task.name);
+    const started = Date.now();
+    try {
+      const result = await task.run(admin, consoleLogger);
+      await deps.finishRun(runId, { processed: 1, failed: 0, meta: result });
+      return NextResponse.json({ task: queue, runId, durationMs: Date.now() - started, result });
+    } catch (err) {
+      const error = errorMessage(err);
+      await deps.finishRun(runId, { processed: 0, failed: 1, error });
+      return NextResponse.json({ task: queue, runId, error }, { status: 500 });
+    }
   }
 
   if (!isQueueName(queue)) {

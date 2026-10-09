@@ -5,10 +5,22 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 import { createContact } from "./actions";
-import { ContactForm, EMPTY_CONTACT_FORM, toContactInput, type ContactFormValues } from "./contact-form";
+import {
+  ContactForm,
+  EMPTY_CONTACT_FORM,
+  toContactInput,
+  type ContactFormValues,
+} from "./contact-form";
 import type { ContactsBootstrap } from "./types";
 
 export function NewContactDialog({
@@ -53,10 +65,19 @@ export function NewContactDialog({
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>New contact</DialogTitle>
-          <DialogDescription>Phones are stored in international format. Existing numbers are rejected to keep one record per patient.</DialogDescription>
+          <DialogDescription>
+            Phones are stored in international format. Existing numbers are rejected to keep one
+            record per patient.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="flex flex-col gap-4">
-          <ContactForm value={values} onChange={setValues} users={bootstrap.users} customFields={bootstrap.customFields} idPrefix="new" />
+          <ContactForm
+            value={values}
+            onChange={setValues}
+            users={bootstrap.users}
+            customFields={bootstrap.customFields}
+            idPrefix="new"
+          />
           {error && (
             <p className="text-destructive text-sm" role="alert">
               {error}

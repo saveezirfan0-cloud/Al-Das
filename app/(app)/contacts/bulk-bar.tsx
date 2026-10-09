@@ -13,14 +13,34 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { CustomFieldDef } from "@/lib/contacts/custom-values";
 import type { SegmentSummary } from "@/lib/contacts/server";
 
-import { bulkSegment, bulkTag, bulkUpdate, createTag, deleteContacts, type BulkPatch } from "./actions";
+import {
+  bulkSegment,
+  bulkTag,
+  bulkUpdate,
+  createTag,
+  deleteContacts,
+  type BulkPatch,
+} from "./actions";
 import { CustomFieldInput } from "./custom-field-input";
 import type { TagOption } from "./types";
 
@@ -91,7 +111,10 @@ export function BulkBar({
         <DropdownMenuContent className="max-h-80 overflow-y-auto">
           <DropdownMenuLabel>Add tag</DropdownMenuLabel>
           {tags.map((t) => (
-            <DropdownMenuItem key={`add-${t.id}`} onClick={() => run(() => bulkTag(ids, t.id, "add"))}>
+            <DropdownMenuItem
+              key={`add-${t.id}`}
+              onClick={() => run(() => bulkTag(ids, t.id, "add"))}
+            >
               {t.name}
             </DropdownMenuItem>
           ))}
@@ -99,7 +122,10 @@ export function BulkBar({
           <DropdownMenuSeparator />
           <DropdownMenuLabel>Remove tag</DropdownMenuLabel>
           {tags.map((t) => (
-            <DropdownMenuItem key={`rm-${t.id}`} onClick={() => run(() => bulkTag(ids, t.id, "remove"))}>
+            <DropdownMenuItem
+              key={`rm-${t.id}`}
+              onClick={() => run(() => bulkTag(ids, t.id, "remove"))}
+            >
               {t.name}
             </DropdownMenuItem>
           ))}
@@ -113,10 +139,17 @@ export function BulkBar({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="max-h-80 overflow-y-auto">
-          {segments.length === 0 && <DropdownMenuLabel className="text-muted-foreground font-normal">Create a static segment first.</DropdownMenuLabel>}
+          {segments.length === 0 && (
+            <DropdownMenuLabel className="text-muted-foreground font-normal">
+              Create a static segment first.
+            </DropdownMenuLabel>
+          )}
           {segments.length > 0 && <DropdownMenuLabel>Add to segment</DropdownMenuLabel>}
           {segments.map((s) => (
-            <DropdownMenuItem key={`add-${s.id}`} onClick={() => run(() => bulkSegment(ids, s.id, "add"))}>
+            <DropdownMenuItem
+              key={`add-${s.id}`}
+              onClick={() => run(() => bulkSegment(ids, s.id, "add"))}
+            >
               {s.name}
             </DropdownMenuItem>
           ))}
@@ -125,7 +158,10 @@ export function BulkBar({
               <DropdownMenuSeparator />
               <DropdownMenuLabel>Remove from segment</DropdownMenuLabel>
               {segments.map((s) => (
-                <DropdownMenuItem key={`rm-${s.id}`} onClick={() => run(() => bulkSegment(ids, s.id, "remove"))}>
+                <DropdownMenuItem
+                  key={`rm-${s.id}`}
+                  onClick={() => run(() => bulkSegment(ids, s.id, "remove"))}
+                >
                   {s.name}
                 </DropdownMenuItem>
               ))}
@@ -143,19 +179,29 @@ export function BulkBar({
         <DropdownMenuContent className="max-h-80 overflow-y-auto">
           <DropdownMenuLabel>Set owner</DropdownMenuLabel>
           {users.map((u) => (
-            <DropdownMenuItem key={`own-${u.id}`} onClick={() => run(() => bulkUpdate(ids, { owner_id: u.id }))}>
+            <DropdownMenuItem
+              key={`own-${u.id}`}
+              onClick={() => run(() => bulkUpdate(ids, { owner_id: u.id }))}
+            >
               {u.label}
             </DropdownMenuItem>
           ))}
-          <DropdownMenuItem onClick={() => run(() => bulkUpdate(ids, { owner_id: null }))}>No owner</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => run(() => bulkUpdate(ids, { owner_id: null }))}>
+            No owner
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuLabel>Set assignee</DropdownMenuLabel>
           {users.map((u) => (
-            <DropdownMenuItem key={`as-${u.id}`} onClick={() => run(() => bulkUpdate(ids, { assignee_id: u.id }))}>
+            <DropdownMenuItem
+              key={`as-${u.id}`}
+              onClick={() => run(() => bulkUpdate(ids, { assignee_id: u.id }))}
+            >
               {u.label}
             </DropdownMenuItem>
           ))}
-          <DropdownMenuItem onClick={() => run(() => bulkUpdate(ids, { assignee_id: null }))}>Unassigned</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => run(() => bulkUpdate(ids, { assignee_id: null }))}>
+            Unassigned
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -169,22 +215,39 @@ export function BulkBar({
         className="text-destructive ml-auto"
         disabled={pending}
         onClick={() => {
-          if (confirm(`Delete ${ids.length} contact${ids.length === 1 ? "" : "s"}? They disappear from lists and campaigns; history is kept.`)) run(() => deleteContacts(ids));
+          if (
+            confirm(
+              `Delete ${ids.length} contact${ids.length === 1 ? "" : "s"}? They disappear from lists and campaigns; history is kept.`,
+            )
+          )
+            run(() => deleteContacts(ids));
         }}
       >
         <Trash2 /> Delete
       </Button>
       {pending && <Loader2 className="size-4 animate-spin" />}
 
-      <BulkEditDialog open={editOpen} onOpenChange={setEditOpen} customFields={customFields} onSubmit={(patch) => run(() => bulkUpdate(ids, patch))} />
+      <BulkEditDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        customFields={customFields}
+        onSubmit={(patch) => run(() => bulkUpdate(ids, patch))}
+      />
 
       <Dialog open={newTagOpen} onOpenChange={setNewTagOpen}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>New tag</DialogTitle>
-            <DialogDescription>The tag is created and added to the selected contacts.</DialogDescription>
+            <DialogDescription>
+              The tag is created and added to the selected contacts.
+            </DialogDescription>
           </DialogHeader>
-          <Input value={newTag} onChange={(e) => setNewTag(e.target.value)} placeholder="Tag name" aria-label="Tag name" />
+          <Input
+            value={newTag}
+            onChange={(e) => setNewTag(e.target.value)}
+            placeholder="Tag name"
+            aria-label="Tag name"
+          />
           <DialogFooter>
             <Button
               disabled={!newTag.trim() || pending}
@@ -229,12 +292,15 @@ function BulkEditDialog({
     { key: "label", label: "Label" },
     ...customFields.map((f) => ({ key: `custom.${f.key}`, label: f.label })),
   ];
-  const custom = field.startsWith("custom.") ? customFields.find((f) => f.key === field.slice(7)) : null;
+  const custom = field.startsWith("custom.")
+    ? customFields.find((f) => f.key === field.slice(7))
+    : null;
 
   function submit() {
     let patch: BulkPatch;
     if (custom) patch = { custom: { [custom.key]: value === "" ? null : value } };
-    else if (field === "promotions_opt_in" || field === "stop_marketing") patch = { [field]: value === true || value === "true" } as BulkPatch;
+    else if (field === "promotions_opt_in" || field === "stop_marketing")
+      patch = { [field]: value === true || value === "true" } as BulkPatch;
     else patch = { [field]: (value as string) || null } as BulkPatch;
     onSubmit(patch);
     onOpenChange(false);
@@ -284,7 +350,11 @@ function BulkEditDialog({
                 </SelectContent>
               </Select>
             ) : (
-              <Input value={String(value ?? "")} onChange={(e) => setValue(e.target.value)} placeholder="Leave empty to clear" />
+              <Input
+                value={String(value ?? "")}
+                onChange={(e) => setValue(e.target.value)}
+                placeholder="Leave empty to clear"
+              />
             )}
           </div>
         </div>

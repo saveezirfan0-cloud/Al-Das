@@ -5,9 +5,22 @@ import { FileUp, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { CustomFieldDef } from "@/lib/contacts/custom-values";
 import { guessMapping, IMPORTABLE_FIELDS } from "@/lib/contacts/fields";
 import { prepareImport, type PreparedRow, type PrepareSummary } from "@/lib/contacts/import";
@@ -29,12 +42,17 @@ export function ImportDialog({
   customFields: CustomFieldDef[];
   onDone: () => void;
 }) {
-  const [step, setStep] = React.useState<"upload" | "map" | "review" | "running" | "done">("upload");
+  const [step, setStep] = React.useState<"upload" | "map" | "review" | "running" | "done">(
+    "upload",
+  );
   const [csv, setCsv] = React.useState<ParsedCsv | null>(null);
   const [fileName, setFileName] = React.useState("");
   const [mapping, setMapping] = React.useState<Record<string, string | null>>({});
   const [mode, setMode] = React.useState<"skip" | "update">("skip");
-  const [prepared, setPrepared] = React.useState<{ rows: PreparedRow[]; summary: PrepareSummary } | null>(null);
+  const [prepared, setPrepared] = React.useState<{
+    rows: PreparedRow[];
+    summary: PrepareSummary;
+  } | null>(null);
   const [progress, setProgress] = React.useState(0);
   const [result, setResult] = React.useState<ImportChunkResult | null>(null);
   const [error, setError] = React.useState<string | null>(null);
@@ -122,30 +140,47 @@ export function ImportDialog({
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>Import contacts from CSV</DialogTitle>
-          <DialogDescription>Phones are validated and normalised to international format. Rows are matched to existing contacts by phone, then external ID.</DialogDescription>
+          <DialogDescription>
+            Phones are validated and normalised to international format. Rows are matched to
+            existing contacts by phone, then external ID.
+          </DialogDescription>
         </DialogHeader>
 
         {step === "upload" && (
           <label className="hover:bg-accent/50 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed p-10 text-center text-sm">
             <FileUp className="text-muted-foreground size-6" />
             <span>Choose a CSV file (first row = headers)</span>
-            <span className="text-muted-foreground text-xs">Sanoflow exports and plain spreadsheets both work.</span>
-            <input type="file" accept=".csv,text/csv" className="sr-only" onChange={(e) => e.target.files?.[0] && void onFile(e.target.files[0])} />
+            <span className="text-muted-foreground text-xs">
+              Sanoflow exports and plain spreadsheets both work.
+            </span>
+            <input
+              type="file"
+              accept=".csv,text/csv"
+              className="sr-only"
+              onChange={(e) => e.target.files?.[0] && void onFile(e.target.files[0])}
+            />
           </label>
         )}
 
         {step === "map" && csv && (
           <div className="flex flex-col gap-3">
             <p className="text-sm">
-              <strong>{fileName}</strong>: {csv.rows.length.toLocaleString()} rows. Match each column to a contact field.
+              <strong>{fileName}</strong>: {csv.rows.length.toLocaleString()} rows. Match each
+              column to a contact field.
             </p>
             <div className="grid gap-2 sm:grid-cols-2">
               {csv.headers.map((h) => (
                 <div key={h} className="grid gap-1">
                   <Label className="truncate text-xs" title={h}>
-                    {h} <span className="text-muted-foreground font-normal">e.g. {csv.rows[0]?.[csv.headers.indexOf(h)] || "—"}</span>
+                    {h}{" "}
+                    <span className="text-muted-foreground font-normal">
+                      e.g. {csv.rows[0]?.[csv.headers.indexOf(h)] || "—"}
+                    </span>
                   </Label>
-                  <Select value={mapping[h] ?? SKIP} onValueChange={(v) => setMapping({ ...mapping, [h]: v === SKIP ? null : v })}>
+                  <Select
+                    value={mapping[h] ?? SKIP}
+                    onValueChange={(v) => setMapping({ ...mapping, [h]: v === SKIP ? null : v })}
+                  >
                     <SelectTrigger className="w-full">
                       <SelectValue />
                     </SelectTrigger>
@@ -180,8 +215,16 @@ export function ImportDialog({
             <div className="grid grid-cols-4 gap-2">
               <Stat label="Rows" value={prepared.summary.total} />
               <Stat label="Ready" value={prepared.summary.ok} tone="good" />
-              <Stat label="Invalid" value={prepared.summary.invalid} tone={prepared.summary.invalid ? "bad" : undefined} />
-              <Stat label="Duplicates in file" value={prepared.summary.duplicates} tone={prepared.summary.duplicates ? "warn" : undefined} />
+              <Stat
+                label="Invalid"
+                value={prepared.summary.invalid}
+                tone={prepared.summary.invalid ? "bad" : undefined}
+              />
+              <Stat
+                label="Duplicates in file"
+                value={prepared.summary.duplicates}
+                tone={prepared.summary.duplicates ? "warn" : undefined}
+              />
             </div>
             {prepared.summary.invalid + prepared.summary.duplicates > 0 && (
               <div className="max-h-56 overflow-y-auto rounded-md border">
@@ -199,14 +242,21 @@ export function ImportDialog({
                       .map((r) => (
                         <tr key={r.line} className="border-t">
                           <td className="px-2 py-1 tabular-nums">{r.line}</td>
-                          <td className="px-2 py-1">{r.status === "duplicate" ? `Duplicate of line ${r.duplicateOf} (skipped)` : r.errors.join("; ")}</td>
+                          <td className="px-2 py-1">
+                            {r.status === "duplicate"
+                              ? `Duplicate of line ${r.duplicateOf} (skipped)`
+                              : r.errors.join("; ")}
+                          </td>
                         </tr>
                       ))}
                   </tbody>
                 </table>
               </div>
             )}
-            <p className="text-muted-foreground text-xs">Invalid and duplicate rows are skipped. Existing contacts are {mode === "skip" ? "left untouched" : "updated with non-empty values"}.</p>
+            <p className="text-muted-foreground text-xs">
+              Invalid and duplicate rows are skipped. Existing contacts are{" "}
+              {mode === "skip" ? "left untouched" : "updated with non-empty values"}.
+            </p>
           </div>
         )}
 
@@ -267,8 +317,23 @@ export function ImportDialog({
   );
 }
 
-function Stat({ label, value, tone }: { label: string; value: number; tone?: "good" | "warn" | "bad" }) {
-  const color = tone === "good" ? "text-emerald-600" : tone === "warn" ? "text-amber-600" : tone === "bad" ? "text-destructive" : "";
+function Stat({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone?: "good" | "warn" | "bad";
+}) {
+  const color =
+    tone === "good"
+      ? "text-emerald-600"
+      : tone === "warn"
+        ? "text-amber-600"
+        : tone === "bad"
+          ? "text-destructive"
+          : "";
   return (
     <div className="rounded-md border p-2">
       <div className="text-muted-foreground text-xs">{label}</div>

@@ -12,7 +12,11 @@ import { formatPhone } from "@/lib/phone";
 import { listDuplicates, type DuplicatePair } from "./actions";
 import { MergeDialog } from "./merge-dialog";
 
-const REASONS: Record<string, string> = { email: "Same email", name_dob: "Same name and date of birth", phone: "Shared phone number" };
+const REASONS: Record<string, string> = {
+  email: "Same email",
+  name_dob: "Same name and date of birth",
+  phone: "Shared phone number",
+};
 
 export function DuplicatesPanel({
   timezone,
@@ -45,12 +49,19 @@ export function DuplicatesPanel({
   }, [load]);
 
   const card = (c: DuplicatePair["a"]) => (
-    <button type="button" onClick={() => onOpenContact(c.id)} className="hover:bg-accent flex min-w-0 flex-1 flex-col rounded-md border p-2 text-left text-sm">
+    <button
+      type="button"
+      onClick={() => onOpenContact(c.id)}
+      className="hover:bg-accent flex min-w-0 flex-1 flex-col rounded-md border p-2 text-left text-sm"
+    >
       <span className="truncate font-medium">{displayName(c)}</span>
       <span className="text-muted-foreground truncate text-xs">
-        {formatPhone(c.phone_e164) || "no phone"} {c.email && `· ${c.email}`} {c.dob && `· ${formatDate(c.dob)}`}
+        {formatPhone(c.phone_e164) || "no phone"} {c.email && `· ${c.email}`}{" "}
+        {c.dob && `· ${formatDate(c.dob)}`}
       </span>
-      <span className="text-muted-foreground text-xs">Created {formatDate(c.created_at, timezone)}</span>
+      <span className="text-muted-foreground text-xs">
+        Created {formatDate(c.created_at, timezone)}
+      </span>
     </button>
   );
 
@@ -59,7 +70,9 @@ export function DuplicatesPanel({
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-medium">Possible duplicates</h3>
-          <p className="text-muted-foreground text-sm">Pairs that share an email, a name and date of birth, or a phone number.</p>
+          <p className="text-muted-foreground text-sm">
+            Pairs that share an email, a name and date of birth, or a phone number.
+          </p>
         </div>
         <Button variant="outline" size="sm" onClick={load} disabled={loading}>
           <RefreshCw className={loading ? "animate-spin" : ""} /> Refresh
@@ -68,11 +81,16 @@ export function DuplicatesPanel({
       {pairs === null ? (
         <Loader2 className="text-muted-foreground size-5 animate-spin" />
       ) : pairs.length === 0 ? (
-        <p className="text-muted-foreground rounded-xl border border-dashed p-10 text-center text-sm">No duplicates found.</p>
+        <p className="text-muted-foreground rounded-xl border border-dashed p-10 text-center text-sm">
+          No duplicates found.
+        </p>
       ) : (
         <ul className="flex flex-col gap-2">
           {pairs.map((p) => (
-            <li key={`${p.a.id}-${p.b.id}`} className="flex flex-wrap items-center gap-2 rounded-lg border p-2">
+            <li
+              key={`${p.a.id}-${p.b.id}`}
+              className="flex flex-wrap items-center gap-2 rounded-lg border p-2"
+            >
               <Badge variant="secondary" className="w-44 justify-center">
                 {REASONS[p.reason] ?? p.reason}
               </Badge>

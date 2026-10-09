@@ -1,0 +1,19 @@
+{
+  "object": "whatsapp_business_account",
+  "entry": [
+    {
+      "id": "200000000000001",
+      "changes": [
+        {
+          "field": "phone_number_quality_update",
+          "value": {
+            "display_phone_number": "+971 4 000 0000",
+            "event": "DOWNGRADE",
+            "current_limit": "TIER_1K",
+            "old_limit": "TIER_10K"
+          }
+        }
+      ]
+    }
+  ]
+}
