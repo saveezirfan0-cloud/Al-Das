@@ -26,6 +26,7 @@ export type TaskInput = {
   assigneeId?: string | null;
   contactId?: string | null;
   enquiryId?: string | null;
+  appointmentId?: string | null;
 };
 
 function dbError(error: { code?: string; message: string }, fallback: string): TaskError {
@@ -74,9 +75,10 @@ export async function createTask(ctx: TaskCtx, input: TaskInput): Promise<{ id: 
       assignee_id: input.assigneeId === undefined ? ctx.userId : input.assigneeId,
       contact_id: input.contactId ?? null,
       enquiry_id: input.enquiryId ?? null,
+      appointment_id: input.appointmentId ?? null,
       created_by: ctx.userId,
     })
-    .select("id, due_at, done, assignee_id")
+    .select("id, due_at, done, assignee_id, contact_id, enquiry_id")
     .single();
   if (error || !data) throw dbError(error ?? { message: "no row" }, "Could not create the task.");
   await scheduleReminder(ctx, data);
@@ -89,6 +91,8 @@ export async function createTask(ctx: TaskCtx, input: TaskInput): Promise<{ id: 
   });
   await emit(ctx.orgId, "task.created", {
     task_id: data.id,
+    enquiry_id: data.enquiry_id,
+    contact_id: data.contact_id,
     assignee_id: data.assignee_id,
     actor_id: ctx.userId,
   });
@@ -151,12 +155,14 @@ export async function setTasksDone(ctx: TaskCtx, ids: string[], done: boolean): 
     .eq("org_id", ctx.orgId)
     .in("id", ids)
     .eq("done", !done)
-    .select("id, due_at, done, assignee_id");
+    .select("id, due_at, done, assignee_id, contact_id, enquiry_id");
   if (error) throw dbError(error, "Could not update the tasks.");
   for (const t of data ?? []) {
     if (done) {
       await emit(ctx.orgId, "task.completed", {
         task_id: t.id,
+        enquiry_id: t.enquiry_id,
+        contact_id: t.contact_id,
         assignee_id: t.assignee_id,
         actor_id: ctx.userId,
       });

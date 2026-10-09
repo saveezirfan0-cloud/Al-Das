@@ -24,6 +24,7 @@ const SCOPE_REQUIRES: Record<ApiKeyScope, string> = {
   "contacts:write": "contacts.manage",
   "appointments:read": "appointments.view",
   "enquiries:read": "enquiries.view",
+  "tasks:read": "tasks.view",
   "messages:send_template": "inbox.send",
 };
 

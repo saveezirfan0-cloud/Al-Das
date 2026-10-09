@@ -197,7 +197,13 @@ export async function createEnquiry(ctx: Ctx, input: EnquiryCreate): Promise<{ i
     entityId: data.id,
     diff: { number: data.number, pipeline_id: pipeline.id },
   });
-  const base = { enquiry_id: data.id, number: data.number, title: input.title, actor_id: ctx.userId };
+  const base = {
+    enquiry_id: data.id,
+    contact_id: input.contactId ?? null,
+    number: data.number,
+    title: input.title,
+    actor_id: ctx.userId,
+  };
   await emit(ctx.orgId, "enquiry.created", { ...base, pipeline_id: pipeline.id, stage_id: stage.id });
   if (assigneeId) await emit(ctx.orgId, "enquiry.assigned", { ...base, assignee_id: assigneeId, by: assignedBy });
 
@@ -283,6 +289,7 @@ export async function updateEnquiry(ctx: Ctx, id: string, patch: EnquiryPatch): 
   if (assigneeChanged && update.assignee_id) {
     await emit(ctx.orgId, "enquiry.assigned", {
       enquiry_id: id,
+      contact_id: (update.contact_id as string | null | undefined) ?? before.contact_id,
       number: before.number,
       title: (update.title as string | undefined) ?? before.title,
       assignee_id: update.assignee_id,
@@ -320,6 +327,7 @@ export async function moveStage(ctx: Ctx, id: string, stageId: string): Promise<
   });
   await emit(ctx.orgId, "enquiry.stage_changed", {
     enquiry_id: id,
+    contact_id: e.contact_id,
     number: e.number,
     title: e.title,
     assignee_id: e.assignee_id,
@@ -362,6 +370,7 @@ export async function setStatus(ctx: Ctx, id: string, status: EnquiryStatus, rea
     title: e.title,
     assignee_id: e.assignee_id,
     actor_id: ctx.userId,
+    contact_id: e.contact_id,
     from: e.status,
     to: change.status,
   });
@@ -404,6 +413,7 @@ export async function movePipeline(ctx: Ctx, id: string, pipelineId: string, sta
   });
   await emit(ctx.orgId, "enquiry.pipeline_changed", {
     enquiry_id: id,
+    contact_id: e.contact_id,
     number: e.number,
     title: e.title,
     assignee_id: e.assignee_id,

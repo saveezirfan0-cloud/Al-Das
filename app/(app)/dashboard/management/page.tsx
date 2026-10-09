@@ -113,7 +113,7 @@ export default async function ManagementDashboard({ searchParams }: { searchPara
       )}
 
       {enquiries && (
-        <ReportSection id="enq" title="Enquiries" result={enquiries} kpis={["created", "won", "lost", "conversion", "open"]} charts={[0, 1]} href="/reports/enquiry-funnel" linkLabel="Open the enquiry funnel" />
+        <ReportSection id="enq" title="Enquiries" result={enquiries} kpis={["created", "won", "lost", "conversion", "booked", "open"]} charts={[0, 1]} href="/reports/enquiry-funnel" linkLabel="Open the enquiry funnel" />
       )}
       {appointments && (
         <ReportSection id="appts" title="Appointments" result={appointments} kpis={["total", "completed", "no_show", "rate"]} charts={[0, 1]} href="/reports/appointments" linkLabel="Open the appointments report" />
@@ -127,7 +127,6 @@ export default async function ManagementDashboard({ searchParams }: { searchPara
           Arriving with other modules
         </h3>
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-          <AwaitingCard title="Conversion to appointments" phase="Phase 5 (enquiries)" detail="Needs enquiries to link a first contact to a booking." />
           <AwaitingCard title="WhatsApp cost" phase="Meta pricing analytics ingestion" detail="Message counts by type are shown above." />
         </div>
       </section>

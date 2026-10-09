@@ -7376,6 +7376,7 @@ export type Database = {
       };
       tasks: {
         Row: {
+          appointment_id: string | null;
           assignee_id: string | null;
           completed_by: string | null;
           contact_id: string | null;
@@ -7395,6 +7396,7 @@ export type Database = {
         };
         ComputedFields: never;
         Insert: {
+          appointment_id?: string | null;
           assignee_id?: string | null;
           completed_by?: string | null;
           contact_id?: string | null;
@@ -7413,6 +7415,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          appointment_id?: string | null;
           assignee_id?: string | null;
           completed_by?: string | null;
           contact_id?: string | null;
@@ -7431,6 +7434,20 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "tasks_appointment_id_fkey";
+            columns: ["appointment_id"];
+            isOneToOne: false;
+            referencedRelation: "appointments";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tasks_appointment_id_fkey";
+            columns: ["appointment_id"];
+            isOneToOne: false;
+            referencedRelation: "v_appointment_facts";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "tasks_assignee_id_fkey";
             columns: ["assignee_id"];
@@ -10290,6 +10307,13 @@ export type Database = {
           open_now: number;
           won: number;
           won_value: number;
+        }[];
+      };
+      report_enquiry_booking_conversion: {
+        Args: { p_from: string; p_org: string; p_to: string };
+        Returns: {
+          booked: number;
+          created: number;
         }[];
       };
       report_enquiry_funnel: {

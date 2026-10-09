@@ -56,7 +56,7 @@ async function handleTaskDue(
 ): Promise<string> {
   const { data: task } = await admin
     .from("tasks")
-    .select("id, subject, done, due_at, assignee_id, created_by, enquiry_id, due_notified_for")
+    .select("id, subject, done, due_at, assignee_id, created_by, enquiry_id, contact_id, due_notified_for")
     .eq("org_id", orgId)
     .eq("id", p.task_id)
     .maybeSingle();
@@ -74,7 +74,12 @@ async function handleTaskDue(
     payload: { task_id: task.id, enquiry_id: task.enquiry_id },
   });
   await admin.from("tasks").update({ due_notified_for: task.due_at }).eq("id", task.id).eq("org_id", orgId);
-  await emit(orgId, "task.due", { task_id: task.id, assignee_id: userId });
+  await emit(orgId, "task.due", {
+    task_id: task.id,
+    enquiry_id: task.enquiry_id,
+    contact_id: task.contact_id,
+    assignee_id: userId,
+  });
   return "notified";
 }
 
