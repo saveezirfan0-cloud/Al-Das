@@ -11,6 +11,7 @@ alter table public.wa_templates
   add column last_error text,                         -- Meta's answer when a submit/edit failed (redacted)
   add column last_edited_at timestamptz,              -- Meta limits how often an approved template can be edited
   add column header_sample_path text,                 -- <org_id>/<template_id>/<file> in wa-template-media
+  add column card_sample_paths jsonb not null default '[]'::jsonb,  -- carousel: one stored sample path (or null) per card
   add column needs_review boolean not null default false,  -- machine-written copy (Arabic gallery) must be checked by a person before submit
   add column reviewed_at timestamptz,
   add column reviewed_by uuid references public.profiles (id) on delete set null;

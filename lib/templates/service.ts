@@ -53,12 +53,17 @@ export type Ctx = {
 };
 
 export type Result<T = object> =
-  ({ ok: true } & T) | { ok: false; error: string; issues?: Issue[] };
+  ({ ok: true } & T) | { ok: false; error: string; issues?: Issue[]; confirm?: boolean };
 
 const fail = (error: string, issues?: Issue[]): { ok: false; error: string; issues?: Issue[] } => ({
   ok: false,
   error,
   issues,
+});
+const needsConfirm = (error: string): { ok: false; error: string; confirm: true } => ({
+  ok: false,
+  error,
+  confirm: true,
 });
 const nowIso = (ctx: Ctx) => new Date(ctx.now?.() ?? Date.now()).toISOString();
 
@@ -95,6 +100,15 @@ function metaErrorText(err: unknown): string {
   return redactText(err, 300);
 }
 
+/** A stored sample path is only trusted if it lives under this org and this template. */
+export function ownSamplePath(orgId: string, templateId: string, p: unknown): string | undefined {
+  if (typeof p !== "string") return undefined;
+  const prefix = `${orgId}/${templateId}/`;
+  if (!p.startsWith(prefix) || p.includes("..") || p.includes("//") || p.length > 300)
+    return undefined;
+  return /^[A-Za-z0-9._\-/]+$/.test(p) ? p : undefined;
+}
+
 function toDraft(t: TemplateRecord): TemplateDraft {
   const d = componentsToDraft(t.components as unknown as MetaTemplateComponent[], {
     name: t.name,
@@ -108,7 +122,41 @@ function toDraft(t: TemplateRecord): TemplateDraft {
     (d.header.format === "IMAGE" || d.header.format === "VIDEO" || d.header.format === "DOCUMENT")
   )
     d.header = { ...d.header, samplePath: t.header_sample_path };
+  const cardPaths = Array.isArray(t.card_sample_paths) ? (t.card_sample_paths as unknown[]) : [];
+  d.cards = d.cards.map((c, i) => ({
+    ...c,
+    header: {
+      ...c.header,
+      samplePath: typeof cardPaths[i] === "string" ? (cardPaths[i] as string) : undefined,
+    },
+  }));
   return d;
+}
+
+/** Replaces any sample paths a client sent with ones this org owns for this template. */
+function trustSamples(
+  ctx: Ctx,
+  row: Pick<TemplateRecord, "id" | "header_sample_path" | "card_sample_paths">,
+  d: TemplateDraft,
+): TemplateDraft {
+  const out: TemplateDraft = JSON.parse(JSON.stringify(d));
+  if (
+    out.header.format === "IMAGE" ||
+    out.header.format === "VIDEO" ||
+    out.header.format === "DOCUMENT"
+  )
+    out.header = {
+      ...out.header,
+      samplePath: ownSamplePath(ctx.orgId, row.id, row.header_sample_path),
+    };
+  const stored = Array.isArray(row.card_sample_paths) ? (row.card_sample_paths as unknown[]) : [];
+  out.cards = out.cards.map((c, i) => {
+    const claimed = c.header.samplePath;
+    const trusted =
+      ownSamplePath(ctx.orgId, row.id, claimed) ?? ownSamplePath(ctx.orgId, row.id, stored[i]);
+    return { ...c, header: { ...c.header, samplePath: trusted } };
+  });
+  return out;
 }
 
 function rowFields(d: TemplateDraft) {
@@ -122,6 +170,7 @@ function rowFields(d: TemplateDraft) {
     components: draftToComponents(d) as unknown as NonNullable<Json>,
     variable_map: map as NonNullable<Json>,
     parameter_format: "positional",
+    card_sample_paths: d.cards.map((c) => c.header.samplePath ?? null) as NonNullable<Json>,
   };
 }
 
@@ -154,10 +203,11 @@ export async function saveDraft(
     if (locked.includes("language") && draft.language !== row.language)
       return fail("The language cannot change once the template has been sent to Meta.");
     const sample = row.header_sample_path;
+    const trusted = trustSamples(ctx, row, draft);
     const { error } = await ctx.admin
       .from("wa_templates")
       .update({
-        ...rowFields(draft),
+        ...rowFields(trusted),
         ...(locked.includes("channel") ? {} : { channel_id: channel.id, waba_id: channel.waba_id }),
         header_sample_path: sample,
         last_error: null,
@@ -249,6 +299,53 @@ export async function attachHeaderSample(
   return { ok: true, path };
 }
 
+/** Stores the sample for one carousel card (same rules as the header sample). */
+export async function attachCardSample(
+  ctx: Ctx,
+  id: string,
+  index: number,
+  file: { data: Uint8Array; mimeType: string; filename: string },
+): Promise<Result<{ path: string }>> {
+  const row = await loadTemplate(ctx, id);
+  if (!row) return fail("Save the template first, then attach the sample.");
+  const draft = toDraft(row);
+  const card = draft.cards[index];
+  if (!card) return fail("That card does not exist. Save the template first.");
+  const problem = checkSampleFile(card.header.format, {
+    mimeType: file.mimeType,
+    size: file.data.byteLength,
+  });
+  if (problem) return fail(problem);
+  const ext = file.mimeType.split("/")[1].replace("jpeg", "jpg");
+  const path = `${ctx.orgId}/${row.id}/card${index}-${randomUUID()}.${ext}`;
+  const up = await ctx.admin.storage
+    .from(SAMPLE_BUCKET)
+    .upload(path, file.data, { contentType: file.mimeType, upsert: false });
+  if (up.error) return fail("Could not store the sample file.");
+  const paths = Array.isArray(row.card_sample_paths)
+    ? [...(row.card_sample_paths as unknown[])]
+    : [];
+  const old = paths[index];
+  paths[index] = path;
+  while (paths.length < draft.cards.length) paths.push(null);
+  if (typeof old === "string") await ctx.admin.storage.from(SAMPLE_BUCKET).remove([old]);
+  const { error } = await ctx.admin
+    .from("wa_templates")
+    .update({ card_sample_paths: paths as NonNullable<Json> })
+    .eq("id", row.id)
+    .eq("org_id", ctx.orgId);
+  if (error) return fail("Could not attach the sample file.");
+  await recordAudit(ctx.admin, {
+    orgId: ctx.orgId,
+    userId: ctx.userId,
+    action: "template.sample_attached",
+    entity: "template",
+    entityId: row.id,
+    diff: { card: index },
+  });
+  return { ok: true, path };
+}
+
 // ---------------------------------------------------------------------------
 // Submit / edit on Meta
 // ---------------------------------------------------------------------------
@@ -275,7 +372,7 @@ export async function submitTemplate(
   if (!channel) return fail("This template is not attached to a WhatsApp number.");
   if (channel.status !== "active") return fail("That WhatsApp number is paused or disconnected.");
 
-  const draft = draftOverride ?? toDraft(row);
+  const draft = trustSamples(ctx, row, draftOverride ?? toDraft(row));
   if (draftOverride) {
     const locked = lockedFields(row);
     if (locked.includes("name") && draft.name !== row.name)
@@ -320,8 +417,23 @@ export async function submitTemplate(
       }
     }
     for (const card of draft.cards) {
-      if (card.header.samplePath && !card.header.handle)
-        return fail("Card samples are uploaded from the builder before submitting.");
+      const path = card.header.samplePath;
+      if (!path) continue;
+      const dl = await ctx.admin.storage.from(SAMPLE_BUCKET).download(path);
+      if (dl.error || !dl.data) return fail("A card sample file is missing. Upload it again.");
+      const bytes = new Uint8Array(await dl.data.arrayBuffer());
+      const mime =
+        card.header.format === "VIDEO"
+          ? "video/mp4"
+          : path.endsWith(".png")
+            ? "image/png"
+            : "image/jpeg";
+      const up = await meta.uploadTemplateSample(ctx.appId ?? process.env.META_APP_ID ?? "", {
+        data: bytes,
+        mimeType: mime,
+        filename: path.split("/").pop(),
+      });
+      card.header = { ...card.header, handle: up.handle };
     }
 
     const check = validateDraft(draft);
@@ -430,13 +542,18 @@ export async function duplicateTemplate(
     .replace(/[^a-z0-9_]+/g, "_")
     .slice(0, 512);
   draft.language = to.language ?? row.language;
-  // Handles are tied to the app and expire; the stored sample file is what carries over.
+  // Handles are tied to the app and expire; the stored sample files are what carries over (copied below).
+  const fromHeader = row.header_sample_path;
+  const fromCards = Array.isArray(row.card_sample_paths)
+    ? (row.card_sample_paths as unknown[])
+    : [];
   if (
     draft.header.format === "IMAGE" ||
     draft.header.format === "VIDEO" ||
     draft.header.format === "DOCUMENT"
   )
-    draft.header = { format: draft.header.format, samplePath: row.header_sample_path ?? undefined };
+    draft.header = { format: draft.header.format };
+  draft.cards = draft.cards.map((c) => ({ ...c, header: { format: c.header.format } }));
   const { data, error } = await ctx.admin
     .from("wa_templates")
     .insert({
@@ -445,7 +562,6 @@ export async function duplicateTemplate(
       waba_id: channel.waba_id,
       status: "DRAFT",
       source: "local",
-      header_sample_path: row.header_sample_path,
       needs_review: row.needs_review,
       ...rowFields(draft),
     })
@@ -457,6 +573,30 @@ export async function duplicateTemplate(
         ? "A template with that name and language already exists on that number. Pick another name."
         : "Could not duplicate the template.",
     );
+
+  const copy = async (from: unknown, tag: string): Promise<string | null> => {
+    const src = ownSamplePath(ctx.orgId, row.id, from);
+    if (!src) return null;
+    const dl = await ctx.admin.storage.from(SAMPLE_BUCKET).download(src);
+    if (dl.error || !dl.data) return null;
+    const dest = `${ctx.orgId}/${data.id}/${tag}-${randomUUID()}.${src.split(".").pop()}`;
+    const up = await ctx.admin.storage
+      .from(SAMPLE_BUCKET)
+      .upload(dest, new Uint8Array(await dl.data.arrayBuffer()), { upsert: false });
+    return up.error ? null : dest;
+  };
+  const headerCopy = await copy(fromHeader, "header");
+  const cardCopies = await Promise.all(fromCards.map((p, i) => copy(p, `card${i}`)));
+  if (headerCopy || cardCopies.some(Boolean)) {
+    await ctx.admin
+      .from("wa_templates")
+      .update({
+        header_sample_path: headerCopy,
+        card_sample_paths: cardCopies as NonNullable<Json>,
+      })
+      .eq("id", data.id)
+      .eq("org_id", ctx.orgId);
+  }
   await recordAudit(ctx.admin, {
     orgId: ctx.orgId,
     userId: ctx.userId,
@@ -504,10 +644,7 @@ export async function setArchived(
   if (archived) {
     const usage = await templateUsage(ctx, row);
     if (isInUse(usage) && !force)
-      return {
-        ok: false,
-        error: `This template is ${usageSummary(usage).join("; ")}. Archive it anyway?`,
-      };
+      return needsConfirm(`This template is ${usageSummary(usage).join("; ")}. Archive it anyway?`);
   }
   const { error } = await ctx.admin
     .from("wa_templates")
@@ -535,10 +672,7 @@ export async function deleteTemplate(
   if (!row) return fail("Template not found.");
   const usage = await templateUsage(ctx, row);
   if (isInUse(usage) && !force)
-    return {
-      ok: false,
-      error: `This template is ${usageSummary(usage).join("; ")}. Delete it anyway?`,
-    };
+    return needsConfirm(`This template is ${usageSummary(usage).join("; ")}. Delete it anyway?`);
 
   if (canHardDelete(row, usage)) {
     if (row.header_sample_path)

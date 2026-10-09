@@ -3,7 +3,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { emptyDraft, type TemplateDraft } from "@/lib/whatsapp/template-draft";
 import { WhatsAppApiError } from "@/lib/whatsapp/errors";
 import {
+  attachCardSample,
   attachHeaderSample,
+  ownSamplePath,
   deleteTemplate,
   duplicateTemplate,
   installGallery,
@@ -425,8 +427,11 @@ describe("duplicate, archive, delete", () => {
       name: "reminder_copy_",
       language: "ar",
       status: "DRAFT",
-      header_sample_path: templates()[0].header_sample_path,
     });
+    // the sample is copied into the new template's own folder, so the copy can be submitted on its own
+    expect(String(copy.header_sample_path)).toMatch(new RegExp(`^${ORG}/${String(copy.id)}/`));
+    expect(copy.header_sample_path).not.toBe(templates()[0].header_sample_path);
+    expect(db.files.size).toBe(2);
     expect(copy.meta_template_id ?? null).toBeNull();
     expect(audited("template.duplicated")).toBe(1);
     expect(
@@ -548,5 +553,116 @@ describe("installGallery", () => {
     expect(await installGallery(ctx(), CH_OTHER, ["appointment_reminder:en"])).toMatchObject({
       ok: false,
     });
+  });
+});
+
+describe("sample paths are never trusted from the browser", () => {
+  it("only accepts paths under this org and template", () => {
+    const t = "00000000-0000-4000-8000-0000000000f6";
+    expect(ownSamplePath(ORG, t, `${ORG}/${t}/a.png`)).toBe(`${ORG}/${t}/a.png`);
+    expect(ownSamplePath(ORG, t, `${OTHER_ORG}/${t}/a.png`)).toBeUndefined();
+    expect(ownSamplePath(ORG, t, `${ORG}/other-template/a.png`)).toBeUndefined();
+    expect(ownSamplePath(ORG, t, `${ORG}/${t}/../x.png`)).toBeUndefined();
+    expect(ownSamplePath(ORG, t, `${ORG}/${t}//x.png`)).toBeUndefined();
+    expect(ownSamplePath(ORG, t, `${ORG}/${t}/a b.png`)).toBeUndefined();
+    expect(ownSamplePath(ORG, t, 42)).toBeUndefined();
+    expect(ownSamplePath(ORG, t, null)).toBeUndefined();
+  });
+
+  it("a submit with a forged header path uploads nothing from that path", async () => {
+    const id = await createDraft({ header: { format: "IMAGE" } });
+    await attachHeaderSample(ctx(), id, {
+      data: new Uint8Array([1]),
+      mimeType: "image/png",
+      filename: "a.png",
+    });
+    Object.assign(templates()[0], { status: "APPROVED", meta_template_id: "META1" });
+    db.files.set(`wa-template-media/${OTHER_ORG}/x/secret.png`, new Uint8Array([9, 9, 9]));
+    const forged = draft({
+      header: { format: "IMAGE", samplePath: `${OTHER_ORG}/x/secret.png`, handle: "4::stale" },
+    });
+    const r = await submitTemplate(ctx(), id, forged);
+    expect(r.ok).toBe(true);
+    const sent = meta.uploadTemplateSample.mock.calls[0] as unknown as [
+      string,
+      { data: Uint8Array },
+    ];
+    expect(Array.from(sent[1].data)).toEqual([1]); // the template's own sample, not the forged file
+  });
+});
+
+describe("carousel samples", () => {
+  const card = (n: number) => ({
+    header: { format: "IMAGE" as const },
+    body: `Card ${n} describes one of our services.`,
+    bodyExamples: [],
+    buttons: [{ type: "QUICK_REPLY" as const, text: "Book" }],
+  });
+  const carousel = () =>
+    draft({
+      name: "services",
+      kind: "carousel",
+      category: "MARKETING",
+      body: "Our services are below. Reply STOP to opt out.",
+      footer: "",
+      buttons: [],
+      bodyExamples: [],
+      variableMap: {},
+      cards: [card(1), card(2)],
+    });
+
+  it("stores a sample per card, uploads each to Meta on submit and sends the fresh handles", async () => {
+    const id = await createDraft(carousel());
+    expect(
+      (
+        await attachCardSample(ctx(), id, 0, {
+          data: new Uint8Array([1]),
+          mimeType: "image/png",
+          filename: "a.png",
+        })
+      ).ok,
+    ).toBe(true);
+    expect(
+      (
+        await attachCardSample(ctx(), id, 1, {
+          data: new Uint8Array([2]),
+          mimeType: "image/jpeg",
+          filename: "b.jpg",
+        })
+      ).ok,
+    ).toBe(true);
+    expect(
+      await attachCardSample(ctx(), id, 5, {
+        data: new Uint8Array([2]),
+        mimeType: "image/jpeg",
+        filename: "b.jpg",
+      }),
+    ).toMatchObject({ ok: false });
+    meta.uploadTemplateSample
+      .mockResolvedValueOnce({ handle: "4::c0" })
+      .mockResolvedValueOnce({ handle: "4::c1" });
+    const r = await submitTemplate(ctx(), id);
+    expect(r).toMatchObject({ ok: true });
+    expect(meta.uploadTemplateSample).toHaveBeenCalledTimes(2);
+    const [body] = meta.createTemplate.mock.calls[0] as unknown as [
+      {
+        components: Array<{
+          type: string;
+          cards?: Array<{ components: Array<{ example?: { header_handle?: string[] } }> }>;
+        }>;
+      },
+    ];
+    const cards = body.components.find((c) => c.type === "CAROUSEL")!.cards!;
+    expect(cards.map((c) => c.components[0].example?.header_handle?.[0])).toEqual([
+      "4::c0",
+      "4::c1",
+    ]);
+  });
+
+  it("will not submit a carousel whose cards have no sample", async () => {
+    const id = await createDraft(carousel());
+    const r = await submitTemplate(ctx(), id);
+    expect(r).toMatchObject({ ok: false, error: expect.stringContaining("sample") });
+    expect(meta.createTemplate).not.toHaveBeenCalled();
   });
 });

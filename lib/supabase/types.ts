@@ -5052,6 +5052,7 @@ export type Database = {
       wa_templates: {
         Row: {
           archived_at: string | null;
+          card_sample_paths: NonNullable<Json>;
           category: string;
           channel_id: string | null;
           clinical_approval: string;
@@ -5086,6 +5087,7 @@ export type Database = {
         ComputedFields: never;
         Insert: {
           archived_at?: string | null;
+          card_sample_paths?: NonNullable<Json>;
           category?: string;
           channel_id?: string | null;
           clinical_approval?: string;
@@ -5119,6 +5121,7 @@ export type Database = {
         };
         Update: {
           archived_at?: string | null;
+          card_sample_paths?: NonNullable<Json>;
           category?: string;
           channel_id?: string | null;
           clinical_approval?: string;

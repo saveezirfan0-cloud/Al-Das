@@ -7,6 +7,7 @@ import { requirePerm } from "@/lib/auth/session";
 import { checkRateLimit, RATE_RULES, waitText } from "@/lib/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
+  attachCardSample,
   attachHeaderSample,
   deleteTemplate,
   duplicateTemplate,
@@ -100,6 +101,16 @@ export async function uploadHeaderSample(
       filename: file.name.slice(0, 120),
     }),
   );
+}
+
+export async function uploadCardSample(formData: FormData): Promise<ActionResult<{ path: string }>> {
+  const c = await ctx();
+  const id = formData.get("id");
+  const index = Number(formData.get("index"));
+  const file = formData.get("file");
+  if (typeof id !== "string" || !uuid.safeParse(id).success || !Number.isInteger(index) || index < 0 || index > 9 || !(file instanceof File)) return bad();
+  const data = new Uint8Array(await file.arrayBuffer());
+  return done(await attachCardSample(c, id, index, { data, mimeType: file.type, filename: file.name.slice(0, 120) }));
 }
 
 export async function duplicateTemplateAction(
