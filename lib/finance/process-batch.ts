@@ -14,7 +14,12 @@ export type ProcessDeps = {
   loadBatch(
     batchId: string,
   ): Promise<{ id: string; orgId: string; payload: unknown; recordCount: number | null } | null>;
-  apply(orgId: string, batchId: string, invoices: NormalizedInvoice[]): Promise<ApplyCounts>;
+  apply(
+    orgId: string,
+    batchId: string,
+    invoices: NormalizedInvoice[],
+    duplicates: number,
+  ): Promise<ApplyCounts>;
   markFailed(batchId: string, error: string): Promise<void>;
 };
 
@@ -38,8 +43,8 @@ export async function processBatch(deps: ProcessDeps, batchId: string): Promise<
     // Map from the original payload, not the parsed copy, so nothing Unite sent is dropped.
     const data = (batch.payload as { Data?: unknown }).Data;
     const records = Array.isArray(data) ? data : [];
-    const invoices = mapBatch(records);
-    const counts = await deps.apply(batch.orgId, batch.id, invoices);
+    const { invoices, duplicates } = mapBatch(records);
+    const counts = await deps.apply(batch.orgId, batch.id, invoices, duplicates);
     return { ok: true, counts };
   } catch (err) {
     const error = describe(err);

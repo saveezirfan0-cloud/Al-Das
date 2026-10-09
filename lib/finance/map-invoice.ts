@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import { lineKeys, paymentKey } from "@/lib/finance/keys";
+import { bool, date, num, str } from "@/lib/finance/scalars";
 import {
   INVOICE_FIELDS,
   LINE_FIELDS,
@@ -104,61 +105,6 @@ export type NormalizedInvoice = {
   /** Snapshot stored in fin_invoice_versions: normalised fields only, no patient names, no txn_ref_name. */
   record: Record<string, unknown>;
 };
-
-// ---- scalar parsers ---------------------------------------------------------
-
-const blank = (v: unknown) =>
-  v === null || v === undefined || (typeof v === "string" && v.trim() === "");
-
-function str(v: unknown): string | null {
-  if (blank(v)) return null;
-  if (typeof v === "string") return v.trim();
-  if (typeof v === "number" || typeof v === "boolean") return String(v);
-  return null;
-}
-
-function num(v: unknown): number | null | "invalid" {
-  if (blank(v)) return null;
-  if (typeof v === "number") return Number.isFinite(v) ? v : "invalid";
-  if (typeof v === "string") {
-    const cleaned = v.replace(/,/g, "").trim();
-    if (!/^-?\d+(\.\d+)?$/.test(cleaned)) return "invalid";
-    return Number(cleaned);
-  }
-  return "invalid";
-}
-
-function bool(v: unknown): boolean | null | "invalid" {
-  if (blank(v)) return null;
-  if (typeof v === "boolean") return v;
-  if (typeof v === "number") return v === 1 ? true : v === 0 ? false : "invalid";
-  if (typeof v === "string") {
-    const s = v.trim().toLowerCase();
-    if (["true", "yes", "y", "1"].includes(s)) return true;
-    if (["false", "no", "n", "0"].includes(s)) return false;
-  }
-  return "invalid";
-}
-
-/** dd-MM-yyyy, dd/MM/yyyy, yyyy-MM-dd (optionally followed by a time) -> yyyy-MM-dd. */
-function date(v: unknown): string | null | "invalid" {
-  if (blank(v)) return null;
-  if (typeof v !== "string") return "invalid";
-  const s = v.trim();
-  let y: string, m: string, d: string;
-  let match = /^(\d{2})[-/](\d{2})[-/](\d{4})(?:[ T].*)?$/.exec(s);
-  if (match) [, d, m, y] = match;
-  else if ((match = /^(\d{4})-(\d{2})-(\d{2})(?:[ T].*)?$/.exec(s))) [, y, m, d] = match;
-  else return "invalid";
-  const dt = new Date(Date.UTC(Number(y), Number(m) - 1, Number(d)));
-  if (
-    dt.getUTCFullYear() !== Number(y) ||
-    dt.getUTCMonth() !== Number(m) - 1 ||
-    dt.getUTCDate() !== Number(d)
-  )
-    return "invalid";
-  return `${y}-${m}-${d}`;
-}
 
 type Kind = "string" | "number" | "boolean" | "date";
 const KINDS: Record<string, Kind> = {
@@ -310,17 +256,24 @@ export function mapInvoice(raw: unknown, index = 0): NormalizedInvoice {
   return { ...body, lines, payments, record_hash, record };
 }
 
-export function mapBatch(data: readonly unknown[]): NormalizedInvoice[] {
-  const seen = new Set<string>();
-  return data.map((d, i) => {
+/**
+ * Maps every record. If Unite delivers the same invoice twice in one response the LAST
+ * occurrence wins (it is the newer state) and the number dropped is reported, so the batch
+ * is never blocked: records are deliver-once and cannot simply be pulled again.
+ */
+export function mapBatch(data: readonly unknown[]): {
+  invoices: NormalizedInvoice[];
+  duplicates: number;
+} {
+  const byNumber = new Map<string, NormalizedInvoice>();
+  let duplicates = 0;
+  data.forEach((d, i) => {
     const inv = mapInvoice(d, i);
-    if (seen.has(inv.inv_display_number))
-      throw new MappingError(
-        inv.inv_display_number,
-        "inv_display_number",
-        "appears twice in one batch",
-      );
-    seen.add(inv.inv_display_number);
-    return inv;
+    if (byNumber.has(inv.inv_display_number)) {
+      duplicates++;
+      byNumber.delete(inv.inv_display_number); // re-insert so the last occurrence keeps the latest position
+    }
+    byNumber.set(inv.inv_display_number, inv);
   });
+  return { invoices: [...byNumber.values()], duplicates };
 }

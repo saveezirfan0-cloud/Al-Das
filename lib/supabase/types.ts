@@ -3,6 +3,101 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type Database = {
   public: {
     Tables: {
+      appointment_counters: {
+        Row: {
+          last_number: number;
+          org_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          last_number?: number;
+          org_id: string;
+        };
+        Update: {
+          last_number?: number;
+          org_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "appointment_counters_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: true;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      appointment_reminders: {
+        Row: {
+          appointment_id: string;
+          created_at: string;
+          dedupe_key: string | null;
+          due_at: string;
+          error: string | null;
+          exclusion_reason: string | null;
+          id: string;
+          idx: number;
+          message_id: string | null;
+          org_id: string;
+          sent_at: string | null;
+          status: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          appointment_id: string;
+          created_at?: string;
+          dedupe_key?: string | null;
+          due_at: string;
+          error?: string | null;
+          exclusion_reason?: string | null;
+          id?: string;
+          idx: number;
+          message_id?: string | null;
+          org_id: string;
+          sent_at?: string | null;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          appointment_id?: string;
+          created_at?: string;
+          dedupe_key?: string | null;
+          due_at?: string;
+          error?: string | null;
+          exclusion_reason?: string | null;
+          id?: string;
+          idx?: number;
+          message_id?: string | null;
+          org_id?: string;
+          sent_at?: string | null;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "appointment_reminders_appointment_id_fkey";
+            columns: ["appointment_id"];
+            isOneToOne: false;
+            referencedRelation: "appointments";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "appointment_reminders_message_id_fkey";
+            columns: ["message_id"];
+            isOneToOne: false;
+            referencedRelation: "messages";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "appointment_reminders_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       appointments: {
         Row: {
           channel_id: string | null;
@@ -132,101 +227,6 @@ export type Database = {
             columns: ["specialist_id"];
             isOneToOne: false;
             referencedRelation: "specialists";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      appointment_reminders: {
-        Row: {
-          appointment_id: string;
-          created_at: string;
-          dedupe_key: string | null;
-          due_at: string;
-          error: string | null;
-          exclusion_reason: string | null;
-          id: string;
-          idx: number;
-          message_id: string | null;
-          org_id: string;
-          sent_at: string | null;
-          status: string;
-          updated_at: string;
-        };
-        ComputedFields: never;
-        Insert: {
-          appointment_id: string;
-          created_at?: string;
-          dedupe_key?: string | null;
-          due_at: string;
-          error?: string | null;
-          exclusion_reason?: string | null;
-          id?: string;
-          idx: number;
-          message_id?: string | null;
-          org_id: string;
-          sent_at?: string | null;
-          status?: string;
-          updated_at?: string;
-        };
-        Update: {
-          appointment_id?: string;
-          created_at?: string;
-          dedupe_key?: string | null;
-          due_at?: string;
-          error?: string | null;
-          exclusion_reason?: string | null;
-          id?: string;
-          idx?: number;
-          message_id?: string | null;
-          org_id?: string;
-          sent_at?: string | null;
-          status?: string;
-          updated_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "appointment_reminders_appointment_id_fkey";
-            columns: ["appointment_id"];
-            isOneToOne: false;
-            referencedRelation: "appointments";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "appointment_reminders_message_id_fkey";
-            columns: ["message_id"];
-            isOneToOne: false;
-            referencedRelation: "messages";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "appointment_reminders_org_id_fkey";
-            columns: ["org_id"];
-            isOneToOne: false;
-            referencedRelation: "orgs";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      appointment_counters: {
-        Row: {
-          last_number: number;
-          org_id: string;
-        };
-        ComputedFields: never;
-        Insert: {
-          last_number?: number;
-          org_id: string;
-        };
-        Update: {
-          last_number?: number;
-          org_id?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "appointment_counters_org_id_fkey";
-            columns: ["org_id"];
-            isOneToOne: false;
-            referencedRelation: "orgs";
             referencedColumns: ["id"];
           },
         ];
@@ -435,105 +435,311 @@ export type Database = {
           },
         ];
       };
-      clinical_settings_history: {
+      clinical_call_scripts: {
         Row: {
-          changed_at: string;
-          changed_by: string | null;
-          id: number;
-          new_row: Json | null;
-          old_row: Json | null;
-          org_id: string;
-          setting_key: string;
-        };
-        ComputedFields: never;
-        Insert: {
-          changed_at?: string;
-          changed_by?: string | null;
-          id?: number;
-          new_row?: Json | null;
-          old_row?: Json | null;
-          org_id: string;
-          setting_key: string;
-        };
-        Update: {
-          changed_at?: string;
-          changed_by?: string | null;
-          id?: number;
-          new_row?: Json | null;
-          old_row?: Json | null;
-          org_id?: string;
-          setting_key?: string;
-        };
-        Relationships: [];
-      };
-      clinical_settings: {
-        Row: {
-          airtable_record_id: string | null;
-          approved_value: string | null;
-          category: Database["public"]["Enums"]["clinical_setting_category"];
+          clinical_approval: string;
           created_at: string;
           id: string;
           key: string;
-          label: string;
-          live_value: string | null;
           notes: string | null;
           org_id: string;
-          owner: string | null;
-          proposed_value: string | null;
-          sign_off_status: Database["public"]["Enums"]["sign_off_status"];
-          signed_at: string | null;
-          signed_by: string | null;
-          source: string;
+          phase: number | null;
+          purpose: string | null;
+          script: string;
+          trigger_category: Database["public"]["Enums"]["trigger_category"] | null;
           updated_at: string;
-          value_type: Database["public"]["Enums"]["setting_value_type"];
         };
         ComputedFields: never;
         Insert: {
-          airtable_record_id?: string | null;
-          approved_value?: string | null;
-          category: Database["public"]["Enums"]["clinical_setting_category"];
+          clinical_approval?: string;
           created_at?: string;
           id?: string;
           key: string;
-          label: string;
-          live_value?: string | null;
           notes?: string | null;
           org_id: string;
-          owner?: string | null;
-          proposed_value?: string | null;
-          sign_off_status?: Database["public"]["Enums"]["sign_off_status"];
-          signed_at?: string | null;
-          signed_by?: string | null;
-          source?: string;
+          phase?: number | null;
+          purpose?: string | null;
+          script: string;
+          trigger_category?: Database["public"]["Enums"]["trigger_category"] | null;
           updated_at?: string;
-          value_type?: Database["public"]["Enums"]["setting_value_type"];
         };
         Update: {
-          airtable_record_id?: string | null;
-          approved_value?: string | null;
-          category?: Database["public"]["Enums"]["clinical_setting_category"];
+          clinical_approval?: string;
           created_at?: string;
           id?: string;
           key?: string;
-          label?: string;
-          live_value?: string | null;
           notes?: string | null;
           org_id?: string;
-          owner?: string | null;
-          proposed_value?: string | null;
-          sign_off_status?: Database["public"]["Enums"]["sign_off_status"];
-          signed_at?: string | null;
-          signed_by?: string | null;
-          source?: string;
+          phase?: number | null;
+          purpose?: string | null;
+          script?: string;
+          trigger_category?: Database["public"]["Enums"]["trigger_category"] | null;
           updated_at?: string;
-          value_type?: Database["public"]["Enums"]["setting_value_type"];
         };
         Relationships: [
           {
-            foreignKeyName: "clinical_settings_org_id_fkey";
+            foreignKeyName: "clinical_call_scripts_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      clinical_feedback: {
+        Row: {
+          contact_id: string | null;
+          coordinator_notified_at: string | null;
+          created_at: string;
+          doctor_notified_at: string | null;
+          id: string;
+          is_test_record: boolean;
+          needs_doctor_review: boolean;
+          org_id: string;
+          prescription_id: string | null;
+          red_flag_threshold_used: number | null;
+          ref: string | null;
+          reply_text: string | null;
+          score: number | null;
+          side_effects_flagged: boolean;
+          source_message_id: string | null;
+          stage: Database["public"]["Enums"]["feedback_stage"];
+          symptoms_improved: boolean | null;
+          symptoms_reported: string | null;
+          updated_at: string;
+          visit_id: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          contact_id?: string | null;
+          coordinator_notified_at?: string | null;
+          created_at?: string;
+          doctor_notified_at?: string | null;
+          id?: string;
+          is_test_record?: boolean;
+          needs_doctor_review?: boolean;
+          org_id: string;
+          prescription_id?: string | null;
+          red_flag_threshold_used?: number | null;
+          ref?: string | null;
+          reply_text?: string | null;
+          score?: number | null;
+          side_effects_flagged?: boolean;
+          source_message_id?: string | null;
+          stage: Database["public"]["Enums"]["feedback_stage"];
+          symptoms_improved?: boolean | null;
+          symptoms_reported?: string | null;
+          updated_at?: string;
+          visit_id?: string | null;
+        };
+        Update: {
+          contact_id?: string | null;
+          coordinator_notified_at?: string | null;
+          created_at?: string;
+          doctor_notified_at?: string | null;
+          id?: string;
+          is_test_record?: boolean;
+          needs_doctor_review?: boolean;
+          org_id?: string;
+          prescription_id?: string | null;
+          red_flag_threshold_used?: number | null;
+          ref?: string | null;
+          reply_text?: string | null;
+          score?: number | null;
+          side_effects_flagged?: boolean;
+          source_message_id?: string | null;
+          stage?: Database["public"]["Enums"]["feedback_stage"];
+          symptoms_improved?: boolean | null;
+          symptoms_reported?: string | null;
+          updated_at?: string;
+          visit_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "clinical_feedback_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "clinical_feedback_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "clinical_feedback_prescription_id_fkey";
+            columns: ["prescription_id"];
+            isOneToOne: false;
+            referencedRelation: "prescriptions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "clinical_feedback_source_message_id_fkey";
+            columns: ["source_message_id"];
+            isOneToOne: false;
+            referencedRelation: "messages";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "clinical_feedback_visit_id_fkey";
+            columns: ["visit_id"];
+            isOneToOne: false;
+            referencedRelation: "v_visit_data_quality";
+            referencedColumns: ["visit_id"];
+          },
+          {
+            foreignKeyName: "clinical_feedback_visit_id_fkey";
+            columns: ["visit_id"];
+            isOneToOne: false;
+            referencedRelation: "visits";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      clinical_followups: {
+        Row: {
+          assigned_team_id: string | null;
+          assigned_user_id: string | null;
+          call_status: Database["public"]["Enums"]["call_status"];
+          closed_at: string | null;
+          closed_reason: string | null;
+          contact_id: string | null;
+          created_at: string;
+          dedupe_key: string | null;
+          doctor_alert_required: boolean;
+          doctor_notified_at: string | null;
+          doctor_response_notes: string | null;
+          due_date: string | null;
+          escalation_status: Database["public"]["Enums"]["escalation_status"];
+          id: string;
+          is_test_record: boolean;
+          notes: string | null;
+          org_id: string;
+          outcome: Database["public"]["Enums"]["followup_outcome"] | null;
+          prescription_id: string | null;
+          priority: Database["public"]["Enums"]["followup_priority"];
+          ref: string | null;
+          rule_evaluation_id: string | null;
+          source: string;
+          trigger_category: Database["public"]["Enums"]["trigger_category"] | null;
+          updated_at: string;
+          visit_id: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          assigned_team_id?: string | null;
+          assigned_user_id?: string | null;
+          call_status?: Database["public"]["Enums"]["call_status"];
+          closed_at?: string | null;
+          closed_reason?: string | null;
+          contact_id?: string | null;
+          created_at?: string;
+          dedupe_key?: string | null;
+          doctor_alert_required?: boolean;
+          doctor_notified_at?: string | null;
+          doctor_response_notes?: string | null;
+          due_date?: string | null;
+          escalation_status?: Database["public"]["Enums"]["escalation_status"];
+          id?: string;
+          is_test_record?: boolean;
+          notes?: string | null;
+          org_id: string;
+          outcome?: Database["public"]["Enums"]["followup_outcome"] | null;
+          prescription_id?: string | null;
+          priority?: Database["public"]["Enums"]["followup_priority"];
+          ref?: string | null;
+          rule_evaluation_id?: string | null;
+          source?: string;
+          trigger_category?: Database["public"]["Enums"]["trigger_category"] | null;
+          updated_at?: string;
+          visit_id?: string | null;
+        };
+        Update: {
+          assigned_team_id?: string | null;
+          assigned_user_id?: string | null;
+          call_status?: Database["public"]["Enums"]["call_status"];
+          closed_at?: string | null;
+          closed_reason?: string | null;
+          contact_id?: string | null;
+          created_at?: string;
+          dedupe_key?: string | null;
+          doctor_alert_required?: boolean;
+          doctor_notified_at?: string | null;
+          doctor_response_notes?: string | null;
+          due_date?: string | null;
+          escalation_status?: Database["public"]["Enums"]["escalation_status"];
+          id?: string;
+          is_test_record?: boolean;
+          notes?: string | null;
+          org_id?: string;
+          outcome?: Database["public"]["Enums"]["followup_outcome"] | null;
+          prescription_id?: string | null;
+          priority?: Database["public"]["Enums"]["followup_priority"];
+          ref?: string | null;
+          rule_evaluation_id?: string | null;
+          source?: string;
+          trigger_category?: Database["public"]["Enums"]["trigger_category"] | null;
+          updated_at?: string;
+          visit_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "clinical_followups_assigned_team_id_fkey";
+            columns: ["assigned_team_id"];
+            isOneToOne: false;
+            referencedRelation: "teams";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "clinical_followups_assigned_user_id_fkey";
+            columns: ["assigned_user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "clinical_followups_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "clinical_followups_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "clinical_followups_prescription_id_fkey";
+            columns: ["prescription_id"];
+            isOneToOne: false;
+            referencedRelation: "prescriptions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "clinical_followups_rule_evaluation_id_fkey";
+            columns: ["rule_evaluation_id"];
+            isOneToOne: false;
+            referencedRelation: "visit_rule_evaluations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "clinical_followups_visit_id_fkey";
+            columns: ["visit_id"];
+            isOneToOne: false;
+            referencedRelation: "v_visit_data_quality";
+            referencedColumns: ["visit_id"];
+          },
+          {
+            foreignKeyName: "clinical_followups_visit_id_fkey";
+            columns: ["visit_id"];
+            isOneToOne: false;
+            referencedRelation: "visits";
             referencedColumns: ["id"];
           },
         ];
@@ -700,314 +906,108 @@ export type Database = {
           },
         ];
       };
-      clinical_followups: {
+      clinical_settings: {
         Row: {
-          assigned_team_id: string | null;
-          assigned_user_id: string | null;
-          call_status: Database["public"]["Enums"]["call_status"];
-          closed_at: string | null;
-          closed_reason: string | null;
-          contact_id: string | null;
+          airtable_record_id: string | null;
+          approved_value: string | null;
+          category: Database["public"]["Enums"]["clinical_setting_category"];
           created_at: string;
-          dedupe_key: string | null;
-          doctor_alert_required: boolean;
-          doctor_notified_at: string | null;
-          doctor_response_notes: string | null;
-          due_date: string | null;
-          escalation_status: Database["public"]["Enums"]["escalation_status"];
           id: string;
-          is_test_record: boolean;
+          key: string;
+          label: string;
+          live_value: string | null;
           notes: string | null;
           org_id: string;
-          outcome: Database["public"]["Enums"]["followup_outcome"] | null;
-          prescription_id: string | null;
-          priority: Database["public"]["Enums"]["followup_priority"];
-          ref: string | null;
-          rule_evaluation_id: string | null;
+          owner: string | null;
+          proposed_value: string | null;
+          sign_off_status: Database["public"]["Enums"]["sign_off_status"];
+          signed_at: string | null;
+          signed_by: string | null;
           source: string;
-          trigger_category: Database["public"]["Enums"]["trigger_category"] | null;
           updated_at: string;
-          visit_id: string | null;
+          value_type: Database["public"]["Enums"]["setting_value_type"];
         };
         ComputedFields: never;
         Insert: {
-          assigned_team_id?: string | null;
-          assigned_user_id?: string | null;
-          call_status?: Database["public"]["Enums"]["call_status"];
-          closed_at?: string | null;
-          closed_reason?: string | null;
-          contact_id?: string | null;
-          created_at?: string;
-          dedupe_key?: string | null;
-          doctor_alert_required?: boolean;
-          doctor_notified_at?: string | null;
-          doctor_response_notes?: string | null;
-          due_date?: string | null;
-          escalation_status?: Database["public"]["Enums"]["escalation_status"];
-          id?: string;
-          is_test_record?: boolean;
-          notes?: string | null;
-          org_id: string;
-          outcome?: Database["public"]["Enums"]["followup_outcome"] | null;
-          prescription_id?: string | null;
-          priority?: Database["public"]["Enums"]["followup_priority"];
-          ref?: string | null;
-          rule_evaluation_id?: string | null;
-          source?: string;
-          trigger_category?: Database["public"]["Enums"]["trigger_category"] | null;
-          updated_at?: string;
-          visit_id?: string | null;
-        };
-        Update: {
-          assigned_team_id?: string | null;
-          assigned_user_id?: string | null;
-          call_status?: Database["public"]["Enums"]["call_status"];
-          closed_at?: string | null;
-          closed_reason?: string | null;
-          contact_id?: string | null;
-          created_at?: string;
-          dedupe_key?: string | null;
-          doctor_alert_required?: boolean;
-          doctor_notified_at?: string | null;
-          doctor_response_notes?: string | null;
-          due_date?: string | null;
-          escalation_status?: Database["public"]["Enums"]["escalation_status"];
-          id?: string;
-          is_test_record?: boolean;
-          notes?: string | null;
-          org_id?: string;
-          outcome?: Database["public"]["Enums"]["followup_outcome"] | null;
-          prescription_id?: string | null;
-          priority?: Database["public"]["Enums"]["followup_priority"];
-          ref?: string | null;
-          rule_evaluation_id?: string | null;
-          source?: string;
-          trigger_category?: Database["public"]["Enums"]["trigger_category"] | null;
-          updated_at?: string;
-          visit_id?: string | null;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "clinical_followups_assigned_team_id_fkey";
-            columns: ["assigned_team_id"];
-            isOneToOne: false;
-            referencedRelation: "teams";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "clinical_followups_assigned_user_id_fkey";
-            columns: ["assigned_user_id"];
-            isOneToOne: false;
-            referencedRelation: "profiles";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "clinical_followups_contact_id_fkey";
-            columns: ["contact_id"];
-            isOneToOne: false;
-            referencedRelation: "contacts";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "clinical_followups_org_id_fkey";
-            columns: ["org_id"];
-            isOneToOne: false;
-            referencedRelation: "orgs";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "clinical_followups_prescription_id_fkey";
-            columns: ["prescription_id"];
-            isOneToOne: false;
-            referencedRelation: "prescriptions";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "clinical_followups_rule_evaluation_id_fkey";
-            columns: ["rule_evaluation_id"];
-            isOneToOne: false;
-            referencedRelation: "visit_rule_evaluations";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "clinical_followups_visit_id_fkey";
-            columns: ["visit_id"];
-            isOneToOne: false;
-            referencedRelation: "v_visit_data_quality";
-            referencedColumns: ["visit_id"];
-          },
-          {
-            foreignKeyName: "clinical_followups_visit_id_fkey";
-            columns: ["visit_id"];
-            isOneToOne: false;
-            referencedRelation: "visits";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      clinical_feedback: {
-        Row: {
-          contact_id: string | null;
-          coordinator_notified_at: string | null;
-          created_at: string;
-          doctor_notified_at: string | null;
-          id: string;
-          is_test_record: boolean;
-          needs_doctor_review: boolean;
-          org_id: string;
-          prescription_id: string | null;
-          red_flag_threshold_used: number | null;
-          ref: string | null;
-          reply_text: string | null;
-          score: number | null;
-          side_effects_flagged: boolean;
-          source_message_id: string | null;
-          stage: Database["public"]["Enums"]["feedback_stage"];
-          symptoms_improved: boolean | null;
-          symptoms_reported: string | null;
-          updated_at: string;
-          visit_id: string | null;
-        };
-        ComputedFields: never;
-        Insert: {
-          contact_id?: string | null;
-          coordinator_notified_at?: string | null;
-          created_at?: string;
-          doctor_notified_at?: string | null;
-          id?: string;
-          is_test_record?: boolean;
-          needs_doctor_review?: boolean;
-          org_id: string;
-          prescription_id?: string | null;
-          red_flag_threshold_used?: number | null;
-          ref?: string | null;
-          reply_text?: string | null;
-          score?: number | null;
-          side_effects_flagged?: boolean;
-          source_message_id?: string | null;
-          stage: Database["public"]["Enums"]["feedback_stage"];
-          symptoms_improved?: boolean | null;
-          symptoms_reported?: string | null;
-          updated_at?: string;
-          visit_id?: string | null;
-        };
-        Update: {
-          contact_id?: string | null;
-          coordinator_notified_at?: string | null;
-          created_at?: string;
-          doctor_notified_at?: string | null;
-          id?: string;
-          is_test_record?: boolean;
-          needs_doctor_review?: boolean;
-          org_id?: string;
-          prescription_id?: string | null;
-          red_flag_threshold_used?: number | null;
-          ref?: string | null;
-          reply_text?: string | null;
-          score?: number | null;
-          side_effects_flagged?: boolean;
-          source_message_id?: string | null;
-          stage?: Database["public"]["Enums"]["feedback_stage"];
-          symptoms_improved?: boolean | null;
-          symptoms_reported?: string | null;
-          updated_at?: string;
-          visit_id?: string | null;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "clinical_feedback_contact_id_fkey";
-            columns: ["contact_id"];
-            isOneToOne: false;
-            referencedRelation: "contacts";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "clinical_feedback_org_id_fkey";
-            columns: ["org_id"];
-            isOneToOne: false;
-            referencedRelation: "orgs";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "clinical_feedback_prescription_id_fkey";
-            columns: ["prescription_id"];
-            isOneToOne: false;
-            referencedRelation: "prescriptions";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "clinical_feedback_source_message_id_fkey";
-            columns: ["source_message_id"];
-            isOneToOne: false;
-            referencedRelation: "messages";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "clinical_feedback_visit_id_fkey";
-            columns: ["visit_id"];
-            isOneToOne: false;
-            referencedRelation: "v_visit_data_quality";
-            referencedColumns: ["visit_id"];
-          },
-          {
-            foreignKeyName: "clinical_feedback_visit_id_fkey";
-            columns: ["visit_id"];
-            isOneToOne: false;
-            referencedRelation: "visits";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      clinical_call_scripts: {
-        Row: {
-          clinical_approval: string;
-          created_at: string;
-          id: string;
-          key: string;
-          notes: string | null;
-          org_id: string;
-          phase: number | null;
-          purpose: string | null;
-          script: string;
-          trigger_category: Database["public"]["Enums"]["trigger_category"] | null;
-          updated_at: string;
-        };
-        ComputedFields: never;
-        Insert: {
-          clinical_approval?: string;
+          airtable_record_id?: string | null;
+          approved_value?: string | null;
+          category: Database["public"]["Enums"]["clinical_setting_category"];
           created_at?: string;
           id?: string;
           key: string;
+          label: string;
+          live_value?: string | null;
           notes?: string | null;
           org_id: string;
-          phase?: number | null;
-          purpose?: string | null;
-          script: string;
-          trigger_category?: Database["public"]["Enums"]["trigger_category"] | null;
+          owner?: string | null;
+          proposed_value?: string | null;
+          sign_off_status?: Database["public"]["Enums"]["sign_off_status"];
+          signed_at?: string | null;
+          signed_by?: string | null;
+          source?: string;
           updated_at?: string;
+          value_type?: Database["public"]["Enums"]["setting_value_type"];
         };
         Update: {
-          clinical_approval?: string;
+          airtable_record_id?: string | null;
+          approved_value?: string | null;
+          category?: Database["public"]["Enums"]["clinical_setting_category"];
           created_at?: string;
           id?: string;
           key?: string;
+          label?: string;
+          live_value?: string | null;
           notes?: string | null;
           org_id?: string;
-          phase?: number | null;
-          purpose?: string | null;
-          script?: string;
-          trigger_category?: Database["public"]["Enums"]["trigger_category"] | null;
+          owner?: string | null;
+          proposed_value?: string | null;
+          sign_off_status?: Database["public"]["Enums"]["sign_off_status"];
+          signed_at?: string | null;
+          signed_by?: string | null;
+          source?: string;
           updated_at?: string;
+          value_type?: Database["public"]["Enums"]["setting_value_type"];
         };
         Relationships: [
           {
-            foreignKeyName: "clinical_call_scripts_org_id_fkey";
+            foreignKeyName: "clinical_settings_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
             referencedColumns: ["id"];
           },
         ];
+      };
+      clinical_settings_history: {
+        Row: {
+          changed_at: string;
+          changed_by: string | null;
+          id: number;
+          new_row: Json | null;
+          old_row: Json | null;
+          org_id: string;
+          setting_key: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          changed_at?: string;
+          changed_by?: string | null;
+          id?: number;
+          new_row?: Json | null;
+          old_row?: Json | null;
+          org_id: string;
+          setting_key: string;
+        };
+        Update: {
+          changed_at?: string;
+          changed_by?: string | null;
+          id?: number;
+          new_row?: Json | null;
+          old_row?: Json | null;
+          org_id?: string;
+          setting_key?: string;
+        };
+        Relationships: [];
       };
       contact_phones: {
         Row: {
@@ -2121,7 +2121,9 @@ export type Database = {
       };
       fin_raw_diligence_files: {
         Row: {
+          commit_summary: NonNullable<Json>;
           committed_at: string | null;
+          committed_by: string | null;
           errors: NonNullable<Json>;
           file_name: string | null;
           file_sha256: string;
@@ -2139,7 +2141,9 @@ export type Database = {
         };
         ComputedFields: never;
         Insert: {
+          commit_summary?: NonNullable<Json>;
           committed_at?: string | null;
+          committed_by?: string | null;
           errors?: NonNullable<Json>;
           file_name?: string | null;
           file_sha256: string;
@@ -2156,7 +2160,9 @@ export type Database = {
           uploaded_by?: string | null;
         };
         Update: {
+          commit_summary?: NonNullable<Json>;
           committed_at?: string | null;
+          committed_by?: string | null;
           errors?: NonNullable<Json>;
           file_name?: string | null;
           file_sha256?: string;
@@ -2173,6 +2179,13 @@ export type Database = {
           uploaded_by?: string | null;
         };
         Relationships: [
+          {
+            foreignKeyName: "fin_raw_diligence_files_committed_by_fkey";
+            columns: ["committed_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "fin_raw_diligence_files_org_id_fkey";
             columns: ["org_id"];
@@ -2540,6 +2553,7 @@ export type Database = {
           claim_status: string | null;
           claim_year: number | null;
           clinician_id: string | null;
+          clinician_mismatch: boolean;
           cpt_category: string | null;
           cpt_code: string | null;
           cpt_type: string | null;
@@ -2562,7 +2576,9 @@ export type Database = {
           last_remitted: number | null;
           last_resubmission_date: string | null;
           last_seen_file_id: string | null;
+          match_reason: string | null;
           match_status: string;
+          matched_at: string | null;
           matched_invoice_id: string | null;
           matched_line_id: string | null;
           net: number | null;
@@ -2595,6 +2611,7 @@ export type Database = {
           claim_status?: string | null;
           claim_year?: number | null;
           clinician_id?: string | null;
+          clinician_mismatch?: boolean;
           cpt_category?: string | null;
           cpt_code?: string | null;
           cpt_type?: string | null;
@@ -2617,7 +2634,9 @@ export type Database = {
           last_remitted?: number | null;
           last_resubmission_date?: string | null;
           last_seen_file_id?: string | null;
+          match_reason?: string | null;
           match_status?: string;
+          matched_at?: string | null;
           matched_invoice_id?: string | null;
           matched_line_id?: string | null;
           net?: number | null;
@@ -2649,6 +2668,7 @@ export type Database = {
           claim_status?: string | null;
           claim_year?: number | null;
           clinician_id?: string | null;
+          clinician_mismatch?: boolean;
           cpt_category?: string | null;
           cpt_code?: string | null;
           cpt_type?: string | null;
@@ -2671,7 +2691,9 @@ export type Database = {
           last_remitted?: number | null;
           last_resubmission_date?: string | null;
           last_seen_file_id?: string | null;
+          match_reason?: string | null;
           match_status?: string;
+          matched_at?: string | null;
           matched_invoice_id?: string | null;
           matched_line_id?: string | null;
           net?: number | null;
@@ -2791,6 +2813,52 @@ export type Database = {
           },
           {
             foreignKeyName: "ins_claim_activity_events_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      ins_staged_activities: {
+        Row: {
+          claim_activity_number: string;
+          created_at: string;
+          data: NonNullable<Json>;
+          file_id: string;
+          id: string;
+          org_id: string;
+          row_no: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          claim_activity_number: string;
+          created_at?: string;
+          data: NonNullable<Json>;
+          file_id: string;
+          id?: string;
+          org_id: string;
+          row_no: number;
+        };
+        Update: {
+          claim_activity_number?: string;
+          created_at?: string;
+          data?: NonNullable<Json>;
+          file_id?: string;
+          id?: string;
+          org_id?: string;
+          row_no?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ins_staged_activities_file_id_fkey";
+            columns: ["file_id"];
+            isOneToOne: false;
+            referencedRelation: "fin_raw_diligence_files";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ins_staged_activities_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
@@ -3451,6 +3519,85 @@ export type Database = {
         };
         Relationships: [];
       };
+      prescription_sequences: {
+        Row: {
+          antibiotic_end_date: string | null;
+          created_at: string;
+          day3_check_date: string | null;
+          day3_offset_days: number | null;
+          day3_score: number | null;
+          halted_at: string | null;
+          halted_reason: string | null;
+          id: string;
+          org_id: string;
+          outcome_score: number | null;
+          outcome_symptoms: string | null;
+          prescription_id: string;
+          probiotic_duration_days: number | null;
+          probiotic_end_date: string | null;
+          probiotic_start_date: string | null;
+          requires_probiotics: boolean;
+          status: Database["public"]["Enums"]["sequence_status"];
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          antibiotic_end_date?: string | null;
+          created_at?: string;
+          day3_check_date?: string | null;
+          day3_offset_days?: number | null;
+          day3_score?: number | null;
+          halted_at?: string | null;
+          halted_reason?: string | null;
+          id?: string;
+          org_id: string;
+          outcome_score?: number | null;
+          outcome_symptoms?: string | null;
+          prescription_id: string;
+          probiotic_duration_days?: number | null;
+          probiotic_end_date?: string | null;
+          probiotic_start_date?: string | null;
+          requires_probiotics?: boolean;
+          status?: Database["public"]["Enums"]["sequence_status"];
+          updated_at?: string;
+        };
+        Update: {
+          antibiotic_end_date?: string | null;
+          created_at?: string;
+          day3_check_date?: string | null;
+          day3_offset_days?: number | null;
+          day3_score?: number | null;
+          halted_at?: string | null;
+          halted_reason?: string | null;
+          id?: string;
+          org_id?: string;
+          outcome_score?: number | null;
+          outcome_symptoms?: string | null;
+          prescription_id?: string;
+          probiotic_duration_days?: number | null;
+          probiotic_end_date?: string | null;
+          probiotic_start_date?: string | null;
+          requires_probiotics?: boolean;
+          status?: Database["public"]["Enums"]["sequence_status"];
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "prescription_sequences_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "prescription_sequences_prescription_id_fkey";
+            columns: ["prescription_id"];
+            isOneToOne: true;
+            referencedRelation: "prescriptions";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       prescriptions: {
         Row: {
           class: Database["public"]["Enums"]["medication_class"];
@@ -3537,85 +3684,6 @@ export type Database = {
             columns: ["visit_id"];
             isOneToOne: false;
             referencedRelation: "visits";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      prescription_sequences: {
-        Row: {
-          antibiotic_end_date: string | null;
-          created_at: string;
-          day3_check_date: string | null;
-          day3_offset_days: number | null;
-          day3_score: number | null;
-          halted_at: string | null;
-          halted_reason: string | null;
-          id: string;
-          org_id: string;
-          outcome_score: number | null;
-          outcome_symptoms: string | null;
-          prescription_id: string;
-          probiotic_duration_days: number | null;
-          probiotic_end_date: string | null;
-          probiotic_start_date: string | null;
-          requires_probiotics: boolean;
-          status: Database["public"]["Enums"]["sequence_status"];
-          updated_at: string;
-        };
-        ComputedFields: never;
-        Insert: {
-          antibiotic_end_date?: string | null;
-          created_at?: string;
-          day3_check_date?: string | null;
-          day3_offset_days?: number | null;
-          day3_score?: number | null;
-          halted_at?: string | null;
-          halted_reason?: string | null;
-          id?: string;
-          org_id: string;
-          outcome_score?: number | null;
-          outcome_symptoms?: string | null;
-          prescription_id: string;
-          probiotic_duration_days?: number | null;
-          probiotic_end_date?: string | null;
-          probiotic_start_date?: string | null;
-          requires_probiotics?: boolean;
-          status?: Database["public"]["Enums"]["sequence_status"];
-          updated_at?: string;
-        };
-        Update: {
-          antibiotic_end_date?: string | null;
-          created_at?: string;
-          day3_check_date?: string | null;
-          day3_offset_days?: number | null;
-          day3_score?: number | null;
-          halted_at?: string | null;
-          halted_reason?: string | null;
-          id?: string;
-          org_id?: string;
-          outcome_score?: number | null;
-          outcome_symptoms?: string | null;
-          prescription_id?: string;
-          probiotic_duration_days?: number | null;
-          probiotic_end_date?: string | null;
-          probiotic_start_date?: string | null;
-          requires_probiotics?: boolean;
-          status?: Database["public"]["Enums"]["sequence_status"];
-          updated_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "prescription_sequences_org_id_fkey";
-            columns: ["org_id"];
-            isOneToOne: false;
-            referencedRelation: "orgs";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "prescription_sequences_prescription_id_fkey";
-            columns: ["prescription_id"];
-            isOneToOne: false;
-            referencedRelation: "prescriptions";
             referencedColumns: ["id"];
           },
         ];
@@ -3725,51 +3793,6 @@ export type Database = {
         };
         Relationships: [];
       };
-      reminder_exclusions: {
-        Row: {
-          active: boolean;
-          created_at: string;
-          id: string;
-          kind: string;
-          match_type: string;
-          org_id: string;
-          reason: string | null;
-          updated_at: string;
-          value: string;
-        };
-        ComputedFields: never;
-        Insert: {
-          active?: boolean;
-          created_at?: string;
-          id?: string;
-          kind: string;
-          match_type?: string;
-          org_id: string;
-          reason?: string | null;
-          updated_at?: string;
-          value: string;
-        };
-        Update: {
-          active?: boolean;
-          created_at?: string;
-          id?: string;
-          kind?: string;
-          match_type?: string;
-          org_id?: string;
-          reason?: string | null;
-          updated_at?: string;
-          value?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "reminder_exclusions_org_id_fkey";
-            columns: ["org_id"];
-            isOneToOne: false;
-            referencedRelation: "orgs";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
       ref_medication_classes: {
         Row: {
           class: Database["public"]["Enums"]["medication_class"];
@@ -3814,6 +3837,51 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "ref_medication_classes_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      reminder_exclusions: {
+        Row: {
+          active: boolean;
+          created_at: string;
+          id: string;
+          kind: string;
+          match_type: string;
+          org_id: string;
+          reason: string | null;
+          updated_at: string;
+          value: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          active?: boolean;
+          created_at?: string;
+          id?: string;
+          kind: string;
+          match_type?: string;
+          org_id: string;
+          reason?: string | null;
+          updated_at?: string;
+          value: string;
+        };
+        Update: {
+          active?: boolean;
+          created_at?: string;
+          id?: string;
+          kind?: string;
+          match_type?: string;
+          org_id?: string;
+          reason?: string | null;
+          updated_at?: string;
+          value?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "reminder_exclusions_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
@@ -4035,53 +4103,136 @@ export type Database = {
           },
         ];
       };
-      sync_cursors: {
+      services: {
         Row: {
+          active: boolean;
           created_at: string;
-          cursor: NonNullable<Json>;
-          entity: string;
-          error: string | null;
+          department_id: string | null;
+          duration_min: number;
           id: string;
-          last_ok_at: string | null;
-          last_run_at: string | null;
+          name: string;
           org_id: string;
-          scope: string;
-          source: string;
+          price: number | null;
           updated_at: string;
         };
         ComputedFields: never;
         Insert: {
+          active?: boolean;
           created_at?: string;
-          cursor?: NonNullable<Json>;
-          entity: string;
-          error?: string | null;
+          department_id?: string | null;
+          duration_min?: number;
           id?: string;
-          last_ok_at?: string | null;
-          last_run_at?: string | null;
+          name: string;
           org_id: string;
-          scope?: string;
-          source: string;
+          price?: number | null;
           updated_at?: string;
         };
         Update: {
+          active?: boolean;
           created_at?: string;
-          cursor?: NonNullable<Json>;
-          entity?: string;
-          error?: string | null;
+          department_id?: string | null;
+          duration_min?: number;
           id?: string;
-          last_ok_at?: string | null;
-          last_run_at?: string | null;
+          name?: string;
           org_id?: string;
-          scope?: string;
-          source?: string;
+          price?: number | null;
           updated_at?: string;
         };
         Relationships: [
           {
-            foreignKeyName: "sync_cursors_org_id_fkey";
+            foreignKeyName: "services_department_id_fkey";
+            columns: ["department_id"];
+            isOneToOne: false;
+            referencedRelation: "departments";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "services_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      specialist_locations: {
+        Row: {
+          location_id: string;
+          org_id: string;
+          specialist_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          location_id: string;
+          org_id: string;
+          specialist_id: string;
+        };
+        Update: {
+          location_id?: string;
+          org_id?: string;
+          specialist_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "specialist_locations_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "specialist_locations_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "specialist_locations_specialist_id_fkey";
+            columns: ["specialist_id"];
+            isOneToOne: false;
+            referencedRelation: "specialists";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      specialist_services: {
+        Row: {
+          org_id: string;
+          service_id: string;
+          specialist_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          org_id: string;
+          service_id: string;
+          specialist_id: string;
+        };
+        Update: {
+          org_id?: string;
+          service_id?: string;
+          specialist_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "specialist_services_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "specialist_services_service_id_fkey";
+            columns: ["service_id"];
+            isOneToOne: false;
+            referencedRelation: "services";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "specialist_services_specialist_id_fkey";
+            columns: ["specialist_id"];
+            isOneToOne: false;
+            referencedRelation: "specialists";
             referencedColumns: ["id"];
           },
         ];
@@ -4151,133 +4302,50 @@ export type Database = {
           },
         ];
       };
-      specialist_services: {
+      sync_cursors: {
         Row: {
-          org_id: string;
-          service_id: string;
-          specialist_id: string;
-        };
-        ComputedFields: never;
-        Insert: {
-          org_id: string;
-          service_id: string;
-          specialist_id: string;
-        };
-        Update: {
-          org_id?: string;
-          service_id?: string;
-          specialist_id?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "specialist_services_org_id_fkey";
-            columns: ["org_id"];
-            isOneToOne: false;
-            referencedRelation: "orgs";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "specialist_services_service_id_fkey";
-            columns: ["service_id"];
-            isOneToOne: false;
-            referencedRelation: "services";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "specialist_services_specialist_id_fkey";
-            columns: ["specialist_id"];
-            isOneToOne: false;
-            referencedRelation: "specialists";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      specialist_locations: {
-        Row: {
-          location_id: string;
-          org_id: string;
-          specialist_id: string;
-        };
-        ComputedFields: never;
-        Insert: {
-          location_id: string;
-          org_id: string;
-          specialist_id: string;
-        };
-        Update: {
-          location_id?: string;
-          org_id?: string;
-          specialist_id?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "specialist_locations_location_id_fkey";
-            columns: ["location_id"];
-            isOneToOne: false;
-            referencedRelation: "locations";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "specialist_locations_org_id_fkey";
-            columns: ["org_id"];
-            isOneToOne: false;
-            referencedRelation: "orgs";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "specialist_locations_specialist_id_fkey";
-            columns: ["specialist_id"];
-            isOneToOne: false;
-            referencedRelation: "specialists";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      services: {
-        Row: {
-          active: boolean;
           created_at: string;
-          department_id: string | null;
-          duration_min: number;
+          cursor: NonNullable<Json>;
+          entity: string;
+          error: string | null;
           id: string;
-          name: string;
+          last_ok_at: string | null;
+          last_run_at: string | null;
           org_id: string;
-          price: number | null;
+          scope: string;
+          source: string;
           updated_at: string;
         };
         ComputedFields: never;
         Insert: {
-          active?: boolean;
           created_at?: string;
-          department_id?: string | null;
-          duration_min?: number;
+          cursor?: NonNullable<Json>;
+          entity: string;
+          error?: string | null;
           id?: string;
-          name: string;
+          last_ok_at?: string | null;
+          last_run_at?: string | null;
           org_id: string;
-          price?: number | null;
+          scope?: string;
+          source: string;
           updated_at?: string;
         };
         Update: {
-          active?: boolean;
           created_at?: string;
-          department_id?: string | null;
-          duration_min?: number;
+          cursor?: NonNullable<Json>;
+          entity?: string;
+          error?: string | null;
           id?: string;
-          name?: string;
+          last_ok_at?: string | null;
+          last_run_at?: string | null;
           org_id?: string;
-          price?: number | null;
+          scope?: string;
+          source?: string;
           updated_at?: string;
         };
         Relationships: [
           {
-            foreignKeyName: "services_department_id_fkey";
-            columns: ["department_id"];
-            isOneToOne: false;
-            referencedRelation: "departments";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "services_org_id_fkey";
+            foreignKeyName: "sync_cursors_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
@@ -4730,6 +4798,92 @@ export type Database = {
           },
         ];
       };
+      visit_rule_evaluations: {
+        Row: {
+          age_at_visit: number | null;
+          created_at: string;
+          dedupe_key: string | null;
+          department_effective: Database["public"]["Enums"]["department_mapped"] | null;
+          engine_version: string;
+          evaluated_at: string;
+          follow_up_due_date: string | null;
+          id: string;
+          inputs_hash: string | null;
+          is_current: boolean;
+          missing_settings: string[];
+          org_id: string;
+          rules_fired: string[];
+          settings_snapshot: NonNullable<Json>;
+          trigger_category: Database["public"]["Enums"]["trigger_category"] | null;
+          updated_at: string;
+          visit_id: string;
+          vitals_complete: boolean | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          age_at_visit?: number | null;
+          created_at?: string;
+          dedupe_key?: string | null;
+          department_effective?: Database["public"]["Enums"]["department_mapped"] | null;
+          engine_version: string;
+          evaluated_at?: string;
+          follow_up_due_date?: string | null;
+          id?: string;
+          inputs_hash?: string | null;
+          is_current?: boolean;
+          missing_settings?: string[];
+          org_id: string;
+          rules_fired?: string[];
+          settings_snapshot?: NonNullable<Json>;
+          trigger_category?: Database["public"]["Enums"]["trigger_category"] | null;
+          updated_at?: string;
+          visit_id: string;
+          vitals_complete?: boolean | null;
+        };
+        Update: {
+          age_at_visit?: number | null;
+          created_at?: string;
+          dedupe_key?: string | null;
+          department_effective?: Database["public"]["Enums"]["department_mapped"] | null;
+          engine_version?: string;
+          evaluated_at?: string;
+          follow_up_due_date?: string | null;
+          id?: string;
+          inputs_hash?: string | null;
+          is_current?: boolean;
+          missing_settings?: string[];
+          org_id?: string;
+          rules_fired?: string[];
+          settings_snapshot?: NonNullable<Json>;
+          trigger_category?: Database["public"]["Enums"]["trigger_category"] | null;
+          updated_at?: string;
+          visit_id?: string;
+          vitals_complete?: boolean | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "visit_rule_evaluations_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "visit_rule_evaluations_visit_id_fkey";
+            columns: ["visit_id"];
+            isOneToOne: false;
+            referencedRelation: "v_visit_data_quality";
+            referencedColumns: ["visit_id"];
+          },
+          {
+            foreignKeyName: "visit_rule_evaluations_visit_id_fkey";
+            columns: ["visit_id"];
+            isOneToOne: false;
+            referencedRelation: "visits";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       visits: {
         Row: {
           bp_diastolic: number | null;
@@ -4891,92 +5045,6 @@ export type Database = {
             columns: ["specialist_id"];
             isOneToOne: false;
             referencedRelation: "specialists";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      visit_rule_evaluations: {
-        Row: {
-          age_at_visit: number | null;
-          created_at: string;
-          dedupe_key: string | null;
-          department_effective: Database["public"]["Enums"]["department_mapped"] | null;
-          engine_version: string;
-          evaluated_at: string;
-          follow_up_due_date: string | null;
-          id: string;
-          inputs_hash: string | null;
-          is_current: boolean;
-          missing_settings: string[];
-          org_id: string;
-          rules_fired: string[];
-          settings_snapshot: NonNullable<Json>;
-          trigger_category: Database["public"]["Enums"]["trigger_category"] | null;
-          updated_at: string;
-          visit_id: string;
-          vitals_complete: boolean | null;
-        };
-        ComputedFields: never;
-        Insert: {
-          age_at_visit?: number | null;
-          created_at?: string;
-          dedupe_key?: string | null;
-          department_effective?: Database["public"]["Enums"]["department_mapped"] | null;
-          engine_version: string;
-          evaluated_at?: string;
-          follow_up_due_date?: string | null;
-          id?: string;
-          inputs_hash?: string | null;
-          is_current?: boolean;
-          missing_settings?: string[];
-          org_id: string;
-          rules_fired?: string[];
-          settings_snapshot?: NonNullable<Json>;
-          trigger_category?: Database["public"]["Enums"]["trigger_category"] | null;
-          updated_at?: string;
-          visit_id: string;
-          vitals_complete?: boolean | null;
-        };
-        Update: {
-          age_at_visit?: number | null;
-          created_at?: string;
-          dedupe_key?: string | null;
-          department_effective?: Database["public"]["Enums"]["department_mapped"] | null;
-          engine_version?: string;
-          evaluated_at?: string;
-          follow_up_due_date?: string | null;
-          id?: string;
-          inputs_hash?: string | null;
-          is_current?: boolean;
-          missing_settings?: string[];
-          org_id?: string;
-          rules_fired?: string[];
-          settings_snapshot?: NonNullable<Json>;
-          trigger_category?: Database["public"]["Enums"]["trigger_category"] | null;
-          updated_at?: string;
-          visit_id?: string;
-          vitals_complete?: boolean | null;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "visit_rule_evaluations_org_id_fkey";
-            columns: ["org_id"];
-            isOneToOne: false;
-            referencedRelation: "orgs";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "visit_rule_evaluations_visit_id_fkey";
-            columns: ["visit_id"];
-            isOneToOne: false;
-            referencedRelation: "v_visit_data_quality";
-            referencedColumns: ["visit_id"];
-          },
-          {
-            foreignKeyName: "visit_rule_evaluations_visit_id_fkey";
-            columns: ["visit_id"];
-            isOneToOne: false;
-            referencedRelation: "visits";
             referencedColumns: ["id"];
           },
         ];
@@ -5555,6 +5623,26 @@ export type Database = {
           },
         ];
       };
+      v_unclassified_medications: {
+        Row: {
+          first_seen: string | null;
+          last_seen: string | null;
+          medication_code: string | null;
+          medication_name: string | null;
+          org_id: string | null;
+          prescription_count: number | null;
+        };
+        ComputedFields: never;
+        Relationships: [
+          {
+            foreignKeyName: "prescriptions_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       v_visit_data_quality: {
         Row: {
           contact_id: string | null;
@@ -5610,26 +5698,6 @@ export type Database = {
           },
         ];
       };
-      v_unclassified_medications: {
-        Row: {
-          first_seen: string | null;
-          last_seen: string | null;
-          medication_code: string | null;
-          medication_name: string | null;
-          org_id: string | null;
-          prescription_count: number | null;
-        };
-        ComputedFields: never;
-        Relationships: [
-          {
-            foreignKeyName: "prescriptions_org_id_fkey";
-            columns: ["org_id"];
-            isOneToOne: false;
-            referencedRelation: "orgs";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
     };
     Functions: {
       apply_message_status: {
@@ -5671,18 +5739,9 @@ export type Database = {
         Args: { p_at?: string; p_channel_id: string; p_limit: number };
         Returns: boolean;
       };
-      clinical_setting_num: {
-        Args: { p_key: string; p_org: string };
-        Returns: number;
-      };
-      clinical_setting_bool: {
-        Args: { p_key: string; p_org: string };
-        Returns: boolean;
-      };
-      clinical_setting: {
-        Args: { p_key: string; p_org: string };
-        Returns: string;
-      };
+      clinical_setting: { Args: { p_key: string; p_org: string }; Returns: string };
+      clinical_setting_bool: { Args: { p_key: string; p_org: string }; Returns: boolean };
+      clinical_setting_num: { Args: { p_key: string; p_org: string }; Returns: number };
       complete_scheduled_job: { Args: { p_id: string }; Returns: undefined };
       contact_duplicate_candidates: {
         Args: { p_limit?: number; p_org_id: string };
@@ -5724,7 +5783,7 @@ export type Database = {
         Returns: undefined;
       };
       fin_apply_invoices: {
-        Args: { p_batch_id: string; p_invoices: Json; p_org_id: string };
+        Args: { p_batch_id: string; p_duplicates?: number; p_invoices: Json; p_org_id: string };
         Returns: Json;
       };
       fin_auto_close_exceptions: {
@@ -5750,6 +5809,7 @@ export type Database = {
           series: string;
         }[];
       };
+      fin_maintenance_enqueue: { Args: Record<PropertyKey, never>; Returns: number };
       fin_open_exception: {
         Args: {
           p_branch_code?: string;
@@ -5764,6 +5824,25 @@ export type Database = {
       fin_rederive_branches: { Args: { p_org_id: string }; Returns: number };
       gen_random_uuid: { Args: Record<PropertyKey, never>; Returns: string };
       gen_salt: { Args: { "": string }; Returns: string };
+      ins_apply_matches: { Args: { p_matches: Json; p_org_id: string }; Returns: number };
+      ins_commit_import: {
+        Args: {
+          p_events: Json;
+          p_file_id: string;
+          p_missing: string[];
+          p_org_id: string;
+          p_raise_missing?: boolean;
+          p_rows: Json;
+          p_seen: string[];
+          p_user_id: string;
+        };
+        Returns: Json;
+      };
+      ins_discard_import: {
+        Args: { p_file_id: string; p_org_id: string; p_reason?: string };
+        Returns: undefined;
+      };
+      ins_purge_stale_staging: { Args: Record<PropertyKey, never>; Returns: number };
       is_reminder_excluded: {
         Args: { p_doctor_name: string; p_org: string; p_patient_name: string };
         Returns: boolean;
@@ -5838,19 +5917,13 @@ export type Database = {
           retry_after: number;
         }[];
       };
-      reserve_send_slot: {
-        Args: { p_cap: number; p_channel_id: string };
-        Returns: number;
-      };
-      reconcile_snapshot: { Args: { p_org_id: string }; Returns: NonNullable<Json> };
+      reconcile_snapshot: { Args: { p_org_id: string }; Returns: Json };
+      reserve_send_slot: { Args: { p_cap: number; p_channel_id: string }; Returns: number };
       seed_clinical_settings: { Args: { p_org: string }; Returns: undefined };
       seed_finance_reference: { Args: { p_org_id: string }; Returns: undefined };
       seed_finance_roles: { Args: { p_org_id: string; p_roles: Json }; Returns: number };
-      seed_unite_appointment_status_map: {
-        Args: { p_org: string };
-        Returns: undefined;
-      };
       seed_reminder_exclusions: { Args: { p_org: string }; Returns: undefined };
+      seed_unite_appointment_status_map: { Args: { p_org: string }; Returns: undefined };
       set_presence: { Args: { p_org_id: string; p_presence: string }; Returns: undefined };
       show_limit: { Args: Record<PropertyKey, never>; Returns: number };
       show_trgm: { Args: { "": string }; Returns: string[] };

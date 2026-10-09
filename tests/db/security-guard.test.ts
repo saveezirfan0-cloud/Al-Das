@@ -32,6 +32,7 @@ const SERVICE_ONLY = new Set([
   "fin_capture_settings",
   "fin_raw_diligence_files",
   "fin_raw_unite_batches",
+  "ins_staged_activities",
   "integration_accounts",
   "unite_api_calls",
   "job_runs",

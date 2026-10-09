@@ -79,6 +79,16 @@ export default async function FinanceHealthPage() {
           </AlertDescription>
         </Alert>
       )}
+      {(!health.lastImport ||
+        Date.now() - new Date(health.lastImport.uploadedAt).getTime() > 8 * 86_400_000) && (
+        <Alert>
+          <AlertTitle>No Diligence upload in the last 8 days</AlertTitle>
+          <AlertDescription>
+            Sharaf uploads the unfiltered claims report weekly and at month end (Finance → Insurance
+            upload). Claim statuses and ageing are only as fresh as the last upload.
+          </AlertDescription>
+        </Alert>
+      )}
       {health.openCaptureExceptions > 0 && (
         <Alert variant="destructive">
           <AlertTitle>{health.openCaptureExceptions} open capture exception(s)</AlertTitle>
