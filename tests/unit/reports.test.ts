@@ -161,7 +161,7 @@ describe("registry", () => {
   it("marks unimplemented reports as awaiting their phase, with the phase named", () => {
     const awaiting = REPORTS.filter((r) => !r.run);
     expect(awaiting.map((r) => r.key).sort()).toEqual(
-      ["appointments", "campaigns", "enquiry-funnel", "enquiry-stage-time", "unite-appointments"].sort(),
+      ["campaigns", "enquiry-funnel", "enquiry-stage-time"].sort(),
     );
     for (const r of awaiting) expect(r.awaiting, r.key).toMatch(/Phase \d/);
   });

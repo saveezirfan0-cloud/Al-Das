@@ -36,7 +36,7 @@ describe("API keys", () => {
   });
 
   it("checks scopes exactly", () => {
-    expect(API_KEY_SCOPES).toEqual(["contacts:read", "contacts:write", "messages:send_template"]);
+    expect(API_KEY_SCOPES).toEqual(["contacts:read", "contacts:write", "appointments:read", "messages:send_template"]);
     expect(hasScope(["contacts:read"], "contacts:read")).toBe(true);
     expect(hasScope(["contacts:read"], "contacts:write")).toBe(false);
     expect(hasScope([], "contacts:read")).toBe(false);

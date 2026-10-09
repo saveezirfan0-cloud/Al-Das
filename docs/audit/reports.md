@@ -117,6 +117,14 @@ Filter applicability: **channel** (WhatsApp number) — conversation, response, 
 
 Materialized views refresh every 15 minutes (`pulse:metrics_refresh`), so dashboards can be up to 15 minutes behind; the Team lead dashboard reads live views and is current.
 
+### 5.1a Appointment reports (live since the Phase 6 merge)
+
+`v_appointment_facts` (a `security_invoker` view, service role only) is the contract: `id, org_id, day, status, source, location_id, location_name, specialist_id, specialist_name, external_status`, where `day` is the appointment's date in the org timezone (the day it takes place, not the day it was booked). Both reports read it through the `report_appointments_*` and `report_unite_*` functions (migration `20261009001400`).
+
+- **No-show rate** = no-shows ÷ (completed + no-shows). Cancelled, awaiting and confirmed are outside the base, so a clinic with no outcomes yet shows "—", not 0%. The old Airtable "No-show rate per doctor" tile measured field fill rate (OQ-54); this is the replacement and will differ from it.
+- **Unite status codes (OQ-23).** `appointments.status` follows `unite_appointment_status_map`. A code whose mapping is still empty leaves the appointment at *Awaiting*, so Unite no-shows and cancellations are undercounted until Settings → Unite EMR is filled in. The Unite report lists every raw code with its current mapping and the count of appointments still unmapped, so the gap is visible rather than silent.
+- No location/specialist filter yet: both are breakdowns inside the report. A shared location filter needs the filter bar and export route extended.
+
 ### 5.2 Data contract for the awaiting reports
 
 A report goes live when its source view exists with these columns and a `run` function is added to `lib/reports/registry.ts`. Days are org-timezone dates; every view carries `org_id`; materialized views follow the same access rules as the Phase 10 ones (revoked from API roles, read through a service-role function).
@@ -126,8 +134,6 @@ A report goes live when its source view exists with these columns and a `run` fu
 | Enquiry funnel | `mv_enquiry_funnel` | `org_id, day, pipeline_id, stage_id, entered, left, won, lost, disqualified, assignee_user_id, team_id` | Phase 5 (needs an enquiry stage-history table; the plan's §3 has none) |
 | Time in stage | `mv_enquiry_stage_times` | `org_id, day, pipeline_id, stage_id, enquiries, seconds_sum` (sum + count, so averages re-aggregate) | Phase 5 |
 | Campaign performance | `mv_campaign_funnel` | `org_id, campaign_id, channel_id, sent, delivered, read, replied, failed` | Phase 7 |
-| Appointments | `mv_appointments_by_status` | `org_id, day, location_id, specialist_id, status, count, no_shows` | Phase 6, needs the Unite status map (OQ-23) |
-| Unite appointments | `mv_unite_appointments_daily` | `org_id, day, status, count` | Phase 6 |
 | WhatsApp cost | `mv_wa_usage` | `org_id, day, channel_id, category, country, messages, cost` from Meta `pricing_analytics` | a pricing-ingestion task (new) |
 
 Management dashboard widgets that wait on these: enquiries in/closed/converted, conversion to appointments, appointments by status/location/specialist, no-shows, campaign results, WhatsApp cost.

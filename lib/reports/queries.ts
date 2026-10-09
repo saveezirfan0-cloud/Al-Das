@@ -202,3 +202,111 @@ export async function whatsappUsageReport(ctx: ReportContext): Promise<ReportRes
     notes: ["Cost is not shown yet: it needs Meta pricing analytics, which is not ingested. Counts are by message type."],
   };
 }
+
+const STATUS_SERIES = [
+  { key: "completed", label: "Completed" },
+  { key: "confirmed", label: "Confirmed" },
+  { key: "awaiting", label: "Awaiting" },
+  { key: "cancelled", label: "Cancelled" },
+  { key: "no_show", label: "No-show" },
+];
+
+/** No-show rate = no-shows / (completed + no-shows): of appointments with an outcome, how many were missed. */
+function noShowRate(completed: number, noShow: number): number | null {
+  return completed + noShow > 0 ? noShow / (completed + noShow) : null;
+}
+
+export async function appointmentsReport(ctx: ReportContext): Promise<ReportResult> {
+  const { admin } = ctx;
+  const args = base(ctx);
+  const [summary, byDay, byLocation, bySpecialist] = await Promise.all([
+    rpc(admin.rpc("report_appointments_summary", args), "appointments summary"),
+    rpc(admin.rpc("report_appointments_by_day", args), "appointments by day"),
+    rpc(admin.rpc("report_appointments_by_location", args), "appointments by location"),
+    rpc(admin.rpc("report_appointments_by_specialist", args), "appointments by specialist"),
+  ]);
+  const s = summary[0];
+  const rate = noShowRate(orZero(s?.completed), orZero(s?.no_show));
+  const dim = (r: { total: number; completed: number; cancelled: number; no_show: number }) => ({
+    total: r.total,
+    completed: r.completed,
+    cancelled: r.cancelled,
+    no_show: r.no_show,
+    no_show_rate: noShowRate(r.completed, r.no_show),
+  });
+  const columns = (label: string) => [
+    { key: "name", label },
+    { key: "total", label: "Appointments", format: "number" as const },
+    { key: "completed", label: "Completed", format: "number" as const },
+    { key: "cancelled", label: "Cancelled", format: "number" as const },
+    { key: "no_show", label: "No-shows", format: "number" as const },
+    { key: "no_show_rate", label: "No-show rate", format: "percent" as const },
+  ];
+  return {
+    kpis: [
+      { key: "total", label: "Appointments", value: orZero(s?.total), format: "number", hint: "scheduled in the period" },
+      { key: "completed", label: "Completed", value: orZero(s?.completed), format: "number" },
+      { key: "cancelled", label: "Cancelled", value: orZero(s?.cancelled), format: "number" },
+      { key: "no_show", label: "No-shows", value: orZero(s?.no_show), format: "number" },
+      { key: "rate", label: "No-show rate", value: rate, format: "percent", hint: "of completed + no-show" },
+      { key: "open", label: "Not yet resolved", value: orZero(s?.awaiting) + orZero(s?.confirmed), format: "number", hint: "awaiting or confirmed" },
+    ],
+    charts: [
+      {
+        kind: "bars",
+        title: "Appointments per day",
+        description: "By the day the appointment takes place, in your workspace timezone.",
+        xKey: "day",
+        stacked: true,
+        series: STATUS_SERIES,
+        data: byDay.map((d) => ({ day: d.day, completed: d.completed, confirmed: d.confirmed, awaiting: d.awaiting, cancelled: d.cancelled, no_show: d.no_show })),
+      },
+      { kind: "hbars", title: "By location", items: byLocation.map((l) => ({ label: l.location_name, value: l.total })) },
+      { kind: "hbars", title: "By specialist", items: bySpecialist.slice(0, 15).map((l) => ({ label: l.specialist_name, value: l.total })) },
+    ],
+    // The table is the per-specialist breakdown (the one clinic managers act on); locations are in the chart.
+    table: {
+      columns: columns("Specialist"),
+      rows: bySpecialist.map((r) => ({ name: r.specialist_name, ...dim(r) })),
+    },
+    notes: [
+      "Appointments synced from Unite stay 'Awaiting' until their status codes are mapped (Settings → Unite EMR, open question OQ-23), so no-shows from Unite are undercounted until then.",
+    ],
+  };
+}
+
+export async function uniteAppointmentsReport(ctx: ReportContext): Promise<ReportResult> {
+  const { admin } = ctx;
+  const args = base(ctx);
+  const [byDay, codes] = await Promise.all([
+    rpc(admin.rpc("report_unite_appointments_by_day", args), "Unite appointments by day"),
+    rpc(admin.rpc("report_unite_status_codes", args), "Unite status codes"),
+  ]);
+  const total = byDay.reduce((s, d) => s + d.appointments, 0);
+  const unmapped = byDay.reduce((s, d) => s + d.unmapped, 0);
+  return {
+    kpis: [
+      { key: "total", label: "Unite appointments", value: total, format: "number", hint: "synced into Pulse" },
+      { key: "unmapped", label: "With an unmapped status code", value: unmapped, format: "number", hint: total > 0 ? `${Math.round((unmapped / total) * 100)}% of the total` : undefined },
+    ],
+    charts: [
+      {
+        kind: "bars",
+        title: "Unite appointments per day",
+        xKey: "day",
+        series: [{ key: "appointments", label: "Appointments" }],
+        data: byDay.map((d) => ({ day: d.day, appointments: d.appointments })),
+      },
+      { kind: "hbars", title: "By Unite status code", items: codes.map((c) => ({ label: c.mapped_status ? `${c.code} (${c.mapped_status})` : `${c.code} (not mapped)`, value: c.appointments })) },
+    ],
+    table: {
+      columns: [
+        { key: "day", label: "Day" },
+        { key: "appointments", label: "Appointments", format: "number" },
+        { key: "unmapped", label: "Unmapped status", format: "number" },
+      ],
+      rows: byDay.map((d) => ({ day: d.day, appointments: d.appointments, unmapped: d.unmapped })),
+    },
+    notes: ["Unite is read-only: this shows what the sync has copied, not live Unite data. Map each status code in Settings → Unite EMR (OQ-23) to move appointments out of 'Awaiting'."],
+  };
+}

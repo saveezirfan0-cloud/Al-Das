@@ -269,6 +269,13 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "appointment_reminders_appointment_id_fkey";
+            columns: ["appointment_id"];
+            isOneToOne: false;
+            referencedRelation: "v_appointment_facts";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "appointment_reminders_message_id_fkey";
             columns: ["message_id"];
             isOneToOne: false;
@@ -6037,6 +6044,44 @@ export type Database = {
           },
         ];
       };
+      v_appointment_facts: {
+        Row: {
+          day: string | null;
+          external_status: string | null;
+          id: string | null;
+          location_id: string | null;
+          location_name: string | null;
+          org_id: string | null;
+          source: string | null;
+          specialist_id: string | null;
+          specialist_name: string | null;
+          status: string | null;
+        };
+        ComputedFields: never;
+        Relationships: [
+          {
+            foreignKeyName: "appointments_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "appointments_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "appointments_specialist_id_fkey";
+            columns: ["specialist_id"];
+            isOneToOne: false;
+            referencedRelation: "specialists";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       v_appointment_reminder_stats: {
         Row: {
           external_status: string | null;
@@ -6817,6 +6862,50 @@ export type Database = {
           user_id: string;
         }[];
       };
+      report_appointments_by_day: {
+        Args: { p_from: string; p_org: string; p_to: string };
+        Returns: {
+          awaiting: number;
+          cancelled: number;
+          completed: number;
+          confirmed: number;
+          day: string;
+          no_show: number;
+        }[];
+      };
+      report_appointments_by_location: {
+        Args: { p_from: string; p_org: string; p_to: string };
+        Returns: {
+          cancelled: number;
+          completed: number;
+          location_id: string;
+          location_name: string;
+          no_show: number;
+          total: number;
+        }[];
+      };
+      report_appointments_by_specialist: {
+        Args: { p_from: string; p_org: string; p_to: string };
+        Returns: {
+          cancelled: number;
+          completed: number;
+          no_show: number;
+          specialist_id: string;
+          specialist_name: string;
+          total: number;
+        }[];
+      };
+      report_appointments_summary: {
+        Args: { p_from: string; p_org: string; p_to: string };
+        Returns: {
+          awaiting: number;
+          cancelled: number;
+          completed: number;
+          confirmed: number;
+          no_show: number;
+          total: number;
+        }[];
+      };
       report_conversations_by_channel: {
         Args: {
           p_channels?: string[];
@@ -6899,6 +6988,22 @@ export type Database = {
         }[];
       };
       report_sources_available: { Args: Record<PropertyKey, never>; Returns: string[] };
+      report_unite_appointments_by_day: {
+        Args: { p_from: string; p_org: string; p_to: string };
+        Returns: {
+          appointments: number;
+          day: string;
+          unmapped: number;
+        }[];
+      };
+      report_unite_status_codes: {
+        Args: { p_from: string; p_org: string; p_to: string };
+        Returns: {
+          appointments: number;
+          code: string;
+          mapped_status: string;
+        }[];
+      };
       report_usage_by_day: {
         Args: { p_channels?: string[]; p_from: string; p_org: string; p_to: string };
         Returns: {

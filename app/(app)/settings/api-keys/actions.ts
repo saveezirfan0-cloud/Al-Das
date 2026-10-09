@@ -22,6 +22,7 @@ const MAX_ACTIVE_KEYS = 50;
 const SCOPE_REQUIRES: Record<ApiKeyScope, string> = {
   "contacts:read": "contacts.view",
   "contacts:write": "contacts.manage",
+  "appointments:read": "appointments.view",
   "messages:send_template": "inbox.send",
 };
 

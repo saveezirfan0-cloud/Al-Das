@@ -7,6 +7,8 @@ test("public API routes demand a bearer key", async ({ request }) => {
     ["GET", "/api/public/v1/contacts"],
     ["POST", "/api/public/v1/contacts"],
     ["GET", "/api/public/v1/contacts/3f2b8c1e-4d5a-4b6c-8d7e-9f0a1b2c3d4e"],
+    ["GET", "/api/public/v1/appointments"],
+    ["GET", "/api/public/v1/appointments/3f2b8c1e-4d5a-4b6c-8d7e-9f0a1b2c3d4e"],
     ["POST", "/api/public/v1/send-template"],
   ] as const) {
     const res = await request.fetch(path, { method, maxRedirects: 0 });

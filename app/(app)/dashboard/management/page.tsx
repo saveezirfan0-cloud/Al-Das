@@ -7,7 +7,7 @@ import { AwaitingCard } from "@/components/shell/awaiting-card";
 import { PageHeader } from "@/components/shell/page-header";
 import { requirePerm } from "@/lib/auth/session";
 import { filtersFromSearchParams } from "@/lib/reports/filters";
-import { conversationsReport, responseReport, whatsappUsageReport } from "@/lib/reports/queries";
+import { appointmentsReport, conversationsReport, responseReport, whatsappUsageReport } from "@/lib/reports/queries";
 import { REPORTS, reportStatus } from "@/lib/reports/registry";
 import { availableSources, filterOptions, reportContext } from "@/lib/reports/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -25,13 +25,16 @@ export default async function ManagementDashboard({ searchParams }: { searchPara
     return reportStatus(def, available) === "live";
   });
 
+  const appointmentsLive = reportStatus(REPORTS.find((r) => r.key === "appointments")!, available) === "live";
+
   const { filters, error } = filtersFromSearchParams(await searchParams);
   const ctx = reportContext(member, filters);
   const options = await filterOptions(admin, member.orgId);
 
-  const body = ready
-    ? await Promise.all([conversationsReport(ctx), responseReport(ctx), whatsappUsageReport(ctx)])
-    : null;
+  const [body, appointments] = await Promise.all([
+    ready ? Promise.all([conversationsReport(ctx), responseReport(ctx), whatsappUsageReport(ctx)]) : null,
+    appointmentsLive ? appointmentsReport(ctx) : null,
+  ]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -72,15 +75,42 @@ export default async function ManagementDashboard({ searchParams }: { searchPara
         <AwaitingCard title="Messaging metrics" phase="the metrics migration" detail="Apply the latest database migrations to enable these widgets." />
       )}
 
+      {appointments && (
+        <section aria-labelledby="appts" className="flex flex-col gap-3">
+          <h3 id="appts" className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+            Appointments
+          </h3>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {appointments.kpis
+              .filter((k) => ["total", "completed", "no_show", "rate"].includes(k.key))
+              .map((k) => (
+                <KpiTile key={k.key} label={k.label} value={k.value} format={k.format} hint={k.hint} />
+              ))}
+          </div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <ChartRenderer spec={appointments.charts[0]} />
+            <ChartRenderer spec={appointments.charts[1]} />
+          </div>
+          {appointments.notes.map((n) => (
+            <p key={n} className="text-muted-foreground text-xs">
+              {n}
+            </p>
+          ))}
+          <p className="text-sm">
+            <Link href="/reports/appointments" className="text-primary inline-flex items-center gap-1 underline">
+              Open the appointments report <ArrowRight className="size-3.5" aria-hidden />
+            </Link>
+          </p>
+        </section>
+      )}
+
       <section aria-labelledby="coming" className="flex flex-col gap-3">
         <h3 id="coming" className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
           Arriving with other modules
         </h3>
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           <AwaitingCard title="Enquiries in, closed and converted" phase="Phase 5 (enquiries)" />
-          <AwaitingCard title="Conversion to appointments" phase="Phase 6 (appointments)" />
-          <AwaitingCard title="Appointments by status, location and specialist" phase="Phase 6 (appointments)" />
-          <AwaitingCard title="No-shows" phase="Phase 6 (appointments)" detail="Needs the confirmed Unite status codes (OQ-23)." />
+          <AwaitingCard title="Conversion to appointments" phase="Phase 5 (enquiries)" detail="Needs enquiries to link a first contact to a booking." />
           <AwaitingCard title="Campaign results" phase="Phase 7 (campaigns)" />
           <AwaitingCard title="WhatsApp cost" phase="Meta pricing analytics ingestion" detail="Message counts by type are shown above." />
         </div>

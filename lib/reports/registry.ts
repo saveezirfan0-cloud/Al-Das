@@ -1,4 +1,4 @@
-import { agentsReport, conversationsReport, responseReport, whatsappUsageReport } from "@/lib/reports/queries";
+import { agentsReport, appointmentsReport, conversationsReport, responseReport, uniteAppointmentsReport, whatsappUsageReport } from "@/lib/reports/queries";
 import type { ReportDef } from "@/lib/reports/types";
 
 /**
@@ -75,8 +75,8 @@ export const REPORTS: readonly ReportDef[] = [
     description: "By status, location and specialist, including no-shows.",
     group: "Appointments",
     filters: [],
-    requires: ["mv_appointments_by_status"],
-    awaiting: "Phase 6 (appointments, plus the Unite status map, OQ-23)",
+    requires: ["v_appointment_facts"],
+    run: appointmentsReport,
   },
   {
     key: "unite-appointments",
@@ -84,8 +84,8 @@ export const REPORTS: readonly ReportDef[] = [
     description: "Appointments synced from the Unite EMR, by day.",
     group: "Appointments",
     filters: [],
-    requires: ["mv_unite_appointments_daily"],
-    awaiting: "Phase 6 (Unite read-only sync)",
+    requires: ["v_appointment_facts"],
+    run: uniteAppointmentsReport,
   },
 ];
 
