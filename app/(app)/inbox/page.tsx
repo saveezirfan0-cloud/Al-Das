@@ -1,3 +1,4 @@
+import { readAiSettings } from "@/lib/ai/settings";
 import { can } from "@/lib/auth/can";
 import { requireMember } from "@/lib/auth/session";
 import { contactDisplayName } from "@/lib/inbox/contact-name";
@@ -239,6 +240,7 @@ export default async function InboxPage({
       appointmentsManage: can(member, "appointments.manage"),
       settings: can(member, "settings.manage"),
     },
+    ai: { available: can(member, "ai.use") && readAiSettings(org?.settings).enabled },
     query,
     counts,
     teams: (teams ?? []).map((t) => ({ ...t, mine: teamIds.includes(t.id) })),

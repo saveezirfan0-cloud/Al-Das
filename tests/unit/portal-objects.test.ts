@@ -8,7 +8,7 @@ import { portalObjectPermissionKeys, isPortalPermissionKey } from "@/lib/portal/
 import { isAssignablePermission } from "@/lib/auth/permissions";
 
 const MIGRATIONS = join(__dirname, "../../supabase/migrations");
-const framework = readFileSync(join(MIGRATIONS, "20261009001100_portal_framework.sql"), "utf8");
+const framework = readFileSync(join(MIGRATIONS, "20261009001600_portal_framework.sql"), "utf8");
 
 describe("portal object registry", () => {
   it("has unique object keys and unique, snake_case column keys", () => {

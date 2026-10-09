@@ -66,6 +66,21 @@ describe("catalogue", () => {
     ]);
   });
 
+  it("grants the Phase 10 keys to the right system roles", () => {
+    const perms = (name: string) => SYSTEM_ROLES.find((r) => r.name === name)!.permissions;
+    for (const key of ["ai.use", "kb.manage", "reports.export"]) {
+      expect(PERMISSION_KEYS).toContain(key);
+    }
+    expect(perms("Manager")).toEqual(expect.arrayContaining(["ai.use", "kb.manage", "reports.export"]));
+    expect(perms("Agent")).toContain("ai.use");
+    expect(perms("Receptionist")).toContain("ai.use");
+    // Agents can use AI but never manage the knowledge base or export reports.
+    expect(perms("Agent")).not.toContain("kb.manage");
+    expect(perms("Agent")).not.toContain("reports.export");
+    // Marketing has reports but exporting them is a deliberate, separate grant.
+    expect(perms("Marketing")).not.toContain("reports.export");
+  });
+
   it("keeps clinical sign-off out of every preset except Admin (explicit grant only)", () => {
     const signers = SYSTEM_ROLES.filter((r) =>
       r.permissions.some((p) => permissionMatches(p, "clinical.settings.manage")),

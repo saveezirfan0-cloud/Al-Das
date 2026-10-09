@@ -18,7 +18,7 @@ import { MEDIA_BUCKET } from "@/lib/jobs/handlers/media-fetch";
 import { clientForChannel } from "@/lib/whatsapp/channel";
 import { WhatsAppApiError, mapMetaError } from "@/lib/whatsapp/errors";
 import { e164ToWaId } from "@/lib/whatsapp/phone";
-import { buildTemplateSend, isTemplateSendable } from "@/lib/whatsapp/templates";
+import { buildTemplateSend, isMarketingBlocked, isTemplateSendable } from "@/lib/whatsapp/templates";
 import type { MetaTemplateComponent, SendResult } from "@/lib/whatsapp/types";
 import { serviceWindow } from "@/lib/whatsapp/window";
 
@@ -201,7 +201,7 @@ export async function deliverOutbound(
       case "template": {
         const { data: tpl } = await admin
           .from("wa_templates")
-          .select("name, language, components, status, parameter_format")
+          .select("name, language, components, status, parameter_format, category")
           .eq("id", spec.template_id)
           .eq("org_id", message.org_id)
           .maybeSingle();
@@ -213,6 +213,17 @@ export async function deliverOutbound(
             132001,
             `Template "${tpl.name}" is ${tpl.status}, not APPROVED.`,
           );
+          return;
+        }
+        // Opt-outs can arrive between queueing and sending (CLAUDE.md rule 11): check again now.
+        if (isMarketingBlocked(tpl.category, contact.stop_marketing)) {
+          await markFailed(admin, message.id, 131050, "The recipient opted out of marketing messages.");
+          await emit(message.org_id, "message.failed", {
+            message_id: message.id,
+            conversation_id: conversation.id,
+            code: 131050,
+            category: "recipient",
+          });
           return;
         }
         const template = buildTemplateSend(
