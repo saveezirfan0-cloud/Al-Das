@@ -27,7 +27,13 @@ import { CustomFieldDialog } from "./custom-field-dialog";
 
 type Row = CustomFieldDef & { id: string; entity: string; sort: number };
 
-export function CustomFieldsTable({ rows }: { rows: Row[] }) {
+export function CustomFieldsTable({
+  rows,
+  entity = "contact",
+}: {
+  rows: Row[];
+  entity?: "contact" | "enquiry";
+}) {
   const [editing, setEditing] = React.useState<Row | null>(null);
   const [pending, startTransition] = React.useTransition();
 
@@ -37,7 +43,7 @@ export function CustomFieldsTable({ rows }: { rows: Row[] }) {
     if (j < 0 || j >= ids.length) return;
     [ids[i], ids[j]] = [ids[j], ids[i]];
     startTransition(async () => {
-      const res = await reorderCustomFields("contact", ids);
+      const res = await reorderCustomFields(entity, ids);
       if (!res.ok) toast.error(res.error);
     });
   }
