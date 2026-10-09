@@ -1,3 +1,5 @@
+import { PORTAL_OBJECTS } from "@/lib/portal/objects";
+
 /** Left-nav modules. `permission` hides the entry for members without it. */
 export type NavIcon =
   | "dashboard"
@@ -18,6 +20,8 @@ export type NavItem = {
   label: string;
   icon: NavIcon;
   permission?: string;
+  /** Visible when the member holds at least one of these (e.g. any portal object). */
+  anyPermission?: readonly string[];
 };
 
 export const NAV_ITEMS: readonly NavItem[] = [
@@ -35,7 +39,12 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { href: "/campaigns", label: "Campaigns", icon: "campaigns", permission: "campaigns.view" },
   { href: "/templates", label: "Templates", icon: "templates", permission: "templates.manage" },
   { href: "/flows", label: "Flows", icon: "flows", permission: "flows.manage" },
-  { href: "/portal", label: "Portal", icon: "portal" },
+  {
+    href: "/portal",
+    label: "Portal",
+    icon: "portal",
+    anyPermission: PORTAL_OBJECTS.map((o) => o.readPerm),
+  },
   { href: "/reports", label: "Reports", icon: "reports", permission: "reports.view" },
   { href: "/settings", label: "Settings", icon: "settings" },
 ];

@@ -2,6 +2,8 @@
 
 These are **drafts**, deliberately kept out of `supabase/migrations/`. They build on the Phase 1 foundation that is already applied (`app.set_updated_at`, `app.is_org_member`, `app.has_perm`, `orgs`, `roles`, `memberships`, `teams`, `profiles`) and reference tables that Phase 2 (`contacts`), Phase 3 (`messages`), Phase 4 (`wa_templates`) and Phase 6 (`locations`, `specialists`, `appointments`, `appointment_reminders`) create. In Phase 6 they are copied into `supabase/migrations/` with timestamp prefixes, applied with `pnpm db:migrate`, and never edited again.
 
+> **Already promoted in Phase 9:** `0100_clinical_reference.sql` and `0101_clinical_settings.sql` are applied as `supabase/migrations/20261008001000_clinical_reference_settings.sql` (byte-for-byte). **Skip them in Phase 6**; promote `0102`–`0105` only. They depend on `app.has_perm_wild()` / `app.add_tenant_rls()` from that migration.
+
 | File | Creates |
 |---|---|
 | `0100_clinical_reference.sql` | `app.has_perm_wild()` (wildcard-aware permission check), `app.add_tenant_rls()` (Phase 1-style per-operation policies + updated_at trigger), `ref_condition_groups`, `ref_diagnoses`, `ref_medications`, `ref_items`, `ref_medication_classes`, `seed_condition_groups()` |

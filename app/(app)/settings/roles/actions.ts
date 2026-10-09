@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { recordAudit } from "@/lib/audit";
-import { PERMISSION_KEYS } from "@/lib/auth/permissions";
+import { isAssignablePermission } from "@/lib/auth/permissions";
 import { requirePerm } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -15,10 +15,7 @@ const roleSchema = z.object({
   description: z.string().trim().max(240).default(""),
   permissions: z
     .array(z.string())
-    .refine(
-      (ps) => ps.every((p) => p === "*" || PERMISSION_KEYS.includes(p)),
-      "Unknown permission",
-    ),
+    .refine((ps) => ps.every(isAssignablePermission), "Unknown permission"),
 });
 
 export async function createRole(input: z.input<typeof roleSchema>): Promise<ActionResult> {

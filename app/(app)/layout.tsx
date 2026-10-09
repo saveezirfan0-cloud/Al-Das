@@ -4,7 +4,7 @@ import { NAV_ITEMS, SIDEBAR_COOKIE } from "@/components/shell/nav";
 import { Sidebar } from "@/components/shell/sidebar";
 import { Topbar } from "@/components/shell/topbar";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { can } from "@/lib/auth/can";
+import { can, canAny } from "@/lib/auth/can";
 import { requireMember } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 
@@ -13,7 +13,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const cookieStore = await cookies();
   const collapsed = cookieStore.get(SIDEBAR_COOKIE)?.value === "1";
 
-  const items = NAV_ITEMS.filter((i) => !i.permission || can(member, i.permission));
+  const items = NAV_ITEMS.filter(
+    (i) =>
+      (!i.permission || can(member, i.permission)) &&
+      (!i.anyPermission || canAny(member, i.anyPermission)),
+  );
 
   const supabase = await createClient();
   const { data: notifications } = await supabase

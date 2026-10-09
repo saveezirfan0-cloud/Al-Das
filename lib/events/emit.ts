@@ -18,7 +18,10 @@ export type DomainEventName =
   | "contact.created"
   | "contact.stop_marketing"
   | "channel.quality_changed"
-  | "template.status_changed";
+  | "template.status_changed"
+  | "portal.record_created"
+  | "portal.record_updated"
+  | "portal.record_deleted";
 
 export type DomainEvent = {
   orgId: string;

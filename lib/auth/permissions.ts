@@ -57,6 +57,12 @@ export const PERMISSIONS = [
     description: "Equivalent to portal.<object>.read and .write for every object",
   },
   { key: "portal.*.read", group: "Portal", label: "Read all portal objects" },
+  {
+    key: "clinical.settings.manage",
+    group: "Portal",
+    label: "Sign off clinical settings",
+    description: "Edit and approve clinically governed thresholds. Not covered by portal.*",
+  },
   { key: "reports.view", group: "Reports", label: "View reports and dashboards" },
   {
     key: "settings.manage",
@@ -174,4 +180,15 @@ export function permissionMatches(granted: string, requested: string): boolean {
     if (g[i] !== r[i]) return false;
   }
   return g.length === r.length;
+}
+
+/** Per-object portal keys a role may hold: portal.<object>.read | portal.<object>.write. */
+export const PORTAL_OBJECT_PERMISSION_RE = /^portal\.[a-z][a-z0-9_]{0,48}\.(read|write)$/;
+
+/**
+ * Is this a key a role may hold? Catalogue keys, '*', and the per-object portal keys
+ * (portal.<object>.read | portal.<object>.write) generated from the portal registry.
+ */
+export function isAssignablePermission(key: string): boolean {
+  return key === "*" || PERMISSION_KEYS.includes(key) || PORTAL_OBJECT_PERMISSION_RE.test(key);
 }
