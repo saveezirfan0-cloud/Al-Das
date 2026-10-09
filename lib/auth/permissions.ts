@@ -16,6 +16,7 @@ export const PERMISSION_GROUPS = [
   "Portal",
   "Clinical",
   "Reports",
+  "AI & knowledge base",
   "Finance",
   "Settings",
 ] as const;
@@ -121,6 +122,24 @@ export const PERMISSIONS = [
       "Approve the thresholds the clinical rules use and switch patient-facing clinical messaging on. Give this to the clinical lead, not to everyone.",
   },
   { key: "reports.view", group: "Reports", label: "View reports and dashboards" },
+  {
+    key: "reports.export",
+    group: "Reports",
+    label: "Export reports",
+    description: "Download report data as CSV",
+  },
+  {
+    key: "ai.use",
+    group: "AI & knowledge base",
+    label: "Use AI assist in the inbox",
+    description: "Summarize, suggest replies and rewrite drafts (drafts only, never auto-sent)",
+  },
+  {
+    key: "kb.manage",
+    group: "AI & knowledge base",
+    label: "Manage the knowledge base",
+    description: "Add, re-crawl and remove knowledge sources and groups",
+  },
   {
     key: "finance.view",
     group: "Finance",
@@ -253,6 +272,9 @@ export const SYSTEM_ROLES: readonly RolePreset[] = [
       "flows.manage",
       "portal.*",
       "reports.view",
+      "reports.export",
+      "ai.use",
+      "kb.manage",
     ],
   },
   {
@@ -268,6 +290,7 @@ export const SYSTEM_ROLES: readonly RolePreset[] = [
       "tasks.manage",
       "appointments.view",
       "portal.*.read",
+      "ai.use",
     ],
   },
   {
@@ -284,6 +307,7 @@ export const SYSTEM_ROLES: readonly RolePreset[] = [
       "appointments.view",
       "appointments.manage",
       "portal.*.read",
+      "ai.use",
     ],
   },
   {

@@ -213,4 +213,34 @@ describe("WhatsAppClient", () => {
     expect(() => c.getSubscribedApps()).toThrow(/wabaId/);
     expect(() => new WhatsAppClient({ accessToken: "" })).toThrow();
   });
+
+  it("uploads a template header sample through the resumable upload API", async () => {
+    const { c, calls } = client([{ body: { id: "upload:abc?sig=1" } }, { body: { h: "4::handle" } }]);
+    const handle = await c.uploadTemplateSample(
+      { data: new Uint8Array([1, 2, 3, 4]), mimeType: "image/png", fileName: "banner.png" },
+      "APPID",
+    );
+    expect(handle).toBe("4::handle");
+    const start = new URL(calls[0].url);
+    expect(start.pathname).toBe("/v21.0/APPID/uploads");
+    expect(start.searchParams.get("file_length")).toBe("4");
+    expect(start.searchParams.get("file_type")).toBe("image/png");
+    expect(start.searchParams.get("file_name")).toBe("banner.png");
+    expect(calls[0].init.method).toBe("POST");
+    expect(new URL(calls[1].url).pathname).toBe("/v21.0/upload:abc");
+    const h = calls[1].init.headers as Record<string, string>;
+    expect(h.Authorization).toBe("OAuth TOKEN");
+    expect(h.file_offset).toBe("0");
+    expect((calls[1].init.body as Uint8Array).byteLength).toBe(4);
+  });
+
+  it("needs an app id for template sample uploads", async () => {
+    const { c } = client([]);
+    const prev = process.env.META_APP_ID;
+    delete process.env.META_APP_ID;
+    await expect(
+      c.uploadTemplateSample({ data: new Uint8Array([1]), mimeType: "image/png", fileName: "a.png" }),
+    ).rejects.toThrow(/META_APP_ID/);
+    if (prev) process.env.META_APP_ID = prev;
+  });
 });

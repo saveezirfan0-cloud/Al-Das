@@ -193,13 +193,24 @@ export type ContactDetail = {
       "id" | "type" | "actor_type" | "actor_id" | "payload" | "at"
     > & { actor_name: string | null }
   >;
+  /** Campaigns this contact was part of (empty without campaigns.view). */
+  campaigns: Array<{
+    id: string;
+    campaign_id: string;
+    name: string;
+    status: string;
+    skip_reason: string | null;
+    sent_at: string | null;
+    replied_at: string | null;
+    created_at: string;
+  }>;
 };
 
 export async function getContact(id: string): Promise<ActionResult<ContactDetail>> {
   const member = await requirePerm("contacts.view");
   if (!uuid.safeParse(id).success) return fail("Invalid contact id");
   const admin = createAdminClient();
-  const [rows, { data: phones }, { data: segs }, { data: events }] = await Promise.all([
+  const [rows, { data: phones }, { data: segs }, { data: events }, campaignRows] = await Promise.all([
     fetchContactsByIds(admin, member.orgId, [id]),
     admin
       .from("contact_phones")
@@ -214,6 +225,15 @@ export async function getContact(id: string): Promise<ActionResult<ContactDetail
       .eq("contact_id", id)
       .order("at", { ascending: false })
       .limit(200),
+    can(member, "campaigns.view")
+      ? admin
+          .from("campaign_recipients")
+          .select("id, campaign_id, status, skip_reason, sent_at, replied_at, created_at, campaigns(name)")
+          .eq("org_id", member.orgId)
+          .eq("contact_id", id)
+          .order("created_at", { ascending: false })
+          .limit(50)
+      : Promise.resolve({ data: [] }),
   ]);
   const contact = rows[0];
   if (!contact || contact.deleted_at) return fail("Contact not found");
@@ -242,6 +262,16 @@ export async function getContact(id: string): Promise<ActionResult<ContactDetail
       contact,
       phones: phones ?? [],
       segments: (segs ?? []).map((s) => s.segments).filter((s): s is NonNullable<typeof s> => !!s),
+      campaigns: (campaignRows.data ?? []).map((r) => ({
+        id: r.id,
+        campaign_id: r.campaign_id,
+        name: r.campaigns?.name ?? "Deleted campaign",
+        status: r.status,
+        skip_reason: r.skip_reason,
+        sent_at: r.sent_at,
+        replied_at: r.replied_at,
+        created_at: r.created_at,
+      })),
       timeline: (events ?? []).map((e) => ({
         ...e,
         actor_name: e.actor_id ? (nameOf.get(e.actor_id) ?? null) : null,

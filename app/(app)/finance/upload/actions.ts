@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { recordAudit } from "@/lib/audit";
 import { requirePerm } from "@/lib/auth/session";
+import { runRulesForOrg } from "@/lib/finance/rules-db";
 import { dbDiligenceStore } from "@/lib/finance/diligence-db";
 import {
   buildPreview,
@@ -155,8 +156,13 @@ export async function commitDiligenceImport(input: {
       entityId: input.fileId,
       diff: { ...res.summary, matched_changed: res.matched.changed },
     });
+    // fresh claim data changes what the rules see; a failure here must not undo the import
+    await runRulesForOrg(admin, member.orgId).catch((err) =>
+      console.error("[finance] rules after import failed", { name: (err as Error).name }),
+    );
     revalidatePath("/finance/upload");
     revalidatePath("/finance/claims");
+    revalidatePath("/finance/exceptions");
     return {
       ok: true,
       message: "Import committed.",

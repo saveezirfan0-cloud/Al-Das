@@ -2,7 +2,7 @@
 
 One platform replacing Sanoflow (WhatsApp inbox, templates, campaigns, enquiries, appointments, bots) and the Airtable + Make.com back office. Next.js 15 + Supabase + Vercel. See `CLAUDE.md` for the rules, `docs/02_CLAUDE_CODE_BUILD_PLAN.md` for the plan.
 
-**Status:** Phases 1–3, 5 and 6 are built (Phase 4, Templates, is still to do): auth, tenancy with RLS, roles/permissions, teams, invites, app shell and the jobs framework (Phase 1); the patient CRM — contacts grid, views, segments, filter builder, import/export, merge, custom fields, tags (Phase 2); the WhatsApp Cloud API client, webhook ingress, queue handlers, Settings → Channels / Inbox and the shared inbox (Phase 3). Phase 6 adds appointments (slot engine, reminders, button replies), the read-only Unite EMR sync with Sync Review, and the clinical rules engine with the Follow-Up Queue and Clinical settings (patient-facing clinical messaging stays off until signed off). Phase 5 adds enquiries — pipelines, Kanban, table, saved views, bulk actions, SLA, assignment rules — with tasks and due reminders. Other module pages are placeholders until their phase. Details: `docs/03_PHASE_1_NOTES.md`, `docs/04_PHASE_2_NOTES.md`, `docs/05_PHASE_3_NOTES.md`, `docs/06_PHASE_6_NOTES.md`, `docs/06_PHASE_5_NOTES.md`.
+**Status:** Phases 1–3, 5, 6 and 10 are built (Phases 4 and 7 landed on `main` in parallel): auth, tenancy with RLS, roles/permissions, teams, invites, app shell and the jobs framework (Phase 1); the patient CRM — contacts grid, views, segments, filter builder, import/export, merge, custom fields, tags (Phase 2); the WhatsApp Cloud API client, webhook ingress, queue handlers, Settings → Channels / Inbox and the shared inbox (Phase 3). Phase 6 adds appointments (slot engine, reminders, button replies), the read-only Unite EMR sync with Sync Review, and the clinical rules engine with the Follow-Up Queue and Clinical settings (patient-facing clinical messaging stays off until signed off). Phase 10 adds inbox AI assist with a knowledge base (pgvector), the metrics layer, dashboards and reports with CSV export, the public API with API keys, and signed outbound webhooks. Phase 5 adds enquiries — pipelines, Kanban, table, saved views, bulk actions, SLA, assignment rules — with tasks and due reminders. Other module pages are placeholders until their phase. Details: `docs/03_PHASE_1_NOTES.md`, `docs/04_PHASE_2_NOTES.md`, `docs/05_PHASE_3_NOTES.md`, `docs/06_PHASE_5_NOTES.md`, `docs/06_PHASE_6_NOTES.md`, `docs/08_PHASE_10_NOTES.md`.
 
 ## Run it locally
 
@@ -23,6 +23,9 @@ pnpm jobs:run scheduler           # moves due scheduled_jobs into pgmq
 pnpm jobs:run notifications       # drains one queue
 pnpm wa:simulate message-text     # post a signed sample Meta webhook (see scripts/wa-fixtures)
 pnpm jobs:run meta_events         # process it into the inbox
+pnpm jobs:run metrics_refresh     # refresh the dashboard/report views (cron: every 15 min)
+pnpm jobs:run kb_ingest           # embed new knowledge-base sources (EMBEDDINGS_PROVIDER=fake works offline)
+pnpm jobs:run webhooks_out        # deliver queued outbound webhooks
 ```
 
 or from **Settings → System health** (Drain / Run scheduler buttons).
