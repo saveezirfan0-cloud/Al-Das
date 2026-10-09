@@ -76,6 +76,17 @@ create table public.flow_run_steps (
 );
 create index flow_run_steps_run_idx on public.flow_run_steps (run_id, seq);
 
+-- Immutable snapshot per publish: a run pins `flow_version` and keeps executing that graph even if the flow is edited.
+create table public.flow_versions (
+  flow_id uuid not null references public.flows (id) on delete cascade,
+  version int not null,
+  org_id uuid not null references public.orgs (id) on delete cascade,
+  graph jsonb not null,
+  published_by uuid references public.profiles (id) on delete set null,
+  published_at timestamptz not null default now(),
+  primary key (flow_id, version)
+);
+
 create table public.flow_variables (
   id uuid primary key default gen_random_uuid(),
   org_id uuid not null references public.orgs (id) on delete cascade,
@@ -104,6 +115,8 @@ create trigger flow_runs_contact_org_check before insert or update on public.flo
   for each row execute function app.check_parent_org('contacts', 'contact_id');
 create trigger flow_runs_conversation_org_check before insert or update on public.flow_runs
   for each row execute function app.check_parent_org('conversations', 'conversation_id');
+create trigger flow_versions_flow_org_check before insert or update on public.flow_versions
+  for each row execute function app.check_parent_org('flows', 'flow_id');
 create trigger flow_run_steps_run_org_check before insert or update on public.flow_run_steps
   for each row execute function app.check_parent_org('flow_runs', 'run_id');
 
@@ -127,6 +140,9 @@ alter table public.flows enable row level security;
 alter table public.flow_runs enable row level security;
 alter table public.flow_run_steps enable row level security;
 alter table public.flow_variables enable row level security;
+alter table public.flow_versions enable row level security;
+create policy flow_versions_select on public.flow_versions for select to authenticated
+  using (app.has_perm(org_id, 'flows.manage'));   -- written by the publish server action (service role)
 
 create policy flows_select on public.flows for select to authenticated
   using (app.has_perm(org_id, 'flows.manage') or app.has_perm(org_id, 'inbox.send'));
