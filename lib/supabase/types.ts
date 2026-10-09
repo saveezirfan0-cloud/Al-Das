@@ -1642,6 +1642,42 @@ export type Database = {
           },
         ];
       };
+      fin_alert_state: {
+        Row: {
+          alert_key: string;
+          cleared_at: string | null;
+          first_seen_at: string;
+          last_notified_at: string | null;
+          org_id: string;
+          severity: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          alert_key: string;
+          cleared_at?: string | null;
+          first_seen_at?: string;
+          last_notified_at?: string | null;
+          org_id: string;
+          severity: string;
+        };
+        Update: {
+          alert_key?: string;
+          cleared_at?: string | null;
+          first_seen_at?: string;
+          last_notified_at?: string | null;
+          org_id?: string;
+          severity?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_alert_state_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       fin_capture_lease: {
         Row: {
           holder: string;
@@ -1673,6 +1709,7 @@ export type Database = {
         Row: {
           batch_size: number;
           created_at: string;
+          digest_enabled: boolean;
           enabled: boolean;
           max_batches_per_run: number;
           org_id: string;
@@ -1684,6 +1721,7 @@ export type Database = {
         Insert: {
           batch_size?: number;
           created_at?: string;
+          digest_enabled?: boolean;
           enabled?: boolean;
           max_batches_per_run?: number;
           org_id: string;
@@ -1694,6 +1732,7 @@ export type Database = {
         Update: {
           batch_size?: number;
           created_at?: string;
+          digest_enabled?: boolean;
           enabled?: boolean;
           max_batches_per_run?: number;
           org_id?: string;
@@ -1807,6 +1846,13 @@ export type Database = {
             foreignKeyName: "fin_invoice_lines_invoice_id_fkey";
             columns: ["invoice_id"];
             isOneToOne: false;
+            referencedRelation: "v_fin_invoice_list";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_invoice_lines_invoice_id_fkey";
+            columns: ["invoice_id"];
+            isOneToOne: false;
             referencedRelation: "v_ins_invoice_match";
             referencedColumns: ["invoice_id"];
           },
@@ -1861,6 +1907,13 @@ export type Database = {
             columns: ["invoice_id"];
             isOneToOne: false;
             referencedRelation: "fin_invoices";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_invoice_versions_invoice_id_fkey";
+            columns: ["invoice_id"];
+            isOneToOne: false;
+            referencedRelation: "v_fin_invoice_list";
             referencedColumns: ["id"];
           },
           {
@@ -2101,6 +2154,13 @@ export type Database = {
             columns: ["invoice_id"];
             isOneToOne: false;
             referencedRelation: "fin_invoices";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_payments_invoice_id_fkey";
+            columns: ["invoice_id"];
+            isOneToOne: false;
+            referencedRelation: "v_fin_invoice_list";
             referencedColumns: ["id"];
           },
           {
@@ -2372,6 +2432,7 @@ export type Database = {
           active: boolean;
           created_at: string;
           description: string;
+          due_days: number;
           org_id: string;
           owner_role: string;
           rule_code: string;
@@ -2383,6 +2444,7 @@ export type Database = {
           active?: boolean;
           created_at?: string;
           description: string;
+          due_days?: number;
           org_id: string;
           owner_role: string;
           rule_code: string;
@@ -2393,6 +2455,7 @@ export type Database = {
           active?: boolean;
           created_at?: string;
           description?: string;
+          due_days?: number;
           org_id?: string;
           owner_role?: string;
           rule_code?: string;
@@ -2738,6 +2801,13 @@ export type Database = {
             columns: ["matched_invoice_id"];
             isOneToOne: false;
             referencedRelation: "fin_invoices";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ins_claim_activities_matched_invoice_id_fkey";
+            columns: ["matched_invoice_id"];
+            isOneToOne: false;
+            referencedRelation: "v_fin_invoice_list";
             referencedColumns: ["id"];
           },
           {
@@ -5358,6 +5428,40 @@ export type Database = {
           },
         ];
       };
+      v_fin_invoice_list: {
+        Row: {
+          appointment_id: string | null;
+          branch_code: string | null;
+          claim_count: number | null;
+          claimed: number | null;
+          department: string | null;
+          doctor_dha_id: string | null;
+          doctor_name: string | null;
+          id: string | null;
+          inv_display_number: string | null;
+          inv_type: string | null;
+          is_deleted: boolean | null;
+          net: number | null;
+          org_id: string | null;
+          paid: number | null;
+          patient_pin: string | null;
+          rejected: number | null;
+          remitted: number | null;
+          total: number | null;
+          transaction_date: string | null;
+          version: number | null;
+        };
+        ComputedFields: never;
+        Relationships: [
+          {
+            foreignKeyName: "fin_invoices_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       v_fin_monthly_summary: {
         Row: {
           branch_code: string | null;
@@ -5403,6 +5507,32 @@ export type Database = {
           doctor_name: string | null;
           gross: number | null;
           inv_type: string | null;
+          net: number | null;
+          org_id: string | null;
+          service_category: string | null;
+          vat: number | null;
+        };
+        ComputedFields: never;
+        Relationships: [
+          {
+            foreignKeyName: "fin_invoices_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      v_fin_revenue_monthly: {
+        Row: {
+          branch_code: string | null;
+          department: string | null;
+          discount: number | null;
+          doctor_dha_id: string | null;
+          doctor_name: string | null;
+          gross: number | null;
+          inv_type: string | null;
+          month: string | null;
           net: number | null;
           org_id: string | null;
           service_category: string | null;
@@ -5554,6 +5684,13 @@ export type Database = {
             columns: ["invoice_id"];
             isOneToOne: false;
             referencedRelation: "fin_invoices";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_invoice_lines_invoice_id_fkey";
+            columns: ["invoice_id"];
+            isOneToOne: false;
+            referencedRelation: "v_fin_invoice_list";
             referencedColumns: ["id"];
           },
           {
@@ -5782,9 +5919,17 @@ export type Database = {
         Args: { p_error: string; p_id: string; p_retry_in?: string };
         Returns: undefined;
       };
+      fin_alerts_enqueue: { Args: Record<PropertyKey, never>; Returns: number };
       fin_apply_invoices: {
         Args: { p_batch_id: string; p_duplicates?: number; p_invoices: Json; p_org_id: string };
         Returns: Json;
+      };
+      fin_appointment_resolution: {
+        Args: { p_days?: number; p_org_id: string };
+        Returns: {
+          resolved: number;
+          with_id: number;
+        }[];
       };
       fin_auto_close_exceptions: {
         Args: { p_entity_key: string; p_org_id: string; p_rule_code: string };
@@ -5809,6 +5954,7 @@ export type Database = {
           series: string;
         }[];
       };
+      fin_is_insurance_type: { Args: { p_inv_type: string }; Returns: boolean };
       fin_maintenance_enqueue: { Args: Record<PropertyKey, never>; Returns: number };
       fin_open_exception: {
         Args: {
@@ -5822,6 +5968,15 @@ export type Database = {
         Returns: string;
       };
       fin_rederive_branches: { Args: { p_org_id: string }; Returns: number };
+      fin_rules_context: {
+        Args: { p_org_id: string };
+        Returns: {
+          appointments_from: string;
+          capture_drained: boolean;
+          claims_fresh: boolean;
+        }[];
+      };
+      fin_run_exception_rules: { Args: { p_org_id: string }; Returns: Json };
       gen_random_uuid: { Args: Record<PropertyKey, never>; Returns: string };
       gen_salt: { Args: { "": string }; Returns: string };
       ins_apply_matches: { Args: { p_matches: Json; p_org_id: string }; Returns: number };
