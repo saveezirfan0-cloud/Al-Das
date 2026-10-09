@@ -69,7 +69,13 @@ export type SidebarData = {
 export type InboxProps = {
   orgId: string;
   me: { userId: string; name: string };
-  perms: { send: boolean; viewAll: boolean; contactsManage: boolean; settings: boolean };
+  perms: {
+    send: boolean;
+    viewAll: boolean;
+    contactsManage: boolean;
+    settings: boolean;
+    appointmentsManage: boolean;
+  };
   query: InboxQuery;
   counts: { folders: Record<FolderKey, number>; teams: Record<string, number> };
   teams: TeamInfo[];

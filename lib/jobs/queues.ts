@@ -10,6 +10,7 @@ export const QUEUES = [
   "unite_sync",
   "kb_ingest",
   "notifications",
+  "appointments",
 ] as const;
 
 export type QueueName = (typeof QUEUES)[number];

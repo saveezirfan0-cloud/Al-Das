@@ -237,3 +237,81 @@ begin
 
   update public.orgs set settings = settings || jsonb_build_object('inbox', jsonb_build_object('default_team_id', v_team, 'auto_assign', 'round_robin', 'require_summary_on_close', false)) where id = v_org;
 end $$;
+
+-- Phase 6: appointments demo data (FAKE). One clinic, two specialists, a few bookings, and the
+-- reminder template mapped so the sweep job schedules reminders for the upcoming bookings.
+do $$
+declare
+  v_org uuid;
+  v_loc uuid;
+  v_gp uuid;
+  v_paeds uuid;
+  v_svc_gp uuid;
+  v_svc_paeds uuid;
+  v_alex uuid;
+  v_sam uuid;
+  v_contact1 uuid;
+  v_contact2 uuid;
+  v_tpl uuid;
+  v_base timestamp := date_trunc('day', now() at time zone 'Asia/Dubai');
+  d int;
+begin
+  select id into v_org from public.orgs where slug = 'al-das-dev';
+  if v_org is null or exists (select 1 from public.locations where org_id = v_org) then
+    return;
+  end if;
+
+  insert into public.locations (org_id, name, timezone, address, external_id)
+  values (v_org, 'Test Clinic', 'Asia/Dubai', '1 Example Street, Dubai', 'DHA-F-0000000') returning id into v_loc;
+  insert into public.departments (org_id, name) values (v_org, 'General Practice') returning id into v_gp;
+  insert into public.departments (org_id, name) values (v_org, 'Paediatrics') returning id into v_paeds;
+  insert into public.services (org_id, department_id, name, duration_min, price)
+  values (v_org, v_gp, 'GP consultation', 30, 250) returning id into v_svc_gp;
+  insert into public.services (org_id, department_id, name, duration_min, price)
+  values (v_org, v_paeds, 'Paediatric consultation', 30, 300) returning id into v_svc_paeds;
+  insert into public.services (org_id, department_id, name, duration_min) values (v_org, v_gp, 'Follow-up', 15);
+
+  insert into public.specialists (org_id, name, title, department_id, external_id)
+  values (v_org, 'Dr Alex Example', 'General Practitioner', v_gp, 'DOC-1') returning id into v_alex;
+  insert into public.specialists (org_id, name, title, department_id, external_id)
+  values (v_org, 'Dr Sam Sample', 'Paediatrician', v_paeds, 'DOC-2') returning id into v_sam;
+  insert into public.specialist_locations (org_id, specialist_id, location_id)
+  values (v_org, v_alex, v_loc), (v_org, v_sam, v_loc);
+  insert into public.specialist_services (org_id, specialist_id, service_id)
+  select v_org, v_alex, id from public.services where org_id = v_org and department_id = v_gp
+  union all select v_org, v_sam, v_svc_paeds;
+  for d in 1..6 loop  -- Monday to Saturday, split shift
+    insert into public.working_hours (org_id, specialist_id, location_id, weekday, start_min, end_min)
+    select v_org, sp.id, v_loc, d, h.from_min, h.to_min
+    from unnest(array[v_alex, v_sam]) as sp(id), (values (540, 780), (960, 1200)) as h(from_min, to_min);
+  end loop;
+
+  select id into v_contact1 from public.contacts where org_id = v_org and phone_e164 = '+971500000001' and deleted_at is null;
+  select id into v_contact2 from public.contacts where org_id = v_org and phone_e164 = '+971500000002' and deleted_at is null;
+  if v_contact1 is not null then
+    insert into public.appointments (org_id, contact_id, location_id, specialist_id, service_id, department_id, starts_at, ends_at, status, source)
+    values (v_org, v_contact1, v_loc, v_alex, v_svc_gp, v_gp,
+            (v_base + interval '2 days 10 hours') at time zone 'Asia/Dubai',
+            (v_base + interval '2 days 10 hours 30 minutes') at time zone 'Asia/Dubai', 'awaiting', 'portal');
+  end if;
+  if v_contact2 is not null then
+    insert into public.appointments (org_id, contact_id, location_id, specialist_id, service_id, department_id, starts_at, ends_at, status, source)
+    values (v_org, v_contact2, v_loc, v_sam, v_svc_paeds, v_paeds,
+            (v_base + interval '3 days 17 hours') at time zone 'Asia/Dubai',
+            (v_base + interval '3 days 17 hours 30 minutes') at time zone 'Asia/Dubai', 'confirmed', 'portal');
+  end if;
+
+  -- Reminder template: name, time and doctor; Confirm / Reschedule / Cancel quick replies.
+  update public.wa_templates
+  set components = '[{"type":"BODY","text":"Hello {{1}}, this is a reminder of your appointment on {{2}} with {{3}}.","example":{"body_text":[["Sara","Mon 12 Oct, 10:00 AM","Dr Example"]]}},{"type":"FOOTER","text":"Al Das Medical"},{"type":"BUTTONS","buttons":[{"type":"QUICK_REPLY","text":"Confirm"},{"type":"QUICK_REPLY","text":"Reschedule"},{"type":"QUICK_REPLY","text":"Cancel"}]}]'::jsonb,
+      variable_map = '{"body.1":"contact.first_name","body.2":"appointment.datetime","body.3":"appointment.specialist"}'::jsonb
+  where org_id = v_org and name = 'appointment_reminder'
+  returning id into v_tpl;
+
+  update public.orgs
+  set settings = settings || jsonb_build_object('appointments', jsonb_build_object(
+    'templates', jsonb_build_object('reminder', v_tpl, 'confirmed', null, 'cancelled', null, 'rescheduled', null),
+    'reminder_test_mode', true,
+    'reminder_test_numbers', jsonb_build_array('+971500000001')))
+  where id = v_org;
+end $$;

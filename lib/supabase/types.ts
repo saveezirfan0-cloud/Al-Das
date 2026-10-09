@@ -3,6 +3,234 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type Database = {
   public: {
     Tables: {
+      appointments: {
+        Row: {
+          channel_id: string | null;
+          contact_id: string | null;
+          created_at: string;
+          created_by: string | null;
+          custom: NonNullable<Json>;
+          department_id: string | null;
+          ends_at: string;
+          external_id: string | null;
+          external_status: string | null;
+          id: string;
+          location_id: string | null;
+          notes: string | null;
+          notify_early: boolean;
+          number: number;
+          org_id: string;
+          service_id: string | null;
+          source: string;
+          specialist_id: string | null;
+          starts_at: string;
+          status: string;
+          unite_clinic_id: string | null;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          channel_id?: string | null;
+          contact_id?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          custom?: NonNullable<Json>;
+          department_id?: string | null;
+          ends_at: string;
+          external_id?: string | null;
+          external_status?: string | null;
+          id?: string;
+          location_id?: string | null;
+          notes?: string | null;
+          notify_early?: boolean;
+          number?: number;
+          org_id: string;
+          service_id?: string | null;
+          source?: string;
+          specialist_id?: string | null;
+          starts_at: string;
+          status?: string;
+          unite_clinic_id?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          channel_id?: string | null;
+          contact_id?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          custom?: NonNullable<Json>;
+          department_id?: string | null;
+          ends_at?: string;
+          external_id?: string | null;
+          external_status?: string | null;
+          id?: string;
+          location_id?: string | null;
+          notes?: string | null;
+          notify_early?: boolean;
+          number?: number;
+          org_id?: string;
+          service_id?: string | null;
+          source?: string;
+          specialist_id?: string | null;
+          starts_at?: string;
+          status?: string;
+          unite_clinic_id?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "appointments_channel_id_fkey";
+            columns: ["channel_id"];
+            isOneToOne: false;
+            referencedRelation: "channels";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "appointments_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "appointments_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "appointments_department_id_fkey";
+            columns: ["department_id"];
+            isOneToOne: false;
+            referencedRelation: "departments";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "appointments_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "appointments_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "appointments_service_id_fkey";
+            columns: ["service_id"];
+            isOneToOne: false;
+            referencedRelation: "services";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "appointments_specialist_id_fkey";
+            columns: ["specialist_id"];
+            isOneToOne: false;
+            referencedRelation: "specialists";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      appointment_reminders: {
+        Row: {
+          appointment_id: string;
+          created_at: string;
+          dedupe_key: string | null;
+          due_at: string;
+          error: string | null;
+          exclusion_reason: string | null;
+          id: string;
+          idx: number;
+          message_id: string | null;
+          org_id: string;
+          sent_at: string | null;
+          status: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          appointment_id: string;
+          created_at?: string;
+          dedupe_key?: string | null;
+          due_at: string;
+          error?: string | null;
+          exclusion_reason?: string | null;
+          id?: string;
+          idx: number;
+          message_id?: string | null;
+          org_id: string;
+          sent_at?: string | null;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          appointment_id?: string;
+          created_at?: string;
+          dedupe_key?: string | null;
+          due_at?: string;
+          error?: string | null;
+          exclusion_reason?: string | null;
+          id?: string;
+          idx?: number;
+          message_id?: string | null;
+          org_id?: string;
+          sent_at?: string | null;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "appointment_reminders_appointment_id_fkey";
+            columns: ["appointment_id"];
+            isOneToOne: false;
+            referencedRelation: "appointments";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "appointment_reminders_message_id_fkey";
+            columns: ["message_id"];
+            isOneToOne: false;
+            referencedRelation: "messages";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "appointment_reminders_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      appointment_counters: {
+        Row: {
+          last_number: number;
+          org_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          last_number?: number;
+          org_id: string;
+        };
+        Update: {
+          last_number?: number;
+          org_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "appointment_counters_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       audit_log: {
         Row: {
           action: string;
@@ -723,6 +951,42 @@ export type Database = {
         };
         Relationships: [];
       };
+      departments: {
+        Row: {
+          active: boolean;
+          created_at: string;
+          id: string;
+          name: string;
+          org_id: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          active?: boolean;
+          created_at?: string;
+          id?: string;
+          name: string;
+          org_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          active?: boolean;
+          created_at?: string;
+          id?: string;
+          name?: string;
+          org_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "departments_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       external_refs: {
         Row: {
           created_at: string;
@@ -923,6 +1187,54 @@ export type Database = {
           started_at?: string;
         };
         Relationships: [];
+      };
+      locations: {
+        Row: {
+          active: boolean;
+          address: string | null;
+          created_at: string;
+          external_id: string | null;
+          id: string;
+          name: string;
+          org_id: string;
+          photo_path: string | null;
+          timezone: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          active?: boolean;
+          address?: string | null;
+          created_at?: string;
+          external_id?: string | null;
+          id?: string;
+          name: string;
+          org_id: string;
+          photo_path?: string | null;
+          timezone?: string;
+          updated_at?: string;
+        };
+        Update: {
+          active?: boolean;
+          address?: string | null;
+          created_at?: string;
+          external_id?: string | null;
+          id?: string;
+          name?: string;
+          org_id?: string;
+          photo_path?: string | null;
+          timezone?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "locations_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       memberships: {
         Row: {
@@ -1323,6 +1635,51 @@ export type Database = {
           },
         ];
       };
+      reminder_exclusions: {
+        Row: {
+          active: boolean;
+          created_at: string;
+          id: string;
+          kind: string;
+          match_type: string;
+          org_id: string;
+          reason: string | null;
+          updated_at: string;
+          value: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          active?: boolean;
+          created_at?: string;
+          id?: string;
+          kind: string;
+          match_type?: string;
+          org_id: string;
+          reason?: string | null;
+          updated_at?: string;
+          value: string;
+        };
+        Update: {
+          active?: boolean;
+          created_at?: string;
+          id?: string;
+          kind?: string;
+          match_type?: string;
+          org_id?: string;
+          reason?: string | null;
+          updated_at?: string;
+          value?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "reminder_exclusions_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       roles: {
         Row: {
           created_at: string;
@@ -1537,6 +1894,205 @@ export type Database = {
           },
         ];
       };
+      specialists: {
+        Row: {
+          active: boolean;
+          created_at: string;
+          department_id: string | null;
+          external_id: string | null;
+          id: string;
+          name: string;
+          org_id: string;
+          photo_path: string | null;
+          title: string | null;
+          updated_at: string;
+          user_id: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          active?: boolean;
+          created_at?: string;
+          department_id?: string | null;
+          external_id?: string | null;
+          id?: string;
+          name: string;
+          org_id: string;
+          photo_path?: string | null;
+          title?: string | null;
+          updated_at?: string;
+          user_id?: string | null;
+        };
+        Update: {
+          active?: boolean;
+          created_at?: string;
+          department_id?: string | null;
+          external_id?: string | null;
+          id?: string;
+          name?: string;
+          org_id?: string;
+          photo_path?: string | null;
+          title?: string | null;
+          updated_at?: string;
+          user_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "specialists_department_id_fkey";
+            columns: ["department_id"];
+            isOneToOne: false;
+            referencedRelation: "departments";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "specialists_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "specialists_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      specialist_services: {
+        Row: {
+          org_id: string;
+          service_id: string;
+          specialist_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          org_id: string;
+          service_id: string;
+          specialist_id: string;
+        };
+        Update: {
+          org_id?: string;
+          service_id?: string;
+          specialist_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "specialist_services_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "specialist_services_service_id_fkey";
+            columns: ["service_id"];
+            isOneToOne: false;
+            referencedRelation: "services";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "specialist_services_specialist_id_fkey";
+            columns: ["specialist_id"];
+            isOneToOne: false;
+            referencedRelation: "specialists";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      specialist_locations: {
+        Row: {
+          location_id: string;
+          org_id: string;
+          specialist_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          location_id: string;
+          org_id: string;
+          specialist_id: string;
+        };
+        Update: {
+          location_id?: string;
+          org_id?: string;
+          specialist_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "specialist_locations_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "specialist_locations_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "specialist_locations_specialist_id_fkey";
+            columns: ["specialist_id"];
+            isOneToOne: false;
+            referencedRelation: "specialists";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      services: {
+        Row: {
+          active: boolean;
+          created_at: string;
+          department_id: string | null;
+          duration_min: number;
+          id: string;
+          name: string;
+          org_id: string;
+          price: number | null;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          active?: boolean;
+          created_at?: string;
+          department_id?: string | null;
+          duration_min?: number;
+          id?: string;
+          name: string;
+          org_id: string;
+          price?: number | null;
+          updated_at?: string;
+        };
+        Update: {
+          active?: boolean;
+          created_at?: string;
+          department_id?: string | null;
+          duration_min?: number;
+          id?: string;
+          name?: string;
+          org_id?: string;
+          price?: number | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "services_department_id_fkey";
+            columns: ["department_id"];
+            isOneToOne: false;
+            referencedRelation: "departments";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "services_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       sync_reviews: {
         Row: {
           candidates: NonNullable<Json>;
@@ -1736,6 +2292,75 @@ export type Database = {
           },
         ];
       };
+      time_blocks: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          ends_at: string;
+          id: string;
+          location_id: string | null;
+          org_id: string;
+          reason: string | null;
+          specialist_id: string;
+          starts_at: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          ends_at: string;
+          id?: string;
+          location_id?: string | null;
+          org_id: string;
+          reason?: string | null;
+          specialist_id: string;
+          starts_at: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          ends_at?: string;
+          id?: string;
+          location_id?: string | null;
+          org_id?: string;
+          reason?: string | null;
+          specialist_id?: string;
+          starts_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "time_blocks_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "time_blocks_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "time_blocks_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "time_blocks_specialist_id_fkey";
+            columns: ["specialist_id"];
+            isOneToOne: false;
+            referencedRelation: "specialists";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       timeline_events: {
         Row: {
           actor_id: string | null;
@@ -1781,6 +2406,39 @@ export type Database = {
           },
           {
             foreignKeyName: "timeline_events_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      unite_appointment_status_map: {
+        Row: {
+          code: string;
+          counts_as_no_show: boolean;
+          label: string | null;
+          org_id: string;
+          status: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          code: string;
+          counts_as_no_show?: boolean;
+          label?: string | null;
+          org_id: string;
+          status?: string | null;
+        };
+        Update: {
+          code?: string;
+          counts_as_no_show?: boolean;
+          label?: string | null;
+          org_id?: string;
+          status?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "unite_appointment_status_map_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
@@ -1944,9 +2602,104 @@ export type Database = {
         };
         Relationships: [];
       };
+      working_hours: {
+        Row: {
+          created_at: string;
+          end_min: number;
+          id: string;
+          location_id: string;
+          org_id: string;
+          specialist_id: string;
+          start_min: number;
+          updated_at: string;
+          weekday: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          end_min: number;
+          id?: string;
+          location_id: string;
+          org_id: string;
+          specialist_id: string;
+          start_min: number;
+          updated_at?: string;
+          weekday: number;
+        };
+        Update: {
+          created_at?: string;
+          end_min?: number;
+          id?: string;
+          location_id?: string;
+          org_id?: string;
+          specialist_id?: string;
+          start_min?: number;
+          updated_at?: string;
+          weekday?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "working_hours_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "working_hours_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "working_hours_specialist_id_fkey";
+            columns: ["specialist_id"];
+            isOneToOne: false;
+            referencedRelation: "specialists";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
-      [_ in never]: never;
+      v_appointment_reminder_stats: {
+        Row: {
+          external_status: string | null;
+          location_id: string | null;
+          org_id: string | null;
+          patients_contacted: number | null;
+          reminders_excluded: number | null;
+          reminders_failed: number | null;
+          reminders_sent: number | null;
+          sent_day: string | null;
+          specialist_id: string | null;
+        };
+        ComputedFields: never;
+        Relationships: [
+          {
+            foreignKeyName: "appointments_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "appointments_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "appointments_specialist_id_fkey";
+            columns: ["specialist_id"];
+            isOneToOne: false;
+            referencedRelation: "specialists";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Functions: {
       apply_message_status: {
@@ -2030,6 +2783,10 @@ export type Database = {
       };
       gen_random_uuid: { Args: Record<PropertyKey, never>; Returns: string };
       gen_salt: { Args: { "": string }; Returns: string };
+      is_reminder_excluded: {
+        Args: { p_doctor_name: string; p_org: string; p_patient_name: string };
+        Returns: boolean;
+      };
       job_archive: { Args: { p_msg_ids: number[]; p_queue: string }; Returns: number };
       job_cron_status: {
         Args: Record<PropertyKey, never>;
@@ -2091,6 +2848,11 @@ export type Database = {
       };
       pgp_armor_headers: { Args: { "": string }; Returns: Record<string, unknown>[] };
       pick_round_robin_assignee: { Args: { p_org_id: string; p_team_id: string }; Returns: string };
+      seed_unite_appointment_status_map: {
+        Args: { p_org: string };
+        Returns: undefined;
+      };
+      seed_reminder_exclusions: { Args: { p_org: string }; Returns: undefined };
       set_presence: { Args: { p_org_id: string; p_presence: string }; Returns: undefined };
       show_limit: { Args: Record<PropertyKey, never>; Returns: number };
       show_trgm: { Args: { "": string }; Returns: string[] };
