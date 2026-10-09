@@ -23,13 +23,14 @@ describe("contact field registry", () => {
     ],
   });
 
-  it("exposes base fields, custom fields and hides Phase 3+ relations", () => {
+  it("exposes base fields, custom fields and hides relations whose tables do not exist yet", () => {
     expect(registry.get("full_name")?.available).toBe(true);
     expect(registry.get("tags")?.available).toBe(true);
     expect(registry.get("mentioned_user")?.available).toBe(true);
-    expect(registry.get("enquiry_stage")?.available).toBe(false);
+    // Phase 5 made the enquiry and task relations available; appointments arrive in Phase 6.
+    expect(registry.get("enquiry_stage")?.available).toBe(true);
     expect(registry.get("appointment_count")?.available).toBe(false);
-    expect(() => registry.require("enquiry_stage")).toThrow(UnknownFieldError);
+    expect(() => registry.require("appointment_count")).toThrow(UnknownFieldError);
     expect(() => registry.require("nope")).toThrow(UnknownFieldError);
   });
 

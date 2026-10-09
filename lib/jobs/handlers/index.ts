@@ -15,5 +15,7 @@ registerKind("notification.*", "notifications");
 registerKind("email.send", "notifications");
 registerKind("outbound.send", "outbound");
 registerKind("media.fetch", "media_fetch");
+registerKind("task.due", "notifications");
+registerKind("enquiry.sla", "notifications");
 
 export {};

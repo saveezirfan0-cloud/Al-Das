@@ -723,6 +723,351 @@ export type Database = {
         };
         Relationships: [];
       };
+      departments: {
+        Row: {
+          created_at: string;
+          id: string;
+          name: string;
+          org_id: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          id?: string;
+          name: string;
+          org_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          name?: string;
+          org_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "departments_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      enquiries: {
+        Row: {
+          appt_date: string | null;
+          assignee_id: string | null;
+          channel_id: string | null;
+          closed_at: string | null;
+          contact_id: string | null;
+          created_at: string;
+          created_by: string | null;
+          custom: NonNullable<Json>;
+          deleted_at: string | null;
+          department_id: string | null;
+          est_value: number | null;
+          first_touch_at: string | null;
+          id: string;
+          location_id: string | null;
+          lost_reason: string | null;
+          number: number;
+          org_id: string;
+          pipeline_id: string;
+          service_id: string | null;
+          sla_breached_at: string | null;
+          sla_due_at: string | null;
+          source: string | null;
+          specialist_id: string | null;
+          stage_entered_at: string;
+          stage_id: string;
+          status: string;
+          title: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          appt_date?: string | null;
+          assignee_id?: string | null;
+          channel_id?: string | null;
+          closed_at?: string | null;
+          contact_id?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          custom?: NonNullable<Json>;
+          deleted_at?: string | null;
+          department_id?: string | null;
+          est_value?: number | null;
+          first_touch_at?: string | null;
+          id?: string;
+          location_id?: string | null;
+          lost_reason?: string | null;
+          number?: number;
+          org_id: string;
+          pipeline_id: string;
+          service_id?: string | null;
+          sla_breached_at?: string | null;
+          sla_due_at?: string | null;
+          source?: string | null;
+          specialist_id?: string | null;
+          stage_entered_at?: string;
+          stage_id: string;
+          status?: string;
+          title: string;
+          updated_at?: string;
+        };
+        Update: {
+          appt_date?: string | null;
+          assignee_id?: string | null;
+          channel_id?: string | null;
+          closed_at?: string | null;
+          contact_id?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          custom?: NonNullable<Json>;
+          deleted_at?: string | null;
+          department_id?: string | null;
+          est_value?: number | null;
+          first_touch_at?: string | null;
+          id?: string;
+          location_id?: string | null;
+          lost_reason?: string | null;
+          number?: number;
+          org_id?: string;
+          pipeline_id?: string;
+          service_id?: string | null;
+          sla_breached_at?: string | null;
+          sla_due_at?: string | null;
+          source?: string | null;
+          specialist_id?: string | null;
+          stage_entered_at?: string;
+          stage_id?: string;
+          status?: string;
+          title?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "enquiries_assignee_id_fkey";
+            columns: ["assignee_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "enquiries_channel_id_fkey";
+            columns: ["channel_id"];
+            isOneToOne: false;
+            referencedRelation: "channels";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "enquiries_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "enquiries_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "enquiries_department_id_fkey";
+            columns: ["department_id"];
+            isOneToOne: false;
+            referencedRelation: "departments";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "enquiries_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "enquiries_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "enquiries_pipeline_id_fkey";
+            columns: ["pipeline_id"];
+            isOneToOne: false;
+            referencedRelation: "pipelines";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "enquiries_service_id_fkey";
+            columns: ["service_id"];
+            isOneToOne: false;
+            referencedRelation: "services";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "enquiries_specialist_id_fkey";
+            columns: ["specialist_id"];
+            isOneToOne: false;
+            referencedRelation: "specialists";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "enquiries_stage_id_fkey";
+            columns: ["stage_id"];
+            isOneToOne: false;
+            referencedRelation: "stages";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      enquiry_assignment_rules: {
+        Row: {
+          action: NonNullable<Json>;
+          conditions: NonNullable<Json>;
+          created_at: string;
+          enabled: boolean;
+          id: string;
+          name: string;
+          org_id: string;
+          sort: number;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          action: NonNullable<Json>;
+          conditions?: NonNullable<Json>;
+          created_at?: string;
+          enabled?: boolean;
+          id?: string;
+          name: string;
+          org_id: string;
+          sort?: number;
+          updated_at?: string;
+        };
+        Update: {
+          action?: NonNullable<Json>;
+          conditions?: NonNullable<Json>;
+          created_at?: string;
+          enabled?: boolean;
+          id?: string;
+          name?: string;
+          org_id?: string;
+          sort?: number;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "enquiry_assignment_rules_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      enquiry_counters: {
+        Row: {
+          last_number: number;
+          org_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          last_number?: number;
+          org_id: string;
+        };
+        Update: {
+          last_number?: number;
+          org_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "enquiry_counters_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: true;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      enquiry_views: {
+        Row: {
+          columns: NonNullable<Json>;
+          created_at: string;
+          filter: NonNullable<Json>;
+          id: string;
+          mode: string;
+          name: string;
+          org_id: string;
+          owner_id: string;
+          pipeline_id: string | null;
+          shared_all: boolean;
+          shared_team_ids: string[];
+          sort: number;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          columns?: NonNullable<Json>;
+          created_at?: string;
+          filter?: NonNullable<Json>;
+          id?: string;
+          mode?: string;
+          name: string;
+          org_id: string;
+          owner_id: string;
+          pipeline_id?: string | null;
+          shared_all?: boolean;
+          shared_team_ids?: string[];
+          sort?: number;
+          updated_at?: string;
+        };
+        Update: {
+          columns?: NonNullable<Json>;
+          created_at?: string;
+          filter?: NonNullable<Json>;
+          id?: string;
+          mode?: string;
+          name?: string;
+          org_id?: string;
+          owner_id?: string;
+          pipeline_id?: string | null;
+          shared_all?: boolean;
+          shared_team_ids?: string[];
+          sort?: number;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "enquiry_views_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "enquiry_views_owner_id_fkey";
+            columns: ["owner_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "enquiry_views_pipeline_id_fkey";
+            columns: ["pipeline_id"];
+            isOneToOne: false;
+            referencedRelation: "pipelines";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       external_refs: {
         Row: {
           created_at: string;
@@ -923,6 +1268,48 @@ export type Database = {
           started_at?: string;
         };
         Relationships: [];
+      };
+      locations: {
+        Row: {
+          address: string | null;
+          created_at: string;
+          id: string;
+          name: string;
+          org_id: string;
+          photo_path: string | null;
+          timezone: string | null;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          address?: string | null;
+          created_at?: string;
+          id?: string;
+          name: string;
+          org_id: string;
+          photo_path?: string | null;
+          timezone?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          address?: string | null;
+          created_at?: string;
+          id?: string;
+          name?: string;
+          org_id?: string;
+          photo_path?: string | null;
+          timezone?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "locations_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       memberships: {
         Row: {
@@ -1237,6 +1624,54 @@ export type Database = {
         };
         Relationships: [];
       };
+      pipelines: {
+        Row: {
+          archived_at: string | null;
+          card_fields: string[];
+          created_at: string;
+          id: string;
+          is_default: boolean;
+          name: string;
+          org_id: string;
+          sla_minutes: number | null;
+          sort: number;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          archived_at?: string | null;
+          card_fields?: string[];
+          created_at?: string;
+          id?: string;
+          is_default?: boolean;
+          name: string;
+          org_id: string;
+          sla_minutes?: number | null;
+          sort?: number;
+          updated_at?: string;
+        };
+        Update: {
+          archived_at?: string | null;
+          card_fields?: string[];
+          created_at?: string;
+          id?: string;
+          is_default?: boolean;
+          name?: string;
+          org_id?: string;
+          sla_minutes?: number | null;
+          sort?: number;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "pipelines_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       profiles: {
         Row: {
           avatar_path: string | null;
@@ -1537,6 +1972,166 @@ export type Database = {
           },
         ];
       };
+      services: {
+        Row: {
+          created_at: string;
+          department_id: string | null;
+          duration_min: number | null;
+          id: string;
+          name: string;
+          org_id: string;
+          price: number | null;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          department_id?: string | null;
+          duration_min?: number | null;
+          id?: string;
+          name: string;
+          org_id: string;
+          price?: number | null;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          department_id?: string | null;
+          duration_min?: number | null;
+          id?: string;
+          name?: string;
+          org_id?: string;
+          price?: number | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "services_department_id_fkey";
+            columns: ["department_id"];
+            isOneToOne: false;
+            referencedRelation: "departments";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "services_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      specialists: {
+        Row: {
+          created_at: string;
+          department_id: string | null;
+          external_id: string | null;
+          id: string;
+          name: string;
+          org_id: string;
+          photo_path: string | null;
+          title: string | null;
+          updated_at: string;
+          user_id: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          department_id?: string | null;
+          external_id?: string | null;
+          id?: string;
+          name: string;
+          org_id: string;
+          photo_path?: string | null;
+          title?: string | null;
+          updated_at?: string;
+          user_id?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          department_id?: string | null;
+          external_id?: string | null;
+          id?: string;
+          name?: string;
+          org_id?: string;
+          photo_path?: string | null;
+          title?: string | null;
+          updated_at?: string;
+          user_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "specialists_department_id_fkey";
+            columns: ["department_id"];
+            isOneToOne: false;
+            referencedRelation: "departments";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "specialists_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "specialists_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      stages: {
+        Row: {
+          color: string;
+          created_at: string;
+          id: string;
+          name: string;
+          org_id: string;
+          pipeline_id: string;
+          sort: number;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          color?: string;
+          created_at?: string;
+          id?: string;
+          name: string;
+          org_id: string;
+          pipeline_id: string;
+          sort?: number;
+          updated_at?: string;
+        };
+        Update: {
+          color?: string;
+          created_at?: string;
+          id?: string;
+          name?: string;
+          org_id?: string;
+          pipeline_id?: string;
+          sort?: number;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "stages_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "stages_pipeline_id_fkey";
+            columns: ["pipeline_id"];
+            isOneToOne: false;
+            referencedRelation: "pipelines";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       sync_reviews: {
         Row: {
           candidates: NonNullable<Json>;
@@ -1647,6 +2242,107 @@ export type Database = {
           },
         ];
       };
+      tasks: {
+        Row: {
+          assignee_id: string | null;
+          completed_by: string | null;
+          contact_id: string | null;
+          created_at: string;
+          created_by: string | null;
+          done: boolean;
+          done_at: string | null;
+          due_at: string;
+          due_notified_for: string | null;
+          enquiry_id: string | null;
+          id: string;
+          notes: string | null;
+          org_id: string;
+          subject: string;
+          type: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          assignee_id?: string | null;
+          completed_by?: string | null;
+          contact_id?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          done?: boolean;
+          done_at?: string | null;
+          due_at: string;
+          due_notified_for?: string | null;
+          enquiry_id?: string | null;
+          id?: string;
+          notes?: string | null;
+          org_id: string;
+          subject: string;
+          type?: string;
+          updated_at?: string;
+        };
+        Update: {
+          assignee_id?: string | null;
+          completed_by?: string | null;
+          contact_id?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          done?: boolean;
+          done_at?: string | null;
+          due_at?: string;
+          due_notified_for?: string | null;
+          enquiry_id?: string | null;
+          id?: string;
+          notes?: string | null;
+          org_id?: string;
+          subject?: string;
+          type?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "tasks_assignee_id_fkey";
+            columns: ["assignee_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tasks_completed_by_fkey";
+            columns: ["completed_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tasks_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tasks_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tasks_enquiry_id_fkey";
+            columns: ["enquiry_id"];
+            isOneToOne: false;
+            referencedRelation: "enquiries";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tasks_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       team_members: {
         Row: {
           created_at: string;
@@ -1741,7 +2437,7 @@ export type Database = {
           actor_id: string | null;
           actor_type: string;
           at: string;
-          contact_id: string;
+          contact_id: string | null;
           enquiry_id: string | null;
           id: string;
           org_id: string;
@@ -1753,7 +2449,7 @@ export type Database = {
           actor_id?: string | null;
           actor_type?: string;
           at?: string;
-          contact_id: string;
+          contact_id?: string | null;
           enquiry_id?: string | null;
           id?: string;
           org_id: string;
@@ -1764,7 +2460,7 @@ export type Database = {
           actor_id?: string | null;
           actor_type?: string;
           at?: string;
-          contact_id?: string;
+          contact_id?: string | null;
           enquiry_id?: string | null;
           id?: string;
           org_id?: string;
@@ -1777,6 +2473,13 @@ export type Database = {
             columns: ["contact_id"];
             isOneToOne: false;
             referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "timeline_events_enquiry_fk";
+            columns: ["enquiry_id"];
+            isOneToOne: false;
+            referencedRelation: "enquiries";
             referencedColumns: ["id"];
           },
           {
@@ -2024,6 +2727,37 @@ export type Database = {
         Returns: string;
       };
       dearmor: { Args: { "": string }; Returns: string };
+      enquiries_count: {
+        Args: { p_org_id: string; p_params: Json; p_q?: string; p_where: string };
+        Returns: number;
+      };
+      enquiries_ids: {
+        Args: { p_limit?: number; p_org_id: string; p_params: Json; p_q?: string; p_where: string };
+        Returns: string[];
+      };
+      enquiries_search: {
+        Args: {
+          p_limit?: number;
+          p_offset?: number;
+          p_order_by?: string;
+          p_org_id: string;
+          p_params: Json;
+          p_q?: string;
+          p_stage_id?: string;
+          p_where: string;
+        };
+        Returns: {
+          id: string;
+          total: number;
+        }[];
+      };
+      enquiries_stage_counts: {
+        Args: { p_org_id: string; p_params: Json; p_q?: string; p_where: string };
+        Returns: {
+          stage_id: string;
+          total: number;
+        }[];
+      };
       fail_scheduled_job: {
         Args: { p_error: string; p_id: string; p_retry_in?: string };
         Returns: undefined;

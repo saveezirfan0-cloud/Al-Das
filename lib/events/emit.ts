@@ -1,6 +1,6 @@
 /**
- * Domain events. Phase 3 ships the emitter and the inbox events; Phase 5/8 add
- * enquiry events, flow triggers and outbound webhooks as listeners.
+ * Domain events. Phase 3 ships the emitter and the inbox events, Phase 5 adds the
+ * enquiry and task events; Phase 8 attaches flow triggers and outbound webhooks as listeners.
  *
  *   emit(orgId, 'conversation.opened', { conversation_id })
  *
@@ -18,7 +18,16 @@ export type DomainEventName =
   | "contact.created"
   | "contact.stop_marketing"
   | "channel.quality_changed"
-  | "template.status_changed";
+  | "template.status_changed"
+  | "enquiry.created"
+  | "enquiry.assigned"
+  | "enquiry.stage_changed"
+  | "enquiry.status_changed"
+  | "enquiry.pipeline_changed"
+  | "enquiry.sla_breached"
+  | "task.created"
+  | "task.completed"
+  | "task.due";
 
 export type DomainEvent = {
   orgId: string;
