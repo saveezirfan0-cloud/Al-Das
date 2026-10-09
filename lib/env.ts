@@ -26,6 +26,12 @@ const serverSchema = z.object({
   META_WEBHOOK_VERIFY_TOKEN: z.string().optional(),
   META_SYSTEM_USER_TOKEN: z.string().optional(),
   META_GRAPH_VERSION: z.string().default("v21.0"),
+  // Phase 10: AI + knowledge base. Optional; lib/ai throws a clear "not configured" error where needed.
+  ANTHROPIC_API_KEY: z.string().optional(),
+  ANTHROPIC_MODEL: z.string().default("claude-sonnet-5-5"),
+  EMBEDDINGS_API_KEY: z.string().optional(),
+  EMBEDDINGS_PROVIDER: z.enum(["voyage", "fake"]).default("voyage"),
+  EMBEDDINGS_MODEL: z.string().default("voyage-3"),
 });
 
 export function publicEnv() {
@@ -49,5 +55,10 @@ export function serverEnv() {
     META_WEBHOOK_VERIFY_TOKEN: process.env.META_WEBHOOK_VERIFY_TOKEN,
     META_SYSTEM_USER_TOKEN: process.env.META_SYSTEM_USER_TOKEN,
     META_GRAPH_VERSION: process.env.META_GRAPH_VERSION,
+    ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+    ANTHROPIC_MODEL: process.env.ANTHROPIC_MODEL || undefined,
+    EMBEDDINGS_API_KEY: process.env.EMBEDDINGS_API_KEY,
+    EMBEDDINGS_PROVIDER: process.env.EMBEDDINGS_PROVIDER || undefined,
+    EMBEDDINGS_MODEL: process.env.EMBEDDINGS_MODEL || undefined,
   });
 }

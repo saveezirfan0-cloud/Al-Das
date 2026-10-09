@@ -14,6 +14,8 @@ What `scripts/test-db.sh` installs:
 - `ext-stubs/` — `pg_cron` and `pg_net` *stubs* (catalog tables + no-op `cron.schedule` / `net.http_post`) so the cron migration applies. Copied into the server's extension directory when it is writable.
 - `pgmq` — the real SQL-only extension. Download it once: `curl -L -o supabase/test/ext-stubs/pgmq--1.5.1.sql https://raw.githubusercontent.com/pgmq/pgmq/v1.5.1/pgmq-extension/sql/pgmq.sql` (not committed; third-party code). The matching `pgmq.control` is committed.
 
+- `pgvector` — required from Phase 10 (`kb_chunks.embedding vector(1024)`). It is a compiled extension and cannot be stubbed, so install it into the test Postgres first (`sudo apt-get install postgresql-16-pgvector`). `scripts/test-db.sh` stops with this hint when `vector.control` is missing.
+
 Tests run as `set role authenticated` with `request.jwt.claims` set, exactly how PostgREST evaluates RLS. With the Supabase CLI stack running you can also point `TEST_DATABASE_URL` at it (skip the stub step: `pnpm exec vitest run tests/db`).
 
 ## Optional: supabase-js paths through PostgREST

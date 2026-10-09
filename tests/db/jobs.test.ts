@@ -218,6 +218,7 @@ describe.skipIf(!TEST_DATABASE_URL)("jobs framework (db)", () => {
         "kb_ingest",
         "media_fetch",
         "meta_events",
+        "metrics_refresh",
         "notifications",
         "outbound",
         "outbound_priority",
