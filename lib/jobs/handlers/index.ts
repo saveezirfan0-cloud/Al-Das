@@ -18,6 +18,7 @@ import "@/lib/jobs/handlers/appointments";
 import "@/lib/jobs/handlers/unite-sync";
 import "@/lib/jobs/handlers/clinical";
 import "@/lib/jobs/handlers/flow-steps";
+import "@/lib/jobs/handlers/recall";
 
 import { registerKind } from "@/lib/jobs/scheduler";
 

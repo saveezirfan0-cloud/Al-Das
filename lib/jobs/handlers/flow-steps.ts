@@ -12,6 +12,7 @@ import { registerHandler } from "@/lib/jobs/registry";
 import { registerKind } from "@/lib/jobs/scheduler";
 import { registerTask } from "@/lib/jobs/tasks";
 import { PermanentJobError } from "@/lib/jobs/types";
+import { attributeRecallEvent } from "@/lib/recall/attribution";
 import type { Json } from "@/lib/supabase/types";
 
 // Timers: scheduled_jobs → flow_steps ({kind: 'flow.timeout' | 'flow.wake', payload: {run_id, token}}).
@@ -68,6 +69,12 @@ registerHandler<Json>({
     if (raw.type === "event") {
       const ev = eventSchema.safeParse(raw);
       if (!ev.success) throw new PermanentJobError("invalid flow event job");
+      // Recall programmes: a reply or a booking after a recall is attributed to that recall.
+      await attributeRecallEvent(ctx.admin, ev.data).catch((e) =>
+        ctx.log.warn("recall attribution failed", {
+          message: e instanceof Error ? e.name : "unknown",
+        }),
+      );
       const r = await dispatchEvent(
         ctx.admin,
         ev.data as unknown as Extract<FlowJob, { type: "event" }>,

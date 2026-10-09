@@ -39,6 +39,8 @@ export const RATE_RULES = {
   flowWebhookPerFlow: { limit: 120, windowSec: 60, failOpen: true },
   /** Manual "run flow" shortcuts from the inbox, per user. */
   flowShortcutPerUser: { limit: 60, windowSec: 60, failOpen: false },
+  /** Manual recall programme checks and runs, per user. */
+  recallRunPerUser: { limit: 10, windowSec: 60, failOpen: false },
   /** Phase 10 /api/public/v1, per API key. */
   publicApi: { limit: 120, windowSec: 60, failOpen: true },
 } as const satisfies Record<string, RateRule>;

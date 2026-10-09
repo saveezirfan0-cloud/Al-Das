@@ -1,4 +1,7 @@
+import Link from "next/link";
+
 import { PageHeader } from "@/components/shell/page-header";
+import { Button } from "@/components/ui/button";
 import { requirePerm } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import type { TriggerType } from "@/lib/flow-engine/types";
@@ -69,7 +72,11 @@ export default async function FlowsPage() {
       <PageHeader
         title="Flows"
         description="Bots and automations that run on conversations, enquiries, appointments, webhooks and schedules."
-      />
+      >
+        <Button asChild variant="outline" size="sm">
+          <Link href="/flows/recall">Recall programmes</Link>
+        </Button>
+      </PageHeader>
       <FlowsWorkspace
         flows={items}
         variables={(variables ?? []) as VariableItem[]}
