@@ -41,6 +41,7 @@ import {
   checkProgramme,
   runProgrammeNow,
   saveProgrammeTemplate,
+  seedRecallProgrammes,
   setProgrammeStatus,
   updateProgramme,
 } from "./actions";
@@ -135,6 +136,32 @@ export function RecallWorkspace({ boot }: { boot: RecallBootstrap }) {
           </span>
         </AlertDescription>
       </Alert>
+
+      {boot.programmes.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-start gap-3 py-6 text-sm">
+            <p>
+              No programmes yet. Set up the standard ones: chronic recall, birthday, annual check-up
+              and screenings, dormant patients, and the appointment-reminder entry. Every one starts
+              off, with no template mapped, so nothing is sent until you choose.
+            </p>
+            <Button
+              disabled={busy !== null}
+              onClick={async () => {
+                setBusy("seed");
+                const r = await seedRecallProgrammes();
+                setBusy(null);
+                if (!r.ok) return void toast.error(r.error);
+                toast.success(r.message);
+                router.refresh();
+              }}
+            >
+              {busy === "seed" ? <Loader2 className="size-4 animate-spin" /> : null}
+              Set up the standard programmes
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <div className="grid gap-4 lg:grid-cols-2">
         {boot.programmes.map((p) => {
@@ -400,6 +427,7 @@ function ProgrammeSheet({
     gender: "",
     minAge: "",
     maxAge: "",
+    shadow: false,
   });
   const [busy, setBusy] = React.useState(false);
   React.useEffect(() => {
@@ -415,6 +443,7 @@ function ProgrammeSheet({
       gender: (c.gender as string) ?? "",
       minAge: c.min_age?.toString() ?? "",
       maxAge: c.max_age?.toString() ?? "",
+      shadow: (programme.config as { shadow?: boolean }).shadow === true,
     });
   }, [programme]);
   if (!programme) return <Sheet open={false} onOpenChange={() => onClose()} />;
@@ -428,8 +457,9 @@ function ProgrammeSheet({
       max_per_run: form.max,
       send_mode_override: form.mode || null,
       channel_id: form.channel || null,
-      config:
-        programme.eligibility === "visit_gap"
+      config: {
+        shadow: form.shadow,
+        ...(programme.eligibility === "visit_gap"
           ? {
               min_days: num(form.minDays),
               max_days: num(form.maxDays),
@@ -437,7 +467,8 @@ function ProgrammeSheet({
               min_age: num(form.minAge),
               max_age: num(form.maxAge),
             }
-          : undefined,
+          : {}),
+      },
     });
     setBusy(false);
     if (!r.ok) return void toast.error(r.error);
@@ -502,6 +533,22 @@ function ProgrammeSheet({
               ]}
               help="Test sends only to internal validation patients. Going live is a clinical sign-off decision."
             />
+            <label className="flex items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={form.shadow}
+                onChange={(e) => setForm({ ...form, shadow: e.target.checked })}
+              />
+              <span>
+                Record who this would message (parallel run with Make)
+                <span className="text-muted-foreground block text-xs">
+                  Each scheduled run also stores the Unite PINs it would have messaged, nothing
+                  else, so the Parallel run page can compare them with what Make did. It never
+                  sends.
+                </span>
+              </span>
+            </label>
           </section>
 
           {programme.eligibility === "chronic" ? (

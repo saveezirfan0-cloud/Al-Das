@@ -33,6 +33,9 @@ registerTask("recall_programmes", {
       try {
         const r = await runProgramme(admin, p, { trigger: "schedule", now });
         totals.queued += r.queued;
+        // Parallel run with Make: also record who the programme WOULD message (ids only), whatever the mode.
+        if ((p.config as { shadow?: boolean } | null)?.shadow === true)
+          await runProgramme(admin, p, { trigger: "shadow", now });
       } catch (e) {
         totals.errors++;
         log.error("recall programme failed", {

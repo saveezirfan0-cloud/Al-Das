@@ -5025,6 +5025,177 @@ export type Database = {
         };
         Relationships: [];
       };
+      parallel_run_diffs: {
+        Row: {
+          computed_at: string;
+          id: string;
+          make_count: number;
+          native_count: number;
+          note: string | null;
+          only_in_make: string[];
+          only_in_native: string[];
+          org_id: string;
+          run_date: string;
+          scenario: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          computed_at?: string;
+          id?: string;
+          make_count: number;
+          native_count: number;
+          note?: string | null;
+          only_in_make?: string[];
+          only_in_native?: string[];
+          org_id: string;
+          run_date: string;
+          scenario: string;
+        };
+        Update: {
+          computed_at?: string;
+          id?: string;
+          make_count?: number;
+          native_count?: number;
+          note?: string | null;
+          only_in_make?: string[];
+          only_in_native?: string[];
+          org_id?: string;
+          run_date?: string;
+          scenario?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "parallel_run_diffs_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      parallel_run_make_keys: {
+        Row: {
+          key: string;
+          org_id: string;
+          run_date: string;
+          scenario: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          key: string;
+          org_id: string;
+          run_date: string;
+          scenario: string;
+        };
+        Update: {
+          key?: string;
+          org_id?: string;
+          run_date?: string;
+          scenario?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "parallel_run_make_keys_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      parallel_run_native_keys: {
+        Row: {
+          key: string;
+          org_id: string;
+          run_date: string;
+          scenario: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          key: string;
+          org_id: string;
+          run_date: string;
+          scenario: string;
+        };
+        Update: {
+          key?: string;
+          org_id?: string;
+          run_date?: string;
+          scenario?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "parallel_run_native_keys_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      parallel_run_scenarios: {
+        Row: {
+          compare_kind: string;
+          created_at: string;
+          id: string;
+          key: string;
+          label: string;
+          make_off_on: string | null;
+          make_scenario_ids: string | null;
+          native_ready: boolean;
+          native_summary: string | null;
+          notes: string | null;
+          org_id: string;
+          parallel_started_on: string | null;
+          signed_off_by: string | null;
+          signed_off_on: string | null;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          compare_kind?: string;
+          created_at?: string;
+          id?: string;
+          key: string;
+          label: string;
+          make_off_on?: string | null;
+          make_scenario_ids?: string | null;
+          native_ready?: boolean;
+          native_summary?: string | null;
+          notes?: string | null;
+          org_id: string;
+          parallel_started_on?: string | null;
+          signed_off_by?: string | null;
+          signed_off_on?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          compare_kind?: string;
+          created_at?: string;
+          id?: string;
+          key?: string;
+          label?: string;
+          make_off_on?: string | null;
+          make_scenario_ids?: string | null;
+          native_ready?: boolean;
+          native_summary?: string | null;
+          notes?: string | null;
+          org_id?: string;
+          parallel_started_on?: string | null;
+          signed_off_by?: string | null;
+          signed_off_on?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "parallel_run_scenarios_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       pipelines: {
         Row: {
           archived_at: string | null;
@@ -9132,6 +9303,26 @@ export type Database = {
         };
         Returns: number;
       };
+      parallel_run_compare: {
+        Args: { p_date: string; p_org: string; p_scenario: string; p_tz?: string };
+        Returns: {
+          computed_at: string;
+          id: string;
+          make_count: number;
+          native_count: number;
+          note: string | null;
+          only_in_make: string[];
+          only_in_native: string[];
+          org_id: string;
+          run_date: string;
+          scenario: string;
+        };
+      };
+      parallel_run_unite_health: {
+        Args: { p_days?: number; p_org: string };
+        Returns: { ok: number; total: number }[];
+      };
+      seed_parallel_run_scenarios: { Args: { p_org: string }; Returns: undefined };
       recall_birthday_candidates: {
         Args: {
           p_cycle: string;
@@ -9141,7 +9332,7 @@ export type Database = {
           p_offset: number;
           p_org: string;
           p_programme: string;
-          p_test_only: boolean;
+          p_scope: string;
         };
         Returns: { contact_id: string; dob: string; gender: string | null }[];
       };
@@ -9153,10 +9344,15 @@ export type Database = {
           p_offset: number;
           p_org: string;
           p_programme: string;
-          p_test_only: boolean;
+          p_scope: string;
           p_today: string;
         };
-        Returns: { contact_id: string; days_since: number; groups: Json; last_visit_date: string }[];
+        Returns: {
+          contact_id: string;
+          days_since: number;
+          groups: Json;
+          last_visit_date: string;
+        }[];
       };
       recall_visit_gap_candidates: {
         Args: {
@@ -9172,7 +9368,7 @@ export type Database = {
           p_once: boolean;
           p_org: string;
           p_programme: string;
-          p_test_only: boolean;
+          p_scope: string;
           p_today: string;
         };
         Returns: { contact_id: string; days_since: number; last_visit_date: string }[];

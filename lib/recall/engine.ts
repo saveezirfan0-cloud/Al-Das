@@ -42,6 +42,10 @@ export type RunSummary = {
   note?: string;
 };
 
+/** Which parallel-run scenario a programme is compared under. */
+export const scenarioFor = (programmeKey: string) =>
+  programmeKey === "chronic_90d" ? "chronic_recall" : programmeKey;
+
 const PAGE = 200;
 const MAX_SCAN = 2000;
 
@@ -67,7 +71,7 @@ const bump = (m: Record<string, number>, k: string) => {
 export async function runProgramme(
   admin: AdminClient,
   programme: Programme,
-  o: { trigger: "schedule" | "manual" | "check"; now?: Date } = { trigger: "manual" },
+  o: { trigger: "schedule" | "manual" | "check" | "shadow"; now?: Date } = { trigger: "manual" },
 ): Promise<RunSummary> {
   if (programme.eligibility === "managed")
     throw new Error("This programme is run by another engine.");
@@ -84,7 +88,8 @@ export async function runProgramme(
   );
   const clinical = programme.kind === "chronic";
   const gateOpen = settings.messagingEnabled();
-  const dryRun = o.trigger === "check" || (clinical && !gateOpen);
+  const shadow = o.trigger === "shadow";
+  const dryRun = o.trigger === "check" || shadow || (clinical && !gateOpen);
 
   if (o.trigger === "schedule") {
     const since = new Date(now.getTime() - 55_000).toISOString();
@@ -126,7 +131,17 @@ export async function runProgramme(
   };
   let error: string | null = null;
   try {
-    await scan(admin, programme, { now, today, tz, settings, sendMode, gateOpen, dryRun, summary });
+    await scan(admin, programme, {
+      now,
+      today,
+      tz,
+      settings,
+      sendMode,
+      gateOpen,
+      dryRun,
+      shadow,
+      summary,
+    });
     if (dryRun && clinical && !gateOpen && o.trigger !== "check")
       summary.note = "Clinical messaging is not signed off: counted only, nothing was queued.";
   } catch (e) {
@@ -177,12 +192,14 @@ type Ctx = {
   sendMode: SendMode;
   gateOpen: boolean;
   dryRun: boolean;
+  shadow: boolean;
   summary: RunSummary;
 };
 
 async function scan(admin: AdminClient, p: Programme, c: Ctx): Promise<void> {
   const orgId = p.org_id;
-  const testOnly = c.sendMode === "test";
+  // A shadow run looks at every patient (it never sends) so it can be compared with what Make did.
+  const scope = c.shadow ? "all" : c.sendMode === "test" ? "test" : "live";
   const config = (p.config ?? {}) as Record<string, unknown>;
 
   // Template map with the Meta / clinical approval state of each mapped template.
@@ -221,11 +238,12 @@ async function scan(admin: AdminClient, p: Programme, c: Ctx): Promise<void> {
 
   let offset = 0;
   let wouldSend = 0;
+  const shadowKeys: Array<{ org_id: string; scenario: string; run_date: string; key: string }> = [];
   const done = () => (c.dryRun ? wouldSend : c.summary.queued) >= p.max_per_run;
   while (!done() && c.summary.scanned < MAX_SCAN) {
     const page = await candidates(admin, p, {
       today: c.today,
-      testOnly,
+      scope,
       minDays,
       rule,
       year,
@@ -237,7 +255,7 @@ async function scan(admin: AdminClient, p: Programme, c: Ctx): Promise<void> {
     const { data: contacts } = await admin
       .from("contacts")
       .select(
-        "id, first_name, last_name, phone_e164, wa_bsuid, promotions_opt_in, stop_marketing, deleted_at, gender, dob",
+        "id, first_name, last_name, phone_e164, wa_bsuid, promotions_opt_in, stop_marketing, deleted_at, gender, dob, external_id",
       )
       .eq("org_id", orgId)
       .in(
@@ -300,7 +318,7 @@ async function scan(admin: AdminClient, p: Programme, c: Ctx): Promise<void> {
         continue;
       }
       const values: Record<string, string> = {};
-      const scope = {
+      const templateVars = {
         contact: {
           first_name: contact.first_name,
           last_name: contact.last_name,
@@ -308,7 +326,7 @@ async function scan(admin: AdminClient, p: Programme, c: Ctx): Promise<void> {
         },
       };
       for (const [k, v] of Object.entries(mapById.get(row.id) ?? {}))
-        values[k] = interpolate(String(v), scope, { timezone: c.tz });
+        values[k] = interpolate(String(v), templateVars, { timezone: c.tz });
       const components = tpl.components as unknown as MetaTemplateComponent[];
       const preview = renderTemplatePreview(components, values);
       if (preview.missing.length) {
@@ -319,6 +337,17 @@ async function scan(admin: AdminClient, p: Programme, c: Ctx): Promise<void> {
       if (c.dryRun) {
         bump(c.summary.bySegment, segment);
         wouldSend++;
+        if (c.shadow) {
+          // Parallel run with Make: keep only the patient's Unite PIN, never a name or number.
+          if (contact.external_id)
+            shadowKeys.push({
+              org_id: orgId,
+              scenario: scenarioFor(p.key),
+              run_date: c.today,
+              key: contact.external_id,
+            });
+          else bump(c.summary.skipped, "no_pin_for_comparison");
+        }
         continue;
       }
 
@@ -372,6 +401,12 @@ async function scan(admin: AdminClient, p: Programme, c: Ctx): Promise<void> {
     }
     // Queued patients drop out of the next page's results, so only the rest move the window.
     offset += page.length - queuedThisPage;
+    if (shadowKeys.length) {
+      await admin.from("parallel_run_native_keys").upsert(shadowKeys.splice(0), {
+        onConflict: "org_id,scenario,run_date,key",
+        ignoreDuplicates: true,
+      });
+    }
     if (page.length < PAGE) break;
   }
 }
@@ -386,7 +421,7 @@ async function candidates(
   p: Programme,
   q: {
     today: string;
-    testOnly: boolean;
+    scope: string;
     minDays: number | null;
     rule: ReturnType<typeof parseVisitGapRule>;
     year: string;
@@ -398,7 +433,7 @@ async function candidates(
     p_programme: p.id,
     p_limit: PAGE,
     p_offset: q.offset,
-    p_test_only: q.testOnly,
+    p_scope: q.scope,
   };
   if (p.eligibility === "chronic") {
     const { data, error } = await admin.rpc("recall_chronic_candidates", {

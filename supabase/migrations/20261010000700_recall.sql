@@ -91,9 +91,9 @@ create table public.recall_runs (
   programme_id uuid not null references public.recall_programmes (id) on delete cascade,
   started_at timestamptz not null default now(),
   finished_at timestamptz,
-  trigger text not null default 'schedule' check (trigger in ('schedule', 'manual', 'check')),
+  trigger text not null default 'schedule' check (trigger in ('schedule', 'manual', 'check', 'shadow')),
   send_mode text not null check (send_mode in ('test', 'live')),
-  dry_run boolean not null default false,                  -- 'check' runs and runs while the gate is closed
+  dry_run boolean not null default false,                  -- 'check' / 'shadow' runs and runs while the gate is closed
   gate_open boolean not null default false,
   scanned integer not null default 0,
   queued integer not null default 0,
@@ -109,10 +109,11 @@ create index recall_runs_programme_idx on public.recall_runs (programme_id, star
 -- Everything judgemental (template mapped? gate open?) happens in lib/clinical/recall.ts.
 -- ---------------------------------------------------------------------------
 
+-- p_scope: 'test' = internal validation patients only, 'live' = everyone except them, 'all' = shadow runs.
 -- Chronic: patients whose chronic diagnoses (primary or secondary code on any visit) map to a
 -- condition group, last seen at least p_min_days ago. NULL threshold = nobody (fail closed).
 create or replace function public.recall_chronic_candidates(
-  p_org uuid, p_programme uuid, p_min_days integer, p_today date, p_test_only boolean, p_need_consent boolean,
+  p_org uuid, p_programme uuid, p_min_days integer, p_today date, p_scope text, p_need_consent boolean,
   p_limit integer, p_offset integer
 )
 returns table (contact_id uuid, last_visit_date date, days_since integer, groups jsonb)
@@ -149,7 +150,7 @@ as $$
      and c.deleted_at is null
      and (c.phone_e164 is not null or c.wa_bsuid is not null)
      and not c.stop_marketing
-     and (p_test_only = c.is_test_record)
+     and (p_scope = 'all' or (p_scope = 'test') = c.is_test_record)
      and (not p_need_consent or c.clinical_messaging_consent)
      and (p_today - lv.last_visit) >= p_min_days
      and exists (select 1 from jsonb_array_elements(grp.groups) e where (e ->> 'messageable')::boolean)
@@ -162,7 +163,7 @@ $$;
 
 -- Birthdays: p_md lists today's 'MM-DD' values (plus 02-29 on 1 March in non-leap years).
 create or replace function public.recall_birthday_candidates(
-  p_org uuid, p_programme uuid, p_md text[], p_cycle text, p_test_only boolean, p_need_optin boolean,
+  p_org uuid, p_programme uuid, p_md text[], p_cycle text, p_scope text, p_need_optin boolean,
   p_limit integer, p_offset integer
 )
 returns table (contact_id uuid, dob date, gender text)
@@ -179,7 +180,7 @@ as $$
      and (c.phone_e164 is not null or c.wa_bsuid is not null)
      and not c.stop_marketing
      and (not p_need_optin or c.promotions_opt_in)
-     and (p_test_only = c.is_test_record)
+     and (p_scope = 'all' or (p_scope = 'test') = c.is_test_record)
      and not exists (select 1 from public.recall_sends rs
                       where rs.programme_id = p_programme and rs.contact_id = c.id
                         and rs.cycle_key = p_cycle and rs.status <> 'cancelled')
@@ -191,7 +192,7 @@ $$;
 -- A NULL p_min_days returns nobody. Ages are in whole years on p_today.
 create or replace function public.recall_visit_gap_candidates(
   p_org uuid, p_programme uuid, p_min_days integer, p_max_days integer, p_gender text, p_min_age integer, p_max_age integer,
-  p_today date, p_once boolean, p_test_only boolean, p_need_optin boolean, p_need_consent boolean,
+  p_today date, p_once boolean, p_scope text, p_need_optin boolean, p_need_consent boolean,
   p_limit integer, p_offset integer
 )
 returns table (contact_id uuid, last_visit_date date, days_since integer)
@@ -213,7 +214,7 @@ as $$
      and not c.stop_marketing
      and (not p_need_optin or c.promotions_opt_in)
      and (not p_need_consent or c.clinical_messaging_consent)
-     and (p_test_only = c.is_test_record)
+     and (p_scope = 'all' or (p_scope = 'test') = c.is_test_record)
      and (p_today - lv.last_visit) >= p_min_days
      and (p_max_days is null or (p_today - lv.last_visit) <= p_max_days)
      and (p_gender is null or c.gender = p_gender)
@@ -226,12 +227,12 @@ as $$
    limit greatest(1, least(p_limit, 500)) offset greatest(0, p_offset);
 $$;
 
-revoke all on function public.recall_chronic_candidates(uuid, uuid, integer, date, boolean, boolean, integer, integer) from public, anon, authenticated;
-revoke all on function public.recall_birthday_candidates(uuid, uuid, text[], text, boolean, boolean, integer, integer) from public, anon, authenticated;
-revoke all on function public.recall_visit_gap_candidates(uuid, uuid, integer, integer, text, integer, integer, date, boolean, boolean, boolean, boolean, integer, integer) from public, anon, authenticated;
-grant execute on function public.recall_chronic_candidates(uuid, uuid, integer, date, boolean, boolean, integer, integer) to service_role;
-grant execute on function public.recall_birthday_candidates(uuid, uuid, text[], text, boolean, boolean, integer, integer) to service_role;
-grant execute on function public.recall_visit_gap_candidates(uuid, uuid, integer, integer, text, integer, integer, date, boolean, boolean, boolean, boolean, integer, integer) to service_role;
+revoke all on function public.recall_chronic_candidates(uuid, uuid, integer, date, text, boolean, integer, integer) from public, anon, authenticated;
+revoke all on function public.recall_birthday_candidates(uuid, uuid, text[], text, text, boolean, integer, integer) from public, anon, authenticated;
+revoke all on function public.recall_visit_gap_candidates(uuid, uuid, integer, integer, text, integer, integer, date, boolean, text, boolean, boolean, integer, integer) from public, anon, authenticated;
+grant execute on function public.recall_chronic_candidates(uuid, uuid, integer, date, text, boolean, integer, integer) to service_role;
+grant execute on function public.recall_birthday_candidates(uuid, uuid, text[], text, text, boolean, integer, integer) to service_role;
+grant execute on function public.recall_visit_gap_candidates(uuid, uuid, integer, integer, text, integer, integer, date, boolean, text, boolean, boolean, integer, integer) to service_role;
 
 -- ---------------------------------------------------------------------------
 -- seed (per org; run from the portal / seed script). Programmes start as drafts and NO template is

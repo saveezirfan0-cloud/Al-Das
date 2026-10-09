@@ -76,6 +76,9 @@ export default async function FlowsPage() {
         <Button asChild variant="outline" size="sm">
           <Link href="/flows/recall">Recall programmes</Link>
         </Button>
+        <Button asChild variant="outline" size="sm">
+          <Link href="/flows/parallel">Parallel run</Link>
+        </Button>
       </PageHeader>
       <FlowsWorkspace
         flows={items}

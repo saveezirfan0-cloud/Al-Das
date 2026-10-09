@@ -80,6 +80,8 @@ const configSchema = z.object({
   gender: z.enum(["male", "female"]).nullable().optional(),
   min_age: z.number().int().min(0).max(120).nullable().optional(),
   max_age: z.number().int().min(0).max(120).nullable().optional(),
+  /** Parallel run with Make: also record (ids only) who each scheduled run would message. */
+  shadow: z.boolean().optional(),
 });
 const settingsSchema = z.object({
   cron_expression: z.string().trim().max(100).nullable(),
@@ -119,10 +121,12 @@ export async function updateProgramme(
       .maybeSingle();
     if (!data) return bad("That number does not exist.");
   }
-  const config =
-    d.config && programme.eligibility === "visit_gap"
-      ? { ...(programme.config as Record<string, unknown>), ...d.config }
-      : programme.config;
+  const { shadow, ...rule } = d.config ?? {};
+  const config = {
+    ...(programme.config as Record<string, unknown>),
+    ...(programme.eligibility === "visit_gap" ? rule : {}),
+    ...(shadow !== undefined ? { shadow } : {}),
+  };
   const { error } = await admin
     .from("recall_programmes")
     .update({
@@ -340,4 +344,27 @@ export async function updateRecallFollowUp(
   });
   revalidatePath("/flows/recall/calls");
   return { ok: true };
+}
+
+/** Creates the standard programmes (idempotent): chronic recall, birthday, screenings, dormant, and the reminder row. */
+export async function seedRecallProgrammes(): Promise<Result> {
+  const member = await requirePerm(PERM);
+  const admin = createAdminClient();
+  const { error } = await (
+    admin as unknown as {
+      rpc: (f: string, a: object) => Promise<{ error: { message: string } | null }>;
+    }
+  ).rpc("seed_recall_programmes", { p_org: member.orgId });
+  if (error) return bad("Could not set up the programmes.");
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "recall.programmes_seeded",
+    entity: "recall_programme",
+  });
+  refresh();
+  return {
+    ok: true,
+    message: "Programmes added. Each one is off and has no template until you map one.",
+  };
 }

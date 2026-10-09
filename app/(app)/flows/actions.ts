@@ -12,6 +12,7 @@ import { isValidCron } from "@/lib/flow-engine/cron";
 import { validateGraph, type GraphIssue } from "@/lib/flow-engine/graph";
 import { publishFlow } from "@/lib/flow-engine/publish";
 import { finishRun, hashWebhookToken, startRun } from "@/lib/flow-engine/service";
+import { starterByKey } from "@/lib/flow-engine/starters";
 import {
   emptyGraph,
   flowGraphSchema,
@@ -51,6 +52,8 @@ const settingsSchema = z.object({
   trigger_config: triggerConfigSchema.default({}),
   conditions: filterSchema.nullish(),
   channel_id: uuid.nullish(),
+  /** Start from one of lib/flow-engine/starters.ts instead of a blank canvas. */
+  starter: z.string().max(60).nullish(),
 });
 
 function checkTrigger(type: TriggerType, cfg: TriggerConfig): string | null {
@@ -66,7 +69,14 @@ export async function createFlow(
   const parsed = settingsSchema.safeParse(input);
   if (!parsed.success) return bad(parsed.error.issues[0]?.message);
   const d = parsed.data;
-  const cfgError = checkTrigger(d.trigger_type, d.trigger_config);
+  const starter = d.starter ? starterByKey(d.starter) : undefined;
+  if (d.starter && !starter) return bad("That starter flow does not exist.");
+  // A starter brings its own trigger; the person's name and number still win.
+  const triggerType = starter?.trigger_type ?? d.trigger_type;
+  const triggerConfig = starter
+    ? { ...starter.trigger_config, ...d.trigger_config }
+    : d.trigger_config;
+  const cfgError = checkTrigger(triggerType, triggerConfig);
   if (cfgError) return bad(cfgError);
   const admin = createAdminClient();
   const { data, error } = await admin
@@ -74,12 +84,12 @@ export async function createFlow(
     .insert({
       org_id: member.orgId,
       name: d.name,
-      description: d.description ?? null,
-      trigger_type: d.trigger_type,
-      trigger_config: d.trigger_config as unknown as NonNullable<Json>,
-      conditions: (d.conditions ?? null) as unknown as Json,
+      description: d.description ?? starter?.description ?? null,
+      trigger_type: triggerType,
+      trigger_config: triggerConfig as unknown as NonNullable<Json>,
+      conditions: (d.conditions ?? starter?.conditions ?? null) as unknown as Json,
       channel_id: d.channel_id ?? null,
-      draft_graph: emptyGraph() as unknown as NonNullable<Json>,
+      draft_graph: (starter?.graph ?? emptyGraph()) as unknown as NonNullable<Json>,
       created_by: member.userId,
     })
     .select("id")
@@ -91,7 +101,7 @@ export async function createFlow(
     action: "flow.created",
     entity: "flow",
     entityId: data.id,
-    diff: { trigger: d.trigger_type },
+    diff: { trigger: triggerType, starter: starter?.key ?? null },
   });
   refresh();
   return { ok: true, data: { id: data.id } };

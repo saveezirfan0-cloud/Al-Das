@@ -44,6 +44,13 @@ Captures Unite invoices, matches them to Diligence claim files, and routes excep
 - Exception rules live in SQL (`fin_run_exception_rules`) and read thresholds from `fin_ref_exception_rules`; they are idempotent and guarded against start-up false alarms. Exceptions are only changed through the member's own client (RLS decides) and audited.
 - `pnpm finance:seed --org=<slug>` adds the Finance/Billing/Insurance/CEO/Medical Director roles and reference rows to an existing org.
 
+## Flows, recall and the Make replacement (docs/09_PHASE_8_NOTES.md)
+- Flow graphs are published as immutable `flow_versions`; runs pin the version. One `flow_steps` job per node, a lease on the conversation (`flow_locks`), max 200 steps, one live bot run per conversation. A person sending, assigning, closing or taking over cancels the run.
+- Executors in `lib/flow-engine/executors.ts` touch the outside world only through `FlowPorts` (`ports.ts`); each one has a unit test with fake ports. Step traces never contain message text.
+- Domain events reach flows through `emit()` → `flow_steps` (durable). A flow that writes a portal record does so as its publisher, with only that object's write key.
+- Recall rules live in `lib/clinical/recall.ts` (pure, fail closed, thresholds from `clinical_settings`). A programme sends nothing without a mapped, Meta-approved (and for chronic recall clinically approved) template, and only to `is_test_record` patients unless the mode is exactly `live`. `recall_sends` rows exist only for queued messages; dry runs and skips are counted in `recall_runs`.
+- Parallel run with Make compares identifiers only (Unite PIN or appointment id); sign-off is decided by the server (`lib/cutover/parallel-run.ts`).
+
 ## Conventions
 - Business logic in `lib/*` as plain TS with unit tests. Route handlers and server actions stay thin and validate with Zod.
 - Phones are always E.164 (`libphonenumber-js`). Times are stored in UTC and displayed in location/org timezone (`date-fns-tz`).
@@ -71,6 +78,7 @@ pnpm load:webhook --yes-staging --rate 1000 --minutes 1   # webhook burst (stagi
 pnpm load:mock-graph & pnpm load:outbound --yes-staging --count 20000 --rate 20   # 20k send against a local Graph stub
 pnpm reconcile --org <slug> --live-airtable --freeze-at <iso>   # migration sign-off report
 pnpm cutover:preflight --org <slug> --stage pre-cutover   # read-only go/no-go before moving a number
+pnpm tsx scripts/add-table-types.ts <table…>   # typed entries for new tables without the Supabase CLI (needs TEST_DATABASE_URL)
 ```
 
 ## Env

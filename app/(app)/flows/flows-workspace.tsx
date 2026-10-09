@@ -54,6 +54,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FLOW_STARTERS, starterByKey } from "@/lib/flow-engine/starters";
 import { TRIGGER_LABEL, TRIGGER_TYPES, type TriggerType } from "@/lib/flow-engine/types";
 
 import { createFlow, deleteFlow, duplicateFlow, setFlowStatus } from "./actions";
@@ -298,13 +299,16 @@ function NewFlowDialog({
   const [channel, setChannel] = React.useState("__all__");
   const [cron, setCron] = React.useState("0 9 * * *");
   const [busy, setBusy] = React.useState(false);
+  const [starter, setStarter] = React.useState("__blank__");
+  const picked = starterByKey(starter);
 
   async function create() {
     setBusy(true);
     const r = await createFlow({
       name,
-      trigger_type: trigger,
-      trigger_config: trigger === "recurring" ? { cron } : {},
+      trigger_type: picked?.trigger_type ?? trigger,
+      trigger_config: !picked && trigger === "recurring" ? { cron } : {},
+      starter: picked?.key ?? null,
       channel_id: channel === "__all__" ? null : channel,
     });
     setBusy(false);
@@ -334,21 +338,49 @@ function NewFlowDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label>Trigger</Label>
-            <Select value={trigger} onValueChange={(v) => setTrigger(v as TriggerType)}>
+            <Label>Start from</Label>
+            <Select value={starter} onValueChange={setStarter}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {TRIGGER_TYPES.map((t) => (
-                  <SelectItem key={t} value={t}>
-                    {TRIGGER_LABEL[t]}
+                <SelectItem value="__blank__">A blank flow</SelectItem>
+                {FLOW_STARTERS.map((s) => (
+                  <SelectItem key={s.key} value={s.key}>
+                    {s.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            {picked ? (
+              <div className="text-muted-foreground space-y-1 text-xs">
+                <p>{picked.description}</p>
+                <p>Before publishing: {picked.needs.join("; ")}.</p>
+              </div>
+            ) : null}
           </div>
-          {trigger === "recurring" ? (
+          {!picked ? (
+            <div className="space-y-1.5">
+              <Label>Trigger</Label>
+              <Select value={trigger} onValueChange={(v) => setTrigger(v as TriggerType)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TRIGGER_TYPES.map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {TRIGGER_LABEL[t]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <p className="text-sm">
+              Starts when: <strong>{TRIGGER_LABEL[picked.trigger_type]}</strong>
+            </p>
+          )}
+          {!picked && trigger === "recurring" ? (
             <div className="space-y-1.5">
               <Label htmlFor="flow-cron">Schedule (cron, workspace time zone)</Label>
               <Input

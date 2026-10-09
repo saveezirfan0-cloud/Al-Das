@@ -198,7 +198,7 @@ describe.skipIf(!TEST_DATABASE_URL)("recall (rls)", () => {
     await expect(
       asUser(c, alice, () =>
         c.query(
-          "select * from public.recall_birthday_candidates($1,$2,array['10-12'],'2026',false,true,10,0)",
+          "select * from public.recall_birthday_candidates($1,$2,array['10-12'],'2026','test',true,10,0)",
           [orgA, progA],
         ),
       ),

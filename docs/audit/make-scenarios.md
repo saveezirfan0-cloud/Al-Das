@@ -55,6 +55,8 @@ Re-pull everything with `scripts/export-make.ts`.
 - After migration, **Make can be cancelled entirely**. All of the above runs as Supabase cron + queue jobs with no per-operation cost.
 
 ## 4. Parallel-run checklist (Phase 8)
+> Tracked in Pulse at **Flows → Parallel run** (`/flows/parallel`), with daily comparisons and a server-checked sign-off; see `docs/09_PHASE_8_NOTES.md`. The table below is the paper version.
+
 | Scenario | Native version built | Ran in parallel 7 days | Outputs matched | Make scenario turned off |
 |---|---|---|---|---|
 | Token | ☐ | ☐ | ☐ | ☐ |
