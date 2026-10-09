@@ -35,13 +35,11 @@ export async function storeChannelToken(
     await admin.from("channel_secrets").delete().eq("channel_id", channelId);
     return;
   }
-  const { error } = await admin
-    .from("channel_secrets")
-    .upsert({
-      channel_id: channelId,
-      access_token_enc: encryptSecret(token),
-      updated_at: new Date().toISOString(),
-    });
+  const { error } = await admin.from("channel_secrets").upsert({
+    channel_id: channelId,
+    access_token_enc: encryptSecret(token),
+    updated_at: new Date().toISOString(),
+  });
   if (error) throw new Error(`storeChannelToken: ${error.message}`);
 }
 

@@ -1,5 +1,6 @@
 import "server-only";
 
+import { addTimelineEvent } from "@/lib/contacts/timeline";
 import { emit } from "@/lib/events/emit";
 import { matchOrCreateContact, rotateBsuid } from "@/lib/inbox/contacts";
 import { readInboxSettings } from "@/lib/inbox/settings";
@@ -63,6 +64,13 @@ export async function processInbound(
   const contact = match.contact;
   if (match.created) {
     await emit(orgId, "contact.created", { contact_id: contact.id, source: "whatsapp" });
+    await addTimelineEvent(admin, {
+      orgId,
+      contactId: contact.id,
+      type: "contact.created",
+      actorType: "contact",
+      payload: { source: "whatsapp" },
+    });
   }
 
   // Live conversation for this contact on this number, else open one.
@@ -168,6 +176,13 @@ export async function processInbound(
   }
 
   if (opened) {
+    await addTimelineEvent(admin, {
+      orgId,
+      contactId: contact.id,
+      type: "conversation.opened",
+      actorType: "contact",
+      payload: { conversation_id: conversation.id, channel_id: channel.id, ad: !!event.referral },
+    });
     await emit(orgId, "conversation.opened", {
       conversation_id: conversation.id,
       contact_id: contact.id,

@@ -115,8 +115,9 @@ describe("media storage paths", () => {
 describe("labels", () => {
   it("falls back to gray", () => {
     expect(labelClass("blue")).toContain("blue");
-    expect(labelClass("nope")).toContain("gray");
-    expect(labelClass(null)).toContain("gray");
+    expect(labelClass("nope")).toBe(labelClass("gray"));
+    expect(labelClass(null)).toBe(labelClass("gray"));
+    expect(labelClass("gray")).not.toContain("blue");
   });
 });
 

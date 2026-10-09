@@ -68,7 +68,7 @@ export async function mentionConversationIds(
     .eq("user_id", userId)
     .is("read_at", null)
     .limit(500);
-  return [...new Set((data ?? []).map((m) => m.conversation_id))];
+  return [...new Set((data ?? []).map((m) => m.conversation_id).filter((id): id is string => !!id))];
 }
 
 /** The subset of PostgrestFilterBuilder we use; every method returns the builder itself. */

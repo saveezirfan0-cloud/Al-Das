@@ -2,7 +2,7 @@ import "server-only";
 
 import type { AdminClient } from "@/lib/supabase/admin";
 import { splitName } from "@/lib/inbox/contact-name";
-import type { Tables } from "@/lib/supabase/types";
+import type { Tables, TablesUpdate } from "@/lib/supabase/types";
 import type { InboundIdentity } from "@/lib/whatsapp/parse";
 
 export type ContactRow = Tables<"contacts">;
@@ -100,7 +100,7 @@ export async function matchOrCreateContact(
     return { contact: data, created: true, updated: false };
   }
 
-  const patch: Partial<ContactRow> = { last_interaction_at: now.toISOString() };
+  const patch: TablesUpdate<"contacts"> = { last_interaction_at: now.toISOString() };
   if (bsuid && !contact.wa_bsuid) patch.wa_bsuid = bsuid;
   if (phoneE164 && !contact.phone_e164) patch.phone_e164 = phoneE164;
   if (profileName && profileName !== contact.wa_profile_name) patch.wa_profile_name = profileName;

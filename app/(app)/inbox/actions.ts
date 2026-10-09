@@ -8,6 +8,7 @@ import { recordAudit } from "@/lib/audit";
 import { can } from "@/lib/auth/can";
 import { requireMember, requirePerm, type CurrentMember } from "@/lib/auth/session";
 import { emit } from "@/lib/events/emit";
+import { addTimelineEvent } from "@/lib/contacts/timeline";
 import { contactDisplayName } from "@/lib/inbox/contact-name";
 import { parseMentions } from "@/lib/inbox/mentions";
 import { addNote, queueOutbound, type SendSpec } from "@/lib/inbox/send";
@@ -17,7 +18,7 @@ import { MEDIA_BUCKET, extensionFor } from "@/lib/jobs/handlers/media-fetch";
 import { createNotification } from "@/lib/notifications";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import type { Json, Tables } from "@/lib/supabase/types";
+import type { Json } from "@/lib/supabase/types";
 import { clientForChannel } from "@/lib/whatsapp/channel";
 import { toE164 } from "@/lib/whatsapp/phone";
 import { renderTemplatePreview } from "@/lib/whatsapp/templates";
@@ -249,16 +250,16 @@ export async function addComment(
       .in("user_id", userIds);
     const valid = (members ?? []).map((m) => m.user_id).filter((id) => id !== member.userId);
     if (valid.length) {
-      await admin
-        .from("mentions")
-        .insert(
-          valid.map((user_id) => ({
-            org_id: member.orgId,
-            message_id: note.id,
-            conversation_id: conversation.id,
-            user_id,
-          })),
-        );
+      await admin.from("mentions").insert(
+        valid.map((user_id) => ({
+          org_id: member.orgId,
+          message_id: note.id,
+          conversation_id: conversation.id,
+          contact_id: conversation.contact_id,
+          mentioned_by: member.userId,
+          user_id,
+        })),
+      );
       const who =
         `${member.profile.first_name} ${member.profile.last_name}`.trim() || "A colleague";
       const patient = conversation.contacts
@@ -482,6 +483,18 @@ export async function closeConversation(input: z.input<typeof closeSchema>): Pro
     category_id: parsed.data.category_id,
     by: member.userId,
   });
+  await addTimelineEvent(admin, {
+    orgId: member.orgId,
+    contactId: conversation.contact_id,
+    type: "conversation.closed",
+    actorType: "user",
+    actorId: member.userId,
+    payload: {
+      conversation_id: conversation.id,
+      category_id: parsed.data.category_id,
+      summary: parsed.data.summary || null,
+    },
+  });
   refresh();
   return { ok: true, message: "Conversation closed.", data: undefined };
 }
@@ -498,17 +511,15 @@ export async function toggleConversationLabel(
   if (error || !conversation) return { ok: false, error: error ?? "Conversation not found." };
   const admin = createAdminClient();
   if (parsed.data.on) {
-    const { error: e } = await admin
-      .from("conversation_labels")
-      .upsert(
-        {
-          org_id: member.orgId,
-          conversation_id: conversation.id,
-          tag_id: parsed.data.tag_id,
-          added_by: member.userId,
-        },
-        { onConflict: "conversation_id,tag_id" },
-      );
+    const { error: e } = await admin.from("conversation_labels").upsert(
+      {
+        org_id: member.orgId,
+        conversation_id: conversation.id,
+        tag_id: parsed.data.tag_id,
+        added_by: member.userId,
+      },
+      { onConflict: "conversation_id,tag_id" },
+    );
     if (e) return { ok: false, error: "Could not add the label." };
   } else {
     await admin
@@ -741,35 +752,36 @@ export async function updateContactFromInbox(
   return { ok: true, message: "Contact saved.", data: undefined };
 }
 
-/** Merge `duplicate` into `primary`: conversations, phones and tags move; the duplicate is soft-deleted. */
+/**
+ * Merge `duplicate` into `primary` from the inbox sidebar: conversations move
+ * first (closing the duplicate's live one where the primary already has one on
+ * that number), then Phase 2's merge_contacts RPC does the contact-level merge.
+ */
 export async function mergeContacts(primaryId: string, duplicateId: string): Promise<ActionResult> {
   const member = await requirePerm("contacts.manage");
   if (primaryId === duplicateId) return { ok: false, error: "Pick two different contacts." };
   const admin = createAdminClient();
   const { data: both } = await admin
     .from("contacts")
-    .select("*")
+    .select("id")
     .eq("org_id", member.orgId)
     .in("id", [primaryId, duplicateId])
     .is("deleted_at", null);
-  const primary = both?.find((c) => c.id === primaryId);
-  const dup = both?.find((c) => c.id === duplicateId);
-  if (!primary || !dup) return { ok: false, error: "Contact not found." };
+  if ((both ?? []).length !== 2) return { ok: false, error: "Contact not found." };
 
-  // Live conversations on the same number would collide: close the duplicate's.
   const { data: primaryLive } = await admin
     .from("conversations")
     .select("channel_id")
-    .eq("contact_id", primary.id)
+    .eq("contact_id", primaryId)
     .neq("status", "closed");
   const busy = new Set((primaryLive ?? []).map((c) => c.channel_id));
   const { data: dupLive } = await admin
     .from("conversations")
     .select("id, channel_id")
-    .eq("contact_id", dup.id)
+    .eq("contact_id", duplicateId)
     .neq("status", "closed");
   for (const c of dupLive ?? []) {
-    if (busy.has(c.channel_id))
+    if (busy.has(c.channel_id)) {
       await admin
         .from("conversations")
         .update({
@@ -778,64 +790,65 @@ export async function mergeContacts(primaryId: string, duplicateId: string): Pro
           summary: "Closed on contact merge.",
         })
         .eq("id", c.id);
+    }
   }
-  await admin.from("conversations").update({ contact_id: primary.id }).eq("contact_id", dup.id);
-  if (dup.phone_e164 && dup.phone_e164 !== primary.phone_e164) {
-    await admin.from("contacts").update({ phone_e164: null }).eq("id", dup.id);
-    await admin
-      .from("contact_phones")
-      .upsert(
-        {
-          org_id: member.orgId,
-          contact_id: primary.id,
-          phone_e164: dup.phone_e164,
-          label: "merged",
-        },
-        { onConflict: "contact_id,phone_e164" },
-      );
-  }
-  await admin.from("contact_phones").update({ contact_id: primary.id }).eq("contact_id", dup.id);
-  const { data: dupTags } = await admin
-    .from("contact_tags")
-    .select("tag_id")
-    .eq("contact_id", dup.id);
-  if (dupTags?.length)
-    await admin.from("contact_tags").upsert(
-      dupTags.map((t) => ({ org_id: member.orgId, contact_id: primary.id, tag_id: t.tag_id })),
-      { onConflict: "contact_id,tag_id" },
-    );
-  const fill: Partial<Tables<"contacts">> = {};
-  for (const k of [
-    "email",
-    "gender",
-    "nationality",
-    "language",
-    "dob",
-    "wa_bsuid",
-    "external_id",
-  ] as const) {
-    if (!primary[k] && dup[k]) fill[k] = dup[k];
-  }
-  if (!primary.first_name && !primary.last_name && (dup.first_name || dup.last_name)) {
-    fill.first_name = dup.first_name;
-    fill.last_name = dup.last_name;
-  }
-  if (dup.stop_marketing) fill.stop_marketing = true;
-  await admin
-    .from("contacts")
-    .update({ wa_bsuid: null, deleted_at: new Date().toISOString() })
-    .eq("id", dup.id);
-  if (Object.keys(fill).length) await admin.from("contacts").update(fill).eq("id", primary.id);
+  await admin.from("conversations").update({ contact_id: primaryId }).eq("contact_id", duplicateId);
+  const { error } = await admin.rpc("merge_contacts", {
+    p_org_id: member.orgId,
+    p_primary_id: primaryId,
+    p_secondary_id: duplicateId,
+    p_fields: {},
+    p_user_id: member.userId,
+  });
+  if (error) return { ok: false, error: `Merge failed: ${error.message}` };
   await recordAudit(admin, {
     orgId: member.orgId,
     userId: member.userId,
     action: "contact.merged",
     entity: "contact",
-    entityId: primary.id,
-    diff: { merged: dup.id },
+    entityId: primaryId,
+    diff: { merged: duplicateId, from: "inbox" },
   });
   refresh();
+  revalidatePath("/contacts");
   return { ok: true, message: "Contacts merged.", data: undefined };
+}
+
+/** Conversations for a contact (Contacts drawer → Inbox tab). RLS decides what the caller sees. */
+export async function listContactConversations(
+  contactId: string,
+): Promise<
+  ActionResult<
+    Array<{
+      id: string;
+      status: string;
+      channel: string;
+      last_message_at: string | null;
+      preview: string | null;
+      unread: number;
+    }>
+  >
+> {
+  await requireMember();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("conversations")
+    .select("id, status, last_message_at, last_message_preview, unread_count, channels(name)")
+    .eq("contact_id", contactId)
+    .order("last_message_at", { ascending: false, nullsFirst: false })
+    .limit(20);
+  if (error) return { ok: false, error: "Could not load conversations." };
+  return {
+    ok: true,
+    data: (data ?? []).map((c) => ({
+      id: c.id,
+      status: c.status,
+      channel: c.channels?.name ?? "WhatsApp",
+      last_message_at: c.last_message_at,
+      preview: c.last_message_preview,
+      unread: c.unread_count,
+    })),
+  };
 }
 
 /** Short-lived URL for an inbox media file (members only; path must be in the caller's org). */

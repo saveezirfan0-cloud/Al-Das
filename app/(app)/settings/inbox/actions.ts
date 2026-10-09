@@ -7,6 +7,7 @@ import { recordAudit } from "@/lib/audit";
 import { requirePerm } from "@/lib/auth/session";
 import { inboxSettingsSchema, writeInboxSettings, type InboxSettings } from "@/lib/inbox/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { LABEL_COLORS } from "@/lib/inbox/labels";
 import type { Json } from "@/lib/supabase/types";
 
 export type ActionResult = { ok: true; message?: string } | { ok: false; error: string };
@@ -141,18 +142,6 @@ export async function deleteQuickReply(id: string): Promise<ActionResult> {
 }
 
 // --- Labels (tags with scope = conversation) ---------------------------------
-
-export const LABEL_COLORS = [
-  "gray",
-  "red",
-  "orange",
-  "amber",
-  "green",
-  "teal",
-  "blue",
-  "violet",
-  "pink",
-] as const;
 
 const labelSchema = z.object({ name: nameSchema, color: z.enum(LABEL_COLORS) });
 

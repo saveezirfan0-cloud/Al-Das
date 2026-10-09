@@ -1,4 +1,4 @@
--- Phase 3 / 2: WhatsApp channels, per-number send slots, webhook ingress log, templates.
+-- Phase 3 / 1: WhatsApp channels, per-number send slots, webhook ingress log, templates.
 
 -- ---------------------------------------------------------------------------
 -- channels: one row per WhatsApp number (phone_number_id) connected to the org.

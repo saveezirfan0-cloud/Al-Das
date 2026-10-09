@@ -1,5 +1,9 @@
--- Phase 3 / 3: inbox — conversations, messages, labels, quick replies,
--- categories, saved views, mentions, round-robin picker, realtime, media bucket.
+-- Phase 3 / 2: inbox — conversations, messages, labels, quick replies,
+-- categories, saved views, round-robin picker, realtime, media bucket.
+-- Extends Phase 2's CRM: contacts get wa_profile_name, mentions get their
+-- message/conversation FKs, and inbox roles may read contacts.
+
+alter table public.contacts add column if not exists wa_profile_name text;  -- profile.name from the last inbound webhook
 
 -- ---------------------------------------------------------------------------
 -- Tables
@@ -119,16 +123,11 @@ create table public.inbox_views (
 create index inbox_views_org_idx on public.inbox_views (org_id);
 create trigger inbox_views_set_updated_at before update on public.inbox_views for each row execute function app.set_updated_at();
 
-create table public.mentions (
-  id uuid primary key default gen_random_uuid(),
-  org_id uuid not null references public.orgs (id) on delete cascade,
-  message_id uuid not null references public.messages (id) on delete cascade,
-  conversation_id uuid not null references public.conversations (id) on delete cascade,
-  user_id uuid not null references public.profiles (id) on delete cascade,
-  read_at timestamptz,
-  created_at timestamptz not null default now(),
-  unique (message_id, user_id)
-);
+-- Phase 2 created public.mentions (user_id, contact_id, conversation_id, message_id, mentioned_by, read_at).
+alter table public.mentions
+  add constraint mentions_conversation_id_fkey foreign key (conversation_id) references public.conversations (id) on delete cascade,
+  add constraint mentions_message_id_fkey foreign key (message_id) references public.messages (id) on delete cascade;
+create unique index mentions_message_user_idx on public.mentions (message_id, user_id) where message_id is not null;
 create index mentions_user_unread_idx on public.mentions (user_id, created_at desc) where read_at is null;
 
 -- ---------------------------------------------------------------------------
@@ -182,6 +181,9 @@ as $$
 declare
   v_org uuid;
 begin
+  if new.conversation_id is null then
+    return new;
+  end if;
   select org_id into v_org from public.conversations where id = new.conversation_id;
   if v_org is distinct from new.org_id then
     raise exception 'conversation % does not belong to org %', new.conversation_id, new.org_id using errcode = 'check_violation';
@@ -191,7 +193,7 @@ end;
 $$;
 create trigger messages_org_check before insert or update of conversation_id, org_id on public.messages
   for each row execute function app.check_message_org();
-create trigger mentions_org_check before insert or update on public.mentions
+create trigger mentions_conversation_org_check before insert or update on public.mentions
   for each row execute function app.check_message_org();
 
 create or replace function app.check_conversation_label_org()
@@ -376,10 +378,17 @@ alter table public.messages enable row level security;
 alter table public.conversation_labels enable row level security;
 alter table public.quick_replies enable row level security;
 alter table public.inbox_views enable row level security;
-alter table public.mentions enable row level security;
 
 create policy conv_categories_select on public.conv_categories for select to authenticated
   using (app.is_org_member(org_id));
+
+-- Inbox roles need the patient behind a conversation even without contacts.view.
+drop policy contacts_select on public.contacts;
+create policy contacts_select on public.contacts for select to authenticated
+  using (app.is_org_member(org_id) and (app.has_perm(org_id, 'contacts.view') or app.has_perm(org_id, 'inbox.send') or app.has_perm(org_id, 'inbox.view_all')));
+drop policy contact_phones_select on public.contact_phones;
+create policy contact_phones_select on public.contact_phones for select to authenticated
+  using (app.is_org_member(org_id) and (app.has_perm(org_id, 'contacts.view') or app.has_perm(org_id, 'inbox.send') or app.has_perm(org_id, 'inbox.view_all')));
 
 create policy conversations_select on public.conversations for select to authenticated
   using (app.can_view_conversation(org_id, assignee_user_id, assignee_team_id));
@@ -405,11 +414,6 @@ create policy inbox_views_select on public.inbox_views for select to authenticat
     )
   );
 
-create policy mentions_select on public.mentions for select to authenticated
-  using (user_id = auth.uid() and app.is_org_member(org_id));
-create policy mentions_update on public.mentions for update to authenticated
-  using (user_id = auth.uid() and app.is_org_member(org_id))
-  with check (user_id = auth.uid() and app.is_org_member(org_id));
 
 -- ---------------------------------------------------------------------------
 -- Realtime: conversations, messages and mentions stream to the inbox (RLS applies).

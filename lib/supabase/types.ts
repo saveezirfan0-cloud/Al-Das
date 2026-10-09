@@ -225,25 +225,35 @@ export type Database = {
       };
       contact_tags: {
         Row: {
+          added_at: string;
+          added_by: string | null;
           contact_id: string;
-          created_at: string;
           org_id: string;
           tag_id: string;
         };
         ComputedFields: never;
         Insert: {
+          added_at?: string;
+          added_by?: string | null;
           contact_id: string;
-          created_at?: string;
           org_id: string;
           tag_id: string;
         };
         Update: {
+          added_at?: string;
+          added_by?: string | null;
           contact_id?: string;
-          created_at?: string;
           org_id?: string;
           tag_id?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "contact_tags_added_by_fkey";
+            columns: ["added_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "contact_tags_contact_id_fkey";
             columns: ["contact_id"];
@@ -270,18 +280,23 @@ export type Database = {
       contacts: {
         Row: {
           assignee_id: string | null;
+          country: string | null;
           created_at: string;
+          created_by: string | null;
           custom: NonNullable<Json>;
           deleted_at: string | null;
           dob: string | null;
           email: string | null;
           external_id: string | null;
           first_name: string;
+          full_name: string | null;
           gender: string | null;
           id: string;
+          label: string | null;
           language: string | null;
           last_interaction_at: string | null;
           last_name: string;
+          merged_into_id: string | null;
           nationality: string | null;
           org_id: string;
           owner_id: string | null;
@@ -296,18 +311,23 @@ export type Database = {
         ComputedFields: never;
         Insert: {
           assignee_id?: string | null;
+          country?: string | null;
           created_at?: string;
+          created_by?: string | null;
           custom?: NonNullable<Json>;
           deleted_at?: string | null;
           dob?: string | null;
           email?: string | null;
           external_id?: string | null;
           first_name?: string;
+          full_name?: never;
           gender?: string | null;
           id?: string;
+          label?: string | null;
           language?: string | null;
           last_interaction_at?: string | null;
           last_name?: string;
+          merged_into_id?: string | null;
           nationality?: string | null;
           org_id: string;
           owner_id?: string | null;
@@ -321,18 +341,23 @@ export type Database = {
         };
         Update: {
           assignee_id?: string | null;
+          country?: string | null;
           created_at?: string;
+          created_by?: string | null;
           custom?: NonNullable<Json>;
           deleted_at?: string | null;
           dob?: string | null;
           email?: string | null;
           external_id?: string | null;
           first_name?: string;
+          full_name?: never;
           gender?: string | null;
           id?: string;
+          label?: string | null;
           language?: string | null;
           last_interaction_at?: string | null;
           last_name?: string;
+          merged_into_id?: string | null;
           nationality?: string | null;
           org_id?: string;
           owner_id?: string | null;
@@ -350,6 +375,20 @@ export type Database = {
             columns: ["assignee_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "contacts_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "contacts_merged_into_id_fkey";
+            columns: ["merged_into_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
             referencedColumns: ["id"];
           },
           {
@@ -590,6 +629,57 @@ export type Database = {
           },
         ];
       };
+      custom_fields: {
+        Row: {
+          created_at: string;
+          entity: string;
+          id: string;
+          key: string;
+          label: string;
+          options: NonNullable<Json>;
+          org_id: string;
+          required: boolean;
+          sort: number;
+          type: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          entity?: string;
+          id?: string;
+          key: string;
+          label: string;
+          options?: NonNullable<Json>;
+          org_id: string;
+          required?: boolean;
+          sort?: number;
+          type: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          entity?: string;
+          id?: string;
+          key?: string;
+          label?: string;
+          options?: NonNullable<Json>;
+          org_id?: string;
+          required?: boolean;
+          sort?: number;
+          type?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "custom_fields_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       dead_letters: {
         Row: {
           attempts: number;
@@ -632,6 +722,54 @@ export type Database = {
           scheduled_job_id?: string | null;
         };
         Relationships: [];
+      };
+      external_refs: {
+        Row: {
+          created_at: string;
+          entity: string;
+          external_id: string;
+          id: string;
+          local_id: string;
+          local_table: string;
+          meta: NonNullable<Json>;
+          org_id: string;
+          source: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          entity: string;
+          external_id: string;
+          id?: string;
+          local_id: string;
+          local_table: string;
+          meta?: NonNullable<Json>;
+          org_id: string;
+          source: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          entity?: string;
+          external_id?: string;
+          id?: string;
+          local_id?: string;
+          local_table?: string;
+          meta?: NonNullable<Json>;
+          org_id?: string;
+          source?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "external_refs_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       inbox_views: {
         Row: {
@@ -847,39 +985,59 @@ export type Database = {
       };
       mentions: {
         Row: {
-          conversation_id: string;
+          contact_id: string | null;
+          conversation_id: string | null;
           created_at: string;
           id: string;
-          message_id: string;
+          mentioned_by: string | null;
+          message_id: string | null;
           org_id: string;
           read_at: string | null;
           user_id: string;
         };
         ComputedFields: never;
         Insert: {
-          conversation_id: string;
+          contact_id?: string | null;
+          conversation_id?: string | null;
           created_at?: string;
           id?: string;
-          message_id: string;
+          mentioned_by?: string | null;
+          message_id?: string | null;
           org_id: string;
           read_at?: string | null;
           user_id: string;
         };
         Update: {
-          conversation_id?: string;
+          contact_id?: string | null;
+          conversation_id?: string | null;
           created_at?: string;
           id?: string;
-          message_id?: string;
+          mentioned_by?: string | null;
+          message_id?: string | null;
           org_id?: string;
           read_at?: string | null;
           user_id?: string;
         };
         Relationships: [
           {
+            foreignKeyName: "mentions_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "mentions_conversation_id_fkey";
             columns: ["conversation_id"];
             isOneToOne: false;
             referencedRelation: "conversations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "mentions_mentioned_by_fkey";
+            columns: ["mentioned_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
             referencedColumns: ["id"];
           },
           {
@@ -1267,6 +1425,189 @@ export type Database = {
           },
         ];
       };
+      segment_members: {
+        Row: {
+          added_at: string;
+          added_by: string | null;
+          contact_id: string;
+          org_id: string;
+          segment_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          added_at?: string;
+          added_by?: string | null;
+          contact_id: string;
+          org_id: string;
+          segment_id: string;
+        };
+        Update: {
+          added_at?: string;
+          added_by?: string | null;
+          contact_id?: string;
+          org_id?: string;
+          segment_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "segment_members_added_by_fkey";
+            columns: ["added_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "segment_members_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "segment_members_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "segment_members_segment_id_fkey";
+            columns: ["segment_id"];
+            isOneToOne: false;
+            referencedRelation: "segments";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      segments: {
+        Row: {
+          count_refreshed_at: string | null;
+          created_at: string;
+          created_by: string | null;
+          drip_flow_id: string | null;
+          filter: Json | null;
+          id: string;
+          kind: string;
+          member_count: number;
+          name: string;
+          org_id: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          count_refreshed_at?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          drip_flow_id?: string | null;
+          filter?: Json | null;
+          id?: string;
+          kind: string;
+          member_count?: number;
+          name: string;
+          org_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          count_refreshed_at?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          drip_flow_id?: string | null;
+          filter?: Json | null;
+          id?: string;
+          kind?: string;
+          member_count?: number;
+          name?: string;
+          org_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "segments_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "segments_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      sync_reviews: {
+        Row: {
+          candidates: NonNullable<Json>;
+          created_at: string;
+          entity: string;
+          external_id: string;
+          id: string;
+          org_id: string;
+          reason: string;
+          resolved_at: string | null;
+          resolved_by: string | null;
+          resolved_contact_id: string | null;
+          source: string;
+          status: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          candidates?: NonNullable<Json>;
+          created_at?: string;
+          entity: string;
+          external_id: string;
+          id?: string;
+          org_id: string;
+          reason: string;
+          resolved_at?: string | null;
+          resolved_by?: string | null;
+          resolved_contact_id?: string | null;
+          source: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          candidates?: NonNullable<Json>;
+          created_at?: string;
+          entity?: string;
+          external_id?: string;
+          id?: string;
+          org_id?: string;
+          reason?: string;
+          resolved_at?: string | null;
+          resolved_by?: string | null;
+          resolved_contact_id?: string | null;
+          source?: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "sync_reviews_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "sync_reviews_resolved_by_fkey";
+            columns: ["resolved_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "sync_reviews_resolved_contact_id_fkey";
+            columns: ["resolved_contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       tags: {
         Row: {
           color: string;
@@ -1275,7 +1616,6 @@ export type Database = {
           name: string;
           org_id: string;
           scope: string;
-          sort: number;
           updated_at: string;
         };
         ComputedFields: never;
@@ -1286,7 +1626,6 @@ export type Database = {
           name: string;
           org_id: string;
           scope?: string;
-          sort?: number;
           updated_at?: string;
         };
         Update: {
@@ -1296,7 +1635,6 @@ export type Database = {
           name?: string;
           org_id?: string;
           scope?: string;
-          sort?: number;
           updated_at?: string;
         };
         Relationships: [
@@ -1394,6 +1732,98 @@ export type Database = {
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      timeline_events: {
+        Row: {
+          actor_id: string | null;
+          actor_type: string;
+          at: string;
+          contact_id: string;
+          enquiry_id: string | null;
+          id: string;
+          org_id: string;
+          payload: NonNullable<Json>;
+          type: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          actor_id?: string | null;
+          actor_type?: string;
+          at?: string;
+          contact_id: string;
+          enquiry_id?: string | null;
+          id?: string;
+          org_id: string;
+          payload?: NonNullable<Json>;
+          type: string;
+        };
+        Update: {
+          actor_id?: string | null;
+          actor_type?: string;
+          at?: string;
+          contact_id?: string;
+          enquiry_id?: string | null;
+          id?: string;
+          org_id?: string;
+          payload?: NonNullable<Json>;
+          type?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "timeline_events_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "timeline_events_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      user_grid_prefs: {
+        Row: {
+          grid_key: string;
+          org_id: string;
+          prefs: NonNullable<Json>;
+          updated_at: string;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          grid_key: string;
+          org_id: string;
+          prefs?: NonNullable<Json>;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          grid_key?: string;
+          org_id?: string;
+          prefs?: NonNullable<Json>;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "user_grid_prefs_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "user_grid_prefs_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
             referencedColumns: ["id"];
           },
         ];
@@ -1559,6 +1989,36 @@ export type Database = {
         Returns: boolean;
       };
       complete_scheduled_job: { Args: { p_id: string }; Returns: undefined };
+      contact_duplicate_candidates: {
+        Args: { p_limit?: number; p_org_id: string };
+        Returns: {
+          a_id: string;
+          b_id: string;
+          reason: string;
+        }[];
+      };
+      contacts_count: {
+        Args: { p_org_id: string; p_params: Json; p_where: string };
+        Returns: number;
+      };
+      contacts_ids: {
+        Args: { p_limit?: number; p_org_id: string; p_params: Json; p_where: string };
+        Returns: string[];
+      };
+      contacts_search: {
+        Args: {
+          p_limit?: number;
+          p_offset?: number;
+          p_order_by?: string;
+          p_org_id: string;
+          p_params: Json;
+          p_where: string;
+        };
+        Returns: {
+          id: string;
+          total: number;
+        }[];
+      };
       create_org: {
         Args: { p_name: string; p_owner_id?: string; p_roles: Json; p_slug: string };
         Returns: string;
@@ -1619,6 +2079,16 @@ export type Database = {
       };
       job_retry_dead_letter: { Args: { p_id: number; p_user_id?: string }; Returns: number };
       mark_all_notifications_read: { Args: { p_org_id: string }; Returns: number };
+      merge_contacts: {
+        Args: {
+          p_fields?: Json;
+          p_org_id: string;
+          p_primary_id: string;
+          p_secondary_id: string;
+          p_user_id?: string;
+        };
+        Returns: undefined;
+      };
       pgp_armor_headers: { Args: { "": string }; Returns: Record<string, unknown>[] };
       pick_round_robin_assignee: { Args: { p_org_id: string; p_team_id: string }; Returns: string };
       set_presence: { Args: { p_org_id: string; p_presence: string }; Returns: undefined };

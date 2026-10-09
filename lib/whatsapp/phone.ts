@@ -1,4 +1,6 @@
-import { parsePhoneNumberFromString } from "libphonenumber-js";
+import { parsePhoneNumberFromString, type CountryCode } from "libphonenumber-js";
+
+import { normalizePhone } from "@/lib/phone";
 
 /**
  * Meta's `wa_id` is the phone in international format without '+' (e.g. 9715xxxxxxx).
@@ -13,15 +15,12 @@ export function waIdToE164(waId: string | null | undefined): string | null {
   return parsed.number;
 }
 
-/** Any user input → E.164, or null when it is not a possible number. Default region UAE. */
+/** Any user input → E.164 via Phase 2's normaliser (default region UAE), or null. */
 export function toE164(
   input: string | null | undefined,
-  defaultCountry: "AE" | string = "AE",
+  defaultCountry: CountryCode = "AE",
 ): string | null {
-  if (!input) return null;
-  const parsed = parsePhoneNumberFromString(input.trim(), defaultCountry as "AE");
-  if (!parsed || !parsed.isPossible()) return null;
-  return parsed.number;
+  return normalizePhone(input, defaultCountry)?.e164 ?? null;
 }
 
 /** E.164 → Meta recipient (digits only). */

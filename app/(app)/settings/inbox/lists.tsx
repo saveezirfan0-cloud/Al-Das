@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { LABEL_COLORS, labelClass } from "@/lib/inbox/labels";
 import { cn } from "@/lib/utils";
 
 import {
@@ -20,18 +21,7 @@ import {
   type ActionResult,
 } from "./actions";
 
-export const LABEL_COLOR_CLASSES: Record<string, string> = {
-  gray: "bg-gray-200 text-gray-800",
-  red: "bg-red-100 text-red-800",
-  orange: "bg-orange-100 text-orange-800",
-  amber: "bg-amber-100 text-amber-800",
-  green: "bg-emerald-100 text-emerald-800",
-  teal: "bg-teal-100 text-teal-800",
-  blue: "bg-blue-100 text-blue-800",
-  violet: "bg-violet-100 text-violet-800",
-  pink: "bg-pink-100 text-pink-800",
-};
-const COLORS = Object.keys(LABEL_COLOR_CLASSES);
+const COLORS = LABEL_COLORS;
 
 function useRun() {
   const [pending, startTransition] = useTransition();
@@ -158,7 +148,7 @@ export function LabelsCard({
                 onClick={() => setEditing((p) => ({ ...p, color: c }))}
                 className={cn(
                   "size-5 rounded-full border-2",
-                  LABEL_COLOR_CLASSES[c],
+                  labelClass(c),
                   editing.color === c ? "border-foreground" : "border-transparent",
                 )}
               />
@@ -182,10 +172,7 @@ export function LabelsCard({
           {items.map((l) => (
             <li key={l.id} className="flex items-center justify-between py-1.5">
               <span
-                className={cn(
-                  "rounded-md px-2 py-0.5 text-xs font-medium",
-                  LABEL_COLOR_CLASSES[l.color] ?? LABEL_COLOR_CLASSES.gray,
-                )}
+                className={cn("rounded-md px-2 py-0.5 text-xs font-medium", labelClass(l.color))}
               >
                 {l.name}
               </span>
