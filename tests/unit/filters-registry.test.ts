@@ -27,10 +27,12 @@ describe("contact field registry", () => {
     expect(registry.get("full_name")?.available).toBe(true);
     expect(registry.get("tags")?.available).toBe(true);
     expect(registry.get("mentioned_user")?.available).toBe(true);
-    expect(registry.get("enquiry_stage")?.available).toBe(false);
-    expect(registry.get("appointment_count")?.available).toBe(true); // Phase 6 table
+    // Phase 5 made the enquiry and task relations available; Phase 6 added appointments.
+    expect(registry.get("enquiry_stage")?.available).toBe(true);
+    expect(registry.get("appointment_count")?.available).toBe(true);
     expect(registry.get("appointment_status")?.available).toBe(true);
-    expect(() => registry.require("enquiry_stage")).toThrow(UnknownFieldError);
+    expect(registry.get("campaign")?.available).toBe(false); // Phase 7 table
+    expect(() => registry.require("campaign")).toThrow(UnknownFieldError);
     expect(() => registry.require("nope")).toThrow(UnknownFieldError);
   });
 

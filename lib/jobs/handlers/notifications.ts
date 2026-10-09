@@ -3,12 +3,14 @@ import { z } from "zod";
 import { sendEmail } from "@/lib/email";
 import { registerHandler } from "@/lib/jobs/registry";
 import { PermanentJobError } from "@/lib/jobs/types";
+import { handleScheduled, scheduledEnvelope } from "@/lib/jobs/handlers/reminders";
 import { createNotification } from "@/lib/notifications";
 
 /**
  * `notifications` queue: transactional email and in-app notifications.
  *   { type: 'email', to, subject, text, html? }
  *   { type: 'in_app', org_id, user_id, kind, title, body?, payload? }
+ *   { kind: 'task.due' | 'enquiry.sla', scheduled_job_id, … }  scheduled reminders (lib/jobs/handlers/reminders.ts)
  */
 const emailJob = z.object({
   type: z.literal("email"),
@@ -39,6 +41,12 @@ registerHandler({
   maxReads: 5,
   concurrency: "parallel",
   async handler(raw, ctx) {
+    const scheduled = scheduledEnvelope.safeParse(raw);
+    if (scheduled.success) {
+      const outcome = await handleScheduled(scheduled.data, ctx.admin);
+      ctx.log.info(`scheduled ${scheduled.data.kind}: ${outcome}`);
+      return;
+    }
     const parsed = notificationJob.safeParse(raw);
     if (!parsed.success)
       throw new PermanentJobError(`invalid notification job: ${parsed.error.issues[0]?.message}`);

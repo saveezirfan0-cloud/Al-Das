@@ -25,6 +25,8 @@ registerKind("notification.*", "notifications");
 registerKind("email.send", "notifications");
 registerKind("outbound.send", "outbound");
 registerKind("media.fetch", "media_fetch");
+registerKind("task.due", "notifications");
+registerKind("enquiry.sla", "notifications");
 registerKind("campaign.*", "campaign_fanout");
 registerKind("webhook.retry", "webhooks_out");
 registerKind("appointment.reminder", "appointments");

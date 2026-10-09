@@ -35,10 +35,10 @@ begin
     'al-das-dev',
     '[
       {"name":"Admin","description":"Full access to everything, including settings and system health.","permissions":["*"]},
-      {"name":"Manager","description":"Runs the clinic day to day: all operational modules and reports, no user/role management.","permissions":["inbox.view_all","inbox.send","contacts.view","contacts.manage","contacts.export","enquiries.view","enquiries.manage","tasks.manage","appointments.view","appointments.manage","campaigns.view","campaigns.create","templates.manage","flows.manage","portal.*","reports.view","reports.export","ai.use","kb.manage"]},
-      {"name":"Agent","description":"Handles patient conversations, enquiries and tasks.","permissions":["inbox.send","contacts.view","contacts.manage","enquiries.view","enquiries.manage","tasks.manage","appointments.view","portal.*.read","ai.use"]},
-      {"name":"Receptionist","description":"Front desk: bookings, patient details and walk-in enquiries.","permissions":["inbox.send","contacts.view","contacts.manage","enquiries.view","enquiries.manage","tasks.manage","appointments.view","appointments.manage","portal.*.read","ai.use"]},
-      {"name":"Care coordinator","description":"Works the clinical Follow-Up Queue and patient conversations. Cannot sign off clinical settings.","permissions":["inbox.send","contacts.view","contacts.manage","tasks.manage","appointments.view","appointments.manage","portal.*"]},
+      {"name":"Manager","description":"Runs the clinic day to day: all operational modules and reports, no user/role management.","permissions":["inbox.view_all","inbox.send","contacts.view","contacts.manage","contacts.export","enquiries.view","enquiries.manage","enquiries.export","enquiries.delete","tasks.view","tasks.manage","appointments.view","appointments.manage","campaigns.view","campaigns.create","templates.manage","flows.manage","portal.*","reports.view","reports.export","ai.use","kb.manage"]},
+      {"name":"Agent","description":"Handles patient conversations, enquiries and tasks.","permissions":["inbox.send","contacts.view","contacts.manage","enquiries.view","enquiries.manage","tasks.view","tasks.manage","appointments.view","portal.*.read","ai.use"]},
+      {"name":"Receptionist","description":"Front desk: bookings, patient details and walk-in enquiries.","permissions":["inbox.send","contacts.view","contacts.manage","enquiries.view","enquiries.manage","tasks.view","tasks.manage","appointments.view","appointments.manage","portal.*.read","ai.use"]},
+      {"name":"Care coordinator","description":"Works the clinical Follow-Up Queue and patient conversations. Cannot sign off clinical settings.","permissions":["inbox.send","contacts.view","contacts.manage","tasks.view","tasks.manage","appointments.view","appointments.manage","portal.*"]},
       {"name":"Marketing","description":"Campaigns, templates, flows and reporting.","permissions":["inbox.view_all","contacts.view","contacts.export","campaigns.view","campaigns.create","templates.manage","flows.manage","reports.view"]}
     ]'::jsonb,
     v_admin
@@ -351,4 +351,112 @@ begin
      or app.clinical_messaging_enabled(v_org) then
     raise exception 'seed validation: clinical settings missing, or the messaging gate is not OFF';
   end if;
+end $$;
+
+-- ---------------------------------------------------------------------------
+-- Phase 5: enquiries + tasks demo data. FAKE DATA ONLY — synthetic names, no real patients.
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  v_org uuid;
+  v_admin uuid := 'a0000000-0000-4000-8000-000000000001';
+  v_team uuid;
+  v_loc uuid;
+  v_dep_gp uuid;
+  v_svc uuid;
+  v_spec uuid;
+  v_p1 uuid;
+  v_p2 uuid;
+  v_s1 uuid[];
+  v_s2 uuid[];
+  v_enq uuid;
+  v_contacts uuid[];
+  i int;
+  v_status text;
+  v_stage uuid;
+begin
+  select id into v_org from public.orgs where slug = 'al-das-dev';
+  if v_org is null then
+    return;
+  end if;
+  if exists (select 1 from public.pipelines where org_id = v_org) then
+    return;
+  end if;
+  select id into v_team from public.teams where org_id = v_org and name = 'Front desk';
+  -- Reuse the Phase 6 clinic lists (locations, departments, services, specialists).
+  select id into v_loc from public.locations where org_id = v_org order by created_at limit 1;
+  select id into v_dep_gp from public.departments where org_id = v_org and name = 'General Practice';
+  select id into v_svc from public.services where org_id = v_org and name = 'GP consultation';
+  select id into v_spec from public.specialists where org_id = v_org and name = 'Dr Alex Example';
+
+  -- Two pipelines: reception (30-minute SLA, default) and insurance review (5-minute SLA).
+  insert into public.pipelines (org_id, name, sort, is_default, sla_minutes, card_fields)
+  values (v_org, 'Reception', 0, true, 30, '{number,contact,source,created_at,assignee}') returning id into v_p1;
+  insert into public.pipelines (org_id, name, sort, sla_minutes, card_fields)
+  values (v_org, 'Insurance review', 1, 5, '{number,contact,phone,created_at}') returning id into v_p2;
+
+  with s as (
+    insert into public.stages (org_id, pipeline_id, name, color, sort) values
+      (v_org, v_p1, 'New', 'blue', 0),
+      (v_org, v_p1, 'Contacted', 'amber', 1),
+      (v_org, v_p1, 'Awaiting patient', 'purple', 2),
+      (v_org, v_p1, 'Booked', 'green', 3)
+    returning id, sort
+  ) select array_agg(id order by sort) into v_s1 from s;
+  with s as (
+    insert into public.stages (org_id, pipeline_id, name, color, sort) values
+      (v_org, v_p2, 'To verify', 'blue', 0),
+      (v_org, v_p2, 'With insurer', 'amber', 1),
+      (v_org, v_p2, 'Verified', 'green', 2)
+    returning id, sort
+  ) select array_agg(id order by sort) into v_s2 from s;
+
+  insert into public.custom_fields (org_id, entity, key, label, type, options, sort) values
+    (v_org, 'enquiry', 'insurer', 'Insurer', 'select', '[{"value":"alpha","label":"Alpha Health"},{"value":"beta","label":"Beta Cover"}]', 0),
+    (v_org, 'enquiry', 'referral_code', 'Referral code', 'text', '[]', 1);
+
+  select array_agg(id order by created_at, id) into v_contacts
+  from (select id, created_at from public.contacts where org_id = v_org and deleted_at is null order by created_at, id limit 15) c;
+
+  for i in 1 .. coalesce(array_length(v_contacts, 1), 0) loop
+    v_status := case when i % 7 = 0 then 'won' when i % 7 = 3 then 'lost' when i = 11 then 'disqualified' else 'open' end;
+    v_stage := case when i <= 10 then v_s1[1 + (i % 4)] else v_s2[1 + (i % 3)] end;
+    insert into public.enquiries (
+      org_id, pipeline_id, stage_id, status, lost_reason, contact_id, title, source, assignee_id, est_value,
+      location_id, department_id, specialist_id, service_id, appt_date, custom, created_by, created_at, stage_entered_at, sla_due_at, first_touch_at
+    ) values (
+      v_org, case when i <= 10 then v_p1 else v_p2 end, v_stage, v_status,
+      case v_status when 'lost' then 'Chose another clinic' when 'disqualified' then 'Not a patient enquiry' end,
+      v_contacts[i], 'Consultation enquiry ' || i,
+      (array['WhatsApp','Phone call','Website','Walk-in'])[1 + (i % 4)],
+      case when i % 3 = 0 then null else v_admin end,
+      (array[350, 400, 500, 1200])[1 + (i % 4)],
+      v_loc, v_dep_gp, v_spec, v_svc,
+      case when i % 4 = 0 then now() + (i || ' days')::interval end,
+      case when i % 2 = 0 then '{"insurer":"alpha"}'::jsonb else '{}'::jsonb end,
+      v_admin, now() - (i || ' hours')::interval, now() - (i || ' hours')::interval,
+      -- a couple of breached SLAs for the demo: untouched and past due
+      case when i in (1, 2) then now() - interval '10 minutes' else now() - (i || ' hours')::interval + interval '30 minutes' end,
+      case when i in (1, 2) then null else now() - (i || ' hours')::interval + interval '10 minutes' end
+    ) returning id into v_enq;
+    insert into public.timeline_events (org_id, contact_id, enquiry_id, type, actor_type, actor_id, payload, at)
+    values (v_org, v_contacts[i], v_enq, 'enquiry.created', 'user', v_admin, jsonb_build_object('number', i), now() - (i || ' hours')::interval);
+    if v_status = 'open' and i % 2 = 1 then
+      insert into public.tasks (org_id, type, subject, due_at, assignee_id, contact_id, enquiry_id, created_by)
+      values (v_org, 'follow_up', 'Follow up on enquiry ' || i, now() + ((i - 5) || ' hours')::interval, v_admin, v_contacts[i], v_enq, v_admin);
+    end if;
+  end loop;
+
+  insert into public.tasks (org_id, type, subject, notes, due_at, assignee_id, created_by) values
+    (v_org, 'call', 'Call the supplier about stock', 'Fake task for the demo.', now() + interval '1 day', v_admin, v_admin),
+    (v_org, 'other', 'Order printer paper', null, now() - interval '1 day', v_admin, v_admin);
+  insert into public.tasks (org_id, type, subject, due_at, done, done_at, completed_by, assignee_id, created_by)
+  values (v_org, 'email', 'Send the weekly report', now() - interval '2 days', true, now() - interval '2 days', v_admin, v_admin, v_admin);
+
+  insert into public.enquiry_assignment_rules (org_id, name, sort, conditions, action)
+  values (v_org, 'WhatsApp → Front desk', 0, '{"sources":["WhatsApp"]}'::jsonb, jsonb_build_object('type', 'team_round_robin', 'team_id', v_team));
+
+  insert into public.enquiry_views (org_id, owner_id, name, pipeline_id, mode, filter, shared_all)
+  values (v_org, v_admin, 'Unassigned', v_p1, 'table',
+    '{"include":{"type":"group","logic":"and","children":[{"type":"condition","field":"assignee","op":"is_empty"}]},"exclude":null}'::jsonb, true);
 end $$;
