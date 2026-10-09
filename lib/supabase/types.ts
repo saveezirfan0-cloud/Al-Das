@@ -771,6 +771,841 @@ export type Database = {
           },
         ];
       };
+      fin_capture_lease: {
+        Row: {
+          holder: string;
+          leased_until: string;
+          org_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          holder: string;
+          leased_until: string;
+          org_id: string;
+        };
+        Update: {
+          holder?: string;
+          leased_until?: string;
+          org_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_capture_lease_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: true;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      fin_capture_settings: {
+        Row: {
+          batch_size: number;
+          created_at: string;
+          enabled: boolean;
+          max_batches_per_run: number;
+          org_id: string;
+          updated_at: string;
+          updated_by: string | null;
+          window_from: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          batch_size?: number;
+          created_at?: string;
+          enabled?: boolean;
+          max_batches_per_run?: number;
+          org_id: string;
+          updated_at?: string;
+          updated_by?: string | null;
+          window_from?: string;
+        };
+        Update: {
+          batch_size?: number;
+          created_at?: string;
+          enabled?: boolean;
+          max_batches_per_run?: number;
+          org_id?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+          window_from?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_capture_settings_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: true;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_capture_settings_updated_by_fkey";
+            columns: ["updated_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      fin_invoice_lines: {
+        Row: {
+          actual_cost_price: number | null;
+          cpt_code: string | null;
+          created_at: string;
+          id: string;
+          invoice_id: string;
+          is_current: boolean;
+          is_package_item: boolean;
+          item_code: string | null;
+          item_short_desc: string | null;
+          item_type: string | null;
+          line_discount: number | null;
+          line_gross: number | null;
+          line_key: string;
+          line_net: number | null;
+          line_price: number | null;
+          line_remarks: string | null;
+          org_id: string;
+          position: number;
+          qty: number | null;
+          total: number | null;
+          updated_at: string;
+          vat: number | null;
+          vat_applicable: boolean | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          actual_cost_price?: number | null;
+          cpt_code?: string | null;
+          created_at?: string;
+          id?: string;
+          invoice_id: string;
+          is_current?: boolean;
+          is_package_item?: boolean;
+          item_code?: string | null;
+          item_short_desc?: string | null;
+          item_type?: string | null;
+          line_discount?: number | null;
+          line_gross?: number | null;
+          line_key: string;
+          line_net?: number | null;
+          line_price?: number | null;
+          line_remarks?: string | null;
+          org_id: string;
+          position: number;
+          qty?: number | null;
+          total?: number | null;
+          updated_at?: string;
+          vat?: number | null;
+          vat_applicable?: boolean | null;
+        };
+        Update: {
+          actual_cost_price?: number | null;
+          cpt_code?: string | null;
+          created_at?: string;
+          id?: string;
+          invoice_id?: string;
+          is_current?: boolean;
+          is_package_item?: boolean;
+          item_code?: string | null;
+          item_short_desc?: string | null;
+          item_type?: string | null;
+          line_discount?: number | null;
+          line_gross?: number | null;
+          line_key?: string;
+          line_net?: number | null;
+          line_price?: number | null;
+          line_remarks?: string | null;
+          org_id?: string;
+          position?: number;
+          qty?: number | null;
+          total?: number | null;
+          updated_at?: string;
+          vat?: number | null;
+          vat_applicable?: boolean | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_invoice_lines_invoice_id_fkey";
+            columns: ["invoice_id"];
+            isOneToOne: false;
+            referencedRelation: "fin_invoices";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_invoice_lines_invoice_id_fkey";
+            columns: ["invoice_id"];
+            isOneToOne: false;
+            referencedRelation: "v_ins_invoice_match";
+            referencedColumns: ["invoice_id"];
+          },
+          {
+            foreignKeyName: "fin_invoice_lines_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      fin_invoice_versions: {
+        Row: {
+          batch_id: string | null;
+          id: string;
+          invoice_id: string;
+          org_id: string;
+          received_at: string;
+          record: NonNullable<Json>;
+          version: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          batch_id?: string | null;
+          id?: string;
+          invoice_id: string;
+          org_id: string;
+          received_at?: string;
+          record: NonNullable<Json>;
+          version: number;
+        };
+        Update: {
+          batch_id?: string | null;
+          id?: string;
+          invoice_id?: string;
+          org_id?: string;
+          received_at?: string;
+          record?: NonNullable<Json>;
+          version?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_invoice_versions_batch_id_fkey";
+            columns: ["batch_id"];
+            isOneToOne: false;
+            referencedRelation: "fin_raw_unite_batches";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_invoice_versions_invoice_id_fkey";
+            columns: ["invoice_id"];
+            isOneToOne: false;
+            referencedRelation: "fin_invoices";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_invoice_versions_invoice_id_fkey";
+            columns: ["invoice_id"];
+            isOneToOne: false;
+            referencedRelation: "v_ins_invoice_match";
+            referencedColumns: ["invoice_id"];
+          },
+          {
+            foreignKeyName: "fin_invoice_versions_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      fin_invoices: {
+        Row: {
+          appointment_id: string | null;
+          branch_code: string | null;
+          created_at: string;
+          created_by: string | null;
+          credit_note: number | null;
+          department: string | null;
+          discount: number | null;
+          doctor_dha_id: string | null;
+          doctor_name: string | null;
+          first_received_at: string;
+          gross: number | null;
+          id: string;
+          inv_display_number: string;
+          inv_key: string | null;
+          inv_type: string | null;
+          is_deleted: boolean;
+          is_package: boolean;
+          last_batch_id: string | null;
+          last_received_at: string;
+          modified_by: string | null;
+          net: number | null;
+          org_id: string;
+          patient_pin: string | null;
+          record_hash: string;
+          ref_type: string | null;
+          referral_clinic: string | null;
+          referral_clinic_id: string | null;
+          referral_doctor: string | null;
+          referral_doctor_id: string | null;
+          specialty: string | null;
+          total: number | null;
+          transaction_date: string | null;
+          unite_bu_short_name: string | null;
+          unite_clinic_long_name: string | null;
+          updated_at: string;
+          vat: number | null;
+          vat_applicable: boolean | null;
+          version: number;
+          write_off: number | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          appointment_id?: string | null;
+          branch_code?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          credit_note?: number | null;
+          department?: string | null;
+          discount?: number | null;
+          doctor_dha_id?: string | null;
+          doctor_name?: string | null;
+          first_received_at?: string;
+          gross?: number | null;
+          id?: string;
+          inv_display_number: string;
+          inv_key?: never;
+          inv_type?: string | null;
+          is_deleted?: boolean;
+          is_package?: boolean;
+          last_batch_id?: string | null;
+          last_received_at?: string;
+          modified_by?: string | null;
+          net?: number | null;
+          org_id: string;
+          patient_pin?: string | null;
+          record_hash: string;
+          ref_type?: string | null;
+          referral_clinic?: string | null;
+          referral_clinic_id?: string | null;
+          referral_doctor?: string | null;
+          referral_doctor_id?: string | null;
+          specialty?: string | null;
+          total?: number | null;
+          transaction_date?: string | null;
+          unite_bu_short_name?: string | null;
+          unite_clinic_long_name?: string | null;
+          updated_at?: string;
+          vat?: number | null;
+          vat_applicable?: boolean | null;
+          version?: number;
+          write_off?: number | null;
+        };
+        Update: {
+          appointment_id?: string | null;
+          branch_code?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          credit_note?: number | null;
+          department?: string | null;
+          discount?: number | null;
+          doctor_dha_id?: string | null;
+          doctor_name?: string | null;
+          first_received_at?: string;
+          gross?: number | null;
+          id?: string;
+          inv_display_number?: string;
+          inv_key?: never;
+          inv_type?: string | null;
+          is_deleted?: boolean;
+          is_package?: boolean;
+          last_batch_id?: string | null;
+          last_received_at?: string;
+          modified_by?: string | null;
+          net?: number | null;
+          org_id?: string;
+          patient_pin?: string | null;
+          record_hash?: string;
+          ref_type?: string | null;
+          referral_clinic?: string | null;
+          referral_clinic_id?: string | null;
+          referral_doctor?: string | null;
+          referral_doctor_id?: string | null;
+          specialty?: string | null;
+          total?: number | null;
+          transaction_date?: string | null;
+          unite_bu_short_name?: string | null;
+          unite_clinic_long_name?: string | null;
+          updated_at?: string;
+          vat?: number | null;
+          vat_applicable?: boolean | null;
+          version?: number;
+          write_off?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_invoices_last_batch_id_fkey";
+            columns: ["last_batch_id"];
+            isOneToOne: false;
+            referencedRelation: "fin_raw_unite_batches";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_invoices_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      fin_payments: {
+        Row: {
+          advance_added: number | null;
+          card_type: string | null;
+          collected: number | null;
+          created_at: string;
+          id: string;
+          instalment: string | null;
+          invoice_id: string;
+          is_current: boolean;
+          org_id: string;
+          paid: number | null;
+          paid_date: string | null;
+          payment_key: string;
+          payment_mode: string | null;
+          receipt_number: string | null;
+          refund: number | null;
+          refund_date: string | null;
+          remarks: string | null;
+          returned: number | null;
+          surcharge: number | null;
+          txn_ref_name: string | null;
+          txn_ref_no: string | null;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          advance_added?: number | null;
+          card_type?: string | null;
+          collected?: number | null;
+          created_at?: string;
+          id?: string;
+          instalment?: string | null;
+          invoice_id: string;
+          is_current?: boolean;
+          org_id: string;
+          paid?: number | null;
+          paid_date?: string | null;
+          payment_key: string;
+          payment_mode?: string | null;
+          receipt_number?: string | null;
+          refund?: number | null;
+          refund_date?: string | null;
+          remarks?: string | null;
+          returned?: number | null;
+          surcharge?: number | null;
+          txn_ref_name?: string | null;
+          txn_ref_no?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          advance_added?: number | null;
+          card_type?: string | null;
+          collected?: number | null;
+          created_at?: string;
+          id?: string;
+          instalment?: string | null;
+          invoice_id?: string;
+          is_current?: boolean;
+          org_id?: string;
+          paid?: number | null;
+          paid_date?: string | null;
+          payment_key?: string;
+          payment_mode?: string | null;
+          receipt_number?: string | null;
+          refund?: number | null;
+          refund_date?: string | null;
+          remarks?: string | null;
+          returned?: number | null;
+          surcharge?: number | null;
+          txn_ref_name?: string | null;
+          txn_ref_no?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_payments_invoice_id_fkey";
+            columns: ["invoice_id"];
+            isOneToOne: false;
+            referencedRelation: "fin_invoices";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_payments_invoice_id_fkey";
+            columns: ["invoice_id"];
+            isOneToOne: false;
+            referencedRelation: "v_ins_invoice_match";
+            referencedColumns: ["invoice_id"];
+          },
+          {
+            foreignKeyName: "fin_payments_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      fin_raw_diligence_files: {
+        Row: {
+          committed_at: string | null;
+          errors: NonNullable<Json>;
+          file_name: string | null;
+          file_sha256: string;
+          header_check: NonNullable<Json>;
+          id: string;
+          org_id: string;
+          row_count: number | null;
+          status: string;
+          storage_path: string;
+          sum_net: number | null;
+          sum_rejected: number | null;
+          sum_remitted: number | null;
+          uploaded_at: string;
+          uploaded_by: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          committed_at?: string | null;
+          errors?: NonNullable<Json>;
+          file_name?: string | null;
+          file_sha256: string;
+          header_check?: NonNullable<Json>;
+          id?: string;
+          org_id: string;
+          row_count?: number | null;
+          status?: string;
+          storage_path: string;
+          sum_net?: number | null;
+          sum_rejected?: number | null;
+          sum_remitted?: number | null;
+          uploaded_at?: string;
+          uploaded_by?: string | null;
+        };
+        Update: {
+          committed_at?: string | null;
+          errors?: NonNullable<Json>;
+          file_name?: string | null;
+          file_sha256?: string;
+          header_check?: NonNullable<Json>;
+          id?: string;
+          org_id?: string;
+          row_count?: number | null;
+          status?: string;
+          storage_path?: string;
+          sum_net?: number | null;
+          sum_rejected?: number | null;
+          sum_remitted?: number | null;
+          uploaded_at?: string;
+          uploaded_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_raw_diligence_files_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_raw_diligence_files_uploaded_by_fkey";
+            columns: ["uploaded_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      fin_raw_unite_batches: {
+        Row: {
+          balance_in_range: number | null;
+          balance_overall: number | null;
+          count_requested: number;
+          created_at: string;
+          detail_message: string | null;
+          error: string | null;
+          from_date: string;
+          http_status: number | null;
+          id: string;
+          message_status: string | null;
+          org_id: string;
+          payload: Json | null;
+          payload_sha256: string | null;
+          payload_stripped_at: string | null;
+          process_counts: NonNullable<Json>;
+          process_status: string;
+          processed_at: string | null;
+          record_count: number | null;
+          requested_at: string;
+          to_date: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          balance_in_range?: number | null;
+          balance_overall?: number | null;
+          count_requested: number;
+          created_at?: string;
+          detail_message?: string | null;
+          error?: string | null;
+          from_date: string;
+          http_status?: number | null;
+          id?: string;
+          message_status?: string | null;
+          org_id: string;
+          payload?: Json | null;
+          payload_sha256?: string | null;
+          payload_stripped_at?: string | null;
+          process_counts?: NonNullable<Json>;
+          process_status?: string;
+          processed_at?: string | null;
+          record_count?: number | null;
+          requested_at?: string;
+          to_date: string;
+        };
+        Update: {
+          balance_in_range?: number | null;
+          balance_overall?: number | null;
+          count_requested?: number;
+          created_at?: string;
+          detail_message?: string | null;
+          error?: string | null;
+          from_date?: string;
+          http_status?: number | null;
+          id?: string;
+          message_status?: string | null;
+          org_id?: string;
+          payload?: Json | null;
+          payload_sha256?: string | null;
+          payload_stripped_at?: string | null;
+          process_counts?: NonNullable<Json>;
+          process_status?: string;
+          processed_at?: string | null;
+          record_count?: number | null;
+          requested_at?: string;
+          to_date?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_raw_unite_batches_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      fin_ref_branches: {
+        Row: {
+          active: boolean;
+          code: string;
+          created_at: string;
+          id: string;
+          name: string;
+          org_id: string;
+          unite_clinic_long_name: string | null;
+          unite_clinic_short_name: string | null;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          active?: boolean;
+          code: string;
+          created_at?: string;
+          id?: string;
+          name: string;
+          org_id: string;
+          unite_clinic_long_name?: string | null;
+          unite_clinic_short_name?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          active?: boolean;
+          code?: string;
+          created_at?: string;
+          id?: string;
+          name?: string;
+          org_id?: string;
+          unite_clinic_long_name?: string | null;
+          unite_clinic_short_name?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_ref_branches_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      fin_ref_doctors: {
+        Row: {
+          active: boolean;
+          created_at: string;
+          department: string | null;
+          dha_id: string;
+          name: string | null;
+          org_id: string;
+          specialty: string | null;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          active?: boolean;
+          created_at?: string;
+          department?: string | null;
+          dha_id: string;
+          name?: string | null;
+          org_id: string;
+          specialty?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          active?: boolean;
+          created_at?: string;
+          department?: string | null;
+          dha_id?: string;
+          name?: string | null;
+          org_id?: string;
+          specialty?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_ref_doctors_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      fin_ref_exception_rules: {
+        Row: {
+          active: boolean;
+          created_at: string;
+          description: string;
+          org_id: string;
+          owner_role: string;
+          rule_code: string;
+          threshold_days: number | null;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          active?: boolean;
+          created_at?: string;
+          description: string;
+          org_id: string;
+          owner_role: string;
+          rule_code: string;
+          threshold_days?: number | null;
+          updated_at?: string;
+        };
+        Update: {
+          active?: boolean;
+          created_at?: string;
+          description?: string;
+          org_id?: string;
+          owner_role?: string;
+          rule_code?: string;
+          threshold_days?: number | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_ref_exception_rules_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      fin_ref_payers: {
+        Row: {
+          created_at: string;
+          org_id: string;
+          payer_id: string;
+          payer_name: string | null;
+          receiver_id: string | null;
+          receiver_name: string | null;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          org_id: string;
+          payer_id: string;
+          payer_name?: string | null;
+          receiver_id?: string | null;
+          receiver_name?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          org_id?: string;
+          payer_id?: string;
+          payer_name?: string | null;
+          receiver_id?: string | null;
+          receiver_name?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_ref_payers_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      fin_ref_services: {
+        Row: {
+          cpt_code: string | null;
+          created_at: string;
+          description: string | null;
+          item_code: string;
+          item_type: string | null;
+          org_id: string;
+          service_category: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          cpt_code?: string | null;
+          created_at?: string;
+          description?: string | null;
+          item_code: string;
+          item_type?: string | null;
+          org_id: string;
+          service_category?: string;
+          updated_at?: string;
+        };
+        Update: {
+          cpt_code?: string | null;
+          created_at?: string;
+          description?: string | null;
+          item_code?: string;
+          item_type?: string | null;
+          org_id?: string;
+          service_category?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_ref_services_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       inbox_views: {
         Row: {
           created_at: string;
@@ -822,6 +1657,317 @@ export type Database = {
             columns: ["owner_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      ins_claim_activities: {
+        Row: {
+          activity_start_date: string | null;
+          claim_activity_number: string;
+          claim_month: number | null;
+          claim_status: string | null;
+          claim_year: number | null;
+          clinician_id: string | null;
+          cpt_category: string | null;
+          cpt_code: string | null;
+          cpt_type: string | null;
+          created_at: string;
+          denial_category: string | null;
+          denial_comment: string | null;
+          denial_type: string | null;
+          diagnosis_text: string | null;
+          encounter_type: string | null;
+          first_remittance_date: string | null;
+          first_seen_file_id: string | null;
+          id: string;
+          initial_denial_code: string | null;
+          initial_denial_type: string | null;
+          initial_net: number | null;
+          initial_rejected: number | null;
+          invoice_no: string | null;
+          last_denial_code: string | null;
+          last_remittance_date: string | null;
+          last_remitted: number | null;
+          last_resubmission_date: string | null;
+          last_seen_file_id: string | null;
+          match_status: string;
+          matched_invoice_id: string | null;
+          matched_line_id: string | null;
+          net: number | null;
+          ordering_clinician_id: string | null;
+          org_id: string;
+          payer_id: string | null;
+          payment_reference: string | null;
+          payment_status: string | null;
+          principal_diagnosis: string | null;
+          prior_auth_id: string | null;
+          quantity: number | null;
+          receipt_status: string | null;
+          receiver_id: string | null;
+          rejected: number | null;
+          remittance_count: number | null;
+          remitted: number | null;
+          resubmission_count: number | null;
+          settled: boolean | null;
+          transaction_date: string | null;
+          unprocessed: number | null;
+          updated_at: string;
+          write_off: number | null;
+          write_off_status: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          activity_start_date?: string | null;
+          claim_activity_number: string;
+          claim_month?: number | null;
+          claim_status?: string | null;
+          claim_year?: number | null;
+          clinician_id?: string | null;
+          cpt_category?: string | null;
+          cpt_code?: string | null;
+          cpt_type?: string | null;
+          created_at?: string;
+          denial_category?: string | null;
+          denial_comment?: string | null;
+          denial_type?: string | null;
+          diagnosis_text?: string | null;
+          encounter_type?: string | null;
+          first_remittance_date?: string | null;
+          first_seen_file_id?: string | null;
+          id?: string;
+          initial_denial_code?: string | null;
+          initial_denial_type?: string | null;
+          initial_net?: number | null;
+          initial_rejected?: number | null;
+          invoice_no?: string | null;
+          last_denial_code?: string | null;
+          last_remittance_date?: string | null;
+          last_remitted?: number | null;
+          last_resubmission_date?: string | null;
+          last_seen_file_id?: string | null;
+          match_status?: string;
+          matched_invoice_id?: string | null;
+          matched_line_id?: string | null;
+          net?: number | null;
+          ordering_clinician_id?: string | null;
+          org_id: string;
+          payer_id?: string | null;
+          payment_reference?: string | null;
+          payment_status?: string | null;
+          principal_diagnosis?: string | null;
+          prior_auth_id?: string | null;
+          quantity?: number | null;
+          receipt_status?: string | null;
+          receiver_id?: string | null;
+          rejected?: number | null;
+          remittance_count?: number | null;
+          remitted?: number | null;
+          resubmission_count?: number | null;
+          settled?: boolean | null;
+          transaction_date?: string | null;
+          unprocessed?: number | null;
+          updated_at?: string;
+          write_off?: number | null;
+          write_off_status?: string | null;
+        };
+        Update: {
+          activity_start_date?: string | null;
+          claim_activity_number?: string;
+          claim_month?: number | null;
+          claim_status?: string | null;
+          claim_year?: number | null;
+          clinician_id?: string | null;
+          cpt_category?: string | null;
+          cpt_code?: string | null;
+          cpt_type?: string | null;
+          created_at?: string;
+          denial_category?: string | null;
+          denial_comment?: string | null;
+          denial_type?: string | null;
+          diagnosis_text?: string | null;
+          encounter_type?: string | null;
+          first_remittance_date?: string | null;
+          first_seen_file_id?: string | null;
+          id?: string;
+          initial_denial_code?: string | null;
+          initial_denial_type?: string | null;
+          initial_net?: number | null;
+          initial_rejected?: number | null;
+          invoice_no?: string | null;
+          last_denial_code?: string | null;
+          last_remittance_date?: string | null;
+          last_remitted?: number | null;
+          last_resubmission_date?: string | null;
+          last_seen_file_id?: string | null;
+          match_status?: string;
+          matched_invoice_id?: string | null;
+          matched_line_id?: string | null;
+          net?: number | null;
+          ordering_clinician_id?: string | null;
+          org_id?: string;
+          payer_id?: string | null;
+          payment_reference?: string | null;
+          payment_status?: string | null;
+          principal_diagnosis?: string | null;
+          prior_auth_id?: string | null;
+          quantity?: number | null;
+          receipt_status?: string | null;
+          receiver_id?: string | null;
+          rejected?: number | null;
+          remittance_count?: number | null;
+          remitted?: number | null;
+          resubmission_count?: number | null;
+          settled?: boolean | null;
+          transaction_date?: string | null;
+          unprocessed?: number | null;
+          updated_at?: string;
+          write_off?: number | null;
+          write_off_status?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ins_claim_activities_first_seen_file_id_fkey";
+            columns: ["first_seen_file_id"];
+            isOneToOne: false;
+            referencedRelation: "fin_raw_diligence_files";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ins_claim_activities_last_seen_file_id_fkey";
+            columns: ["last_seen_file_id"];
+            isOneToOne: false;
+            referencedRelation: "fin_raw_diligence_files";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ins_claim_activities_matched_invoice_id_fkey";
+            columns: ["matched_invoice_id"];
+            isOneToOne: false;
+            referencedRelation: "fin_invoices";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ins_claim_activities_matched_invoice_id_fkey";
+            columns: ["matched_invoice_id"];
+            isOneToOne: false;
+            referencedRelation: "v_ins_invoice_match";
+            referencedColumns: ["invoice_id"];
+          },
+          {
+            foreignKeyName: "ins_claim_activities_matched_line_id_fkey";
+            columns: ["matched_line_id"];
+            isOneToOne: false;
+            referencedRelation: "fin_invoice_lines";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ins_claim_activities_matched_line_id_fkey";
+            columns: ["matched_line_id"];
+            isOneToOne: false;
+            referencedRelation: "v_ins_invoice_line_match";
+            referencedColumns: ["line_id"];
+          },
+          {
+            foreignKeyName: "ins_claim_activities_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      ins_claim_activity_events: {
+        Row: {
+          changed_fields: NonNullable<Json>;
+          claim_activity_id: string;
+          file_id: string | null;
+          id: string;
+          observed_at: string;
+          org_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          changed_fields: NonNullable<Json>;
+          claim_activity_id: string;
+          file_id?: string | null;
+          id?: string;
+          observed_at?: string;
+          org_id: string;
+        };
+        Update: {
+          changed_fields?: NonNullable<Json>;
+          claim_activity_id?: string;
+          file_id?: string | null;
+          id?: string;
+          observed_at?: string;
+          org_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ins_claim_activity_events_claim_activity_id_fkey";
+            columns: ["claim_activity_id"];
+            isOneToOne: false;
+            referencedRelation: "ins_claim_activities";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ins_claim_activity_events_file_id_fkey";
+            columns: ["file_id"];
+            isOneToOne: false;
+            referencedRelation: "fin_raw_diligence_files";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ins_claim_activity_events_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      integration_accounts: {
+        Row: {
+          config_enc: string;
+          created_at: string;
+          id: string;
+          kind: string;
+          last_error: string | null;
+          org_id: string;
+          status: string;
+          token_expires_at: string | null;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          config_enc: string;
+          created_at?: string;
+          id?: string;
+          kind: string;
+          last_error?: string | null;
+          org_id: string;
+          status?: string;
+          token_expires_at?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          config_enc?: string;
+          created_at?: string;
+          id?: string;
+          kind?: string;
+          last_error?: string | null;
+          org_id?: string;
+          status?: string;
+          token_expires_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "integration_accounts_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
             referencedColumns: ["id"];
           },
         ];
@@ -1203,6 +2349,146 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "orgs";
             referencedColumns: ["id"];
+          },
+        ];
+      };
+      ops_exception_comments: {
+        Row: {
+          comment: string;
+          created_at: string;
+          exception_id: string;
+          id: string;
+          org_id: string;
+          user_id: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          comment: string;
+          created_at?: string;
+          exception_id: string;
+          id?: string;
+          org_id: string;
+          user_id?: string | null;
+        };
+        Update: {
+          comment?: string;
+          created_at?: string;
+          exception_id?: string;
+          id?: string;
+          org_id?: string;
+          user_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ops_exception_comments_exception_id_fkey";
+            columns: ["exception_id"];
+            isOneToOne: false;
+            referencedRelation: "ops_exceptions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ops_exception_comments_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ops_exception_comments_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      ops_exceptions: {
+        Row: {
+          assignee_user_id: string | null;
+          branch_code: string | null;
+          closed_at: string | null;
+          closed_by: string | null;
+          closure_note: string | null;
+          created_at: string;
+          detail: NonNullable<Json>;
+          due_date: string | null;
+          entity_key: string;
+          entity_type: string;
+          id: string;
+          opened_at: string;
+          org_id: string;
+          owner_role: string;
+          rule_code: string;
+          status: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          assignee_user_id?: string | null;
+          branch_code?: string | null;
+          closed_at?: string | null;
+          closed_by?: string | null;
+          closure_note?: string | null;
+          created_at?: string;
+          detail?: NonNullable<Json>;
+          due_date?: string | null;
+          entity_key: string;
+          entity_type: string;
+          id?: string;
+          opened_at?: string;
+          org_id: string;
+          owner_role: string;
+          rule_code: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          assignee_user_id?: string | null;
+          branch_code?: string | null;
+          closed_at?: string | null;
+          closed_by?: string | null;
+          closure_note?: string | null;
+          created_at?: string;
+          detail?: NonNullable<Json>;
+          due_date?: string | null;
+          entity_key?: string;
+          entity_type?: string;
+          id?: string;
+          opened_at?: string;
+          org_id?: string;
+          owner_role?: string;
+          rule_code?: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ops_exceptions_assignee_user_id_fkey";
+            columns: ["assignee_user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ops_exceptions_closed_by_fkey";
+            columns: ["closed_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ops_exceptions_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ops_exceptions_org_id_rule_code_fkey";
+            columns: ["org_id", "rule_code"];
+            isOneToOne: false;
+            referencedRelation: "fin_ref_exception_rules";
+            referencedColumns: ["org_id", "rule_code"];
           },
         ];
       };
@@ -1788,6 +3074,55 @@ export type Database = {
           },
         ];
       };
+      unite_api_calls: {
+        Row: {
+          at: string;
+          batch_id: string | null;
+          duration_ms: number | null;
+          endpoint: string;
+          http_status: number | null;
+          id: number;
+          org_id: string;
+          unite_status: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          at?: string;
+          batch_id?: string | null;
+          duration_ms?: number | null;
+          endpoint: string;
+          http_status?: number | null;
+          id?: never;
+          org_id: string;
+          unite_status?: string | null;
+        };
+        Update: {
+          at?: string;
+          batch_id?: string | null;
+          duration_ms?: number | null;
+          endpoint?: string;
+          http_status?: number | null;
+          id?: never;
+          org_id?: string;
+          unite_status?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "unite_api_calls_batch_id_fkey";
+            columns: ["batch_id"];
+            isOneToOne: false;
+            referencedRelation: "fin_raw_unite_batches";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "unite_api_calls_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       user_grid_prefs: {
         Row: {
           grid_key: string;
@@ -1946,7 +3281,266 @@ export type Database = {
       };
     };
     Views: {
-      [_ in never]: never;
+      v_fin_adjustments_daily: {
+        Row: {
+          branch_code: string | null;
+          credit_note: number | null;
+          date: string | null;
+          inv_type: string | null;
+          org_id: string | null;
+          write_off: number | null;
+        };
+        ComputedFields: never;
+        Relationships: [
+          {
+            foreignKeyName: "fin_invoices_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      v_fin_claims_status: {
+        Row: {
+          accepted: number | null;
+          branch_code: string | null;
+          claim_month: number | null;
+          claim_year: number | null;
+          net: number | null;
+          org_id: string | null;
+          payer_id: string | null;
+          pending: number | null;
+          rejected: number | null;
+          rejected_amount: number | null;
+          remitted: number | null;
+          resubmitted: number | null;
+          submitted: number | null;
+        };
+        ComputedFields: never;
+        Relationships: [
+          {
+            foreignKeyName: "ins_claim_activities_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      v_fin_collections_daily: {
+        Row: {
+          branch_code: string | null;
+          date: string | null;
+          org_id: string | null;
+          paid: number | null;
+          payment_mode: string | null;
+          refunds: number | null;
+        };
+        ComputedFields: never;
+        Relationships: [
+          {
+            foreignKeyName: "fin_payments_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      v_fin_denials: {
+        Row: {
+          claim_activities: number | null;
+          denial_type: string | null;
+          doctor_dha_id: string | null;
+          last_denial_code: string | null;
+          org_id: string | null;
+          payer_id: string | null;
+          rejected_amount: number | null;
+          service_category: string | null;
+        };
+        ComputedFields: never;
+        Relationships: [
+          {
+            foreignKeyName: "ins_claim_activities_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      v_fin_monthly_summary: {
+        Row: {
+          branch_code: string | null;
+          claimed: number | null;
+          generated: number | null;
+          month: string | null;
+          org_id: string | null;
+          outstanding: number | null;
+          rejected: number | null;
+          remitted: number | null;
+          self_pay_collected: number | null;
+        };
+        ComputedFields: never;
+        Relationships: [];
+      };
+      v_fin_receivables_ageing: {
+        Row: {
+          branch_code: string | null;
+          bucket: string | null;
+          claim_activities: number | null;
+          org_id: string | null;
+          outstanding: number | null;
+          payer_id: string | null;
+        };
+        ComputedFields: never;
+        Relationships: [
+          {
+            foreignKeyName: "ins_claim_activities_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      v_fin_revenue_daily: {
+        Row: {
+          branch_code: string | null;
+          date: string | null;
+          department: string | null;
+          discount: number | null;
+          doctor_dha_id: string | null;
+          doctor_name: string | null;
+          gross: number | null;
+          inv_type: string | null;
+          net: number | null;
+          org_id: string | null;
+          service_category: string | null;
+          vat: number | null;
+        };
+        ComputedFields: never;
+        Relationships: [
+          {
+            foreignKeyName: "fin_invoices_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      v_ins_invoice_line_match: {
+        Row: {
+          cpt_code: string | null;
+          invoice_id: string | null;
+          item_code: string | null;
+          line_id: string | null;
+          line_key: string | null;
+          line_net: number | null;
+          org_id: string | null;
+          position: number | null;
+          qty: number | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          cpt_code?: string | null;
+          invoice_id?: string | null;
+          item_code?: string | null;
+          line_id?: string | null;
+          line_key?: string | null;
+          line_net?: number | null;
+          org_id?: string | null;
+          position?: number | null;
+          qty?: number | null;
+        };
+        Update: {
+          cpt_code?: string | null;
+          invoice_id?: string | null;
+          item_code?: string | null;
+          line_id?: string | null;
+          line_key?: string | null;
+          line_net?: number | null;
+          org_id?: string | null;
+          position?: number | null;
+          qty?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_invoice_lines_invoice_id_fkey";
+            columns: ["invoice_id"];
+            isOneToOne: false;
+            referencedRelation: "fin_invoices";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_invoice_lines_invoice_id_fkey";
+            columns: ["invoice_id"];
+            isOneToOne: false;
+            referencedRelation: "v_ins_invoice_match";
+            referencedColumns: ["invoice_id"];
+          },
+          {
+            foreignKeyName: "fin_invoice_lines_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      v_ins_invoice_match: {
+        Row: {
+          branch_code: string | null;
+          doctor_dha_id: string | null;
+          inv_display_number: string | null;
+          inv_key: string | null;
+          inv_type: string | null;
+          invoice_id: string | null;
+          is_deleted: boolean | null;
+          net: number | null;
+          org_id: string | null;
+          total: number | null;
+          transaction_date: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          branch_code?: string | null;
+          doctor_dha_id?: string | null;
+          inv_display_number?: string | null;
+          inv_key?: string | null;
+          inv_type?: string | null;
+          invoice_id?: string | null;
+          is_deleted?: boolean | null;
+          net?: number | null;
+          org_id?: string | null;
+          total?: number | null;
+          transaction_date?: string | null;
+        };
+        Update: {
+          branch_code?: string | null;
+          doctor_dha_id?: string | null;
+          inv_display_number?: string | null;
+          inv_key?: string | null;
+          inv_type?: string | null;
+          invoice_id?: string | null;
+          is_deleted?: boolean | null;
+          net?: number | null;
+          org_id?: string | null;
+          total?: number | null;
+          transaction_date?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_invoices_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Functions: {
       apply_message_status: {
@@ -2028,6 +3622,45 @@ export type Database = {
         Args: { p_error: string; p_id: string; p_retry_in?: string };
         Returns: undefined;
       };
+      fin_apply_invoices: {
+        Args: { p_batch_id: string; p_invoices: Json; p_org_id: string };
+        Returns: Json;
+      };
+      fin_auto_close_exceptions: {
+        Args: { p_entity_key: string; p_org_id: string; p_rule_code: string };
+        Returns: number;
+      };
+      fin_batch_mark_failed: { Args: { p_batch_id: string; p_error: string }; Returns: undefined };
+      fin_capture_enqueue_ticks: { Args: Record<PropertyKey, never>; Returns: number };
+      fin_capture_release_lease: {
+        Args: { p_holder: string; p_org_id: string };
+        Returns: undefined;
+      };
+      fin_capture_try_lease: {
+        Args: { p_holder: string; p_org_id: string; p_ttl_seconds?: number };
+        Returns: boolean;
+      };
+      fin_invoice_number_gaps: {
+        Args: { p_from?: string; p_org_id: string };
+        Returns: {
+          missing_count: number;
+          missing_from: number;
+          missing_to: number;
+          series: string;
+        }[];
+      };
+      fin_open_exception: {
+        Args: {
+          p_branch_code?: string;
+          p_detail?: Json;
+          p_entity_key: string;
+          p_entity_type: string;
+          p_org_id: string;
+          p_rule_code: string;
+        };
+        Returns: string;
+      };
+      fin_rederive_branches: { Args: { p_org_id: string }; Returns: number };
       gen_random_uuid: { Args: Record<PropertyKey, never>; Returns: string };
       gen_salt: { Args: { "": string }; Returns: string };
       job_archive: { Args: { p_msg_ids: number[]; p_queue: string }; Returns: number };
@@ -2091,6 +3724,8 @@ export type Database = {
       };
       pgp_armor_headers: { Args: { "": string }; Returns: Record<string, unknown>[] };
       pick_round_robin_assignee: { Args: { p_org_id: string; p_team_id: string }; Returns: string };
+      seed_finance_reference: { Args: { p_org_id: string }; Returns: undefined };
+      seed_finance_roles: { Args: { p_org_id: string; p_roles: Json }; Returns: number };
       set_presence: { Args: { p_org_id: string; p_presence: string }; Returns: undefined };
       show_limit: { Args: Record<PropertyKey, never>; Returns: number };
       show_trgm: { Args: { "": string }; Returns: string[] };
