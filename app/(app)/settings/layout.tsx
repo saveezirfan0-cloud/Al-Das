@@ -17,6 +17,7 @@ export default async function SettingsLayout({ children }: { children: React.Rea
           { href: "/settings/custom-fields", label: "Custom fields" },
           { href: "/settings/channels", label: "Channels" },
           { href: "/settings/inbox", label: "Inbox" },
+          { href: "/settings/enquiries", label: "Enquiries" },
         ]
       : []),
     ...(contacts ? [{ href: "/settings/tags", label: "Tags" }] : []),

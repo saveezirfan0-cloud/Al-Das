@@ -87,7 +87,9 @@ export async function createCustomField(input: CustomFieldInputValues): Promise<
     diff: { key: parsed.data.key, type: parsed.data.type },
   });
   revalidatePath("/settings/custom-fields");
+  revalidatePath("/settings/enquiries");
   revalidatePath("/contacts");
+  revalidatePath("/enquiries");
   return { ok: true, message: "Field created." };
 }
 
@@ -131,7 +133,9 @@ export async function updateCustomField(
     diff: { key: existing.key, type_changed: existing.type !== parsed.data.type },
   });
   revalidatePath("/settings/custom-fields");
+  revalidatePath("/settings/enquiries");
   revalidatePath("/contacts");
+  revalidatePath("/enquiries");
   return { ok: true, message: "Field saved." };
 }
 
@@ -154,7 +158,9 @@ export async function deleteCustomField(id: string): Promise<ActionResult> {
     diff: { key: data[0].key },
   });
   revalidatePath("/settings/custom-fields");
+  revalidatePath("/settings/enquiries");
   revalidatePath("/contacts");
+  revalidatePath("/enquiries");
   return {
     ok: true,
     message: "Field deleted. Existing values stay on the records until overwritten.",
@@ -177,6 +183,8 @@ export async function reorderCustomFields(
       .eq("org_id", member.orgId)
       .eq("entity", entity);
   revalidatePath("/settings/custom-fields");
+  revalidatePath("/settings/enquiries");
   revalidatePath("/contacts");
+  revalidatePath("/enquiries");
   return { ok: true };
 }

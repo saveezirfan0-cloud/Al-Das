@@ -20,6 +20,15 @@ import {
   updateEnquiry,
   type Ctx,
 } from "@/lib/enquiries/service";
+import {
+  addStage,
+  createPipeline,
+  deletePipeline,
+  deleteStage,
+  reorderStages,
+  updatePipeline,
+  updateStage,
+} from "@/lib/enquiries/pipelines";
 import { on } from "@/lib/events/emit";
 import { handleScheduled } from "@/lib/jobs/handlers/reminders";
 import { createTask, setTasksDone, updateTask } from "@/lib/tasks/service";
@@ -420,6 +429,118 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)(
       });
       expect((data ?? []).map((r) => r.id)).not.toContain(e.id);
       await expect(moveStage(ctx, e.id, main.s2)).rejects.toThrow(/not found/i);
+    });
+
+    describe("pipeline and stage administration", () => {
+      it("creates a pipeline with starter stages; only the first is the default", async () => {
+        const p = await createPipeline(ctx, { name: "Pharmacy", slaMinutes: 15 });
+        const row = await one<{ is_default: boolean; sla_minutes: number }>(
+          "select is_default, sla_minutes from public.pipelines where id = $1",
+          [p.id],
+        );
+        expect(row).toEqual({ is_default: false, sla_minutes: 15 }); // 'Reception' is already the default
+        const stages = await c.query<{ name: string; sort: number }>(
+          "select name, sort from public.stages where pipeline_id = $1 order by sort",
+          [p.id],
+        );
+        expect(stages.rows.map((r) => r.name)).toEqual(["New", "In progress", "Booked"]);
+        await expect(createPipeline(ctx, { name: "Pharmacy" })).rejects.toThrow(/already in use/i);
+      });
+
+      it("adds, renames and reorders stages, and rejects a stale order", async () => {
+        const p = await createPipeline(ctx, {
+          name: "Records",
+          stages: [{ name: "A" }, { name: "B" }],
+        });
+        const c3 = await addStage(ctx, p.id, { name: "C", color: "teal" });
+        await updateStage(ctx, c3.id, { name: "C2", color: "red" });
+        await expect(updateStage(ctx, c3.id, { color: "magenta" })).rejects.toBeInstanceOf(
+          EnquiryError,
+        );
+        const ids = (
+          await c.query<{ id: string }>(
+            "select id from public.stages where pipeline_id = $1 order by sort",
+            [p.id],
+          )
+        ).rows.map((r) => r.id);
+        await reorderStages(ctx, p.id, [ids[2], ids[0], ids[1]]);
+        const order = (
+          await c.query<{ name: string }>(
+            "select name from public.stages where pipeline_id = $1 order by sort",
+            [p.id],
+          )
+        ).rows.map((r) => r.name);
+        expect(order).toEqual(["C2", "A", "B"]);
+        await expect(reorderStages(ctx, p.id, [ids[0]])).rejects.toThrow(/out of date/i);
+      });
+
+      it("only deletes a stage with enquiries after moving them within the same pipeline", async () => {
+        const p = await createPipeline(ctx, {
+          name: "Billing",
+          stages: [{ name: "One" }, { name: "Two" }],
+        });
+        const [one_, two] = (
+          await c.query<{ id: string }>(
+            "select id from public.stages where pipeline_id = $1 order by sort",
+            [p.id],
+          )
+        ).rows;
+        const e = await createEnquiry(ctx, {
+          title: "In stage one",
+          pipelineId: p.id,
+          stageId: one_.id,
+          assigneeId: null,
+        });
+        await expect(deleteStage(ctx, one_.id)).rejects.toThrow(/choose a stage/i);
+        await expect(deleteStage(ctx, one_.id, second.s1)).rejects.toThrow(/same pipeline/i);
+        expect(await deleteStage(ctx, one_.id, two.id)).toEqual({ moved: 1 });
+        expect(
+          (
+            await one<{ stage_id: string }>("select stage_id from public.enquiries where id = $1", [
+              e.id,
+            ])
+          ).stage_id,
+        ).toBe(two.id);
+        // An empty stage deletes straight away.
+        const spare = await addStage(ctx, p.id, { name: "Spare" });
+        expect(await deleteStage(ctx, spare.id)).toEqual({ moved: 0 });
+      });
+
+      it("archives instead of deleting pipelines that hold enquiries, and protects the default", async () => {
+        const p = await createPipeline(ctx, { name: "Retention" });
+        const stage = await one<{ id: string }>(
+          "select id from public.stages where pipeline_id = $1 order by sort limit 1",
+          [p.id],
+        );
+        await createEnquiry(ctx, {
+          title: "Held",
+          pipelineId: p.id,
+          stageId: stage.id,
+          assigneeId: null,
+        });
+        await expect(deletePipeline(ctx, p.id)).rejects.toThrow(/archive it instead/i);
+        await updatePipeline(ctx, p.id, { archived: true });
+        await expect(
+          createEnquiry(ctx, { title: "No", pipelineId: p.id, assigneeId: null }),
+        ).rejects.toThrow(/not available/i);
+        await updatePipeline(ctx, p.id, { archived: false });
+
+        await expect(updatePipeline(ctx, main.id, { archived: true })).rejects.toThrow(/default/i);
+        await expect(deletePipeline(ctx, main.id)).rejects.toThrow(/default/i);
+        await updatePipeline(ctx, second.id, { makeDefault: true });
+        const defaults = await c.query<{ id: string }>(
+          "select id from public.pipelines where org_id = $1 and is_default",
+          [org],
+        );
+        expect(defaults.rows.map((r) => r.id)).toEqual([second.id]);
+        await updatePipeline(ctx, main.id, { makeDefault: true }); // restore for later tests
+
+        const empty = await createPipeline(ctx, { name: "Scratch" });
+        await deletePipeline(ctx, empty.id);
+        expect(
+          (await c.query("select 1 from public.pipelines where id = $1", [empty.id])).rowCount,
+        ).toBe(0);
+      });
     });
   },
 );
