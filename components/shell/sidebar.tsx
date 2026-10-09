@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
   Activity,
+  BellRing,
   BarChart3,
   CalendarDays,
   CheckSquare,
@@ -37,6 +38,7 @@ const ICONS: Record<NavIcon, React.ComponentType<{ className?: string }>> = {
   campaigns: Megaphone,
   templates: FileText,
   flows: Workflow,
+  recall: BellRing,
   portal: LayoutGrid,
   reports: BarChart3,
   settings: Settings,

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { effectiveMode, parseOrderBy, parseTestNumbers, renderValues, runProgramme } from "@/lib/recall/engine";
-import { isBookingButton, pickBookingTarget, pickReplyTarget, type OpenSend } from "@/lib/recall/replies";
+import { isBookingButton, outcomeForButton, pickBookingTarget, pickReplyTarget, type OpenSend } from "@/lib/recall/replies";
 import type { EligibleRow, NewSend, ProgrammeRow, RecallContact, RecallDeps, RecallStore, TemplateMapRow } from "@/lib/recall/types";
 
 const ORG = "00000000-0000-4000-8000-000000000001";
@@ -384,6 +384,15 @@ describe("reply and booking attribution", () => {
     expect(pickBookingTarget([send("a", 25)], at)?.id).toBe("a");
     expect(pickBookingTarget([send("a", 31)], at)).toBeNull();
     expect(pickBookingTarget([send("a", 3, { booked_at: at.toISOString() }), send("b", 10)], at)?.id).toBe("b");
+  });
+  it("maps quick-reply buttons to outcomes, with per-programme overrides", () => {
+    expect(outcomeForButton(" Book Now ")).toBe("wants_booking");
+    expect(outcomeForButton("Claim offer")).toBe("offer_redeemed");
+    expect(outcomeForButton("Not interested")).toBe("declined");
+    expect(outcomeForButton("Maybe later")).toBeNull();
+    expect(outcomeForButton("Maybe later", { "Maybe later": "snoozed" })).toBe("snoozed");
+    expect(outcomeForButton("Book now", { "book now": "custom" })).toBe("custom");
+    expect(outcomeForButton(null)).toBeNull();
   });
   it("recognises the Book now button", () => {
     expect(isBookingButton(" Book Now ")).toBe(true);

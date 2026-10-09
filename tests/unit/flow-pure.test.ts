@@ -169,17 +169,34 @@ describe("graph validation", () => {
   it("enforces question limits and unique option ids", () => {
     const opts4 = ["a", "b", "c", "d"].map((id) => ({ id, title: id }));
     const q = (data: Record<string, unknown>) =>
-      validateGraph(graph([node("t", "trigger"), node("q", "question", data)], [edge("t", "q")]));
+      validateGraph(graph([node("t", "trigger"), node("q", "question", { text: "Pick one", ...data })], [edge("t", "q")]));
     expect(hasErrors(q({ style: "buttons", options: opts4 }).issues)).toBe(true);
     expect(hasErrors(q({ style: "list", options: opts4 }).issues)).toBe(false);
     expect(hasErrors(q({ style: "buttons", options: [{ id: "a", title: "A" }, { id: "a", title: "B" }] }).issues)).toBe(true);
   });
   it("accepts option:<id> handles on questions only", () => {
     const g = graph(
-      [node("t", "trigger"), node("q", "question", { style: "buttons", options: [{ id: "y", title: "Yes" }] }), node("e", "end_flow")],
+      [node("t", "trigger"), node("q", "question", { text: "Book?", style: "buttons", options: [{ id: "y", title: "Yes" }] }), node("e", "end_flow")],
       [edge("t", "q"), edge("q", "e", "option:y")],
     );
     expect(hasErrors(validateGraph(g).issues)).toBe(false);
+  });
+  it("blocks publishing nodes that still need settings", () => {
+    const g = (n: ReturnType<typeof node>) => validateGraph(graph([node("t", "trigger"), n], [edge("t", n.id)])).issues;
+    const setup = (n: ReturnType<typeof node>) => g(n).filter((i) => i.kind === "setup" && i.level === "error");
+    expect(setup(node("m", "message", { text: "  " }))).toHaveLength(1);
+    expect(setup(node("m", "message", { text: "hi" }))).toHaveLength(0);
+    expect(setup(node("m", "template", { template_id: "" }))).toHaveLength(1);
+    expect(setup(node("m", "template", { template_id: "00000000-0000-4000-8000-0000000000a1" }))).toHaveLength(0);
+    expect(setup(node("m", "run_flow", {}))).toHaveLength(1);
+    expect(setup(node("m", "assign_to", { target: { type: "team", id: "" } }))).toHaveLength(1);
+    expect(setup(node("m", "assign_to", { target: { type: "bot" } }))).toHaveLength(0);
+    expect(setup(node("m", "wait", { amount: 0, unit: "hours" }))).toHaveLength(1);
+    expect(setup(node("m", "branch", { conditions: [] }))).toHaveLength(1);
+    expect(setup(node("m", "api_action", { url: "http://x.com" }))).toHaveLength(1);
+    expect(setup(node("m", "api_action", { url: "https://x.com/hook" }))).toHaveLength(0);
+    expect(setup(node("m", "send_notification", { title: "", target: { type: "role", id: "" } }))).toHaveLength(2);
+    expect(hasErrors(g(node("m", "message", { text: "" })))).toBe(true);
   });
   it("returns schema errors for malformed input", () => {
     const r = validateGraph({ nodes: [{ id: "x", type: "nope" }], edges: [] });

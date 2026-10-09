@@ -1,6 +1,6 @@
 import "server-only";
 
-import { COMPARABLE, diffSets, hashRef, previousDay, type ScenarioKey } from "@/lib/parallel-run/diff";
+import { COMPARABLE, diffSets, hashRef, makeOutputRows, previousDay, type ScenarioKey } from "@/lib/parallel-run/diff";
 import type { AdminClient } from "@/lib/supabase/admin";
 
 const PROGRAMME_FOR: Partial<Record<ScenarioKey, string>> = {
@@ -47,7 +47,7 @@ export async function nativeRefs(admin: AdminClient, orgId: string, scenario: Sc
 }
 
 export async function ingestMakeOutputs(admin: AdminClient, orgId: string, scenario: ScenarioKey, day: string, ids: string[]): Promise<number> {
-  const rows = [...new Set(ids.map((i) => i.trim()).filter(Boolean))].map((id) => ({ org_id: orgId, scenario_key: scenario, run_date: day, ref_hash: hashRef(orgId, id) }));
+  const rows = makeOutputRows(orgId, scenario, day, ids);
   if (rows.length === 0) return 0;
   const { error } = await admin.from("parallel_run_make_outputs").upsert(rows, { onConflict: "org_id,scenario_key,run_date,ref_hash", ignoreDuplicates: true });
   if (error) throw new Error(`ingest: ${error.message}`);

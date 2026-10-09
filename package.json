@@ -21,6 +21,7 @@
     "import:airtable": "tsx scripts/import-airtable.ts",
     "import:sanoflow": "tsx scripts/import-sanoflow.ts",
     "jobs:run": "tsx scripts/run-job.ts",
+    "parallel:ingest": "tsx scripts/parallel-run-ingest.ts",
     "format": "prettier --write ."
   },
   "dependencies": {

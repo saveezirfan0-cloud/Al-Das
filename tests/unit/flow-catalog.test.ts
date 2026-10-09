@@ -21,14 +21,15 @@ describe("node catalogue", () => {
     for (const d of NODE_DEFS) {
       const g = graph([node("t", "trigger"), node("n", d.type, d.defaults)], [edge("t", "n")]);
       const r = validateGraph(g);
-      expect(hasErrors(r.issues), d.type).toBe(false);
+      // Defaults may still need setup (e.g. choose a template); they must never be structurally broken.
+      expect(hasErrors(r.issues.filter((i) => i.kind !== "setup")), d.type).toBe(false);
     }
   });
   it("outputs match what the validator and engine accept", () => {
     for (const d of NODE_DEFS) {
       for (const o of outputsFor(d.type, d.defaults)) {
         const g = graph([node("t", "trigger"), node("n", d.type, d.defaults), node("e", "end_flow")], [edge("t", "n"), edge("n", "e", o.id)]);
-        expect(hasErrors(validateGraph(g).issues), `${d.type}:${o.id}`).toBe(false);
+        expect(hasErrors(validateGraph(g).issues.filter((i) => i.kind !== "setup")), `${d.type}:${o.id}`).toBe(false);
       }
     }
     expect(outputsFor("question", { style: "buttons", options: [{ id: "a", title: "A" }] }).map((o) => o.id)).toEqual(["option:a", "fallback"]);

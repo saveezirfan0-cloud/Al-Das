@@ -52,3 +52,8 @@ export function previousDay(now: Date, timezone = "Asia/Dubai"): string {
   d.setUTCDate(d.getUTCDate() - 1);
   return d.toISOString().slice(0, 10);
 }
+
+/** Rows for parallel_run_make_outputs from a list of raw Unite PINs / appointment ids (hashed here; ids are never stored). */
+export function makeOutputRows(orgId: string, scenario: ScenarioKey, day: string, ids: string[]) {
+  return [...new Set(ids.map((i) => i.trim()).filter(Boolean))].map((id) => ({ org_id: orgId, scenario_key: scenario, run_date: day, ref_hash: hashRef(orgId, id) }));
+}

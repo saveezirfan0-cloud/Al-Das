@@ -1,7 +1,8 @@
 /** Graph validation (run on Save for warnings, on Publish as a hard gate) and traversal helpers. */
 import { graphSchema, type FlowEdge, type FlowGraph, type FlowNode, type NodeType } from "@/lib/flow-engine/types";
 
-export type GraphIssue = { level: "error" | "warning"; nodeId?: string; message: string };
+/** "structure": the graph itself is malformed. "setup": a node still needs its settings filled in. Both block publishing when level is "error". */
+export type GraphIssue = { level: "error" | "warning"; nodeId?: string; message: string; kind?: "structure" | "setup" };
 
 /** Handles each node type may emit. `option:*` is validated separately for question nodes. */
 const HANDLES: Partial<Record<NodeType, string[]>> = {
@@ -39,7 +40,7 @@ export function validateGraph(raw: unknown): { graph: FlowGraph | null; issues: 
   const issues: GraphIssue[] = [];
   const byId = new Map<string, FlowNode>();
   for (const n of graph.nodes) {
-    if (byId.has(n.id)) issues.push({ level: "error", nodeId: n.id, message: `Duplicate node id ${n.id}` });
+    if (byId.has(n.id)) issues.push({ level: "error", nodeId: n.id, message: `Duplicate node id ${n.id}`, kind: "structure" });
     byId.set(n.id, n);
   }
 
@@ -108,7 +109,48 @@ export function validateGraph(raw: unknown): { graph: FlowGraph | null; issues: 
     }
   }
 
+  for (const n of graph.nodes) issues.push(...setupIssues(n));
+
   return { graph, issues };
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const nonEmpty = (v: unknown) => typeof v === "string" && v.trim() !== "";
+
+/** Required settings per node type. Missing ones would only fail at run time, so they block Publish instead. */
+export function setupIssues(n: FlowNode): GraphIssue[] {
+  const d = n.data;
+  const need = (ok: boolean, message: string): GraphIssue[] => (ok ? [] : [{ level: "error", nodeId: n.id, message, kind: "setup" }]);
+  switch (n.type) {
+    case "message":
+    case "question":
+    case "quick_reply":
+      return need(nonEmpty(d.text), "Write the message text");
+    case "add_comment":
+      return need(nonEmpty(d.text), "Write the note");
+    case "template":
+      return need(typeof d.template_id === "string" && UUID.test(d.template_id), "Choose a template");
+    case "run_flow":
+      return need(typeof d.flow_id === "string" && UUID.test(d.flow_id), "Choose the flow to run");
+    case "assign_to": {
+      const t = (d.target ?? {}) as { type?: string; id?: string };
+      return need(t.type === "bot" || t.type === "unassign" || (typeof t.id === "string" && UUID.test(t.id)), "Choose who to assign to");
+    }
+    case "wait":
+      return need(typeof d.amount === "number" && d.amount > 0, "Set how long to wait");
+    case "branch":
+      return need(Array.isArray(d.conditions) && d.conditions.length > 0, "Add at least one condition");
+    case "update_contact_field":
+      return need(nonEmpty(d.field), "Choose the field to update");
+    case "api_action":
+      return need(typeof d.url === "string" && /^https:\/\/\S+/.test(d.url.trim()), "Enter an https:// URL");
+    case "send_notification": {
+      const t = (d.target ?? {}) as { id?: string };
+      return [...need(nonEmpty(d.title), "Write the notification title"), ...need(nonEmpty(t.id), "Choose who to notify")];
+    }
+    default:
+      return [];
+  }
 }
 
 export function hasErrors(issues: GraphIssue[]): boolean {

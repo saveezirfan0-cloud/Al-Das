@@ -1,6 +1,6 @@
 import "server-only";
 
-import { isBookingButton, pickBookingTarget, pickReplyTarget, type OpenSend } from "@/lib/recall/replies";
+import { outcomeForButton, pickBookingTarget, pickReplyTarget, type OpenSend } from "@/lib/recall/replies";
 import { DEFAULT_BOOKING_ATTRIBUTION_DAYS, DEFAULT_REPLY_ATTRIBUTION_DAYS } from "@/lib/recall/types";
 import type { AdminClient } from "@/lib/supabase/admin";
 
@@ -12,7 +12,7 @@ async function days(admin: AdminClient, orgId: string, key: string, fallback: nu
 async function openSends(admin: AdminClient, orgId: string, contactId: string): Promise<OpenSend[]> {
   const { data } = await admin
     .from("recall_sends")
-    .select("id, sent_at, replied_at, booked_at, status")
+    .select("id, sent_at, replied_at, booked_at, status, programme_id")
     .eq("org_id", orgId)
     .eq("contact_id", contactId)
     .not("sent_at", "is", null)
@@ -29,13 +29,19 @@ export async function attributeInboundReply(
   const at = input.at ?? new Date();
   const target = pickReplyTarget(await openSends(admin, input.orgId, input.contactId), at, await days(admin, input.orgId, "recall_reply_attribution_days", DEFAULT_REPLY_ATTRIBUTION_DAYS));
   if (!target) return { attributed: false, wantsBooking: false };
-  const wantsBooking = input.kind === "button" && isBookingButton(input.body);
+  let outcome: string | null = null;
+  if (input.kind === "button") {
+    const { data: prog } = target.programme_id ? await admin.from("recall_programmes").select("config").eq("id", target.programme_id).maybeSingle() : { data: null };
+    const overrides = ((prog?.config as Record<string, unknown> | undefined)?.button_outcomes ?? {}) as Record<string, string>;
+    outcome = outcomeForButton(input.body, overrides);
+  }
+  const wantsBooking = outcome === "wants_booking";
   await admin
     .from("recall_sends")
     .update({
       replied_at: at.toISOString(),
       reply_message_id: input.messageId,
-      ...(wantsBooking ? { outcome: "wants_booking" } : {}),
+      ...(outcome ? { outcome } : {}),
     })
     .eq("id", target.id)
     .is("replied_at", null);

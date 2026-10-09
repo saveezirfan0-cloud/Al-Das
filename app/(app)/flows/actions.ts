@@ -7,6 +7,7 @@ import { recordAudit } from "@/lib/audit";
 import { requirePerm } from "@/lib/auth/session";
 import { isValidCron } from "@/lib/cron";
 import { hasErrors, validateGraph, type GraphIssue } from "@/lib/flow-engine/graph";
+import { starterFlow } from "@/lib/flow-engine/starter-flows";
 import { graphSchema, TRIGGER_TYPES, triggerConditionsSchema } from "@/lib/flow-engine/types";
 import { newWebhookToken } from "@/lib/flow-engine/webhook-token";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -26,6 +27,8 @@ function refresh(id?: string) {
 const createSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(80),
   trigger_type: z.enum(TRIGGER_TYPES).default("shortcut"),
+  /** Optional starter flow key (see lib/flow-engine/starter-flows.ts); its trigger and steps replace the blank flow. */
+  starter: z.string().max(60).optional(),
 });
 
 export async function createFlow(input: z.input<typeof createSchema>): Promise<ActionResult<{ id: string }>> {
@@ -33,10 +36,21 @@ export async function createFlow(input: z.input<typeof createSchema>): Promise<A
   const parsed = createSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   const admin = createAdminClient();
-  const triggerConfig = parsed.data.trigger_type === "webhook" ? { webhook_token_hash: newWebhookToken().hash } : {};
+  const starter = parsed.data.starter ? starterFlow(parsed.data.starter) : undefined;
+  if (parsed.data.starter && !starter) return { ok: false, error: "That starter flow does not exist." };
+  const triggerType = starter?.trigger_type ?? parsed.data.trigger_type;
+  const triggerConfig = triggerType === "webhook" ? { webhook_token_hash: newWebhookToken().hash } : (starter?.trigger_config ?? {});
   const { data, error } = await admin
     .from("flows")
-    .insert({ org_id: member.orgId, name: parsed.data.name, trigger_type: parsed.data.trigger_type, trigger_config: j(triggerConfig), graph: j(EMPTY_GRAPH), created_by: member.userId })
+    .insert({
+      org_id: member.orgId,
+      name: parsed.data.name,
+      description: starter?.description ?? null,
+      trigger_type: triggerType,
+      trigger_config: j(triggerConfig),
+      graph: j(starter?.graph ?? EMPTY_GRAPH),
+      created_by: member.userId,
+    })
     .select("id")
     .single();
   if (error || !data) return { ok: false, error: "Could not create the flow." };

@@ -9,6 +9,7 @@ export type NavIcon =
   | "campaigns"
   | "templates"
   | "flows"
+  | "recall"
   | "portal"
   | "reports"
   | "settings";
@@ -35,6 +36,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { href: "/campaigns", label: "Campaigns", icon: "campaigns", permission: "campaigns.view" },
   { href: "/templates", label: "Templates", icon: "templates", permission: "templates.manage" },
   { href: "/flows", label: "Flows", icon: "flows", permission: "flows.manage" },
+  { href: "/recall", label: "Recall", icon: "recall", permission: "campaigns.view" },
   { href: "/portal", label: "Portal", icon: "portal" },
   { href: "/reports", label: "Reports", icon: "reports", permission: "reports.view" },
   { href: "/settings", label: "Settings", icon: "settings" },

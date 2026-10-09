@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TRIGGER_LABELS } from "@/lib/flow-engine/labels";
+import { STARTER_FLOWS } from "@/lib/flow-engine/starter-flows";
 import { TRIGGER_TYPES } from "@/lib/flow-engine/types";
 
 import { createFlow, deleteFlow, duplicateFlow, setFlowStatus } from "./actions";
@@ -42,6 +43,7 @@ export function FlowsList({ rows }: { rows: FlowRow[] }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [trigger, setTrigger] = useState<string>("shortcut");
+  const [starter, setStarter] = useState<string>("blank");
   const [pending, startTransition] = useTransition();
 
   function run(fn: () => Promise<{ ok: boolean; message?: string; error?: string }>, after?: () => void) {
@@ -57,7 +59,7 @@ export function FlowsList({ rows }: { rows: FlowRow[] }) {
 
   function create() {
     startTransition(async () => {
-      const r = await createFlow({ name, trigger_type: trigger as never });
+      const r = await createFlow({ name, trigger_type: trigger as never, starter: starter === "blank" ? undefined : starter });
       if (r.ok) router.push(`/flows/${r.data.id}`);
       else toast.error(r.error);
     });
@@ -155,18 +157,35 @@ export function FlowsList({ rows }: { rows: FlowRow[] }) {
           </DialogHeader>
           <div className="flex flex-col gap-3">
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Flow name" aria-label="Flow name" autoFocus />
-            <Select value={trigger} onValueChange={setTrigger}>
-              <SelectTrigger aria-label="Trigger">
+            <Select value={starter} onValueChange={(v) => { setStarter(v); const f = STARTER_FLOWS.find((s) => s.key === v); if (f) { setTrigger(f.trigger_type); if (!name.trim()) setName(f.name); } }}>
+              <SelectTrigger aria-label="Start from">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {TRIGGER_TYPES.map((t) => (
-                  <SelectItem key={t} value={t}>
-                    {TRIGGER_LABELS[t]}
+                <SelectItem value="blank">Blank flow</SelectItem>
+                {STARTER_FLOWS.map((s) => (
+                  <SelectItem key={s.key} value={s.key}>
+                    {s.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            {starter === "blank" ? (
+              <Select value={trigger} onValueChange={setTrigger}>
+                <SelectTrigger aria-label="Trigger">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TRIGGER_TYPES.map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {TRIGGER_LABELS[t]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <p className="text-muted-foreground text-xs">{STARTER_FLOWS.find((s) => s.key === starter)?.description}</p>
+            )}
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setOpen(false)}>
