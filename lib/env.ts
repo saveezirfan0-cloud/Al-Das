@@ -26,7 +26,14 @@ const serverSchema = z.object({
   META_WEBHOOK_VERIFY_TOKEN: z.string().optional(),
   META_SYSTEM_USER_TOKEN: z.string().optional(),
   META_GRAPH_VERSION: z.string().default("v21.0"),
-  // Phase 10: AI + knowledge base. Optional; lib/ai throws a clear "not configured" error where needed.
+});
+
+/**
+ * Phase 10: AI + knowledge base. Kept apart from serverEnv() so AI code (and its tests) does not
+ * need the Supabase or job variables. Everything is optional; lib/ai throws a clear
+ * "not configured" error where a value is actually needed.
+ */
+const aiSchema = z.object({
   ANTHROPIC_API_KEY: z.string().optional(),
   ANTHROPIC_MODEL: z.string().default("claude-sonnet-5-5"),
   EMBEDDINGS_API_KEY: z.string().optional(),
@@ -55,9 +62,14 @@ export function serverEnv() {
     META_WEBHOOK_VERIFY_TOKEN: process.env.META_WEBHOOK_VERIFY_TOKEN,
     META_SYSTEM_USER_TOKEN: process.env.META_SYSTEM_USER_TOKEN,
     META_GRAPH_VERSION: process.env.META_GRAPH_VERSION,
-    ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+  });
+}
+
+export function aiEnv() {
+  return aiSchema.parse({
+    ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || undefined,
     ANTHROPIC_MODEL: process.env.ANTHROPIC_MODEL || undefined,
-    EMBEDDINGS_API_KEY: process.env.EMBEDDINGS_API_KEY,
+    EMBEDDINGS_API_KEY: process.env.EMBEDDINGS_API_KEY || undefined,
     EMBEDDINGS_PROVIDER: process.env.EMBEDDINGS_PROVIDER || undefined,
     EMBEDDINGS_MODEL: process.env.EMBEDDINGS_MODEL || undefined,
   });

@@ -70,6 +70,8 @@ export type InboxProps = {
   orgId: string;
   me: { userId: string; name: string };
   perms: { send: boolean; viewAll: boolean; contactsManage: boolean; settings: boolean };
+  /** AI assist is usable here: the member has ai.use AND the workspace switched it on. */
+  ai: { available: boolean };
   query: InboxQuery;
   counts: { folders: Record<FolderKey, number>; teams: Record<string, number> };
   teams: TeamInfo[];
