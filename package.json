@@ -21,7 +21,13 @@
     "import:airtable": "tsx scripts/import-airtable.ts",
     "import:sanoflow": "tsx scripts/import-sanoflow.ts",
     "jobs:run": "tsx scripts/run-job.ts",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "audit:security": "tsx scripts/audit-security.ts",
+    "load:webhook": "tsx scripts/load/webhook-burst.ts",
+    "load:outbound": "tsx scripts/load/outbound-20k.ts",
+    "load:mock-graph": "tsx scripts/load/mock-graph.ts",
+    "reconcile": "tsx scripts/reconcile.ts",
+    "cutover:preflight": "tsx scripts/cutover-preflight.ts"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.2.7",

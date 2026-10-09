@@ -72,19 +72,46 @@ export type Database = {
           },
         ];
       };
+      channel_send_cursor: {
+        Row: {
+          channel_id: string;
+          next_slot: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          channel_id: string;
+          next_slot: string;
+        };
+        Update: {
+          channel_id?: string;
+          next_slot?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "channel_send_cursor_channel_id_fkey";
+            columns: ["channel_id"];
+            isOneToOne: true;
+            referencedRelation: "channels";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       channel_send_slots: {
         Row: {
+          booked: number;
           channel_id: string;
           slot: string;
           used: number;
         };
         ComputedFields: never;
         Insert: {
+          booked?: number;
           channel_id: string;
           slot: string;
           used?: number;
         };
         Update: {
+          booked?: number;
           channel_id?: string;
           slot?: string;
           used?: number;
@@ -2075,6 +2102,7 @@ export type Database = {
         Args: { p_delay?: number; p_payload: Json; p_queue: string };
         Returns: number;
       };
+      job_next_due: { Args: { p_queue: string }; Returns: number };
       job_queue_metrics: {
         Args: Record<PropertyKey, never>;
         Returns: {
@@ -2118,6 +2146,11 @@ export type Database = {
           retry_after: number;
         }[];
       };
+      reserve_send_slot: {
+        Args: { p_cap: number; p_channel_id: string };
+        Returns: number;
+      };
+      reconcile_snapshot: { Args: { p_org_id: string }; Returns: NonNullable<Json> };
       set_presence: { Args: { p_org_id: string; p_presence: string }; Returns: undefined };
       show_limit: { Args: Record<PropertyKey, never>; Returns: number };
       show_trgm: { Args: { "": string }; Returns: string[] };

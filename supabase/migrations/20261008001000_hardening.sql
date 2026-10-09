@@ -97,3 +97,93 @@ create trigger audit_log_append_only
 
 revoke execute on function public.mark_all_notifications_read(uuid) from anon;
 revoke execute on function public.set_presence(uuid, text) from anon;
+
+-- ---------------------------------------------------------------------------
+-- Bulk send pacing: slot reservation.
+--
+-- A message that misses its second's slot used to re-queue itself and try again
+-- (and again), re-reading a heavy joined row each time. With a 2,000-message backlog at
+-- 20 msg/s the retry churn cut throughput to ~7 msg/s; a 20,000-recipient campaign
+-- could not finish. reserve_send_slot() instead books the first future second that still
+-- has room (below p_cap), so the message is re-queued once with a delay.
+--
+-- Bookings are only a scheduling hint, kept in their own column (`booked`). Enforcement stays
+-- in claim_send_slot() (`used`), which every send still calls at send time: a message that
+-- runs late (stall, backlog ahead of it in the queue) simply fails the claim and is re-booked,
+-- so catch-up can never burst past the per-number limit. A cursor per channel keeps each
+-- booking O(1) however long the backlog is.
+-- ---------------------------------------------------------------------------
+
+alter table public.channel_send_slots add column booked integer not null default 0;
+
+create table public.channel_send_cursor (
+  channel_id uuid primary key references public.channels (id) on delete cascade,
+  next_slot timestamptz not null
+);
+alter table public.channel_send_cursor enable row level security;
+-- no API policies: service role only
+
+create or replace function public.reserve_send_slot(p_channel_id uuid, p_cap integer)
+returns integer                                  -- seconds from now until the booked slot (>= 1)
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_cap integer := greatest(p_cap, 1);
+  v_now timestamptz := date_trunc('second', now());
+  v_slot timestamptz;
+  v_booked integer;
+begin
+  insert into public.channel_send_cursor (channel_id, next_slot)
+  values (p_channel_id, v_now + interval '1 second')
+  on conflict (channel_id) do nothing;
+
+  -- Serialises bookings per channel; the row is held only for this call.
+  select greatest(c.next_slot, v_now + interval '1 second') into v_slot
+  from public.channel_send_cursor c
+  where c.channel_id = p_channel_id
+  for update;
+
+  loop
+    v_booked := null;
+    insert into public.channel_send_slots as s (channel_id, slot, used, booked)
+    values (p_channel_id, v_slot, 0, 1)
+    on conflict (channel_id, slot) do update set booked = s.booked + 1
+      where s.booked < v_cap
+    returning s.booked into v_booked;
+    exit when v_booked is not null;
+    v_slot := v_slot + interval '1 second';
+  end loop;
+
+  update public.channel_send_cursor set next_slot = v_slot where channel_id = p_channel_id;
+  return greatest(1, ceil(extract(epoch from (v_slot - now())))::integer);
+end;
+$$;
+revoke all on function public.reserve_send_slot(uuid, integer) from public, anon, authenticated;
+grant execute on function public.reserve_send_slot(uuid, integer) to service_role;
+
+-- Seconds until the earliest delayed (never-read, not yet visible) message in a queue becomes
+-- visible; null when nothing is waiting on a delay. Lets a drain tick stay awake for reserved
+-- sends instead of leaving them to pile up until the next 10 s cron tick.
+create or replace function public.job_next_due(p_queue text)
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_due integer;
+begin
+  if p_queue !~ '^[a-z_]{1,40}$' then
+    raise exception 'invalid queue name';
+  end if;
+  execute format(
+    'select ceil(extract(epoch from (min(vt) - now())))::integer from pgmq.%I where read_ct = 0 and vt > now()',
+    'q_' || p_queue
+  ) into v_due;
+  return v_due;
+end;
+$$;
+revoke all on function public.job_next_due(text) from public, anon, authenticated;
+grant execute on function public.job_next_due(text) to service_role;

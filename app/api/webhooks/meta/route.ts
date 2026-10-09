@@ -6,13 +6,10 @@ import { checkRateLimit, clientIp, RATE_RULES, tooManyRequests } from "@/lib/rat
 import { redactText } from "@/lib/redact";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/types";
-import { verifyMetaSignature } from "@/lib/whatsapp/signature";
+import { MAX_WEBHOOK_BYTES, verifyMetaSignature } from "@/lib/whatsapp/signature";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-/** Meta posts are a few KB; anything near this is not Meta. Rejected before hashing. */
-export const MAX_WEBHOOK_BYTES = 1_048_576;
 
 /**
  * GET: Meta's verification handshake (hub.mode / hub.verify_token / hub.challenge).
