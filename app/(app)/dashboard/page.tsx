@@ -2,7 +2,6 @@ import Link from "next/link";
 
 import { ChartRenderer } from "@/components/charts/chart-renderer";
 import { KpiTile } from "@/components/charts/kpi-tile";
-import { AwaitingCard } from "@/components/shell/awaiting-card";
 import { PageHeader } from "@/components/shell/page-header";
 import { can } from "@/lib/auth/can";
 import { requireMember } from "@/lib/auth/session";
@@ -27,6 +26,26 @@ export default async function DashboardPage() {
     mem().eq("presence", "online"),
   ]);
 
+  // Work queues, through the caller's own client (RLS) and only for modules they may use.
+  const canTasks = can(member, "tasks.view");
+  const canEnquiries = can(member, "enquiries.view");
+  const nowIso = new Date().toISOString();
+  const todayStart = resolveRange({ period: "today" }, member.org.timezone || "UTC").fromUtc.toISOString();
+  const [myTasks, overdueTasks, openEnquiries, newToday] = await Promise.all([
+    canTasks
+      ? supabase.from("tasks").select("id", { count: "exact", head: true }).eq("org_id", member.orgId).eq("done", false).eq("assignee_id", member.userId)
+      : null,
+    canTasks
+      ? supabase.from("tasks").select("id", { count: "exact", head: true }).eq("org_id", member.orgId).eq("done", false).eq("assignee_id", member.userId).lt("due_at", nowIso)
+      : null,
+    canEnquiries
+      ? supabase.from("enquiries").select("id", { count: "exact", head: true }).eq("org_id", member.orgId).eq("status", "open").is("deleted_at", null)
+      : null,
+    canEnquiries
+      ? supabase.from("enquiries").select("id", { count: "exact", head: true }).eq("org_id", member.orgId).is("deleted_at", null).gte("created_at", todayStart)
+      : null,
+  ]);
+
   // Last 14 days of volume, for people who can see reports.
   let trend = null;
   if (can(member, "reports.view")) {
@@ -44,7 +63,7 @@ export default async function DashboardPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title={`Welcome back${member.profile.first_name ? `, ${member.profile.first_name}` : ""}`}
-        description="Your conversations right now. Enquiry, task and appointment widgets arrive with their modules."
+        description="Your conversations, tasks and enquiries right now."
       />
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <KpiTile label="My open conversations" value={mine.count ?? 0} hint="assigned to you" />
@@ -74,11 +93,14 @@ export default async function DashboardPage() {
         />
       )}
 
-      <div className="grid gap-3 md:grid-cols-3">
-        <AwaitingCard title="Open tasks" phase="Phase 5 (enquiries & tasks)" />
-        <AwaitingCard title="Open enquiries" phase="Phase 5 (enquiries & tasks)" />
-        <AwaitingCard title="Daily enquiries" phase="Phase 5 (enquiries & tasks)" />
-      </div>
+      {(canTasks || canEnquiries) && (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {myTasks && <KpiTile label="My open tasks" value={myTasks.count ?? 0} hint="assigned to you" />}
+          {overdueTasks && <KpiTile label="My overdue tasks" value={overdueTasks.count ?? 0} hint="past their due time" />}
+          {openEnquiries && <KpiTile label="Open enquiries" value={openEnquiries.count ?? 0} hint="across all pipelines" />}
+          {newToday && <KpiTile label="New enquiries today" value={newToday.count ?? 0} hint="created since midnight" />}
+        </div>
+      )}
     </div>
   );
 }

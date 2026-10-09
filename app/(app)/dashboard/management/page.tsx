@@ -7,14 +7,46 @@ import { AwaitingCard } from "@/components/shell/awaiting-card";
 import { PageHeader } from "@/components/shell/page-header";
 import { requirePerm } from "@/lib/auth/session";
 import { filtersFromSearchParams } from "@/lib/reports/filters";
-import { appointmentsReport, conversationsReport, responseReport, whatsappUsageReport } from "@/lib/reports/queries";
+import { appointmentsReport, campaignsReport, conversationsReport, enquiryFunnelReport, responseReport, whatsappUsageReport } from "@/lib/reports/queries";
 import { REPORTS, reportStatus } from "@/lib/reports/registry";
+import type { ReportResult } from "@/lib/reports/types";
 import { availableSources, filterOptions, reportContext } from "@/lib/reports/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import { ReportFilterBar } from "../../reports/report-filter-bar";
 
 export const metadata = { title: "Management dashboard" };
+
+/** A titled block of KPI tiles and charts from one report, linking to the full report. */
+function ReportSection({ id, title, result, kpis, charts, href, linkLabel }: { id: string; title: string; result: ReportResult; kpis: string[]; charts: number[]; href: string; linkLabel: string }) {
+  return (
+    <section aria-labelledby={id} className="flex flex-col gap-3">
+      <h3 id={id} className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+        {title}
+      </h3>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {result.kpis
+          .filter((k) => kpis.includes(k.key))
+          .map((k) => (
+            <KpiTile key={k.key} label={k.label} value={k.value} format={k.format} hint={k.hint} />
+          ))}
+      </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        {charts.map((i) => result.charts[i] && <ChartRenderer key={i} spec={result.charts[i]} />)}
+      </div>
+      {result.notes.map((n) => (
+        <p key={n} className="text-muted-foreground text-xs">
+          {n}
+        </p>
+      ))}
+      <p className="text-sm">
+        <Link href={href} className="text-primary inline-flex items-center gap-1 underline">
+          {linkLabel} <ArrowRight className="size-3.5" aria-hidden />
+        </Link>
+      </p>
+    </section>
+  );
+}
 
 export default async function ManagementDashboard({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const member = await requirePerm("reports.view");
@@ -25,15 +57,20 @@ export default async function ManagementDashboard({ searchParams }: { searchPara
     return reportStatus(def, available) === "live";
   });
 
-  const appointmentsLive = reportStatus(REPORTS.find((r) => r.key === "appointments")!, available) === "live";
+  const live = (key: string) => reportStatus(REPORTS.find((r) => r.key === key)!, available) === "live";
+  const appointmentsLive = live("appointments");
+  const enquiriesLive = live("enquiry-funnel");
+  const campaignsLive = live("campaigns");
 
   const { filters, error } = filtersFromSearchParams(await searchParams);
   const ctx = reportContext(member, filters);
   const options = await filterOptions(admin, member.orgId);
 
-  const [body, appointments] = await Promise.all([
+  const [body, appointments, enquiries, campaigns] = await Promise.all([
     ready ? Promise.all([conversationsReport(ctx), responseReport(ctx), whatsappUsageReport(ctx)]) : null,
     appointmentsLive ? appointmentsReport(ctx) : null,
+    enquiriesLive ? enquiryFunnelReport(ctx) : null,
+    campaignsLive ? campaignsReport(ctx) : null,
   ]);
 
   return (
@@ -75,33 +112,14 @@ export default async function ManagementDashboard({ searchParams }: { searchPara
         <AwaitingCard title="Messaging metrics" phase="the metrics migration" detail="Apply the latest database migrations to enable these widgets." />
       )}
 
+      {enquiries && (
+        <ReportSection id="enq" title="Enquiries" result={enquiries} kpis={["created", "won", "lost", "conversion", "open"]} charts={[0, 1]} href="/reports/enquiry-funnel" linkLabel="Open the enquiry funnel" />
+      )}
       {appointments && (
-        <section aria-labelledby="appts" className="flex flex-col gap-3">
-          <h3 id="appts" className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
-            Appointments
-          </h3>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {appointments.kpis
-              .filter((k) => ["total", "completed", "no_show", "rate"].includes(k.key))
-              .map((k) => (
-                <KpiTile key={k.key} label={k.label} value={k.value} format={k.format} hint={k.hint} />
-              ))}
-          </div>
-          <div className="grid gap-4 lg:grid-cols-2">
-            <ChartRenderer spec={appointments.charts[0]} />
-            <ChartRenderer spec={appointments.charts[1]} />
-          </div>
-          {appointments.notes.map((n) => (
-            <p key={n} className="text-muted-foreground text-xs">
-              {n}
-            </p>
-          ))}
-          <p className="text-sm">
-            <Link href="/reports/appointments" className="text-primary inline-flex items-center gap-1 underline">
-              Open the appointments report <ArrowRight className="size-3.5" aria-hidden />
-            </Link>
-          </p>
-        </section>
+        <ReportSection id="appts" title="Appointments" result={appointments} kpis={["total", "completed", "no_show", "rate"]} charts={[0, 1]} href="/reports/appointments" linkLabel="Open the appointments report" />
+      )}
+      {campaigns && (
+        <ReportSection id="camps" title="Campaigns" result={campaigns} kpis={["campaigns", "sent", "delivered", "read", "replied"]} charts={[0]} href="/reports/campaigns" linkLabel="Open the campaign report" />
       )}
 
       <section aria-labelledby="coming" className="flex flex-col gap-3">
@@ -109,9 +127,7 @@ export default async function ManagementDashboard({ searchParams }: { searchPara
           Arriving with other modules
         </h3>
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-          <AwaitingCard title="Enquiries in, closed and converted" phase="Phase 5 (enquiries)" />
           <AwaitingCard title="Conversion to appointments" phase="Phase 5 (enquiries)" detail="Needs enquiries to link a first contact to a booking." />
-          <AwaitingCard title="Campaign results" phase="Phase 7 (campaigns)" />
           <AwaitingCard title="WhatsApp cost" phase="Meta pricing analytics ingestion" detail="Message counts by type are shown above." />
         </div>
       </section>

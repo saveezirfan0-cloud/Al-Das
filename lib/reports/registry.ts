@@ -1,4 +1,14 @@
-import { agentsReport, appointmentsReport, conversationsReport, responseReport, uniteAppointmentsReport, whatsappUsageReport } from "@/lib/reports/queries";
+import {
+  agentsReport,
+  appointmentsReport,
+  campaignsReport,
+  conversationsReport,
+  enquiryFunnelReport,
+  enquiryStageTimeReport,
+  responseReport,
+  uniteAppointmentsReport,
+  whatsappUsageReport,
+} from "@/lib/reports/queries";
 import type { ReportDef } from "@/lib/reports/types";
 
 /**
@@ -48,8 +58,8 @@ export const REPORTS: readonly ReportDef[] = [
     description: "Enquiries created, moved, won and lost by stage.",
     group: "Enquiries",
     filters: ["team", "user"],
-    requires: ["mv_enquiry_funnel"],
-    awaiting: "Phase 5 (enquiries)",
+    requires: ["v_enquiry_facts", "v_enquiry_stage_entries"],
+    run: enquiryFunnelReport,
   },
   {
     key: "enquiry-stage-time",
@@ -57,8 +67,8 @@ export const REPORTS: readonly ReportDef[] = [
     description: "Average time enquiries spend in each stage.",
     group: "Enquiries",
     filters: ["team", "user"],
-    requires: ["mv_enquiry_stage_times"],
-    awaiting: "Phase 5 (enquiries)",
+    requires: ["v_enquiry_facts", "v_enquiry_stage_entries"],
+    run: enquiryStageTimeReport,
   },
   {
     key: "campaigns",
@@ -66,8 +76,8 @@ export const REPORTS: readonly ReportDef[] = [
     description: "Sent, delivered, read, replied and failed per campaign.",
     group: "Campaigns",
     filters: ["channel"],
-    requires: ["mv_campaign_funnel"],
-    awaiting: "Phase 7 (campaigns)",
+    requires: ["v_campaign_facts"],
+    run: campaignsReport,
   },
   {
     key: "appointments",
