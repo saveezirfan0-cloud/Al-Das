@@ -1090,6 +1090,63 @@ export type Database = {
           },
         ];
       };
+      integration_accounts: {
+        Row: {
+          breaker_open_until: string | null;
+          config: NonNullable<Json>;
+          config_enc: string | null;
+          consecutive_failures: number;
+          created_at: string;
+          id: string;
+          kind: string;
+          org_id: string;
+          refresh_lock_until: string | null;
+          status: string;
+          token_enc: string | null;
+          token_expires_at: string | null;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          breaker_open_until?: string | null;
+          config?: NonNullable<Json>;
+          config_enc?: string | null;
+          consecutive_failures?: number;
+          created_at?: string;
+          id?: string;
+          kind: string;
+          org_id: string;
+          refresh_lock_until?: string | null;
+          status?: string;
+          token_enc?: string | null;
+          token_expires_at?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          breaker_open_until?: string | null;
+          config?: NonNullable<Json>;
+          config_enc?: string | null;
+          consecutive_failures?: number;
+          created_at?: string;
+          id?: string;
+          kind?: string;
+          org_id?: string;
+          refresh_lock_until?: string | null;
+          status?: string;
+          token_enc?: string | null;
+          token_expires_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "integration_accounts_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       invites: {
         Row: {
           accepted_at: string | null;
@@ -2093,6 +2150,57 @@ export type Database = {
           },
         ];
       };
+      sync_cursors: {
+        Row: {
+          created_at: string;
+          cursor: NonNullable<Json>;
+          entity: string;
+          error: string | null;
+          id: string;
+          last_ok_at: string | null;
+          last_run_at: string | null;
+          org_id: string;
+          scope: string;
+          source: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          cursor?: NonNullable<Json>;
+          entity: string;
+          error?: string | null;
+          id?: string;
+          last_ok_at?: string | null;
+          last_run_at?: string | null;
+          org_id: string;
+          scope?: string;
+          source: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          cursor?: NonNullable<Json>;
+          entity?: string;
+          error?: string | null;
+          id?: string;
+          last_ok_at?: string | null;
+          last_run_at?: string | null;
+          org_id?: string;
+          scope?: string;
+          source?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "sync_cursors_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       sync_reviews: {
         Row: {
           candidates: NonNullable<Json>;
@@ -2100,6 +2208,7 @@ export type Database = {
           entity: string;
           external_id: string;
           id: string;
+          incoming: NonNullable<Json>;
           org_id: string;
           reason: string;
           resolved_at: string | null;
@@ -2116,6 +2225,7 @@ export type Database = {
           entity: string;
           external_id: string;
           id?: string;
+          incoming?: NonNullable<Json>;
           org_id: string;
           reason: string;
           resolved_at?: string | null;
@@ -2131,6 +2241,7 @@ export type Database = {
           entity?: string;
           external_id?: string;
           id?: string;
+          incoming?: NonNullable<Json>;
           org_id?: string;
           reason?: string;
           resolved_at?: string | null;
@@ -2406,6 +2517,48 @@ export type Database = {
           },
           {
             foreignKeyName: "timeline_events_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      unite_api_calls: {
+        Row: {
+          at: string;
+          batch_id: string | null;
+          duration_ms: number | null;
+          endpoint: string;
+          http_status: number | null;
+          id: number;
+          org_id: string;
+          outcome: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          at?: string;
+          batch_id?: string | null;
+          duration_ms?: number | null;
+          endpoint: string;
+          http_status?: number | null;
+          id?: number;
+          org_id: string;
+          outcome: string;
+        };
+        Update: {
+          at?: string;
+          batch_id?: string | null;
+          duration_ms?: number | null;
+          endpoint?: string;
+          http_status?: number | null;
+          id?: number;
+          org_id?: string;
+          outcome?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "unite_api_calls_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
@@ -2856,6 +3009,10 @@ export type Database = {
       set_presence: { Args: { p_org_id: string; p_presence: string }; Returns: undefined };
       show_limit: { Args: Record<PropertyKey, never>; Returns: number };
       show_trgm: { Args: { "": string }; Returns: string[] };
+      unite_claim_token_refresh: {
+        Args: { p_org: string; p_ttl_seconds?: number };
+        Returns: boolean;
+      };
       uuid_generate_v1: { Args: Record<PropertyKey, never>; Returns: string };
       uuid_generate_v1mc: { Args: Record<PropertyKey, never>; Returns: string };
       uuid_generate_v3: { Args: { name: string; namespace: string }; Returns: string };

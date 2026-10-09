@@ -51,3 +51,55 @@ Delivered in three steps on one branch: **6a Appointments**, **6b Unite sync + S
 - `tests/unit/resource-grid.test.tsx`: renders columns, positions a booking by local time, closed-day banner.
 - `tests/db/appointments-rls.test.ts`: cross-org isolation on every new table, permission-gated writes, cross-org reference rejection, numbering, integrity checks, `contacts_search` with appointment filters.
 - `tests/db/appointments-service.test.ts` (needs PostgREST, see `supabase/test/README.md`): slots → booking → overlap → block → reminder planning/idempotence → send → button replies → reschedule → exclusions/test mode.
+
+---
+
+## 6b — Unite sync + Sync Review
+
+### What exists now
+
+| Area                                    | Where                                                                                                                                                         |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Schema                                  | `20261009000400_unite.sql`: `integration_accounts`, `sync_cursors`, `unite_api_calls`, `sync_reviews.incoming`, `unite_claim_token_refresh()`, cron schedules |
+| Config (flags, endpoints)               | `lib/unite/config.ts` → `integration_accounts.config`                                                                                                         |
+| Auth (token on demand, single-flight)   | `lib/unite/auth.ts`                                                                                                                                           |
+| Read-only client                        | `lib/unite/client.ts`                                                                                                                                         |
+| Mappers (pure)                          | `lib/unite/mappers.ts`                                                                                                                                        |
+| DB-backed token / breaker / call log    | `lib/unite/store.ts`                                                                                                                                          |
+| Syncs (appointments, doctors, patients) | `lib/unite/sync.ts`                                                                                                                                           |
+| Review resolution                       | `lib/unite/review.ts`                                                                                                                                         |
+| Jobs                                    | `lib/jobs/handlers/unite-sync.ts` (queue `unite_sync`; tasks `unite_enqueue`, `unite_nightly`)                                                                |
+| UI                                      | Settings → **Unite EMR** (`/settings/unite`), **Portal → Sync Review** (`/portal/sync-review`), Portal hub (`/portal`)                                        |
+
+### Safety rails (CLAUDE.md rule 7)
+
+- **Read-only.** The client exposes `getAppointments`, `listPage`, `listAll` and nothing else; the only POST in the package is the vendor's token refresh. `tests/unit/unite-readonly.test.ts` pins this at the source level.
+- **Finance API is never called.** It is sync-once (each call permanently dequeues records). The client checks every endpoint against an allow-list and refuses anything matching `/finance/i`, even if it is configured; the settings action rejects it too. There is **no raw-payload table yet**: it is created together with the guarded, feature-flagged job that would call that API, not before.
+- **Conservative traffic.** One call at a time, ≥ 250 ms apart (configurable), exponential back-off on 5xx / 429 / network errors (`Retry-After` honoured), circuit breaker after 5 consecutive failures (5-minute cool-down, admins notified the moment it trips, "Resume calls" button). Every call is logged in `unite_api_calls` — endpoint, outcome, timing; **no bodies, no patient data**.
+- **Tokens (~240 s)** are refreshed on demand under a DB claim so two serverless invocations never refresh at once; they are stored AES-256-GCM encrypted (`token_enc`). Credentials come from `UNITE_APP_ID` / `UNITE_APP_KEY` or an encrypted per-org override entered (write-only) in Settings. Errors never contain tokens or credentials.
+- **Vendor quirk:** every response is HTTP 200; success is read from the body (`Status`/`Message`). "Token Expired" / "Invalid Token" trigger exactly one forced refresh and retry.
+
+### Behaviour worth knowing
+
+- **Everything is off by default.** `integration_accounts.config.enabled.{appointments,doctors,patients}` are all false; nothing runs until someone switches an entity on in Settings → Unite EMR. Patients and doctors also need their endpoint name entered first (the vendor docs only cover `getallappointments`), and are fixture-tested only.
+- **Schedule.** `unite_enqueue` (pg_cron `*/15 3-17 * * *` UTC = 07:00–22:00 Dubai) queues one appointments job per location that has a Unite clinic id, covering today … today + `incremental_days` (3). `unite_nightly` (`30 18 * * *` UTC) covers today … today + `horizon_days` (7) and also queues doctors/patients if enabled. "Sync now" queues the same jobs.
+- **Idempotent.** Appointments are keyed `(org, source = 'unite', external_id)` (+ an `external_refs` row); a replayed payload reports `unchanged` and emits nothing. Events fire only on a real change: `appointment.created`, `appointment.status_changed`, `appointment.updated`, plus timeline entries. Reminders are re-planned from the synced time/status, so a moved or cancelled Unite appointment moves or cancels its reminder.
+- **Patient matching:** Unite PIN → E.164 phone (primary and alternates) → name + DOB, via the Phase 2 matcher. One match links (and adopts the PIN if the contact had none). **More than one match goes to Sync Review and is never auto-merged.** An unknown patient becomes a new contact (`source = 'unite'`) unless "Create a contact for unknown patients" is off, in which case it also goes to Sync Review. The appointment is saved unlinked meanwhile (`contact_id` null), and no reminder is planned for it.
+- **Review decisions stick.** A resolved or dismissed item is never re-queued by later syncs. Linking attaches the waiting appointments, plans their reminders and writes a timeline entry; it refuses a contact that already has a different PIN.
+- **Status codes (OQ-23).** Unite codes map through `unite_appointment_status_map` (editable in Settings → Unite EMR). A code with no mapping is recorded in `external_status` but **never changes `status`**; a new appointment starts as Awaiting. So no-show / cancelled reporting stays empty until the meanings are confirmed with Unite.
+- **Times.** Unite's date format is undocumented. The mapper reads ISO 8601 and day-first `DD-MM-YYYY` / `DD/MM/YYYY` (optional time, AM/PM) as clinic time (`config.timezone`, Asia/Dubai) and never guesses month-first. Unreadable rows are counted by reason (`unparseable_time`, `missing_id`, `end_before_start`) in the job log and skipped, not dropped silently.
+- **Permissions.** Sync Review uses `portal.sync_review.read` / `.write` (Manager's `portal.*` and Agent's `portal.*.read` already cover them); Settings → Unite needs `settings.manage`.
+
+### Not covered / follow-ups
+
+- **No live Unite access in the build sandbox**, so the client is verified against scripted responses only (token expiry, always-200 error bodies, back-off, breaker, paging). Before switching it on: fresh app credentials for Pulse (OQ-26), confirm the date format, the status codes (OQ-23) and the rate limit with Unite, and run in reminder **test mode** for the parallel run.
+- Patient/doctor endpoints, their field names and paging are configuration + tolerant mappers, not confirmed against the real API.
+- Appointments deleted in Unite (rather than cancelled) are not detected; they stay as last seen.
+- Clinic visit/prescription sync for the clinical engine arrives with 6c's tables and needs the visits endpoint from Unite.
+
+### Test coverage added
+
+- `tests/unit/unite-mappers.test.ts` (13): time formats and edge cases, appointment/doctor/patient mapping.
+- `tests/unit/unite-client.test.ts` (20): URL/params/auth, throttle, back-off, 429, forced token refresh, circuit breaker, paging, token store hand-off, no credential leakage.
+- `tests/unit/unite-readonly.test.ts` (4): no write methods, POST only in auth, Finance API refused.
+- `tests/db/unite-sync.test.ts` (14, needs PostgREST): matching / adopt / create / review, idempotent replay, status map, reminder re-planning, cursors and failures, doctors, patients (fill blanks only), the token claim, a full `runUniteSync` with a scripted `fetch`, Sync Review link / dismiss / create, and cross-org isolation of the new tables.

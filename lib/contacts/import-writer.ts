@@ -349,6 +349,8 @@ export async function queueSyncReview(
     externalId: string;
     reason: string;
     candidates: Array<{ contact_id: string; matched_on: string }>;
+    /** What the source sent (name, phone, PIN …) so a reviewer can decide without the source open. */
+    incoming?: JsonObject;
   },
 ): Promise<void> {
   await admin.from("sync_reviews").upsert(
@@ -359,6 +361,7 @@ export async function queueSyncReview(
       external_id: o.externalId,
       reason: o.reason,
       candidates: o.candidates,
+      ...(o.incoming ? { incoming: o.incoming } : {}),
       status: "open",
     },
     { onConflict: "org_id,source,entity,external_id" },
