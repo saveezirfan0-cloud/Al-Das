@@ -36,3 +36,14 @@
 12. **Raw payload retention.** The 90-day PII strip of `fin_raw_unite_batches.payload` is not built yet (phase F6).
 13. **IP allow-listing.** Vercel has no fixed outbound IPs. If Unite restricts by IP, a static-IP add-on or a fixed-IP relay is needed before the first run (email question 15).
 14. **Make estate facts (read 9 Oct 2026).** Data store "Token" (61544) is used by 10 scenarios; the TEST finance data store (167670) holds 16 records (not 2) and must be deleted after use; see `go-live-runbook.md` section 2.
+
+## Added in F2.1 / F4
+
+15. **Resolved in F2.1:** duplicate invoice inside one batch (now keeps the last), payload retention (90-day strip built), reference-data editor (built), first run defaults to 1 batch.
+16. **Diligence column names are unconfirmed.** `lib/finance/diligence-mapping.ts` uses the names from the brief. Ask Sharaf for the header row only (`diligence-header-request.md`); the exact-70-columns check becomes possible then.
+17. **Original Diligence file is not retained.** The brief said to keep it in a private bucket; the platform deletes it after parsing because it holds patient names and Emirates IDs, keeping the sha256 and the sanitised rows. Say so if the clinic wants the file archived (it would need a retention and access decision first).
+18. **Clinical free text.** `DiagnosisText` and `DenialComment` are imported as specified and can contain clinical wording. Treat the claims screens as health data (access is limited to `finance.claims.view`).
+19. **Blank amounts stay null** (never 0). Views treat null as 0 in sums. Confirm with Sharaf that a blank remitted amount means nothing was remitted.
+20. **Write-off "approved" value** is still assumed (`approved`, case-insensitive) in the ageing and summary views.
+21. **Files above 30,000 rows** are rejected (one atomic commit). A full year of claims for a clinic of this size should fit; tell us if not.
+22. **Not built yet:** F3 appointments sync (needs the platform `appointments` table and Unite appointments credentials), F5 exception rule engine and invoices / monthly summary screens, a browser-driven check of the finance pages, and a fixed-IP route to Unite if Unite allow-lists addresses.

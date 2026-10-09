@@ -180,10 +180,28 @@ describe("mapInvoice", () => {
 });
 
 describe("mapBatch", () => {
-  it("maps every record and rejects a repeated invoice number", () => {
-    expect(mapBatch([rawInvoice(), rawInvoice({ InvDisplayNumber: "ADMC/90002" })])).toHaveLength(
-      2,
-    );
-    expect(() => mapBatch([rawInvoice(), rawInvoice()])).toThrow(/appears twice/);
+  it("maps every record", () => {
+    const { invoices, duplicates } = mapBatch([
+      rawInvoice(),
+      rawInvoice({ InvDisplayNumber: "ADMC/90002" }),
+    ]);
+    expect(invoices).toHaveLength(2);
+    expect(duplicates).toBe(0);
+  });
+
+  it("keeps the last occurrence of a repeated invoice and reports the drop", () => {
+    const { invoices, duplicates } = mapBatch([rawInvoice(), rawInvoice({ NetAmount: "55.00" })]);
+    expect(duplicates).toBe(1);
+    expect(invoices).toHaveLength(1);
+    expect(invoices[0].net).toBe(55);
+  });
+
+  it("still fails closed when any record is unmappable", () => {
+    expect(() =>
+      mapBatch([
+        rawInvoice(),
+        rawInvoice({ InvDisplayNumber: "ADMC/90002", NetAmount: undefined }),
+      ]),
+    ).toThrow(/net is missing/);
   });
 });

@@ -33,11 +33,12 @@ async function main() {
         ? { id: data.id, orgId: data.org_id, payload: data.payload, recordCount: data.record_count }
         : null;
     },
-    apply: async (orgId, batchId, invoices) => {
+    apply: async (orgId, batchId, invoices, duplicates) => {
       const { data, error } = await admin.rpc("fin_apply_invoices", {
         p_org_id: orgId,
         p_batch_id: batchId,
         p_invoices: invoices as unknown as Json,
+        p_duplicates: duplicates,
       });
       if (error) throw new Error(error.message);
       return (data ?? {}) as Record<string, number>;

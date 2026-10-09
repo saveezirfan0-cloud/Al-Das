@@ -81,7 +81,7 @@ How the very first token is obtained is not documented. Ask Unite (email questio
 - [ ] IP allow-listing sorted out.
 - [ ] Credentials saved; **capture still off**.
 - [ ] Someone who can read the Unite UI is available to spot-check invoices during the run.
-- [ ] Settings: batch size 50, **batches per run = 1**, pull from `2026-01-01`.
+- [ ] Settings: batch size 50, **batches per run = 1** (already the default for new setups), pull from `2026-01-01`.
 
 ## 5. The first live run (watched, one batch)
 
@@ -106,6 +106,11 @@ How the very first token is obtained is not documented. Ask Unite (email questio
 | Make scenarios start failing with "Invalid Token" | Platform and Make share a token                          | Switch capture off; run Make's Token scenario once; go to option A    |
 | "no Unite credentials"                            | Credentials not saved or `ENCRYPTION_KEY` changed        | Re-enter credentials                                                  |
 
-## 7. Insurance side (phase F4, for planning)
+## 7. Insurance side: the Diligence upload [you / Sharaf]
 
-Ask Sharaf for one **unfiltered** Diligence export: all claims, all statuses, from 01-01-2026 (the sample file was a filtered rejection worklist). It contains patient names and Emirates IDs: send it only over a secure channel and never commit it. The platform drops those columns on import.
+1. Send Sharaf `docs/finance/diligence-header-request.md`. He sends **only the header row**; Claude aligns `lib/finance/diligence-mapping.ts` with it.
+2. Give Sharaf the _Insurance_ role (Settings → Users). He opens Finance → Insurance upload.
+3. First upload: the **unfiltered** report, all claims, all statuses, from 01-01-2026.
+4. Read the check screen: counts of new / changed / unchanged / missing, totals, and the lists of "not imported (sensitive)" and "not recognised" columns. A rejected file explains why (missing column, a bad date in row N, a duplicate claim number); fix the export and upload again.
+5. Confirm. Claims appear under Finance → Claims. Claims whose invoice has not been captured yet show "no invoice" and attach automatically once the invoice arrives (daily, and after every upload).
+6. Repeat weekly and at month end. If the screen warns "this looks like a filtered export", do not tick the missing-claims box; get the unfiltered file instead.

@@ -1250,7 +1250,9 @@ export type Database = {
       };
       fin_raw_diligence_files: {
         Row: {
+          commit_summary: NonNullable<Json>;
           committed_at: string | null;
+          committed_by: string | null;
           errors: NonNullable<Json>;
           file_name: string | null;
           file_sha256: string;
@@ -1268,7 +1270,9 @@ export type Database = {
         };
         ComputedFields: never;
         Insert: {
+          commit_summary?: NonNullable<Json>;
           committed_at?: string | null;
+          committed_by?: string | null;
           errors?: NonNullable<Json>;
           file_name?: string | null;
           file_sha256: string;
@@ -1285,7 +1289,9 @@ export type Database = {
           uploaded_by?: string | null;
         };
         Update: {
+          commit_summary?: NonNullable<Json>;
           committed_at?: string | null;
+          committed_by?: string | null;
           errors?: NonNullable<Json>;
           file_name?: string | null;
           file_sha256?: string;
@@ -1302,6 +1308,13 @@ export type Database = {
           uploaded_by?: string | null;
         };
         Relationships: [
+          {
+            foreignKeyName: "fin_raw_diligence_files_committed_by_fkey";
+            columns: ["committed_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "fin_raw_diligence_files_org_id_fkey";
             columns: ["org_id"];
@@ -1669,6 +1682,7 @@ export type Database = {
           claim_status: string | null;
           claim_year: number | null;
           clinician_id: string | null;
+          clinician_mismatch: boolean;
           cpt_category: string | null;
           cpt_code: string | null;
           cpt_type: string | null;
@@ -1691,7 +1705,9 @@ export type Database = {
           last_remitted: number | null;
           last_resubmission_date: string | null;
           last_seen_file_id: string | null;
+          match_reason: string | null;
           match_status: string;
+          matched_at: string | null;
           matched_invoice_id: string | null;
           matched_line_id: string | null;
           net: number | null;
@@ -1724,6 +1740,7 @@ export type Database = {
           claim_status?: string | null;
           claim_year?: number | null;
           clinician_id?: string | null;
+          clinician_mismatch?: boolean;
           cpt_category?: string | null;
           cpt_code?: string | null;
           cpt_type?: string | null;
@@ -1746,7 +1763,9 @@ export type Database = {
           last_remitted?: number | null;
           last_resubmission_date?: string | null;
           last_seen_file_id?: string | null;
+          match_reason?: string | null;
           match_status?: string;
+          matched_at?: string | null;
           matched_invoice_id?: string | null;
           matched_line_id?: string | null;
           net?: number | null;
@@ -1778,6 +1797,7 @@ export type Database = {
           claim_status?: string | null;
           claim_year?: number | null;
           clinician_id?: string | null;
+          clinician_mismatch?: boolean;
           cpt_category?: string | null;
           cpt_code?: string | null;
           cpt_type?: string | null;
@@ -1800,7 +1820,9 @@ export type Database = {
           last_remitted?: number | null;
           last_resubmission_date?: string | null;
           last_seen_file_id?: string | null;
+          match_reason?: string | null;
           match_status?: string;
+          matched_at?: string | null;
           matched_invoice_id?: string | null;
           matched_line_id?: string | null;
           net?: number | null;
@@ -1920,6 +1942,52 @@ export type Database = {
           },
           {
             foreignKeyName: "ins_claim_activity_events_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      ins_staged_activities: {
+        Row: {
+          claim_activity_number: string;
+          created_at: string;
+          data: NonNullable<Json>;
+          file_id: string;
+          id: string;
+          org_id: string;
+          row_no: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          claim_activity_number: string;
+          created_at?: string;
+          data: NonNullable<Json>;
+          file_id: string;
+          id?: string;
+          org_id: string;
+          row_no: number;
+        };
+        Update: {
+          claim_activity_number?: string;
+          created_at?: string;
+          data?: NonNullable<Json>;
+          file_id?: string;
+          id?: string;
+          org_id?: string;
+          row_no?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ins_staged_activities_file_id_fkey";
+            columns: ["file_id"];
+            isOneToOne: false;
+            referencedRelation: "fin_raw_diligence_files";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ins_staged_activities_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
@@ -3623,7 +3691,7 @@ export type Database = {
         Returns: undefined;
       };
       fin_apply_invoices: {
-        Args: { p_batch_id: string; p_invoices: Json; p_org_id: string };
+        Args: { p_batch_id: string; p_duplicates?: number; p_invoices: Json; p_org_id: string };
         Returns: Json;
       };
       fin_auto_close_exceptions: {
@@ -3649,6 +3717,7 @@ export type Database = {
           series: string;
         }[];
       };
+      fin_maintenance_enqueue: { Args: Record<PropertyKey, never>; Returns: number };
       fin_open_exception: {
         Args: {
           p_branch_code?: string;
@@ -3663,6 +3732,25 @@ export type Database = {
       fin_rederive_branches: { Args: { p_org_id: string }; Returns: number };
       gen_random_uuid: { Args: Record<PropertyKey, never>; Returns: string };
       gen_salt: { Args: { "": string }; Returns: string };
+      ins_apply_matches: { Args: { p_matches: Json; p_org_id: string }; Returns: number };
+      ins_commit_import: {
+        Args: {
+          p_events: Json;
+          p_file_id: string;
+          p_missing: string[];
+          p_org_id: string;
+          p_raise_missing?: boolean;
+          p_rows: Json;
+          p_seen: string[];
+          p_user_id: string;
+        };
+        Returns: Json;
+      };
+      ins_discard_import: {
+        Args: { p_file_id: string; p_org_id: string; p_reason?: string };
+        Returns: undefined;
+      };
+      ins_purge_stale_staging: { Args: Record<PropertyKey, never>; Returns: number };
       job_archive: { Args: { p_msg_ids: number[]; p_queue: string }; Returns: number };
       job_cron_status: {
         Args: Record<PropertyKey, never>;

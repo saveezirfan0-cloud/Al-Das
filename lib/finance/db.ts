@@ -32,12 +32,13 @@ export function dbProcessDeps(admin: AdminClient): ProcessDeps {
         ? { id: data.id, orgId: data.org_id, payload: data.payload, recordCount: data.record_count }
         : null;
     },
-    apply: async (orgId, batchId, invoices) => {
+    apply: async (orgId, batchId, invoices, duplicates) => {
       const counts = must(
         await admin.rpc("fin_apply_invoices", {
           p_org_id: orgId,
           p_batch_id: batchId,
           p_invoices: invoices as unknown as Json,
+          p_duplicates: duplicates,
         }),
         "fin_apply_invoices",
       );

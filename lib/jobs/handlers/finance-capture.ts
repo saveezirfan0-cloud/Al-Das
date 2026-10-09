@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { runCaptureForOrg } from "@/lib/finance/db";
+import { runMaintenanceForOrg } from "@/lib/finance/maintenance-db";
 import { registerHandler } from "@/lib/jobs/registry";
 import { PermanentJobError } from "@/lib/jobs/types";
 
@@ -13,6 +14,8 @@ import { PermanentJobError } from "@/lib/jobs/types";
  * is true for the org and the capture lease is free.
  */
 const tick = z.object({ kind: z.literal("tick"), org_id: z.string().uuid() });
+const maintenance = z.object({ kind: z.literal("maintenance"), org_id: z.string().uuid() });
+const job = z.discriminatedUnion("kind", [tick, maintenance]);
 
 /** The jobs route allows 60 s; leave headroom for the final insert and lease release. */
 export const CAPTURE_BUDGET_MS = 45_000;
@@ -25,8 +28,14 @@ registerHandler({
   maxReads: 3,
   concurrency: "serial",
   async handler(raw, ctx) {
-    const parsed = tick.safeParse(raw);
+    const parsed = job.safeParse(raw);
     if (!parsed.success) throw new PermanentJobError("invalid finance_capture job");
+    if (parsed.data.kind === "maintenance") {
+      // Never calls Unite: strips old raw PII, re-matches claims, purges stale staging.
+      const m = await runMaintenanceForOrg(ctx.admin, parsed.data.org_id);
+      ctx.log.info("finance maintenance", m);
+      return;
+    }
     const result = await runCaptureForOrg(ctx.admin, parsed.data.org_id, CAPTURE_BUDGET_MS);
     ctx.log.info("finance capture", {
       status: result.status,

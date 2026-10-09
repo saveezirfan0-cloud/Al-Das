@@ -44,11 +44,12 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance batch processing", () => {
           }
         : null;
     },
-    apply: async (org, batch, invoices) => {
-      const { rows } = await q("select public.fin_apply_invoices($1, $2, $3::jsonb) as r", [
+    apply: async (org, batch, invoices, duplicates) => {
+      const { rows } = await q("select public.fin_apply_invoices($1, $2, $3::jsonb, $4) as r", [
         org,
         batch,
         JSON.stringify(invoices),
+        duplicates,
       ]);
       return rows[0].r;
     },
@@ -333,13 +334,56 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance batch processing", () => {
     });
   });
 
+  it("a duplicate invoice inside one batch keeps the last occurrence and does not block the batch", async () => {
+    await svc(async () => {
+      const id = await rawBatch(orgA, [
+        rawInvoice(),
+        rawInvoice({ NetAmount: "55.00", TotalAmount: "55.00" }),
+      ]);
+      const res = await processBatch(deps, id);
+      expect(res).toMatchObject({ ok: true, counts: { invoices: 1, duplicates: 1 } });
+      expect(Number((await inv(orgA)).net)).toBe(55);
+      expect(
+        (await q("select process_status from public.fin_raw_unite_batches where id = $1", [id]))
+          .rows[0].process_status,
+      ).toBe("processed");
+    });
+  });
+
+  it("a replay never blanks txn_ref_name (stripped payloads do not carry it)", async () => {
+    await svc(async () => {
+      await processBatch(
+        deps,
+        await rawBatch(
+          orgA,
+          [rawInvoice({ PaymentDetails: [rawPayment({ TxnRefName: "Test Holder" })] })],
+          "2026-10-01T10:00:00Z",
+        ),
+      );
+      await processBatch(
+        deps,
+        await rawBatch(
+          orgA,
+          [rawInvoice({ PaymentDetails: [rawPayment()] })],
+          "2026-10-02T10:00:00Z",
+        ),
+      );
+      expect((await q("select txn_ref_name from public.fin_payments")).rows[0].txn_ref_name).toBe(
+        "Test Holder",
+      );
+    });
+  });
+
   it("is atomic: a bad record rolls the whole batch back", async () => {
     await svc(async () => {
       const id = await rawBatch(orgA, [
         rawInvoice(),
         rawInvoice({ InvDisplayNumber: "ADMC/90002" }),
       ]);
-      const good = mapBatch([rawInvoice(), rawInvoice({ InvDisplayNumber: "ADMC/90002" })]);
+      const good = mapBatch([
+        rawInvoice(),
+        rawInvoice({ InvDisplayNumber: "ADMC/90002" }),
+      ]).invoices;
       (good[1].lines[0] as { line_key: string | null }).line_key = null; // violates NOT NULL inside the transaction
       await expect(
         q("select public.fin_apply_invoices($1, $2, $3::jsonb)", [orgA, id, JSON.stringify(good)]),
@@ -360,7 +404,7 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance batch processing", () => {
         undefined,
         2,
       );
-      const one = mapBatch([rawInvoice()]);
+      const one = mapBatch([rawInvoice()]).invoices;
       await expect(
         q("select public.fin_apply_invoices($1, $2, $3::jsonb)", [orgA, id, JSON.stringify(one)]),
       ).rejects.toThrow(/count mismatch/);
@@ -368,7 +412,9 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance batch processing", () => {
         q("select public.fin_apply_invoices($1, $2, $3::jsonb)", [
           orgB,
           id,
-          JSON.stringify(mapBatch([rawInvoice(), rawInvoice({ InvDisplayNumber: "ADMC/90002" })])),
+          JSON.stringify(
+            mapBatch([rawInvoice(), rawInvoice({ InvDisplayNumber: "ADMC/90002" })]).invoices,
+          ),
         ]),
       ).rejects.toThrow(/not found in org/);
       expect(await count(c, "select 1 from public.fin_invoices")).toBe(0);
@@ -512,6 +558,29 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance batch processing", () => {
         [orgA],
       );
     });
+  });
+
+  it("the daily maintenance message is enqueued once per org, enabled or not", async () => {
+    const run = () =>
+      svc(
+        async () => (await q("select public.fin_maintenance_enqueue() as n")).rows[0].n as number,
+      );
+    const orgs = (await q("select count(*)::int as n from public.fin_capture_settings")).rows[0]
+      .n as number;
+    expect(await run()).toBe(orgs);
+    expect(await run()).toBe(0);
+    const kinds = (
+      await q("select distinct message ->> 'kind' as k from pgmq.q_finance_capture")
+    ).rows.map((r) => r.k);
+    expect(kinds).toEqual(["maintenance"]);
+  });
+
+  it("new orgs start with one batch per run", async () => {
+    const { rows } = await q(
+      "select max_batches_per_run from public.fin_capture_settings where org_id = $1",
+      [orgA],
+    );
+    expect(rows[0].max_batches_per_run).toBe(1);
   });
 
   it("the hourly tick enqueues one message per ENABLED org, without duplicates", async () => {
