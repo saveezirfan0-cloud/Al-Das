@@ -563,6 +563,13 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "campaign_recipients_campaign_id_fkey";
+            columns: ["campaign_id"];
+            isOneToOne: false;
+            referencedRelation: "v_campaign_facts";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "campaign_recipients_contact_id_fkey";
             columns: ["contact_id"];
             isOneToOne: false;
@@ -7474,6 +7481,13 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "tasks_enquiry_id_fkey";
+            columns: ["enquiry_id"];
+            isOneToOne: false;
+            referencedRelation: "v_enquiry_facts";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "tasks_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
@@ -7702,6 +7716,13 @@ export type Database = {
             columns: ["enquiry_id"];
             isOneToOne: false;
             referencedRelation: "enquiries";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "timeline_events_enquiry_fk";
+            columns: ["enquiry_id"];
+            isOneToOne: false;
+            referencedRelation: "v_enquiry_facts";
             referencedColumns: ["id"];
           },
           {
@@ -8827,6 +8848,37 @@ export type Database = {
           },
         ];
       };
+      v_campaign_facts: {
+        Row: {
+          channel_id: string | null;
+          channel_name: string | null;
+          created_at: string | null;
+          day: string | null;
+          id: string | null;
+          name: string | null;
+          org_id: string | null;
+          placed_at: string | null;
+          started_at: string | null;
+          status: string | null;
+        };
+        ComputedFields: never;
+        Relationships: [
+          {
+            foreignKeyName: "campaigns_channel_id_fkey";
+            columns: ["channel_id"];
+            isOneToOne: false;
+            referencedRelation: "channels";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "campaigns_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       v_chronic_recall_eligibility: {
         Row: {
           contact_id: string | null;
@@ -8884,6 +8936,100 @@ export type Database = {
           },
           {
             foreignKeyName: "visits_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      v_enquiry_facts: {
+        Row: {
+          assignee_id: string | null;
+          closed_at: string | null;
+          closed_day: string | null;
+          created_at: string | null;
+          created_day: string | null;
+          est_value: number | null;
+          id: string | null;
+          org_id: string | null;
+          pipeline_id: string | null;
+          pipeline_name: string | null;
+          pipeline_sort: number | null;
+          stage_id: string | null;
+          stage_name: string | null;
+          stage_sort: number | null;
+          status: string | null;
+        };
+        ComputedFields: never;
+        Relationships: [
+          {
+            foreignKeyName: "enquiries_assignee_id_fkey";
+            columns: ["assignee_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "enquiries_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "enquiries_pipeline_id_fkey";
+            columns: ["pipeline_id"];
+            isOneToOne: false;
+            referencedRelation: "pipelines";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "enquiries_stage_id_fkey";
+            columns: ["stage_id"];
+            isOneToOne: false;
+            referencedRelation: "stages";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      v_enquiry_stage_entries: {
+        Row: {
+          at: string | null;
+          enquiry_id: string | null;
+          org_id: string | null;
+          stage_id: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          at?: string | null;
+          enquiry_id?: string | null;
+          org_id?: string | null;
+          stage_id?: never;
+        };
+        Update: {
+          at?: string | null;
+          enquiry_id?: string | null;
+          org_id?: string | null;
+          stage_id?: never;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "timeline_events_enquiry_fk";
+            columns: ["enquiry_id"];
+            isOneToOne: false;
+            referencedRelation: "enquiries";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "timeline_events_enquiry_fk";
+            columns: ["enquiry_id"];
+            isOneToOne: false;
+            referencedRelation: "v_enquiry_facts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "timeline_events_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
@@ -10047,6 +10193,24 @@ export type Database = {
           total: number;
         }[];
       };
+      report_campaigns: {
+        Args: { p_channels?: string[]; p_from: string; p_org: string; p_to: string };
+        Returns: {
+          campaign_id: string;
+          channel_name: string;
+          delivered: number;
+          eligible: number;
+          failed: number;
+          name: string;
+          read_count: number;
+          replied: number;
+          sent: number;
+          skipped: number;
+          started_at: string;
+          status: string;
+          total: number;
+        }[];
+      };
       report_conversations_by_channel: {
         Args: {
           p_channels?: string[];
@@ -10093,6 +10257,77 @@ export type Database = {
           returning_contacts: number;
           still_open: number;
           unique_contacts: number;
+        }[];
+      };
+      report_enquiries_by_day: {
+        Args: {
+          p_from: string;
+          p_org: string;
+          p_teams?: string[];
+          p_to: string;
+          p_users?: string[];
+        };
+        Returns: {
+          created: number;
+          day: string;
+          disqualified: number;
+          lost: number;
+          won: number;
+        }[];
+      };
+      report_enquiries_summary: {
+        Args: {
+          p_from: string;
+          p_org: string;
+          p_teams?: string[];
+          p_to: string;
+          p_users?: string[];
+        };
+        Returns: {
+          created: number;
+          disqualified: number;
+          lost: number;
+          open_now: number;
+          won: number;
+          won_value: number;
+        }[];
+      };
+      report_enquiry_funnel: {
+        Args: {
+          p_from: string;
+          p_org: string;
+          p_teams?: string[];
+          p_to: string;
+          p_users?: string[];
+        };
+        Returns: {
+          disqualified_here: number;
+          entered: number;
+          lost_here: number;
+          open_now: number;
+          pipeline_id: string;
+          pipeline_name: string;
+          stage_id: string;
+          stage_name: string;
+          won_here: number;
+        }[];
+      };
+      report_enquiry_stage_times: {
+        Args: {
+          p_from: string;
+          p_org: string;
+          p_teams?: string[];
+          p_to: string;
+          p_users?: string[];
+        };
+        Returns: {
+          avg_seconds: number;
+          median_seconds: number;
+          pipeline_id: string;
+          pipeline_name: string;
+          stage_id: string;
+          stage_name: string;
+          stays: number;
         }[];
       };
       report_heatmap: {

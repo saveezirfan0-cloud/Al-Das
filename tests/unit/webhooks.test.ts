@@ -239,3 +239,29 @@ describe("emit() hands events to webhook fan-out", () => {
   });
 });
 
+
+describe("enquiry, task and campaign payloads", () => {
+  it("keeps ids and enums, drops titles, reasons and names", () => {
+    const out = sanitizePayload({
+      enquiry_id: "e1",
+      number: 42,
+      title: "Amal Khan knee pain",
+      reason: "patient was rude about the price",
+      pipeline_id: "p1",
+      from_stage_id: "s1",
+      to_stage_id: "s2",
+      to_name: "Booked",
+      assignee_id: "u1",
+      from: "open",
+      to: "lost",
+      lost_reason: "went elsewhere",
+    });
+    expect(out).toEqual({ enquiry_id: "e1", number: 42, pipeline_id: "p1", from_stage_id: "s1", to_stage_id: "s2", assignee_id: "u1", from: "open", to: "lost" });
+  });
+
+  it("lists every enquiry, task and campaign event as subscribable", () => {
+    for (const name of ["enquiry.created", "enquiry.stage_changed", "enquiry.status_changed", "task.completed", "campaign.completed", "campaign.paused"]) {
+      expect(isWebhookEvent(name), name).toBe(true);
+    }
+  });
+});

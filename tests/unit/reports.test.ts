@@ -158,19 +158,16 @@ describe("registry", () => {
     expect(getReport("nope")).toBeUndefined();
   });
 
-  it("marks unimplemented reports as awaiting their phase, with the phase named", () => {
-    const awaiting = REPORTS.filter((r) => !r.run);
-    expect(awaiting.map((r) => r.key).sort()).toEqual(
-      ["campaigns", "enquiry-funnel", "enquiry-stage-time"].sort(),
-    );
-    for (const r of awaiting) expect(r.awaiting, r.key).toMatch(/Phase \d/);
+  it("has an implementation for every registered report; a report without one is awaiting its phase", () => {
+    // Every report is built now. A future report added without `run` must name its phase.
+    for (const r of REPORTS.filter((x) => !x.run)) expect(r.awaiting, r.key).toMatch(/Phase \d/);
+    expect(REPORTS.filter((r) => !r.run).map((r) => r.key)).toEqual([]);
+    expect(reportStatus({ ...getReport("campaigns")!, run: undefined, awaiting: "Phase 99" }, ["v_campaign_facts"])).toBe("awaiting");
   });
 
   it("is live only when implemented AND all source views exist", () => {
     const conversations = getReport("conversations")!;
     expect(reportStatus(conversations, [...conversations.requires, "other"])).toBe("live");
     expect(reportStatus(conversations, ["mv_conversation_facts"])).toBe("unavailable");
-    // An awaiting report stays awaiting even if a view with the expected name appears
-    expect(reportStatus(getReport("campaigns")!, ["mv_campaign_funnel"])).toBe("awaiting");
   });
 });
