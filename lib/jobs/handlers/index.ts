@@ -8,6 +8,7 @@ import "@/lib/jobs/handlers/media-fetch";
 import "@/lib/jobs/handlers/outbound";
 import "@/lib/jobs/handlers/inbox-housekeeping";
 import "@/lib/jobs/handlers/kb-ingest";
+import "@/lib/jobs/handlers/metrics-refresh";
 
 import { registerKind } from "@/lib/jobs/scheduler";
 

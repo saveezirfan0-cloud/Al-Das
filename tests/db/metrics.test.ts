@@ -316,4 +316,104 @@ describe.skipIf(!TEST_DATABASE_URL)("metrics views", () => {
       expect(rows.length).toBeGreaterThan(0);
     });
   });
+  describe("report functions", () => {
+    const FROM = "2026-01-11";
+    const TO = "2026-01-12";
+    const none = "00000000-0000-4000-8000-000000000000";
+    const call = async <T extends Record<string, unknown>>(fn: string, args: unknown[]) =>
+      q<T>(`select * from public.${fn}($1, $2, $3${args.length ? ", " + args.map((_, i) => `$${i + 4}`).join(", ") : ""})`, [orgA, FROM, TO, ...args]);
+
+    it("summarises conversations, contacts and messages for the period", async () => {
+      const [r] = await call<Record<string, number>>("report_conversations_summary", []);
+      expect(r).toEqual({
+        conversations: 3,
+        closed: 1,
+        still_open: 2,
+        unique_contacts: 2,
+        returning_contacts: 1,
+        inbound_messages: 3,
+        outbound_messages: 3,
+      });
+    });
+
+    it("returns one row per day, zero-filled, with closed counted on the day it closed", async () => {
+      const rows = await q<Record<string, number | string>>(
+        "select day::text, opened, closed, inbound_messages, outbound_messages from public.report_conversations_by_day($1, '2026-01-10', $2)",
+        [orgA, TO],
+      );
+      expect(rows).toEqual([
+        { day: "2026-01-10", opened: 0, closed: 0, inbound_messages: 0, outbound_messages: 0 },
+        { day: "2026-01-11", opened: 1, closed: 1, inbound_messages: 1, outbound_messages: 1 },
+        { day: "2026-01-12", opened: 2, closed: 0, inbound_messages: 2, outbound_messages: 2 },
+      ]);
+    });
+
+    it("groups by channel with names", async () => {
+      const rows = await call<{ channel_id: string; channel_name: string; conversations: number }>("report_conversations_by_channel", []);
+      expect(rows).toEqual([{ channel_id: channelA, channel_name: "A", conversations: 3 }]);
+    });
+
+    it("builds the weekday x hour heatmap in the org timezone (0 = Sunday)", async () => {
+      const rows = await call<{ dow: number; hour: number; inbound_messages: number }>("report_heatmap", []);
+      expect(rows).toEqual([
+        { dow: 0, hour: 3, inbound_messages: 1 }, // Sun 2026-01-11 03:30 Dubai
+        { dow: 1, hour: 10, inbound_messages: 1 }, // Mon 2026-01-12 10:00
+        { dow: 1, hour: 11, inbound_messages: 1 }, // Mon 11:00
+      ]);
+    });
+
+    it("computes response-time statistics and buckets", async () => {
+      const [r] = await call<Record<string, string | number | null>>("report_response_summary", []);
+      expect(r).toMatchObject({ conversations: 3, answered: 2, unanswered: 1, resolved: 1 });
+      expect(Number(r.fr_avg_seconds)).toBe(450);
+      expect(Number(r.fr_median_seconds)).toBe(450);
+      expect(Number(r.res_avg_seconds)).toBe(3600);
+      // 300s and 600s both fall in [5m, 15m)
+      expect(r).toMatchObject({ within_5m: 0, within_15m: 2, within_1h: 0, within_4h: 0, over_4h: 0 });
+    });
+
+    it("re-aggregates agents exactly and honours user and team filters", async () => {
+      const [a] = await call<Record<string, string | number | null>>("report_agents", []);
+      expect(a).toMatchObject({ user_id: alice, messages_sent: 2, first_responses: 2, conversations_closed: 1 });
+      expect(Number(a.avg_first_response_seconds)).toBe(450);
+      expect(Number(a.avg_resolution_seconds)).toBe(3600);
+      expect(await call("report_agents", [[bob]])).toHaveLength(0);
+      expect(await call("report_agents", [null, [none]])).toHaveLength(0); // a team nobody is in
+    });
+
+    it("applies channel and team filters to conversation numbers", async () => {
+      const [byChannel] = await call<Record<string, number>>("report_conversations_summary", [[none]]);
+      expect(byChannel.conversations).toBe(0);
+      const [byTeam] = await call<Record<string, number>>("report_conversations_summary", [null, [none]]);
+      expect(byTeam.conversations).toBe(0);
+      const [mine] = await call<Record<string, number>>("report_conversations_summary", [[channelA]]);
+      expect(mine.conversations).toBe(3);
+    });
+
+    it("reports outbound usage by day and in total", async () => {
+      const days = await q<Record<string, number | string>>(
+        "select day::text, template, free_form, failed from public.report_usage_by_day($1, $2, $3)",
+        [orgA, FROM, TO],
+      );
+      expect(days).toEqual([
+        { day: "2026-01-11", template: 0, free_form: 1, failed: 0 },
+        { day: "2026-01-12", template: 1, free_form: 1, failed: 0 },
+      ]);
+      const totals = await call<{ category: string; status: string; messages: number }>("report_usage_totals", []);
+      expect(totals).toEqual([
+        { category: "free_form", status: "sent", messages: 2 },
+        { category: "template", status: "sent", messages: 1 },
+      ]);
+    });
+
+    it("never mixes in another org and is closed to API roles", async () => {
+      const [other] = await q<Record<string, number>>("select * from public.report_conversations_summary($1, $2, $3)", [orgB, FROM, TO]);
+      expect(other.conversations).toBe(1);
+      await asUser(c, alice, async () => {
+        for (const fn of ["report_conversations_summary", "report_agents", "report_heatmap", "report_usage_totals"]) {
+          await expect(c.query(`select * from public.${fn}($1, $2, $3)`, [orgA, FROM, TO]), fn).rejects.toThrow(/permission denied/);
+        }
+      });
+    });
+  });
 });

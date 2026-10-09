@@ -2971,7 +2971,123 @@ export type Database = {
       pgp_armor_headers: { Args: { "": string }; Returns: Record<string, unknown>[] };
       pick_round_robin_assignee: { Args: { p_org_id: string; p_team_id: string }; Returns: string };
       refresh_metrics: { Args: { p_name?: string }; Returns: string[] };
+      report_agents: {
+        Args: {
+          p_from: string;
+          p_org: string;
+          p_teams?: string[];
+          p_to: string;
+          p_users?: string[];
+        };
+        Returns: {
+          avg_first_response_seconds: number;
+          avg_resolution_seconds: number;
+          conversations_closed: number;
+          first_responses: number;
+          messages_sent: number;
+          name: string;
+          user_id: string;
+        }[];
+      };
+      report_conversations_by_channel: {
+        Args: {
+          p_channels?: string[];
+          p_from: string;
+          p_org: string;
+          p_teams?: string[];
+          p_to: string;
+        };
+        Returns: {
+          channel_id: string;
+          channel_name: string;
+          conversations: number;
+        }[];
+      };
+      report_conversations_by_day: {
+        Args: {
+          p_channels?: string[];
+          p_from: string;
+          p_org: string;
+          p_teams?: string[];
+          p_to: string;
+        };
+        Returns: {
+          closed: number;
+          day: string;
+          inbound_messages: number;
+          opened: number;
+          outbound_messages: number;
+        }[];
+      };
+      report_conversations_summary: {
+        Args: {
+          p_channels?: string[];
+          p_from: string;
+          p_org: string;
+          p_teams?: string[];
+          p_to: string;
+        };
+        Returns: {
+          closed: number;
+          conversations: number;
+          inbound_messages: number;
+          outbound_messages: number;
+          returning_contacts: number;
+          still_open: number;
+          unique_contacts: number;
+        }[];
+      };
+      report_heatmap: {
+        Args: { p_channels?: string[]; p_from: string; p_org: string; p_to: string };
+        Returns: {
+          dow: number;
+          hour: number;
+          inbound_messages: number;
+        }[];
+      };
+      report_response_summary: {
+        Args: {
+          p_channels?: string[];
+          p_from: string;
+          p_org: string;
+          p_teams?: string[];
+          p_to: string;
+        };
+        Returns: {
+          answered: number;
+          conversations: number;
+          fr_avg_seconds: number;
+          fr_median_seconds: number;
+          fr_p90_seconds: number;
+          over_4h: number;
+          res_avg_seconds: number;
+          res_median_seconds: number;
+          resolved: number;
+          unanswered: number;
+          within_15m: number;
+          within_1h: number;
+          within_4h: number;
+          within_5m: number;
+        }[];
+      };
       report_sources_available: { Args: Record<PropertyKey, never>; Returns: string[] };
+      report_usage_by_day: {
+        Args: { p_channels?: string[]; p_from: string; p_org: string; p_to: string };
+        Returns: {
+          day: string;
+          failed: number;
+          free_form: number;
+          template: number;
+        }[];
+      };
+      report_usage_totals: {
+        Args: { p_channels?: string[]; p_from: string; p_org: string; p_to: string };
+        Returns: {
+          category: string;
+          messages: number;
+          status: string;
+        }[];
+      };
       set_presence: { Args: { p_org_id: string; p_presence: string }; Returns: undefined };
       show_limit: { Args: Record<PropertyKey, never>; Returns: number };
       show_trgm: { Args: { "": string }; Returns: string[] };
