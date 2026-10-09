@@ -12,7 +12,15 @@ import {
 } from "@/components/ui/table";
 import { requirePerm } from "@/lib/auth/session";
 import { getFinanceHealth } from "@/lib/finance/health";
-import { CaptureToggle, CredentialsForm, MaintenanceButtons, SettingsForm } from "./controls";
+import {
+  CaptureToggle,
+  CredentialsForm,
+  DigestToggle,
+  MaintenanceButtons,
+  SettingsForm,
+} from "./controls";
+import { evaluateAlerts } from "@/lib/finance/alerts";
+import { loadAlertSnapshot } from "@/lib/finance/alerts-db";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const metadata = { title: "Finance data health" };
@@ -30,7 +38,9 @@ function fmt(iso: string | null | undefined) {
 
 export default async function FinanceHealthPage() {
   const member = await requirePerm("finance.capture.manage");
-  const health = await getFinanceHealth(createAdminClient(), member.orgId);
+  const admin = createAdminClient();
+  const health = await getFinanceHealth(admin, member.orgId);
+  const alerts = evaluateAlerts(await loadAlertSnapshot(admin, member.orgId));
 
   return (
     <div className="flex flex-col gap-6">
@@ -38,6 +48,39 @@ export default async function FinanceHealthPage() {
         title="Data health"
         description="Unite capture, the Diligence import and reference-data gaps."
       />
+
+      {alerts.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Active alerts</CardTitle>
+            <CardDescription>
+              The same checks run every hour and notify everyone with Data health access, once per
+              problem.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            {alerts.map((a) => (
+              <Alert key={a.key} variant={a.severity === "critical" ? "destructive" : "default"}>
+                <AlertTitle>
+                  {a.title}{" "}
+                  <Badge
+                    variant={
+                      a.severity === "critical"
+                        ? "destructive"
+                        : a.severity === "warning"
+                          ? "warning"
+                          : "secondary"
+                    }
+                  >
+                    {a.severity}
+                  </Badge>
+                </AlertTitle>
+                <AlertDescription>{a.body}</AlertDescription>
+              </Alert>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {!health.captureEnabled && (
         <Alert>
@@ -260,6 +303,7 @@ export default async function FinanceHealthPage() {
             windowFrom={health.windowFrom}
           />
           <MaintenanceButtons />
+          <DigestToggle enabled={health.digestEnabled} />
         </CardContent>
       </Card>
 

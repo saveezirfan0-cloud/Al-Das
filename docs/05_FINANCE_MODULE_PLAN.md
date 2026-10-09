@@ -71,6 +71,11 @@ Rules: raw first (if the raw insert fails, process nothing, raise a critical ale
 | `appt.appointments`                                                     | Decided in F3: the platform `appointments` table if it exists, otherwise a thin reference table                                                                      |
 | Feature flag                                                            | Per-org `fin_capture_settings.enabled`, default **false**                                                                                                            |
 
+### F6 as built
+
+- **Alerts** (`lib/finance/alerts.ts`, hourly `pulse:finance_alerts` → `finance_capture` queue kind `alerts`; never calls Unite): `capture_failed` (unprocessed / failed batch or open capture exception, critical), `capture_stalled` (balance not dropping, critical), `capture_silent` (no capture for more than 3 h = warning, more than 6 h = critical), `no_diligence_upload` (more than 8 days, warning; only once the module is in use), `overdue_exceptions` (info, above 20). Sent in-app to everyone with `finance.capture.manage`; critical ones and their "resolved" notices also by e-mail. Each problem is announced once, again if it gets worse, reminded after 24 h while it lasts (warning and critical), and a critical one that clears sends one resolved notice. State lives in `fin_alert_state` (service role only). Texts hold counts and times only.
+- Data health shows the active alerts, and has an on / off switch for the daily exception digest.
+
 ### F5 as built
 
 - **Rules engine** `fin_run_exception_rules(org)` (SQL, set-based, idempotent) reads thresholds from `fin_ref_exception_rules`. It opens what should be open (capped at 1,000 new per rule per run), and auto-closes whatever no longer applies. Daily in the maintenance job, after every Diligence commit, and from "Run rules now". E06 (import), E07/E09 (processing, capture failure) and E10 (invalid file) are raised where they happen; the engine adds a safety net for E07 and the invoice-number gap check for E09.

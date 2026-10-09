@@ -55,5 +55,11 @@
 25. **Rule guards are deliberate.** E01 is silent unless a Diligence file was committed in the last 14 days; E02 and gap exceptions are silent until the Unite backlog is drained; E08 ignores invoices before the first synced appointment. They stop false alarms during start-up. Tell us if the 14 days should change (it is a constant in `fin_rules_context`).
 26. **Thresholds are placeholders** (E01 30, E04 14, E05 60 days, due in 7 days). Agree them with Sharaf and Finance, then edit them at Finance → Reference data → Exception rules.
 27. **Exception volume.** Up to 1,000 new exceptions per rule per run. If the first run after the backfill opens that many, work them in order or raise the thresholds.
-28. **Digest** is off by default; switch it on with `update fin_capture_settings set digest_enabled = true where org_id = …` (a UI toggle is not built).
+28. **Digest** is off by default; switch it on at Finance → Data health → Capture controls.
 29. **Pages not driven in a browser** (no auth stack in the build environment): please click through Exceptions, Invoices, Summary, Reference and Upload once on a dev stack with seeded data.
+
+## Added in F6
+
+30. **Alert thresholds are constants** in `lib/finance/alerts.ts` (silent capture 3 h / 6 h, no upload 8 days, overdue above 20, reminder every 24 h). Tell us if they should change.
+31. **Alert recipients** are members whose role holds `finance.capture.manage` (Admin by default). E-mail goes through the existing notifications queue, so `RESEND_API_KEY` must be set for e-mail to leave the system; in-app notices work without it.
+32. **Human step left from the brief:** review the monthly summary with Saeed against one closed month before relying on the numbers.

@@ -550,6 +550,36 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance exception rules", () => {
       });
     });
 
+    it("fin_alerts_enqueue queues one alerts message per org without duplicates; fin_alert_state is closed to members", async () => {
+      await q("delete from pgmq.q_finance_capture");
+      const run = () =>
+        svc(async () => (await q("select public.fin_alerts_enqueue() as n")).rows[0].n as number);
+      const orgs = (await q("select count(*)::int n from public.fin_capture_settings")).rows[0]
+        .n as number;
+      expect(await run()).toBe(orgs);
+      expect(await run()).toBe(0);
+      const kinds = (
+        await q("select distinct message ->> 'kind' k from pgmq.q_finance_capture")
+      ).rows.map((r) => r.k);
+      expect(kinds).toEqual(["alerts"]);
+      await q("delete from pgmq.q_finance_capture");
+      await svc(async () => {
+        await q(
+          "insert into public.fin_alert_state (org_id, alert_key, severity) values ($1,'capture_failed','critical')",
+          [orgA],
+        );
+      });
+      await asUser(c, admin, async () => {
+        expect(await count(c, "select 1 from public.fin_alert_state")).toBe(0);
+        await expect(
+          q(
+            "insert into public.fin_alert_state (org_id, alert_key, severity) values ($1,'x','info')",
+            [orgA],
+          ),
+        ).rejects.toThrow();
+      });
+    });
+
     it("digests are off by default", async () => {
       const { rows } = await q(
         "select digest_enabled from public.fin_capture_settings where org_id = $1",

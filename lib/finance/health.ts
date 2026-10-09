@@ -28,6 +28,7 @@ export type FinanceHealth = {
   unmappedServices: number;
   unknownClinicInvoices: number;
   maxBatchesPerRun: number;
+  digestEnabled: boolean;
   /** Credentials metadata only; secrets never leave the server. */
   integration: {
     configured: boolean;
@@ -163,7 +164,8 @@ export async function getFinanceHealth(admin: AdminClient, orgId: string): Promi
       : null,
     unmappedServices: unmapped.count ?? 0,
     unknownClinicInvoices: unknown.count ?? 0,
-    maxBatchesPerRun: settings.data?.max_batches_per_run ?? 10,
+    maxBatchesPerRun: settings.data?.max_batches_per_run ?? 1,
+    digestEnabled: settings.data?.digest_enabled ?? false,
     integration: {
       configured: !!account.data,
       status: account.data?.status ?? null,

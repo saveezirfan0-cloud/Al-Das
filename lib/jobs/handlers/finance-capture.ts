@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { runAlertsForOrg } from "@/lib/finance/alerts-db";
 import { runCaptureForOrg } from "@/lib/finance/db";
 import { runMaintenanceForOrg } from "@/lib/finance/maintenance-db";
 import { registerHandler } from "@/lib/jobs/registry";
@@ -15,7 +16,8 @@ import { PermanentJobError } from "@/lib/jobs/types";
  */
 const tick = z.object({ kind: z.literal("tick"), org_id: z.string().uuid() });
 const maintenance = z.object({ kind: z.literal("maintenance"), org_id: z.string().uuid() });
-const job = z.discriminatedUnion("kind", [tick, maintenance]);
+const alerts = z.object({ kind: z.literal("alerts"), org_id: z.string().uuid() });
+const job = z.discriminatedUnion("kind", [tick, maintenance, alerts]);
 
 /** The jobs route allows 60 s; leave headroom for the final insert and lease release. */
 export const CAPTURE_BUDGET_MS = 45_000;
@@ -30,6 +32,12 @@ registerHandler({
   async handler(raw, ctx) {
     const parsed = job.safeParse(raw);
     if (!parsed.success) throw new PermanentJobError("invalid finance_capture job");
+    if (parsed.data.kind === "alerts") {
+      // Reads our own tables and notifies admins; never calls Unite.
+      const a = await runAlertsForOrg(ctx.admin, parsed.data.org_id);
+      ctx.log.info("finance alerts", a);
+      return;
+    }
     if (parsed.data.kind === "maintenance") {
       // Never calls Unite: strips old raw PII, re-matches claims, purges stale staging.
       const m = await runMaintenanceForOrg(ctx.admin, parsed.data.org_id);

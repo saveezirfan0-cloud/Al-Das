@@ -127,3 +127,15 @@ Open **Finance → Exceptions**. You only see the queues your role owns. Every i
 | **Admin (Saveez)**                   | E07 unknown clinic, E08 appointment not found, E09 capture problems and invoice-number gaps                                                             | Data health every morning during the backfill; reprocess failed batches; map clinic names in Reference data                                                                             |
 
 If an exception keeps coming back, the cause is not fixed yet (the rule is evaluated every day and after each upload). To pause a noisy rule, switch it off under Reference data → Exception rules.
+
+## 9. Alerts: what the messages mean
+
+Admins get an in-app notice (and an e-mail for critical ones) once per problem, a reminder after 24 hours while it lasts, and one notice when it clears. Active alerts also show at the top of Finance → Data health.
+
+| Alert                                           | Meaning                                                                                                                | What to do                                                                                                                  |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Unite capture needs attention (critical)        | A batch failed or is unprocessed, or a capture exception is open. Capture will not pull more records until it is fixed | Data health → read the batch error → fix the mapping → Reprocess. If a response was lost, ask Unite to re-queue that window |
+| Remaining balance is not dropping (critical)    | Records come back but the number waiting at Unite does not fall                                                        | Switch capture off, read the batch log, raise with Unite                                                                    |
+| Capture has gone quiet (warning, then critical) | Capture is on but nothing has been captured for more than 3 hours (6 for critical)                                     | System health: is the cron running? Are the credentials valid?                                                              |
+| No Diligence upload in over 8 days (warning)    | Claim statuses and ageing are getting stale                                                                            | Sharaf uploads the unfiltered claims report                                                                                 |
+| Many exceptions overdue (info)                  | More than 20 exceptions are past due                                                                                   | Finance → Exceptions, filter on overdue                                                                                     |

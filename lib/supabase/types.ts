@@ -1642,6 +1642,42 @@ export type Database = {
           },
         ];
       };
+      fin_alert_state: {
+        Row: {
+          alert_key: string;
+          cleared_at: string | null;
+          first_seen_at: string;
+          last_notified_at: string | null;
+          org_id: string;
+          severity: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          alert_key: string;
+          cleared_at?: string | null;
+          first_seen_at?: string;
+          last_notified_at?: string | null;
+          org_id: string;
+          severity: string;
+        };
+        Update: {
+          alert_key?: string;
+          cleared_at?: string | null;
+          first_seen_at?: string;
+          last_notified_at?: string | null;
+          org_id?: string;
+          severity?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_alert_state_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       fin_capture_lease: {
         Row: {
           holder: string;
@@ -5883,6 +5919,7 @@ export type Database = {
         Args: { p_error: string; p_id: string; p_retry_in?: string };
         Returns: undefined;
       };
+      fin_alerts_enqueue: { Args: Record<PropertyKey, never>; Returns: number };
       fin_apply_invoices: {
         Args: { p_batch_id: string; p_duplicates?: number; p_invoices: Json; p_org_id: string };
         Returns: Json;
