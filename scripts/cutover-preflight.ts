@@ -163,7 +163,7 @@ async function main() {
   });
   if (snapErr || !snap)
     throw new Error(
-      `reconcile_snapshot failed (is migration 20261008001100 applied?): ${snapErr?.message ?? "no data"}`,
+      `reconcile_snapshot failed (is migration 20261009000800 applied?): ${snapErr?.message ?? "no data"}`,
     );
   const s = snap as unknown as { contacts_live: number; reviews_open: Record<string, number> };
   const [{ count: loadTest }, { count: admins }, { count: failed24 }] = await Promise.all([

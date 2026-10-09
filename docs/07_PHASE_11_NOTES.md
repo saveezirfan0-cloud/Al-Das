@@ -7,7 +7,7 @@ The repository contains Phases 1–3 only (tenancy, jobs, CRM and importers, Wha
 | Checklist item | Status |
 |---|---|
 | RLS on every table + cross-org suite | Done: `tests/db/security-guard.test.ts` (catalog rules + a sweep of every org-scoped table) |
-| Service-role usage audited | Done, with a standing risk: static test over all 96 entry points; org filtering is still by convention ([`audit/security-pass.md`](audit/security-pass.md)) |
+| Service-role usage audited | Done, with a standing risk: static test over all 101 entry points; org filtering is still by convention ([`audit/security-pass.md`](audit/security-pass.md)) |
 | Tokens encrypted | Done and tested; nothing new to encrypt until Unite lands (Phase 6) |
 | Webhook signatures checked | Done: route-level tests, 1 MiB cap |
 | Rate limits on the public API | Limiter built and applied to auth, export and failed-signature paths; the public API itself does not exist (Phase 10) |
@@ -18,7 +18,7 @@ The repository contains Phases 1–3 only (tenancy, jobs, CRM and importers, Wha
 
 ## New and changed code
 
-- **Migrations** `20261008001000_hardening` (rate limiter, append-only `audit_log`, revoke `anon` on two RPCs, send-slot reservation `reserve_send_slot` + `channel_send_cursor` + `channel_send_slots.booked`, `job_next_due`) and `20261008001100_reconcile` (`reconcile_snapshot`, counts only).
+- **Migrations** `20261009000700_hardening` (rate limiter, append-only `audit_log`, revoke `anon` on two RPCs, send-slot reservation `reserve_send_slot` + `channel_send_cursor` + `channel_send_slots.booked`, `job_next_due`) and `20261009000800_reconcile` (`reconcile_snapshot`, counts only).
 - **Libraries** `lib/rate-limit.ts`, `lib/redact.ts`, `lib/inbox/media-path.ts`, `lib/jobs/pacing.ts`, `lib/security/{static-audit,policy}.ts`, `lib/load/{stats,synthetic}.ts`, `lib/migration/reconcile.ts`, `lib/cutover/preflight.ts`.
 - **Behaviour changes in Phase 1–3 code** (all covered by tests): job route drains until idle (`drainQueueUntilIdle`); outbound bulk lane books send slots instead of polling and uses 80 % of the number's limit; media paths validated; audit rows added to configuration actions; redaction on persisted errors; security headers; limiter calls in login, magic link, invite, onboarding, export, webhook and job routes.
 - **Scripts** `audit-security`, `reconcile`, `cutover-preflight`, `load/{webhook-burst,outbound-20k,mock-graph}`; both importers now also write `import-summary-*.json`.

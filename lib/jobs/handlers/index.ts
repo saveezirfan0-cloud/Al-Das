@@ -3,6 +3,7 @@
  * scheduled-job route. The jobs API route imports it once per process.
  */
 import "@/lib/jobs/handlers/notifications";
+import "@/lib/jobs/handlers/finance-capture";
 import "@/lib/jobs/handlers/meta-events";
 import "@/lib/jobs/handlers/media-fetch";
 import "@/lib/jobs/handlers/outbound";
