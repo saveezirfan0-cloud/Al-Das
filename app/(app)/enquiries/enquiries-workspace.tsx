@@ -29,7 +29,13 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 import { saveGridPrefs, type GridPrefs } from "../contacts/actions";
-import { loadBoard, loadTable, moveStageAction } from "./actions";
+import {
+  contactOption,
+  loadBoard,
+  loadTable,
+  moveStageAction,
+  type ContactOption,
+} from "./actions";
 import { BulkBar } from "./bulk-bar";
 import { buildEnquiryColumns } from "./enquiries-table";
 import { EnquiryDrawer } from "./enquiry-drawer";
@@ -53,9 +59,12 @@ export function EnquiriesWorkspace({ bootstrap }: { bootstrap: EnquiriesBootstra
   const [viewId, setViewId] = React.useState<string | null>(null);
   const [search, setSearch] = React.useState("");
   const [reloadKey, setReloadKey] = React.useState(0);
-  const [newOpen, setNewOpen] = React.useState<{ open: boolean; stageId?: string }>({
-    open: false,
-  });
+  const [newOpen, setNewOpen] = React.useState<{
+    open: boolean;
+    stageId?: string;
+    contact?: ContactOption | null;
+  }>({ open: false });
+  const newFor = params.get("new");
 
   // Board
   const [columns, setColumns] = React.useState<BoardColumn[]>([]);
@@ -149,6 +158,24 @@ export function EnquiriesWorkspace({ bootstrap }: { bootstrap: EnquiriesBootstra
     const qs = next.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   }
+
+  // "/enquiries?new=<contactId>" (from the inbox or a patient record) opens New enquiry for that patient.
+  React.useEffect(() => {
+    if (!newFor || !bootstrap.can.manage) return;
+    let cancelled = false;
+    void contactOption(newFor).then((r) => {
+      if (cancelled) return;
+      if (r.ok && r.contact) setNewOpen({ open: true, contact: r.contact });
+      else toast.error(r.ok ? "That patient was not found." : r.error);
+      const next = new URLSearchParams(window.location.search);
+      next.delete("new");
+      const qs = next.toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [newFor, bootstrap.can.manage, pathname, router]);
 
   // Board data
   React.useEffect(() => {
@@ -506,12 +533,13 @@ export function EnquiriesWorkspace({ bootstrap }: { bootstrap: EnquiriesBootstra
 
       {bootstrap.can.manage && (
         <NewEnquiryDialog
-          key={`${newOpen.open}:${newOpen.stageId ?? ""}:${pipeline.id}`}
+          key={`${newOpen.open}:${newOpen.stageId ?? ""}:${newOpen.contact?.id ?? ""}:${pipeline.id}`}
           bootstrap={bootstrap}
           open={newOpen.open}
           onOpenChange={(o) => setNewOpen((s) => ({ ...s, open: o }))}
           pipelineId={pipeline.id}
           stageId={newOpen.stageId}
+          contact={newOpen.contact}
           onCreated={(id) => {
             reload();
             setParam({ enquiry: id });

@@ -77,6 +77,29 @@ export type DataGridProps<T extends { id: string }> = {
 const PAGE_SIZES = [50, 100, 200, 500];
 
 /**
+ * Header content: a button only when the column sorts. Non-sortable headers (the select-all
+ * checkbox) must not be a button, because a button cannot contain another button.
+ */
+function HeaderBox({
+  sortable,
+  onClick,
+  className,
+  children,
+}: {
+  sortable: boolean;
+  onClick: () => void;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  if (!sortable) return <div className={className}>{children}</div>;
+  return (
+    <button type="button" onClick={onClick} className={className}>
+      {children}
+    </button>
+  );
+}
+
+/**
  * Virtualised, server-paginated grid on TanStack Table: resizable columns with
  * persisted widths, a column chooser, server-side sorting and row selection.
  */
@@ -199,9 +222,8 @@ export function DataGrid<T extends { id: string }>(props: DataGridProps<T>) {
                       className="text-muted-foreground group relative h-9 px-2 text-left text-xs font-medium whitespace-nowrap select-none"
                     >
                       {header.isPlaceholder ? null : (
-                        <button
-                          type="button"
-                          disabled={!sortable}
+                        <HeaderBox
+                          sortable={sortable}
                           onClick={() => {
                             if (!sortable) return;
                             onSortingChange(
@@ -226,7 +248,7 @@ export function DataGrid<T extends { id: string }>(props: DataGridProps<T>) {
                             ) : (
                               <ArrowUp className="size-3" />
                             ))}
-                        </button>
+                        </HeaderBox>
                       )}
                       {header.column.getCanResize() && (
                         <div

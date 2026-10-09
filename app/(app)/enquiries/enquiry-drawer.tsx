@@ -30,6 +30,7 @@ import type { EnquiryStatus } from "@/lib/enquiries/status";
 import { formatPhone } from "@/lib/phone";
 
 import { CustomFieldInput } from "../contacts/custom-field-input";
+import { TaskChecklist } from "../tasks/task-checklist";
 import { listContactConversations } from "../inbox/actions";
 import {
   getEnquiryDetail,
@@ -380,6 +381,11 @@ export function EnquiryDrawer({
                   <TabsTrigger value="details">Details</TabsTrigger>
                   <TabsTrigger value="timeline">Timeline</TabsTrigger>
                   <TabsTrigger value="inbox">Inbox</TabsTrigger>
+                  {bootstrap.can.tasks && (
+                    <TabsTrigger value="tasks">
+                      Tasks{detail && detail.tasks.length > 0 ? ` (${detail.tasks.length})` : ""}
+                    </TabsTrigger>
+                  )}
                 </TabsList>
 
                 <TabsContent value="details" className="flex flex-col gap-4 pt-3">
@@ -587,6 +593,19 @@ export function EnquiryDrawer({
                     ))}
                   </ol>
                 </TabsContent>
+
+                {bootstrap.can.tasks && (
+                  <TabsContent value="tasks" className="pt-3">
+                    <TaskChecklist
+                      tasks={detail?.tasks ?? []}
+                      link={{ enquiry_id: row.id, contact_id: row.contact_id }}
+                      users={bootstrap.users}
+                      timezone={tz}
+                      canManage
+                      onChanged={refresh}
+                    />
+                  </TabsContent>
+                )}
 
                 <TabsContent value="inbox" className="pt-3">
                   {!row.contact_id && (

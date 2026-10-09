@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { recordAudit } from "@/lib/audit";
 import { can } from "@/lib/auth/can";
-import { requirePerm } from "@/lib/auth/session";
+import { requireMember, requirePerm } from "@/lib/auth/session";
 import { contactDisplayName } from "@/lib/inbox/contact-name";
 import { isSortable } from "@/lib/enquiries/columns";
 import { enquiryFilterSchema, searchTerm, type EnquiryFilter } from "@/lib/enquiries/filter";
@@ -105,14 +105,37 @@ export async function getEnquiryDetail(id: string): Promise<ActionResult<Enquiry
   return { ok: true, row, timeline, tasks };
 }
 
+/** Enquiries of one patient, for the contact drawer and the inbox sidebar. Soft-fails without permission. */
 export async function enquiriesForContactAction(
   contactId: string,
-): Promise<ActionResult<{ rows: EnquiryRow[] }>> {
-  const member = await requirePerm("enquiries.view");
+): Promise<ActionResult<{ rows: EnquiryRow[]; canCreate: boolean }>> {
+  const member = await requireMember();
+  if (!can(member, "enquiries.view")) return bad("You do not have access to enquiries.");
   if (!uuid.safeParse(contactId).success) return bad();
   return {
     ok: true,
     rows: await service.enquiriesForContact(createAdminClient(), member.orgId, contactId),
+    canCreate: can(member, "enquiries.manage"),
+  };
+}
+
+/** Name + phone of one patient, to prefill "New enquiry" from a link. */
+export async function contactOption(
+  contactId: string,
+): Promise<ActionResult<{ contact: ContactOption | null }>> {
+  const member = await requirePerm("enquiries.manage");
+  if (!can(member, "contacts.view")) return bad("You cannot look up patients.");
+  if (!uuid.safeParse(contactId).success) return bad();
+  const { data } = await createAdminClient()
+    .from("contacts")
+    .select("id, first_name, last_name, wa_profile_name, phone_e164")
+    .eq("org_id", member.orgId)
+    .eq("id", contactId)
+    .is("deleted_at", null)
+    .maybeSingle();
+  return {
+    ok: true,
+    contact: data ? { id: data.id, name: contactDisplayName(data), phone: data.phone_e164 } : null,
   };
 }
 

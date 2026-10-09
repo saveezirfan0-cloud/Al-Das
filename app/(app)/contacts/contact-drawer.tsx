@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import { describeActivity } from "@/lib/enquiries/export";
+import { ContactEnquiries } from "../enquiries/contact-enquiries";
 import { ContactAppointments } from "./contact-appointments";
 import { ContactConversations } from "./contact-conversations";
 import { Loader2, MessageSquare, Phone, Plus, Save, Star, Trash2, GitMerge } from "lucide-react";
@@ -74,6 +76,14 @@ const EVENT_LABELS: Record<string, string> = {
   "phone.removed": "Alternate phone removed",
   "phone.primary_changed": "Primary phone changed",
   note: "Note",
+  "enquiry.created": "Enquiry created",
+  "enquiry.updated": "Enquiry updated",
+  "enquiry.stage_changed": "Enquiry stage changed",
+  "enquiry.pipeline_changed": "Enquiry moved to another pipeline",
+  "enquiry.status_changed": "Enquiry status changed",
+  "enquiry.assigned": "Enquiry assignment changed",
+  "task.created": "Task added",
+  "task.completed": "Task completed",
 };
 
 export function ContactDrawer({
@@ -438,7 +448,7 @@ export function ContactDrawer({
                   <ContactConversations contactId={contact.id} />
                 </TabsContent>
                 <TabsContent value="enquiries" className="pt-3">
-                  <Placeholder text="Enquiries linked to this contact appear here (Phase 5)." />
+                  <ContactEnquiries contactId={contact.id} />
                 </TabsContent>
                 <TabsContent value="appointments" className="pt-3">
                   <ContactAppointments contactId={contact.id} />
@@ -492,6 +502,10 @@ function TimelinePayload({ type, payload }: { type: string; payload: unknown }) 
         ))}
       </ul>
     );
+  }
+  if (type.startsWith("enquiry.")) {
+    const text = describeActivity(type, payload);
+    if (text) return <p className="text-muted-foreground mt-1 text-xs">{text}</p>;
   }
   return null;
 }

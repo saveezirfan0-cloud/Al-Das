@@ -20,6 +20,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
+import { ContactEnquiries } from "../enquiries/contact-enquiries";
 import { mergeContacts, updateContactFromInbox } from "./actions";
 import { MediaBubble } from "./media-bubble";
 import type { ConversationDetail, InboxProps } from "./types";
@@ -263,9 +264,17 @@ export function Sidebar({
             )}
           </TabsContent>
           <TabsContent value="more" className="flex flex-col gap-2 px-3 pb-4">
-            <Button variant="outline" size="sm" disabled title="Enquiries arrive in Phase 5">
-              <KanbanSquare /> Create enquiry
-            </Button>
+            {perms.enquiriesManage ? (
+              <Button variant="outline" size="sm" asChild>
+                <Link href={`/enquiries?new=${c.id}`}>
+                  <KanbanSquare /> Create enquiry
+                </Link>
+              </Button>
+            ) : (
+              <Button variant="outline" size="sm" disabled title="You need permission to create enquiries">
+                <KanbanSquare /> Create enquiry
+              </Button>
+            )}
             {perms.appointmentsManage ? (
               <Button variant="outline" size="sm" asChild>
                 <Link href={`/appointments?new=${c.id}`}>
@@ -277,7 +286,12 @@ export function Sidebar({
                 <CalendarPlus /> Book appointment
               </Button>
             )}
-            <p className="text-muted-foreground text-[11px]">Enquiries (Phase 5) plug in here.</p>
+            {perms.enquiriesView && (
+              <div className="mt-2 flex flex-col gap-1">
+                <h4 className="text-xs font-medium">Enquiries</h4>
+                <ContactEnquiries contactId={c.id} />
+              </div>
+            )}
           </TabsContent>
         </ScrollArea>
       </Tabs>
