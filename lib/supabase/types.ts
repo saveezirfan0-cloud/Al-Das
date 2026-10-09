@@ -1594,6 +1594,311 @@ export type Database = {
           },
         ];
       };
+      enquiries: {
+        Row: {
+          appointment_at: string | null;
+          assignee_id: string | null;
+          channel_id: string | null;
+          closed_at: string | null;
+          contact_id: string | null;
+          created_at: string;
+          created_by: string | null;
+          custom: NonNullable<Json>;
+          department_id: string | null;
+          est_value: number | null;
+          id: string;
+          location_id: string | null;
+          lost_reason: string | null;
+          number: number;
+          org_id: string;
+          pipeline_id: string;
+          service_id: string | null;
+          sla_alerted_at: string | null;
+          source: string | null;
+          specialist_id: string | null;
+          stage_entered_at: string;
+          stage_id: string;
+          status: string;
+          title: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          appointment_at?: string | null;
+          assignee_id?: string | null;
+          channel_id?: string | null;
+          closed_at?: string | null;
+          contact_id?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          custom?: NonNullable<Json>;
+          department_id?: string | null;
+          est_value?: number | null;
+          id?: string;
+          location_id?: string | null;
+          lost_reason?: string | null;
+          number?: number;
+          org_id: string;
+          pipeline_id: string;
+          service_id?: string | null;
+          sla_alerted_at?: string | null;
+          source?: string | null;
+          specialist_id?: string | null;
+          stage_entered_at?: string;
+          stage_id: string;
+          status?: string;
+          title?: string;
+          updated_at?: string;
+        };
+        Update: {
+          appointment_at?: string | null;
+          assignee_id?: string | null;
+          channel_id?: string | null;
+          closed_at?: string | null;
+          contact_id?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          custom?: NonNullable<Json>;
+          department_id?: string | null;
+          est_value?: number | null;
+          id?: string;
+          location_id?: string | null;
+          lost_reason?: string | null;
+          number?: number;
+          org_id?: string;
+          pipeline_id?: string;
+          service_id?: string | null;
+          sla_alerted_at?: string | null;
+          source?: string | null;
+          specialist_id?: string | null;
+          stage_entered_at?: string;
+          stage_id?: string;
+          status?: string;
+          title?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "enquiries_assignee_id_fkey";
+            columns: ["assignee_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "enquiries_channel_id_fkey";
+            columns: ["channel_id"];
+            isOneToOne: false;
+            referencedRelation: "channels";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "enquiries_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "enquiries_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "enquiries_department_id_fkey";
+            columns: ["department_id"];
+            isOneToOne: false;
+            referencedRelation: "departments";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "enquiries_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "enquiries_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "enquiries_pipeline_id_fkey";
+            columns: ["pipeline_id"];
+            isOneToOne: false;
+            referencedRelation: "pipelines";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "enquiries_service_id_fkey";
+            columns: ["service_id"];
+            isOneToOne: false;
+            referencedRelation: "services";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "enquiries_specialist_id_fkey";
+            columns: ["specialist_id"];
+            isOneToOne: false;
+            referencedRelation: "specialists";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "enquiries_stage_id_fkey";
+            columns: ["stage_id"];
+            isOneToOne: false;
+            referencedRelation: "stages";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      enquiry_counters: {
+        Row: {
+          last_number: number;
+          org_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          last_number?: number;
+          org_id: string;
+        };
+        Update: {
+          last_number?: number;
+          org_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "enquiry_counters_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: true;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      enquiry_stage_history: {
+        Row: {
+          enquiry_id: string;
+          entered_at: string;
+          id: string;
+          left_at: string | null;
+          org_id: string;
+          stage_id: string | null;
+          stage_name: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          enquiry_id: string;
+          entered_at?: string;
+          id?: string;
+          left_at?: string | null;
+          org_id: string;
+          stage_id?: string | null;
+          stage_name: string;
+        };
+        Update: {
+          enquiry_id?: string;
+          entered_at?: string;
+          id?: string;
+          left_at?: string | null;
+          org_id?: string;
+          stage_id?: string | null;
+          stage_name?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "enquiry_stage_history_enquiry_id_fkey";
+            columns: ["enquiry_id"];
+            isOneToOne: false;
+            referencedRelation: "enquiries";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "enquiry_stage_history_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "enquiry_stage_history_stage_id_fkey";
+            columns: ["stage_id"];
+            isOneToOne: false;
+            referencedRelation: "stages";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      enquiry_views: {
+        Row: {
+          columns: NonNullable<Json>;
+          created_at: string;
+          filter: NonNullable<Json>;
+          id: string;
+          name: string;
+          org_id: string;
+          owner_id: string;
+          pipeline_id: string | null;
+          shared_team_ids: string[];
+          shared_with_all: boolean;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          columns?: NonNullable<Json>;
+          created_at?: string;
+          filter?: NonNullable<Json>;
+          id?: string;
+          name: string;
+          org_id: string;
+          owner_id: string;
+          pipeline_id?: string | null;
+          shared_team_ids?: string[];
+          shared_with_all?: boolean;
+          updated_at?: string;
+        };
+        Update: {
+          columns?: NonNullable<Json>;
+          created_at?: string;
+          filter?: NonNullable<Json>;
+          id?: string;
+          name?: string;
+          org_id?: string;
+          owner_id?: string;
+          pipeline_id?: string | null;
+          shared_team_ids?: string[];
+          shared_with_all?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "enquiry_views_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "enquiry_views_owner_id_fkey";
+            columns: ["owner_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "enquiry_views_pipeline_id_fkey";
+            columns: ["pipeline_id"];
+            isOneToOne: false;
+            referencedRelation: "pipelines";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       external_refs: {
         Row: {
           created_at: string;
@@ -3519,6 +3824,58 @@ export type Database = {
         };
         Relationships: [];
       };
+      pipelines: {
+        Row: {
+          archived_at: string | null;
+          card_fields: string[];
+          created_at: string;
+          default_team_id: string | null;
+          id: string;
+          name: string;
+          org_id: string;
+          sort: number;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          archived_at?: string | null;
+          card_fields?: string[];
+          created_at?: string;
+          default_team_id?: string | null;
+          id?: string;
+          name: string;
+          org_id: string;
+          sort?: number;
+          updated_at?: string;
+        };
+        Update: {
+          archived_at?: string | null;
+          card_fields?: string[];
+          created_at?: string;
+          default_team_id?: string | null;
+          id?: string;
+          name?: string;
+          org_id?: string;
+          sort?: number;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "pipelines_default_team_id_fkey";
+            columns: ["default_team_id"];
+            isOneToOne: false;
+            referencedRelation: "teams";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "pipelines_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       prescription_sequences: {
         Row: {
           antibiotic_end_date: string | null;
@@ -4302,6 +4659,55 @@ export type Database = {
           },
         ];
       };
+      stages: {
+        Row: {
+          color: string;
+          created_at: string;
+          id: string;
+          name: string;
+          org_id: string;
+          pipeline_id: string;
+          sort: number;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          color?: string;
+          created_at?: string;
+          id?: string;
+          name: string;
+          org_id: string;
+          pipeline_id: string;
+          sort?: number;
+          updated_at?: string;
+        };
+        Update: {
+          color?: string;
+          created_at?: string;
+          id?: string;
+          name?: string;
+          org_id?: string;
+          pipeline_id?: string;
+          sort?: number;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "stages_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "stages_pipeline_id_fkey";
+            columns: ["pipeline_id"];
+            isOneToOne: false;
+            referencedRelation: "pipelines";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       sync_cursors: {
         Row: {
           created_at: string;
@@ -4459,6 +4865,117 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "tags_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      tasks: {
+        Row: {
+          appointment_id: string | null;
+          assignee_id: string | null;
+          completed_by: string | null;
+          contact_id: string | null;
+          created_at: string;
+          created_by: string | null;
+          done: boolean;
+          done_at: string | null;
+          due_at: string | null;
+          due_notified_at: string | null;
+          enquiry_id: string | null;
+          id: string;
+          notes: string | null;
+          org_id: string;
+          subject: string;
+          type: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          appointment_id?: string | null;
+          assignee_id?: string | null;
+          completed_by?: string | null;
+          contact_id?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          done?: boolean;
+          done_at?: string | null;
+          due_at?: string | null;
+          due_notified_at?: string | null;
+          enquiry_id?: string | null;
+          id?: string;
+          notes?: string | null;
+          org_id: string;
+          subject: string;
+          type?: string;
+          updated_at?: string;
+        };
+        Update: {
+          appointment_id?: string | null;
+          assignee_id?: string | null;
+          completed_by?: string | null;
+          contact_id?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          done?: boolean;
+          done_at?: string | null;
+          due_at?: string | null;
+          due_notified_at?: string | null;
+          enquiry_id?: string | null;
+          id?: string;
+          notes?: string | null;
+          org_id?: string;
+          subject?: string;
+          type?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "tasks_appointment_id_fkey";
+            columns: ["appointment_id"];
+            isOneToOne: false;
+            referencedRelation: "appointments";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tasks_assignee_id_fkey";
+            columns: ["assignee_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tasks_completed_by_fkey";
+            columns: ["completed_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tasks_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tasks_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tasks_enquiry_id_fkey";
+            columns: ["enquiry_id"];
+            isOneToOne: false;
+            referencedRelation: "enquiries";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tasks_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
@@ -4665,6 +5182,13 @@ export type Database = {
             columns: ["contact_id"];
             isOneToOne: false;
             referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "timeline_events_enquiry_fk";
+            columns: ["enquiry_id"];
+            isOneToOne: false;
+            referencedRelation: "enquiries";
             referencedColumns: ["id"];
           },
           {

@@ -4,6 +4,8 @@ import type { Json } from "@/lib/supabase/types";
 export type TimelineEntry = {
   orgId: string;
   contactId: string;
+  /** Set for enquiry events so they also show on the enquiry's own timeline. */
+  enquiryId?: string | null;
   type: string;
   actorType?: "user" | "system" | "contact" | "job";
   actorId?: string | null;
@@ -15,6 +17,7 @@ export async function addTimelineEvent(admin: AdminClient, e: TimelineEntry): Pr
   const { error } = await admin.from("timeline_events").insert({
     org_id: e.orgId,
     contact_id: e.contactId,
+    enquiry_id: e.enquiryId ?? null,
     type: e.type,
     actor_type: e.actorType ?? "user",
     actor_id: e.actorId ?? null,

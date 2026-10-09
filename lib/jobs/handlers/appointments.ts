@@ -12,6 +12,7 @@ import { registerHandler } from "@/lib/jobs/registry";
 import { registerTask } from "@/lib/jobs/tasks";
 import { PermanentJobError, type JobLogger } from "@/lib/jobs/types";
 import { notifyMembersWithPermission } from "@/lib/notifications";
+import { createReminderFailureTask } from "@/lib/tasks/service";
 import type { AdminClient } from "@/lib/supabase/admin";
 import type { TablesUpdate } from "@/lib/supabase/types";
 
@@ -125,7 +126,19 @@ async function reportReminderFailure(
   reason: string,
 ): Promise<void> {
   await emit(orgId, "appointment.reminder_failed", { appointment_id: appointmentId, reason });
-  // No tasks table until Phase 5: ring reception through a notification instead.
+  // Reception gets a "call patient" task (one per appointment) and a notification.
+  const { data: appt } = await admin
+    .from("appointments")
+    .select("contact_id")
+    .eq("org_id", orgId)
+    .eq("id", appointmentId)
+    .maybeSingle();
+  await createReminderFailureTask(admin, orgId, {
+    appointmentId,
+    contactId: appt?.contact_id ?? null,
+    appointmentNumber: number,
+    reason,
+  });
   await notifyMembersWithPermission(admin, orgId, "appointments.manage", {
     type: "appointment.reminder_failed",
     title: "Appointment reminder not delivered",
