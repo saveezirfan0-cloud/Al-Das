@@ -9,8 +9,10 @@ import type { Database } from "@/lib/supabase/types";
  * Server Actions. Runs as the signed-in user, so RLS applies.
  */
 export async function createClient() {
-  const env = publicEnv();
+  // Read cookies first: it opts the caller into dynamic rendering, so `next build`
+  // never tries to prerender a page and trips over missing env vars.
   const cookieStore = await cookies();
+  const env = publicEnv();
 
   return createServerClient<Database>(
     env.NEXT_PUBLIC_SUPABASE_URL,

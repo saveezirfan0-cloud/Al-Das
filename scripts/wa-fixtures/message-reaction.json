@@ -1,0 +1,40 @@
+{
+  "object": "whatsapp_business_account",
+  "entry": [
+    {
+      "id": "200000000000001",
+      "changes": [
+        {
+          "field": "messages",
+          "value": {
+            "messaging_product": "whatsapp",
+            "metadata": {
+              "display_phone_number": "+971 4 000 0000",
+              "phone_number_id": "100000000000001"
+            },
+            "contacts": [
+              {
+                "profile": {
+                  "name": "Test Patient"
+                },
+                "wa_id": "971500000001"
+              }
+            ],
+            "messages": [
+              {
+                "from": "971500000001",
+                "id": "wamid.FIXTURE_REACT",
+                "timestamp": "1760000000",
+                "type": "reaction",
+                "reaction": {
+                  "message_id": "wamid.FIXTURE_OUT_1",
+                  "emoji": "\ud83d\udc4d"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

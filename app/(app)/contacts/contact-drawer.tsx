@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { ContactConversations } from "./contact-conversations";
 import { Loader2, MessageSquare, Phone, Plus, Save, Star, Trash2, GitMerge } from "lucide-react";
 import { toast } from "sonner";
 
@@ -433,7 +434,7 @@ export function ContactDrawer({
                   </ol>
                 </TabsContent>
                 <TabsContent value="inbox" className="pt-3">
-                  <Placeholder text="Conversations with this contact appear here once the WhatsApp inbox is live (Phase 3)." />
+                  <ContactConversations contactId={contact.id} />
                 </TabsContent>
                 <TabsContent value="enquiries" className="pt-3">
                   <Placeholder text="Enquiries linked to this contact appear here (Phase 5)." />

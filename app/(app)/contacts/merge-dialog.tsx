@@ -5,7 +5,14 @@ import { Loader2, Search } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { displayName, formatDate } from "@/lib/contacts/format";
 import { diffForMerge, MERGE_FIELDS, type MergeField, type MergeSide } from "@/lib/contacts/merge";
@@ -15,7 +22,9 @@ import { formatPhone } from "@/lib/phone";
 import { mergeContacts, searchContactsQuick } from "./actions";
 
 function side(c: ContactListRow): MergeSide {
-  return Object.fromEntries(MERGE_FIELDS.map((f) => [f, (c as unknown as Record<string, string | null>)[f] ?? null]));
+  return Object.fromEntries(
+    MERGE_FIELDS.map((f) => [f, (c as unknown as Record<string, string | null>)[f] ?? null]),
+  );
 }
 
 export function MergeDialog({
@@ -38,7 +47,9 @@ export function MergeDialog({
   const [searching, setSearching] = React.useState(false);
   const [secondary, setSecondary] = React.useState<ContactListRow | null>(presetSecondary ?? null);
   const [swap, setSwap] = React.useState(false);
-  const [picks, setPicks] = React.useState<Partial<Record<MergeField, "primary" | "secondary">>>({});
+  const [picks, setPicks] = React.useState<Partial<Record<MergeField, "primary" | "secondary">>>(
+    {},
+  );
   const [pending, startTransition] = React.useTransition();
 
   React.useEffect(() => {
@@ -81,7 +92,11 @@ export function MergeDialog({
   }
 
   const row = (c: ContactListRow) => (
-    <button type="button" onClick={() => setSecondary(c)} className="hover:bg-accent flex w-full flex-col items-start rounded px-2 py-1.5 text-left text-sm">
+    <button
+      type="button"
+      onClick={() => setSecondary(c)}
+      className="hover:bg-accent flex w-full flex-col items-start rounded px-2 py-1.5 text-left text-sm"
+    >
       <span className="font-medium">{displayName(c)}</span>
       <span className="text-muted-foreground text-xs">
         {formatPhone(c.phone_e164)} {c.email && `· ${c.email}`} {c.dob && `· ${formatDate(c.dob)}`}
@@ -95,7 +110,8 @@ export function MergeDialog({
         <DialogHeader>
           <DialogTitle>Merge duplicates</DialogTitle>
           <DialogDescription>
-            The merged contact keeps the chosen values; blanks are filled from the other record. Tags, phones, segments and history are combined. Opt-outs always win.
+            The merged contact keeps the chosen values; blanks are filled from the other record.
+            Tags, phones, segments and history are combined. Opt-outs always win.
           </DialogDescription>
         </DialogHeader>
 
@@ -103,16 +119,28 @@ export function MergeDialog({
           <div className="flex flex-col gap-2">
             <div className="relative">
               <Search className="text-muted-foreground absolute top-1/2 left-2 size-4 -translate-y-1/2" />
-              <Input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Find the duplicate by name, phone or email" className="pl-8" aria-label="Search duplicate" />
+              <Input
+                autoFocus
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Find the duplicate by name, phone or email"
+                className="pl-8"
+                aria-label="Search duplicate"
+              />
             </div>
             {searching && <Loader2 className="text-muted-foreground size-4 animate-spin" />}
-            <div className="flex max-h-64 flex-col overflow-y-auto">{results.map((c) => <React.Fragment key={c.id}>{row(c)}</React.Fragment>)}</div>
+            <div className="flex max-h-64 flex-col overflow-y-auto">
+              {results.map((c) => (
+                <React.Fragment key={c.id}>{row(c)}</React.Fragment>
+              ))}
+            </div>
           </div>
         ) : (
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between text-sm">
               <span>
-                Keep <strong>{displayName(keep)}</strong>, merge in <strong>{displayName(lose!)}</strong>
+                Keep <strong>{displayName(keep)}</strong>, merge in{" "}
+                <strong>{displayName(lose!)}</strong>
               </span>
               <Button variant="ghost" size="sm" onClick={() => setSwap((s) => !s)}>
                 Swap
@@ -135,11 +163,22 @@ export function MergeDialog({
                       <td className="py-1 pr-2">
                         {d.conflict ? (
                           <label className="flex cursor-pointer items-center gap-2">
-                            <input type="radio" name={`pick-${d.field}`} checked={pick === which} onChange={() => setPicks({ ...picks, [d.field]: which })} />
-                            <span className={pick === which ? "font-medium" : "text-muted-foreground"}>{val ?? "—"}</span>
+                            <input
+                              type="radio"
+                              name={`pick-${d.field}`}
+                              checked={pick === which}
+                              onChange={() => setPicks({ ...picks, [d.field]: which })}
+                            />
+                            <span
+                              className={pick === which ? "font-medium" : "text-muted-foreground"}
+                            >
+                              {val ?? "—"}
+                            </span>
                           </label>
                         ) : (
-                          <span className={val === null ? "text-muted-foreground" : ""}>{val ?? "—"}</span>
+                          <span className={val === null ? "text-muted-foreground" : ""}>
+                            {val ?? "—"}
+                          </span>
                         )}
                       </td>
                     );
@@ -153,11 +192,20 @@ export function MergeDialog({
                   })}
               </tbody>
             </table>
-            {diffs.some((d) => d.conflict) && <p className="text-muted-foreground text-xs">Pick a value where both records differ. The losing phone becomes an alternate phone.</p>}
+            {diffs.some((d) => d.conflict) && (
+              <p className="text-muted-foreground text-xs">
+                Pick a value where both records differ. The losing phone becomes an alternate phone.
+              </p>
+            )}
           </div>
         )}
         <DialogFooter>
-          <Button variant="ghost" onClick={() => (secondary && !presetSecondary ? setSecondary(null) : onOpenChange(false))}>
+          <Button
+            variant="ghost"
+            onClick={() =>
+              secondary && !presetSecondary ? setSecondary(null) : onOpenChange(false)
+            }
+          >
             {secondary && !presetSecondary ? "Back" : "Cancel"}
           </Button>
           <Button disabled={!secondary || pending} onClick={submit}>

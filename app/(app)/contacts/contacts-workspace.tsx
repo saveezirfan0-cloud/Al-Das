@@ -2,7 +2,12 @@
 
 import * as React from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import type { ColumnSizingState, RowSelectionState, SortingState, VisibilityState } from "@tanstack/react-table";
+import type {
+  ColumnSizingState,
+  RowSelectionState,
+  SortingState,
+  VisibilityState,
+} from "@tanstack/react-table";
 import { Download, Filter as FilterIcon, Plus, Search, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -16,7 +21,13 @@ import { Input } from "@/components/ui/input";
 import type { ContactListRow } from "@/lib/contacts/query";
 import { countConditions, type Filter } from "@/lib/filters/ast";
 
-import { listContacts, listMatchingIds, previewFilterCount, saveGridPrefs, type GridPrefs } from "./actions";
+import {
+  listContacts,
+  listMatchingIds,
+  previewFilterCount,
+  saveGridPrefs,
+  type GridPrefs,
+} from "./actions";
 import { BulkBar } from "./bulk-bar";
 import { ContactDrawer } from "./contact-drawer";
 import { buildContactColumns } from "./contacts-grid";
@@ -53,7 +64,11 @@ export function ContactsWorkspace({ bootstrap }: { bootstrap: ContactsBootstrap 
   const [filterOpen, setFilterOpen] = React.useState(false);
   const [importOpen, setImportOpen] = React.useState(false);
   const [newOpen, setNewOpen] = React.useState(false);
-  const [segmentDraft, setSegmentDraft] = React.useState<{ open: boolean; id?: string; filter?: Filter | null }>({ open: false });
+  const [segmentDraft, setSegmentDraft] = React.useState<{
+    open: boolean;
+    id?: string;
+    filter?: Filter | null;
+  }>({ open: false });
   const [reloadKey, setReloadKey] = React.useState(0);
 
   // Column layout (persisted per user)
@@ -62,19 +77,34 @@ export function ContactsWorkspace({ bootstrap }: { bootstrap: ContactsBootstrap 
     Object.fromEntries((prefs?.columns ?? []).filter((c) => c.hidden).map((c) => [c.id, false])),
   );
   const [columnSizing, setColumnSizing] = React.useState<ColumnSizingState>(() =>
-    Object.fromEntries((prefs?.columns ?? []).filter((c) => c.width).map((c) => [c.id, c.width as number])),
+    Object.fromEntries(
+      (prefs?.columns ?? []).filter((c) => c.width).map((c) => [c.id, c.width as number]),
+    ),
   );
-  const [columnOrder, setColumnOrder] = React.useState<string[]>(() => (prefs?.columns ?? []).map((c) => c.id));
+  const [columnOrder, setColumnOrder] = React.useState<string[]>(() =>
+    (prefs?.columns ?? []).map((c) => c.id),
+  );
 
   const columns = React.useMemo(
-    () => buildContactColumns({ customFields: bootstrap.customFields, timezone: bootstrap.timezone, users: bootstrap.users }),
+    () =>
+      buildContactColumns({
+        customFields: bootstrap.customFields,
+        timezone: bootstrap.timezone,
+        users: bootstrap.users,
+      }),
     [bootstrap.customFields, bootstrap.timezone, bootstrap.users],
   );
 
   // Hide columns that are not in the default set on first use.
   React.useEffect(() => {
     if (prefs) return;
-    setColumnVisibility(Object.fromEntries(columns.filter((c) => c.meta && (c.meta as { defaultHidden?: boolean }).defaultHidden).map((c) => [c.id, false])));
+    setColumnVisibility(
+      Object.fromEntries(
+        columns
+          .filter((c) => c.meta && (c.meta as { defaultHidden?: boolean }).defaultHidden)
+          .map((c) => [c.id, false]),
+      ),
+    );
   }, [columns, prefs]);
 
   // Persist layout (debounced)
@@ -87,7 +117,11 @@ export function ContactsWorkspace({ bootstrap }: { bootstrap: ContactsBootstrap 
     const handle = setTimeout(() => {
       const ordered = columnOrder.length ? columnOrder : columns.map((c) => c.id);
       const next: GridPrefs = {
-        columns: ordered.map((id) => ({ id, width: columnSizing[id], hidden: columnVisibility[id] === false })),
+        columns: ordered.map((id) => ({
+          id,
+          width: columnSizing[id],
+          hidden: columnVisibility[id] === false,
+        })),
         pageSize,
       };
       void saveGridPrefs("contacts", next);
@@ -112,7 +146,9 @@ export function ContactsWorkspace({ bootstrap }: { bootstrap: ContactsBootstrap 
       sorting
         .map((s) => {
           const col = columns.find((c) => c.id === s.id);
-          return col?.sortKey ? { field: col.sortKey, dir: s.desc ? ("desc" as const) : ("asc" as const) } : null;
+          return col?.sortKey
+            ? { field: col.sortKey, dir: s.desc ? ("desc" as const) : ("asc" as const) }
+            : null;
         })
         .filter((s): s is { field: string; dir: "asc" | "desc" } => !!s),
     [sorting, columns],
@@ -154,7 +190,9 @@ export function ContactsWorkspace({ bootstrap }: { bootstrap: ContactsBootstrap 
   }
 
   const selectedIds = allMatchingIds ?? Object.keys(rowSelection).filter((id) => rowSelection[id]);
-  const activeConditions = filter ? countConditions(filter.include) + countConditions(filter.exclude ?? null) : 0;
+  const activeConditions = filter
+    ? countConditions(filter.include) + countConditions(filter.exclude ?? null)
+    : 0;
 
   const optionSources: OptionSources = React.useMemo(
     () => ({
@@ -179,10 +217,16 @@ export function ContactsWorkspace({ bootstrap }: { bootstrap: ContactsBootstrap 
     const res = await fetch("/api/contacts/export", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(scope === "all" ? { scope } : { scope, view, segmentId, filter, search: debouncedSearch || null, sort }),
+      body: JSON.stringify(
+        scope === "all"
+          ? { scope }
+          : { scope, view, segmentId, filter, search: debouncedSearch || null, sort },
+      ),
     });
     if (!res.ok) {
-      toast.error(res.status === 403 ? "You do not have permission to export contacts." : "Export failed.");
+      toast.error(
+        res.status === 403 ? "You do not have permission to export contacts." : "Export failed.",
+      );
       return;
     }
     const blob = await res.blob();
@@ -198,7 +242,10 @@ export function ContactsWorkspace({ bootstrap }: { bootstrap: ContactsBootstrap 
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-4">
-      <PageHeader title="Contacts" description="One patient record across WhatsApp, Unite, enquiries and appointments.">
+      <PageHeader
+        title="Contacts"
+        description="One patient record across WhatsApp, Unite, enquiries and appointments."
+      >
         {bootstrap.can.export && (
           <>
             <Button variant="outline" size="sm" onClick={() => exportCsv("current")}>
@@ -228,7 +275,9 @@ export function ContactsWorkspace({ bootstrap }: { bootstrap: ContactsBootstrap 
           showDupes={showDupes}
           segments={segments}
           canManage={bootstrap.can.manage}
-          onSelectView={(v) => setParam({ view: v === "all" ? null : v, segment: null, dupes: null })}
+          onSelectView={(v) =>
+            setParam({ view: v === "all" ? null : v, segment: null, dupes: null })
+          }
           onSelectSegment={(id) => setParam({ segment: id, view: null, dupes: null })}
           onShowDupes={() => setParam({ dupes: "1" })}
           onNewSegment={() => setSegmentDraft({ open: true })}
@@ -238,20 +287,40 @@ export function ContactsWorkspace({ bootstrap }: { bootstrap: ContactsBootstrap 
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
           {showDupes ? (
-            <DuplicatesPanel timezone={bootstrap.timezone} canManage={bootstrap.can.manage} onOpenContact={(id) => setParam({ contact: id })} onMerged={reload} />
+            <DuplicatesPanel
+              timezone={bootstrap.timezone}
+              canManage={bootstrap.can.manage}
+              onOpenContact={(id) => setParam({ contact: id })}
+              onMerged={reload}
+            />
           ) : (
             <>
               <div className="flex flex-wrap items-center gap-2">
                 <div className="relative w-72 max-w-full">
                   <Search className="text-muted-foreground absolute top-1/2 left-2 size-4 -translate-y-1/2" />
-                  <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name, phone, email, ID" className="h-9 pl-8" aria-label="Search contacts" />
+                  <Input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search name, phone, email, ID"
+                    className="h-9 pl-8"
+                    aria-label="Search contacts"
+                  />
                   {search && (
-                    <button type="button" aria-label="Clear search" className="text-muted-foreground absolute top-1/2 right-2 -translate-y-1/2" onClick={() => setSearch("")}>
+                    <button
+                      type="button"
+                      aria-label="Clear search"
+                      className="text-muted-foreground absolute top-1/2 right-2 -translate-y-1/2"
+                      onClick={() => setSearch("")}
+                    >
                       <X className="size-4" />
                     </button>
                   )}
                 </div>
-                <Button variant={activeConditions ? "secondary" : "outline"} size="sm" onClick={() => setFilterOpen(true)}>
+                <Button
+                  variant={activeConditions ? "secondary" : "outline"}
+                  size="sm"
+                  onClick={() => setFilterOpen(true)}
+                >
                   <FilterIcon /> Filters
                   {activeConditions > 0 && <Badge variant="default">{activeConditions}</Badge>}
                 </Button>
@@ -263,7 +332,11 @@ export function ContactsWorkspace({ bootstrap }: { bootstrap: ContactsBootstrap 
                 {segmentName && (
                   <Badge variant="outline" className="gap-1">
                     Segment: {segmentName}
-                    <button type="button" aria-label="Leave segment" onClick={() => setParam({ segment: null })}>
+                    <button
+                      type="button"
+                      aria-label="Leave segment"
+                      onClick={() => setParam({ segment: null })}
+                    >
                       <X className="size-3" />
                     </button>
                   </Badge>
@@ -285,7 +358,9 @@ export function ContactsWorkspace({ bootstrap }: { bootstrap: ContactsBootstrap 
                   segments={segments.filter((s) => s.kind === "static")}
                   users={bootstrap.users}
                   customFields={bootstrap.customFields}
-                  onTagCreated={(t) => setTags((prev) => [...prev, t].sort((a, b) => a.name.localeCompare(b.name)))}
+                  onTagCreated={(t) =>
+                    setTags((prev) => [...prev, t].sort((a, b) => a.name.localeCompare(b.name)))
+                  }
                   onDone={() => {
                     setRowSelection({});
                     setAllMatchingIds(null);
@@ -317,7 +392,11 @@ export function ContactsWorkspace({ bootstrap }: { bootstrap: ContactsBootstrap 
                   setRowSelection(u);
                 }}
                 onRowClick={(r) => setParam({ contact: r.id })}
-                emptyText={total === 0 && !activeConditions && !debouncedSearch ? "No contacts yet. Import a CSV or add one." : "No contacts match."}
+                emptyText={
+                  total === 0 && !activeConditions && !debouncedSearch
+                    ? "No contacts yet. Import a CSV or add one."
+                    : "No contacts match."
+                }
               />
             </>
           )}
@@ -335,7 +414,9 @@ export function ContactsWorkspace({ bootstrap }: { bootstrap: ContactsBootstrap 
           const res = await previewFilterCount(f);
           return res.ok ? { count: res.data.count } : { error: res.error };
         }}
-        onSaveAsSegment={bootstrap.can.manage ? (f) => setSegmentDraft({ open: true, filter: f }) : undefined}
+        onSaveAsSegment={
+          bootstrap.can.manage ? (f) => setSegmentDraft({ open: true, filter: f }) : undefined
+        }
       />
 
       <SegmentDialog
@@ -356,7 +437,12 @@ export function ContactsWorkspace({ bootstrap }: { bootstrap: ContactsBootstrap 
 
       {bootstrap.can.manage && (
         <>
-          <ImportDialog open={importOpen} onOpenChange={setImportOpen} customFields={bootstrap.customFields} onDone={reload} />
+          <ImportDialog
+            open={importOpen}
+            onOpenChange={setImportOpen}
+            customFields={bootstrap.customFields}
+            onDone={reload}
+          />
           <NewContactDialog
             open={newOpen}
             onOpenChange={setNewOpen}
@@ -374,7 +460,9 @@ export function ContactsWorkspace({ bootstrap }: { bootstrap: ContactsBootstrap 
         onClose={() => setParam({ contact: null })}
         bootstrap={bootstrap}
         tags={tags}
-        onTagCreated={(t) => setTags((prev) => [...prev, t].sort((a, b) => a.name.localeCompare(b.name)))}
+        onTagCreated={(t) =>
+          setTags((prev) => [...prev, t].sort((a, b) => a.name.localeCompare(b.name)))
+        }
         onChanged={reload}
         onOpenContact={(id) => setParam({ contact: id })}
       />

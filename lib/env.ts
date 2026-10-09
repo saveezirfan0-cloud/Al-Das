@@ -19,6 +19,13 @@ const serverSchema = z.object({
     .string()
     .optional()
     .transform((v) => v === "true" || v === "1"),
+  // Phase 3: Meta / WhatsApp. Optional here; the code paths that need them throw clear errors.
+  ENCRYPTION_KEY: z.string().optional(),
+  META_APP_ID: z.string().optional(),
+  META_APP_SECRET: z.string().optional(),
+  META_WEBHOOK_VERIFY_TOKEN: z.string().optional(),
+  META_SYSTEM_USER_TOKEN: z.string().optional(),
+  META_GRAPH_VERSION: z.string().default("v21.0"),
 });
 
 export function publicEnv() {
@@ -36,5 +43,11 @@ export function serverEnv() {
     RESEND_API_KEY: process.env.RESEND_API_KEY,
     RESEND_FROM: process.env.RESEND_FROM,
     ALLOW_WORKSPACE_CREATION: process.env.ALLOW_WORKSPACE_CREATION,
+    ENCRYPTION_KEY: process.env.ENCRYPTION_KEY,
+    META_APP_ID: process.env.META_APP_ID,
+    META_APP_SECRET: process.env.META_APP_SECRET,
+    META_WEBHOOK_VERIFY_TOKEN: process.env.META_WEBHOOK_VERIFY_TOKEN,
+    META_SYSTEM_USER_TOKEN: process.env.META_SYSTEM_USER_TOKEN,
+    META_GRAPH_VERSION: process.env.META_GRAPH_VERSION,
   });
 }

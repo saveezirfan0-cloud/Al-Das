@@ -6,8 +6,20 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import type { CustomFieldDef } from "@/lib/contacts/custom-values";
 
 import { deleteCustomField, reorderCustomFields } from "./actions";
@@ -31,7 +43,10 @@ export function CustomFieldsTable({ rows }: { rows: Row[] }) {
   }
 
   function remove(r: Row) {
-    if (!confirm(`Delete the field "${r.label}"? Filters and segments using it will stop matching.`)) return;
+    if (
+      !confirm(`Delete the field "${r.label}"? Filters and segments using it will stop matching.`)
+    )
+      return;
     startTransition(async () => {
       const res = await deleteCustomField(r.id);
       if (res.ok) toast.success(res.message);
@@ -58,10 +73,22 @@ export function CustomFieldsTable({ rows }: { rows: Row[] }) {
             <TableRow key={r.id}>
               <TableCell>
                 <span className="flex">
-                  <Button variant="ghost" size="icon-sm" aria-label="Move up" disabled={pending || i === 0} onClick={() => move(i, -1)}>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label="Move up"
+                    disabled={pending || i === 0}
+                    onClick={() => move(i, -1)}
+                  >
                     <ArrowUp className="size-3.5" />
                   </Button>
-                  <Button variant="ghost" size="icon-sm" aria-label="Move down" disabled={pending || i === rows.length - 1} onClick={() => move(i, 1)}>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label="Move down"
+                    disabled={pending || i === rows.length - 1}
+                    onClick={() => move(i, 1)}
+                  >
                     <ArrowDown className="size-3.5" />
                   </Button>
                 </span>
@@ -73,7 +100,9 @@ export function CustomFieldsTable({ rows }: { rows: Row[] }) {
               <TableCell>
                 <Badge variant="outline">{r.type.replace("_", " ")}</Badge>
               </TableCell>
-              <TableCell className="text-muted-foreground max-w-64 truncate text-xs">{r.options.map((o) => o.label).join(", ")}</TableCell>
+              <TableCell className="text-muted-foreground max-w-64 truncate text-xs">
+                {r.options.map((o) => o.label).join(", ")}
+              </TableCell>
               <TableCell>{r.required ? "Yes" : ""}</TableCell>
               <TableCell>
                 <DropdownMenu>
@@ -94,7 +123,14 @@ export function CustomFieldsTable({ rows }: { rows: Row[] }) {
           ))}
         </TableBody>
       </Table>
-      {editing && <CustomFieldDialog mode="edit" field={editing} open onOpenChange={(o) => !o && setEditing(null)} />}
+      {editing && (
+        <CustomFieldDialog
+          mode="edit"
+          field={editing}
+          open
+          onOpenChange={(o) => !o && setEditing(null)}
+        />
+      )}
     </>
   );
 }

@@ -1,0 +1,42 @@
+{
+  "object": "whatsapp_business_account",
+  "entry": [
+    {
+      "id": "200000000000001",
+      "changes": [
+        {
+          "field": "messages",
+          "value": {
+            "messaging_product": "whatsapp",
+            "metadata": {
+              "display_phone_number": "+971 4 000 0000",
+              "phone_number_id": "100000000000001"
+            },
+            "contacts": [
+              {
+                "profile": {
+                  "name": "Test Patient"
+                },
+                "wa_id": "971500000001"
+              }
+            ],
+            "messages": [
+              {
+                "from": "971500000001",
+                "id": "wamid.FIXTURE_LOC",
+                "timestamp": "1760000000",
+                "type": "location",
+                "location": {
+                  "latitude": 25.0772,
+                  "longitude": 55.1332,
+                  "name": "Al Das Medical Clinic",
+                  "address": "Palm Jumeirah, Dubai"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -3,7 +3,13 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { CustomFieldDef } from "@/lib/contacts/custom-values";
 import { CONTACT_SOURCES, GENDERS } from "@/lib/contacts/fields";
 
@@ -88,11 +94,21 @@ export function ContactForm({
   customFields: CustomFieldDef[];
   idPrefix?: string;
 }) {
-  const set = <K extends keyof ContactFormValues>(k: K, v: ContactFormValues[K]) => onChange({ ...value, [k]: v });
-  const text = (k: keyof ContactFormValues, label: string, props: React.ComponentProps<typeof Input> = {}) => (
+  const set = <K extends keyof ContactFormValues>(k: K, v: ContactFormValues[K]) =>
+    onChange({ ...value, [k]: v });
+  const text = (
+    k: keyof ContactFormValues,
+    label: string,
+    props: React.ComponentProps<typeof Input> = {},
+  ) => (
     <div className="grid gap-1.5">
       <Label htmlFor={`${idPrefix}-${k}`}>{label}</Label>
-      <Input id={`${idPrefix}-${k}`} value={String(value[k] ?? "")} onChange={(e) => set(k, e.target.value as never)} {...props} />
+      <Input
+        id={`${idPrefix}-${k}`}
+        value={String(value[k] ?? "")}
+        onChange={(e) => set(k, e.target.value as never)}
+        {...props}
+      />
     </div>
   );
   const userSelect = (k: "owner_id" | "assignee_id", label: string) => (
@@ -122,7 +138,10 @@ export function ContactForm({
       {text("email", "Email", { type: "email" })}
       <div className="grid gap-1.5">
         <Label htmlFor={`${idPrefix}-gender`}>Gender</Label>
-        <Select value={value.gender || NONE} onValueChange={(v) => set("gender", v === NONE ? "" : v)}>
+        <Select
+          value={value.gender || NONE}
+          onValueChange={(v) => set("gender", v === NONE ? "" : v)}
+        >
           <SelectTrigger id={`${idPrefix}-gender`} className="w-full">
             <SelectValue placeholder="—" />
           </SelectTrigger>
@@ -160,21 +179,36 @@ export function ContactForm({
       </div>
       {text("external_id", "External ID (Unite PIN)")}
       <label className="flex items-center gap-2 text-sm">
-        <Checkbox checked={value.promotions_opt_in} onCheckedChange={(v) => set("promotions_opt_in", !!v)} /> Promotions opt-in
+        <Checkbox
+          checked={value.promotions_opt_in}
+          onCheckedChange={(v) => set("promotions_opt_in", !!v)}
+        />{" "}
+        Promotions opt-in
       </label>
       <label className="flex items-center gap-2 text-sm">
-        <Checkbox checked={value.stop_marketing} onCheckedChange={(v) => set("stop_marketing", !!v)} /> Stop marketing
+        <Checkbox
+          checked={value.stop_marketing}
+          onCheckedChange={(v) => set("stop_marketing", !!v)}
+        />{" "}
+        Stop marketing
       </label>
       {customFields.length > 0 && (
         <div className="grid gap-3 sm:col-span-2 sm:grid-cols-2">
-          <h4 className="text-muted-foreground text-xs font-semibold tracking-wide uppercase sm:col-span-2">Custom fields</h4>
+          <h4 className="text-muted-foreground text-xs font-semibold tracking-wide uppercase sm:col-span-2">
+            Custom fields
+          </h4>
           {customFields.map((f) => (
             <div key={f.key} className="grid gap-1.5">
               <Label htmlFor={`${idPrefix}-custom-${f.key}`}>
                 {f.label}
                 {f.required && <span className="text-destructive"> *</span>}
               </Label>
-              <CustomFieldInput id={`${idPrefix}-custom-${f.key}`} def={f} value={value.custom[f.key]} onChange={(v) => set("custom", { ...value.custom, [f.key]: v })} />
+              <CustomFieldInput
+                id={`${idPrefix}-custom-${f.key}`}
+                def={f}
+                value={value.custom[f.key]}
+                onChange={(v) => set("custom", { ...value.custom, [f.key]: v })}
+              />
             </div>
           ))}
         </div>

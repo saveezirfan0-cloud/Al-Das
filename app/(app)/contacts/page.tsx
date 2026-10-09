@@ -31,7 +31,15 @@ export default async function ContactsPage() {
     fields: ctx.registry
       .list()
       .filter((f) => f.available)
-      .map(({ key, label, group, type, options, optionsSource, sortable }) => ({ key, label, group, type, options, optionsSource, sortable })),
+      .map(({ key, label, group, type, options, optionsSource, sortable }) => ({
+        key,
+        label,
+        group,
+        type,
+        options,
+        optionsSource,
+        sortable,
+      })),
     tags: ctx.tags,
     segments: ctx.segments,
     users: ctx.users,
