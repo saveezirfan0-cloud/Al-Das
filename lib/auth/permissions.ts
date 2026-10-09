@@ -14,6 +14,7 @@ export const PERMISSION_GROUPS = [
   "Campaigns & templates",
   "Flows",
   "Portal",
+  "Clinical",
   "Reports",
   "Finance",
   "Settings",
@@ -58,6 +59,54 @@ export const PERMISSIONS = [
     description: "Equivalent to portal.<object>.read and .write for every object",
   },
   { key: "portal.*.read", group: "Portal", label: "Read all portal objects" },
+  {
+    key: "portal.sync_review.write",
+    group: "Portal",
+    label: "Resolve Sync Review items",
+    description: "Link, create or dismiss Unite patients that could not be matched",
+  },
+  {
+    key: "portal.clinical_followups.read",
+    group: "Clinical",
+    label: "View the Follow-Up Queue",
+    description:
+      "Clinical follow-ups, feedback and the evaluations behind them (patient health data)",
+  },
+  {
+    key: "portal.clinical_followups.write",
+    group: "Clinical",
+    label: "Work the Follow-Up Queue",
+    description: "Update call outcomes, assign and close follow-ups",
+  },
+  {
+    key: "portal.clinical_visits.read",
+    group: "Clinical",
+    label: "View clinical visits and prescriptions",
+    description: "Vitals, notes and prescriptions synced from Unite (patient health data)",
+  },
+  {
+    key: "portal.clinical_feedback.write",
+    group: "Clinical",
+    label: "Edit patient feedback records",
+  },
+  {
+    key: "portal.prescription_sequences.write",
+    group: "Clinical",
+    label: "Edit medication sequences",
+  },
+  {
+    key: "portal.medication_classes.write",
+    group: "Clinical",
+    label: "Classify medications",
+    description: "Antibiotic / steroid / probiotic by Unite code",
+  },
+  {
+    key: "clinical.settings.manage",
+    group: "Clinical",
+    label: "Sign off clinical settings",
+    description:
+      "Approve the thresholds the clinical rules use and switch patient-facing clinical messaging on. Give this to the clinical lead, not to everyone.",
+  },
   { key: "reports.view", group: "Reports", label: "View reports and dashboards" },
   {
     key: "finance.view",
@@ -217,6 +266,20 @@ export const SYSTEM_ROLES: readonly RolePreset[] = [
       "appointments.view",
       "appointments.manage",
       "portal.*.read",
+    ],
+  },
+  {
+    name: "Care coordinator",
+    description:
+      "Works the clinical Follow-Up Queue and patient conversations. Cannot sign off clinical settings.",
+    permissions: [
+      "inbox.send",
+      "contacts.view",
+      "contacts.manage",
+      "tasks.manage",
+      "appointments.view",
+      "appointments.manage",
+      "portal.*",
     ],
   },
   {

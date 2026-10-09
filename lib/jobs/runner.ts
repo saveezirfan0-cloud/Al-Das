@@ -5,6 +5,7 @@
  */
 import { getHandler } from "@/lib/jobs/registry";
 import type { QueueName } from "@/lib/jobs/queues";
+import { redactMeta, redactText } from "@/lib/redact";
 import type {
   DrainResult,
   JobContext,
@@ -24,6 +25,10 @@ export type DrainDeps = {
     runId: number | null,
     r: { processed: number; failed: number; error?: string; meta?: Json },
   ) => Promise<void>;
+  /** Seconds until the earliest delayed message becomes visible (null = none). Optional. */
+  nextDueSeconds?: (queue: QueueName) => Promise<number | null>;
+  /** Injectable for tests. */
+  sleep?: (ms: number) => Promise<void>;
   admin: AdminClient;
   log?: JobLogger;
   now?: () => number;
@@ -32,8 +37,9 @@ export type DrainDeps = {
 export const DEFAULTS = { batchSize: 50, visibilityTimeout: 60, maxReads: 5 } as const;
 
 export function errorMessage(err: unknown): string {
-  if (err instanceof Error) return `${err.name}: ${err.message}`.slice(0, 2000);
-  return String(err).slice(0, 2000);
+  // Persisted to job_runs / dead_letters: strip tokens, phones and e-mails first (CLAUDE.md rule 9).
+  if (err instanceof Error) return redactText(`${err.name}: ${err.message}`, 2000);
+  return redactText(String(err), 2000);
 }
 
 function isPermanent(err: unknown): boolean {
@@ -43,9 +49,9 @@ function isPermanent(err: unknown): boolean {
 }
 
 export const consoleLogger: JobLogger = {
-  info: (msg, meta) => console.info(`[jobs] ${msg}`, meta ?? ""),
-  warn: (msg, meta) => console.warn(`[jobs] ${msg}`, meta ?? ""),
-  error: (msg, meta) => console.error(`[jobs] ${msg}`, meta ?? ""),
+  info: (msg, meta) => console.info(`[jobs] ${msg}`, redactMeta(meta) ?? ""),
+  warn: (msg, meta) => console.warn(`[jobs] ${msg}`, redactMeta(meta) ?? ""),
+  error: (msg, meta) => console.error(`[jobs] ${msg}`, redactMeta(meta) ?? ""),
 };
 
 export async function drainQueue(
@@ -185,4 +191,73 @@ export async function drainQueue(
     durationMs: now() - started,
     error,
   };
+}
+
+export type DrainLoopOptions = {
+  /** Stop starting new batches once this much time has passed (route maxDuration is 60 s). */
+  budgetMs?: number;
+  maxBatches?: number;
+};
+
+export type DrainLoopResult = DrainResult & { batches: number };
+
+export const DRAIN_LOOP_DEFAULTS = { budgetMs: 40_000, maxBatches: 200 } as const;
+
+/**
+ * One cron tick used to read a single batch, which caps throughput at
+ * batchSize / tick (50 per 10 s for meta_events ≈ 300/min). This keeps draining
+ * batches until the queue is empty, a batch fully fails (no hot-looping on poison
+ * messages), or the time budget is spent. When the queue is idle but delayed messages are
+ * due within the budget it waits for them rather than returning. Overlapping ticks are safe: pgmq.read
+ * hides messages for the visibility timeout, and handlers are idempotent.
+ */
+export async function drainQueueUntilIdle(
+  queue: QueueName,
+  deps: DrainDeps,
+  opts: DrainLoopOptions = {},
+  def: QueueHandlerDef<Json> | undefined = getHandler(queue),
+): Promise<DrainLoopResult> {
+  const now = deps.now ?? Date.now;
+  const started = now();
+  const budgetMs = opts.budgetMs ?? DRAIN_LOOP_DEFAULTS.budgetMs;
+  const maxBatches = opts.maxBatches ?? DRAIN_LOOP_DEFAULTS.maxBatches;
+
+  const total: DrainLoopResult = {
+    queue,
+    runId: null,
+    read: 0,
+    processed: 0,
+    failed: 0,
+    deadLettered: 0,
+    durationMs: 0,
+    batches: 0,
+  };
+
+  let waits = 0;
+  const sleep = deps.sleep ?? ((ms: number) => new Promise<void>((res) => setTimeout(res, ms)));
+  while (total.batches < maxBatches) {
+    const r = await drainQueue(queue, deps, def);
+    if (r.read === 0 && !r.error) {
+      // Idle now, but delayed messages (reserved bulk sends) may fall due within the budget:
+      // wait for them here so they go out on time and evenly, not in a clump at the next tick.
+      const due = deps.nextDueSeconds ? await deps.nextDueSeconds(queue) : null;
+      if (due == null) break;
+      const waitMs = Math.max(250, due * 1000 + 50);
+      if (now() - started + waitMs >= budgetMs || ++waits > 1000) break;
+      await sleep(waitMs);
+      continue;
+    }
+    total.batches++;
+    total.runId ??= r.runId;
+    total.read += r.read;
+    total.processed += r.processed;
+    total.failed += r.failed;
+    total.deadLettered += r.deadLettered;
+    if (r.error) total.error = r.error;
+    if (r.read === 0) break; // read itself failed: report it, don't retry in a tight loop
+    if (r.processed === 0) break; // whole batch failed: leave it to the visibility timeout
+    if (now() - started >= budgetMs) break;
+  }
+  total.durationMs = now() - started;
+  return total;
 }

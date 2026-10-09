@@ -23,6 +23,11 @@ export function dbDrainDeps(admin: AdminClient): DrainDeps {
       );
       return (rows ?? []) as QueueMessage[];
     },
+    nextDueSeconds: async (queue) => {
+      const { data, error } = await admin.rpc("job_next_due", { p_queue: queue });
+      if (error) return null; // best effort: fall back to the next cron tick
+      return data == null ? null : Number(data);
+    },
     archive: async (queue, msgIds) => {
       must(await admin.rpc("job_archive", { p_queue: queue, p_msg_ids: msgIds }), "job_archive");
     },

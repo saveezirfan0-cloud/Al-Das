@@ -19,3 +19,6 @@ export function verifyMetaSignature(
   if (expected.length !== provided.length) return false;
   return timingSafeEqual(expected, provided);
 }
+
+/** Meta posts are a few KB; anything near this is not Meta. Rejected before hashing. */
+export const MAX_WEBHOOK_BYTES = 1_048_576;
