@@ -9,6 +9,7 @@ import { fetchContactsByIds, matchingContactIds } from "@/lib/contacts/query";
 import { loadContactContext } from "@/lib/contacts/server";
 import { combineFilters, isContactViewKey, viewFilter } from "@/lib/contacts/views";
 import { filterSchema, type Filter } from "@/lib/filters/ast";
+import { checkRateLimit, RATE_RULES, tooManyRequests } from "@/lib/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const bodySchema = z.object({
@@ -34,6 +35,8 @@ export async function POST(req: Request) {
   const body = parsed.data;
 
   const admin = createAdminClient();
+  const limited = await checkRateLimit(admin, "contacts-export", member.userId, RATE_RULES.contactsExportPerUser);
+  if (!limited.allowed) return tooManyRequests(limited);
   const ctx = await loadContactContext(admin, member.orgId);
 
   let filter: Filter | null = null;

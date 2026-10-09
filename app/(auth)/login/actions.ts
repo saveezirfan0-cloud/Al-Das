@@ -1,10 +1,13 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { magicLinkErrorMessage } from "@/lib/auth/magic-link-error";
 import { serverEnv } from "@/lib/env";
+import { checkRateLimit, clientIp, RATE_RULES, waitText } from "@/lib/rate-limit";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 const credentials = z.object({
@@ -20,9 +23,25 @@ function safeNext(next: string | undefined): string {
   return next;
 }
 
+async function throttled(
+  checks: Array<[scope: string, id: string, rule: (typeof RATE_RULES)[keyof typeof RATE_RULES]]>,
+): Promise<AuthState> {
+  const admin = createAdminClient();
+  for (const [scope, id, rule] of checks) {
+    const r = await checkRateLimit(admin, scope, id, rule);
+    if (!r.allowed) return { error: `Too many attempts. Try again in ${waitText(r.retryAfter)}.` };
+  }
+  return undefined;
+}
+
 export async function signInWithPassword(_prev: AuthState, formData: FormData): Promise<AuthState> {
   const parsed = credentials.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: parsed.error.issues[0]?.message };
+  const blocked = await throttled([
+    ["login-ip", clientIp(await headers()), RATE_RULES.loginPerIp],
+    ["login-email", parsed.data.email, RATE_RULES.loginPerEmail],
+  ]);
+  if (blocked) return blocked;
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({
@@ -41,6 +60,11 @@ export async function sendMagicLink(_prev: AuthState, formData: FormData): Promi
     })
     .safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: parsed.error.issues[0]?.message };
+  const blocked = await throttled([
+    ["login-ip", clientIp(await headers()), RATE_RULES.loginPerIp],
+    ["magic-link-email", parsed.data.email, RATE_RULES.magicLinkPerEmail],
+  ]);
+  if (blocked) return blocked;
 
   const supabase = await createClient();
   const { APP_URL } = serverEnv();

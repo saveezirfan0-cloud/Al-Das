@@ -176,6 +176,13 @@ export async function reorderCustomFields(
       .eq("id", parsed.data[i])
       .eq("org_id", member.orgId)
       .eq("entity", entity);
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "custom_field.reordered",
+    entity: "custom_field",
+    diff: { entity, count: parsed.data.length },
+  });
   revalidatePath("/settings/custom-fields");
   revalidatePath("/contacts");
   return { ok: true };

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { ContactAppointments } from "./contact-appointments";
 import { ContactConversations } from "./contact-conversations";
 import { Loader2, MessageSquare, Phone, Plus, Save, Star, Trash2, GitMerge } from "lucide-react";
 import { toast } from "sonner";
@@ -440,7 +441,7 @@ export function ContactDrawer({
                   <Placeholder text="Enquiries linked to this contact appear here (Phase 5)." />
                 </TabsContent>
                 <TabsContent value="appointments" className="pt-3">
-                  <Placeholder text="Appointments from the portal and Unite appear here (Phase 6)." />
+                  <ContactAppointments contactId={contact.id} />
                 </TabsContent>
                 <TabsContent value="campaigns" className="pt-3">
                   <Placeholder text="Campaigns this contact received appear here (Phase 7)." />
