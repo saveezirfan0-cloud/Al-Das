@@ -210,6 +210,8 @@ describe.skipIf(!TEST_DATABASE_URL)("jobs framework (db)", () => {
       );
       const names = rows.map((r) => r.jobname.replace("pulse:", "")).sort();
       expect(names).toEqual([
+        "appointments",
+        "appointments_sweep",
         "campaign_fanout",
         "flow_steps",
         "housekeeping",
