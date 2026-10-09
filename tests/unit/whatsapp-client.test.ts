@@ -214,3 +214,43 @@ describe("WhatsAppClient", () => {
     expect(() => new WhatsAppClient({ accessToken: "" })).toThrow();
   });
 });
+
+describe("uploadTemplateSample (resumable upload)", () => {
+  it("opens a session on the app, then sends the bytes with OAuth auth and file_offset", async () => {
+    const calls: Array<{ url: string; init: RequestInit }> = [];
+    const responses = [{ id: "upload:ABC" }, { h: "4::handle" }];
+    const fn = (async (url: URL | string, init: RequestInit) => {
+      calls.push({ url: String(url), init });
+      return new Response(JSON.stringify(responses.shift()), { status: 200 });
+    }) as unknown as typeof fetch;
+    const c = new WhatsAppClient({ accessToken: "TOK", fetch: fn });
+    const r = await c.uploadTemplateSample("APP1", {
+      data: new Uint8Array([1, 2, 3]),
+      mimeType: "image/png",
+      filename: "a.png",
+    });
+    expect(r).toEqual({ handle: "4::handle" });
+    expect(calls[0].url).toBe(
+      "https://graph.facebook.com/v21.0/APP1/uploads?file_length=3&file_type=image%2Fpng&file_name=a.png",
+    );
+    expect((calls[0].init.headers as Record<string, string>).Authorization).toBe("Bearer TOK");
+    expect(calls[1].url).toBe("https://graph.facebook.com/v21.0/upload:ABC");
+    const h = calls[1].init.headers as Record<string, string>;
+    expect(h.Authorization).toBe("OAuth TOK");
+    expect(h.file_offset).toBe("0");
+    expect(h["Content-Type"]).toBe("image/png");
+    expect(calls[1].init.body).toBeInstanceOf(Blob);
+  });
+
+  it("needs an app id and a handle in the answer", async () => {
+    const fn = (async () =>
+      new Response(JSON.stringify({ id: "upload:X" }), { status: 200 })) as unknown as typeof fetch;
+    const c = new WhatsAppClient({ accessToken: "T", fetch: fn });
+    await expect(
+      c.uploadTemplateSample("", { data: new Uint8Array([1]), mimeType: "image/png" }),
+    ).rejects.toThrow(/META_APP_ID/);
+    await expect(
+      c.uploadTemplateSample("A", { data: new Uint8Array([1]), mimeType: "image/png" }),
+    ).rejects.toThrow(/handle/);
+  });
+});
