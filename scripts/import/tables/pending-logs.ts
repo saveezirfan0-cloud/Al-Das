@@ -1,5 +1,8 @@
-/** Campaign logs and staff lists whose targets (recall, appointments, specialists) arrive in Phase 6. */
-import { slug, toBool, toDate, toDateTime, toInt, toText } from "../convert";
+/**
+ * Campaign logs still validated by --dry-run only. Each says why it is not written yet.
+ * (Doctors, call scripts and the clinical tables moved to tables/clinical.ts.)
+ */
+import { slug, toDate, toDateTime, toInt, toText } from "../convert";
 import { BASE } from "./bases";
 import type { TableMapper } from "./types";
 
@@ -11,7 +14,9 @@ export const chronicRecallMapper: TableMapper = {
   baseId: BASE.campaigns,
   tableId: "tbldCbNEKeF5NrTCs",
   target: "recall_sends",
-  status: "pending_phase6",
+  status: "pending",
+  pendingReason:
+    "recall_sends exists (Phase 8) but this mapper still uses draft column names (programme_key, patient_pin); it needs rewriting against recall_programmes/recall_sends and contact lookup by PIN.",
   naturalKey: ["programme_key", "patient_pin", "cycle_key"],
   dependsOn: [PATIENTS],
   fields: [
@@ -49,7 +54,9 @@ export const birthdayMapper: TableMapper = {
   baseId: BASE.campaigns,
   tableId: "tblHTlF6LXMK5p4mU",
   target: "recall_sends",
-  status: "pending_phase6",
+  status: "pending",
+  pendingReason:
+    "recall_sends exists (Phase 8) but this mapper still uses draft column names; it needs rewriting against recall_programmes/recall_sends and contact lookup by PIN.",
   naturalKey: ["programme_key", "patient_pin", "cycle_key"],
   dependsOn: [PATIENTS],
   fields: [
@@ -80,7 +87,9 @@ export const appointmentMessagesMapper: TableMapper = {
   baseId: BASE.campaigns,
   tableId: "tblhoSfiSjO4zh9cf",
   target: "appointment_reminders",
-  status: "pending_phase6",
+  status: "pending",
+  pendingReason:
+    "Needs an appointments + appointment_reminders writer (past appointments only, status 'sent', no message id) and the Unite status-code meanings (OQ-23); see docs/06_PHASE_9_NOTES.md.",
   naturalKey: ["unite_appointment_id"],
   dependsOn: [PATIENTS, "ptf.doctors"],
   fields: [
@@ -103,76 +112,4 @@ export const appointmentMessagesMapper: TableMapper = {
     // Early birthday sends were logged here before the Birthday table existed.
     values.target_override = values.log_kind === "birthday" ? "recall_sends" : null;
   },
-};
-
-export const doctorsMapper: TableMapper = {
-  key: "ptf.doctors",
-  name: "PTF · Doctors",
-  baseId: BASE.ptf,
-  tableId: "tblhoMqQ1jgiCGHGY",
-  target: "specialists",
-  status: "pending_phase6",
-  naturalKey: ["name"],
-  fields: [
-    { id: "fld0ghl5SVDzYlwU0", column: "name", required: true },
-    { id: "fldkfam3qESHnrbTr", column: "specialty" },
-    { id: "fld4QdPKVRNqVlRKk", column: "branch" },
-  ],
-};
-
-export const messageTemplatesMapper: TableMapper = {
-  key: "acute.message_templates",
-  name: "Acute · Message Templates",
-  baseId: BASE.acute,
-  tableId: "tblnCsSkyw4Tu9Ak7",
-  target: "wa_templates",
-  status: "pending_phase6",
-  naturalKey: ["internal_key"],
-  fields: [
-    { id: "fldgpCwM1uG424pKz", column: "internal_key", required: true },
-    { id: "fldtnpNhYCdu8Sdbr", column: "purpose" },
-    { id: "fldVafqyE1Co6QOqR", column: "trigger_note" },
-    { id: "fldCipfcyRejaEmu2", column: "expects_reply", convert: (v) => slug(v) || null },
-    { id: "fldyfsVBI5CP4L8GM", column: "draft_copy" },
-    { id: "fld1lj7DaZSAaJRME", column: "clinical_approval", convert: (v) => slug(v) || "awaiting" },
-    { id: "fldruCMCoDqzTEtgH", column: "clinical_phase", convert: (v) => toInt(v) },
-    { id: "fldxEiS8klZNiMZWC", column: "sanoflow_template_id" },
-    { id: "fldHKolWfL6RVnBHQ", column: "clinical_notes" },
-  ],
-  // FU_* entries are call scripts, not WhatsApp templates (they go to clinical_call_scripts).
-  finalize(values) {
-    values.target_override = String(values.internal_key ?? "").startsWith("FU_")
-      ? "clinical_call_scripts"
-      : null;
-  },
-};
-
-export const ptfPatientVisitsMapper: TableMapper = {
-  key: "ptf.patient_visits",
-  name: "PTF · Patient Visits (backlog: visit feedback)",
-  baseId: BASE.ptf,
-  tableId: "tbldH45nIL5EQAjpy",
-  target: "visit_feedback",
-  status: "pending_phase6",
-  naturalKey: ["external_id"],
-  dependsOn: [PATIENTS],
-  fields: [
-    { id: "fldxdC4oFODCEejLD", column: "external_id", required: true },
-    { id: "fld7GVu2ybazYOv03", column: "visit_date", convert: (v) => toDate(v) },
-    { id: "fldAeSKvv54kqEjkA", column: "visit_status", convert: (v) => slug(v) || null },
-    { id: "fld62vpgB5VCR8hDE", column: "status", convert: (v) => slug(v) || null },
-    { id: "fldRksUIiqT14u49f", column: "rating", convert: (v) => toInt(v) },
-    { id: "fldbcDnJjDVZo7d9s", column: "comment" },
-    { id: "fldbOBEWZuN8entnV", column: "submitted_at", convert: (v) => toDateTime(v) },
-    { id: "fld8ecrYgvB47rZXY", column: "low_rating_alert_sent", convert: (v) => toBool(v) },
-  ],
-  links: [
-    {
-      kind: "record",
-      fieldId: "fldXTGoEy5kkTw5Uu",
-      label: "Patient",
-      target: PATIENTS,
-      column: "contact_id",
-    },
-  ],
 };

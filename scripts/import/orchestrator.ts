@@ -135,7 +135,7 @@ export async function runImport(deps: ImportDeps, opts: ImportOptions): Promise<
       continue;
     }
     const m = e.mapper;
-    if (m.status === "pending_phase6" && !opts.dryRun) {
+    if (m.status === "pending" && !opts.dryRun) {
       results.push(
         emptyResult({
           key: m.key,
@@ -145,7 +145,7 @@ export async function runImport(deps: ImportDeps, opts: ImportOptions): Promise<
           outcome: "skipped_pending",
           verdict: "PENDING",
           auditedCount: auditedCounts?.[m.tableId] ?? null,
-          note: `Target table \`${m.target}\` is created in Phase 6 (supabase/drafts); validated by --dry-run only.`,
+          note: `${m.pendingReason ?? `Not written yet (target \`${m.target}\`).`} Validated by --dry-run only.`,
         }),
       );
       continue;

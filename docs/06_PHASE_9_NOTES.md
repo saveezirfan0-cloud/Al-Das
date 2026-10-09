@@ -15,7 +15,7 @@
 ## Importer
 
 ```bash
-pnpm import:airtable --list                        # every table: ready / phase 6 / skipped (+ reason)
+pnpm import:airtable --list                        # every table: ready / pending / skipped (+ reason)
 pnpm import:airtable --dry-run --org=al-das        # map + resolve links for everything, write nothing
 pnpm import:airtable --org=al-das                  # import every ready table, dependency order
 pnpm import:airtable --only=unite.diagnosis,unite.items
@@ -23,8 +23,16 @@ pnpm import:airtable --since=2026-10-01T00:00:00Z  # delta (no full-table reconc
 ```
 
 - **Ready** (written now): Diagnosis, Medication, Items, CPT Master (merged into `ref_items`, fill-blank-only for description/type), Medication Reference, Settings, Website, and the two patient tables (Phase 2 logic, unchanged).
-- **Mapped and tested, target arrives in Phase 6** (`pending_phase6`): Medical Records Data, Acute Visits, Prescriptions (Acute, PTF), Follow-Up Queue (Acute, CFU), Feedback (Acute, PTF), Message Log, WhatsApp Automation Log, Chronic Recall, Birthday, Appointment Messages, Doctors, Patient Visits, Message Templates. `--dry-run` reads and validates them (field map, parsing, link resolution through an overlay, warnings); a real run skips them without reading and says so.
-- **Skipped by design** (reason in the report): Test Plan, PTF Patients, Laboratory & Diagnostic Test, the 7 PTF DRAFT tables. A test fails if an audited table is neither mapped nor listed here.
+- **Clinical tables, written against the real Phase 6 schema** (follow-up to Phase 9): Doctors → `specialists`; Unite Medical Records → `visits`; Acute Visits (adopts the same rows, adds pap result / department); Acute Prescriptions → `prescriptions`; Acute Follow-Up Queue → `clinical_followups`; Acute Feedback → `clinical_feedback`; Acute Message Log → `clinical_message_log`; Acute `FU_*` Message Templates → `clinical_call_scripts`. Safety rules:
+  - Imported visits are `source='airtable'`; **the clinical engine only evaluates `source='unite'` visits**, so Airtable history is never re-evaluated into new follow-ups.
+  - Prescriptions, follow-ups, feedback and the message log are **create-only**: a later run never overwrites work staff did in Pulse.
+  - Medication class always comes from `ref_medication_classes` by code (R-05); an unknown code is `unclassified` (fail closed), never Airtable's text.
+  - Follow-ups are `source='airtable_acute'` with the engine's dedupe key `<visit external_id>-<category>`. Only rows still _pending_ (and not test) are imported **open**; everything else is closed with `closed_reason='airtable_history'`. Open imports are reported (`followup_imported_open`) so a human can review the queue.
+  - Message-log rows are terminal history (`sent`/`delivered`/`cancelled`), never `scheduled`; test rows are `send_mode='test'`. Nothing in an import notifies anyone or schedules a send.
+  - Call scripts: only `FU_*` templates; an Airtable “Approved” is not imported — scripts stay _awaiting_ until approved in Pulse (so they do not show in the follow-up drawer until then).
+  - Select labels were inferred (the schema export has no choice labels): mappers match by meaning and an unrecognised value becomes null plus a warning code, never a guess.
+- **Still pending** (validated by `--dry-run`, skipped by a real run with the reason shown): Appointment Messages (needs the appointments/reminders writer and safe-status rules), Birthday and Chronic Recall (need rewriting against `recall_programmes`/`recall_sends`), non-`FU_` WhatsApp templates (`wa_templates` lacks the clinical columns).
+- **Skipped by design** (reason in the report): Test Plan, PTF Patients, Laboratory & Diagnostic Test, PTF Prescriptions / Feedback / WhatsApp log / Patient Visits and CFU Follow-Up Queue (prototype bases, confirmed mostly test data), the 7 PTF DRAFT tables. A test fails if an audited table is neither mapped nor listed here.
 - **Idempotency** — every record gets `external_refs(source='airtable', entity='<base>.<table>', external_id=<recId>)`; a re-run finds the row, compares, and reports _unchanged_. A row that already exists under the table's natural key (e.g. an item imported from Unite and CPT Master) is _adopted_, not duplicated; two records mapping to one row count as _duplicates_. A blank source never erases an existing value.
 - **Links** — tables run in dependency order, so link targets already have refs; a link that still does not resolve is left unset and reported with record ids (never guessed). Lookups (Diagnosis → condition group by name) work the same way.
 - **Clinical settings are governed**: sign-off is a Pulse workflow (`clinical.settings.manage`, confirm phrase, history trigger), so the importer **never imports an approval** — an “Approved” status, approved value or signature in Airtable is ignored with a warning and the setting stays _awaiting_ until a clinical lead signs it in Pulse. Signed-off rows are never touched; unknown categories fail closed.
@@ -42,7 +50,7 @@ pnpm test:db                       # RLS + importer-against-schema tests (supaba
 
 ## Decisions and assumptions
 
-- **Written before Phase 6 landed, then reconciled with it.** This phase was built against `main` before Phase 6, so its first draft promoted drafts 0100/0101 itself; after merging Phase 6 those parts were removed (see migrations above). Several Airtable tables whose mappers are still marked `pending_phase6` now **do** have targets on `main` (visits, prescriptions, clinical_followups, clinical_feedback, clinical_message_log, appointments, specialists). Flipping them to `ready` is the next step and needs each mapper checked against the real columns — see Open questions.
+- **Written before Phase 6 landed, then reconciled with it.** The first draft promoted drafts 0100/0101 itself; after merging Phase 6 those were removed. The clinical mappers were initially validated only against Airtable field ids and the draft SQL, which does not match the final Phase 6 columns; they were rewritten against the real tables and are now covered by `tests/db/airtable-import-clinical.test.ts` (schema-drift guard: every mapped column exists, every enum value is a real label; whole chain run, idempotent re-run, dry run, staff-work protection).
 - **Column definitions live in code, not in `portal_objects.columns`.** One source of truth for grid, filters, drawer, form and Zod (and unit-testable); the table only says “enabled here, with these permission keys” (and carries per-org `config` for future overrides).
 - **No change to `lib/filters/to-sql.ts`.** Portal registries are column-only, so the contacts compiler works as is (all portal tables have `created_at` for the default order).
 - **Portal objects register themselves.** Orgs created through the onboarding RPC have no `portal_objects` rows; `ensurePortalObjects()` calls the idempotent `seed_portal_objects()` the first time an object is opened or the index is loaded (it never re-enables an object an admin turned off). Condition groups and clinical settings are seeded by the importer (`seed_condition_groups`, `seed_clinical_settings`), not on org creation.
@@ -62,7 +70,7 @@ pnpm test:db                       # RLS + importer-against-schema tests (supaba
 - [ ] **Website entry points** → New with a missing Section shows the field error; create one; delete it.
 - [ ] A role with only `portal.*.read` (Agent): rows open read-only, no New / Save / Delete, no sharing of views; Manager can edit but **cannot** edit Clinical settings; Admin can.
 - [ ] Settings → Roles → a role can be given `portal.ref_items.read` only → Portal shows just _Items & tests_.
-- [ ] `pnpm import:airtable --dry-run` produces a report with every table, `PENDING` Phase 6 rows validated, and no cell values.
+- [ ] `pnpm import:airtable --dry-run` produces a report with every table, `PENDING` rows validated, and no cell values.
 
 ## Open questions / follow-ups
 
@@ -70,5 +78,8 @@ pnpm test:db                       # RLS + importer-against-schema tests (supaba
 - **OQ-47** is resolved for the portal by `app.has_perm_wild`. Phase 1's `app.has_perm` is unchanged; make it wildcard-aware if other modules need it.
 - **OQ-49** (UAE residency) and **OQ-50** (`AIRTABLE_PAT`, Supabase project) gate any run against real data; this phase ships dry-run-verified tooling only.
 - Condition-group informational columns (`follow_up_interval_days`, medication/lab examples) are not enriched from the Diagnosis rows yet; the groups come from `seed_condition_groups()`.
-- **Flip the Phase 6 mappers to `ready`** where `main` now has the table: visits (+ visit_diagnoses / visit_items, which are still drafts), prescriptions, clinical_followups (Phase 6's dedupe key is `<visit external id>-<category>`: Airtable follow-up keys must be mapped to it first or duplicates appear), clinical_feedback, clinical_message_log, appointments / reminders, specialists. Recall (`recall_sends`) and `wa_templates` columns still need promotion.
+- **Future Unite visit sync:** imported `visits.external_id` holds the Airtable Medical Records record id, not the Unite visit id. The sync must adopt by contact + date (or map ids) before it is switched on, or duplicate visits appear.
+- **Doctor names** match exact-case when adopting a specialist; make it case-insensitive before the Unite doctor sync runs.
+- **Not imported on purpose:** `visit_rule_evaluations` (engine-owned), `prescription_sequences`, visit diagnosis/medication/item links (junction tables are drafts; `primary_diagnosis_code` is kept), doctor branch.
+- **Next importer PRs:** recall (`chronic_recall`, `birthday`), appointment-message history (past appointments only, reminder status `sent`, OQ-23), `wa_templates` clinical columns.
 - Portal bulk edit, per-object custom fields and tags are not built (tags/custom fields have contact/enquiry/appointment CHECK scopes).

@@ -23,6 +23,8 @@ export type LinkSpec =
       target: string;
       /** FK column set on this row from the first resolved link (omit for junction-style links). */
       column?: string;
+      /** The record is unusable (counted as invalid) when no link target resolves. */
+      required?: boolean;
     }
   | {
       kind: "lookup";
@@ -43,12 +45,21 @@ export type TableMapper = {
   /** Local table rows are written to. */
   target: string;
   /**
-   * ready          → written by this phase.
-   * pending_phase6 → mapped and validated (dry-run), but the target table is created in Phase 6
-   *                  (supabase/drafts); a real run skips it and says so in the report.
+   * ready   → written by a real run.
+   * pending → mapped and validated by --dry-run only; a real run skips it and shows `pendingReason`.
    */
-  status: "ready" | "pending_phase6";
+  status: "ready" | "pending";
+  /** Why a pending table is not written yet (shown in the report and `--list`). */
+  pendingReason?: string;
   fields: FieldSpec[];
+  /** Field ids read inside `finalize` / `enrich` (so mapping coverage and schema checks see them). */
+  extraFieldIds?: string[];
+  /**
+   * Rows are inserted once and never updated by a later run. For tables that staff work in Pulse
+   * after cut-over (follow-ups, feedback, message log, prescriptions): a re-import must not
+   * overwrite their work with the frozen Airtable copy.
+   */
+  createOnly?: boolean;
   /** Columns that identify a row independent of the Airtable id (adopt-on-match, secondary guard). */
   naturalKey: string[];
   links?: LinkSpec[];
@@ -64,9 +75,27 @@ export type TableMapper = {
     raw: Record<string, unknown>,
     warn: (c: string) => void,
     recordId: string,
+    createdTime?: string,
   ) => void;
+  /** Skip the record (counted as skipped) with a reason code; evaluated after `finalize`. */
+  skip?: (values: Record<string, unknown>, raw: Record<string, unknown>) => string | null;
+  /**
+   * After links are resolved: derive values that need the database (dedupe keys from the linked
+   * visit, medication class from the reference table). Never writes.
+   */
+  enrich?: (ctx: EnrichContext) => Promise<void>;
   /** Replaces the generic writer (clinical_settings has sign-off rules). */
   writer?: "clinical_settings";
+};
+
+export type EnrichContext = {
+  values: Record<string, unknown>;
+  raw: Record<string, unknown>;
+  recordId: string;
+  /** Link field id → local ids the links resolved to (only fully/partially resolved ones). */
+  resolved: Record<string, string[]>;
+  store: import("../store").ImportStore;
+  warn: (code: string) => void;
 };
 
 export type MappedRow = {
@@ -76,10 +105,14 @@ export type MappedRow = {
   links: Record<string, string[]>;
   /** Lookup field id → raw text to look up. */
   lookups: Record<string, string>;
+  /** Link field id → local ids resolved by the runner (filled during link resolution). */
+  resolved: Record<string, string[]>;
   warnings: string[];
   isTest: boolean;
+  /** Set by `skip`: the record is deliberately not imported. */
+  skipReason?: string;
   /** Set when the record cannot be imported (missing required value). */
   invalid?: string;
 };
 
-export type SourceRecord = Pick<AirtableRecord, "id" | "fields">;
+export type SourceRecord = Pick<AirtableRecord, "id" | "fields"> & { createdTime?: string };

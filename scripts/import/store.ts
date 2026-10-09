@@ -34,12 +34,25 @@ export interface ImportStore {
   countRows(table: string): Promise<number>;
 }
 
+function canonical(v: unknown): string {
+  if (Array.isArray(v)) return `[${v.map(canonical).join(",")}]`;
+  if (v && typeof v === "object") {
+    const o = v as Record<string, unknown>;
+    return `{${Object.keys(o)
+      .sort()
+      .map((k) => `${JSON.stringify(k)}:${canonical(o[k])}`)
+      .join(",")}}`;
+  }
+  return JSON.stringify(v);
+}
+
 /** Equality used to decide "unchanged": tolerant of PostgREST's string numerics and timestamp formats. */
 export function sameValue(a: unknown, b: unknown): boolean {
   const na = a instanceof Date ? a.toISOString() : a === undefined ? null : a;
   const nb = b instanceof Date ? b.toISOString() : b === undefined ? null : b;
   if (na === null || nb === null) return na === nb;
-  if (Array.isArray(na) || Array.isArray(nb)) return JSON.stringify(na) === JSON.stringify(nb);
+  // Arrays and jsonb objects: compare canonically (Postgres returns jsonb keys in its own order).
+  if (typeof na === "object" || typeof nb === "object") return canonical(na) === canonical(nb);
   if (typeof na === "boolean" || typeof nb === "boolean") return na === nb;
   const sa = String(na);
   const sb = String(nb);

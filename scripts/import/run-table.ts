@@ -83,19 +83,24 @@ async function resolveLinks(
   for (const link of mapper.links ?? []) {
     if (link.kind === "record") {
       const ids = mapped.links[link.fieldId];
-      if (!ids?.length) continue;
+      if (!ids?.length) {
+        if (link.required) mapped.invalid ??= `missing link: ${link.label}`;
+        continue;
+      }
       const entity = ctx.entityOf(link.target);
-      let first: string | null = null;
+      const found: string[] = [];
       let all = true;
       for (const id of ids) {
         const ref = entity ? await ctx.store.findRef(entity, id) : null;
-        if (ref) first ??= ref.localId;
+        if (ref) found.push(ref.localId);
         else all = false;
       }
+      mapped.resolved[link.fieldId] = found;
       if (!all) addUnmatched(result.unmatched, `${mapper.key} · ${link.label}`, mapped.recordId);
       else result.linksResolved++;
-      if (link.column && first) {
-        mapped.values[link.column] = first;
+      if (link.required && found.length === 0) mapped.invalid ??= `unresolved link: ${link.label}`;
+      if (link.column && found[0]) {
+        mapped.values[link.column] = found[0];
         if (ids.length > 1) addWarning(result.warnings, `multiple_links_first_used:${link.label}`);
       }
     } else {
@@ -104,6 +109,7 @@ async function resolveLinks(
       const hit = await ctx.store.findOne(link.table, { [link.matchColumn]: text });
       if (hit) {
         mapped.values[link.column] = hit.id;
+        mapped.resolved[link.fieldId] = [hit.id];
         result.linksResolved++;
       } else {
         addUnmatched(result.unmatched, `${mapper.key} · ${link.label}`, mapped.recordId);
@@ -123,6 +129,9 @@ async function writeGeneric(
 ): Promise<{ outcome: WriteOutcome; id?: string; error?: string }> {
   const { store } = ctx;
   const values = { ...mapped.values };
+  // A null means "no value": on insert it is omitted so the column default applies (an explicit
+  // NULL would defeat NOT NULL DEFAULT columns such as priority or call_status).
+  const insertValues = Object.fromEntries(Object.entries(values).filter(([, v]) => v !== null));
   const ref = await store.findRef(entity, mapped.recordId);
   let existing: StoreRow | null = ref ? await store.getRow(mapper.target, ref.localId) : null;
   let adopted = false;
@@ -138,7 +147,8 @@ async function writeGeneric(
     // A second Airtable record that maps to a row another record already claimed in this run.
     const duplicate = seenLocal.has(existing.id) && !ref;
     seenLocal.add(existing.id);
-    const cols = changedColumns(mapper, existing, values);
+    // createOnly tables are frozen after the first import: staff own the row from then on.
+    const cols = mapper.createOnly ? [] : changedColumns(mapper, existing, values);
     let outcome: WriteOutcome = duplicate ? "duplicate" : adopted ? "adopted" : "unchanged";
     if (cols.length > 0 && !duplicate) {
       const res = await store.updateRow(
@@ -158,7 +168,7 @@ async function writeGeneric(
     return { outcome, id: existing.id };
   }
 
-  const ins = await store.insertRow(mapper.target, values);
+  const ins = await store.insertRow(mapper.target, insertValues);
   if ("error" in ins) return { outcome: "failed", error: ins.error };
   seenLocal.add(ins.id);
   await store.upsertRef({
@@ -272,7 +282,7 @@ export async function runTable(mapper: TableMapper, ctx: RunContext): Promise<Ta
     name: mapper.name,
     entity,
     target: mapper.target,
-    outcome: mapper.status === "pending_phase6" ? "validated" : "imported",
+    outcome: mapper.status === "pending" ? "validated" : "imported",
     auditedCount: ctx.auditedCounts?.[mapper.tableId] ?? null,
   });
   const c = result.counters;
@@ -301,6 +311,11 @@ export async function runTable(mapper: TableMapper, ctx: RunContext): Promise<Ta
       c.skipped++;
       continue;
     }
+    if (mapped.skipReason) {
+      c.skipped++;
+      addWarning(result.warnings, mapped.skipReason);
+      continue;
+    }
     if (mapped.invalid) {
       c.invalid++;
       continue;
@@ -308,9 +323,24 @@ export async function runTable(mapper: TableMapper, ctx: RunContext): Promise<Ta
 
     try {
       await resolveLinks(mapper, mapped, ctx, result);
+      if (!mapped.invalid && mapper.enrich) {
+        await mapper.enrich({
+          values: mapped.values,
+          raw: record.fields,
+          recordId: record.id,
+          resolved: mapped.resolved,
+          store: ctx.store,
+          warn: (code) => addWarning(result.warnings, code),
+        });
+      }
+      if (mapped.invalid) {
+        addWarning(result.warnings, mapped.invalid.replace(/:.*$/, ""));
+        c.invalid++;
+        continue;
+      }
       // "Validated" tables (target not migrated) only record an overlay ref so later tables'
       // links resolve in a dry run; nothing is written.
-      if (mapper.status === "pending_phase6") {
+      if (mapper.status === "pending") {
         await ctx.store.upsertRef({
           entity,
           externalId: mapped.recordId,

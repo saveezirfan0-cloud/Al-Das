@@ -15,7 +15,8 @@ export function mapRecord(mapper: TableMapper, record: SourceRecord): MappedRow 
     if (spec.required && (values[spec.column] === null || values[spec.column] === ""))
       invalid ??= `missing ${spec.column}`;
   }
-  mapper.finalize?.(values, record.fields, warn, record.id);
+  mapper.finalize?.(values, record.fields, warn, record.id, record.createdTime);
+  const skipReason = mapper.skip?.(values, record.fields) ?? undefined;
 
   const links: Record<string, string[]> = {};
   const lookups: Record<string, string> = {};
@@ -35,6 +36,8 @@ export function mapRecord(mapper: TableMapper, record: SourceRecord): MappedRow 
     values,
     links,
     lookups,
+    resolved: {},
+    skipReason,
     warnings,
     isTest: !!mapper.testFlagFieldId && record.fields[mapper.testFlagFieldId] === true,
     invalid,
@@ -46,6 +49,7 @@ export function mapperFieldIds(mapper: TableMapper): string[] {
   return [
     ...mapper.fields.map((f) => f.id),
     ...(mapper.links ?? []).map((l) => l.fieldId),
+    ...(mapper.extraFieldIds ?? []),
     ...(mapper.testFlagFieldId ? [mapper.testFlagFieldId] : []),
   ];
 }

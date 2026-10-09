@@ -55,7 +55,7 @@ function printList() {
     else if (e.type === "patients") console.log(`ready    ${e.key.padEnd(34)} → contacts`);
     else
       console.log(
-        `${e.mapper.status === "ready" ? "ready   " : "phase 6 "} ${e.key.padEnd(34)} → ${e.mapper.target}`,
+        `${e.mapper.status === "ready" ? "ready   " : "pending  "} ${e.key.padEnd(34)} → ${e.mapper.target}`,
       );
   }
 }

@@ -13,19 +13,14 @@ import {
   acuteMessageLogMapper,
   acutePrescriptionsMapper,
   acuteVisitsMapper,
-  cfuFollowupMapper,
+  callScriptsMapper,
+  doctorsMapper,
   medicalRecordsMapper,
-  ptfFeedbackMapper,
-  ptfPrescriptionsMapper,
-  ptfWhatsappLogMapper,
-} from "./tables/pending-clinical";
+} from "./tables/clinical";
 import {
   appointmentMessagesMapper,
   birthdayMapper,
   chronicRecallMapper,
-  doctorsMapper,
-  messageTemplatesMapper,
-  ptfPatientVisitsMapper,
 } from "./tables/pending-logs";
 import {
   cptMasterMapper,
@@ -85,21 +80,16 @@ export const REGISTRY: readonly RegistryEntry[] = [
   table(medicalRecordsMapper),
   table(acuteVisitsMapper),
   table(acutePrescriptionsMapper),
-  table(ptfPrescriptionsMapper),
-  // 5. logs
+  // 5. follow-ups, feedback, logs
+  table(acuteFollowupMapper),
+  table(acuteFeedbackMapper),
+  table(acuteMessageLogMapper),
   table(appointmentMessagesMapper),
   table(birthdayMapper),
   table(chronicRecallMapper),
-  table(acuteMessageLogMapper),
-  table(ptfWhatsappLogMapper),
-  table(acuteFollowupMapper),
-  table(cfuFollowupMapper),
-  table(acuteFeedbackMapper),
-  table(ptfFeedbackMapper),
-  table(ptfPatientVisitsMapper),
   // 6. config
   table(websiteMapper),
-  table(messageTemplatesMapper),
+  table(callScriptsMapper),
   // deliberately not imported
   {
     type: "skip",
@@ -126,6 +116,51 @@ export const REGISTRY: readonly RegistryEntry[] = [
     baseId: BASE.ptf,
     tableId: "tbl6LX9OJu8lBwSgf",
     reason: "Backlog (P2) lab_orders table; field map is recorded in data-model-mapping.md §5.3.",
+  },
+  {
+    type: "skip",
+    key: "ptf.prescriptions",
+    name: "PTF · Prescriptions",
+    baseId: BASE.ptf,
+    tableId: "tblRNJcasTIz0vLhR",
+    reason:
+      "Prototype base (mostly test data, confirmed): its patient links point at PTF's own Patients table, which is not imported. Field map is in data-model-mapping.md §5.2 if real history turns up.",
+  },
+  {
+    type: "skip",
+    key: "ptf.feedback",
+    name: "PTF · Feedback & Outcomes",
+    baseId: BASE.ptf,
+    tableId: "tbleAP5BLA6Juf8B1",
+    reason:
+      "Prototype base (mostly test data, confirmed). Mapping is in data-model-mapping.md §5.5 if real history turns up.",
+  },
+  {
+    type: "skip",
+    key: "ptf.whatsapp_log",
+    name: "PTF · Whatsapp Automation Log",
+    baseId: BASE.ptf,
+    tableId: "tbl5wvAX6GidMm7n3",
+    reason:
+      "Prototype base (mostly test data, confirmed). Mapping is in data-model-mapping.md §5.4 if real history turns up.",
+  },
+  {
+    type: "skip",
+    key: "ptf.patient_visits",
+    name: "PTF · Patient Visits",
+    baseId: BASE.ptf,
+    tableId: "tbldH45nIL5EQAjpy",
+    reason:
+      "Prototype base; visit feedback (5-star) is a backlog table with no target yet (data-model-mapping.md §5.8).",
+  },
+  {
+    type: "skip",
+    key: "cfu.followup_queue",
+    name: "CFU · Follow-Up Queue",
+    baseId: BASE.cfu,
+    tableId: "tblJvIh3Wf7z8Qn8k",
+    reason:
+      "Superseded prototype (confirmed mostly test data). Its escalation and doctor-response fields are already modelled on clinical_followups; mapping is in data-model-mapping.md §4.1.",
   },
   ...[
     ["tblFQn2YMbmoqa6HF", "Post-Visit Follow-Up"],
