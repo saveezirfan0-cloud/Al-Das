@@ -3,7 +3,7 @@ import { APPOINTMENT_STATUSES, type AppointmentStatus } from "@/lib/appointments
 import { requirePerm } from "@/lib/auth/session";
 import { serverEnv } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { loadUniteAccount } from "@/lib/unite/store";
+import { hasCredentials, loadUniteAccount } from "@/lib/unite/store";
 import { DEFAULT_UNITE_CONFIG } from "@/lib/unite/config";
 
 import { UniteSettings } from "./unite-settings";
@@ -41,7 +41,7 @@ export default async function UniteSettingsPage() {
       .order("entity"),
     admin
       .from("unite_api_calls")
-      .select("id, endpoint, outcome, http_status, duration_ms, at")
+      .select("id, endpoint, unite_status, http_status, duration_ms, at")
       .eq("org_id", org)
       .order("id", { ascending: false })
       .limit(15),
@@ -63,21 +63,15 @@ export default async function UniteSettingsPage() {
       />
       <UniteSettings
         exists={!!account}
-        status={(account?.row.status as "active" | "paused") ?? "paused"}
+        status={account?.row.status === "active" ? "active" : "paused"}
         config={account?.config ?? DEFAULT_UNITE_CONFIG}
-        credentialSource={
-          account?.row.config_enc
-            ? "stored"
-            : env.UNITE_APP_ID && env.UNITE_APP_KEY
-              ? "env"
-              : "missing"
-        }
+        credentialSource={account && hasCredentials(account.row) ? "stored" : "missing"}
         envBaseUrl={env.UNITE_BASE_URL ?? null}
         breakerOpen={!!breakerUntil && new Date(breakerUntil) > new Date()}
         failures={account?.row.consecutive_failures ?? 0}
         tokenExpiresAt={account?.row.token_expires_at ?? null}
         cursors={cursors ?? []}
-        calls={calls ?? []}
+        calls={(calls ?? []).map((c) => ({ ...c, outcome: c.unite_status ?? "" }))}
         locations={locations ?? []}
         statusMap={(statusMap ?? []).map((r) => ({
           ...r,

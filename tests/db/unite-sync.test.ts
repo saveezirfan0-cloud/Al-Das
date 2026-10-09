@@ -9,9 +9,11 @@ import { createClient } from "@supabase/supabase-js";
 import type { Client } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { decryptJson, encryptJson } from "@/lib/crypto";
 import { runUniteSync } from "@/lib/jobs/handlers/unite-sync";
 import type { AdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/lib/supabase/types";
+import type { UniteCredentials } from "@/lib/unite/auth";
 import { parseUniteConfig } from "@/lib/unite/config";
 import { resolveSyncReview } from "@/lib/unite/review";
 import { syncAppointments, syncDoctors, syncPatients } from "@/lib/unite/sync";
@@ -571,26 +573,6 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)("unite syn
     expect(typeof cur.since).toBe("string");
   });
 
-  it("single-flights the token refresh claim", async () => {
-    await c.query("set role service_role");
-    await c.query("insert into public.integration_accounts (org_id, kind) values ($1, 'unite')", [
-      orgB,
-    ]);
-    const first = (await c.query("select public.unite_claim_token_refresh($1, 30) as ok", [orgB]))
-      .rows[0].ok;
-    const second = (await c.query("select public.unite_claim_token_refresh($1, 30) as ok", [orgB]))
-      .rows[0].ok;
-    await c.query(
-      "update public.integration_accounts set refresh_lock_until = null where org_id = $1",
-      [orgB],
-    );
-    const third = (await c.query("select public.unite_claim_token_refresh($1, 30) as ok", [orgB]))
-      .rows[0].ok;
-    await c.query("delete from public.integration_accounts where org_id = $1", [orgB]);
-    await c.query("reset role");
-    expect([first, second, third]).toEqual([true, false, true]);
-  });
-
   describe("runUniteSync (scripted fetch)", () => {
     function fakeUnite(rows: Array<Record<string, unknown>>) {
       const seen: Array<{ method: string; path: string }> = [];
@@ -625,9 +607,11 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)("unite syn
         skipped: "no_account",
       });
       await c.query("set role service_role");
+      // The shared account row (credentials are entered under Finance → Capture health).
+      const app = { app_id: "app", app_key: "key" };
       await c.query(
-        "insert into public.integration_accounts (org_id, kind, config) values ($1, 'unite', '{}')",
-        [org],
+        "insert into public.integration_accounts (org_id, kind, config, config_enc) values ($1, 'unite', '{}', $2)",
+        [org, encryptJson({ authorize: app, refresh: app } satisfies UniteCredentials)],
       );
       await c.query("reset role");
       expect(await runUniteSync(admin, msg, log, new Date(), f.fn)).toEqual({
@@ -669,27 +653,30 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)("unite syn
       expect(f.seen.every((s) => s.method === "GET")).toBe(true);
       expect(f.seen.some((s) => /finance/i.test(s.path))).toBe(false);
 
+      // The token is cached inside the same encrypted blob as the credentials, never in the clear.
       const acct = (
-        await q(
-          "select token_enc, token_expires_at from public.integration_accounts where org_id = $1",
-          [org],
-        )
+        await q("select config_enc from public.integration_accounts where org_id = $1", [org])
       )[0];
-      expect(acct.token_enc).toMatch(/^v1:/); // encrypted at rest, never the raw token
-      expect(acct.token_enc).not.toContain("tok-1");
+      expect(acct.config_enc).toMatch(/^v1:/);
+      expect(acct.config_enc).not.toContain("tok-1");
+      expect(decryptJson<UniteCredentials>(acct.config_enc).access_token).toBe("tok-1");
       const calls = await q(
-        "select endpoint, outcome from public.unite_api_calls where org_id = $1 order by id",
+        "select endpoint, unite_status from public.unite_api_calls where org_id = $1 order by id",
         [org],
       );
-      expect(calls.map((x) => x.endpoint)).toEqual(["getallappointments", "getallappointments"]);
-      expect(calls.every((x) => x.outcome === "ok")).toBe(true);
+      expect(calls.map((x) => x.endpoint)).toEqual([
+        "authorize",
+        "getallappointments",
+        "getallappointments",
+      ]);
+      expect(calls.every((x) => x.unite_status === "ok")).toBe(true);
     });
   });
 
   it("keeps the new tables private to their org", async () => {
     await c.query("set role service_role");
     await c.query(
-      "insert into public.unite_api_calls (org_id, endpoint, outcome) values ($1, 'x', 'ok')",
+      "insert into public.unite_api_calls (org_id, endpoint, unite_status) values ($1, 'x', 'ok')",
       [orgB],
     );
     await c.query("reset role");
@@ -720,9 +707,6 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)("unite syn
         ),
       ),
     ).rejects.toThrow(/row-level security/);
-    await expect(
-      asUser(c, user, () => c.query("select public.unite_claim_token_refresh($1)", [org])),
-    ).rejects.toThrow(/permission denied/);
     void asServiceRole;
   });
 });

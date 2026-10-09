@@ -20,7 +20,7 @@ import { emit } from "@/lib/events/emit";
 import type { JobLogger } from "@/lib/jobs/types";
 import type { AdminClient } from "@/lib/supabase/admin";
 import type { Json, TablesUpdate } from "@/lib/supabase/types";
-import type { RawRecord } from "@/lib/unite/client";
+import type { RawRecord } from "@/lib/unite/sync-client";
 import type { UniteConfig } from "@/lib/unite/config";
 import { mapAppointment, mapDoctor, mapPatient, type MappedPatient } from "@/lib/unite/mappers";
 

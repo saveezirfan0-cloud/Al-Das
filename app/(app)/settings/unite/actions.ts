@@ -7,23 +7,15 @@ import { APPOINTMENT_STATUSES } from "@/lib/appointments/status";
 import { recordAudit } from "@/lib/audit";
 import { requirePerm } from "@/lib/auth/session";
 import { enqueue } from "@/lib/jobs/enqueue";
-import { createAdminClient, type AdminClient } from "@/lib/supabase/admin";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/types";
 import { uniteConfigSchema } from "@/lib/unite/config";
-import { buildUniteClient, encryptCredentials, loadUniteAccount } from "@/lib/unite/store";
+import { buildUniteClient, loadUniteAccount } from "@/lib/unite/store";
 
 export type ActionResult = { ok: true; message?: string } | { ok: false; error: string };
 
 function refresh() {
   revalidatePath("/settings/unite");
-}
-
-/** Creates the org's Unite account row on first use. */
-async function ensureAccount(admin: AdminClient, orgId: string) {
-  const existing = await loadUniteAccount(admin, orgId);
-  if (existing) return existing;
-  await admin.from("integration_accounts").insert({ org_id: orgId, kind: "unite" });
-  return (await loadUniteAccount(admin, orgId))!;
 }
 
 const settingsSchema = z.object({
@@ -48,10 +40,18 @@ export async function saveUniteSettings(input: unknown): Promise<ActionResult> {
     };
 
   const admin = createAdminClient();
-  await ensureAccount(admin, member.orgId);
+  // The row is created together with the shared credentials (Finance → Capture health).
+  if (!(await loadUniteAccount(admin, member.orgId)))
+    return {
+      ok: false,
+      error: "Store the Unite credentials first (Finance → Capture health).",
+    };
   const { error } = await admin
     .from("integration_accounts")
-    .update({ status, config: config as unknown as NonNullable<Json> })
+    .update({
+      status: status === "active" ? "active" : "disabled",
+      config: config as unknown as NonNullable<Json>,
+    })
     .eq("org_id", member.orgId)
     .eq("kind", "unite");
   if (error) return { ok: false, error: "Could not save." };
@@ -66,54 +66,6 @@ export async function saveUniteSettings(input: unknown): Promise<ActionResult> {
   return { ok: true, message: "Unite settings saved." };
 }
 
-const credSchema = z.object({
-  appId: z.string().trim().min(1, "Enter the app id").max(200),
-  appKey: z.string().trim().min(1, "Enter the app key").max(500),
-});
-
-/** Write-only: the stored secret is never sent back to the browser. */
-export async function saveUniteCredentials(
-  input: z.input<typeof credSchema>,
-): Promise<ActionResult> {
-  const member = await requirePerm("settings.manage");
-  const parsed = credSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid" };
-  let enc: string;
-  try {
-    enc = encryptCredentials(parsed.data.appId, parsed.data.appKey);
-  } catch {
-    return { ok: false, error: "ENCRYPTION_KEY is not configured on the server." };
-  }
-  const admin = createAdminClient();
-  await ensureAccount(admin, member.orgId);
-  // New credentials invalidate the cached token.
-  await admin
-    .from("integration_accounts")
-    .update({ config_enc: enc, token_enc: null, token_expires_at: null })
-    .eq("org_id", member.orgId)
-    .eq("kind", "unite");
-  await recordAudit(admin, {
-    orgId: member.orgId,
-    userId: member.userId,
-    action: "unite.credentials_updated",
-    entity: "integration",
-  });
-  refresh();
-  return { ok: true, message: "Credentials stored (encrypted)." };
-}
-
-export async function clearUniteCredentials(): Promise<ActionResult> {
-  const member = await requirePerm("settings.manage");
-  const admin = createAdminClient();
-  await admin
-    .from("integration_accounts")
-    .update({ config_enc: null, token_enc: null, token_expires_at: null })
-    .eq("org_id", member.orgId)
-    .eq("kind", "unite");
-  refresh();
-  return { ok: true, message: "Stored credentials removed." };
-}
-
 /** Logs in only (authorize); no patient data is requested. */
 export async function testUniteConnection(): Promise<ActionResult> {
   const member = await requirePerm("settings.manage");
@@ -121,10 +73,9 @@ export async function testUniteConnection(): Promise<ActionResult> {
   const built = await buildUniteClient(admin, member.orgId);
   if (!built.ok) {
     const why = {
-      no_account: "Save the settings first.",
+      no_account: "Store the Unite credentials first (Finance → Capture health).",
       paused: "The integration is paused.",
-      no_credentials: "No credentials: set UNITE_APP_ID / UNITE_APP_KEY or store them below.",
-      no_base_url: "No base URL: set UNITE_BASE_URL or fill it in below.",
+      no_credentials: "No readable credentials: store them under Finance → Capture health.",
     }[built.reason];
     return { ok: false, error: why };
   }

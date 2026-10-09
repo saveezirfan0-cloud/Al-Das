@@ -10,7 +10,7 @@ Delivered in three steps on one branch: **6a Appointments**, **6b Unite sync + S
 
 | Area                                          | Where                                                                                                                  |
 | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Schema                                        | `20261009000050_rls_helpers.sql`, `…0100_appointments.sql`, `…0200_appointments_ext.sql`, `…0300_appointment_jobs.sql` |
+| Schema                                        | `20261009000700_rls_helpers.sql`, `…0710_appointments.sql`, `…0720_appointments_ext.sql`, `…0730_appointment_jobs.sql` |
 | Booking rules + template mapping              | `orgs.settings->'appointments'`, schema in `lib/appointments/settings.ts`                                              |
 | Slot engine (pure, tz-aware)                  | `lib/appointments/slots.ts`                                                                                            |
 | Reminder planning, template values (pure)     | `lib/appointments/reminders.ts`                                                                                        |
@@ -58,25 +58,25 @@ Delivered in three steps on one branch: **6a Appointments**, **6b Unite sync + S
 
 ### What exists now
 
-| Area                                    | Where                                                                                                                                                         |
-| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Schema                                  | `20261009000400_unite.sql`: `integration_accounts`, `sync_cursors`, `unite_api_calls`, `sync_reviews.incoming`, `unite_claim_token_refresh()`, cron schedules |
-| Config (flags, endpoints)               | `lib/unite/config.ts` → `integration_accounts.config`                                                                                                         |
-| Auth (token on demand, single-flight)   | `lib/unite/auth.ts`                                                                                                                                           |
-| Read-only client                        | `lib/unite/client.ts`                                                                                                                                         |
-| Mappers (pure)                          | `lib/unite/mappers.ts`                                                                                                                                        |
-| DB-backed token / breaker / call log    | `lib/unite/store.ts`                                                                                                                                          |
-| Syncs (appointments, doctors, patients) | `lib/unite/sync.ts`                                                                                                                                           |
-| Review resolution                       | `lib/unite/review.ts`                                                                                                                                         |
-| Jobs                                    | `lib/jobs/handlers/unite-sync.ts` (queue `unite_sync`; tasks `unite_enqueue`, `unite_nightly`)                                                                |
-| UI                                      | Settings → **Unite EMR** (`/settings/unite`), **Portal → Sync Review** (`/portal/sync-review`), Portal hub (`/portal`)                                        |
+| Area                                    | Where                                                                                                                                                                                                                             |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Schema                                  | `20261009000740_unite.sql`: extra `integration_accounts` columns (config, breaker), `sync_cursors`, `sync_reviews.incoming`, cron schedules. `integration_accounts` and `unite_api_calls` themselves come from the Finance module |
+| Config (flags, endpoints)               | `lib/unite/config.ts` → `integration_accounts.config`                                                                                                                                                                             |
+| Auth (shared token manager, Finance)    | `lib/unite/auth.ts`                                                                                                                                                                                                               |
+| Read-only client                        | `lib/unite/sync-client.ts`                                                                                                                                                                                                        |
+| Mappers (pure)                          | `lib/unite/mappers.ts`                                                                                                                                                                                                            |
+| DB-backed token / breaker / call log    | `lib/unite/store.ts`                                                                                                                                                                                                              |
+| Syncs (appointments, doctors, patients) | `lib/unite/sync.ts`                                                                                                                                                                                                               |
+| Review resolution                       | `lib/unite/review.ts`                                                                                                                                                                                                             |
+| Jobs                                    | `lib/jobs/handlers/unite-sync.ts` (queue `unite_sync`; tasks `unite_enqueue`, `unite_nightly`)                                                                                                                                    |
+| UI                                      | Settings → **Unite EMR** (`/settings/unite`), **Portal → Sync Review** (`/portal/sync-review`), Portal hub (`/portal`)                                                                                                            |
 
 ### Safety rails (CLAUDE.md rule 7)
 
 - **Read-only.** The client exposes `getAppointments`, `listPage`, `listAll` and nothing else; the only POST in the package is the vendor's token refresh. `tests/unit/unite-readonly.test.ts` pins this at the source level.
 - **Finance API is never called.** It is sync-once (each call permanently dequeues records). The client checks every endpoint against an allow-list and refuses anything matching `/finance/i`, even if it is configured; the settings action rejects it too. There is **no raw-payload table yet**: it is created together with the guarded, feature-flagged job that would call that API, not before.
 - **Conservative traffic.** One call at a time, ≥ 250 ms apart (configurable), exponential back-off on 5xx / 429 / network errors (`Retry-After` honoured), circuit breaker after 5 consecutive failures (5-minute cool-down, admins notified the moment it trips, "Resume calls" button). Every call is logged in `unite_api_calls` — endpoint, outcome, timing; **no bodies, no patient data**.
-- **Tokens (~240 s)** are refreshed on demand under a DB claim so two serverless invocations never refresh at once; they are stored AES-256-GCM encrypted (`token_enc`). Credentials come from `UNITE_APP_ID` / `UNITE_APP_KEY` or an encrypted per-org override entered (write-only) in Settings. Errors never contain tokens or credentials.
+- **Tokens (~240 s)** are refreshed on demand by the token manager the Finance module uses (`lib/unite/auth.ts`): one set of credentials and one token cache, AES-256-GCM encrypted in `integration_accounts.config_enc`. Credentials are entered once, write-only, under Finance → Capture health; Settings → Unite EMR only holds the non-secret sync settings and needs those credentials to exist. Errors never contain tokens or credentials.
 - **Vendor quirk:** every response is HTTP 200; success is read from the body (`Status`/`Message`). "Token Expired" / "Invalid Token" trigger exactly one forced refresh and retry.
 
 ### Behaviour worth knowing
@@ -100,9 +100,9 @@ Delivered in three steps on one branch: **6a Appointments**, **6b Unite sync + S
 ### Test coverage added
 
 - `tests/unit/unite-mappers.test.ts` (13): time formats and edge cases, appointment/doctor/patient mapping.
-- `tests/unit/unite-client.test.ts` (20): URL/params/auth, throttle, back-off, 429, forced token refresh, circuit breaker, paging, token store hand-off, no credential leakage.
+- `tests/unit/unite-sync-client.test.ts`: URL/params/auth, throttle, back-off, 429, forced token refresh through the shared token manager, circuit breaker, paging, no credential leakage. (`unite-client.test.ts` is the Finance client's.)
 - `tests/unit/unite-readonly.test.ts` (4): no write methods, POST only in auth, Finance API refused.
-- `tests/db/unite-sync.test.ts` (14, needs PostgREST): matching / adopt / create / review, idempotent replay, status map, reminder re-planning, cursors and failures, doctors, patients (fill blanks only), the token claim, a full `runUniteSync` with a scripted `fetch`, Sync Review link / dismiss / create, and cross-org isolation of the new tables.
+- `tests/db/unite-sync.test.ts` (14, needs PostgREST): matching / adopt / create / review, idempotent replay, status map, reminder re-planning, cursors and failures, doctors, patients (fill blanks only), a full `runUniteSync` with a scripted `fetch`, Sync Review link / dismiss / create, and cross-org isolation of the new tables.
 
 ## 6c — Clinical rules, Follow-Up Queue, Clinical settings
 
@@ -111,7 +111,7 @@ Source of truth: `docs/audit/clinical-rules.md` (rules R-01…R-26, Test Plan TP
 ### What exists now
 
 - **`lib/clinical/`**: pure functions, no I/O. `vitals` / `negation` / `age` / `department` / `triggers/{paeds,gp,gyn}` / `category` / `followup` / `evaluate` / `sequence` / `feedback` / `gate` / `sign-off`. `engine.ts` is the only part that touches the database (load settings, evaluate a visit, write the follow-up, dispatch a message through the gate, record feedback, apply a day-3 reply). `clinical.test.ts` holds the Test Plan cases and boundary cases as table-driven tests on synthetic fixtures.
-- **Schema** (`20261009000500_clinical_core.sql`, `…0600_org_check_triggers.sql`): `clinical_settings` (+ history), `visits`, `prescriptions`, `prescription_sequences`, `visit_rule_evaluations`, `clinical_followups`, `clinical_feedback`, `clinical_message_log`, `clinical_call_scripts`, `ref_medication_classes`, three views, and the gate function `app.clinical_messaging_enabled(org)`. RLS on every table; clinical data is PHI, so reads are gated by `portal.clinical_visits.read` / `portal.clinical_followups.read` rather than plain org membership.
+- **Schema** (`20261009000750_clinical_core.sql`, `…0760_org_check_triggers.sql`): `clinical_settings` (+ history), `visits`, `prescriptions`, `prescription_sequences`, `visit_rule_evaluations`, `clinical_followups`, `clinical_feedback`, `clinical_message_log`, `clinical_call_scripts`, `ref_medication_classes`, three views, and the gate function `app.clinical_messaging_enabled(org)`. RLS on every table; clinical data is PHI, so reads are gated by `portal.clinical_visits.read` / `portal.clinical_followups.read` rather than plain org membership.
 - **Portal → Follow-Up Queue** (`/portal/follow-ups`): open items, High first then oldest due date, filters, overdue highlighting, drawer with vitals (only if the viewer may read visits), the approved call script for the category, call status / outcome / escalation / assignee / notes, "Notify doctor", Save & close. Staff can only change those columns; engine columns are protected by a database trigger as well as by the server action.
 - **Portal → Clinical settings** (`/portal/clinical-settings`): rows grouped by category with proposed / approved / "in use today" values, owner, signer and date; sign-off, revoke and history. Writes go through the signed-in user's own client so the history trigger records who changed what. `clinical_messaging_enabled` and `allow_unsigned_defaults` additionally need the confirm phrase to be switched on.
 - **Scheduler**: `clinical_evaluate` (pg_cron, every 10 min) re-evaluates visits whose inputs or settings changed.
@@ -153,3 +153,12 @@ Source of truth: `docs/audit/clinical-rules.md` (rules R-01…R-26, Test Plan TP
 - `tests/db/clinical-rls.test.ts` (12): seed, org isolation, PHI gating, queue edit guard, sign-off integrity and history, the gate function, integrity constraints.
 - `tests/db/clinical-engine.test.ts` (19, needs PostgREST): unsigned vs signed evaluation, create / unchanged / close / supersede / leave-alone, children as paediatrics, negation, history without follow-ups, the scheduled task, the gate in all its states, red flags with dual notification, day-3 outcomes.
 - `tests/db/appointments-rls.test.ts` gained a regression for the column-specific org-check triggers.
+
+## Merge with the Finance module (PR #5)
+
+`main` gained the Finance & Insurance module while Phase 6 was in progress. Reconciled as follows:
+
+- **Two Unite clients, kept apart.** Finance owns `lib/unite/auth.ts` (token manager) and `lib/unite/client.ts` (the guarded, POST-only `GetFinanceDetails` client). The read-only sync client is `lib/unite/sync-client.ts`, and `lib/unite/sync-auth.ts` only holds its small helpers. A source-level test (`unite-readonly.test.ts`) checks that the sync code never POSTs, never imports the Finance client or capture pipeline, and never names `GetFinanceDetails`.
+- **One credential store.** Both modules use `integration_accounts` / `unite_api_calls` as created by `…0600_finance_capture.sql`; the Phase 6 migration only adds columns to the former. The sync's own token store, per-org app id/key form and refresh claim were removed. Because Finance's capture and the sync now share a token, an authorize from one can invalidate the other's token; each handles that with its single "Token Expired" renewal.
+- **Migrations renumbered** to `…0700`–`…0760`, after Finance's `…0100`–`…0600`. They have not been applied anywhere yet, so this is safe; if they had been, the numbers would have to stay.
+- Phase 6's `Settings → Unite EMR` status uses Finance's `'disabled'` for "paused".

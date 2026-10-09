@@ -26,10 +26,8 @@ import {
 import type { UniteConfig } from "@/lib/unite/config";
 
 import {
-  clearUniteCredentials,
   resetUniteBreaker,
   saveStatusMap,
-  saveUniteCredentials,
   saveUniteSettings,
   syncUniteNow,
   testUniteConnection,
@@ -71,7 +69,7 @@ export function UniteSettings(props: {
   exists: boolean;
   status: "active" | "paused";
   config: UniteConfig;
-  credentialSource: "stored" | "env" | "missing";
+  credentialSource: "stored" | "missing";
   envBaseUrl: string | null;
   breakerOpen: boolean;
   failures: number;
@@ -98,7 +96,6 @@ export function UniteSettings(props: {
   const [status, setStatus] = React.useState(props.status);
   const [cfg, setCfg] = React.useState<UniteConfig>(props.config);
   const [map, setMap] = React.useState<MapRow[]>(props.statusMap);
-  const [creds, setCreds] = React.useState({ appId: "", appKey: "" });
   const { pending, run } = useRun();
   const setEnabled = (k: keyof UniteConfig["enabled"], v: boolean) =>
     setCfg((c) => ({ ...c, enabled: { ...c.enabled, [k]: v } }));
@@ -129,8 +126,9 @@ export function UniteSettings(props: {
         <CardHeader>
           <CardTitle>Connection</CardTitle>
           <CardDescription>
-            Credentials come from the server environment (UNITE_APP_ID, UNITE_APP_KEY) unless you
-            store them here. Tokens last about four minutes and are refreshed on demand.
+            Pulse shares one set of Unite credentials and one token with the Finance module. Enter
+            or change them under Finance → Capture health. Tokens last about four minutes and are
+            refreshed on demand.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
@@ -143,12 +141,7 @@ export function UniteSettings(props: {
               Integration active
             </label>
             <Badge variant={props.credentialSource === "missing" ? "destructive" : "secondary"}>
-              Credentials:{" "}
-              {props.credentialSource === "stored"
-                ? "stored (encrypted)"
-                : props.credentialSource === "env"
-                  ? "environment"
-                  : "missing"}
+              Credentials: {props.credentialSource === "stored" ? "stored (encrypted)" : "missing"}
             </Badge>
             <span className="text-muted-foreground text-xs">
               Token valid until {when(props.tokenExpiresAt, props.timezone)}
@@ -174,54 +167,12 @@ export function UniteSettings(props: {
               />
             </div>
           </div>
-          <form
-            className="grid items-end gap-3 sm:grid-cols-[1fr_1fr_auto_auto]"
-            onSubmit={(e) => {
-              e.preventDefault();
-              run(async () => {
-                const res = await saveUniteCredentials(creds);
-                if (res.ok) setCreds({ appId: "", appKey: "" });
-                return res;
-              });
-            }}
-          >
-            <div className="flex flex-col gap-1.5">
-              <Label>App id</Label>
-              <Input
-                autoComplete="off"
-                value={creds.appId}
-                onChange={(e) => setCreds({ ...creds, appId: e.target.value })}
-                placeholder="Write-only"
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label>App key</Label>
-              <Input
-                type="password"
-                autoComplete="off"
-                value={creds.appKey}
-                onChange={(e) => setCreds({ ...creds, appKey: e.target.value })}
-                placeholder="Write-only"
-              />
-            </div>
-            <Button
-              type="submit"
-              variant="outline"
-              disabled={pending || !creds.appId || !creds.appKey}
-            >
-              Store credentials
-            </Button>
-            {props.credentialSource === "stored" && (
-              <Button
-                type="button"
-                variant="ghost"
-                disabled={pending}
-                onClick={() => run(clearUniteCredentials)}
-              >
-                Remove
-              </Button>
-            )}
-          </form>
+          {props.credentialSource === "missing" && (
+            <p className="text-muted-foreground text-sm">
+              No credentials are stored yet. Add them under Finance → Capture health, then come back
+              here to switch the sync on.
+            </p>
+          )}
         </CardContent>
       </Card>
 

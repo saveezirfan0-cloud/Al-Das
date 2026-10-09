@@ -1,21 +1,18 @@
 import "server-only";
 
-import { decryptSecret, encryptSecret } from "@/lib/crypto";
+import { decryptJson } from "@/lib/crypto";
 import { serverEnv } from "@/lib/env";
+import { DEFAULT_UNITE_BASE_URL, dbTokenStore } from "@/lib/finance/db";
 import type { AdminClient } from "@/lib/supabase/admin";
 import type { Tables } from "@/lib/supabase/types";
-import {
-  createUniteAuth,
-  type TokenState,
-  type TokenStore,
-  type UniteAuth,
-} from "@/lib/unite/auth";
+import { createTokenManager, type Http, type UniteCredentials } from "@/lib/unite/auth";
+import type { UniteAuth } from "@/lib/unite/sync-auth";
 import {
   createUniteClient,
   type BreakerStore,
   type CallLog,
   type UniteClient,
-} from "@/lib/unite/client";
+} from "@/lib/unite/sync-client";
 import { parseUniteConfig, type UniteConfig } from "@/lib/unite/config";
 
 export type UniteAccount = { row: Tables<"integration_accounts">; config: UniteConfig };
@@ -33,73 +30,31 @@ export async function loadUniteAccount(
   return data ? { row: data, config: parseUniteConfig(data.config) } : null;
 }
 
-/** App id / key: the encrypted per-org override, else the UNITE_APP_ID / UNITE_APP_KEY env vars. */
-export function resolveCredentials(
-  row: Pick<Tables<"integration_accounts">, "config_enc">,
-): { appId: string; appKey: string } | null {
-  if (row.config_enc) {
-    try {
-      const parsed = JSON.parse(decryptSecret(row.config_enc)) as {
-        app_id?: string;
-        app_key?: string;
-      };
-      if (parsed.app_id && parsed.app_key) return { appId: parsed.app_id, appKey: parsed.app_key };
-    } catch {
-      return null;
-    }
-  }
-  const env = serverEnv();
-  return env.UNITE_APP_ID && env.UNITE_APP_KEY
-    ? { appId: env.UNITE_APP_ID, appKey: env.UNITE_APP_KEY }
-    : null;
-}
-
-export function encryptCredentials(appId: string, appKey: string): string {
-  return encryptSecret(JSON.stringify({ app_id: appId, app_key: appKey }));
-}
-
-export function createDbTokenStore(admin: AdminClient, orgId: string): TokenStore {
-  return {
-    async get() {
-      const { data } = await admin
-        .from("integration_accounts")
-        .select("token_enc")
-        .eq("org_id", orgId)
-        .eq("kind", "unite")
-        .maybeSingle();
-      if (!data?.token_enc) return null;
-      try {
-        return JSON.parse(decryptSecret(data.token_enc)) as TokenState;
-      } catch {
-        return null;
-      }
-    },
-    async set(token) {
-      await admin
-        .from("integration_accounts")
-        .update({
-          token_enc: encryptSecret(JSON.stringify(token)),
-          token_expires_at: new Date(token.expiresAt).toISOString(),
-          refresh_lock_until: null,
-        })
-        .eq("org_id", orgId)
-        .eq("kind", "unite");
-    },
-    async claimRefresh() {
-      const { data } = await admin.rpc("unite_claim_token_refresh", {
-        p_org: orgId,
-        p_ttl_seconds: 20,
-      });
-      return data === true;
-    },
-    async release() {
-      await admin
-        .from("integration_accounts")
-        .update({ refresh_lock_until: null })
-        .eq("org_id", orgId)
-        .eq("kind", "unite");
-    },
+/** The token manager's transport on top of a fetch (injectable so tests never touch the network). */
+function httpFrom(fetchFn: typeof fetch): Http {
+  return async ({ method, url, headers, body, timeoutMs }) => {
+    const res = await fetchFn(url, {
+      method,
+      headers,
+      body,
+      signal: AbortSignal.timeout(timeoutMs),
+      cache: "no-store",
+    });
+    return { status: res.status, text: await res.text() };
   };
+}
+
+/**
+ * True when the shared (Finance) credentials are stored and readable. They are entered once, under
+ * Finance → Capture health, and used by both the Finance capture and this read-only sync.
+ */
+export function hasCredentials(row: Pick<Tables<"integration_accounts">, "config_enc">): boolean {
+  try {
+    const c = decryptJson<UniteCredentials>(row.config_enc);
+    return !!c.authorize?.app_id && !!c.authorize?.app_key;
+  } catch {
+    return false;
+  }
 }
 
 export const BREAKER_THRESHOLD = 5;
@@ -145,15 +100,16 @@ export function createDbBreakerStore(admin: AdminClient, orgId: string): Breaker
   };
 }
 
-export function createCallLogger(admin: AdminClient, orgId: string, batchId: string | null) {
+export function createCallLogger(admin: AdminClient, orgId: string) {
   return async (c: CallLog) => {
+    // unite_api_calls is shared with the Finance capture, whose batch_id points at its own raw
+    // batches, so the sync never sets it. The outcome goes in unite_status (no record data).
     await admin.from("unite_api_calls").insert({
       org_id: orgId,
       endpoint: c.endpoint,
-      outcome: c.outcome,
+      unite_status: c.outcome,
       http_status: c.httpStatus,
       duration_ms: c.durationMs,
-      batch_id: batchId,
     });
   };
 }
@@ -162,7 +118,7 @@ export function createCallLogger(admin: AdminClient, orgId: string, batchId: str
 export async function buildUniteClient(
   admin: AdminClient,
   orgId: string,
-  opts: { batchId?: string; fetchFn?: typeof fetch } = {},
+  opts: { fetchFn?: typeof fetch } = {},
 ): Promise<
   | {
       ok: true;
@@ -171,33 +127,39 @@ export async function buildUniteClient(
       account: UniteAccount;
       breaker: BreakerStore;
     }
-  | { ok: false; reason: "no_account" | "paused" | "no_credentials" | "no_base_url" }
+  | { ok: false; reason: "no_account" | "paused" | "no_credentials" }
 > {
   const account = await loadUniteAccount(admin, orgId);
   if (!account) return { ok: false, reason: "no_account" };
   if (account.row.status !== "active") return { ok: false, reason: "paused" };
-  const creds = resolveCredentials(account.row);
-  if (!creds) return { ok: false, reason: "no_credentials" };
-  const baseUrl = account.config.base_url ?? serverEnv().UNITE_BASE_URL;
-  if (!baseUrl) return { ok: false, reason: "no_base_url" };
+  if (!hasCredentials(account.row)) return { ok: false, reason: "no_credentials" };
+  const baseUrl = account.config.base_url ?? serverEnv().UNITE_BASE_URL ?? DEFAULT_UNITE_BASE_URL;
 
   const fetchFn = opts.fetchFn ?? fetch;
   const breaker = createDbBreakerStore(admin, orgId);
-  const auth = createUniteAuth({
+  const log = createCallLogger(admin, orgId);
+  const tokens = createTokenManager({
+    store: dbTokenStore(admin, orgId),
+    http: httpFrom(fetchFn),
     baseUrl,
-    paths: account.config.paths,
-    appId: creds.appId,
-    appKey: creds.appKey,
-    store: createDbTokenStore(admin, orgId),
-    fetchFn,
+    onCall: (c) =>
+      void log({
+        endpoint: c.endpoint,
+        outcome: c.uniteStatus.startsWith("Success") ? "ok" : "auth_error",
+        httpStatus: c.httpStatus,
+        durationMs: c.durationMs,
+      }),
   });
+  const auth: UniteAuth = {
+    getToken: (o) => (o?.force ? tokens.renewToken() : tokens.getToken()),
+  };
   const client = createUniteClient({
     baseUrl,
     config: account.config,
     auth,
     breaker,
     fetchFn,
-    onCall: createCallLogger(admin, orgId, opts.batchId ?? null),
+    onCall: log,
   });
   return { ok: true, client, auth, account, breaker };
 }

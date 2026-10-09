@@ -10,8 +10,11 @@ import { isAllowedEndpoint, parseUniteConfig } from "@/lib/unite/config";
  * permanently dequeues records) is never called. These tests pin that down at the source level.
  */
 const dir = path.resolve(__dirname, "../../lib/unite");
+// auth.ts (token manager) and client.ts (the guarded Finance capture client) belong to the Finance
+// module and are covered by its own tests; everything else here is the read-only sync.
+const SHARED = ["auth.ts", "client.ts"];
 const files = readdirSync(dir)
-  .filter((f) => f.endsWith(".ts"))
+  .filter((f) => f.endsWith(".ts") && !SHARED.includes(f))
   .map((f) => ({ name: f, src: readFileSync(path.join(dir, f), "utf8") }));
 
 describe("lib/unite is read-only", () => {
@@ -21,10 +24,17 @@ describe("lib/unite is read-only", () => {
     }
   });
 
-  it("only the token refresh in auth.ts is allowed to POST", () => {
+  it("never POSTs (the token refresh lives in the shared auth.ts)", () => {
     for (const f of files) {
-      const posts = f.src.match(/method:\s*["']POST["']/g) ?? [];
-      expect(posts.length, f.name).toBe(f.name === "auth.ts" ? 1 : 0);
+      expect(f.src.match(/method:\s*["']POST["']/g) ?? [], f.name).toHaveLength(0);
+    }
+  });
+
+  it("cannot reach the Finance client or the capture pipeline", () => {
+    for (const f of files) {
+      expect(f.src, f.name).not.toMatch(/@\/lib\/unite\/client["']/);
+      expect(f.src, f.name).not.toMatch(/@\/lib\/finance\/(capture|process-batch|map-invoice)/);
+      expect(f.src, f.name).not.toMatch(/GetFinanceDetails/);
     }
   });
 
@@ -39,7 +49,7 @@ describe("lib/unite is read-only", () => {
   });
 
   it("exposes no mutating methods on the client", async () => {
-    const mod = await import("@/lib/unite/client");
+    const mod = await import("@/lib/unite/sync-client");
     const client = mod.createUniteClient({
       baseUrl: "https://unite.example.test",
       config: parseUniteConfig({}),

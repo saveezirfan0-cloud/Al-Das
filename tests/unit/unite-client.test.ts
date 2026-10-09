@@ -1,406 +1,186 @@
 import { describe, expect, it } from "vitest";
 
-import { createUniteAuth, type TokenState, type TokenStore } from "@/lib/unite/auth";
 import {
-  createUniteClient,
-  extractRecords,
-  UniteApiError,
-  UniteBreakerOpen,
-  UniteNotConfigured,
-  uniteDate,
-  type BreakerStore,
-  type CallLog,
-} from "@/lib/unite/client";
-import { parseUniteConfig } from "@/lib/unite/config";
+  createTokenManager,
+  TOKEN_SAFETY_MARGIN_MS,
+  UniteAuthError,
+  type Http,
+  type HttpRequest,
+  type TokenStore,
+  type UniteCredentials,
+} from "@/lib/unite/auth";
+import { createUniteClient, UniteCallError } from "@/lib/unite/client";
 
-const BASE = "https://unite.example.test/gateway/";
+const BASE = "https://unite.test/gateway/";
+const creds = (over: Partial<UniteCredentials> = {}): UniteCredentials => ({
+  authorize: { app_id: "AUTH-ID", app_key: "AUTH-KEY-SECRET" },
+  refresh: { app_id: "REF-ID", app_key: "REF-KEY-SECRET" },
+  ...over,
+});
+const ok = (access: string, refresh = "R2", expires_in = 240) =>
+  JSON.stringify({
+    Status: "Success",
+    Message: "",
+    Data: { access_token: access, refresh_token: refresh, expires_in },
+  });
+const fail = (message: string) =>
+  JSON.stringify({ Data: "", Status: "Exception", Message: message });
 
-type Scripted = {
-  status?: number;
-  body?: unknown;
-  headers?: Record<string, string>;
-  throws?: boolean;
-};
-
-/** A fetch that answers from a script and records every request. */
-function scriptedFetch(script: Scripted[] | ((url: string, init: RequestInit) => Scripted)) {
-  const calls: Array<{ url: string; method: string; auth: string | null }> = [];
-  let i = 0;
-  const fn = (async (url: string, init: RequestInit = {}) => {
-    const headers = new Headers(init.headers);
-    calls.push({
-      url: String(url),
-      method: init.method ?? "GET",
-      auth: headers.get("authorization"),
-    });
-    const step =
-      typeof script === "function"
-        ? script(String(url), init)
-        : (script[Math.min(i++, script.length - 1)] ?? {});
-    if (step.throws) throw new TypeError("network down");
-    return new Response(JSON.stringify(step.body ?? {}), {
-      status: step.status ?? 200,
-      headers: step.headers,
-    });
-  }) as unknown as typeof fetch;
-  return { fn, calls };
-}
-
-const ok = (Data: unknown) => ({ body: { Status: "Success", Message: "", Data } });
-const fail = (Message: string) => ({ body: { Status: "Exception", Message, Data: "" } });
-const tokenReply = (access: string, refresh = "r1", expires = 240) =>
-  ok({ access_token: access, refresh_token: refresh, expires_in: expires, token_type: "Bearer" });
-
-function memoryStore(initial: TokenState | null = null, claim = true) {
-  let t = initial;
+function setup(
+  initial: UniteCredentials | null,
+  responses: Array<string | Error>,
+  startAt = 1_000_000,
+) {
+  let clock = startAt;
+  let saved = initial;
+  const requests: HttpRequest[] = [];
+  const queue = [...responses];
   const store: TokenStore = {
-    get: async () => t,
-    set: async (n) => {
-      t = n;
-    },
-    claimRefresh: async () => claim,
-  };
-  return { store, current: () => t };
-}
-
-function memoryBreaker(limit = 5) {
-  let failures = 0;
-  let open = false;
-  const b: BreakerStore = {
-    isOpen: async () => open,
-    recordSuccess: async () => {
-      failures = 0;
-    },
-    recordFailure: async () => {
-      failures++;
-      if (failures >= limit) open = true;
-      return open;
+    load: async () => saved,
+    save: async (c) => {
+      saved = c;
     },
   };
-  return { b, failures: () => failures, isOpen: () => open };
-}
-
-function harness(opts: {
-  script: Scripted[] | ((u: string, i: RequestInit) => Scripted);
-  config?: unknown;
-  token?: TokenState | null;
-  breaker?: ReturnType<typeof memoryBreaker>;
-}) {
-  let clock = 1_000_000;
-  const sleeps: number[] = [];
-  const sleep = async (ms: number) => {
-    sleeps.push(ms);
-    clock += ms;
+  const http: Http = async (req) => {
+    requests.push(req);
+    const next = queue.shift();
+    if (next === undefined) throw new Error("unexpected extra http call");
+    if (next instanceof Error) throw next;
+    return { status: 200, text: next }; // Unite answers HTTP 200 even on failure
   };
   const now = () => clock;
-  const f = scriptedFetch(opts.script);
-  const config = parseUniteConfig(opts.config ?? { min_interval_ms: 250 });
-  const mem = memoryStore(
-    opts.token === undefined
-      ? { accessToken: "tok1", refreshToken: "r1", expiresAt: clock + 240_000 }
-      : opts.token,
-  );
-  const logs: CallLog[] = [];
-  const breaker = opts.breaker ?? memoryBreaker();
-  const auth = createUniteAuth({
-    baseUrl: BASE,
-    paths: config.paths,
-    appId: "app",
-    appKey: "key",
-    store: mem.store,
-    fetchFn: f.fn,
-    now,
-    sleep,
-  });
-  const client = createUniteClient({
-    baseUrl: BASE,
-    config,
-    auth,
-    breaker: breaker.b,
-    fetchFn: f.fn,
-    now,
-    sleep,
-    backoffBaseMs: 500,
-    onCall: (c) => {
-      logs.push(c);
-    },
-  });
-  return { client, calls: f.calls, sleeps, logs, breaker, mem };
+  const tokens = createTokenManager({ store, http, baseUrl: BASE, now });
+  const client = createUniteClient({ tokens, http, baseUrl: BASE, now });
+  return { tokens, client, requests, advance: (ms: number) => (clock += ms), saved: () => saved };
 }
 
-describe("uniteDate / extractRecords", () => {
-  it("formats DD-MM-YYYY on the clinic clock", () => {
-    // 21:30Z on the 11th is already the 12th in Dubai
-    expect(uniteDate(new Date("2026-10-11T21:30:00Z"), "Asia/Dubai")).toBe("12-10-2026");
-    expect(uniteDate(new Date("2026-10-11T21:30:00Z"), "UTC")).toBe("11-10-2026");
+describe("token manager", () => {
+  it("reuses a valid token without calling Unite", async () => {
+    const t = setup(
+      creds({ access_token: "A1", refresh_token: "R1", issued_at: 1_000_000, ttl_seconds: 240 }),
+      [],
+    );
+    expect(await t.tokens.getToken()).toBe("A1");
+    expect(t.requests).toHaveLength(0);
   });
 
-  it("finds the list in any wrapper", () => {
-    expect(extractRecords([{ a: 1 }, 3, null])).toEqual([{ a: 1 }]);
-    expect(extractRecords({ appointments: [{ a: 1 }] })).toEqual([{ a: 1 }]);
-    expect(extractRecords("")).toEqual([]);
+  it("authorizes when no token is stored, without a bearer header, then caches", async () => {
+    const t = setup(creds(), [ok("A1")]);
+    expect(await t.tokens.getToken()).toBe("A1");
+    expect(t.requests[0].method).toBe("GET");
+    expect(t.requests[0].url).toBe(`${BASE}authorize?app_id=AUTH-ID&app_key=AUTH-KEY-SECRET`);
+    expect(t.requests[0].headers).toEqual({});
+    expect(await t.tokens.getToken()).toBe("A1");
+    expect(t.requests).toHaveLength(1);
   });
-});
 
-describe("read-only client", () => {
-  it("GETs the appointments endpoint with the clinic, DD-MM-YYYY dates and a bearer token", async () => {
-    const h = harness({ script: [ok([{ appointmentid: "1" }])] });
-    const rows = await h.client.getAppointments({
-      clinicId: "DHA-F-0000000",
-      from: new Date("2026-10-12T05:00:00Z"),
-    });
-    expect(rows).toEqual([{ appointmentid: "1" }]);
-    const url = new URL(h.calls[0].url);
-    expect(url.pathname).toBe("/gateway/getallappointments");
-    expect(url.searchParams.get("clinic_id")).toBe("DHA-F-0000000");
-    expect(url.searchParams.get("from_date")).toBe("12-10-2026");
-    expect(url.searchParams.has("to_date")).toBe(false);
-    expect(h.calls[0]).toMatchObject({ method: "GET", auth: "Bearer tok1" });
-    expect(h.logs).toEqual([
-      expect.objectContaining({ endpoint: "getallappointments", outcome: "ok" }),
+  it("re-authorizes with the current access token as bearer once it is within the safety margin", async () => {
+    const t = setup(
+      creds({ access_token: "A1", refresh_token: "R1", issued_at: 1_000_000, ttl_seconds: 240 }),
+      [ok("A2")],
+    );
+    t.advance(240_000 - TOKEN_SAFETY_MARGIN_MS); // exactly at the margin: no longer valid
+    expect(await t.tokens.getToken()).toBe("A2");
+    expect(t.requests[0].headers).toEqual({ Authorization: "Bearer A1" });
+  });
+
+  it("treats expires_in as seconds and never trusts more than 240", async () => {
+    const t = setup(creds(), [ok("A1", "R1", 14_400)]);
+    await t.tokens.getToken();
+    expect(t.saved()?.ttl_seconds).toBe(240);
+  });
+
+  it("refreshes with the refresh pair when authorize says Token Expired", async () => {
+    const t = setup(creds({ access_token: "A1", refresh_token: "R1", issued_at: 0 }), [
+      fail("Token Expired"),
+      ok("A2", "R2"),
     ]);
-  });
-
-  it("never issues anything but GET on data endpoints", async () => {
-    const h = harness({ script: [ok([])] });
-    await h.client.getAppointments({ clinicId: "c", from: new Date(), to: new Date() });
-    expect(new Set(h.calls.map((c) => c.method))).toEqual(new Set(["GET"]));
-  });
-
-  it("refuses the Finance API and unknown endpoints outright, without a request", async () => {
-    const h = harness({
-      script: [ok([])],
-      config: { paths: { patients: "getfinancedata" } },
+    expect(await t.tokens.getToken()).toBe("A2");
+    const refresh = t.requests[1];
+    expect(refresh.method).toBe("POST");
+    expect(refresh.url).toBe(`${BASE}refreshtoken`);
+    expect(refresh.headers?.Authorization).toBe("Bearer R1");
+    expect(JSON.parse(refresh.body as string)).toEqual({
+      app_id: "REF-ID",
+      app_key: "REF-KEY-SECRET",
+      token: "A1",
     });
-    await expect(h.client.listPage("patients")).rejects.toBeInstanceOf(UniteApiError);
-    expect(h.calls).toHaveLength(0);
+    expect(t.saved()).toMatchObject({ access_token: "A2", refresh_token: "R2" });
   });
 
-  it("refuses patients / doctors until their endpoint is configured", async () => {
-    const h = harness({ script: [ok([])] });
-    expect(() => h.client.listPage("doctors")).toThrow(UniteNotConfigured);
-  });
-
-  it("keeps a minimum gap between calls", async () => {
-    const h = harness({ script: [ok([]), ok([]), ok([])], config: { min_interval_ms: 400 } });
-    await h.client.getAppointments({ clinicId: "a", from: new Date() });
-    await h.client.getAppointments({ clinicId: "b", from: new Date() });
-    await h.client.getAppointments({ clinicId: "c", from: new Date() });
-    expect(h.sleeps.filter((s) => s > 0 && s <= 400)).toHaveLength(2);
-    expect(Math.min(...h.sleeps)).toBeGreaterThan(0);
-  });
-
-  it("runs concurrent callers one at a time, in submission order", async () => {
-    const h = harness({ script: () => ok([]) });
-    const results = await Promise.all(
-      ["1", "2", "3"].map((n) => h.client.getAppointments({ clinicId: n, from: new Date() })),
-    );
-    expect(results).toHaveLength(3);
-    expect(h.calls.map((c) => new URL(c.url).searchParams.get("clinic_id"))).toEqual([
-      "1",
-      "2",
-      "3",
+  it("fails clearly, without leaking keys or tokens, when authorize and refresh both fail", async () => {
+    const t = setup(creds({ access_token: "A1-TOKEN", refresh_token: "R1-TOKEN", issued_at: 0 }), [
+      fail("Token Expired"),
+      fail("Invalid Token"),
     ]);
-    // the throttle spaced them: two gaps of the configured minimum
-    expect(h.sleeps.filter((s) => s > 0 && s <= 250)).toHaveLength(2);
+    const err = await t.tokens.getToken().catch((e) => e as Error);
+    expect(err).toBeInstanceOf(UniteAuthError);
+    for (const secret of ["AUTH-KEY-SECRET", "REF-KEY-SECRET", "A1-TOKEN", "R1-TOKEN"])
+      expect((err as Error).message).not.toContain(secret);
   });
 
-  it("backs off exponentially on 5xx and succeeds on a later try", async () => {
-    const h = harness({ script: [{ status: 503 }, { status: 502 }, ok([{ appointmentid: "9" }])] });
-    const rows = await h.client.getAppointments({ clinicId: "c", from: new Date() });
-    expect(rows).toHaveLength(1);
-    expect(h.calls).toHaveLength(3);
-    expect(h.sleeps).toEqual(expect.arrayContaining([500, 1000]));
-    expect(h.breaker.failures()).toBe(0); // success resets the count
-    expect(h.logs.map((l) => l.outcome)).toEqual(["error", "error", "ok"]);
-  });
-
-  it("honours Retry-After on HTTP 429", async () => {
-    const h = harness({ script: [{ status: 429, headers: { "retry-after": "3" } }, ok([])] });
-    await h.client.getAppointments({ clinicId: "c", from: new Date() });
-    expect(h.sleeps).toContain(3000);
-    expect(h.logs[0].outcome).toBe("rate_limited");
-  });
-
-  it("retries network failures and then gives up, counting one breaker failure", async () => {
-    const h = harness({ script: [{ throws: true }] });
-    await expect(h.client.getAppointments({ clinicId: "c", from: new Date() })).rejects.toThrow(
-      "Could not reach Unite",
-    );
-    expect(h.calls).toHaveLength(4); // first try + 3 retries
-    expect(h.breaker.failures()).toBe(1);
-  });
-
-  it("refreshes the token once when Unite says it expired (HTTP 200 with an error body)", async () => {
-    const h = harness({
-      script: (url) => {
-        if (url.includes("/authorize")) return tokenReply("tok2");
-        const call = h?.calls.filter((c) => !c.url.includes("/authorize")).length ?? 0;
-        return call <= 1 ? fail("Token Expired") : ok([{ appointmentid: "5" }]);
-      },
-    });
-    const rows = await h.client.getAppointments({ clinicId: "c", from: new Date() });
-    expect(rows).toEqual([{ appointmentid: "5" }]);
-    const data = h.calls.filter((c) => c.url.includes("getallappointments"));
-    expect(data.map((c) => c.auth)).toEqual(["Bearer tok1", "Bearer tok2"]);
-    expect(h.mem.current()?.accessToken).toBe("tok2");
-    expect(h.logs.map((l) => l.outcome)).toEqual(["auth_error", "ok"]);
-  });
-
-  it("stops after one forced refresh if the new token is rejected too", async () => {
-    const h = harness({
-      script: (url) => (url.includes("/authorize") ? tokenReply("tok2") : fail("Invalid Token")),
-    });
-    await expect(h.client.getAppointments({ clinicId: "c", from: new Date() })).rejects.toThrow(
-      /keeps rejecting/,
-    );
-    expect(h.calls.filter((c) => c.url.includes("getallappointments"))).toHaveLength(2);
-  });
-
-  it("treats other vendor errors as final (no retry) and treats 'no records' as empty", async () => {
-    const bad = harness({ script: [fail("Clinic not licensed")] });
-    await expect(bad.client.getAppointments({ clinicId: "c", from: new Date() })).rejects.toThrow(
-      "Clinic not licensed",
-    );
-    expect(bad.calls).toHaveLength(1);
-
-    const empty = harness({ script: [fail("No Record Found")] });
-    expect(await empty.client.getAppointments({ clinicId: "c", from: new Date() })).toEqual([]);
-  });
-
-  it("opens the circuit after repeated failures and then makes no calls", async () => {
-    const breaker = memoryBreaker(2);
-    const h = harness({ script: [fail("boom")], breaker });
-    await expect(h.client.getAppointments({ clinicId: "c", from: new Date() })).rejects.toThrow();
-    await expect(h.client.getAppointments({ clinicId: "c", from: new Date() })).rejects.toThrow();
-    expect(breaker.isOpen()).toBe(true);
-    const before = h.calls.length;
+  it("errors when nothing is configured or a refresh token is missing", async () => {
+    await expect(setup(null, []).tokens.getToken()).rejects.toThrow(/no Unite credentials/);
     await expect(
-      h.client.getAppointments({ clinicId: "c", from: new Date() }),
-    ).rejects.toBeInstanceOf(UniteBreakerOpen);
-    expect(h.calls.length).toBe(before);
-    expect(h.logs.at(-1)?.outcome).toBe("breaker_open");
-  });
-
-  it("walks every page of a configured list endpoint", async () => {
-    const h = harness({
-      config: {
-        min_interval_ms: 100,
-        paths: { doctors: "getdoctors" },
-        paging: { page_param: "page", page_size_param: "size", page_size: 10 },
-      },
-      script: (url) => {
-        const page = Number(new URL(url).searchParams.get("page"));
-        return ok(
-          page === 1
-            ? Array.from({ length: 10 }, (_, i) => ({ doctor_id: `A${i}` }))
-            : [{ doctor_id: "B0" }],
-        );
-      },
-    });
-    const rows = await h.client.listAll("doctors");
-    expect(rows).toHaveLength(11);
-    expect(h.calls.map((c) => new URL(c.url).searchParams.get("page"))).toEqual(["1", "2"]);
-    expect(new URL(h.calls[0].url).searchParams.get("size")).toBe("10");
+      setup(creds({ access_token: "A1", issued_at: 0 }), [fail("Token Expired")]).tokens.getToken(),
+    ).rejects.toThrow(/no refresh token/);
   });
 });
 
-describe("token handling", () => {
-  it("reuses a fresh token and refreshes one that is about to expire", async () => {
-    const f = scriptedFetch([tokenReply("tok2")]);
-    const mem = memoryStore({
-      accessToken: "tok1",
-      refreshToken: "r1",
-      expiresAt: 1_000_000 + 10_000,
-    }); // inside the 30s skew
-    const auth = createUniteAuth({
-      baseUrl: BASE,
-      paths: { authorize: "authorize", refresh: "refreshtoken" },
-      appId: "a",
-      appKey: "k",
-      store: mem.store,
-      fetchFn: f.fn,
-      now: () => 1_000_000,
-      sleep: async () => {},
-    });
-    expect(await auth.getToken()).toBe("tok2");
-    expect(f.calls).toHaveLength(1);
-    expect(f.calls[0].auth).toBe("Bearer tok1"); // the old token rides along, like the Make scenario
-    expect(await auth.getToken()).toBe("tok2"); // now fresh → no second call
-    expect(f.calls).toHaveLength(1);
-    expect(mem.current()?.expiresAt).toBe(1_000_000 + 240_000);
+describe("finance client", () => {
+  const valid = () =>
+    creds({ access_token: "A1", refresh_token: "R1", issued_at: 1_000_000, ttl_seconds: 240 });
+  const req = { fromDate: "01-01-2026", toDate: "09-10-2026", count: 50 };
+  const data = JSON.stringify({
+    MessageStatus: "Success",
+    DataBalancetoSync: 3,
+    Data: [{ InvDisplayNumber: "X" }],
   });
 
-  it("falls back to the refresh token when authorize says 'Token Expired'", async () => {
-    const f = scriptedFetch([fail("Token Expired"), tokenReply("tok3", "r3")]);
-    const mem = memoryStore({ accessToken: "old", refreshToken: "r1", expiresAt: 0 });
-    const auth = createUniteAuth({
-      baseUrl: BASE,
-      paths: { authorize: "authorize", refresh: "refreshtoken" },
-      appId: "a",
-      appKey: "k",
-      store: mem.store,
-      fetchFn: f.fn,
-      now: () => 1_000_000,
-      sleep: async () => {},
+  it("posts the documented request and returns the body untouched", async () => {
+    const t = setup(valid(), [data]);
+    const res = await t.client.financeDetails(req);
+    expect(res.httpStatus).toBe(200);
+    expect(res.body).toEqual(JSON.parse(data));
+    expect(t.requests).toHaveLength(1);
+    expect(t.requests[0]).toMatchObject({
+      method: "POST",
+      url: `${BASE}GetFinanceDetails`,
+      headers: { Authorization: "Bearer A1" },
     });
-    expect(await auth.getToken()).toBe("tok3");
-    expect(f.calls.map((c) => [c.method, new URL(c.url).pathname])).toEqual([
-      ["GET", "/gateway/authorize"],
-      ["POST", "/gateway/refreshtoken"],
-    ]);
-    expect(f.calls[1].auth).toBe("Bearer r1");
-    expect(mem.current()).toMatchObject({ accessToken: "tok3", refreshToken: "r3" });
+    expect(JSON.parse(t.requests[0].body as string)).toEqual(req);
   });
 
-  it("never leaks credentials or tokens in an error", async () => {
-    const f = scriptedFetch([fail("Invalid credentials")]);
-    const mem = memoryStore(null);
-    const auth = createUniteAuth({
-      baseUrl: BASE,
-      paths: { authorize: "authorize", refresh: "refreshtoken" },
-      appId: "secret-app",
-      appKey: "secret-key",
-      store: mem.store,
-      fetchFn: f.fn,
-      now: () => 1,
-      sleep: async () => {},
-    });
-    const err = await auth.getToken().catch((e: Error) => e);
-    expect((err as Error).message).toContain("Invalid credentials");
-    expect((err as Error).message).not.toMatch(/secret-key|secret-app/);
+  it("retries exactly once with a fresh token when the body says the token was rejected", async () => {
+    const t = setup(valid(), [fail("Token Expired"), ok("A2"), data]);
+    const res = await t.client.financeDetails(req);
+    expect((res.body as { Data: unknown[] }).Data).toHaveLength(1);
+    expect(t.requests.filter((r) => r.url.endsWith("GetFinanceDetails"))).toHaveLength(2);
+    expect(t.requests[2].headers?.Authorization).toBe("Bearer A2");
   });
 
-  it("uses the token another worker refreshed instead of refreshing twice", async () => {
-    let t: TokenState | null = { accessToken: "old", refreshToken: null, expiresAt: 0 };
-    let polls = 0;
-    const store: TokenStore = {
-      get: async () => {
-        polls++;
-        if (polls >= 3)
-          t = { accessToken: "theirs", refreshToken: null, expiresAt: 1_000_000 + 240_000 };
-        return t;
-      },
-      set: async () => {
-        throw new Error("must not refresh");
-      },
-      claimRefresh: async () => false,
-    };
-    const f = scriptedFetch([tokenReply("mine")]);
-    let clock = 1_000_000;
-    const auth = createUniteAuth({
-      baseUrl: BASE,
-      paths: { authorize: "authorize", refresh: "refreshtoken" },
-      appId: "a",
-      appKey: "k",
-      store,
-      fetchFn: f.fn,
-      now: () => clock,
-      sleep: async (ms) => {
-        clock += ms;
-      },
-    });
-    expect(await auth.getToken()).toBe("theirs");
-    expect(f.calls).toHaveLength(0);
+  it("does not loop when the token is rejected twice", async () => {
+    const t = setup(valid(), [fail("Token Expired"), ok("A2"), fail("Token Expired")]);
+    const res = await t.client.financeDetails(req);
+    expect((res.body as { Message: string }).Message).toBe("Token Expired");
+    expect(t.requests.filter((r) => r.url.endsWith("GetFinanceDetails"))).toHaveLength(2);
+  });
+
+  it("never retries after a transport failure: records may already be consumed", async () => {
+    const t = setup(valid(), [new Error("socket hang up")]);
+    await expect(t.client.financeDetails(req)).rejects.toBeInstanceOf(UniteCallError);
+    expect(t.requests).toHaveLength(1);
+  });
+
+  it("returns an unparseable response as text so the caller can still store it", async () => {
+    const t = setup(valid(), ["<html>502</html>"]);
+    const res = await t.client.financeDetails(req);
+    expect(res.body).toEqual({ _unparseable: true, text: "<html>502</html>" });
+  });
+
+  it("is blocked from the real host by the test guard", () => {
+    expect(() =>
+      fetch("https://ucexternalapiprod.uniteuae.care/gateway/GetFinanceDetails"),
+    ).toThrow(/never call the real Unite API/);
   });
 });

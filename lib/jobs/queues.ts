@@ -8,6 +8,7 @@ export const QUEUES = [
   "media_fetch",
   "webhooks_out",
   "unite_sync",
+  "finance_capture",
   "kb_ingest",
   "notifications",
   "appointments",

@@ -11,6 +11,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Contact,
+  Landmark,
   FileText,
   Inbox,
   KanbanSquare,
@@ -39,6 +40,7 @@ const ICONS: Record<NavIcon, React.ComponentType<{ className?: string }>> = {
   flows: Workflow,
   portal: LayoutGrid,
   reports: BarChart3,
+  finance: Landmark,
   settings: Settings,
 };
 

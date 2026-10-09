@@ -8,8 +8,8 @@ import { notifyMembersWithPermission } from "@/lib/notifications";
 import type { AdminClient } from "@/lib/supabase/admin";
 import { formatInTimeZone } from "date-fns-tz";
 import { fromZonedTime } from "date-fns-tz";
-import { UniteApiError, UniteBreakerOpen, UniteNotConfigured } from "@/lib/unite/client";
-import { UniteAuthError } from "@/lib/unite/auth";
+import { UniteApiError, UniteBreakerOpen, UniteNotConfigured } from "@/lib/unite/sync-client";
+import { UniteAuthError } from "@/lib/unite/sync-auth";
 import { loadUniteAccount, buildUniteClient } from "@/lib/unite/store";
 import { syncAppointments, syncDoctors, syncPatients } from "@/lib/unite/sync";
 
@@ -20,7 +20,7 @@ import { syncAppointments, syncDoctors, syncPatients } from "@/lib/unite/sync";
  *
  * pg_cron wakes two tasks that fan these out: `unite_enqueue` (every 15 min during clinic hours)
  * and `unite_nightly`. Each entity is behind its own flag in integration_accounts.config.enabled
- * (all off by default) and the client is read-only; see lib/unite/client.ts.
+ * (all off by default) and the client is read-only; see lib/unite/sync-client.ts.
  */
 const message = z.discriminatedUnion("entity", [
   z.object({
@@ -54,10 +54,7 @@ export async function runUniteSync(
   now: Date = new Date(),
   fetchFn?: typeof fetch,
 ) {
-  const built = await buildUniteClient(admin, msg.org_id, {
-    batchId: `${msg.entity}-${now.toISOString()}`,
-    fetchFn,
-  });
+  const built = await buildUniteClient(admin, msg.org_id, { fetchFn });
   if (!built.ok) {
     if (built.reason === "paused" || built.reason === "no_account")
       return { skipped: built.reason };
