@@ -74,4 +74,5 @@ export const AUDIT_EXEMPT: Record<string, string> = {
 export const CHANNEL_SECRET_MODULES = new Set([
   "lib/whatsapp/channel.ts",
   "app/(app)/settings/channels/page.tsx", // selects channel_id only, to show "stored on channel"
+  "scripts/cutover-preflight.ts", // selects channel_id only, to report whether a token exists
 ]);
