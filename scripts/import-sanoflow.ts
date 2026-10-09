@@ -31,6 +31,7 @@ import {
   parseArgs,
   resolveOrg,
   writeReport,
+  writeSummary,
 } from "./import/common";
 import { findSanoflowIdHeader, sanoflowMapping } from "./import/mappers/sanoflow.contacts";
 import { loadCustomFieldsForScript } from "./import/custom-fields";
@@ -215,8 +216,21 @@ async function main() {
   ].join("\n");
 
   const file = writeReport("sanoflow", report);
+  const summaryFile = writeSummary("sanoflow", [
+    {
+      source: "sanoflow",
+      entity: "contact",
+      label: "Sanoflow contacts",
+      runAt: new Date().toISOString(),
+      dryRun,
+      since: null,
+      includeTestRecords: true,
+      counters: c,
+    },
+  ]);
   console.log(report);
   console.log(`report → ${file}`);
+  console.log(`summary → ${summaryFile}`);
 }
 
 main().catch((e) => {

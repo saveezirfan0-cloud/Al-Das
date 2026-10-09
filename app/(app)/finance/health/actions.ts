@@ -228,6 +228,13 @@ export async function rederiveBranches(): Promise<ActionResult> {
   const admin = createAdminClient();
   const { data, error } = await admin.rpc("fin_rederive_branches", { p_org_id: member.orgId });
   if (error) return { ok: false, error: "Could not re-derive branches." };
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "finance.branches_rederived",
+    entity: "finance",
+    diff: { updated: Number(data) || 0 },
+  });
   revalidatePath(PATH);
   return { ok: true, message: `${data} invoice(s) updated.` };
 }

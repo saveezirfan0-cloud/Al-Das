@@ -29,6 +29,7 @@ One platform for Al Das Medical that replaces **Sanoflow** (WhatsApp inbox, temp
 
 15. **Clinical rules** (docs/audit/airtable-schema.md §3) live in `lib/clinical/` as pure functions. Each one has unit tests, fails closed on unknown or blank data, and reads thresholds from `clinical_settings`, never hardcoded.
 16. **Audit files** in `docs/audit/` are the source of truth for migration. Never commit unredacted blueprints, tokens or record exports.
+17. **Security guards are tests.** A new table needs RLS and a policy scoped to `org_id` (or an entry in the service-only list in `tests/db/security-guard.test.ts`); a new server action or route needs `requirePerm`/`can` and, if it mutates, `recordAudit` (or a reasoned entry in `lib/security/policy.ts`); rate-limit anything unauthenticated with `lib/rate-limit.ts`; pass free-form error text through `lib/redact.ts` before logging or persisting it.
 
 ## Finance & Insurance module (docs/05_FINANCE_MODULE_PLAN.md)
 Captures Unite invoices, matches them to Diligence claim files, and routes exceptions. Phases F0–F6; F0–F2 built (capture is built but OFF). Open items: `docs/finance/open-items.md`.
@@ -62,6 +63,11 @@ pnpm import:airtable --dry-run
 pnpm import:sanoflow --dry-run
 pnpm tsx scripts/export-airtable-schema.ts --counts
 pnpm tsx scripts/export-make.ts --all
+pnpm audit:security          # static security pass → docs/audit/security-pass.generated.md
+pnpm load:webhook --yes-staging --rate 1000 --minutes 1   # webhook burst (staging/local only)
+pnpm load:mock-graph & pnpm load:outbound --yes-staging --count 20000 --rate 20   # 20k send against a local Graph stub
+pnpm reconcile --org <slug> --live-airtable --freeze-at <iso>   # migration sign-off report
+pnpm cutover:preflight --org <slug> --stage pre-cutover   # read-only go/no-go before moving a number
 ```
 
 ## Env
@@ -73,6 +79,7 @@ UNITE_BASE_URL, UNITE_APP_ID, UNITE_APP_KEY
 AIRTABLE_PAT, MAKE_API_TOKEN, MAKE_ZONE=us2, MAKE_TEAM_ID=1494412   # migration/audit only; remove after cut-over
 ANTHROPIC_API_KEY, ANTHROPIC_MODEL, EMBEDDINGS_API_KEY
 RESEND_API_KEY, SENTRY_DSN
+META_GRAPH_BASE_URL   # load tests only; honoured only for http://localhost|127.0.0.1, never set in production
 ```
 
 ## Definition of done per task
