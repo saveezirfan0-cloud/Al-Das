@@ -7,7 +7,7 @@ const TYPES: Record<string, { format: MediaFormat; max: number; ext: string }> =
   "image/jpeg": { format: "IMAGE", max: 5 * MB, ext: "jpg" },
   "image/png": { format: "IMAGE", max: 5 * MB, ext: "png" },
   "video/mp4": { format: "VIDEO", max: 16 * MB, ext: "mp4" },
-  "application/pdf": { format: "DOCUMENT", max: 100 * MB, ext: "pdf" },
+  "application/pdf": { format: "DOCUMENT", max: 15 * MB, ext: "pdf" },
 };
 
 /** Accepts only what WhatsApp templates allow for the chosen header format. */
@@ -34,4 +34,9 @@ export function checkSample(
 /** Storage path inside the private wa-media bucket: <org>/templates/<id>.<ext>. */
 export function sampleStoragePath(orgId: string, id: string, ext: string): string {
   return `${orgId}/templates/${id}.${ext}`;
+}
+
+/** True when `path` is a template sample inside this org's folder (no traversal). */
+export function isOwnSamplePath(orgId: string, path: string): boolean {
+  return path.startsWith(`${orgId}/templates/`) && !path.includes("..") && !path.includes("//");
 }

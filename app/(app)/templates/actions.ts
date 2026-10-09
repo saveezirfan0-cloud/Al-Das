@@ -23,8 +23,9 @@ import {
   type ValidationIssue,
 } from "@/lib/whatsapp/template-builder";
 import { isMappableField } from "@/lib/whatsapp/template-fields";
-import { checkSample, sampleStoragePath } from "@/lib/whatsapp/template-media";
+import { checkSample, isOwnSamplePath, sampleStoragePath } from "@/lib/whatsapp/template-media";
 import { builderStateSchema } from "@/lib/whatsapp/template-schema";
+import type { MediaFormat } from "@/lib/whatsapp/template-builder";
 import { templateVariables } from "@/lib/whatsapp/templates";
 import type { MetaTemplateComponent } from "@/lib/whatsapp/types";
 
@@ -74,6 +75,11 @@ function mediaPathsOf(state: BuilderState): Record<string, string> {
     if (c.mediaPath) out[`card.${i}`] = c.mediaPath;
   });
   return out;
+}
+
+/** Sample paths come from the browser: they must stay inside this org's templates folder. */
+function foreignMediaPath(state: BuilderState, orgId: string): string | null {
+  return Object.values(mediaPathsOf(state)).find((p) => !isOwnSamplePath(orgId, p)) ?? null;
 }
 
 /** Keeps only mappings for variables the template really has, with known fields. */
@@ -126,6 +132,8 @@ export async function saveTemplate(
 
   const blocking = blockingDraftIssues(validateBuilder(state));
   if (blocking.length) return { ok: false, error: blocking[0].message, issues: blocking };
+  if (foreignMediaPath(state as BuilderState, member.orgId))
+    return { ok: false, error: "Invalid sample file. Upload it again." };
 
   const admin = createAdminClient();
   const channel = await ownChannel(admin, member.orgId, channel_id);
@@ -225,6 +233,9 @@ export async function submitTemplate(
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   const { id, channel_id, gallery_key } = parsed.data;
   let state = parsed.data.state as BuilderState;
+
+  if (foreignMediaPath(state, member.orgId))
+    return { ok: false, error: "Invalid sample file. Upload it again." };
 
   const admin = createAdminClient();
   const channel = await ownChannel(admin, member.orgId, channel_id);
@@ -382,58 +393,95 @@ export async function submitTemplate(
   }
 }
 
-const sampleSchema = z.object({
+const sampleBase = z.object({
   channel_id: z.uuid(),
   kind: z.enum(["header", "card"]),
   format: z.enum(["IMAGE", "VIDEO", "DOCUMENT"]),
 });
+const prepareSchema = sampleBase.extend({
+  filename: z.string().trim().min(1).max(200),
+  mime_type: z.string().trim().min(1).max(100),
+  size: z.number().int().positive(),
+});
+const registerSchema = sampleBase.extend({
+  path: z.string().min(1).max(300),
+  filename: z.string().trim().min(1).max(200),
+  mime_type: z.string().trim().min(1).max(100),
+});
 
-/** Uploads a header / card sample to Storage and to Meta's Resumable Upload API. */
-export async function uploadSample(
-  formData: FormData,
+function allowedFormats(kind: "header" | "card", format: MediaFormat): MediaFormat[] {
+  return kind === "card" ? ["IMAGE", "VIDEO"] : [format];
+}
+
+/**
+ * Step 1 of a sample upload: checks the file's type and size and returns a signed
+ * Storage URL so the browser uploads directly (server actions have a small body limit).
+ */
+export async function prepareSampleUpload(
+  input: z.input<typeof prepareSchema>,
+): Promise<ActionResult<{ path: string; token: string }>> {
+  const member = await requirePerm("templates.manage");
+  const parsed = prepareSchema.safeParse(input);
+  if (!parsed.success)
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  const d = parsed.data;
+  if (!serverEnv().META_APP_ID)
+    return { ok: false, error: "META_APP_ID is not set, so samples cannot be uploaded to Meta." };
+  const check = checkSample(d.mime_type, d.size, allowedFormats(d.kind, d.format));
+  if (!check.ok) return { ok: false, error: check.error };
+  const admin = createAdminClient();
+  if (!(await ownChannel(admin, member.orgId, d.channel_id)))
+    return { ok: false, error: "Choose a WhatsApp number first." };
+  const path = sampleStoragePath(member.orgId, randomUUID(), check.ext);
+  const { data, error } = await admin.storage.from(BUCKET).createSignedUploadUrl(path);
+  if (error || !data) return { ok: false, error: "Could not prepare the upload." };
+  return { ok: true, path: data.path, token: data.token };
+}
+
+/**
+ * Step 2: the file is in Storage; send it to Meta's Resumable Upload API and return the
+ * handle used in the template's example.
+ */
+export async function registerSample(
+  input: z.input<typeof registerSchema>,
 ): Promise<
   ActionResult<{ handle: string; path: string; fileName: string; previewUrl: string | null }>
 > {
   const member = await requirePerm("templates.manage");
-  const parsed = sampleSchema.safeParse({
-    channel_id: formData.get("channel_id"),
-    kind: formData.get("kind"),
-    format: formData.get("format"),
-  });
-  const file = formData.get("file");
-  if (!parsed.success || !(file instanceof File)) return { ok: false, error: "Choose a file." };
+  const parsed = registerSchema.safeParse(input);
+  if (!parsed.success)
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  const d = parsed.data;
   const appId = serverEnv().META_APP_ID;
   if (!appId)
     return { ok: false, error: "META_APP_ID is not set, so samples cannot be uploaded to Meta." };
-
-  const allowed =
-    parsed.data.kind === "card" ? (["IMAGE", "VIDEO"] as const) : ([parsed.data.format] as const);
-  const check = checkSample(file.type, file.size, allowed);
-  if (!check.ok) return { ok: false, error: check.error };
+  if (!isOwnSamplePath(member.orgId, d.path)) return { ok: false, error: "Invalid sample path." };
 
   const admin = createAdminClient();
-  const channel = await ownChannel(admin, member.orgId, parsed.data.channel_id);
+  const channel = await ownChannel(admin, member.orgId, d.channel_id);
   if (!channel) return { ok: false, error: "Choose a WhatsApp number first." };
-
   try {
+    const { data: file, error: dlError } = await admin.storage.from(BUCKET).download(d.path);
+    if (dlError || !file) return { ok: false, error: "The uploaded file could not be read." };
     const bytes = new Uint8Array(await file.arrayBuffer());
-    const path = sampleStoragePath(member.orgId, randomUUID(), check.ext);
-    const { error: upError } = await admin.storage
-      .from(BUCKET)
-      .upload(path, bytes, { contentType: file.type, upsert: false });
-    if (upError) return { ok: false, error: "Could not store the file." };
+    // Re-check what actually arrived, not what the browser claimed.
+    const check = checkSample(d.mime_type, bytes.byteLength, allowedFormats(d.kind, d.format));
+    if (!check.ok) {
+      await admin.storage.from(BUCKET).remove([d.path]);
+      return { ok: false, error: check.error };
+    }
     const client = await clientForChannel(admin, channel);
     const { handle } = await client.uploadTemplateSample(appId, {
       data: bytes,
-      mimeType: file.type,
-      filename: file.name.slice(0, 120),
+      mimeType: d.mime_type,
+      filename: d.filename.slice(0, 120),
     });
-    const { data: signed } = await admin.storage.from(BUCKET).createSignedUrl(path, 3600);
+    const { data: signed } = await admin.storage.from(BUCKET).createSignedUrl(d.path, 3600);
     return {
       ok: true,
       handle,
-      path,
-      fileName: file.name.slice(0, 120),
+      path: d.path,
+      fileName: d.filename.slice(0, 120),
       previewUrl: signed?.signedUrl ?? null,
     };
   } catch (err) {

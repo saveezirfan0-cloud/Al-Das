@@ -45,7 +45,9 @@ import {
 } from "@/lib/whatsapp/template-builder";
 import { MAPPABLE_FIELDS } from "@/lib/whatsapp/template-fields";
 
-import { uploadSample } from "./actions";
+import { createClient } from "@/lib/supabase/client";
+
+import { prepareSampleUpload, registerSample } from "./actions";
 
 export function FieldError({ issues, path }: { issues: ValidationIssue[]; path: string }) {
   const hit = issues.filter((i) => i.path === path || i.path.startsWith(`${path}.`));
@@ -523,13 +525,35 @@ export function SampleUpload({
       toast.error("Choose a WhatsApp number first.");
       return;
     }
-    const fd = new FormData();
-    fd.set("channel_id", channelId);
-    fd.set("kind", kind);
-    fd.set("format", format);
-    fd.set("file", file);
     start(async () => {
-      const r = await uploadSample(fd);
+      const mime = file.type || "application/octet-stream";
+      const prep = await prepareSampleUpload({
+        channel_id: channelId,
+        kind,
+        format,
+        filename: file.name,
+        mime_type: mime,
+        size: file.size,
+      });
+      if (!prep.ok) {
+        toast.error(prep.error);
+        return;
+      }
+      const { error } = await createClient()
+        .storage.from("wa-media")
+        .uploadToSignedUrl(prep.path, prep.token, file, { contentType: mime });
+      if (error) {
+        toast.error("Could not upload the file.");
+        return;
+      }
+      const r = await registerSample({
+        channel_id: channelId,
+        kind,
+        format,
+        path: prep.path,
+        filename: file.name,
+        mime_type: mime,
+      });
       if (!r.ok) {
         toast.error(r.error);
         return;
@@ -553,7 +577,7 @@ export function SampleUpload({
         <p className="text-muted-foreground text-xs">
           {format === "IMAGE" && "JPEG or PNG, up to 5 MB"}
           {format === "VIDEO" && "MP4, up to 16 MB"}
-          {format === "DOCUMENT" && "PDF, up to 100 MB"}. Meta reviews this sample; patients receive
+          {format === "DOCUMENT" && "PDF, up to 15 MB"}. Meta reviews this sample; patients receive
           the real file at send time.
         </p>
       </div>
