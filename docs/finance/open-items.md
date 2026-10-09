@@ -47,3 +47,13 @@
 20. **Write-off "approved" value** is still assumed (`approved`, case-insensitive) in the ageing and summary views.
 21. **Files above 30,000 rows** are rejected (one atomic commit). A full year of claims for a clinic of this size should fit; tell us if not.
 22. **Not built yet:** F3 appointments sync (needs the platform `appointments` table and Unite appointments credentials), F5 exception rule engine and invoices / monthly summary screens, a browser-driven check of the finance pages, and a fixed-IP route to Unite if Unite allow-lists addresses.
+
+## Added in F5
+
+23. **Insurance invoice type.** `fin_is_insurance_type()` treats any `InvType` containing `INSUR` as insurance (self-pay summary uses `SELF…`). Confirm Unite's actual `InvType` values; change that one function.
+24. **E02 owner.** The brief says "Insurance + Billing". A rule has one owner; E02 is owned by Insurance, and Finance / CEO can see it. Billing does not see E02 unless the owner is switched in `fin_ref_exception_rules`.
+25. **Rule guards are deliberate.** E01 is silent unless a Diligence file was committed in the last 14 days; E02 and gap exceptions are silent until the Unite backlog is drained; E08 ignores invoices before the first synced appointment. They stop false alarms during start-up. Tell us if the 14 days should change (it is a constant in `fin_rules_context`).
+26. **Thresholds are placeholders** (E01 30, E04 14, E05 60 days, due in 7 days). Agree them with Sharaf and Finance, then edit them at Finance → Reference data → Exception rules.
+27. **Exception volume.** Up to 1,000 new exceptions per rule per run. If the first run after the backfill opens that many, work them in order or raise the thresholds.
+28. **Digest** is off by default; switch it on with `update fin_capture_settings set digest_enabled = true where org_id = …` (a UI toggle is not built).
+29. **Pages not driven in a browser** (no auth stack in the build environment): please click through Exceptions, Invoices, Summary, Reference and Upload once on a dev stack with seeded data.

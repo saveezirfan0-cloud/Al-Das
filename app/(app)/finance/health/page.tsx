@@ -111,6 +111,29 @@ export default async function FinanceHealthPage() {
           }
         />
         <Stat
+          label="AppointmentId resolves"
+          value={
+            health.appointmentResolution.withId === 0
+              ? "—"
+              : `${Math.round((health.appointmentResolution.resolved / health.appointmentResolution.withId) * 100)}%`
+          }
+          hint={`${health.appointmentResolution.resolved} of ${health.appointmentResolution.withId} invoices, last 60 days (target above 95%)`}
+          bad={
+            health.appointmentResolution.withId > 0 &&
+            health.appointmentResolution.resolved / health.appointmentResolution.withId < 0.95
+          }
+        />
+        <Stat
+          label="Open exceptions"
+          value={Object.values(health.openByRule).reduce((n, v) => n + v, 0)}
+          hint={
+            Object.entries(health.openByRule)
+              .sort(([a], [b]) => a.localeCompare(b))
+              .map(([k, v]) => `${k}: ${v}`)
+              .join(", ") || "none"
+          }
+        />
+        <Stat
           label="Invoice number gaps"
           value={health.gaps.reduce((n, g) => n + g.missingCount, 0)}
           hint={`${health.gaps.length} range(s) missing since ${health.windowFrom}`}
