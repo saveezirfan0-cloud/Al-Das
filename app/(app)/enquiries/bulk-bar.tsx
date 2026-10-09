@@ -27,7 +27,7 @@ import { Label } from "@/components/ui/label";
 import type { EnquiryStatus } from "@/lib/enquiries/constants";
 import type { PipelineInfo } from "@/lib/enquiries/server";
 
-import { bulkEnquiries, removeEnquiries } from "./actions";
+import { bulkEnquiries as bulkEnquiriesOnce, removeEnquiries } from "./actions";
 import type { ClinicValues } from "./clinic-fields";
 import { OptionSelect } from "./option-select";
 import { StatusReasonDialog } from "./status-dialog";
@@ -41,6 +41,26 @@ type EditField =
   | "specialist_id"
   | "service_id"
   | "est_value";
+
+const BULK_CHUNK = 1000;
+
+/** The server caps one bulk call at 1,000 enquiries; "select all matching" can be larger, so send it in slices. */
+async function bulkEnquiries(ids: string[], input: unknown) {
+  let updated = 0;
+  let failed = 0;
+  for (let i = 0; i < ids.length; i += BULK_CHUNK) {
+    const res = await bulkEnquiriesOnce(ids.slice(i, i + BULK_CHUNK), input);
+    if (!res.ok) return res;
+    updated += res.data.updated;
+    failed += res.data.failed;
+  }
+  return {
+    ok: true as const,
+    message: failed
+      ? `${updated} updated, ${failed} could not be changed.`
+      : `${updated} enquir${updated === 1 ? "y" : "ies"} updated.`,
+  };
+}
 
 export function BulkBar({
   ids,

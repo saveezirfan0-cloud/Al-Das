@@ -13,9 +13,25 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const cookieStore = await cookies();
   const collapsed = cookieStore.get(SIDEBAR_COOKIE)?.value === "1";
 
-  const items = NAV_ITEMS.filter((i) => !i.permission || can(member, i.permission));
-
   const supabase = await createClient();
+
+  // Tasks assigned to me that are past due: the sidebar badge.
+  const overdueTasks = can(member, "tasks.view")
+    ? ((
+        await supabase
+          .from("tasks")
+          .select("id", { count: "exact", head: true })
+          .eq("org_id", member.orgId)
+          .eq("assignee_id", member.userId)
+          .eq("done", false)
+          .lt("due_at", new Date().toISOString())
+      ).count ?? 0)
+    : 0;
+
+  const items = NAV_ITEMS.filter((i) => !i.permission || can(member, i.permission)).map((i) =>
+    i.href === "/tasks" && overdueTasks > 0 ? { ...i, badge: overdueTasks } : i,
+  );
+
   const { data: notifications } = await supabase
     .from("notifications")
     .select("id, type, title, body, read_at, created_at")

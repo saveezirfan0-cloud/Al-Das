@@ -18,6 +18,8 @@ export type NavItem = {
   label: string;
   icon: NavIcon;
   permission?: string;
+  /** Count shown next to the label (e.g. overdue tasks). */
+  badge?: number;
 };
 
 export const NAV_ITEMS: readonly NavItem[] = [

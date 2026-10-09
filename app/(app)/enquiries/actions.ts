@@ -6,6 +6,7 @@ import { z } from "zod";
 import { recordAudit } from "@/lib/audit";
 import { can } from "@/lib/auth/can";
 import { requireMember, requirePerm } from "@/lib/auth/session";
+import { searchContactOptions, type ContactOption } from "@/lib/contacts/search-options";
 import { addTimelineEvent } from "@/lib/contacts/timeline";
 import { CARD_FIELD_KEYS } from "@/lib/enquiries/constants";
 import { mergeEnquiryCustom } from "@/lib/enquiries/custom";
@@ -383,10 +384,11 @@ export async function updateEnquiryDetails(id: string, input: unknown): Promise<
       if (!merged.ok) return fail(merged.error);
       custom = merged.value;
     }
-    if (d.contact_id && !can(member, "contacts.view")) return fail("You cannot link contacts.");
     await updateEnquiry({ admin, orgId: member.orgId, userId: member.userId }, id, {
       title: d.title,
-      contactId: d.contact_id,
+      // Changing the linked contact needs contacts.view; without it the link is left as it is
+      // (the drawer re-sends the unchanged contact on every save).
+      contactId: can(member, "contacts.view") ? d.contact_id : undefined,
       channelId: d.channel_id,
       source: d.source,
       assigneeId: d.assignee_id,
@@ -577,36 +579,15 @@ export async function removeEnquiries(ids: string[]): Promise<ActionResult> {
 // Contact picker
 // ---------------------------------------------------------------------------
 
-export type ContactOption = { id: string; full_name: string; phone_e164: string | null };
+export type { ContactOption };
 
 export async function searchContactsForEnquiry(
   q: string,
 ): Promise<ActionResult<{ rows: ContactOption[] }>> {
   const member = await requirePerm("enquiries.manage");
   if (!can(member, "contacts.view")) return fail("You do not have access to contacts.");
-  const term = q.trim().slice(0, 100);
-  if (term.length < 2) return { ok: true, data: { rows: [] } };
-  const admin = createAdminClient();
-  // Two parameterised ilike queries rather than a PostgREST .or() string built from user input.
-  const like = `%${term.replace(/[\\%_]/g, (m) => `\\${m}`)}%`;
-  const base = () =>
-    admin
-      .from("contacts")
-      .select("id, full_name, phone_e164")
-      .eq("org_id", member.orgId)
-      .is("deleted_at", null)
-      .limit(10);
-  const [byName, byPhone] = await Promise.all([
-    base().ilike("full_name", like).order("full_name"),
-    /\d{3}/.test(term)
-      ? base().ilike("phone_e164", `%${term.replace(/\D/g, "")}%`)
-      : Promise.resolve({ data: [], error: null }),
-  ]);
-  if (byName.error || byPhone.error) return fail("Search failed.");
-  const seen = new Map<string, ContactOption>();
-  for (const r of [...(byName.data ?? []), ...(byPhone.data ?? [])])
-    seen.set(r.id, { id: r.id, full_name: r.full_name ?? "", phone_e164: r.phone_e164 });
-  return { ok: true, data: { rows: [...seen.values()].slice(0, 10) } };
+  const rows = await searchContactOptions(createAdminClient(), member.orgId, q);
+  return rows ? { ok: true, data: { rows } } : fail("Search failed.");
 }
 
 // ---------------------------------------------------------------------------

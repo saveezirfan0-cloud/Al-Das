@@ -2,7 +2,7 @@
 
 One platform replacing Sanoflow (WhatsApp inbox, templates, campaigns, enquiries, appointments, bots) and the Airtable + Make.com back office. Next.js 15 + Supabase + Vercel. See `CLAUDE.md` for the rules, `docs/02_CLAUDE_CODE_BUILD_PLAN.md` for the plan.
 
-**Status:** Phases 1–3 are built: auth, tenancy with RLS, roles/permissions, teams, invites, app shell and the jobs framework (Phase 1); the patient CRM — contacts grid, views, segments, filter builder, import/export, merge, custom fields, tags (Phase 2); the WhatsApp Cloud API client, webhook ingress, queue handlers, Settings → Channels / Inbox and the shared inbox (Phase 3). Other module pages are placeholders until their phase. Details: `docs/03_PHASE_1_NOTES.md`, `docs/04_PHASE_2_NOTES.md`, `docs/05_PHASE_3_NOTES.md`.
+**Status:** Phases 1–3 and 5 are built (Phase 4, Templates, is still to do): auth, tenancy with RLS, roles/permissions, teams, invites, app shell and the jobs framework (Phase 1); the patient CRM — contacts grid, views, segments, filter builder, import/export, merge, custom fields, tags (Phase 2); the WhatsApp Cloud API client, webhook ingress, queue handlers, Settings → Channels / Inbox and the shared inbox (Phase 3); enquiries — pipelines, Kanban, table, saved views, bulk actions, SLA, assignment rules — with tasks and due reminders (Phase 5). Other module pages are placeholders until their phase. Details: `docs/03_PHASE_1_NOTES.md`, `docs/04_PHASE_2_NOTES.md`, `docs/05_PHASE_3_NOTES.md`, `docs/06_PHASE_5_NOTES.md`.
 
 ## Run it locally
 

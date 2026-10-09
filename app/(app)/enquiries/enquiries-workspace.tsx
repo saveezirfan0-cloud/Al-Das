@@ -56,6 +56,7 @@ import {
 import { BulkBar } from "./bulk-bar";
 import { buildEnquiryColumns } from "./enquiries-grid";
 import { EnquiryDrawer } from "./enquiry-drawer";
+import { EnquiryTasks } from "./enquiry-tasks";
 import { KanbanBoard } from "./kanban-board";
 import { NewEnquiryDialog, type NewEnquiryPreset } from "./new-enquiry-dialog";
 import { PipelinesRail } from "./pipelines-rail";
@@ -685,6 +686,9 @@ export function EnquiriesWorkspace({ bootstrap }: { bootstrap: EnquiriesBootstra
         onClose={() => setParam({ enquiry: null })}
         bootstrap={bootstrap}
         onChanged={reload}
+        tasksTab={(detail, load) => (
+          <EnquiryTasks detail={detail} bootstrap={bootstrap} reload={load} />
+        )}
       />
     </div>
   );

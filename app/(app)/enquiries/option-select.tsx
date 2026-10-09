@@ -34,7 +34,7 @@ export function OptionSelect({
 }) {
   return (
     <Select
-      value={value || NONE}
+      value={value || (allowNone ? NONE : "")}
       onValueChange={(v) => onChange(v === NONE ? null : v)}
       disabled={disabled}
     >
