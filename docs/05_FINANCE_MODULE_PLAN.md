@@ -6,15 +6,15 @@ Module of Pulse. Goal: every Unite invoice captured, matched to its appointment 
 
 Phases are named **F0–F6** so they do not clash with the platform phases in `02_CLAUDE_CODE_BUILD_PLAN.md`. Work one phase at a time, each starting in Plan Mode.
 
-| Phase | Scope                                                                      | Status                                                              |
-| ----- | -------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| F0    | Docs, reconciliation with CLAUDE.md, open items                            | done                                                                |
-| F1    | Schema, RLS, roles, permissions, data-health skeleton                      | done                                                                |
-| F2    | Unite capture: token manager, guarded handler, `fin_process_batch`, replay | not started (blocked on the human steps in `finance/open-items.md`) |
-| F3    | Appointments sync, rule E08                                                | not started                                                         |
-| F4    | Diligence upload, validation, preview, commit, matching                    | not started                                                         |
-| F5    | Exception rules E01–E10, queue UI, invoices/claims/summary screens         | not started                                                         |
-| F6    | Review with management, user guides, monitoring alerts                     | not started                                                         |
+| Phase | Scope                                                                      | Status                                                                                                                                                    |
+| ----- | -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F0    | Docs, reconciliation with CLAUDE.md, open items                            | done                                                                                                                                                      |
+| F1    | Schema, RLS, roles, permissions, data-health skeleton                      | done                                                                                                                                                      |
+| F2    | Unite capture: token manager, guarded handler, `fin_process_batch`, replay | built, capture switched OFF (blocked on the human steps in `finance/open-items.md`)                                                                       |
+| F3    | Appointments sync, rule E08                                                | built, through the platform: the Phase 6 Unite appointment sync fills `appointments` (`source = 'unite'`), and rule E08 checks `AppointmentId` against it |
+| F4    | Diligence upload, validation, preview, commit, matching                    | built                                                                                                                                                     |
+| F5    | Exception rules E01–E10, queue UI, invoices/claims/summary screens         | built                                                                                                                                                     |
+| F6    | Review with management, user guides, monitoring alerts                     | alerts and go-live runbook built; the closed-month review with management is a human step                                                                 |
 
 ## 1. Sources and known behaviour
 
