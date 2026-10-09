@@ -223,6 +223,7 @@ export async function recrawlSource(id: string): Promise<ActionResult> {
     .maybeSingle();
   if (error || !data) return fail("Source not found.");
   await enqueue("kb_ingest", { source_id: data.id });
+  await recordAudit(admin, { orgId: member.orgId, userId: member.userId, action: "kb.source_recrawled", entity: "kb_source", entityId: data.id });
   revalidatePath(PATH);
   return { ok: true, message: "Re-crawl queued." };
 }
@@ -231,8 +232,10 @@ export async function setSourceGroup(id: string, groupId: string | null): Promis
   const member = await requirePerm("kb.manage");
   if (!uuid.safeParse(id).success || (groupId !== null && !uuid.safeParse(groupId).success)) return fail("Invalid input");
   if (!(await ownGroup(member.orgId, groupId))) return fail("That group no longer exists.");
-  const { error } = await createAdminClient().from("kb_sources").update({ group_id: groupId }).eq("id", id).eq("org_id", member.orgId);
+  const admin = createAdminClient();
+  const { error } = await admin.from("kb_sources").update({ group_id: groupId }).eq("id", id).eq("org_id", member.orgId);
   if (error) return fail("Could not move the source.");
+  await recordAudit(admin, { orgId: member.orgId, userId: member.userId, action: "kb.source_moved", entity: "kb_source", entityId: id, diff: { group_id: groupId } });
   revalidatePath(PATH);
   return { ok: true, message: "Source moved." };
 }

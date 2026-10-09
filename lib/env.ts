@@ -26,6 +26,10 @@ const serverSchema = z.object({
   META_WEBHOOK_VERIFY_TOKEN: z.string().optional(),
   META_SYSTEM_USER_TOKEN: z.string().optional(),
   META_GRAPH_VERSION: z.string().default("v21.0"),
+  // Phase 6: Unite EMR (read-only). Optional: the sync reports what is missing.
+  UNITE_BASE_URL: z.preprocess((v) => (v === "" ? undefined : v), z.string().url().optional()),
+  UNITE_APP_ID: z.preprocess((v) => (v === "" ? undefined : v), z.string().optional()),
+  UNITE_APP_KEY: z.preprocess((v) => (v === "" ? undefined : v), z.string().optional()),
 });
 
 /**
@@ -62,6 +66,9 @@ export function serverEnv() {
     META_WEBHOOK_VERIFY_TOKEN: process.env.META_WEBHOOK_VERIFY_TOKEN,
     META_SYSTEM_USER_TOKEN: process.env.META_SYSTEM_USER_TOKEN,
     META_GRAPH_VERSION: process.env.META_GRAPH_VERSION,
+    UNITE_BASE_URL: process.env.UNITE_BASE_URL,
+    UNITE_APP_ID: process.env.UNITE_APP_ID,
+    UNITE_APP_KEY: process.env.UNITE_APP_KEY,
   });
 }
 

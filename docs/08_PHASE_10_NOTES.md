@@ -62,7 +62,7 @@ Base URL `${APP_URL}/api/public/v1`. `Authorization: Bearer pk_<8>_<43>`. Keys a
 | 403 `insufficient_scope` | key lacks the scope |
 | 400 `invalid_json`, `invalid_cursor`, `idempotency_key_required` | |
 | 422 `validation_failed` (+ `details[{field,message}]`), `invalid_phone`, … | |
-| 429 `rate_limited` | reserved: the limiter hook exists (`setRateLimiter`), Phase 11 installs the real one |
+| 429 `rate_limited` | more than 120 requests a minute for one key (`RATE_RULES.publicApi`, the Postgres fixed-window limiter from Phase 11); `Retry-After` says when to retry. Counted only after the key has been verified. |
 
 Scopes: `contacts:read`, `contacts:write`, `messages:send_template`.
 
@@ -109,7 +109,7 @@ No critical or high findings; key authentication, cross-org scoping, the SSRF co
 
 Known and deliberately left for later (decide before production):
 
-- **No API rate limit yet** (Phase 11 installs it through `setRateLimiter`). Until then a leaked read key can page every contact; keep keys short-lived and scoped.
+- **API rate limit is per key, fixed window** (120/min, fail-open if the limiter itself errors). A leaked read key can still page every contact at that rate; keep keys short-lived and scoped.
 - **Read access is not audited** per request (only writes and sends); add aggregate read logging with the limiter.
 - **AI rate limit can be exceeded by parallel requests** (usage is counted after the call). Add a reservation row or an org daily cap.
 - `promotions_opt_in` can be set to `true` by any `contacts:write` key without consent evidence, and marketing sends check `stop_marketing` only (as the inbox does), not `promotions_opt_in`. Decide whether marketing requires a recorded opt-in.
@@ -126,4 +126,4 @@ Known and deliberately left for later (decide before production):
 
 ## Open questions / follow-ups
 
-OQ-56 to OQ-61 in `docs/audit/open-questions.md`. Also: Phase 11 installs the API rate limiter (`setRateLimiter`) and widens audit coverage; `ai_tags` auto-tagging (e.g. `retention_risk`) is not built; scheduled email digests of the dashboards are not built.
+OQ-56 to OQ-61 in `docs/audit/open-questions.md`. Also: `ai_tags` auto-tagging (e.g. `retention_risk`) is not built; scheduled email digests of the dashboards are not built.

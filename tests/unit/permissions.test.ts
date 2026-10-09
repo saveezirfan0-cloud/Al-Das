@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  FINANCE_ROLES,
   PERMISSION_KEYS,
   PERMISSIONS,
   permissionMatches,
@@ -46,13 +47,19 @@ describe("catalogue", () => {
     }
   });
 
-  it("has exactly one Admin with full access and the five seed roles", () => {
+  it("has exactly one Admin with full access and the seed roles", () => {
     expect(SYSTEM_ROLES.map((r) => r.name)).toEqual([
       "Admin",
       "Manager",
       "Agent",
       "Receptionist",
+      "Care coordinator",
       "Marketing",
+      "Finance",
+      "Billing",
+      "Insurance",
+      "CEO",
+      "Medical Director",
     ]);
     expect(SYSTEM_ROLES.filter((r) => r.permissions.includes("*")).map((r) => r.name)).toEqual([
       "Admin",
@@ -72,5 +79,26 @@ describe("catalogue", () => {
     expect(perms("Agent")).not.toContain("reports.export");
     // Marketing has reports but exporting them is a deliberate, separate grant.
     expect(perms("Marketing")).not.toContain("reports.export");
+  });
+
+  it("keeps clinical sign-off out of every preset except Admin (explicit grant only)", () => {
+    const signers = SYSTEM_ROLES.filter((r) =>
+      r.permissions.some((p) => permissionMatches(p, "clinical.settings.manage")),
+    ).map((r) => r.name);
+    expect(signers).toEqual(["Admin"]);
+    // the care coordinator works the queue but cannot approve the thresholds
+    const cc = SYSTEM_ROLES.find((r) => r.name === "Care coordinator")!;
+    expect(
+      cc.permissions.some((p) => permissionMatches(p, "portal.clinical_followups.write")),
+    ).toBe(true);
+  });
+
+  it("finance presets: billing cannot see claims, insurance cannot see invoices, only admins hold capture/reference rights by default", () => {
+    const perms = (name: string) => FINANCE_ROLES.find((r) => r.name === name)?.permissions ?? [];
+    expect(perms("Billing")).not.toContain("finance.claims.view");
+    expect(perms("Insurance")).not.toContain("finance.invoices.view");
+    expect(perms("Insurance")).toContain("finance.claims.import");
+    for (const r of FINANCE_ROLES) expect(r.permissions).not.toContain("finance.capture.manage");
+    expect(perms("Finance")).toContain("finance.reference.manage");
   });
 });

@@ -5,6 +5,7 @@ import type { NextResponse } from "next/server";
 import { hashApiKey, hasScope, looksLikeApiKey, parseBearer, type ApiKeyScope } from "@/lib/public-api/keys";
 import { apiError } from "@/lib/public-api/http";
 import { secretMatches } from "@/lib/jobs/secret";
+import { checkRateLimit, RATE_RULES } from "@/lib/rate-limit";
 import type { AdminClient } from "@/lib/supabase/admin";
 
 export type ApiKeyContext = { keyId: string; orgId: string; scopes: string[] };
@@ -12,13 +13,21 @@ export type ApiKeyContext = { keyId: string; orgId: string; scopes: string[] };
 export type AuthResult = { ok: true; ctx: ApiKeyContext } | { ok: false; response: NextResponse };
 
 /**
- * Per-key rate limit hook. Phase 11 (hardening) installs a real limiter with setRateLimiter();
- * until then every request is allowed. Kept here so no route has to change when it lands.
+ * Per-key rate limit: the Postgres fixed-window limiter from lib/rate-limit.ts (RATE_RULES.publicApi),
+ * keyed on the API key id and applied only after the key has been verified, so unauthenticated
+ * traffic cannot burn a real key's budget. setRateLimiter() replaces it (tests).
  */
-export type RateLimiter = (ctx: ApiKeyContext) => Promise<{ allowed: boolean; retryAfterSeconds?: number }>;
-let limiter: RateLimiter = async () => ({ allowed: true });
+export type RateLimiter = (ctx: ApiKeyContext, admin: AdminClient) => Promise<{ allowed: boolean; retryAfterSeconds?: number }>;
+const defaultLimiter: RateLimiter = async (ctx, admin) => {
+  const r = await checkRateLimit(admin, "public-api", ctx.keyId, RATE_RULES.publicApi);
+  return { allowed: r.allowed, retryAfterSeconds: r.retryAfter };
+};
+let limiter: RateLimiter = defaultLimiter;
 export function setRateLimiter(next: RateLimiter): void {
   limiter = next;
+}
+export function resetRateLimiter(): void {
+  limiter = defaultLimiter;
 }
 
 const LAST_USED_THROTTLE_MS = 5 * 60_000;
@@ -53,7 +62,7 @@ export async function authenticateApiKey(request: Request, admin: AdminClient, n
   }
 
   const ctx: ApiKeyContext = { keyId: row.id, orgId: row.org_id, scopes: row.scopes };
-  const limit = await limiter(ctx);
+  const limit = await limiter(ctx, admin);
   if (!limit.allowed) {
     return {
       ok: false,

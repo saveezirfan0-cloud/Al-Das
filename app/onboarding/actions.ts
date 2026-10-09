@@ -3,9 +3,11 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import { recordAudit } from "@/lib/audit";
 import { SYSTEM_ROLES } from "@/lib/auth/permissions";
 import { getCurrentUser } from "@/lib/auth/session";
 import { serverEnv } from "@/lib/env";
+import { checkRateLimit, RATE_RULES, waitText } from "@/lib/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export type OnboardingState = { error?: string } | undefined;
@@ -36,7 +38,10 @@ export async function createWorkspace(
   if (!parsed.success) return { error: parsed.error.issues[0]?.message };
 
   const admin = createAdminClient();
-  const { error } = await admin.rpc("create_org", {
+  const limited = await checkRateLimit(admin, "workspace-create", user.id, RATE_RULES.workspaceCreatePerUser);
+  if (!limited.allowed)
+    return { error: `Too many attempts. Try again in ${waitText(limited.retryAfter)}.` };
+  const { data: orgId, error } = await admin.rpc("create_org", {
     p_name: parsed.data.name,
     p_slug: parsed.data.slug,
     p_roles: SYSTEM_ROLES.map((r) => ({
@@ -50,5 +55,13 @@ export async function createWorkspace(
     if (error.code === "23505") return { error: "That workspace URL is taken. Pick another." };
     return { error: "Could not create the workspace." };
   }
+  if (orgId)
+    await recordAudit(admin, {
+      orgId,
+      userId: user.id,
+      action: "org.created",
+      entity: "org",
+      entityId: orgId,
+    });
   redirect("/dashboard");
 }

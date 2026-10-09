@@ -131,6 +131,7 @@ export async function sendTestWebhook(id: string): Promise<ActionResult> {
     .single();
   if (error) return { ok: false, error: "Could not queue the test." };
   await enqueue("webhooks_out", { delivery_id: data.id });
+  await recordAudit(admin, { orgId: member.orgId, userId: member.userId, action: "webhook.test_sent", entity: "webhook", entityId: id });
   revalidatePath(PATH);
   return { ok: true, message: "Test queued. It appears in the delivery log within a minute." };
 }
@@ -150,6 +151,7 @@ export async function retryDelivery(id: string): Promise<ActionResult> {
     .maybeSingle();
   if (error || !data) return { ok: false, error: "That delivery cannot be retried." };
   await enqueue("webhooks_out", { delivery_id: data.id });
+  await recordAudit(admin, { orgId: member.orgId, userId: member.userId, action: "webhook.delivery_retried", entity: "webhook_delivery", entityId: data.id });
   revalidatePath(PATH);
   return { ok: true, message: "Retry queued." };
 }

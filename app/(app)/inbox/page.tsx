@@ -237,6 +237,7 @@ export default async function InboxPage({
       send: can(member, "inbox.send"),
       viewAll: can(member, "inbox.view_all"),
       contactsManage: can(member, "contacts.manage"),
+      appointmentsManage: can(member, "appointments.manage"),
       settings: can(member, "settings.manage"),
     },
     ai: { available: can(member, "ai.use") && readAiSettings(org?.settings).enabled },

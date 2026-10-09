@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { authenticateApiKey, requireScope, setRateLimiter } from "@/lib/public-api/auth";
+import { authenticateApiKey, requireScope, resetRateLimiter, setRateLimiter } from "@/lib/public-api/auth";
 import { generateApiKey } from "@/lib/public-api/keys";
 import type { AdminClient } from "@/lib/supabase/admin";
 
@@ -80,8 +80,20 @@ describe("authenticateApiKey", () => {
       expect(!r.ok && r.response.status).toBe(429);
       expect(!r.ok && r.response.headers.get("Retry-After")).toBe("7");
     } finally {
-      setRateLimiter(async () => ({ allowed: true }));
+      resetRateLimiter();
     }
+  });
+
+  it("by default counts calls per key in Postgres and answers 429 once the window is full", async () => {
+    const { as, request } = setup();
+    const rpc = vi.fn(async () => ({ data: [{ allowed: false, hits: 121, retry_after: 33 }], error: null }));
+    const limited = new Proxy(as, { get: (t, k) => (k === "rpc" ? rpc : Reflect.get(t, k)) }) as typeof as;
+    const r = await authenticateApiKey(request(), limited, NOW);
+    expect(!r.ok && r.response.status).toBe(429);
+    expect(!r.ok && r.response.headers.get("Retry-After")).toBe("33");
+    expect(rpc).toHaveBeenCalledWith("rate_limit_hit", expect.objectContaining({ p_limit: 120, p_window_seconds: 60 }));
+    // the key id is hashed into the bucket name, never sent in clear
+    expect(JSON.stringify(rpc.mock.calls[0])).not.toContain("pk_");
   });
 
   it("never echoes the key in a response", async () => {

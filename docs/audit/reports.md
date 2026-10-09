@@ -95,7 +95,7 @@ Birthday Messages rows with a create form. → `recall_sends` list, programme bi
 - OQ-23: Unite appointment status codes, without which no-show reporting is impossible.
 - The Airtable "no-show rate" tile measures field fill rate, not no-shows; management should be told the historical number was wrong before the new dashboard shows a different one.
 
-## 5. As built in Phase 10 (`docs/06_PHASE_10_NOTES.md`)
+## 5. As built in Phase 10 (`docs/08_PHASE_10_NOTES.md`)
 
 ### 5.1 Live reports and their metric definitions
 

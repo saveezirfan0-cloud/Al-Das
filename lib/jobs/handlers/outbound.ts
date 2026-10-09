@@ -5,6 +5,12 @@ import { sendSpecSchema, type SendSpec } from "@/lib/inbox/send";
 import { readInboxSettings } from "@/lib/inbox/settings";
 import { enqueue } from "@/lib/jobs/enqueue";
 import { registerHandler } from "@/lib/jobs/registry";
+import {
+  bulkSlotCap,
+  MAX_SLOT_WAIT_MS,
+  slotRetryDelaySeconds,
+  slotWaitExpired,
+} from "@/lib/jobs/pacing";
 import { PermanentJobError, type JobContext } from "@/lib/jobs/types";
 import type { QueueName } from "@/lib/jobs/queues";
 import type { AdminClient } from "@/lib/supabase/admin";
@@ -23,10 +29,12 @@ import { serviceWindow } from "@/lib/whatsapp/window";
  * Meta errors go through the error map: retryable ones re-queue via the visibility
  * timeout, the rest mark the message failed (131050 also sets stop_marketing).
  */
-const job = z.object({ message_id: z.string().uuid(), attempt: z.number().int().optional() });
+const job = z.object({
+  message_id: z.string().uuid(),
+  attempt: z.number().int().optional(),
+});
 
 const WINDOW_CLOSED_CODE = 131047;
-const MAX_SLOT_RETRIES = 600; // 10 minutes at 1s
 
 export async function deliverOutbound(
   admin: AdminClient,
@@ -38,7 +46,7 @@ export async function deliverOutbound(
   const { data: message } = await admin
     .from("messages")
     .select(
-      "id, org_id, conversation_id, status, wa_message_id, payload, body, sent_by_user_id, reply_to_wa_message_id, media_meta_id, media_filename, conversations(id, status, last_inbound_at, ad_referral, opened_at, channel_id, contact_id, contacts(id, phone_e164, wa_bsuid, stop_marketing), channels(id, org_id, status, phone_number_id, waba_id, send_rate_per_sec))",
+      "id, org_id, conversation_id, at, status, wa_message_id, payload, body, sent_by_user_id, reply_to_wa_message_id, media_meta_id, media_filename, conversations(id, status, last_inbound_at, ad_referral, opened_at, channel_id, contact_id, contacts(id, phone_e164, wa_bsuid, stop_marketing), channels(id, org_id, status, phone_number_id, waba_id, send_rate_per_sec))",
     )
     .eq("id", messageId)
     .maybeSingle();
@@ -91,20 +99,58 @@ export async function deliverOutbound(
     }
   }
 
-  // Per-number rate limit (atomic in SQL). Saturated → try again next second.
+  // Per-number rate limit (atomic in SQL), enforced at send time on every pass. Live chat retries
+  // next second; bulk sends (the `outbound` lane) use at most BULK_SHARE of the limit and, when the
+  // current second is full, book a future second once instead of polling (reserve_send_slot). A
+  // booked message that runs late just fails the claim again and is re-booked, so catching up
+  // after a stall can never burst past the limit.
+  const bulk = ctx.queue === "outbound";
+  const cap = bulk ? bulkSlotCap(channel.send_rate_per_sec) : channel.send_rate_per_sec;
   const { data: slot, error: slotErr } = await admin.rpc("claim_send_slot", {
     p_channel_id: channel.id,
-    p_limit: channel.send_rate_per_sec,
+    p_limit: cap,
   });
   if (slotErr) throw new Error(`claim_send_slot: ${slotErr.message}`);
   if (!slot) {
-    if (attempt >= MAX_SLOT_RETRIES) throw new Error("send slot never became available");
+    if (slotWaitExpired(message.at)) {
+      await markFailed(
+        admin,
+        message.id,
+        -1,
+        "The send queue was too long; not sent. Please resend.",
+      );
+      return;
+    }
+    if (bulk) {
+      const { data: wait, error: reserveErr } = await admin.rpc("reserve_send_slot", {
+        p_channel_id: channel.id,
+        p_cap: cap,
+      });
+      if (reserveErr) throw new Error(`reserve_send_slot: ${reserveErr.message}`);
+      const delay = Number(wait);
+      if (delay * 1000 > MAX_SLOT_WAIT_MS) {
+        await markFailed(
+          admin,
+          message.id,
+          -1,
+          "The send queue was too long; not sent. Please resend.",
+        );
+        return;
+      }
+      await enqueue(
+        ctx.queue as QueueName,
+        { message_id: message.id, attempt: attempt + 1 },
+        { delaySeconds: delay },
+      );
+      log.info("send slot booked", { messageId: message.id, delaySeconds: delay });
+      return;
+    }
     await enqueue(
       ctx.queue as QueueName,
       { message_id: message.id, attempt: attempt + 1 },
-      { delaySeconds: 1 },
+      { delaySeconds: slotRetryDelaySeconds(attempt) },
     );
-    log.info("send slot saturated; re-queued", { messageId: message.id });
+    log.info("send slot saturated; re-queued", { messageId: message.id, attempt });
     return;
   }
 

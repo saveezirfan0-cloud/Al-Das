@@ -69,7 +69,13 @@ export type SidebarData = {
 export type InboxProps = {
   orgId: string;
   me: { userId: string; name: string };
-  perms: { send: boolean; viewAll: boolean; contactsManage: boolean; settings: boolean };
+  perms: {
+    send: boolean;
+    viewAll: boolean;
+    contactsManage: boolean;
+    settings: boolean;
+    appointmentsManage: boolean;
+  };
   /** AI assist is usable here: the member has ai.use AND the workspace switched it on. */
   ai: { available: boolean };
   query: InboxQuery;
