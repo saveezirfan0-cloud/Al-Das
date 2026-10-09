@@ -301,7 +301,7 @@ describe.skipIf(!TEST_DATABASE_URL)("flows + recall (db)", () => {
       });
     });
 
-    it("seeds all programmes, including the 48h appointment reminder, as drafts", async () => {
+    it("seeds the recall programmes as drafts (reminders belong to Phase 6)", async () => {
       await asServiceRole(c, async () => {
         const { rows } = await c.query(
           "select key, kind, status from public.recall_programmes where org_id = $1 order by key",
@@ -309,7 +309,6 @@ describe.skipIf(!TEST_DATABASE_URL)("flows + recall (db)", () => {
         );
         expect(rows.map((r) => r.key)).toEqual([
           "annual_checkup",
-          "appointment_reminder_48h",
           "birthday",
           "chronic_90d",
           "colonoscopy",
@@ -321,9 +320,6 @@ describe.skipIf(!TEST_DATABASE_URL)("flows + recall (db)", () => {
           "skin_check",
         ]);
         expect(rows.every((r) => r.status === "draft")).toBe(true);
-        expect(rows.find((r) => r.key === "appointment_reminder_48h")!.kind).toBe(
-          "appointment_reminder",
-        );
       });
     });
 
@@ -332,7 +328,7 @@ describe.skipIf(!TEST_DATABASE_URL)("flows + recall (db)", () => {
         expect(
           await count(c, "select 1 from public.recall_programmes where org_id = $1", [orgB]),
         ).toBe(0);
-        expect(await count(c, "select 1 from public.recall_programmes")).toBe(11);
+        expect(await count(c, "select 1 from public.recall_programmes")).toBe(10);
         expect(await count(c, "select 1 from public.recall_programme_templates")).toBeGreaterThan(
           0,
         );
@@ -402,61 +398,42 @@ describe.skipIf(!TEST_DATABASE_URL)("flows + recall (db)", () => {
       });
     });
 
-    it("the reminder view lists upcoming appointments, flags exclusions and drops already-sent ones", async () => {
-      await asServiceRole(c, async () => {
-        const doc = await one(
-          "insert into public.specialists (org_id, name) values ($1, 'Dr. Example') returning id".replace(
-            " returning id",
-            "",
-          ),
-          [orgA],
-        );
-        const soon = await one(
-          `insert into public.appointments (org_id, contact_id, specialist_id, starts_at, status) values ($1, $2, $3, now() + interval '30 hours', 'confirmed')`,
-          [orgA, contactA, doc],
-        );
-        const far = await one(
-          `insert into public.appointments (org_id, contact_id, specialist_id, starts_at, status) values ($1, $2, $3, now() + interval '90 hours', 'confirmed')`,
-          [orgA, contactA, doc],
-        );
-        const cancelled = await one(
-          `insert into public.appointments (org_id, contact_id, specialist_id, starts_at, status) values ($1, $2, $3, now() + interval '20 hours', 'cancelled')`,
-          [orgA, contactA, doc],
-        );
-        const { rows } = await c.query(
-          "select appointment_id, eligible, excluded, segment_key from public.v_appointment_reminder_due where org_id = $1",
-          [orgA],
-        );
-        const byId = new Map(rows.map((r) => [r.appointment_id as string, r]));
-        expect(byId.get(soon)).toMatchObject({ eligible: true, excluded: false, segment_key: "*" });
-        expect(byId.get(far)!.eligible).toBe(false);
-        expect(byId.get(cancelled)!.eligible).toBe(false);
-
-        const prog = (
-          await c.query<{ id: string }>(
-            "select id from public.recall_programmes where org_id = $1 and key = 'appointment_reminder_48h'",
+    it("the clinical messaging gate is closed until a SIGNED-OFF true, and is service-role only", async () => {
+      const gate = async () =>
+        (
+          await c.query<{ on: boolean }>(
+            "select public.recall_clinical_messaging_enabled($1) as on",
             [orgA],
           )
-        ).rows[0]!.id;
+        ).rows[0]!.on;
+      await asServiceRole(c, async () => {
+        expect(await gate()).toBe(false);
+        // a proposed 'true' (even with unsigned defaults allowed) never opens it
         await c.query(
-          "insert into public.recall_sends (org_id, programme_id, contact_id, cycle_key, status) values ($1, $2, $3, $4, 'sent')",
-          [orgA, prog, contactA, soon],
-        );
-        const after = await c.query(
-          "select eligible from public.v_appointment_reminder_due where appointment_id = $1",
-          [soon],
-        );
-        expect(after.rows[0]!.eligible).toBe(false);
-
-        // seeded exclusion list: a placeholder booking is flagged
-        const { rows: ex } = await c.query<{ x: boolean }>(
-          "select public.is_reminder_excluded($1, 'SHORELINE', 'Dr. Example') as x",
+          "update public.clinical_settings set proposed_value = 'true' where org_id = $1 and key in ('clinical_messaging_enabled','allow_unsigned_defaults')",
           [orgA],
         );
-        expect(ex[0]!.x).toBe(true);
+        await c.query(
+          "update public.clinical_settings set approved_value = 'true', sign_off_status = 'approved', signed_by = 'Test', signed_at = current_date where org_id = $1 and key = 'allow_unsigned_defaults'",
+          [orgA],
+        );
+        expect(await gate()).toBe(false);
+        await c.query(
+          "update public.clinical_settings set approved_value = 'true', sign_off_status = 'approved', signed_by = 'Test', signed_at = current_date where org_id = $1 and key = 'clinical_messaging_enabled'",
+          [orgA],
+        );
+        expect(await gate()).toBe(true);
+        // revoke again so later tests start closed
+        await c.query(
+          "update public.clinical_settings set approved_value = null, sign_off_status = 'awaiting', signed_by = null, signed_at = null, proposed_value = 'false' where org_id = $1 and key in ('clinical_messaging_enabled','allow_unsigned_defaults')",
+          [orgA],
+        );
+        expect(await gate()).toBe(false);
       });
-      await asUser(c, bob, async () => {
-        expect(await count(c, "select 1 from public.v_appointment_reminder_due")).toBe(0);
+      await asUser(c, alice, async () => {
+        await expect(
+          c.query("select public.recall_clinical_messaging_enabled($1)", [orgA]),
+        ).rejects.toThrow(/permission denied/);
       });
     });
 
@@ -546,9 +523,9 @@ describe.skipIf(!TEST_DATABASE_URL)("flows + recall (db)", () => {
     });
     it("seed functions cannot be called by users", async () => {
       await asUser(c, alice, async () => {
-        await expect(
-          c.query("select public.seed_recall_reminder_programme($1)", [orgA]),
-        ).rejects.toThrow(/permission denied/);
+        await expect(c.query("select public.seed_recall_programmes($1)", [orgA])).rejects.toThrow(
+          /permission denied/,
+        );
         await expect(
           c.query("select public.seed_parallel_run_scenarios($1)", [orgA]),
         ).rejects.toThrow(/permission denied/);

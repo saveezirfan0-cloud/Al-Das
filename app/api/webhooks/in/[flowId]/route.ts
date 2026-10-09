@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
 import { tokenMatches } from "@/lib/flow-engine/webhook-token";
+import { checkRateLimit, clientIp, RATE_RULES, tooManyRequests } from "@/lib/rate-limit";
 import { startRun } from "@/lib/flow-engine/run";
 import { createFlowDeps } from "@/lib/flow-engine/supabase-deps";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -56,6 +57,14 @@ export async function POST(
     flow.trigger_type !== "webhook" ||
     !tokenMatches(auth, (flow.trigger_config as Record<string, unknown>).webhook_token_hash)
   ) {
+    // Only failed attempts count, so legitimate callers are never throttled.
+    const limited = await checkRateLimit(
+      admin,
+      "flow-webhook-bad-token",
+      clientIp(request.headers),
+      RATE_RULES.flowWebhookBadToken,
+    );
+    if (!limited.allowed) return tooManyRequests(limited);
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   if (flow.status !== "active")

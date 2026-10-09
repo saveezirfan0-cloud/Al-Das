@@ -97,6 +97,8 @@ export interface RecallStore {
   getProgramme(id: string): Promise<ProgrammeRow | null>;
   /** clinical_settings accessor (approved value only; unsigned defaults only when the org allows them). */
   setting(orgId: string, key: string): Promise<string | null>;
+  /** The patient-facing clinical gate: true only for a SIGNED-OFF "true" (unsigned defaults never open it). */
+  clinicalMessagingEnabled(orgId: string): Promise<boolean>;
   listEligible(p: ProgrammeRow, limit: number): Promise<EligibleRow[]>;
   templateMap(programmeId: string): Promise<TemplateMapRow[]>;
   template(orgId: string, waTemplateId: string): Promise<RecallTemplate | null>;
@@ -151,17 +153,10 @@ export type RunSummary = {
 };
 
 /** Views the engine may read. The eligibility_view column is data; never trust it as a table name. */
-export const ALLOWED_VIEWS = new Set([
-  "v_chronic_recall_eligibility",
-  "v_birthday_today",
-  "v_appointment_reminder_due",
-]);
+export const ALLOWED_VIEWS = new Set(["v_chronic_recall_eligibility", "v_birthday_today"]);
 
 /** Views that list ineligible rows too and expose an `eligible` flag. */
-export const ELIGIBLE_FLAG_VIEWS = new Set([
-  "v_chronic_recall_eligibility",
-  "v_appointment_reminder_due",
-]);
+export const ELIGIBLE_FLAG_VIEWS = new Set(["v_chronic_recall_eligibility"]);
 
 export const DEFAULT_TAGS: Record<string, string> = {
   chronic_90d: "chronic_recall_sent",

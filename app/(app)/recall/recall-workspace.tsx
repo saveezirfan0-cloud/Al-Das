@@ -1,8 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { Eye, FlaskConical, Loader2, Radio, Save, ShieldCheck } from "lucide-react";
+import { Eye, FlaskConical, Loader2, Radio, Save } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -31,16 +32,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Textarea } from "@/components/ui/textarea";
+import { CONFIRM_PHRASE } from "@/lib/clinical/sign-off";
 import { describeSchedule, formFromCron } from "@/lib/flow-engine/schedule";
 
-import {
-  previewProgramme,
-  saveProgramme,
-  saveSendingSettings,
-  saveTemplateMap,
-  type Preview,
-} from "./actions";
+import { previewProgramme, saveProgramme, saveTemplateMap, type Preview } from "./actions";
 
 export type ProgrammeVM = {
   id: string;
@@ -72,7 +67,7 @@ export type ProgrammeVM = {
   }>;
 };
 type TemplateOption = { id: string; name: string; status: string; category: string };
-type Workspace = { mode: "test" | "live"; testNumbers: string; clinicalMessagingEnabled: boolean };
+type Workspace = { mode: "test" | "live"; testNumbers: number; clinicalMessagingEnabled: boolean };
 type Perms = { manage: boolean; mapTemplates: boolean; signOff: boolean };
 
 const KIND_LABELS: Record<string, string> = {
@@ -106,7 +101,7 @@ export function RecallWorkspace({
 
   return (
     <div className="flex flex-col gap-6">
-      <SendingPanel workspace={workspace} perms={perms} />
+      <SendingPanel workspace={workspace} />
       <Table>
         <TableHeader>
           <TableRow>
@@ -191,83 +186,30 @@ function ModeBadge({ mode, inherited }: { mode: "test" | "live"; inherited: bool
   );
 }
 
-function SendingPanel({ workspace, perms }: { workspace: Workspace; perms: Perms }) {
-  const router = useRouter();
-  const [mode, setMode] = useState(workspace.mode);
-  const [numbers, setNumbers] = useState(workspace.testNumbers.replace(/,\s*/g, "\n"));
-  const [pending, startTransition] = useTransition();
-  const dirty =
-    mode !== workspace.mode ||
-    numbers.trim() !== workspace.testNumbers.replace(/,\s*/g, "\n").trim();
-
+function SendingPanel({ workspace }: { workspace: Workspace }) {
   return (
     <section className="rounded-xl border p-4" aria-label="Sending">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="font-semibold">Where messages go</h3>
           <p className="text-muted-foreground text-sm">
-            <b>Test</b> sends a small sample to the numbers below instead of patients. <b>Live</b>{" "}
-            messages real patients and needs a clinical sign-off.
+            <b>Test</b> sends a small sample to your internal test numbers instead of patients.{" "}
+            <b>Live</b> messages real patients and needs a clinical sign-off.
             {!workspace.clinicalMessagingEnabled &&
               " Clinical messaging is not enabled yet, so clinical programmes cannot go Live."}
           </p>
+          <p className="text-muted-foreground mt-1 text-sm">
+            {workspace.testNumbers > 0
+              ? `${workspace.testNumbers} signed-off test number${workspace.testNumbers === 1 ? "" : "s"}.`
+              : "No test numbers are signed off, so programmes cannot run yet."}{" "}
+            The workspace default and the test numbers are signed off in{" "}
+            <Link href="/portal/clinical-settings" className="underline">
+              Clinical settings
+            </Link>{" "}
+            (<code>recall_send_mode</code>, <code>test_recipient_numbers</code>).
+          </p>
         </div>
         <ModeBadge mode={workspace.mode} inherited />
-      </div>
-      <div className="mt-3 grid gap-3 md:grid-cols-[1fr_14rem]">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="test-numbers">Internal test numbers (one per line)</Label>
-          <Textarea
-            id="test-numbers"
-            rows={3}
-            value={numbers}
-            onChange={(e) => setNumbers(e.target.value)}
-            disabled={!perms.signOff}
-            placeholder="+971 50 000 0000"
-          />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label>Workspace default</Label>
-          <Select
-            value={mode}
-            onValueChange={(v) => setMode(v as "test" | "live")}
-            disabled={!perms.signOff}
-          >
-            <SelectTrigger aria-label="Workspace default send mode">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="test">Test (safe)</SelectItem>
-              <SelectItem value="live">Live (real patients)</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button
-            disabled={!perms.signOff || pending || !dirty}
-            onClick={() => {
-              if (
-                mode === "live" &&
-                !confirm(
-                  "Switch the workspace default to LIVE? Programmes without their own override will message real patients once their other checks pass.",
-                )
-              )
-                return;
-              startTransition(async () => {
-                const r = await saveSendingSettings({ mode, test_numbers: numbers });
-                if (r.ok) {
-                  toast.success(r.message);
-                  router.refresh();
-                } else toast.error(r.error);
-              });
-            }}
-          >
-            {pending ? <Loader2 className="animate-spin" /> : <ShieldCheck />} Sign off and save
-          </Button>
-          {!perms.signOff && (
-            <p className="text-muted-foreground text-xs">
-              Only people who can sign off clinical settings can change this.
-            </p>
-          )}
-        </div>
       </div>
     </section>
   );
@@ -404,7 +346,15 @@ function ProgrammeDrawer({
         <div className="sm:col-span-2">
           <Button
             disabled={!perms.manage || pending}
-            onClick={() =>
+            onClick={() => {
+              let confirmPhrase: string | undefined;
+              if (mode === "live" && p.send_mode_override !== "live") {
+                confirmPhrase =
+                  window.prompt(
+                    `This programme will message REAL patients.\nType "${CONFIRM_PHRASE}" to switch it to Live.`,
+                  ) ?? undefined;
+                if (confirmPhrase === undefined) return;
+              }
               run(() =>
                 saveProgramme(p.id, {
                   status,
@@ -412,9 +362,10 @@ function ProgrammeDrawer({
                   max_per_run: max,
                   send_mode_override: mode === "default" ? null : (mode as "test" | "live"),
                   test_sample_size: sample,
+                  confirm: confirmPhrase,
                 }),
-              )
-            }
+              );
+            }}
           >
             {pending ? <Loader2 className="animate-spin" /> : <Save />} Save programme
           </Button>

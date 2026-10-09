@@ -98,6 +98,10 @@ class FakeRecallStore implements RecallStore {
   async setting(_o: string, key: string) {
     return this.settings[key] ?? null;
   }
+  async clinicalMessagingEnabled() {
+    // Mirrors the SQL gate: only a signed-off "true" opens it (the fake stores the signed-off value).
+    return this.settings.clinical_messaging_enabled === "true";
+  }
   async listEligible() {
     return this.rows;
   }
@@ -186,6 +190,10 @@ describe("helpers", () => {
       ["+971500000001", "+971500000002"],
     );
     expect(parseTestNumbers(null)).toEqual([]);
+    // clinical settings sign-off stores lists as a JSON array of strings
+    expect(parseTestNumbers('["+971500000001","+971500000002","junk"]')).toEqual(["+971500000001", "+971500000002"]);
+    expect(parseTestNumbers("[not json")).toEqual([]);
+    expect(parseTestNumbers('{"a":1}'.replace("{", "[").replace("}", "]"))).toEqual([]);
   });
   it("order_by is allow-listed", () => {
     expect(parseOrderBy("days_since_last_visit desc")).toEqual({

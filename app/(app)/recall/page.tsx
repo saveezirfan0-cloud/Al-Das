@@ -3,7 +3,9 @@ import { can } from "@/lib/auth/can";
 import { requirePerm } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-import { settingValue } from "./actions";
+import { parseTestNumbers } from "@/lib/recall/engine";
+
+import { clinicalMessagingEnabled, settingValue } from "@/lib/recall/settings";
 import { RecallWorkspace, type ProgrammeVM } from "./recall-workspace";
 
 export const metadata = { title: "Recall" };
@@ -60,7 +62,7 @@ export default async function RecallPage() {
       .limit(5000),
     settingValue(admin, member.orgId, "recall_send_mode"),
     settingValue(admin, member.orgId, "test_recipient_numbers"),
-    settingValue(admin, member.orgId, "clinical_messaging_enabled"),
+    clinicalMessagingEnabled(admin, member.orgId),
   ]);
 
   const last7 = new Map<string, Record<string, number>>();
@@ -115,8 +117,8 @@ export default async function RecallPage() {
         templates={templates ?? []}
         workspace={{
           mode: mode === "live" ? "live" : "test",
-          testNumbers: testNumbers ?? "",
-          clinicalMessagingEnabled: clinicalOn?.toLowerCase() === "true",
+          testNumbers: parseTestNumbers(testNumbers).length,
+          clinicalMessagingEnabled: clinicalOn,
         }}
         perms={{
           manage: can(member, "campaigns.create"),

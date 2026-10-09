@@ -20,6 +20,8 @@ import { readInboxSettings } from "@/lib/inbox/settings";
 import { enqueue } from "@/lib/jobs/enqueue";
 import { MEDIA_BUCKET, extensionFor } from "@/lib/jobs/handlers/media-fetch";
 import { createNotification } from "@/lib/notifications";
+import { isMediaPathFor, parseMediaPath } from "@/lib/inbox/media-path";
+import { redactText } from "@/lib/redact";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/supabase/types";
@@ -158,7 +160,7 @@ export async function sendAttachment(
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   const { error, conversation } = await visibleConversation(member, parsed.data.conversation_id);
   if (error || !conversation) return { ok: false, error: error ?? "Conversation not found." };
-  if (!parsed.data.path.startsWith(`${member.orgId}/${conversation.id}/`))
+  if (!isMediaPathFor(parsed.data.path, member.orgId, conversation.id))
     return { ok: false, error: "Invalid attachment path." };
   const d = parsed.data;
   const spec: SendSpec = {
@@ -344,7 +346,7 @@ export async function markConversationRead(conversationId: string): Promise<Acti
       await client.markRead(last.wa_message_id);
     } catch (err) {
       console.warn("[inbox] mark-read failed", {
-        error: err instanceof Error ? err.message : String(err),
+        error: redactText(err),
       });
     }
   }
@@ -864,7 +866,16 @@ export async function listContactConversations(
 /** Short-lived URL for an inbox media file (members only; path must be in the caller's org). */
 export async function signedMediaUrl(path: string): Promise<ActionResult<{ url: string }>> {
   const member = await requireMember();
-  if (!path.startsWith(`${member.orgId}/`)) return { ok: false, error: "Not found." };
+  const parts = parseMediaPath(path);
+  if (!parts || parts.orgId !== member.orgId) return { ok: false, error: "Not found." };
+  // The file lives under a conversation: the caller must be allowed to see that conversation (RLS).
+  const supabase = await createClient();
+  const { data: visible } = await supabase
+    .from("conversations")
+    .select("id")
+    .eq("id", parts.conversationId)
+    .maybeSingle();
+  if (!visible) return { ok: false, error: "Not found." };
   const admin = createAdminClient();
   const { data, error } = await admin.storage.from(MEDIA_BUCKET).createSignedUrl(path, 3600);
   if (error || !data) return { ok: false, error: "Could not load the file." };

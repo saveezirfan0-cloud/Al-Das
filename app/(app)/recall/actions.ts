@@ -5,15 +5,14 @@ import { z } from "zod";
 
 import { recordAudit } from "@/lib/audit";
 import { can } from "@/lib/auth/can";
-import { requireMember, requirePerm, type CurrentMember } from "@/lib/auth/session";
+import { requireMember, requirePerm } from "@/lib/auth/session";
+import { CONFIRM_PHRASE } from "@/lib/clinical/sign-off";
 import { isValidCron } from "@/lib/cron";
-import { parseTestNumbers } from "@/lib/recall/engine";
 import { ALLOWED_VIEWS, CLINICAL_KINDS, ELIGIBLE_FLAG_VIEWS } from "@/lib/recall/types";
 import type { ScenarioKey } from "@/lib/parallel-run/diff";
 import { COMPARABLE, SCENARIO_KEYS } from "@/lib/parallel-run/diff";
+import { clinicalMessagingEnabled, settingValue } from "@/lib/recall/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { AdminClient } from "@/lib/supabase/admin";
-import { toE164 } from "@/lib/whatsapp/phone";
 
 export type ActionResult<T = undefined> =
   { ok: true; message?: string; data: T } | { ok: false; error: string };
@@ -22,44 +21,6 @@ const uuid = z.string().uuid();
 
 function refresh() {
   revalidatePath("/recall");
-}
-
-function signer(member: CurrentMember): string {
-  const p = member.profile as {
-    first_name?: string;
-    last_name?: string;
-    email?: string | null;
-  } | null;
-  return `${p?.first_name ?? ""} ${p?.last_name ?? ""}`.trim() || p?.email || member.userId;
-}
-
-/** Approves a clinical setting value (sign-off trail: who, when). Caller has checked clinical.settings.manage. */
-async function approveSetting(
-  admin: AdminClient,
-  member: CurrentMember,
-  key: string,
-  value: string,
-) {
-  const { error } = await admin
-    .from("clinical_settings")
-    .update({
-      approved_value: value,
-      sign_off_status: "approved",
-      signed_by: signer(member),
-      signed_at: new Date().toISOString().slice(0, 10),
-    })
-    .eq("org_id", member.orgId)
-    .eq("key", key);
-  if (error) throw new Error(`Could not update ${key}`);
-}
-
-export async function settingValue(
-  admin: AdminClient,
-  orgId: string,
-  key: string,
-): Promise<string | null> {
-  const { data } = await admin.rpc("clinical_setting", { p_org: orgId, p_key: key });
-  return (data as string | null) ?? null;
 }
 
 // ---------------------------------------------------------------------------
@@ -72,6 +33,8 @@ const programmeSchema = z.object({
   max_per_run: z.number().int().min(1).max(1000),
   send_mode_override: z.enum(["test", "live"]).nullable(),
   test_sample_size: z.number().int().min(0).max(50).optional(),
+  /** Required (CONFIRM_PHRASE) when switching a programme to Live, like the clinical guarded keys. */
+  confirm: z.string().optional(),
 });
 
 export async function saveProgramme(
@@ -105,11 +68,9 @@ export async function saveProgramme(
         ok: false,
         error: "Only someone who can sign off clinical settings can switch a programme to Live.",
       };
-    if (
-      CLINICAL_KINDS.has(p.kind) &&
-      (await settingValue(admin, member.orgId, "clinical_messaging_enabled"))?.toLowerCase() !==
-        "true"
-    ) {
+    if (d.confirm !== CONFIRM_PHRASE)
+      return { ok: false, error: `Type "${CONFIRM_PHRASE}" to switch this programme to Live.` };
+    if (CLINICAL_KINDS.has(p.kind) && !(await clinicalMessagingEnabled(admin, member.orgId))) {
       return {
         ok: false,
         error: "Clinical messaging is not enabled yet. It needs a clinical sign-off first.",
@@ -185,18 +146,16 @@ export async function saveTemplateMap(
       .maybeSingle();
     if (!t) return { ok: false, error: "Template not found" };
   }
-  const { error } = await admin
-    .from("recall_programme_templates")
-    .upsert(
-      {
-        org_id: member.orgId,
-        programme_id: programmeId,
-        segment_key: parsed.data.segment_key,
-        wa_template_id: parsed.data.wa_template_id,
-        active: parsed.data.active,
-      },
-      { onConflict: "programme_id,segment_key" },
-    );
+  const { error } = await admin.from("recall_programme_templates").upsert(
+    {
+      org_id: member.orgId,
+      programme_id: programmeId,
+      segment_key: parsed.data.segment_key,
+      wa_template_id: parsed.data.wa_template_id,
+      active: parsed.data.active,
+    },
+    { onConflict: "programme_id,segment_key" },
+  );
   if (error) return { ok: false, error: "Could not save the template." };
   await recordAudit(admin, {
     orgId: member.orgId,
@@ -227,9 +186,7 @@ export async function previewProgramme(id: string): Promise<ActionResult<Preview
   type Loose = { select(c: string): { eq(c: string, v: unknown): Loose2 } };
   type Loose2 = {
     eq(c: string, v: unknown): Loose2;
-    limit(
-      n: number,
-    ): PromiseLike<{
+    limit(n: number): PromiseLike<{
       data: Array<{ segment_key: string | null }> | null;
       error: { message: string } | null;
     }>;
@@ -263,63 +220,6 @@ export async function previewProgramme(id: string): Promise<ActionResult<Preview
 }
 
 // ---------------------------------------------------------------------------
-// Workspace sending settings (clinical sign-off)
-// ---------------------------------------------------------------------------
-
-const sendingSchema = z.object({
-  mode: z.enum(["test", "live"]),
-  test_numbers: z.string().max(2000),
-});
-
-export async function saveSendingSettings(
-  input: z.input<typeof sendingSchema>,
-): Promise<ActionResult> {
-  const member = await requirePerm("clinical.settings.manage");
-  const parsed = sendingSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Invalid input" };
-  const admin = createAdminClient();
-  // Accept any common format, store E.164.
-  const numbers = new Set<string>();
-  for (const part of parsed.data.test_numbers.split(/[\n,;]+/)) {
-    const t = part.trim();
-    if (!t) continue;
-    const e164 = toE164(t);
-    if (!e164) return { ok: false, error: `“${t}” is not a valid phone number.` };
-    numbers.add(e164);
-  }
-  try {
-    await approveSetting(
-      admin,
-      member,
-      "test_recipient_numbers",
-      parseTestNumbers([...numbers].join(",")).join(", "),
-    );
-    await approveSetting(admin, member, "recall_send_mode", parsed.data.mode);
-  } catch {
-    return {
-      ok: false,
-      error: "Could not save the sending settings (is the workspace set up for recall?).",
-    };
-  }
-  await recordAudit(admin, {
-    orgId: member.orgId,
-    userId: member.userId,
-    action: "recall.sending_settings_changed",
-    entity: "clinical_settings",
-    diff: { mode: parsed.data.mode, test_recipients: numbers.size },
-  });
-  refresh();
-  return {
-    ok: true,
-    message:
-      parsed.data.mode === "live"
-        ? "Workspace default is now Live. Each programme still needs its own checks to pass."
-        : "Workspace default is Test.",
-    data: undefined,
-  };
-}
-
-// ---------------------------------------------------------------------------
 // Call list
 // ---------------------------------------------------------------------------
 
@@ -349,6 +249,14 @@ export async function updateFollowUp(input: z.input<typeof followUpSchema>): Pro
     .eq("id", parsed.data.id)
     .eq("org_id", member.orgId);
   if (error) return { ok: false, error: "Could not update the entry." };
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "recall.followup_updated",
+    entity: "recall_send",
+    entityId: parsed.data.id,
+    diff: { follow_up_status: parsed.data.follow_up_status },
+  });
   revalidatePath("/recall/calls");
   return { ok: true, message: "Updated.", data: undefined };
 }
@@ -431,6 +339,17 @@ export async function explainDiff(input: z.input<typeof reasonSchema>): Promise<
     .eq("scenario_key", parsed.data.scenario_key)
     .eq("run_date", parsed.data.run_date);
   if (error) return { ok: false, error: "Could not save." };
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "parallel_run.diff_explained",
+    entity: "parallel_run_diff",
+    diff: {
+      scenario: parsed.data.scenario_key,
+      run_date: parsed.data.run_date,
+      explained: parsed.data.explained,
+    },
+  });
   revalidatePath("/recall/parallel-run");
   return { ok: true, message: "Saved.", data: undefined };
 }

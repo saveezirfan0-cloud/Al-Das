@@ -2,7 +2,7 @@
 
 ## Scope delivered
 
-Phases 4–7 (templates UI, enquiries, appointments/Unite, portal) are **not in this repo yet**. Phase 8 was built so that everything that can work today does, and everything that depends on a later phase goes through a small port or a minimal table that the later phase extends. Nothing here calls Unite.
+Phase 8 was first built on a branch cut before Phase 6, then **merged onto `main` after Phase 6 (appointments, Unite sync, clinical rules engine), Finance and Phase 11 hardening landed**. It builds on Phase 6's tables and does not recreate them. Phases 4, 5 and 7 (templates UI, enquiries/tasks, campaigns) and 9 (portal) are still not in the repo, so the enquiry / task / portal nodes go through a small port. Nothing here calls Unite.
 
 ### Flow engine (`lib/flow-engine/`)
 
@@ -39,7 +39,7 @@ List (trigger, number, ✅ completed / ⚠️ failed / ⏳ running+waiting, stat
 * **Test/Live.** Default is **Test**: effective mode = programme override ?? `clinical_settings.recall_send_mode` (signed off) ?? `test`. In Test mode nothing reaches a patient: messages go to internal **test contacts** (`is_test_record`) built from `test_recipient_numbers`, and only a **sample** (default 5 per run, `config.test_sample_size`) is actually delivered; the rest are recorded with status `eligible` ("counted, not delivered") so the parallel-run comparison still sees them. No test numbers signed off ⇒ the run is blocked.
 * **Live** needs an explicit `live`, and clinical programmes (chronic, screening, post-visit, no-show) additionally need `clinical_messaging_enabled = true`. Going Live in the UI needs `clinical.settings.manage`.
 * **Fail closed.** No template mapped, template not linked, or not `APPROVED` ⇒ `skipped_no_template` (no default template, by design: OQ-24). `stop_marketing`, missing marketing opt-in, missing clinical consent (Live) ⇒ `skipped_opted_out`. Unsigned thresholds ⇒ the SQL views return nobody (`chronic_recall_min_days` is OQ-01 and is **not signed off**, so the chronic programme currently selects nobody).
-* **Programmes** (seeded as drafts by `seed_phase8_defaults`): `chronic_90d` (12:15, max 100, oldest visit first), `birthday` (09:00, six gender/age bands, 29 Feb → 1 Mar, yearly cycle; Make ran at 12:00 — OQ-55), **`appointment_reminder_48h`** (12:00 and 18:00 like Make; the cycle key is the appointment id so the second run is a no-op; `config.lead_hours` = 48; exclusion list from `reminder_exclusions`), and the screening/dormant programmes as inactive rows with no view yet.
+* **Programmes** (seeded as drafts by `seed_phase8_defaults`): `chronic_90d` (12:15, max 100, oldest visit first), `birthday` (09:00, six gender/age bands, 29 Feb → 1 Mar, yearly cycle; Make ran at 12:00 — OQ-55), and the screening/dormant programmes as inactive rows with no view yet.
 * **Attribution** (`lib/recall/replies.ts`, `attribution.ts`, `listeners.ts`): an inbound message credits **only the newest open send** within `recall_reply_attribution_days` (default 14; Make marked every row for the phone). Quick-reply buttons map to outcomes (`Book now → wants_booking`, `Claim offer → offer_redeemed`, `Not interested → declined`; per-programme overrides in `config.button_outcomes`). `appointment.created` credits a booking within `recall_booking_attribution_days` (default 30) and sets `follow_up_status = booked`.
 * **Delivery status** is mirrored onto `recall_sends` by the `recall_run` task (forward-only).
 * **UI.** Programme list + right-hand drawer (status, Test/Live override, schedule, max per run, test sample, preview of who would be picked up as *counts only*, template per group, recent weeks), a "where messages go" panel (test numbers + workspace default, signed off), the **call list** (`v_recall_call_list`, outcome picker, booked ⇒ booking date), and the parallel-run report.
@@ -52,7 +52,7 @@ List (trigger, number, ✅ completed / ⚠️ failed / ⏳ running+waiting, stat
 | 6 Chronic update (5916036) | `lib/recall/attribution.ts` + starter flow "Recall: patient taps Book now" | Built |
 | 4 Birthday (4049277) | `birthday` programme + `birthday_sent_<year>` tag in Live | Built; Make's "one message ever" becomes once per year (OQ-17/18 to confirm) |
 | Birthday Offer Update webhook (inactive) | Button outcome `offer_redeemed` + starter flow "Birthday offer" | Built |
-| 2 + 3 Appointment reminders (3613818, 3913219) | `appointment_reminder_48h` programme over `v_appointment_reminder_due` | Built; **produces rows only once Phase 6 fills `appointments`** and emits `appointment.created` |
+| 2 + 3 Appointment reminders (3613818, 3913219) | **Phase 6** (`lib/appointments/reminders.ts`, `appointment_reminders` + `scheduled_jobs`) | Not part of recall. Phase 8 only compares it in the parallel run (reminders *scheduled* for each day vs Make's) |
 | Post-appointment follow-up, NoShow recovery (drafts) | Starter flows | Built as starters (need a template chosen) |
 | Screening / dormant scenarios (inactive) | Rows in `recall_programmes` | Seeded, inactive, no eligibility view yet |
 | 1 Token (3576415) | `lib/unite/auth.ts` | **Deferred to Phase 6** (Unite stays untouched) |
@@ -62,24 +62,24 @@ List (trigger, number, ✅ completed / ⚠️ failed / ⏳ running+waiting, stat
 
 ### Parallel Run (`/recall/parallel-run`)
 
-* Native side: per scenario and clinic-local day, the **salted SHA-256** of the Unite PIN (appointment id for reminders) of everything the native engine did (queued, counted-in-Test, sent…; replies for Chronic update).
+* Native side: per scenario and clinic-local day, the **salted SHA-256** of the Unite PIN (appointment id for reminders) of everything the native engine did (queued, counted-in-Test, sent…; for reminders, what Phase 6 scheduled for that day via `appointment_reminders.due_at`, so patients are never messaged twice for the comparison; replies for Chronic update).
 * Make side: `pnpm parallel:ingest --org <slug> --scenario birthday --date YYYY-MM-DD --file ids.txt` (one PIN per line; hashed immediately, the file never leaves your machine — don't commit it). Needs Airtable/Make log IDs exported separately; the tool does not call Make or Airtable.
 * The `parallel_run` task (00:30 Asia/Dubai) stores `parallel_run_diffs` (counts, only-in-Make, only-in-native hashes). Every day with a difference needs a written reason and **Mark explained**.
 * Checklist per scenario: ☐ native built ☐ 7-day parallel ☐ differences explained ☐ **Make off** (the last one is only enabled when the first three hold; Token / MRD sync / Airtable automations are not comparable yet and are marked as blocked).
 
 ## Data model (migrations `20261008001000`–`…001600`)
 
-`flows`, `flow_versions`, `flow_runs` (one live top-level run per conversation: partial unique index), `flow_run_steps`, `flow_variables`, `flow_locks`, `v_flow_run_counts`; real FKs for `conversations.flow_run_id`, `messages.flow_run_id`, `segments.drip_flow_id`. **Promoted from `supabase/drafts/`** (copied, drafts left in place): 0100 clinical reference, 0101 `clinical_settings`, 0102 visits/prescriptions, 0104 recall (+ the `appointment_reminder` kind), 0105 reminder extensions. Plus minimal `locations`, `specialists`, `appointments`, `appointment_reminders` and two `contacts` columns (`is_test_record`, `clinical_messaging_consent`). **Phase 6 must `ALTER` those minimal tables, not recreate them**, and should skip drafts 0100–0102, 0104, 0105 when it copies the rest (0103 is still a draft). Also `recall_programmes.last_run_at`, `flows.last_triggered_at`, `v_appointment_reminder_due`, `seed_phase8_defaults(org)`, and the parallel-run tables (IDs/hashes only).
+`flows`, `flow_versions`, `flow_runs` (one live top-level run per conversation: partial unique index), `flow_run_steps`, `flow_variables`, `flow_locks`, `v_flow_run_counts`; real FKs for `conversations.flow_run_id`, `messages.flow_run_id`, `segments.drip_flow_id`. **On top of Phase 6:** `20261009001100_recall_reference.sql` adds only what Phase 6 does not have and the recall views read: `ref_condition_groups`, `ref_diagnoses`, `contact_chronic_conditions`, `clinic_calendar` (+ `workdays_between`) and `seed_condition_groups`. `20261009001200_recall.sql` is draft `0104` (programmes, template map, sends, views). `…001300_recall_phase8.sql` adds `recall_programmes.last_run_at`, `flows.last_triggered_at`, `recall_clinical_messaging_enabled()` (a service-role wrapper over Phase 6's `app.clinical_messaging_enabled`), `seed_phase8_defaults(org)`, the parallel-run tables (hashes only) and the cron entries. Phase 6's `clinical_settings`, `visits`, `appointments`, `appointment_reminders`, `reminder_exclusions` and the `contacts.is_test_record` / `clinical_messaging_consent` columns are used as they are.
 
-New permission keys: `clinical.settings.manage` (sign off clinical settings, switch programmes Live) and `portal.recall_sends.write` (call-list edits). Admin has `*`; Manager has `portal.*`. Recall pages use existing keys (`campaigns.view` / `campaigns.create` / `templates.manage` / `reports.view` / `settings.manage`).
+New permission key: `portal.recall_sends.write` (call-list edits). `clinical.settings.manage` (Phase 6) also gates switching a programme Live. Admin has `*`; Manager has `portal.*`. Recall pages use existing keys (`campaigns.view` / `campaigns.create` / `templates.manage` / `reports.view` / `settings.manage`).
 
 ## Operating notes
 
 * **Cron** (migration `…001600`): `pulse:recall_run` and `pulse:flow_recurring` every minute, `pulse:parallel_run` daily. Both per-minute tasks claim their row atomically (`lib/jobs/claim.ts`), so overlapping pings never double-fire.
-* **First visit** to `/recall` (or the parallel-run page) seeds the workspace (`seed_phase8_defaults`): condition groups, clinical settings (all *awaiting* sign-off), programmes, reminder exclusions, status map, parallel-run scenarios.
-* **Going Live checklist** (per programme): link approved templates for each group → sign off `chronic_recall_min_days` (or the relevant setting) → sign off `clinical_messaging_enabled` for clinical programmes → run a week in Test and review the parallel-run report → set the programme to Live (needs `clinical.settings.manage`).
+* **First visit** to `/recall` (or the parallel-run page) seeds the workspace (`seed_phase8_defaults`): condition groups, the clinical settings rows (all *awaiting* sign-off; Phase 6's page seeds the same rows), programmes and the parallel-run scenarios.
+* **Going Live checklist** (per programme): link approved templates for each group → sign off `test_recipient_numbers`, `recall_send_mode` and the thresholds in **Clinical settings** (`/portal/clinical-settings`; the Recall page only shows the current values and links there) → sign off `clinical_messaging_enabled` for clinical programmes → run a week in Test and review the parallel-run report → set the programme to Live (needs `clinical.settings.manage` and typing `I CONFIRM`, like Phase 6's guarded settings).
 * **Event listeners** run in-process. `lib/flow-engine/listeners.ts` and `lib/recall/listeners.ts` register on import; the jobs route and the inbox server actions import them. Any other code path that emits events must import the listener module too.
-* **Reminder exclusions** seeded from the Make filters include clinician names (staff, not patients). Review them (OQ-21).
+* **Test numbers** are stored by the clinical sign-off as a JSON array of E.164 strings; the engine also accepts comma/newline lists.
 
 ## Testing
 
@@ -91,7 +91,7 @@ New permission keys: `clinical.settings.manage` (sign off clinical settings, swi
 ## Not done / known gaps
 
 * **Live path against real Meta** is untested (no credentials). Test mode and everything up to `queueOutbound` is covered.
-* **Unite** (Token, MRD sync, appointment/visit sync) — Phase 6. Until then the reminder and chronic programmes have no real data.
+* **Unite** (Token, MRD sync, appointment/visit sync) — Phase 6, now merged on `main`; the parallel run for Token/MRD sync still waits on their Make-side exports. Phase 6 has since landed; chronic recall still needs `visits` and `contact_chronic_conditions` to be filled by the Unite sync and the threshold signed off.
 * **Create enquiry / Add task / Portal record / Book appointment** nodes fail closed ("not available yet") until Phases 5–7 call `registerCrmAdapter` (`lib/flow-engine/crm-registry.ts`).
 * **Pipeline** on the flows list is "—" until Phase 5 (`flows.pipeline_id` exists without an FK).
 * **Outbound webhooks** (`webhook_subscriptions`) were not part of this phase's prompt and are not built.

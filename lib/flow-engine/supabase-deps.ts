@@ -24,6 +24,7 @@ import {
   type WaitingFor,
 } from "@/lib/flow-engine/types";
 import { ensureConversation } from "@/lib/inbox/conversations";
+import { resolveChannelId } from "@/lib/inbox/default-channel";
 import { addNote, queueOutbound, type SendSpec } from "@/lib/inbox/send";
 import { enqueue, scheduleJob } from "@/lib/jobs/enqueue";
 import { createNotification } from "@/lib/notifications";
@@ -346,11 +347,12 @@ export function supabaseActions(admin: AdminClient): FlowActions {
           .select("channel_id")
           .eq("id", run.flow_id)
           .maybeSingle();
-        const conv = await ensureConversation(admin, {
-          orgId: run.org_id,
-          contactId: run.contact_id,
-          channelId: flow?.channel_id ?? null,
-        });
+        const conv = await ensureConversation(
+          admin,
+          run.org_id,
+          run.contact_id,
+          await resolveChannelId(admin, run.org_id, flow?.channel_id),
+        );
         conversationId = conv.id;
         run.conversation_id = conv.id;
         await admin.from("flow_runs").update({ conversation_id: conv.id }).eq("id", run.id);

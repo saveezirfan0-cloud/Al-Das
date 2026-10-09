@@ -1,6 +1,7 @@
 import "server-only";
 
 import { ensureConversation } from "@/lib/inbox/conversations";
+import { resolveChannelId } from "@/lib/inbox/default-channel";
 import { queueOutbound } from "@/lib/inbox/send";
 import {
   ALLOWED_VIEWS,
@@ -52,6 +53,13 @@ export function supabaseRecallStore(admin: AdminClient): RecallStore {
       const { data, error } = await admin.rpc("clinical_setting", { p_org: orgId, p_key: key });
       if (error) throw new Error(`clinical_setting(${key}): ${error.message}`);
       return (data as string | null) ?? null;
+    },
+    async clinicalMessagingEnabled(orgId) {
+      const { data, error } = await admin.rpc("recall_clinical_messaging_enabled", {
+        p_org: orgId,
+      });
+      if (error) return false; // fail closed
+      return data === true;
     },
     async listEligible(p, limit) {
       const view = p.eligibility_view;
@@ -172,7 +180,12 @@ export function createRecallDeps(admin: AdminClient): RecallDeps {
     store: supabaseRecallStore(admin),
     sender: {
       async sendTemplate({ orgId, contactId, waTemplateId, values }) {
-        const conv = await ensureConversation(admin, { orgId, contactId });
+        const conv = await ensureConversation(
+          admin,
+          orgId,
+          contactId,
+          await resolveChannelId(admin, orgId),
+        );
         const { data: tpl } = await admin
           .from("wa_templates")
           .select("components")

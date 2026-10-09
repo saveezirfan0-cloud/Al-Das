@@ -9,6 +9,7 @@ import { serverEnv } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/types";
 import { clientForChannel, clientForToken, storeChannelToken } from "@/lib/whatsapp/channel";
+import { redactText } from "@/lib/redact";
 import { WhatsAppApiError } from "@/lib/whatsapp/errors";
 import { refreshChannelFromMeta, syncTemplatesForChannel } from "@/lib/whatsapp/sync";
 import { BUSINESS_VERTICALS } from "@/lib/whatsapp/types";
@@ -19,7 +20,7 @@ function fail(err: unknown, fallback: string): ActionResult {
   if (err instanceof WhatsAppApiError) return { ok: false, error: `Meta: ${err.mapped.message}` };
   if (err instanceof Error && /ENCRYPTION_KEY|access token/i.test(err.message))
     return { ok: false, error: err.message };
-  console.error("[channels]", err instanceof Error ? err.message : err);
+  console.error("[channels]", redactText(err));
   return { ok: false, error: fallback };
 }
 
@@ -182,6 +183,13 @@ export async function subscribeChannelApp(channelId: string): Promise<ActionResu
       .from("channels")
       .update({ meta: meta as NonNullable<Json> })
       .eq("id", channel.id);
+    await recordAudit(admin, {
+      orgId: member.orgId,
+      userId: member.userId,
+      action: "channel.app_subscribed",
+      entity: "channel",
+      entityId: channel.id,
+    });
     revalidatePath("/settings/channels");
     return {
       ok: true,

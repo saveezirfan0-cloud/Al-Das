@@ -33,12 +33,26 @@ export function effectiveMode(
   return v === "live" ? "live" : "test"; // anything else, including unsigned / blank, is Test
 }
 
-/** `test_recipient_numbers` is a list setting: comma / newline / semicolon separated E.164 numbers. */
+/**
+ * `test_recipient_numbers` is a list setting. Clinical settings sign-off stores lists as a JSON array of strings;
+ * older / hand-entered values may be comma, semicolon or newline separated. Only valid E.164 numbers are kept.
+ */
 export function parseTestNumbers(raw: string | null): string[] {
   if (!raw) return [];
+  let parts: string[];
+  const trimmed = raw.trim();
+  if (trimmed.startsWith("[")) {
+    try {
+      const parsed: unknown = JSON.parse(trimmed);
+      parts = Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === "string") : [];
+    } catch {
+      return [];
+    }
+  } else parts = trimmed.split(/[\s,;]+/);
   const out = new Set<string>();
-  for (const part of raw.split(/[\s,;]+/)) {
-    if (/^\+[1-9][0-9]{6,14}$/.test(part)) out.add(part);
+  for (const part of parts) {
+    const t = part.trim();
+    if (/^\+[1-9][0-9]{6,14}$/.test(t)) out.add(t);
   }
   return [...out];
 }
@@ -85,8 +99,7 @@ export async function runProgramme(deps: RecallDeps, programmeId: string): Promi
   const summary = empty(mode);
 
   if (mode === "live" && CLINICAL_KINDS.has(p.kind)) {
-    const enabled =
-      (await store.setting(p.org_id, "clinical_messaging_enabled"))?.toLowerCase() === "true";
+    const enabled = await store.clinicalMessagingEnabled(p.org_id);
     if (!enabled) {
       summary.blocked = "clinical_messaging_disabled";
       await store.touchProgramme(p.id, deps.now());

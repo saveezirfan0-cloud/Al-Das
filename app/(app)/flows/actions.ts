@@ -166,6 +166,14 @@ export async function saveFlowDraft(
     .eq("id", id)
     .eq("org_id", member.orgId);
   if (error) return { ok: false, error: "Could not save the flow." };
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "flow.draft_saved",
+    entity: "flow",
+    entityId: id,
+    diff: { nodes: parsed.data.graph.nodes.length, trigger: parsed.data.trigger_type },
+  });
   refresh(id);
   return {
     ok: true,
@@ -197,15 +205,13 @@ export async function publishFlow(id: string): Promise<ActionResult<{ version: n
   )
     return { ok: false, error: "Set a valid schedule for the recurring trigger first." };
   const version = flow.version + 1;
-  const { error: vErr } = await admin
-    .from("flow_versions")
-    .insert({
-      flow_id: flow.id,
-      version,
-      org_id: member.orgId,
-      graph: j(check.graph),
-      published_by: member.userId,
-    });
+  const { error: vErr } = await admin.from("flow_versions").insert({
+    flow_id: flow.id,
+    version,
+    org_id: member.orgId,
+    graph: j(check.graph),
+    published_by: member.userId,
+  });
   if (vErr) return { ok: false, error: "Could not publish (version conflict). Try again." };
   const { error } = await admin
     .from("flows")
@@ -296,6 +302,14 @@ export async function duplicateFlow(id: string): Promise<ActionResult<{ id: stri
     .select("id")
     .single();
   if (error || !data) return { ok: false, error: "Could not duplicate the flow." };
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "flow.duplicated",
+    entity: "flow",
+    entityId: data.id,
+    diff: { from: id },
+  });
   refresh();
   return { ok: true, message: "Duplicated as a draft.", data: { id: data.id } };
 }
@@ -410,6 +424,15 @@ export async function saveVariable(
           ? "A variable with that name already exists."
           : "Could not save the variable.",
     };
+  // The key is logged, never the value (values can hold phone numbers or links).
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: id ? "flow_variable.updated" : "flow_variable.created",
+    entity: "flow_variable",
+    entityId: id,
+    diff: { key: parsed.data.key, enabled: parsed.data.enabled },
+  });
   revalidatePath("/flows/variables");
   return { ok: true, message: "Variable saved.", data: undefined };
 }
@@ -423,6 +446,13 @@ export async function deleteVariable(id: string): Promise<ActionResult> {
     .eq("id", id)
     .eq("org_id", member.orgId);
   if (error) return { ok: false, error: "Could not delete the variable." };
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "flow_variable.deleted",
+    entity: "flow_variable",
+    entityId: id,
+  });
   revalidatePath("/flows/variables");
   return { ok: true, message: "Variable deleted.", data: undefined };
 }

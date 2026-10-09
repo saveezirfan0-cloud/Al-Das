@@ -12,6 +12,7 @@ export type NavIcon =
   | "recall"
   | "portal"
   | "reports"
+  | "finance"
   | "settings";
 
 export type NavItem = {
@@ -19,6 +20,8 @@ export type NavItem = {
   label: string;
   icon: NavIcon;
   permission?: string;
+  /** Visible when the member holds at least one of these. */
+  permissions?: readonly string[];
 };
 
 export const NAV_ITEMS: readonly NavItem[] = [
@@ -39,6 +42,18 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { href: "/recall", label: "Recall", icon: "recall", permission: "campaigns.view" },
   { href: "/portal", label: "Portal", icon: "portal" },
   { href: "/reports", label: "Reports", icon: "reports", permission: "reports.view" },
+  {
+    href: "/finance",
+    label: "Finance",
+    icon: "finance",
+    permissions: [
+      "finance.view",
+      "finance.invoices.view",
+      "finance.claims.view",
+      "finance.exceptions.manage",
+      "finance.capture.manage",
+    ],
+  },
   { href: "/settings", label: "Settings", icon: "settings" },
 ];
 

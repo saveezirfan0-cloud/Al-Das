@@ -1,6 +1,6 @@
 # Draft migrations — core clinical tables (Phase 0)
 
-> **Phase 8 update:** `0100`, `0101`, `0102`, `0104` and `0105` were promoted into `supabase/migrations/` (`20261008001100`–`…001500`, with a minimal appointments/locations/specialists migration in between) because flows and the recall engine need them. Phase 6 must **not** copy those again and must extend the minimal tables with `ALTER`. `0103` is still a draft. See `docs/06_PHASE_8_NOTES.md`.
+> **Status:** `0100`–`0102` and `0105` were superseded by Phase 6 (`20261009000900`–`…000960`). `0104` (recall) shipped in Phase 8 as `20261009001200_recall.sql`, plus `20261009001100_recall_reference.sql` for the condition-group / diagnosis / calendar pieces. `0103` is also covered by Phase 6 (`clinical_followups`, …). These files are kept for reference only. See `docs/06_PHASE_8_NOTES.md`.
 
 These are **drafts**, deliberately kept out of `supabase/migrations/`. They build on the Phase 1 foundation that is already applied (`app.set_updated_at`, `app.is_org_member`, `app.has_perm`, `orgs`, `roles`, `memberships`, `teams`, `profiles`) and reference tables that Phase 2 (`contacts`), Phase 3 (`messages`), Phase 4 (`wa_templates`) and Phase 6 (`locations`, `specialists`, `appointments`, `appointment_reminders`) create. In Phase 6 they are copied into `supabase/migrations/` with timestamp prefixes, applied with `pnpm db:migrate`, and never edited again.
 
