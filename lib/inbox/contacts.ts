@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { AdminClient } from "@/lib/supabase/admin";
+import { splitName } from "@/lib/inbox/contact-name";
 import type { Tables } from "@/lib/supabase/types";
 import type { InboundIdentity } from "@/lib/whatsapp/parse";
 
@@ -126,21 +127,6 @@ export async function matchOrCreateContact(
     throw new Error(`contact update failed: ${error.message}`);
   }
   return { contact: data, created: false, updated: Object.keys(patch).length > 1 };
-}
-
-export function splitName(full: string | null | undefined): { first: string; last: string } {
-  const trimmed = (full ?? "").trim().replace(/\s+/g, " ");
-  if (!trimmed) return { first: "", last: "" };
-  const idx = trimmed.indexOf(" ");
-  if (idx === -1) return { first: trimmed, last: "" };
-  return { first: trimmed.slice(0, idx), last: trimmed.slice(idx + 1) };
-}
-
-export function contactDisplayName(
-  c: Pick<ContactRow, "first_name" | "last_name" | "wa_profile_name" | "phone_e164">,
-): string {
-  const name = `${c.first_name ?? ""} ${c.last_name ?? ""}`.trim();
-  return name || c.wa_profile_name || c.phone_e164 || "Unknown";
 }
 
 /** Rotates a BSUID after a user_id_update webhook. */

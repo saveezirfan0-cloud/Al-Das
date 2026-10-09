@@ -1,5 +1,5 @@
 import { emit } from "@/lib/events/emit";
-import { contactDisplayName } from "@/lib/inbox/contacts";
+import { contactDisplayName } from "@/lib/inbox/contact-name";
 import { readInboxSettings } from "@/lib/inbox/settings";
 import { enqueue } from "@/lib/jobs/enqueue";
 import { registerTask } from "@/lib/jobs/tasks";

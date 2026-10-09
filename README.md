@@ -2,7 +2,7 @@
 
 One platform replacing Sanoflow (WhatsApp inbox, templates, campaigns, enquiries, appointments, bots) and the Airtable + Make.com back office. Next.js 15 + Supabase + Vercel. See `CLAUDE.md` for the rules, `docs/02_CLAUDE_CODE_BUILD_PLAN.md` for the plan.
 
-**Status:** Phase 1 (foundation) is built: auth, tenancy with RLS, roles/permissions, teams, invites, app shell, Settings (Account, Users, Roles, Teams, System health) and the jobs framework (pgmq + scheduled_jobs + pg_cron). Module pages are placeholders until their phase. Details: `docs/03_PHASE_1_NOTES.md`.
+**Status:** Phase 1 (foundation) and Phase 3 (WhatsApp + Inbox) are built: auth, tenancy with RLS, roles/permissions, teams, invites, app shell, Settings (Account, Users, Roles, Teams, Channels, Inbox, System health), the jobs framework (pgmq + scheduled_jobs + pg_cron), the WhatsApp Cloud API client + webhook ingress + queue handlers, and the shared inbox. Phase 3 also ships the contacts core that Phase 2 extends. Other module pages are placeholders until their phase. Details: `docs/03_PHASE_1_NOTES.md`, `docs/04_PHASE_3_NOTES.md`.
 
 ## Run it locally
 
@@ -21,6 +21,8 @@ Queue handlers are driven by pg_cron on Supabase. Locally, trigger them by hand:
 ```bash
 pnpm jobs:run scheduler           # moves due scheduled_jobs into pgmq
 pnpm jobs:run notifications       # drains one queue
+pnpm wa:simulate message-text     # post a signed sample Meta webhook (see scripts/wa-fixtures)
+pnpm jobs:run meta_events         # process it into the inbox
 ```
 
 or from **Settings → System health** (Drain / Run scheduler buttons).

@@ -245,14 +245,22 @@ returns trigger
 language plpgsql
 set search_path = ''
 as $$
+declare
+  v_reject boolean := false;
 begin
   if new.status is distinct from old.status then
     if old.status = 'failed' and new.status <> 'failed' then
-      new.status := old.status;
+      v_reject := true;
     elsif app.message_status_rank(new.status) < app.message_status_rank(old.status) then
-      new.status := old.status;
+      v_reject := true;
     elsif new.status = 'failed' and old.status = 'read' then
+      v_reject := true;
+    end if;
+    if v_reject then
+      -- Keep the row as it was: a rejected transition must not leave its error behind.
       new.status := old.status;
+      new.error_code := old.error_code;
+      new.error_message := old.error_message;
     end if;
   end if;
   return new;

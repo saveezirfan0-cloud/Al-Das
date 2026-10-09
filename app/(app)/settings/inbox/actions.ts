@@ -171,14 +171,12 @@ export async function saveLabel(
         .update({ name: parsed.data.name, color: parsed.data.color })
         .eq("id", id)
         .eq("org_id", member.orgId)
-    : await admin
-        .from("tags")
-        .insert({
-          org_id: member.orgId,
-          scope: "conversation",
-          name: parsed.data.name,
-          color: parsed.data.color,
-        });
+    : await admin.from("tags").insert({
+        org_id: member.orgId,
+        scope: "conversation",
+        name: parsed.data.name,
+        color: parsed.data.color,
+      });
   if (error)
     return {
       ok: false,

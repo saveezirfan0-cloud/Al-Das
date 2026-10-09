@@ -213,6 +213,8 @@ describe.skipIf(!TEST_DATABASE_URL)("jobs framework (db)", () => {
         "campaign_fanout",
         "flow_steps",
         "housekeeping",
+        "housekeeping_phase3",
+        "inbox_housekeeping",
         "kb_ingest",
         "media_fetch",
         "meta_events",
