@@ -5073,6 +5073,15 @@ export type Database = {
           updated_at: string;
           variable_map: NonNullable<Json>;
           waba_id: string;
+          gallery_key: string | null;
+          header_sample_path: string | null;
+          last_edited_at: string | null;
+          last_error: string | null;
+          needs_review: boolean;
+          reviewed_at: string | null;
+          reviewed_by: string | null;
+          source: string;
+          submitted_at: string | null;
         };
         ComputedFields: never;
         Insert: {
@@ -5098,6 +5107,15 @@ export type Database = {
           updated_at?: string;
           variable_map?: NonNullable<Json>;
           waba_id: string;
+          gallery_key?: string | null;
+          header_sample_path?: string | null;
+          last_edited_at?: string | null;
+          last_error?: string | null;
+          needs_review?: boolean;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          source?: string;
+          submitted_at?: string | null;
         };
         Update: {
           archived_at?: string | null;
@@ -5122,6 +5140,15 @@ export type Database = {
           updated_at?: string;
           variable_map?: NonNullable<Json>;
           waba_id?: string;
+          gallery_key?: string | null;
+          header_sample_path?: string | null;
+          last_edited_at?: string | null;
+          last_error?: string | null;
+          needs_review?: boolean;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          source?: string;
+          submitted_at?: string | null;
         };
         Relationships: [
           {

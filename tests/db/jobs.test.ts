@@ -229,6 +229,7 @@ describe.skipIf(!TEST_DATABASE_URL)("jobs framework (db)", () => {
         "outbound",
         "outbound_priority",
         "scheduler",
+        "templates_sync",
         "unite_enqueue",
         "unite_housekeeping",
         "unite_nightly",

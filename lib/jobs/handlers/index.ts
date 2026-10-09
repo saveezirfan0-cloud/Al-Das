@@ -11,6 +11,7 @@ import "@/lib/jobs/handlers/inbox-housekeeping";
 import "@/lib/jobs/handlers/appointments";
 import "@/lib/jobs/handlers/unite-sync";
 import "@/lib/jobs/handlers/clinical";
+import "@/lib/jobs/handlers/templates-sync";
 
 import { registerKind } from "@/lib/jobs/scheduler";
 
