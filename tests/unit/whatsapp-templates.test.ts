@@ -169,3 +169,140 @@ describe("buildTemplateSend", () => {
     expect(isTemplateSendable(null)).toBe(false);
   });
 });
+
+describe("carousel and authentication templates", () => {
+  const carousel: MetaTemplateComponent[] = [
+    { type: "BODY", text: "Our services this month" },
+    {
+      type: "CAROUSEL",
+      cards: [
+        {
+          components: [
+            { type: "HEADER", format: "IMAGE", example: { header_handle: ["4::a"] } },
+            {
+              type: "BODY",
+              text: "Check-up for {{1}} visitors",
+              example: { body_text: [["new"]] },
+            },
+            {
+              type: "BUTTONS",
+              buttons: [
+                {
+                  type: "URL",
+                  text: "Details",
+                  url: "https://example.invalid/s/{{1}}",
+                  example: ["https://example.invalid/s/a"],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          components: [
+            { type: "HEADER", format: "IMAGE", example: { header_handle: ["4::b"] } },
+            { type: "BODY", text: "Second card" },
+            {
+              type: "BUTTONS",
+              buttons: [
+                {
+                  type: "URL",
+                  text: "Details",
+                  url: "https://example.invalid/s/{{1}}",
+                  example: ["https://example.invalid/s/b"],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  ];
+
+  it("lists card variables with card-scoped keys", () => {
+    const keys = templateVariables(carousel).map((v) => v.key);
+    expect(keys).toEqual([
+      "card.0.header.media",
+      "card.0.body.1",
+      "card.0.button.0",
+      "card.1.header.media",
+      "card.1.button.0",
+    ]);
+    expect(templateVariables(carousel).every((v) => v.component === "card")).toBe(true);
+  });
+
+  it("builds the carousel send object and previews each card", () => {
+    const values = {
+      "card.0.header.media": "MEDIA_A",
+      "card.0.body.1": "all",
+      "card.0.button.0": "check-up",
+      "card.1.header.media": "https://example.invalid/b.jpg",
+      "card.1.button.0": "scan",
+    };
+    const send = buildTemplateSend({ name: "svc", language: "en", components: carousel }, values);
+    expect(send.components).toEqual([
+      {
+        type: "carousel",
+        cards: [
+          {
+            card_index: 0,
+            components: [
+              { type: "header", parameters: [{ type: "image", image: { id: "MEDIA_A" } }] },
+              { type: "body", parameters: [{ type: "text", text: "all" }] },
+              {
+                type: "button",
+                sub_type: "url",
+                index: 0,
+                parameters: [{ type: "text", text: "check-up" }],
+              },
+            ],
+          },
+          {
+            card_index: 1,
+            components: [
+              {
+                type: "header",
+                parameters: [{ type: "image", image: { link: "https://example.invalid/b.jpg" } }],
+              },
+              {
+                type: "button",
+                sub_type: "url",
+                index: 0,
+                parameters: [{ type: "text", text: "scan" }],
+              },
+            ],
+          },
+        ],
+      },
+    ]);
+    expect(() =>
+      buildTemplateSend({ name: "svc", language: "en", components: carousel }, {}),
+    ).toThrow(/card\.0\.header\.media/);
+    const preview = renderTemplatePreview(carousel, values);
+    expect(preview.body).toBe("Our services this month");
+    expect(preview.cards).toHaveLength(2);
+    expect(preview.cards[0].body).toBe("Check-up for all visitors");
+    expect(preview.cards[0].headerMedia).toBe("image");
+    expect(preview.cards[1].buttons).toEqual([{ type: "URL", text: "Details" }]);
+  });
+
+  it("sends one-time-code templates as a body parameter plus a url button", () => {
+    const auth = [
+      { type: "BODY", add_security_recommendation: true },
+      { type: "FOOTER", code_expiration_minutes: 10 },
+      { type: "BUTTONS", buttons: [{ type: "OTP", otp_type: "COPY_CODE", text: "Copy code" }] },
+    ] as MetaTemplateComponent[];
+    expect(templateVariables(auth).map((v) => v.key)).toEqual(["auth.code"]);
+    const send = buildTemplateSend(
+      { name: "otp", language: "en", components: auth },
+      { "auth.code": "482913" },
+    );
+    expect(send.components).toEqual([
+      { type: "body", parameters: [{ type: "text", text: "482913" }] },
+      { type: "button", sub_type: "url", index: 0, parameters: [{ type: "text", text: "482913" }] },
+    ]);
+    const p = renderTemplatePreview(auth, {});
+    expect(p.otp).toBe(true);
+    expect(p.body).toBe("*123456* is your verification code.");
+    expect(p.footer).toBeNull();
+  });
+});

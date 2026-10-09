@@ -12,13 +12,15 @@ import type {
 export type TemplateVariable = {
   /** 'header.1', 'body.2', 'body.name', 'button.0' … */
   key: string;
-  component: "header" | "body" | "button";
+  component: "header" | "body" | "button" | "card";
   /** 1-based index for positional params or the param name for named params. */
   name: string;
   index: number | null;
   example: string | null;
   /** For header media and URL buttons. */
-  kind: "text" | "image" | "video" | "document" | "url_suffix" | "copy_code";
+  kind: "text" | "image" | "video" | "document" | "url_suffix" | "copy_code" | "otp";
+  /** Carousel card the variable belongs to (component === "card"). */
+  card?: number;
 };
 
 const POSITIONAL = /\{\{\s*(\d+)\s*\}\}/g;
@@ -76,7 +78,7 @@ export function templateVariables(components: MetaTemplateComponent[]): Template
       const b = c as Extract<MetaTemplateComponent, { type: "BODY" }>;
       const exPos = b.example?.body_text?.[0] ?? [];
       const exNamed = b.example?.body_text_named_params ?? [];
-      findVars(b.text).forEach((v, i) => {
+      findVars(b.text ?? "").forEach((v, i) => {
         vars.push({
           key: `body.${v.name}`,
           component: "body",
@@ -108,6 +110,27 @@ export function templateVariables(components: MetaTemplateComponent[]): Template
             index: idx,
             example: btn.example ?? null,
             kind: "copy_code",
+          });
+        } else if ((btn as { type: string }).type === "OTP") {
+          vars.push({
+            key: "auth.code",
+            component: "button",
+            name: "code",
+            index: idx,
+            example: "123456",
+            kind: "otp",
+          });
+        }
+      });
+    } else if (c.type === "CAROUSEL") {
+      const cards = (c as Extract<MetaTemplateComponent, { type: "CAROUSEL" }>).cards ?? [];
+      cards.forEach((card, ci) => {
+        for (const v of templateVariables(card.components)) {
+          vars.push({
+            ...v,
+            key: `card.${ci}.${v.key}`,
+            component: "card",
+            card: ci,
           });
         }
       });
@@ -143,8 +166,22 @@ export type TemplatePreview = {
   body: string;
   footer: string | null;
   buttons: Array<{ type: string; text: string }>;
+  /** Carousel cards (each rendered like a small template). */
+  cards: TemplatePreview[];
+  /** Authentication template: the body is Meta's fixed "code" message. */
+  otp: boolean;
   missing: string[]; // variable keys without a value
 };
+
+type MetaCarousel = Extract<MetaTemplateComponent, { type: "CAROUSEL" }>;
+
+function cardValues(values: TemplateValues, index: number): TemplateValues {
+  const prefix = `card.${index}.`;
+  const out: TemplateValues = {};
+  for (const [k, v] of Object.entries(values))
+    if (k.startsWith(prefix)) out[k.slice(prefix.length)] = v;
+  return out;
+}
 
 /** Renders the template as the patient will see it, with examples for unfilled variables. */
 export function renderTemplatePreview(
@@ -158,6 +195,8 @@ export function renderTemplatePreview(
     body: "",
     footer: null,
     buttons: [],
+    cards: [],
+    otp: false,
     missing: [],
   };
   for (const c of components) {
@@ -167,26 +206,113 @@ export function renderTemplatePreview(
         preview.headerText = substitute(h.text ?? "", values, "header", true, vars);
       else preview.headerMedia = h.format.toLowerCase() as TemplatePreview["headerMedia"];
     } else if (c.type === "BODY") {
-      preview.body = substitute(
-        (c as Extract<MetaTemplateComponent, { type: "BODY" }>).text,
-        values,
-        "body",
-        true,
-        vars,
-      );
+      const b = c as Extract<MetaTemplateComponent, { type: "BODY" }>;
+      if (typeof b.text === "string") preview.body = substitute(b.text, values, "body", true, vars);
     } else if (c.type === "FOOTER") {
-      preview.footer = (c as Extract<MetaTemplateComponent, { type: "FOOTER" }>).text;
+      const f = c as Extract<MetaTemplateComponent, { type: "FOOTER" }>;
+      if (typeof f.text === "string") preview.footer = f.text;
     } else if (c.type === "BUTTONS") {
       for (const b of (c as Extract<MetaTemplateComponent, { type: "BUTTONS" }>).buttons) {
+        if ((b as { type: string }).type === "OTP") {
+          preview.otp = true;
+          const code = values["auth.code"] || "123456";
+          preview.body = `*${code}* is your verification code.`;
+          preview.buttons.push({
+            type: "COPY_CODE",
+            text: (b as { text?: string }).text || "Copy code",
+          });
+          continue;
+        }
         preview.buttons.push({
           type: b.type,
-          text: "text" in b && b.text ? b.text : b.type === "COPY_CODE" ? "Copy code" : b.type,
+          text: "text" in b && b.text ? b.text : b.type === "COPY_CODE" ? "Copy code" : "Button",
         });
       }
+    } else if (c.type === "CAROUSEL") {
+      (c as MetaCarousel).cards?.forEach((card, ci) => {
+        preview.cards.push(renderTemplatePreview(card.components, cardValues(values, ci)));
+      });
     }
   }
   preview.missing = vars.filter((v) => !values[v.key]).map((v) => v.key);
   return preview;
+}
+
+function mediaParam(kind: "image" | "video" | "document", value: string): TemplateParameter {
+  const ref = mediaRef(value);
+  return kind === "image"
+    ? { type: "image", image: ref }
+    : kind === "video"
+      ? { type: "video", video: ref }
+      : { type: "document", document: ref };
+}
+
+/** Send components for one flat list of variables (a template, or one carousel card). */
+function componentsFor(
+  vars: TemplateVariable[],
+  values: TemplateValues,
+  named: boolean,
+): TemplateComponent[] {
+  const components: TemplateComponent[] = [];
+
+  const headerVars = vars.filter((v) => v.component === "header");
+  if (headerVars.length) {
+    const params: TemplateParameter[] = headerVars.map((v) => {
+      const value = values[v.key];
+      switch (v.kind) {
+        case "image":
+        case "video":
+        case "document":
+          return mediaParam(v.kind, value);
+        default:
+          return named
+            ? { type: "text", text: value, parameter_name: v.name }
+            : { type: "text", text: value };
+      }
+    });
+    components.push({ type: "header", parameters: params });
+  }
+
+  const bodyVars = vars.filter((v) => v.component === "body");
+  const otp = vars.find((v) => v.kind === "otp");
+  if (bodyVars.length) {
+    components.push({
+      type: "body",
+      parameters: bodyVars.map((v) =>
+        named
+          ? { type: "text", text: values[v.key], parameter_name: v.name }
+          : { type: "text", text: values[v.key] },
+      ),
+    });
+  } else if (otp) {
+    components.push({ type: "body", parameters: [{ type: "text", text: values[otp.key] }] });
+  }
+
+  for (const v of vars.filter((x) => x.component === "button")) {
+    if (v.kind === "url_suffix") {
+      components.push({
+        type: "button",
+        sub_type: "url",
+        index: v.index ?? 0,
+        parameters: [{ type: "text", text: values[v.key] }],
+      });
+    } else if (v.kind === "otp") {
+      components.push({
+        type: "button",
+        sub_type: "url",
+        index: v.index ?? 0,
+        parameters: [{ type: "text", text: values[v.key] }],
+      });
+    } else if (v.kind === "copy_code") {
+      components.push({
+        type: "button",
+        sub_type: "copy_code",
+        index: v.index ?? 0,
+        parameters: [{ type: "coupon_code", coupon_code: values[v.key] }],
+      });
+    }
+  }
+  return components;
 }
 
 /** Builds the Cloud API `template` object. Throws when a required variable is missing. */
@@ -205,56 +331,21 @@ export function buildTemplateSend(
   if (missing.length)
     throw new Error(`Missing template values: ${missing.map((m) => m.key).join(", ")}`);
 
-  const components: TemplateComponent[] = [];
+  const components = componentsFor(
+    vars.filter((v) => v.component !== "card"),
+    values,
+    named,
+  );
 
-  const headerVars = vars.filter((v) => v.component === "header");
-  if (headerVars.length) {
-    const params: TemplateParameter[] = headerVars.map((v) => {
-      const value = values[v.key];
-      switch (v.kind) {
-        case "image":
-          return { type: "image", image: mediaRef(value) };
-        case "video":
-          return { type: "video", video: mediaRef(value) };
-        case "document":
-          return { type: "document", document: mediaRef(value) };
-        default:
-          return named
-            ? { type: "text", text: value, parameter_name: v.name }
-            : { type: "text", text: value };
-      }
+  const carousel = tpl.components.find((c) => c.type === "CAROUSEL") as MetaCarousel | undefined;
+  if (carousel) {
+    const cards: Array<{ card_index: number; components: TemplateComponent[] }> = [];
+    carousel.cards.forEach((card, ci) => {
+      const cv = cardValues(values, ci);
+      const parts = componentsFor(templateVariables(card.components), cv, named);
+      if (parts.length) cards.push({ card_index: ci, components: parts });
     });
-    components.push({ type: "header", parameters: params });
-  }
-
-  const bodyVars = vars.filter((v) => v.component === "body");
-  if (bodyVars.length) {
-    components.push({
-      type: "body",
-      parameters: bodyVars.map((v) =>
-        named
-          ? { type: "text", text: values[v.key], parameter_name: v.name }
-          : { type: "text", text: values[v.key] },
-      ),
-    });
-  }
-
-  for (const v of vars.filter((x) => x.component === "button")) {
-    if (v.kind === "url_suffix") {
-      components.push({
-        type: "button",
-        sub_type: "url",
-        index: v.index ?? 0,
-        parameters: [{ type: "text", text: values[v.key] }],
-      });
-    } else if (v.kind === "copy_code") {
-      components.push({
-        type: "button",
-        sub_type: "copy_code",
-        index: v.index ?? 0,
-        parameters: [{ type: "coupon_code", coupon_code: values[v.key] }],
-      });
-    }
+    if (cards.length) components.push({ type: "carousel", cards });
   }
 
   return {

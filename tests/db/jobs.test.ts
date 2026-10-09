@@ -203,7 +203,7 @@ describe.skipIf(!TEST_DATABASE_URL)("jobs framework (db)", () => {
     });
   });
 
-  it("cron schedules exist for every queue plus scheduler and housekeeping", async () => {
+  it("cron schedules exist for every queue plus scheduler, housekeeping and the nightly tasks", async () => {
     await asServiceRole(c, async () => {
       const { rows } = await c.query<{ jobname: string }>(
         "select jobname from public.job_cron_status()",
@@ -222,6 +222,7 @@ describe.skipIf(!TEST_DATABASE_URL)("jobs framework (db)", () => {
         "outbound",
         "outbound_priority",
         "scheduler",
+        "templates_sync",
         "unite_sync",
         "webhooks_out",
       ]);

@@ -1850,6 +1850,11 @@ export type Database = {
           updated_at: string;
           variable_map: NonNullable<Json>;
           waba_id: string;
+          created_by: string | null;
+          gallery_key: string | null;
+          media_paths: NonNullable<Json>;
+          submit_error: string | null;
+          submitted_at: string | null;
         };
         ComputedFields: never;
         Insert: {
@@ -1873,6 +1878,11 @@ export type Database = {
           updated_at?: string;
           variable_map?: NonNullable<Json>;
           waba_id: string;
+          created_by?: string | null;
+          gallery_key?: string | null;
+          media_paths?: NonNullable<Json>;
+          submit_error?: string | null;
+          submitted_at?: string | null;
         };
         Update: {
           archived_at?: string | null;
@@ -1895,6 +1905,11 @@ export type Database = {
           updated_at?: string;
           variable_map?: NonNullable<Json>;
           waba_id?: string;
+          created_by?: string | null;
+          gallery_key?: string | null;
+          media_paths?: NonNullable<Json>;
+          submit_error?: string | null;
+          submitted_at?: string | null;
         };
         Relationships: [
           {

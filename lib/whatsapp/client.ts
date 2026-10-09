@@ -233,6 +233,64 @@ export class WhatsAppClient {
     return this.request<MediaUploadResult>(this.phonePath("media"), { form });
   }
 
+  /**
+   * Resumable Upload API (app-level): uploads a header sample for a template and
+   * returns the handle Meta wants in `example.header_handle`. Two calls: open an
+   * upload session, then send the bytes in one chunk (samples are small).
+   */
+  async uploadTemplateSample(
+    appId: string,
+    file: { data: Uint8Array; mimeType: string; filename?: string },
+  ): Promise<{ handle: string }> {
+    const session = await this.request<{ id?: string }>(`${appId}/uploads`, {
+      method: "POST",
+      query: {
+        file_length: file.data.byteLength,
+        file_type: file.mimeType,
+        file_name: file.filename,
+      },
+    });
+    if (!session.id) {
+      throw new WhatsAppApiError(502, {
+        error: { message: "Meta did not return an upload session", code: 1 },
+      });
+    }
+    const url = new URL(`${this.baseUrl}/${this.version}/${session.id}`);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs * 3);
+    let res: Response;
+    try {
+      res = await this.fetchImpl(url, {
+        method: "POST",
+        headers: { Authorization: `OAuth ${this.token}`, file_offset: "0" },
+        body: new Blob([new Uint8Array(file.data)], { type: file.mimeType }),
+        signal: controller.signal,
+      });
+    } catch (err) {
+      throw new WhatsAppApiError(
+        503,
+        { error: { message: err instanceof Error ? err.message : "network error", code: 2 } },
+        "network error",
+      );
+    } finally {
+      clearTimeout(timer);
+    }
+    const text = await res.text();
+    let parsed: { h?: string } & GraphErrorBody = {} as never;
+    try {
+      parsed = text ? JSON.parse(text) : {};
+    } catch {
+      parsed = {} as never;
+    }
+    if (!res.ok) throw new WhatsAppApiError(res.status, (parsed as GraphErrorBody) ?? null);
+    if (!parsed.h) {
+      throw new WhatsAppApiError(502, {
+        error: { message: "Meta did not return an upload handle", code: 1 },
+      });
+    }
+    return { handle: parsed.h };
+  }
+
   getMediaInfo(mediaId: string): Promise<MediaInfo> {
     return this.request<MediaInfo>(mediaId, {
       query: this.phoneNumberId ? { phone_number_id: this.phoneNumberId } : {},

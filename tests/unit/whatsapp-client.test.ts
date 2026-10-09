@@ -213,4 +213,42 @@ describe("WhatsAppClient", () => {
     expect(() => c.getSubscribedApps()).toThrow(/wabaId/);
     expect(() => new WhatsAppClient({ accessToken: "" })).toThrow();
   });
+
+  it("uploads a template header sample through the resumable upload API", async () => {
+    const { c, calls } = client([{ body: { id: "upload:ABC" } }, { body: { h: "4::HANDLE" } }]);
+    const res = await c.uploadTemplateSample("APPID", {
+      data: new Uint8Array([1, 2, 3, 4]),
+      mimeType: "image/png",
+      filename: "header.png",
+    });
+    expect(res).toEqual({ handle: "4::HANDLE" });
+    const first = new URL(calls[0].url);
+    expect(first.pathname).toBe("/v21.0/APPID/uploads");
+    expect(first.searchParams.get("file_length")).toBe("4");
+    expect(first.searchParams.get("file_type")).toBe("image/png");
+    expect(calls[0].init.method).toBe("POST");
+    expect(calls[1].url).toBe("https://graph.facebook.com/v21.0/upload:ABC");
+    const headers = calls[1].init.headers as Record<string, string>;
+    expect(headers.Authorization).toBe("OAuth TOKEN");
+    expect(headers.file_offset).toBe("0");
+  });
+
+  it("maps upload failures to WhatsAppApiError", async () => {
+    const a = client([{ body: {} }]);
+    await expect(
+      a.c.uploadTemplateSample("APPID", { data: new Uint8Array([1]), mimeType: "image/png" }),
+    ).rejects.toBeInstanceOf(WhatsAppApiError);
+    const b = client([
+      { body: { id: "upload:1" } },
+      { status: 400, body: { error: { message: "Invalid OAuth token TOKEN", code: 190 } } },
+    ]);
+    const err = await b.c
+      .uploadTemplateSample("APPID", { data: new Uint8Array([1]), mimeType: "image/png" })
+      .catch((e) => e);
+    expect(err).toBeInstanceOf(WhatsAppApiError);
+    const c = client([{ body: { id: "upload:1" } }, { body: {} }]);
+    await expect(
+      c.c.uploadTemplateSample("APPID", { data: new Uint8Array([1]), mimeType: "image/png" }),
+    ).rejects.toBeInstanceOf(WhatsAppApiError);
+  });
 });
