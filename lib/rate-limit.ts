@@ -27,20 +27,14 @@ export const RATE_RULES = {
   webhookBadSignature: { limit: 30, windowSec: 60, failOpen: true },
   /** Counts only requests with a wrong X-Job-Secret. */
   jobsBadSecret: { limit: 20, windowSec: 60, failOpen: true },
+  /** Counts only incoming-webhook flow calls with a wrong or missing token. */
+  flowWebhookBadToken: { limit: 20, windowSec: 60, failOpen: true },
   loginPerIp: { limit: 30, windowSec: 600, failOpen: false },
   loginPerEmail: { limit: 8, windowSec: 900, failOpen: false },
   magicLinkPerEmail: { limit: 5, windowSec: 900, failOpen: false },
   inviteAcceptPerIp: { limit: 15, windowSec: 600, failOpen: false },
   workspaceCreatePerUser: { limit: 5, windowSec: 3600, failOpen: false },
   contactsExportPerUser: { limit: 6, windowSec: 60, failOpen: false },
-  /** Counts only requests with an unknown flow webhook token (guessing). */
-  flowWebhookBadToken: { limit: 30, windowSec: 60, failOpen: true },
-  /** Accepted calls to one flow's incoming webhook. */
-  flowWebhookPerFlow: { limit: 120, windowSec: 60, failOpen: true },
-  /** Manual "run flow" shortcuts from the inbox, per user. */
-  flowShortcutPerUser: { limit: 60, windowSec: 60, failOpen: false },
-  /** Manual recall programme checks and runs, per user. */
-  recallRunPerUser: { limit: 10, windowSec: 60, failOpen: false },
   /** Phase 10 /api/public/v1, per API key. */
   publicApi: { limit: 120, windowSec: 60, failOpen: true },
 } as const satisfies Record<string, RateRule>;

@@ -91,7 +91,6 @@ async function main() {
       "seed_condition_groups",
       "seed_clinical_settings",
       "seed_portal_objects",
-      "seed_recall_programmes",
     ] as const) {
       const { error } = await (
         admin as unknown as {

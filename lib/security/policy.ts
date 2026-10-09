@@ -10,12 +10,12 @@ export const UNGUARDED_OK: Record<string, string> = {
     "Pre-auth by definition; Supabase Auth verifies credentials. Rate-limited per IP and per e-mail.",
   "app/(auth)/login/actions.ts::sendMagicLink":
     "Pre-auth; shouldCreateUser is false. Rate-limited per IP and per e-mail.",
-  "app/api/flows/hooks/[token]/route.ts::POST":
-    "Authorised by the per-flow secret in the path (only its hash is stored); unknown tokens are rate-limited per IP and accepted calls per flow.",
   "app/api/jobs/[queue]/route.ts::GET": "Returns 405.",
   "app/api/webhooks/meta/route.ts::GET":
     "Meta verification handshake; compares hub.verify_token and echoes the challenge only.",
   "app/(app)/settings/custom-fields/actions.ts::slugifyKey": "Pure string helper, touches no data.",
+  "app/api/webhooks/in/[flowId]/route.ts::POST":
+    "Authorised by a per-flow bearer token (192-bit random, only its SHA-256 stored, timing-safe compare); the same 401 for an unknown flow and a bad token; failed attempts are rate-limited per IP.",
 };
 
 /**
@@ -86,6 +86,8 @@ export const AUDIT_EXEMPT: Record<string, string> = {
   "app/(app)/inbox/actions.ts::closeConversation":
     "Conversation lifecycle (with category/summary) is recorded on the contact timeline.",
   "app/(app)/inbox/actions.ts::toggleConversationLabel": "Operational labelling.",
+  "app/(app)/inbox/actions.ts::setBotActive":
+    "Conversation lifecycle is recorded on the contact timeline.",
   "app/(app)/inbox/actions.ts::startConversation": "The queued message carries sent_by_user_id.",
   "app/(app)/inbox/actions.ts::saveInboxView": "Caller's own saved view.",
   "app/(app)/inbox/actions.ts::deleteInboxView": "Caller's own saved view.",
@@ -95,6 +97,8 @@ export const AUDIT_EXEMPT: Record<string, string> = {
     "Conversation lifecycle is recorded on the contact timeline; the summary text is health data and stays out of audit_log.",
   "app/api/webhooks/meta/route.ts::POST":
     "Raw ingress; the stored webhook_events_in row is the record.",
+  "app/api/webhooks/in/[flowId]/route.ts::POST":
+    "Ingress; the flow_runs row (with its trigger data) is the record and every step is traced in flow_run_steps.",
   "components/shell/actions.ts::setPresence": "Caller's own presence.",
   "components/shell/actions.ts::markAllNotificationsRead": "Caller's own notifications.",
   "components/shell/actions.ts::markNotificationRead": "Caller's own notifications.",

@@ -332,7 +332,6 @@ begin
     return;
   end if;
   perform public.seed_clinical_settings(v_org);
-  perform public.seed_recall_programmes(v_org);
 
   select id into v_c1 from public.contacts where org_id = v_org and phone_e164 = '+971500000001' and deleted_at is null;
   select id into v_c2 from public.contacts where org_id = v_org and phone_e164 = '+971500000002' and deleted_at is null;

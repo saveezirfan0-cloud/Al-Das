@@ -12,7 +12,6 @@ import {
   RotateCcw,
   Tag,
   UserPlus,
-  Workflow,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -23,7 +22,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -38,12 +36,11 @@ import {
   assignConversation,
   autoAssignConversation,
   retryFailedMessage,
-  takeOverConversation,
+  setBotActive,
   setConversationStatus,
   toggleConversationLabel,
   type ActionResult,
 } from "./actions";
-import { runFlowShortcut } from "../flows/actions";
 import { CloseDialog } from "./close-dialog";
 import { Composer } from "./composer";
 import { MediaBubble } from "./media-bubble";
@@ -84,9 +81,6 @@ function dayLabel(iso: string) {
 
 export function Thread(props: InboxProps & { selected: ConversationDetail; onBack: () => void }) {
   const { selected, messages, people, teams, labels, perms } = props;
-  const shortcuts = props.shortcuts.filter(
-    (f) => !f.channelId || f.channelId === selected.channel_id,
-  );
   const [pending, startTransition] = useTransition();
   const [closeOpen, setCloseOpen] = useState(false);
   const [replyTo, setReplyTo] = useState<MessageRow | null>(null);
@@ -332,31 +326,15 @@ export function Thread(props: InboxProps & { selected: ConversationDetail; onBac
                     <DropdownMenuSeparator />
                     {selected.bot_active ? (
                       <DropdownMenuItem
-                        onSelect={() => run(() => takeOverConversation(selected.id))}
+                        onSelect={() => run(() => setBotActive(selected.id, false))}
                       >
                         Take over from bot
                       </DropdownMenuItem>
-                    ) : shortcuts.length > 0 ? (
-                      <>
-                        <DropdownMenuLabel className="text-xs">Run a flow</DropdownMenuLabel>
-                        {shortcuts.map((f) => (
-                          <DropdownMenuItem
-                            key={f.id}
-                            onSelect={() =>
-                              run(async () => {
-                                const r = await runFlowShortcut(selected.id, f.id);
-                                return r.ok
-                                  ? { ok: true as const, message: r.message, data: undefined }
-                                  : { ok: false as const, error: r.error };
-                              })
-                            }
-                          >
-                            <Workflow className="size-4" />
-                            {f.name}
-                          </DropdownMenuItem>
-                        ))}
-                      </>
-                    ) : null}
+                    ) : (
+                      <DropdownMenuItem onSelect={() => run(() => setBotActive(selected.id, true))}>
+                        Hand to bot
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
@@ -467,27 +445,19 @@ export function Thread(props: InboxProps & { selected: ConversationDetail; onBac
                           !m.error_message
                         }
                       />
-                      {m.body && (
-                        <p className="whitespace-pre-wrap" dir="auto">
-                          {m.body}
-                        </p>
-                      )}
+                      {m.body && <p className="whitespace-pre-wrap" dir="auto">{m.body}</p>}
                     </div>
                   ) : m.kind === "template" ? (
                     <div>
                       <div className="mb-0.5 text-[10px] uppercase opacity-70">Template</div>
-                      <p className="whitespace-pre-wrap" dir="auto">
-                        {m.body}
-                      </p>
+                      <p className="whitespace-pre-wrap" dir="auto">{m.body}</p>
                     </div>
                   ) : m.kind === "unsupported" ? (
                     <p className="text-xs italic opacity-80">
                       Unsupported message type (not shown).
                     </p>
                   ) : (
-                    <p className="break-words whitespace-pre-wrap" dir="auto">
-                      {m.body}
-                    </p>
+                    <p className="break-words whitespace-pre-wrap" dir="auto">{m.body}</p>
                   )}
                   <div
                     className={cn(

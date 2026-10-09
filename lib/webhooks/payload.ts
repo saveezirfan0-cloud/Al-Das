@@ -22,8 +22,17 @@ const ID_KEYS = new Set([
   "campaign_id",
   "enquiry_id",
   "appointment_id",
+  "task_id",
+  "pipeline_id",
+  "stage_id",
+  "from_stage_id",
+  "to_stage_id",
+  "from_pipeline_id",
+  "to_pipeline_id",
+  "assignee_id",
+  "actor_id",
 ]);
-const SAFE_SCALAR_KEYS = new Set(["status", "direction", "kind", "auto", "by", "category", "quality", "via", "source", "code", "event", "limit"]);
+const SAFE_SCALAR_KEYS = new Set(["status", "direction", "kind", "auto", "by", "category", "quality", "via", "source", "code", "event", "limit", "number", "from", "to"]);
 
 export function sanitizePayload(payload: Record<string, unknown>): Record<string, string | number | boolean | null> {
   const out: Record<string, string | number | boolean | null> = {};

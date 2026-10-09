@@ -1,213 +1,242 @@
 "use server";
 
-import { randomBytes } from "node:crypto";
-
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { recordAudit } from "@/lib/audit";
-import { can } from "@/lib/auth/can";
-import { requireMember, requirePerm } from "@/lib/auth/session";
-import { isValidCron } from "@/lib/flow-engine/cron";
-import { validateGraph, type GraphIssue } from "@/lib/flow-engine/graph";
-import { publishFlow } from "@/lib/flow-engine/publish";
-import { finishRun, hashWebhookToken, startRun } from "@/lib/flow-engine/service";
-import { starterByKey } from "@/lib/flow-engine/starters";
-import {
-  emptyGraph,
-  flowGraphSchema,
-  TRIGGER_TYPES,
-  type TriggerConfig,
-  type TriggerType,
-} from "@/lib/flow-engine/types";
-import { filterSchema } from "@/lib/filters/ast";
-import { checkRateLimit, RATE_RULES } from "@/lib/rate-limit";
+import { requirePerm } from "@/lib/auth/session";
+import { isValidCron } from "@/lib/cron";
+import { hasErrors, validateGraph, type GraphIssue } from "@/lib/flow-engine/graph";
+import { starterFlow } from "@/lib/flow-engine/starter-flows";
+import { graphSchema, TRIGGER_TYPES, triggerConditionsSchema } from "@/lib/flow-engine/types";
+import { newWebhookToken } from "@/lib/flow-engine/webhook-token";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/supabase/types";
 
 export type ActionResult<T = undefined> =
-  | (T extends undefined ? { ok: true; message?: string } : { ok: true; message?: string; data: T })
-  | { ok: false; error: string; issues?: GraphIssue[] };
+  { ok: true; message?: string; data: T } | { ok: false; error: string; issues?: GraphIssue[] };
 
-const PERM = "flows.manage";
 const uuid = z.string().uuid();
-const bad = (error = "Invalid input"): { ok: false; error: string } => ({ ok: false, error });
-const refresh = () => revalidatePath("/flows");
+const j = (v: unknown) => v as unknown as NonNullable<Json>;
+const EMPTY_GRAPH = {
+  nodes: [{ id: "trigger", type: "trigger", position: { x: 0, y: 0 }, data: {} }],
+  edges: [],
+};
 
-const triggerConfigSchema = z
-  .object({
-    channel_id: uuid.optional(),
-    pipeline_id: uuid.optional(),
-    cron: z.string().trim().max(100).optional(),
-    timezone: z.string().trim().max(60).optional(),
-    button_ids: z.array(z.string().trim().min(1).max(80)).max(20).optional(),
-  })
-  .strict();
-
-const settingsSchema = z.object({
-  name: z.string().trim().min(1).max(120),
-  description: z.string().trim().max(500).nullish(),
-  trigger_type: z.enum(TRIGGER_TYPES),
-  trigger_config: triggerConfigSchema.default({}),
-  conditions: filterSchema.nullish(),
-  channel_id: uuid.nullish(),
-  /** Start from one of lib/flow-engine/starters.ts instead of a blank canvas. */
-  starter: z.string().max(60).nullish(),
-});
-
-function checkTrigger(type: TriggerType, cfg: TriggerConfig): string | null {
-  if (type === "recurring" && (!cfg.cron || !isValidCron(cfg.cron)))
-    return "Enter a valid schedule (five cron fields, e.g. 0 9 * * *).";
-  return null;
+function refresh(id?: string) {
+  revalidatePath("/flows");
+  if (id) revalidatePath(`/flows/${id}`);
 }
 
+const createSchema = z.object({
+  name: z.string().trim().min(1, "Name is required").max(80),
+  trigger_type: z.enum(TRIGGER_TYPES).default("shortcut"),
+  /** Optional starter flow key (see lib/flow-engine/starter-flows.ts); its trigger and steps replace the blank flow. */
+  starter: z.string().max(60).optional(),
+});
+
 export async function createFlow(
-  input: z.input<typeof settingsSchema>,
+  input: z.input<typeof createSchema>,
 ): Promise<ActionResult<{ id: string }>> {
-  const member = await requirePerm(PERM);
-  const parsed = settingsSchema.safeParse(input);
-  if (!parsed.success) return bad(parsed.error.issues[0]?.message);
-  const d = parsed.data;
-  const starter = d.starter ? starterByKey(d.starter) : undefined;
-  if (d.starter && !starter) return bad("That starter flow does not exist.");
-  // A starter brings its own trigger; the person's name and number still win.
-  const triggerType = starter?.trigger_type ?? d.trigger_type;
-  const triggerConfig = starter
-    ? { ...starter.trigger_config, ...d.trigger_config }
-    : d.trigger_config;
-  const cfgError = checkTrigger(triggerType, triggerConfig);
-  if (cfgError) return bad(cfgError);
+  const member = await requirePerm("flows.manage");
+  const parsed = createSchema.safeParse(input);
+  if (!parsed.success)
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   const admin = createAdminClient();
+  const starter = parsed.data.starter ? starterFlow(parsed.data.starter) : undefined;
+  if (parsed.data.starter && !starter)
+    return { ok: false, error: "That starter flow does not exist." };
+  const triggerType = starter?.trigger_type ?? parsed.data.trigger_type;
+  const triggerConfig =
+    triggerType === "webhook"
+      ? { webhook_token_hash: newWebhookToken().hash }
+      : (starter?.trigger_config ?? {});
   const { data, error } = await admin
     .from("flows")
     .insert({
       org_id: member.orgId,
-      name: d.name,
-      description: d.description ?? starter?.description ?? null,
+      name: parsed.data.name,
+      description: starter?.description ?? null,
       trigger_type: triggerType,
-      trigger_config: triggerConfig as unknown as NonNullable<Json>,
-      conditions: (d.conditions ?? starter?.conditions ?? null) as unknown as Json,
-      channel_id: d.channel_id ?? null,
-      draft_graph: (starter?.graph ?? emptyGraph()) as unknown as NonNullable<Json>,
+      trigger_config: j(triggerConfig),
+      graph: j(starter?.graph ?? EMPTY_GRAPH),
       created_by: member.userId,
     })
     .select("id")
     .single();
-  if (error || !data) return bad("Could not create the flow.");
+  if (error || !data) return { ok: false, error: "Could not create the flow." };
   await recordAudit(admin, {
     orgId: member.orgId,
     userId: member.userId,
     action: "flow.created",
     entity: "flow",
     entityId: data.id,
-    diff: { trigger: triggerType, starter: starter?.key ?? null },
+    diff: { name: parsed.data.name },
   });
   refresh();
   return { ok: true, data: { id: data.id } };
 }
 
-export async function updateFlowSettings(
-  id: string,
-  input: z.input<typeof settingsSchema>,
-): Promise<ActionResult> {
-  const member = await requirePerm(PERM);
-  const parsed = settingsSchema.safeParse(input);
-  if (!uuid.safeParse(id).success || !parsed.success)
-    return bad(parsed.success ? undefined : parsed.error.issues[0]?.message);
-  const d = parsed.data;
-  const cfgError = checkTrigger(d.trigger_type, d.trigger_config);
-  if (cfgError) return bad(cfgError);
-  const admin = createAdminClient();
-  const { data, error } = await admin
-    .from("flows")
-    .update({
-      name: d.name,
-      description: d.description ?? null,
-      trigger_type: d.trigger_type,
-      trigger_config: d.trigger_config as unknown as NonNullable<Json>,
-      conditions: (d.conditions ?? null) as unknown as Json,
-      channel_id: d.channel_id ?? null,
-    })
-    .eq("id", id)
-    .eq("org_id", member.orgId)
-    .select("id");
-  if (error || !data?.length) return bad("Could not save the flow.");
-  await recordAudit(admin, {
-    orgId: member.orgId,
-    userId: member.userId,
-    action: "flow.updated",
-    entity: "flow",
-    entityId: id,
-    diff: { trigger: d.trigger_type },
-  });
-  refresh();
-  return { ok: true, message: "Saved. Publish to make the change live." };
+const draftSchema = z.object({
+  name: z.string().trim().min(1).max(80),
+  description: z.string().trim().max(300).nullish(),
+  trigger_type: z.enum(TRIGGER_TYPES),
+  trigger_config: z.record(z.string(), z.unknown()).default({}),
+  channel_id: uuid.nullish(),
+  graph: graphSchema,
+});
+
+/** Validates trigger_config for the chosen trigger; keeps the stored webhook token hash (never accepted from the client). */
+function cleanTriggerConfig(
+  type: string,
+  raw: Record<string, unknown>,
+  stored: Record<string, unknown>,
+): { ok: true; value: Record<string, unknown> } | { ok: false; error: string } {
+  const value: Record<string, unknown> = {};
+  const cond = triggerConditionsSchema.safeParse(raw.conditions ?? {});
+  if (!cond.success) return { ok: false, error: "Trigger conditions are invalid" };
+  if (
+    [
+      "conversation_opened",
+      "conversation_closed",
+      "conversation_waiting",
+      "template_button",
+    ].includes(type)
+  )
+    value.conditions = cond.data;
+  if (type === "template_button") {
+    if (typeof raw.template_id === "string" && raw.template_id) value.template_id = raw.template_id;
+    if (typeof raw.button_text === "string" && raw.button_text.trim())
+      value.button_text = raw.button_text.trim().slice(0, 40);
+  }
+  if (type === "recurring") {
+    if (typeof raw.cron !== "string" || !isValidCron(raw.cron))
+      return { ok: false, error: "Enter a valid schedule (cron) for the recurring trigger" };
+    value.cron = raw.cron.trim();
+    value.timezone = typeof raw.timezone === "string" ? raw.timezone : "Asia/Dubai";
+    if (typeof raw.segment_id === "string" && raw.segment_id) value.segment_id = raw.segment_id;
+  }
+  if (type === "webhook" && typeof stored.webhook_token_hash === "string")
+    value.webhook_token_hash = stored.webhook_token_hash;
+  return { ok: true, value };
 }
 
-/** Autosave of the canvas. Only the draft changes; running flows keep their published version. */
 export async function saveFlowDraft(
   id: string,
-  graph: unknown,
+  input: z.input<typeof draftSchema>,
 ): Promise<ActionResult<{ issues: GraphIssue[] }>> {
-  const member = await requirePerm(PERM);
-  const parsed = flowGraphSchema.safeParse(graph);
-  if (!uuid.safeParse(id).success || !parsed.success) return bad("The flow could not be read.");
+  const member = await requirePerm("flows.manage");
+  if (!uuid.safeParse(id).success) return { ok: false, error: "Flow not found" };
+  const parsed = draftSchema.safeParse(input);
+  if (!parsed.success)
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid flow" };
   const admin = createAdminClient();
   const { data: flow } = await admin
     .from("flows")
-    .select("trigger_type, trigger_config")
+    .select("id, trigger_config")
     .eq("id", id)
     .eq("org_id", member.orgId)
     .maybeSingle();
-  if (!flow) return bad("Flow not found.");
+  if (!flow) return { ok: false, error: "Flow not found" };
+  const cfg = cleanTriggerConfig(
+    parsed.data.trigger_type,
+    parsed.data.trigger_config,
+    (flow.trigger_config as Record<string, unknown>) ?? {},
+  );
+  if (!cfg.ok) return { ok: false, error: cfg.error };
+  if (parsed.data.channel_id) {
+    const { data: ch } = await admin
+      .from("channels")
+      .select("id")
+      .eq("id", parsed.data.channel_id)
+      .eq("org_id", member.orgId)
+      .maybeSingle();
+    if (!ch) return { ok: false, error: "Number not found" };
+  }
   const { error } = await admin
     .from("flows")
-    .update({ draft_graph: parsed.data as unknown as NonNullable<Json> })
+    .update({
+      name: parsed.data.name,
+      description: parsed.data.description || null,
+      trigger_type: parsed.data.trigger_type,
+      trigger_config: j(cfg.value),
+      channel_id: parsed.data.channel_id ?? null,
+      graph: j(parsed.data.graph),
+    })
     .eq("id", id)
     .eq("org_id", member.orgId);
-  if (error) return bad("Could not save the draft.");
+  if (error) return { ok: false, error: "Could not save the flow." };
   await recordAudit(admin, {
     orgId: member.orgId,
     userId: member.userId,
     action: "flow.draft_saved",
     entity: "flow",
     entityId: id,
-    diff: { nodes: parsed.data.nodes.length },
+    diff: { nodes: parsed.data.graph.nodes.length, trigger: parsed.data.trigger_type },
   });
-  const { data: vars } = await admin
-    .from("flow_variables")
-    .select("key")
-    .eq("org_id", member.orgId);
-  const v = validateGraph(parsed.data, {
-    triggerType: flow.trigger_type as TriggerType,
-    triggerConfig: flow.trigger_config as TriggerConfig,
-    knownVariables: (vars ?? []).map((x) => x.key),
-  });
-  return { ok: true, data: { issues: v.issues } };
+  refresh(id);
+  return {
+    ok: true,
+    message: "Draft saved.",
+    data: { issues: validateGraph(parsed.data.graph).issues },
+  };
 }
 
-export async function publishFlowAction(
-  id: string,
-): Promise<ActionResult<{ version: number; warnings: GraphIssue[] }>> {
-  const member = await requirePerm(PERM);
-  if (!uuid.safeParse(id).success) return bad();
+export async function publishFlow(id: string): Promise<ActionResult<{ version: number }>> {
+  const member = await requirePerm("flows.manage");
   const admin = createAdminClient();
-  const res = await publishFlow(admin, member, id);
-  if (!res.ok) return { ok: false, error: res.error, issues: res.issues };
+  const { data: flow } = await admin
+    .from("flows")
+    .select("*")
+    .eq("id", id)
+    .eq("org_id", member.orgId)
+    .maybeSingle();
+  if (!flow) return { ok: false, error: "Flow not found" };
+  const check = validateGraph(flow.graph);
+  if (!check.graph || hasErrors(check.issues))
+    return {
+      ok: false,
+      error: "Fix the errors in the flow before publishing.",
+      issues: check.issues,
+    };
+  if (
+    flow.trigger_type === "recurring" &&
+    !isValidCron(String((flow.trigger_config as Record<string, unknown>).cron ?? ""))
+  )
+    return { ok: false, error: "Set a valid schedule for the recurring trigger first." };
+  const version = flow.version + 1;
+  const { error: vErr } = await admin.from("flow_versions").insert({
+    flow_id: flow.id,
+    version,
+    org_id: member.orgId,
+    graph: j(check.graph),
+    published_by: member.userId,
+  });
+  if (vErr) return { ok: false, error: "Could not publish (version conflict). Try again." };
+  const { error } = await admin
+    .from("flows")
+    .update({
+      status: "active",
+      version,
+      published_graph: j(check.graph),
+      published_at: new Date().toISOString(),
+    })
+    .eq("id", flow.id)
+    .eq("org_id", member.orgId);
+  if (error) return { ok: false, error: "Could not publish the flow." };
   await recordAudit(admin, {
     orgId: member.orgId,
     userId: member.userId,
     action: "flow.published",
     entity: "flow",
-    entityId: id,
-    diff: { version: res.version },
+    entityId: flow.id,
+    diff: { version },
   });
-  refresh();
+  refresh(id);
   return {
     ok: true,
-    message: `Published version ${res.version}.`,
-    data: { version: res.version, warnings: res.warnings },
+    message: `Published version ${version}. New runs use it; running ones finish on their own version.`,
+    data: { version },
   };
 }
 
@@ -215,36 +244,38 @@ export async function setFlowStatus(
   id: string,
   status: "active" | "paused",
 ): Promise<ActionResult> {
-  const member = await requirePerm(PERM);
-  if (!uuid.safeParse(id).success || !["active", "paused"].includes(status)) return bad();
+  const member = await requirePerm("flows.manage");
   const admin = createAdminClient();
   const { data: flow } = await admin
     .from("flows")
-    .select("version")
+    .select("id, version, published_graph")
     .eq("id", id)
     .eq("org_id", member.orgId)
     .maybeSingle();
-  if (!flow) return bad("Flow not found.");
-  if (status === "active" && flow.version < 1) return bad("Publish the flow first.");
+  if (!flow) return { ok: false, error: "Flow not found" };
+  if (status === "active" && (!flow.published_graph || flow.version === 0))
+    return { ok: false, error: "Publish the flow first." };
   await admin.from("flows").update({ status }).eq("id", id).eq("org_id", member.orgId);
   await recordAudit(admin, {
     orgId: member.orgId,
     userId: member.userId,
-    action: status === "active" ? "flow.resumed" : "flow.paused",
+    action: `flow.${status === "active" ? "resumed" : "paused"}`,
     entity: "flow",
     entityId: id,
   });
-  refresh();
+  refresh(id);
   return {
     ok: true,
     message:
-      status === "active" ? "Flow is live." : "Flow paused. Runs already in progress carry on.",
+      status === "active"
+        ? "Flow is active."
+        : "Flow paused. Running conversations finish; no new runs start.",
+    data: undefined,
   };
 }
 
 export async function duplicateFlow(id: string): Promise<ActionResult<{ id: string }>> {
-  const member = await requirePerm(PERM);
-  if (!uuid.safeParse(id).success) return bad();
+  const member = await requirePerm("flows.manage");
   const admin = createAdminClient();
   const { data: f } = await admin
     .from("flows")
@@ -252,76 +283,96 @@ export async function duplicateFlow(id: string): Promise<ActionResult<{ id: stri
     .eq("id", id)
     .eq("org_id", member.orgId)
     .maybeSingle();
-  if (!f) return bad("Flow not found.");
+  if (!f) return { ok: false, error: "Flow not found" };
+  const cfg = { ...((f.trigger_config as Record<string, unknown>) ?? {}) };
+  delete cfg.webhook_token_hash; // a copy gets its own token
+  if (f.trigger_type === "webhook") cfg.webhook_token_hash = newWebhookToken().hash;
   const { data, error } = await admin
     .from("flows")
     .insert({
       org_id: member.orgId,
-      name: `${f.name} (copy)`.slice(0, 120),
+      name: `${f.name} (copy)`,
       description: f.description,
-      status: "draft",
       trigger_type: f.trigger_type,
-      trigger_config: f.trigger_config,
-      conditions: f.conditions,
+      trigger_config: j(cfg),
       channel_id: f.channel_id,
-      draft_graph: f.draft_graph,
+      graph: f.graph,
       created_by: member.userId,
     })
     .select("id")
     .single();
-  if (error || !data) return bad("Could not duplicate the flow.");
+  if (error || !data) return { ok: false, error: "Could not duplicate the flow." };
   await recordAudit(admin, {
     orgId: member.orgId,
     userId: member.userId,
-    action: "flow.created",
+    action: "flow.duplicated",
     entity: "flow",
     entityId: data.id,
-    diff: { copied_from: id },
+    diff: { from: id },
   });
   refresh();
-  return { ok: true, data: { id: data.id } };
+  return { ok: true, message: "Duplicated as a draft.", data: { id: data.id } };
 }
 
 export async function deleteFlow(id: string): Promise<ActionResult> {
-  const member = await requirePerm(PERM);
-  if (!uuid.safeParse(id).success) return bad();
+  const member = await requirePerm("flows.manage");
   const admin = createAdminClient();
   const { data: live } = await admin
     .from("flow_runs")
-    .select("id, org_id, conversation_id")
-    .eq("org_id", member.orgId)
+    .select("id")
     .eq("flow_id", id)
-    .in("status", ["running", "waiting"]);
-  for (const r of live ?? [])
-    await finishRun(admin, r, "cancelled", { cancelReason: "flow_deleted" });
-  const { error } = await admin.from("flows").delete().eq("id", id).eq("org_id", member.orgId);
-  if (error) return bad("Could not delete the flow.");
+    .eq("org_id", member.orgId)
+    .in("status", ["running", "waiting"])
+    .limit(1);
+  if (live?.length)
+    return {
+      ok: false,
+      error: "This flow has conversations in progress. Pause it and let them finish first.",
+    };
+  const { data, error } = await admin
+    .from("flows")
+    .delete()
+    .eq("id", id)
+    .eq("org_id", member.orgId)
+    .select("name");
+  if (error || !data?.length) return { ok: false, error: "Could not delete the flow." };
   await recordAudit(admin, {
     orgId: member.orgId,
     userId: member.userId,
     action: "flow.deleted",
     entity: "flow",
     entityId: id,
-    diff: { stopped_runs: live?.length ?? 0 },
+    diff: { name: data[0]!.name },
   });
   refresh();
-  return { ok: true, message: "Flow deleted." };
+  return { ok: true, message: "Flow deleted.", data: undefined };
 }
 
-/** New secret for the incoming-webhook trigger. Shown once; only its hash is stored. */
-export async function regenerateWebhookToken(id: string): Promise<ActionResult<{ token: string }>> {
-  const member = await requirePerm(PERM);
-  if (!uuid.safeParse(id).success) return bad();
+/** Shown once: only the hash is stored. */
+export async function regenerateWebhookToken(
+  id: string,
+): Promise<ActionResult<{ token: string; url_path: string }>> {
+  const member = await requirePerm("flows.manage");
   const admin = createAdminClient();
-  const token = `fh_${randomBytes(24).toString("base64url")}`;
-  const { data, error } = await admin
+  const { data: f } = await admin
     .from("flows")
-    .update({ webhook_token_hash: hashWebhookToken(token) })
+    .select("id, trigger_type, trigger_config")
     .eq("id", id)
     .eq("org_id", member.orgId)
-    .eq("trigger_type", "incoming_webhook")
-    .select("id");
-  if (error || !data?.length) return bad("Only flows with an incoming-webhook trigger have a URL.");
+    .maybeSingle();
+  if (!f || f.trigger_type !== "webhook")
+    return { ok: false, error: "Not an incoming-webhook flow" };
+  const { token, hash } = newWebhookToken();
+  await admin
+    .from("flows")
+    .update({
+      trigger_config: j({
+        ...(f.trigger_config as Record<string, unknown>),
+        webhook_token_hash: hash,
+      }),
+    })
+    .eq("id", id)
+    .eq("org_id", member.orgId);
   await recordAudit(admin, {
     orgId: member.orgId,
     userId: member.userId,
@@ -329,77 +380,72 @@ export async function regenerateWebhookToken(id: string): Promise<ActionResult<{
     entity: "flow",
     entityId: id,
   });
-  refresh();
-  return { ok: true, data: { token } };
+  refresh(id);
+  return {
+    ok: true,
+    message: "New token created. Copy it now — it is not shown again.",
+    data: { token, url_path: `/api/webhooks/in/${id}` },
+  };
 }
 
 // ---------------------------------------------------------------------------
-// Variables
+// Workspace variables ({vars.KEY})
 // ---------------------------------------------------------------------------
 
 const variableSchema = z.object({
   key: z
     .string()
     .trim()
-    .regex(/^[A-Za-z][A-Za-z0-9_]{0,39}$/, "Letters, digits and _, starting with a letter"),
-  label: z.string().trim().max(80).nullish(),
-  value_type: z.enum(["text", "number", "boolean"]),
-  default_value: z.string().max(500).nullish(),
-  description: z.string().trim().max(300).nullish(),
+    .regex(
+      /^[A-Za-z][A-Za-z0-9_]{0,63}$/,
+      "Use letters, digits and underscores; start with a letter",
+    ),
+  value: z.string().max(2000),
+  enabled: z.boolean().default(true),
 });
 
-export async function saveFlowVariable(
+export async function saveVariable(
+  id: string | null,
   input: z.input<typeof variableSchema>,
-  id?: string,
 ): Promise<ActionResult> {
-  const member = await requirePerm(PERM);
+  const member = await requirePerm("flows.manage");
   const parsed = variableSchema.safeParse(input);
-  if (!parsed.success) return bad(parsed.error.issues[0]?.message);
-  const v = parsed.data;
-  if (v.value_type === "number" && v.default_value && !Number.isFinite(Number(v.default_value)))
-    return bad("The default must be a number.");
-  if (v.value_type === "boolean" && v.default_value && !["true", "false"].includes(v.default_value))
-    return bad("The default must be true or false.");
+  if (!parsed.success)
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid variable" };
   const admin = createAdminClient();
-  const row = {
-    key: v.key,
-    label: v.label ?? null,
-    value_type: v.value_type,
-    default_value: v.default_value || null,
-    description: v.description ?? null,
-  };
-  const q = id
-    ? admin.from("flow_variables").update(row).eq("id", id).eq("org_id", member.orgId)
-    : admin.from("flow_variables").insert({ ...row, org_id: member.orgId });
-  const { error } = await q;
+  const { error } = id
+    ? await admin.from("flow_variables").update(parsed.data).eq("id", id).eq("org_id", member.orgId)
+    : await admin.from("flow_variables").insert({ org_id: member.orgId, ...parsed.data });
   if (error)
-    return bad(
-      error.code === "23505"
-        ? "That variable name is already used."
-        : "Could not save the variable.",
-    );
+    return {
+      ok: false,
+      error:
+        error.code === "23505"
+          ? "A variable with that name already exists."
+          : "Could not save the variable.",
+    };
+  // The key is logged, never the value (values can hold phone numbers or links).
   await recordAudit(admin, {
     orgId: member.orgId,
     userId: member.userId,
     action: id ? "flow_variable.updated" : "flow_variable.created",
     entity: "flow_variable",
-    entityId: id ?? null,
-    diff: { key: v.key },
+    entityId: id,
+    diff: { key: parsed.data.key, enabled: parsed.data.enabled },
   });
-  refresh();
-  return { ok: true };
+  revalidatePath("/flows/variables");
+  return { ok: true, message: "Variable saved.", data: undefined };
 }
 
-export async function deleteFlowVariable(id: string): Promise<ActionResult> {
-  const member = await requirePerm(PERM);
-  if (!uuid.safeParse(id).success) return bad();
+export async function deleteVariable(id: string): Promise<ActionResult> {
+  const member = await requirePerm("flows.manage");
   const admin = createAdminClient();
   const { error } = await admin
     .from("flow_variables")
     .delete()
     .eq("id", id)
     .eq("org_id", member.orgId);
-  if (error) return bad("Could not delete the variable.");
+  if (error) return { ok: false, error: "Could not delete the variable." };
   await recordAudit(admin, {
     orgId: member.orgId,
     userId: member.userId,
@@ -407,106 +453,6 @@ export async function deleteFlowVariable(id: string): Promise<ActionResult> {
     entity: "flow_variable",
     entityId: id,
   });
-  refresh();
-  return { ok: true };
-}
-
-// ---------------------------------------------------------------------------
-// Runs
-// ---------------------------------------------------------------------------
-
-export async function stopFlowRun(runId: string): Promise<ActionResult> {
-  const member = await requirePerm(PERM);
-  if (!uuid.safeParse(runId).success) return bad();
-  const admin = createAdminClient();
-  const { data: run } = await admin
-    .from("flow_runs")
-    .select("id, org_id, conversation_id, status")
-    .eq("id", runId)
-    .eq("org_id", member.orgId)
-    .maybeSingle();
-  if (!run) return bad("Run not found.");
-  if (run.status !== "running" && run.status !== "waiting")
-    return bad("That run has already finished.");
-  await finishRun(admin, run, "cancelled", { cancelReason: "stopped_manually" });
-  await recordAudit(admin, {
-    orgId: member.orgId,
-    userId: member.userId,
-    action: "flow.run_stopped",
-    entity: "flow_run",
-    entityId: runId,
-  });
-  refresh();
-  return { ok: true, message: "Run stopped." };
-}
-
-/** Inbox "Shortcut": a person starts a shortcut flow on a conversation they can see. */
-export async function runFlowShortcut(
-  conversationId: string,
-  flowId: string,
-): Promise<ActionResult> {
-  const member = await requireMember();
-  if (!uuid.safeParse(conversationId).success || !uuid.safeParse(flowId).success) return bad();
-  if (!can(member, "inbox.send")) return bad("You don't have permission for that.");
-  const admin = createAdminClient();
-  const limited = await checkRateLimit(
-    admin,
-    "flow-shortcut",
-    member.userId,
-    RATE_RULES.flowShortcutPerUser,
-  );
-  if (!limited.allowed) return bad("Too many shortcuts in a minute. Wait a moment.");
-
-  // Visibility goes through RLS: the caller must be able to see the conversation.
-  const supabase = await createClient();
-  const { data: conversation } = await supabase
-    .from("conversations")
-    .select("id, contact_id, channel_id, status, bot_active")
-    .eq("id", conversationId)
-    .eq("org_id", member.orgId)
-    .maybeSingle();
-  if (!conversation) return bad("Conversation not found.");
-  if (conversation.status === "closed") return bad("This conversation is closed.");
-  if (conversation.bot_active)
-    return bad(
-      "A bot is already running here. Take the conversation over first, or wait for it to finish.",
-    );
-
-  const { data: flow } = await admin
-    .from("flows")
-    .select("*")
-    .eq("id", flowId)
-    .eq("org_id", member.orgId)
-    .eq("trigger_type", "shortcut")
-    .maybeSingle();
-  if (!flow || flow.status !== "active") return bad("That shortcut is not available.");
-  const cfg = flow.trigger_config as TriggerConfig;
-  if (
-    (cfg.channel_id ?? flow.channel_id) &&
-    (cfg.channel_id ?? flow.channel_id) !== conversation.channel_id
-  )
-    return bad("That shortcut is for a different number.");
-
-  const res = await startRun(admin, flow, {
-    conversationId,
-    contactId: conversation.contact_id,
-    context: { conversation_id: conversationId, contact_id: conversation.contact_id },
-    event: { name: "shortcut", at: new Date().toISOString() },
-    startedBy: member.userId,
-  });
-  if (res.status === "skipped")
-    return bad(
-      res.reason === "already_running"
-        ? "A bot is already running here."
-        : "The shortcut could not start.",
-    );
-  await recordAudit(admin, {
-    orgId: member.orgId,
-    userId: member.userId,
-    action: "flow.shortcut_run",
-    entity: "flow",
-    entityId: flowId,
-    diff: { run: res.runId },
-  });
-  return { ok: true, message: `Started "${flow.name}".` };
+  revalidatePath("/flows/variables");
+  return { ok: true, message: "Variable deleted.", data: undefined };
 }

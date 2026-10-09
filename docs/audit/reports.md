@@ -125,15 +125,23 @@ Materialized views refresh every 15 minutes (`pulse:metrics_refresh`), so dashbo
 - **Unite status codes (OQ-23).** `appointments.status` follows `unite_appointment_status_map`. A code whose mapping is still empty leaves the appointment at *Awaiting*, so Unite no-shows and cancellations are undercounted until Settings → Unite EMR is filled in. The Unite report lists every raw code with its current mapping and the count of appointments still unmapped, so the gap is visible rather than silent.
 - No location/specialist filter yet: both are breakdowns inside the report. A shared location filter needs the filter bar and export route extended.
 
+### 5.1b Enquiry and campaign reports (live since Phases 5 and 7)
+
+Sources are `security_invoker` views revoked from API roles (`v_enquiry_facts`, `v_enquiry_stage_entries`, `v_campaign_facts`), read through service-role `report_enquiries_*`, `report_enquiry_*` and `report_campaigns` functions (migration `20261010001000`).
+
+- **No stage-history table.** The plan said one was needed; the timeline events Phase 5 already writes are the history (`enquiry.created` → `stage_id`; `enquiry.stage_changed` / `enquiry.pipeline_changed` → `to_stage_id`). Enquiries imported or created without timeline events do not appear in *Entered* or *Time in stage*; they do count in created / closed / open numbers.
+- **Closed** means won, lost or disqualified, bucketed by the day `closed_at` falls on, not the creation day. **Conversion** = won ÷ (won + lost + disqualified) among enquiries closed in the period. **Open now** is today's count, not the period's.
+- **Time in stage**: entry → next entry; the last stay of a closed enquiry ends at `closed_at`; the stay an open enquiry is in now is not counted. Bucketed by the day the stay ended.
+- **Team and staff filters** use the enquiry's *current* assignee (assignment history is not kept).
+- **Campaigns** are placed in the period by the day they started (scheduled, or created, if they never started); drafts are excluded. Counts are read live from `campaign_recipients`; *Skipped* (opted out, no number, missing variable) is not *Failed*.
+- Still awaiting: *Conversion to appointments* on the Management dashboard (enquiries carry `appt_date` but no link to an appointment) and WhatsApp *cost*.
+
 ### 5.2 Data contract for the awaiting reports
 
 A report goes live when its source view exists with these columns and a `run` function is added to `lib/reports/registry.ts`. Days are org-timezone dates; every view carries `org_id`; materialized views follow the same access rules as the Phase 10 ones (revoked from API roles, read through a service-role function).
 
 | Report | View | Columns (minimum) | Delivered by |
 |---|---|---|---|
-| Enquiry funnel | `mv_enquiry_funnel` | `org_id, day, pipeline_id, stage_id, entered, left, won, lost, disqualified, assignee_user_id, team_id` | Phase 5 (needs an enquiry stage-history table; the plan's §3 has none) |
-| Time in stage | `mv_enquiry_stage_times` | `org_id, day, pipeline_id, stage_id, enquiries, seconds_sum` (sum + count, so averages re-aggregate) | Phase 5 |
-| Campaign performance | `mv_campaign_funnel` | `org_id, campaign_id, channel_id, sent, delivered, read, replied, failed` | Phase 7 |
 | WhatsApp cost | `mv_wa_usage` | `org_id, day, channel_id, category, country, messages, cost` from Meta `pricing_analytics` | a pricing-ingestion task (new) |
 
 Management dashboard widgets that wait on these: enquiries in/closed/converted, conversion to appointments, appointments by status/location/specialist, no-shows, campaign results, WhatsApp cost.

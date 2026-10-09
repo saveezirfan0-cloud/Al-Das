@@ -1,32 +1,24 @@
+/** Office Hours node: is `now` inside the configured weekly schedule (in the schedule's timezone)? */
 import { formatInTimeZone } from "date-fns-tz";
+import { z } from "zod";
 
-import type { Weekday } from "@/lib/flow-engine/types";
+const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
+export const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
 
-export type OfficeSchedule = Partial<Record<Weekday, Array<{ from: string; to: string }>>>;
+export const officeHoursSchema = z.object({
+  timezone: z.string().default("Asia/Dubai"),
+  schedule: z
+    .partialRecord(z.enum(DAYS), z.array(z.object({ start: hhmm, end: hhmm })).max(4))
+    .default({}),
+});
+export type OfficeHours = z.infer<typeof officeHoursSchema>;
 
-const DAYS: Weekday[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
-const toMin = (hhmm: string) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5));
-
-/**
- * True when `at` falls inside one of the day's windows in `timezone`. A window whose end is
- * before its start runs past midnight (22:00–02:00); the part after midnight belongs to the
- * next calendar day's check against the previous day's window.
- */
-export function isOfficeOpen(schedule: OfficeSchedule, at: Date, timezone: string): boolean {
-  const iso = Number(formatInTimeZone(at, timezone, "i")); // 1..7
-  const today = DAYS[iso - 1];
-  const yesterday = DAYS[(iso + 5) % 7];
-  const minutes =
-    Number(formatInTimeZone(at, timezone, "H")) * 60 + Number(formatInTimeZone(at, timezone, "m"));
-  for (const w of schedule[today] ?? []) {
-    const from = toMin(w.from);
-    const to = toMin(w.to);
-    if (to > from ? minutes >= from && minutes < to : minutes >= from) return true;
-  }
-  for (const w of schedule[yesterday] ?? []) {
-    const from = toMin(w.from);
-    const to = toMin(w.to);
-    if (to <= from && minutes < to) return true;
-  }
-  return false;
+export function isWithinOfficeHours(cfg: OfficeHours, now: Date): boolean {
+  const day = formatInTimeZone(now, cfg.timezone, "EEE")
+    .toLowerCase()
+    .slice(0, 3) as (typeof DAYS)[number];
+  const time = formatInTimeZone(now, cfg.timezone, "HH:mm");
+  const slots = cfg.schedule[day] ?? [];
+  // end is exclusive; a slot where end <= start is ignored (misconfigured → closed).
+  return slots.some((s) => s.end > s.start && time >= s.start && time < s.end);
 }

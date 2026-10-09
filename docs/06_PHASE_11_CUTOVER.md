@@ -127,11 +127,11 @@ Must be GO. It checks the environment, queues and cron, the channel (active, tok
 
 ## 7. Make parallel week (before moving a number Make sends from)
 
-Source of truth: `docs/audit/make-replacement-design.md` §9–10 and `make-scenarios.md`. Built in Phase 8: the page is **Flows → Parallel run** (`/flows/parallel`, details in `docs/09_PHASE_8_NOTES.md`).
+Source of truth: `docs/audit/make-replacement-design.md` §9–10 and `make-scenarios.md`. Needs Phase 8.
 
-1. Native automations run in **Test mode**: recall programmes reach only internal validation patients (`contacts.is_test_record`), and appointment reminders reach only the numbers listed in the booking rules' test list. Make stays **live**. No patient receives a duplicate.
-2. For Birthday and Chronic recall switch on "Record who this would message" so each run also stores the Unite PINs it would have messaged (ids only, never a send). Each day paste what Make did (ids from its Airtable log tables) and press **Compare**. Every difference gets a one-line reason.
-3. After 7 days, per scenario: the page only allows **Sign off** when seven days are compared, differences are explained and the native version is marked built. The token scenario is judged by the Unite call success rate. The medical-record sync (scenario 7) cannot be signed off: it is not built.
+1. Native automations run in **Test send mode**: recipients are rewritten to `clinical_settings.test_recipient_numbers` and the real recipient is stamped on the log row. Make stays **live**. No patient receives a duplicate.
+2. Nightly `parallel_run_diffs` compare Make's output (read through the importer's `--since` mode) with the native output, using ids only. Every difference gets a reason.
+3. After 7 days, per scenario: diffs explained, tick the checklist row.
 4. **Switch night** (same night as the number's move): turn the Make scenario **off**, set the native automation to **Live**, then move the number (section 6). Never leave both live.
 5. Make's recall threshold stays at its live value for the comparison week; the clinically signed-off value is applied afterwards (OQ-01).
 

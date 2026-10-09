@@ -1,142 +1,88 @@
 import { z } from "zod";
 
-import {
-  dispatchEvent,
-  enqueueStep,
-  runRecurring,
-  sweepStuckRuns,
-  type FlowJob,
-} from "@/lib/flow-engine/service";
-import { failRunAfterRetries, processStep } from "@/lib/flow-engine/step";
+import { createFlowDeps } from "@/lib/flow-engine/supabase-deps";
+import { advance, finishRun, resumeFromTimer } from "@/lib/flow-engine/run";
+import { handleTriggerEvent } from "@/lib/flow-engine/triggers";
+import { enqueue } from "@/lib/jobs/enqueue";
 import { registerHandler } from "@/lib/jobs/registry";
-import { registerKind } from "@/lib/jobs/scheduler";
-import { registerTask } from "@/lib/jobs/tasks";
 import { PermanentJobError } from "@/lib/jobs/types";
-import { attributeRecallEvent } from "@/lib/recall/attribution";
-import type { Json } from "@/lib/supabase/types";
 
-// Timers: scheduled_jobs → flow_steps ({kind: 'flow.timeout' | 'flow.wake', payload: {run_id, token}}).
-registerKind("flow.*", "flow_steps");
-
-const replySchema = z.object({
-  type: z.string(),
-  text: z.string().nullable(),
-  interactiveId: z.string().nullable(),
-});
-const stepSchema = z.object({
-  type: z.literal("step"),
-  run_id: z.string().uuid(),
-  expect: z.number().int().min(0),
-  token: z.number().int().optional(),
-  retries: z.number().int().optional(),
-  input: z.discriminatedUnion("type", [
-    z.object({ type: z.literal("start") }),
-    z.object({ type: z.literal("timeout") }),
-    z.object({ type: z.literal("time") }),
-    z.object({
-      type: z.literal("reply"),
-      reply: replySchema,
-      message_id: z.string().uuid().optional(),
-    }),
-  ]),
-});
-const eventSchema = z.object({
-  type: z.literal("event"),
+/**
+ * `flow_steps` queue. Message shapes:
+ *   { type:'step', run_id }                         run exactly one node
+ *   { type:'trigger', org_id, event, payload }      a domain event that may start / resume flows
+ *   { kind:'flow.resume', payload:{run_id, token} } scheduler envelope for timers and timeouts
+ */
+const stepJob = z.object({ type: z.literal("step"), run_id: z.string().uuid() });
+const triggerJob = z.object({
+  type: z.literal("trigger"),
   org_id: z.string().uuid(),
-  name: z.string(),
-  payload: z.record(z.string(), z.unknown()),
-  at: z.string(),
+  event: z.string().min(1),
+  payload: z.record(z.string(), z.unknown()).default({}),
 });
-const timerSchema = z.object({
-  kind: z.enum(["flow.timeout", "flow.wake"]),
-  org_id: z.string().uuid().nullish(),
-  payload: z.object({ run_id: z.string().uuid(), token: z.number().int() }),
+const resumeJob = z.object({
+  kind: z.literal("flow.resume"),
+  payload: z.object({ run_id: z.string().uuid(), token: z.string().min(1) }),
 });
+const jobSchema = z.union([stepJob, triggerJob, resumeJob]);
 
-const MAX_LOCK_RETRIES = 10;
-const FINAL_READ = 4; // maxReads below is 5; on the last delivery the run is failed instead of left hanging
+const MAX_READS = 5;
 
-registerHandler<Json>({
+registerHandler({
   queue: "flow_steps",
-  name: "Flow steps",
-  batchSize: 25,
-  visibilityTimeout: 90,
-  maxReads: 5,
-  concurrency: "serial",
-  handler: async (payload, ctx) => {
-    const raw = payload as Record<string, unknown>;
+  name: "flows.step",
+  batchSize: 20,
+  visibilityTimeout: 60,
+  maxReads: MAX_READS,
+  concurrency: "parallel",
+  async handler(raw, ctx) {
+    const parsed = jobSchema.safeParse(raw);
+    if (!parsed.success)
+      throw new PermanentJobError(`invalid flow job: ${parsed.error.issues[0]?.message}`);
+    const job = parsed.data;
+    const deps = createFlowDeps(ctx.admin);
 
-    if (raw.type === "event") {
-      const ev = eventSchema.safeParse(raw);
-      if (!ev.success) throw new PermanentJobError("invalid flow event job");
-      // Recall programmes: a reply or a booking after a recall is attributed to that recall.
-      await attributeRecallEvent(ctx.admin, ev.data).catch((e) =>
-        ctx.log.warn("recall attribution failed", {
-          message: e instanceof Error ? e.name : "unknown",
-        }),
-      );
-      const r = await dispatchEvent(
-        ctx.admin,
-        ev.data as unknown as Extract<FlowJob, { type: "event" }>,
-      );
-      if (r.started || r.resumed)
-        ctx.log.info("flows: event handled", {
-          name: ev.data.name,
-          started: r.started,
-          resumed: r.resumed,
-        });
+    if ("type" in job && job.type === "trigger") {
+      const out = await handleTriggerEvent(deps, {
+        orgId: job.org_id,
+        name: job.event,
+        payload: job.payload,
+      });
+      ctx.log.info("flow.trigger", {
+        event: job.event,
+        started: out.started.length,
+        resumed: out.resumed,
+      });
       return;
     }
 
-    let job: z.infer<typeof stepSchema>;
-    if (typeof raw.kind === "string" && raw.kind.startsWith("flow.")) {
-      const t = timerSchema.safeParse(raw);
-      if (!t.success) throw new PermanentJobError("invalid flow timer job");
-      const { data: run } = await ctx.admin
-        .from("flow_runs")
-        .select("step_count, status")
-        .eq("id", t.data.payload.run_id)
-        .maybeSingle();
-      if (!run || run.status !== "waiting") return; // answered, cancelled or finished since the timer was set
-      job = {
-        type: "step",
-        run_id: t.data.payload.run_id,
-        expect: run.step_count,
-        token: t.data.payload.token,
-        input: { type: t.data.kind === "flow.timeout" ? "timeout" : "time" },
-      };
-    } else {
-      const s = stepSchema.safeParse(raw);
-      if (!s.success) throw new PermanentJobError("invalid flow step job");
-      job = s.data;
+    if ("kind" in job) {
+      const r = await resumeFromTimer(deps, job.payload.run_id, job.payload.token);
+      // Another step holds the conversation: fail this delivery so the scheduler retries with back-off.
+      if (!r.resumed && r.reason === "locked") throw new Error("conversation busy");
+      return;
     }
 
     try {
-      const result = await processStep(ctx.admin, job, `msg:${ctx.msgId}`);
-      if (result === "locked") {
-        const retries = (job.retries ?? 0) + 1;
-        if (retries > MAX_LOCK_RETRIES) throw new Error("flow lock held too long");
-        await enqueueStep({ ...job, retries } as never, 2);
-      }
+      const r = await advance(deps, job.run_id);
+      if (r.status === "locked")
+        await enqueue("flow_steps", { type: "step", run_id: job.run_id }, { delaySeconds: 2 });
     } catch (err) {
-      if (err instanceof PermanentJobError) throw err;
-      if (ctx.readCt >= FINAL_READ) {
-        await failRunAfterRetries(ctx.admin, job.run_id, "The step kept failing and was stopped.");
-        ctx.log.error("flows: step abandoned", { run: job.run_id });
-        return;
+      // Infrastructure errors retry (the step row makes the replay idempotent). On the last read, fail the run
+      // so it does not sit in "running" forever.
+      if (ctx.readCt >= MAX_READS) {
+        const run = await deps.store.getRun(job.run_id);
+        if (run && (run.status === "running" || run.status === "waiting")) {
+          await finishRun(
+            deps,
+            run,
+            "failed",
+            `Step could not be completed: ${(err as Error).message}`.slice(0, 300),
+          );
+        }
+        throw new PermanentJobError((err as Error).message);
       }
       throw err;
     }
-  },
-});
-
-// pg_cron every minute: recurring triggers + recovery of runs whose next step was lost.
-registerTask("flows_recurring", {
-  name: "Flows: recurring triggers",
-  run: async (admin, log) => {
-    const recurring = await runRecurring(admin);
-    const recovered = await sweepStuckRuns(admin);
-    if (recovered) log.warn("flows: re-queued stuck runs", { recovered });
-    return { ...recurring, recovered } as unknown as Json;
   },
 });

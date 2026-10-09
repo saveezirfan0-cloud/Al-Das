@@ -1,163 +1,118 @@
 /**
- * Trigger / branch conditions over a flat event context. Uses the same AST as the segment
- * filter builder (lib/filters/ast) so the builder UI and stored shapes are shared, but fields are
- * dotted context paths (`message.text`, `contact.source`, `event.ad`, `vars.score`) rather than
- * contact columns.
+ * Two small condition languages:
+ *  - trigger conditions (Source / Keyword / Ad, equals / not equals / contains / not contains)
+ *  - branch conditions (any value in the run scope against a literal)
+ * Both are pure and case-insensitive for text.
  */
-import {
-  countConditions,
-  type Condition,
-  type Filter,
-  type FilterNode,
-  type Group,
-} from "@/lib/filters/ast";
-import { getPath, stringify, type Scope } from "@/lib/flow-engine/interpolate";
+import { getPath, interpolate, type InterpolateScope } from "@/lib/flow-engine/interpolate";
+import type { TriggerConditions } from "@/lib/flow-engine/types";
 
-function toNum(v: unknown): number | null {
-  if (v === null || v === undefined || v === "") return null;
-  const n = typeof v === "number" ? v : Number(v);
-  return Number.isFinite(n) ? n : null;
-}
+export type TriggerFacts = { source?: string | null; keyword?: string | null; ad?: string | null };
 
-const norm = (v: unknown) => stringify(v).trim().toLowerCase();
-
-function asList(v: unknown): string[] {
-  if (Array.isArray(v)) return v.map((x) => norm(x));
-  if (typeof v === "string")
-    return v
-      .split(",")
-      .map((x) => norm(x))
-      .filter(Boolean);
-  return [];
-}
-
-export function evaluateCondition(c: Condition, scope: Scope, now: Date = new Date()): boolean {
-  const raw = getPath(scope, c.field);
-  const value = c.value as unknown;
-  switch (c.op) {
-    case "eq":
-      return norm(raw) === norm(value);
-    case "neq":
-      return norm(raw) !== norm(value);
+function textTest(
+  op: "equals" | "not_equals" | "contains" | "not_contains",
+  actual: string,
+  expected: string,
+): boolean {
+  const a = actual.trim().toLowerCase();
+  const e = expected.trim().toLowerCase();
+  switch (op) {
+    case "equals":
+      return a === e;
+    case "not_equals":
+      return a !== e;
     case "contains":
-      return norm(value) !== "" && norm(raw).includes(norm(value));
+      return e === "" ? true : a.includes(e);
     case "not_contains":
-      return !norm(raw).includes(norm(value));
-    case "starts_with":
-      return norm(raw).startsWith(norm(value));
-    case "ends_with":
-      return norm(raw).endsWith(norm(value));
-    case "in":
-      return asList(value).includes(norm(raw));
-    case "not_in":
-      return !asList(value).includes(norm(raw));
-    case "is_empty":
-      return norm(raw) === "" || (Array.isArray(raw) && raw.length === 0);
-    case "is_not_empty":
-      return !(norm(raw) === "" || (Array.isArray(raw) && raw.length === 0));
-    case "is_true":
-      return raw === true || norm(raw) === "true" || norm(raw) === "yes";
-    case "is_false":
-      return !(raw === true || norm(raw) === "true" || norm(raw) === "yes");
-    case "gt":
-    case "gte":
-    case "lt":
-    case "lte": {
-      const a = toNum(raw);
-      const b = toNum(value);
-      if (a === null || b === null) return false;
-      return c.op === "gt" ? a > b : c.op === "gte" ? a >= b : c.op === "lt" ? a < b : a <= b;
-    }
-    case "between": {
-      const a = toNum(raw);
-      const range = value as
-        { min?: unknown; max?: unknown; from?: unknown; to?: unknown } | undefined;
-      const lo = toNum(range?.min ?? range?.from);
-      const hi = toNum(range?.max ?? range?.to);
-      return a !== null && lo !== null && hi !== null && a >= lo && a <= hi;
-    }
-    case "has_any": {
-      const have = asList(raw);
-      return asList(value).some((x) => have.includes(x));
-    }
-    case "has_all": {
-      const have = asList(raw);
-      return asList(value).every((x) => have.includes(x));
-    }
-    case "has_none": {
-      const have = asList(raw);
-      return !asList(value).some((x) => have.includes(x));
-    }
-    case "within_last":
-    case "older_than":
-    case "not_within_last": {
-      const t = raw ? new Date(stringify(raw)).getTime() : NaN;
-      const days = toNum(value);
-      if (Number.isNaN(t) || days === null) return c.op === "not_within_last";
-      const age = (now.getTime() - t) / 86_400_000;
-      return c.op === "within_last"
-        ? age >= 0 && age <= days
-        : c.op === "older_than"
-          ? age > days
-          : !(age >= 0 && age <= days);
-    }
-    default:
-      // Unsupported operator for flows (anniversaries, calendar dates): fail closed.
-      return false;
+      return e === "" ? true : !a.includes(e);
   }
 }
 
-function evaluateNode(n: FilterNode, scope: Scope, now: Date): boolean {
-  return n.type === "condition" ? evaluateCondition(n, scope, now) : evaluateGroup(n, scope, now);
-}
-
-export function evaluateGroup(g: Group, scope: Scope, now: Date = new Date()): boolean {
-  const children = g.children.filter((n) => countConditions(n) > 0);
-  if (children.length === 0) return true;
-  return g.logic === "and"
-    ? children.every((n) => evaluateNode(n, scope, now))
-    : children.some((n) => evaluateNode(n, scope, now));
-}
-
-/** Empty / missing conditions match everything; `exclude` removes matches. */
-export function matchesConditions(
-  filter: Filter | null | undefined,
-  scope: Scope,
-  now: Date = new Date(),
+/** Empty condition list always matches. */
+export function matchTriggerConditions(
+  cond: TriggerConditions | null | undefined,
+  facts: TriggerFacts,
 ): boolean {
-  if (!filter) return true;
-  if (countConditions(filter.include) > 0 && !evaluateGroup(filter.include, scope, now))
-    return false;
-  if (
-    filter.exclude &&
-    countConditions(filter.exclude) > 0 &&
-    evaluateGroup(filter.exclude, scope, now)
-  )
-    return false;
-  return true;
+  if (!cond || cond.conditions.length === 0) return true;
+  const results = cond.conditions.map((c) =>
+    textTest(c.op, String(facts[c.category] ?? ""), c.value),
+  );
+  return cond.logic === "or" ? results.some(Boolean) : results.every(Boolean);
 }
 
-/** Fields the builder offers for trigger conditions and Branch nodes. */
-export const CONDITION_FIELDS: Array<{
-  key: string;
-  label: string;
-  type: "text" | "number" | "boolean" | "date";
-}> = [
-  { key: "message.text", label: "Message text (keyword)", type: "text" },
-  { key: "message.button_id", label: "Button id", type: "text" },
-  { key: "message.button_title", label: "Button text", type: "text" },
-  { key: "event.source", label: "Source", type: "text" },
-  { key: "event.ad", label: "Came from an ad", type: "boolean" },
-  { key: "event.ad_headline", label: "Ad headline", type: "text" },
-  { key: "contact.first_name", label: "Contact first name", type: "text" },
-  { key: "contact.language", label: "Contact language", type: "text" },
-  { key: "contact.gender", label: "Contact gender", type: "text" },
-  { key: "contact.source", label: "Contact source", type: "text" },
-  { key: "contact.promotions_opt_in", label: "Contact opted in to promotions", type: "boolean" },
-  { key: "conversation.status", label: "Conversation status", type: "text" },
-  { key: "enquiry.status", label: "Enquiry status", type: "text" },
-  { key: "enquiry.stage", label: "Enquiry stage", type: "text" },
-  { key: "enquiry.source", label: "Enquiry source", type: "text" },
-  { key: "appointment.status", label: "Appointment status", type: "text" },
-  { key: "appointment.location", label: "Appointment location", type: "text" },
-];
+export const BRANCH_OPS = [
+  "eq",
+  "neq",
+  "contains",
+  "not_contains",
+  "gt",
+  "gte",
+  "lt",
+  "lte",
+  "is_empty",
+  "is_not_empty",
+  "in",
+] as const;
+export type BranchOp = (typeof BRANCH_OPS)[number];
+
+export type BranchCondition = { left: string; op: BranchOp; right?: string };
+export type BranchRule = { logic: "and" | "or"; conditions: BranchCondition[] };
+
+function isBlank(v: unknown): boolean {
+  return v === undefined || v === null || (typeof v === "string" && v.trim() === "");
+}
+
+export function evaluateBranch(rule: BranchRule, scope: InterpolateScope): boolean {
+  if (rule.conditions.length === 0) return false; // fail closed: an empty branch never says "true"
+  const results = rule.conditions.map((c) => {
+    // `left` is a scope path ("vars.age") or an interpolated string ("{contact.first_name}").
+    const leftVal = c.left.includes("{") ? interpolate(c.left, scope).text : getPath(scope, c.left);
+    const right = interpolate(c.right ?? "", scope).text;
+    switch (c.op) {
+      case "is_empty":
+        return isBlank(leftVal);
+      case "is_not_empty":
+        return !isBlank(leftVal);
+      case "eq":
+        return (
+          String(leftVal ?? "")
+            .trim()
+            .toLowerCase() === right.trim().toLowerCase()
+        );
+      case "neq":
+        return (
+          String(leftVal ?? "")
+            .trim()
+            .toLowerCase() !== right.trim().toLowerCase()
+        );
+      case "contains":
+        return String(leftVal ?? "")
+          .toLowerCase()
+          .includes(right.toLowerCase());
+      case "not_contains":
+        return !String(leftVal ?? "")
+          .toLowerCase()
+          .includes(right.toLowerCase());
+      case "in":
+        return right
+          .split(",")
+          .map((s) => s.trim().toLowerCase())
+          .includes(
+            String(leftVal ?? "")
+              .trim()
+              .toLowerCase(),
+          );
+      case "gt":
+      case "gte":
+      case "lt":
+      case "lte": {
+        if (isBlank(leftVal) || isBlank(right)) return false; // unknown data fails closed
+        const l = Number(leftVal);
+        const r = Number(right);
+        if (!Number.isFinite(l) || !Number.isFinite(r)) return false;
+        return c.op === "gt" ? l > r : c.op === "gte" ? l >= r : c.op === "lt" ? l < r : l <= r;
+      }
+    }
+  });
+  return rule.logic === "or" ? results.some(Boolean) : results.every(Boolean);
+}

@@ -1,113 +1,155 @@
 /**
- * Which flows an event can start. Pure: the dispatcher loads candidate flows and event context
- * and these functions decide.
+ * Turning domain events into flow runs. Listeners only enqueue a `flow_steps` job
+ * ({type:'trigger'}); this module runs inside that job:
+ *   - message.received  → resume a waiting bot run, else template-button flows
+ *   - conversation.*    → conversation_* flows (conditions: Source / Keyword / Ad)
+ *   - enquiry.* / appointment.* → matching flows (conditions on source only; payload kept in run.trigger)
  */
-import type { TriggerConfig, TriggerType } from "@/lib/flow-engine/types";
+import { matchTriggerConditions, type TriggerFacts } from "@/lib/flow-engine/conditions";
+import type { FlowDeps, FlowView } from "@/lib/flow-engine/deps";
+import { resumeFromReply, startRun } from "@/lib/flow-engine/run";
+import { triggerConditionsSchema, type TriggerType } from "@/lib/flow-engine/types";
 
-export type EventPayload = Record<string, unknown>;
+export const EVENT_TRIGGERS: Record<string, TriggerType> = {
+  "conversation.opened": "conversation_opened",
+  "conversation.closed": "conversation_closed",
+  "conversation.waiting": "conversation_waiting",
+  "enquiry.created": "enquiry_added",
+  "enquiry.stage_changed": "enquiry_stage_updated",
+  "enquiry.status_changed": "enquiry_status_updated",
+  "appointment.created": "appointment_created",
+  "appointment.updated": "appointment_updated",
+  "appointment.status_changed": "appointment_status_changed",
+};
+
+/** Events the listener must enqueue (the mapped ones plus inbound messages). */
+export function isFlowEvent(name: string): boolean {
+  return name === "message.received" || name in EVENT_TRIGGERS;
+}
+
+export type TriggerEvent = { orgId: string; name: string; payload: Record<string, unknown> };
+export type TriggerOutcome = { started: string[]; resumed: boolean; skipped: string[] };
 
 const str = (v: unknown): string | null => (typeof v === "string" && v ? v : null);
 
-/** Interactive replies (button / list row) arrive as message.received with `interactive`. */
-export function buttonReplyOf(
-  payload: EventPayload,
-): { id: string | null; title: string | null } | null {
-  const i = payload.interactive as { id?: unknown; title?: unknown } | null | undefined;
-  if (i && (str(i.id) || str(i.title))) return { id: str(i.id), title: str(i.title) };
-  if (payload.kind === "button") return { id: null, title: null };
-  return null;
-}
-
-export function triggerTypesFor(name: string, payload: EventPayload): TriggerType[] {
-  switch (name) {
-    case "conversation.opened":
-      return ["conversation_opened"];
-    case "conversation.closed":
-      return ["conversation_closed"];
-    case "conversation.waiting":
-      return ["conversation_waiting"];
-    case "message.received":
-      return buttonReplyOf(payload) ? ["template_button_reply"] : [];
-    case "enquiry.created":
-      return ["enquiry_added"];
-    case "enquiry.stage_changed":
-      return ["enquiry_stage_updated"];
-    case "enquiry.status_changed":
-      return ["enquiry_status_updated"];
-    case "appointment.created":
-      return ["appointment_created"];
-    case "appointment.updated":
-    case "appointment.status_changed":
-      return ["appointment_updated"];
-    default:
-      return [];
-  }
-}
-
-/** Events that can matter to flows at all (emit() only enqueues these). */
-export const FLOW_EVENTS: ReadonlySet<string> = new Set([
-  "conversation.opened",
-  "conversation.closed",
-  "conversation.waiting",
-  "message.received",
-  "enquiry.created",
-  "enquiry.stage_changed",
-  "enquiry.status_changed",
-  "appointment.created",
-  "appointment.updated",
-  "appointment.status_changed",
-]);
-
-/** The flow's own settings (number, pipeline, button ids) against the event. */
-export function configMatches(
-  config: TriggerConfig,
-  channelId: string | null,
-  payload: EventPayload,
-): boolean {
-  if (config.channel_id && channelId && config.channel_id !== channelId) return false;
-  if (config.channel_id && !channelId) return false;
-  if (config.pipeline_id && str(payload.pipeline_id) !== config.pipeline_id) return false;
-  if (config.button_ids?.length) {
-    const b = buttonReplyOf(payload);
-    const ok =
-      !!b &&
-      config.button_ids.some((x) => x === b.id || x.toLowerCase() === b.title?.toLowerCase());
-    if (!ok) return false;
-  }
-  return true;
-}
-
-/** Idempotency key: the same event delivered twice must start a flow once. */
-export function eventTriggerKey(name: string, payload: EventPayload, at: string): string {
-  const entity =
-    str(payload.message_id) ??
-    str(payload.appointment_id) ??
-    str(payload.enquiry_id) ??
-    str(payload.conversation_id) ??
-    "-";
-  const extra = str(payload.to_stage_id) ?? str(payload.to) ?? "";
-  return `${name}:${entity}:${extra}:${at}`.slice(0, 200);
-}
-
-/** Small, flat copy of the payload for {event.*}; nothing nested deeper than it needs to be. */
-export function trimEvent(
-  payload: EventPayload,
-  extra: EventPayload = {},
-): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
-  const walk = (src: unknown, depth: number): unknown => {
-    if (typeof src === "string") return src.slice(0, 500);
-    if (typeof src === "number" || typeof src === "boolean" || src === null) return src;
-    if (depth >= 4) return null;
-    if (Array.isArray(src)) return src.slice(0, 20).map((x) => walk(x, depth + 1));
-    if (src && typeof src === "object") {
-      const o: Record<string, unknown> = {};
-      for (const [k, v] of Object.entries(src as Record<string, unknown>).slice(0, 50))
-        o[k] = walk(v, depth + 1);
-      return o;
-    }
-    return null;
+/** Source / Keyword / Ad facts for a conversation-scoped trigger. */
+export function factsFromReferral(referral: unknown, keyword: string | null): TriggerFacts {
+  const r = (referral && typeof referral === "object" ? referral : null) as Record<
+    string,
+    unknown
+  > | null;
+  return {
+    source: r ? (str(r.source_url) ?? str(r.source_type) ?? "ad") : "direct",
+    keyword,
+    ad: r ? str(r.source_id) : null,
   };
-  for (const [k, v] of Object.entries({ ...payload, ...extra }).slice(0, 60)) out[k] = walk(v, 0);
+}
+
+function conditionsOf(flow: FlowView) {
+  const parsed = triggerConditionsSchema.safeParse(flow.trigger_config.conditions ?? {});
+  return parsed.success ? parsed.data : null; // malformed conditions never match (fail closed)
+}
+
+export async function handleTriggerEvent(
+  deps: FlowDeps,
+  ev: TriggerEvent,
+): Promise<TriggerOutcome> {
+  const out: TriggerOutcome = { started: [], resumed: false, skipped: [] };
+  const conversationId = str(ev.payload.conversation_id);
+  let contactId = str(ev.payload.contact_id);
+
+  let triggerType: TriggerType | null = EVENT_TRIGGERS[ev.name] ?? null;
+  let facts: TriggerFacts = {};
+  let extra: Record<string, unknown> = { ...ev.payload };
+  let templateId: string | null = null;
+  let buttonText: string | null = null;
+
+  if (ev.name === "message.received") {
+    const messageId = str(ev.payload.message_id);
+    const msg = messageId ? await deps.store.getInboundMessage(messageId) : null;
+    if (!msg) return out;
+    contactId = contactId ?? msg.contact_id;
+
+    // A waiting bot run owns the conversation: the message is the answer.
+    const live = await deps.store.getLiveRunForConversation(msg.conversation_id);
+    if (live) {
+      if (live.status === "waiting" && live.waiting_for?.kind === "reply") {
+        const kind =
+          msg.kind === "button" || (msg.kind === "interactive" && msg.reply_id) ? "button" : "text";
+        const r = await resumeFromReply(deps, live.id, {
+          kind,
+          text: msg.body ?? "",
+          optionId: msg.reply_id,
+        });
+        out.resumed = r.resumed;
+      }
+      return out;
+    }
+    if (msg.kind !== "button") return out;
+    triggerType = "template_button";
+    templateId = msg.template_id;
+    buttonText = msg.body;
+    extra = {
+      ...extra,
+      button_text: msg.body,
+      button_payload: msg.reply_id,
+      template_id: msg.template_id,
+    };
+    facts = { source: "template", keyword: msg.body, ad: null };
+  } else if (triggerType && conversationId) {
+    const conv = await deps.store.getConversation(conversationId);
+    if (!conv) return out;
+    contactId = contactId ?? conv.contact_id;
+    facts = factsFromReferral(
+      conv.ad_referral,
+      await deps.store.getFirstInboundText(conversationId),
+    );
+    if (ev.name === "conversation.opened" && ev.payload.ad_referral) {
+      facts = factsFromReferral(ev.payload.ad_referral, facts.keyword ?? null);
+    }
+  } else if (triggerType) {
+    facts = { source: str(ev.payload.source), keyword: null, ad: null };
+  }
+  if (!triggerType) return out;
+
+  const flows = await deps.store.listActiveFlows(ev.orgId, triggerType);
+  const channelId = conversationId
+    ? ((await deps.store.getConversation(conversationId))?.channel_id ?? null)
+    : null;
+  for (const flow of flows) {
+    if (flow.channel_id && channelId && flow.channel_id !== channelId) {
+      out.skipped.push(flow.id);
+      continue;
+    }
+    if (triggerType === "template_button") {
+      const wantTemplate = str(flow.trigger_config.template_id);
+      const wantButton = str(flow.trigger_config.button_text);
+      if (wantTemplate && wantTemplate !== templateId) {
+        out.skipped.push(flow.id);
+        continue;
+      }
+      if (wantButton && wantButton.toLowerCase() !== (buttonText ?? "").trim().toLowerCase()) {
+        out.skipped.push(flow.id);
+        continue;
+      }
+    }
+    const cond = conditionsOf(flow);
+    if (!cond || !matchTriggerConditions(cond, facts)) {
+      out.skipped.push(flow.id);
+      continue;
+    }
+    const res = await startRun(deps, {
+      flowId: flow.id,
+      contactId,
+      conversationId,
+      enquiryId: str(ev.payload.enquiry_id),
+      trigger: { event: ev.name, ...extra, facts },
+    });
+    if (res.started) {
+      out.started.push(res.runId);
+      // One bot run per conversation: the first matching flow wins.
+      if (conversationId) break;
+    } else out.skipped.push(flow.id);
+  }
   return out;
 }

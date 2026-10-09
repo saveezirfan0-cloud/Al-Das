@@ -1,295 +1,238 @@
-/**
- * Graph helpers and the publish-time validator. Saving a draft only needs the shape to parse;
- * publishing runs `validateGraph` and refuses on errors (warnings are advice).
- */
-import { KNOWN_FILTERS, references, SCOPE_ROOTS } from "@/lib/flow-engine/interpolate";
-import { isValidCron } from "@/lib/flow-engine/cron";
+/** Graph validation (run on Save for warnings, on Publish as a hard gate) and traversal helpers. */
 import {
-  CONVERSATION_TRIGGERS,
-  MAX_STEPS_PER_RUN,
-  NODE_META,
-  flowGraphSchema,
-  handlesFor,
-  nodeDataSchemas,
+  graphSchema,
+  type FlowEdge,
   type FlowGraph,
   type FlowNode,
   type NodeType,
-  type TriggerConfig,
-  type TriggerType,
 } from "@/lib/flow-engine/types";
 
-export type GraphIssue = { severity: "error" | "warning"; nodeId?: string; message: string };
+/** "structure": the graph itself is malformed. "setup": a node still needs its settings filled in. Both block publishing when level is "error". */
+export type GraphIssue = {
+  level: "error" | "warning";
+  nodeId?: string;
+  message: string;
+  kind?: "structure" | "setup";
+};
 
-/** Nodes that talk to the patient or act on the conversation. */
-export const NEEDS_CONVERSATION: ReadonlySet<NodeType> = new Set<NodeType>([
-  "message",
-  "question",
-  "quick_reply",
-  "template",
-  "assign_to",
-  "close_conversation",
-  "add_comment",
-]);
+/** Handles each node type may emit. `option:*` is validated separately for question nodes. */
+const HANDLES: Partial<Record<NodeType, string[]>> = {
+  trigger: ["default"],
+  message: ["default", "fallback"],
+  question: ["default", "fallback"],
+  quick_reply: ["default", "fallback"],
+  template: ["default", "fallback"],
+  branch: ["true", "false", "fallback"],
+  wait: ["default"],
+  office_hours: ["inside", "outside"],
+  run_flow: ["default", "fallback"],
+  end_flow: [],
+  assign_to: ["default", "fallback"],
+  close_conversation: ["default"],
+  add_comment: ["default", "fallback"],
+  update_contact_field: ["default", "fallback"],
+  create_enquiry: ["default", "fallback"],
+  add_task: ["default", "fallback"],
+  portal_record: ["default", "fallback"],
+  book_appointment: ["default", "fallback"],
+  api_action: ["default", "fallback"],
+  send_notification: ["default", "fallback"],
+};
 
-/** Nodes that wait for the patient (the run stays alive until a reply or a timeout). */
-export const WAITING_NODES: ReadonlySet<NodeType> = new Set<NodeType>(["question", "quick_reply"]);
-
-export function findTrigger(graph: FlowGraph): FlowNode | undefined {
-  return graph.nodes.find((n) => n.type === "trigger");
-}
-
-export function nodeById(graph: FlowGraph, id: string): FlowNode | undefined {
-  return graph.nodes.find((n) => n.id === id);
-}
-
-/** The node an edge from (nodeId, handle) leads to; `default` is used when a specific handle has no edge. */
-export function nextNodeId(graph: FlowGraph, nodeId: string, handle: string): string | null {
-  const edges = graph.edges.filter((e) => e.source === nodeId);
-  const normalise = (h: string | null | undefined) => h || "default";
-  const exact = edges.find((e) => normalise(e.sourceHandle) === handle);
-  if (exact) return exact.target;
-  return null;
-}
-
-function textFields(type: NodeType, data: Record<string, unknown>): string[] {
-  const out: string[] = [];
-  const push = (v: unknown) => {
-    if (typeof v === "string") out.push(v);
-  };
-  switch (type) {
-    case "message":
-    case "add_comment":
-      push(data.text);
-      break;
-    case "question":
-    case "quick_reply":
-      push(data.text);
-      break;
-    case "template":
-      Object.values((data.values as Record<string, unknown>) ?? {}).forEach(push);
-      break;
-    case "update_contact":
-      ((data.fields as Array<{ value?: unknown }>) ?? []).forEach((f) => push(f?.value));
-      break;
-    case "api_action":
-      push(data.url);
-      push(data.body);
-      break;
-    case "send_notification":
-      push(data.title);
-      push(data.body);
-      break;
-    case "add_task":
-      push(data.subject);
-      push(data.notes);
-      break;
-    case "portal_record":
-      push(data.recordId);
-      Object.values((data.values as Record<string, unknown>) ?? {}).forEach(push);
-      break;
-    default:
-      break;
-  }
-  return out;
-}
-
-export function validateGraph(
-  input: unknown,
-  ctx: { triggerType: TriggerType; triggerConfig?: TriggerConfig; knownVariables?: string[] },
-): {
-  issues: GraphIssue[];
-  errors: number;
-  warnings: number;
-  ok: boolean;
-  graph: FlowGraph | null;
-} {
-  const issues: GraphIssue[] = [];
-  const err = (message: string, nodeId?: string) =>
-    issues.push({ severity: "error", nodeId, message });
-  const warn = (message: string, nodeId?: string) =>
-    issues.push({ severity: "warning", nodeId, message });
-
-  const parsed = flowGraphSchema.safeParse(input);
+export function validateGraph(raw: unknown): { graph: FlowGraph | null; issues: GraphIssue[] } {
+  const parsed = graphSchema.safeParse(raw);
   if (!parsed.success) {
-    err("The graph is malformed and cannot be read.");
-    return { issues, errors: 1, warnings: 0, ok: false, graph: null };
+    return {
+      graph: null,
+      issues: parsed.error.issues.map((i) => ({
+        level: "error" as const,
+        message: `${i.path.join(".")}: ${i.message}`,
+      })),
+    };
   }
   const graph = parsed.data;
-
-  const ids = new Set<string>();
+  const issues: GraphIssue[] = [];
+  const byId = new Map<string, FlowNode>();
   for (const n of graph.nodes) {
-    if (ids.has(n.id)) err(`Duplicate node id "${n.id}"`, n.id);
-    ids.add(n.id);
+    if (byId.has(n.id))
+      issues.push({
+        level: "error",
+        nodeId: n.id,
+        message: `Duplicate node id ${n.id}`,
+        kind: "structure",
+      });
+    byId.set(n.id, n);
   }
 
   const triggers = graph.nodes.filter((n) => n.type === "trigger");
-  if (triggers.length === 0) err("The flow has no trigger node.");
-  if (triggers.length > 1) err("A flow has exactly one trigger node.");
-
-  if (ctx.triggerType === "recurring") {
-    const cron = ctx.triggerConfig?.cron;
-    if (!cron || !isValidCron(cron))
-      err("A recurring flow needs a valid schedule (five cron fields).");
+  if (triggers.length !== 1) {
+    issues.push({
+      level: "error",
+      message:
+        triggers.length === 0
+          ? "A flow needs exactly one trigger node"
+          : "Only one trigger node is allowed",
+    });
   }
 
-  const vars = new Set(ctx.knownVariables ?? []);
-  for (const n of graph.nodes) {
-    const schema = nodeDataSchemas[n.type];
-    const res = schema.safeParse(n.data);
-    if (!res.success) {
-      for (const i of res.error.issues)
-        err(
-          `${NODE_META[n.type].label}: ${i.path.join(".") ? i.path.join(".") + " – " : ""}${i.message}`,
-          n.id,
-        );
-    } else if (n.type === "question") {
-      vars.add((res.data as { variable: string }).variable);
-    } else if (n.type === "api_action") {
-      const v = (res.data as { saveAs?: string }).saveAs;
-      if (v) vars.add(v);
-    }
-
-    if (!CONVERSATION_TRIGGERS.has(ctx.triggerType) && NEEDS_CONVERSATION.has(n.type)) {
-      warn(
-        `${NODE_META[n.type].label} needs a conversation; this trigger has none unless the patient already has an open one.`,
-        n.id,
-      );
-    }
-    if (n.type === "template" && ctx.triggerType !== "recurring") {
-      // fine: templates work outside the 24 h window
-    }
-    for (const t of textFields(n.type, n.data)) {
-      for (const r of references(t)) {
-        const root = r.path.split(".")[0];
-        if (!(SCOPE_ROOTS as readonly string[]).includes(root))
-          warn(`"{${r.path}}" is not a known field.`, n.id);
-        for (const f of r.filters)
-          if (!KNOWN_FILTERS.has(f)) warn(`Unknown filter "${f}" in "{${r.path}}".`, n.id);
-      }
-    }
-  }
-
-  // Edges
+  const seenHandles = new Set<string>();
   for (const e of graph.edges) {
-    const from = graph.nodes.find((n) => n.id === e.source);
-    const to = graph.nodes.find((n) => n.id === e.target);
-    if (!from || !to) {
-      err("An arrow points at a node that does not exist.", from?.id ?? to?.id);
+    const src = byId.get(e.source);
+    if (!src) {
+      issues.push({ level: "error", message: `Edge ${e.id} starts at a missing node` });
       continue;
     }
-    if (to.type === "trigger") err("Nothing can lead back into the trigger.", to.id);
-    const handle = e.sourceHandle || "default";
-    if (!handlesFor(from.type, from.data).includes(handle)) {
-      err(`${NODE_META[from.type].label} has no "${handle}" exit.`, from.id);
+    if (!byId.has(e.target)) {
+      issues.push({ level: "error", message: `Edge ${e.id} points to a missing node` });
+      continue;
     }
-  }
-
-  // At most one arrow per exit.
-  const seen = new Set<string>();
-  for (const e of graph.edges) {
-    const key = `${e.source}:${e.sourceHandle || "default"}`;
-    if (seen.has(key))
-      err(
-        `An exit of ${NODE_META[nodeById(graph, e.source)?.type ?? "trigger"].label} has more than one arrow.`,
-        e.source,
-      );
-    seen.add(key);
+    if (byId.get(e.target)!.type === "trigger") {
+      issues.push({
+        level: "error",
+        nodeId: e.target,
+        message: "Nothing can connect into the trigger",
+      });
+    }
+    const handle = e.sourceHandle ?? "default";
+    const allowed = HANDLES[src.type] ?? [];
+    const okOption = src.type === "question" && handle.startsWith("option:");
+    if (!allowed.includes(handle) && !okOption) {
+      issues.push({
+        level: "error",
+        nodeId: src.id,
+        message: `${src.type} has no "${handle}" output`,
+      });
+    }
+    const dup = `${e.source}:${handle}`;
+    if (seenHandles.has(dup))
+      issues.push({
+        level: "error",
+        nodeId: src.id,
+        message: `Output "${handle}" is connected twice`,
+      });
+    seenHandles.add(dup);
   }
 
   // Reachability from the trigger.
-  const trigger = triggers[0];
-  if (trigger) {
-    const reach = new Set<string>([trigger.id]);
-    const queue = [trigger.id];
+  if (triggers.length === 1) {
+    const reach = new Set<string>([triggers[0]!.id]);
+    const queue = [triggers[0]!.id];
     while (queue.length) {
       const cur = queue.pop()!;
       for (const e of graph.edges) {
-        if (e.source !== cur || reach.has(e.target)) continue;
-        reach.add(e.target);
-        queue.push(e.target);
-      }
-    }
-    for (const n of graph.nodes)
-      if (!reach.has(n.id))
-        warn(
-          `${NODE_META[n.type].label} is not connected to the trigger and will never run.`,
-          n.id,
-        );
-    if (!graph.edges.some((e) => e.source === trigger.id))
-      err("Connect the trigger to the first step.", trigger.id);
-
-    // Branch / office-hours / question exits that lead nowhere end the run: fine, but say so for branches.
-    for (const n of graph.nodes) {
-      if (!reach.has(n.id)) continue;
-      if (n.type === "branch" || n.type === "office_hours") {
-        for (const h of handlesFor(n.type)) {
-          if (!graph.edges.some((e) => e.source === n.id && (e.sourceHandle || "default") === h))
-            warn(
-              `The "${h}" exit of ${NODE_META[n.type].label} goes nowhere, so the flow ends there.`,
-              n.id,
-            );
+        if (e.source === cur && !reach.has(e.target)) {
+          reach.add(e.target);
+          queue.push(e.target);
         }
       }
-      if (n.type === "question" || n.type === "quick_reply") {
-        if (
-          !graph.edges.some(
-            (e) => e.source === n.id && (e.sourceHandle || "default") === "fallback",
-          )
-        )
-          warn(
-            `${NODE_META[n.type].label} has no "fallback" exit; an unexpected reply or a timeout ends the flow.`,
-            n.id,
-          );
+    }
+    for (const n of graph.nodes) {
+      if (!reach.has(n.id))
+        issues.push({ level: "warning", nodeId: n.id, message: "Not connected to the trigger" });
+    }
+    if (graph.nodes.length > 1 && graph.edges.every((e) => e.source !== triggers[0]!.id)) {
+      issues.push({
+        level: "error",
+        nodeId: triggers[0]!.id,
+        message: "The trigger is not connected to anything",
+      });
+    }
+  }
+
+  // Questions: ≤3 buttons or ≤10 list rows, unique option ids, every option should have an outgoing edge.
+  for (const n of graph.nodes.filter((x) => x.type === "question")) {
+    const opts = (n.data.options as Array<{ id: string; title: string }> | undefined) ?? [];
+    const style = (n.data.style as string | undefined) ?? (opts.length > 0 ? "buttons" : "text");
+    if (style === "buttons" && opts.length > 3)
+      issues.push({ level: "error", nodeId: n.id, message: "Buttons are limited to 3 options" });
+    if (style === "list" && opts.length > 10)
+      issues.push({ level: "error", nodeId: n.id, message: "Lists are limited to 10 rows" });
+    if (new Set(opts.map((o) => o.id)).size !== opts.length)
+      issues.push({ level: "error", nodeId: n.id, message: "Option ids must be unique" });
+    for (const o of opts) {
+      if (!graph.edges.some((e) => e.source === n.id && e.sourceHandle === `option:${o.id}`)) {
+        issues.push({
+          level: "warning",
+          nodeId: n.id,
+          message: `Option "${o.title}" is not connected`,
+        });
       }
     }
+  }
 
-    // A loop without any wait can only stop at the step cap.
-    if (hasWaitFreeCycle(graph))
-      warn(
-        `A loop in this flow contains no wait or question; it will stop after ${MAX_STEPS_PER_RUN} steps.`,
+  for (const n of graph.nodes) issues.push(...setupIssues(n));
+
+  return { graph, issues };
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const nonEmpty = (v: unknown) => typeof v === "string" && v.trim() !== "";
+
+/** Required settings per node type. Missing ones would only fail at run time, so they block Publish instead. */
+export function setupIssues(n: FlowNode): GraphIssue[] {
+  const d = n.data;
+  const need = (ok: boolean, message: string): GraphIssue[] =>
+    ok ? [] : [{ level: "error", nodeId: n.id, message, kind: "setup" }];
+  switch (n.type) {
+    case "message":
+    case "question":
+    case "quick_reply":
+      return need(nonEmpty(d.text), "Write the message text");
+    case "add_comment":
+      return need(nonEmpty(d.text), "Write the note");
+    case "template":
+      return need(
+        typeof d.template_id === "string" && UUID.test(d.template_id),
+        "Choose a template",
       );
-  }
-
-  // Variables used but never set.
-  for (const n of graph.nodes) {
-    for (const t of textFields(n.type, n.data)) {
-      for (const r of references(t)) {
-        if (!r.path.startsWith("vars.") || r.filters.includes("default")) continue;
-        const key = r.path.split(".")[1];
-        if (key && !vars.has(key))
-          warn(
-            `Variable "${key}" is never set (no question saves to it and it is not defined under Variables).`,
-            n.id,
-          );
-      }
+    case "run_flow":
+      return need(typeof d.flow_id === "string" && UUID.test(d.flow_id), "Choose the flow to run");
+    case "assign_to": {
+      const t = (d.target ?? {}) as { type?: string; id?: string };
+      return need(
+        t.type === "bot" || t.type === "unassign" || (typeof t.id === "string" && UUID.test(t.id)),
+        "Choose who to assign to",
+      );
     }
+    case "wait":
+      return need(typeof d.amount === "number" && d.amount > 0, "Set how long to wait");
+    case "branch":
+      return need(
+        Array.isArray(d.conditions) && d.conditions.length > 0,
+        "Add at least one condition",
+      );
+    case "update_contact_field":
+      return need(nonEmpty(d.field), "Choose the field to update");
+    case "api_action":
+      return need(
+        typeof d.url === "string" && /^https:\/\/\S+/.test(d.url.trim()),
+        "Enter an https:// URL",
+      );
+    case "send_notification": {
+      const t = (d.target ?? {}) as { id?: string };
+      return [
+        ...need(nonEmpty(d.title), "Write the notification title"),
+        ...need(nonEmpty(t.id), "Choose who to notify"),
+      ];
+    }
+    default:
+      return [];
   }
-
-  const errors = issues.filter((i) => i.severity === "error").length;
-  return { issues, errors, warnings: issues.length - errors, ok: errors === 0, graph };
 }
 
-function hasWaitFreeCycle(graph: FlowGraph): boolean {
-  const byId = new Map(graph.nodes.map((n) => [n.id, n]));
-  const adj = new Map<string, string[]>();
-  for (const e of graph.edges) {
-    const from = byId.get(e.source);
-    if (!from || WAITING_NODES.has(from.type) || from.type === "wait") continue;
-    adj.set(e.source, [...(adj.get(e.source) ?? []), e.target]);
-  }
-  const state = new Map<string, 1 | 2>();
-  const visit = (id: string): boolean => {
-    if (state.get(id) === 1) return true;
-    if (state.get(id) === 2) return false;
-    state.set(id, 1);
-    for (const next of adj.get(id) ?? []) if (visit(next)) return true;
-    state.set(id, 2);
-    return false;
-  };
-  return graph.nodes.some((n) => visit(n.id));
+export function hasErrors(issues: GraphIssue[]): boolean {
+  return issues.some((i) => i.level === "error");
 }
 
-/** True when any step messages the patient or acts on the conversation. */
-export function graphNeedsConversation(graph: FlowGraph): boolean {
-  return graph.nodes.some((n) => NEEDS_CONVERSATION.has(n.type));
+export function findNode(graph: FlowGraph, id: string): FlowNode | undefined {
+  return graph.nodes.find((n) => n.id === id);
+}
+
+/** The edge leaving `nodeId` through `handle` (null handle on an edge means "default"). */
+export function nextEdge(graph: FlowGraph, nodeId: string, handle: string): FlowEdge | undefined {
+  return graph.edges.find((e) => e.source === nodeId && (e.sourceHandle ?? "default") === handle);
+}
+
+export function triggerNode(graph: FlowGraph): FlowNode | undefined {
+  return graph.nodes.find((n) => n.type === "trigger");
 }

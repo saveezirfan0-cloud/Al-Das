@@ -42,6 +42,8 @@ const SERVICE_ONLY = new Set([
   "integration_accounts",
   "unite_api_calls",
   "job_runs",
+  // Phase 8: salted hashes of Make's daily output for the parallel run, written by the importer script only
+  "parallel_run_make_outputs",
   "rate_limit_hits",
   "scheduled_jobs",
   "webhook_events_in",

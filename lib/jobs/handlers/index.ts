@@ -18,7 +18,11 @@ import "@/lib/jobs/handlers/appointments";
 import "@/lib/jobs/handlers/unite-sync";
 import "@/lib/jobs/handlers/clinical";
 import "@/lib/jobs/handlers/flow-steps";
-import "@/lib/jobs/handlers/recall";
+import "@/lib/jobs/handlers/flow-recurring";
+import "@/lib/jobs/handlers/recall-run";
+import "@/lib/jobs/handlers/parallel-run";
+import "@/lib/recall/listeners";
+import "@/lib/flow-engine/listeners";
 
 import { registerKind } from "@/lib/jobs/scheduler";
 
@@ -32,5 +36,6 @@ registerKind("enquiry.sla", "notifications");
 registerKind("campaign.*", "campaign_fanout");
 registerKind("webhook.retry", "webhooks_out");
 registerKind("appointment.reminder", "appointments");
+registerKind("flow.*", "flow_steps");
 
 export {};

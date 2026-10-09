@@ -3,88 +3,53 @@ import Link from "next/link";
 import { PageHeader } from "@/components/shell/page-header";
 import { Button } from "@/components/ui/button";
 import { requirePerm } from "@/lib/auth/session";
-import { createClient } from "@/lib/supabase/server";
-import type { TriggerType } from "@/lib/flow-engine/types";
+import { createAdminClient } from "@/lib/supabase/admin";
 
-import { FlowsWorkspace } from "./flows-workspace";
-import type { FlowListItem, VariableItem } from "./types";
+import { FlowsList, type FlowRow } from "./flows-list";
 
 export const metadata = { title: "Flows" };
-export const dynamic = "force-dynamic";
 
 export default async function FlowsPage() {
   const member = await requirePerm("flows.manage");
-  const supabase = await createClient();
-  const [
-    { data: flows },
-    { data: counts },
-    { data: variables },
-    { data: channels },
-    { data: versions },
-  ] = await Promise.all([
-    supabase
+  const admin = createAdminClient();
+  const [{ data: flows }, { data: counts }, { data: channels }] = await Promise.all([
+    admin
       .from("flows")
-      .select(
-        "id, name, description, status, trigger_type, channel_id, version, updated_at, published_at, draft_graph",
-      )
+      .select("id, name, status, trigger_type, channel_id, version, updated_at")
       .eq("org_id", member.orgId)
       .order("updated_at", { ascending: false }),
-    supabase
+    admin
       .from("v_flow_run_counts")
-      .select("flow_id, completed, failed, live, last_run_at")
+      .select("flow_id, completed, failed, pending")
       .eq("org_id", member.orgId),
-    supabase
-      .from("flow_variables")
-      .select("id, key, label, value_type, default_value, description")
-      .eq("org_id", member.orgId)
-      .order("key"),
-    supabase.from("channels").select("id, name").eq("org_id", member.orgId).order("name"),
-    supabase.from("flow_versions").select("flow_id, version, graph").eq("org_id", member.orgId),
+    admin.from("channels").select("id, name").eq("org_id", member.orgId),
   ]);
-
   const byFlow = new Map((counts ?? []).map((c) => [c.flow_id, c]));
-  const live = new Map(
-    (versions ?? []).map((v) => [`${v.flow_id}:${v.version}`, JSON.stringify(v.graph)]),
-  );
-  const items: FlowListItem[] = (flows ?? []).map((f) => {
-    const c = byFlow.get(f.id);
-    const published = live.get(`${f.id}:${f.version}`);
-    return {
-      id: f.id,
-      name: f.name,
-      description: f.description,
-      status: f.status as FlowListItem["status"],
-      trigger_type: f.trigger_type as TriggerType,
-      channel_id: f.channel_id,
-      version: f.version,
-      updated_at: f.updated_at,
-      published_at: f.published_at,
-      completed: c?.completed ?? 0,
-      failed: c?.failed ?? 0,
-      live: c?.live ?? 0,
-      last_run_at: c?.last_run_at ?? null,
-      unpublished: f.version === 0 || published !== JSON.stringify(f.draft_graph),
-    };
-  });
+  const channelName = new Map((channels ?? []).map((c) => [c.id, c.name]));
+  const rows: FlowRow[] = (flows ?? []).map((f) => ({
+    id: f.id,
+    name: f.name,
+    status: f.status as FlowRow["status"],
+    trigger_type: f.trigger_type,
+    channel: f.channel_id ? (channelName.get(f.channel_id) ?? "—") : "All numbers",
+    version: f.version,
+    updated_at: f.updated_at,
+    ok: Number(byFlow.get(f.id)?.completed ?? 0),
+    failed: Number(byFlow.get(f.id)?.failed ?? 0),
+    waiting: Number(byFlow.get(f.id)?.pending ?? 0),
+  }));
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-6">
       <PageHeader
         title="Flows"
-        description="Bots and automations that run on conversations, enquiries, appointments, webhooks and schedules."
+        description="Automations and bots: what starts them, which number they use, and how their runs are going."
       >
-        <Button asChild variant="outline" size="sm">
-          <Link href="/flows/recall">Recall programmes</Link>
-        </Button>
-        <Button asChild variant="outline" size="sm">
-          <Link href="/flows/parallel">Parallel run</Link>
+        <Button variant="outline" asChild>
+          <Link href="/flows/variables">Variables</Link>
         </Button>
       </PageHeader>
-      <FlowsWorkspace
-        flows={items}
-        variables={(variables ?? []) as VariableItem[]}
-        channels={channels ?? []}
-      />
+      <FlowsList rows={rows} />
     </div>
   );
 }

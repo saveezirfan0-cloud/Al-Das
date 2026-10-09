@@ -54,6 +54,6 @@ A production build also caught one mistake of mine: a Next.js route file may not
 | 5 Enquiries / tasks | New tables appear in the catalog sweep automatically; add their actions to the static audit (automatic) |
 | 6 Appointments / Unite | Unite credentials encrypted at rest (`integration_accounts`); every Unite call logged; the Finance API job behind its flag and writing raw payloads first (rule 7); read-only proof test |
 | 7 Campaigns | Opt-out / `stop_marketing` filter, recipient snapshot permissions, auto-pause |
-| 8 Flows | **Done in Phase 8** ([`09_PHASE_8_NOTES.md`](../09_PHASE_8_NOTES.md)): every executor unit-tested; per-conversation lease and 200-step cap tested against Postgres; incoming webhook secret hashed, rate-limited, size-capped; API action restricted to public HTTPS; portal-record steps limited to what the publisher can write; no message text in traces. Recall: fail-closed rules in `lib/clinical/recall.ts`, send rows PHI-gated; parallel-run tables hold identifiers only |
+| 8 Flows | Executor unit tests; advisory lock; 200-step cap; webhook-in endpoints signed |
 | 9 Portal | Generic object routes respect `portal_objects` permissions; CSV export audited |
 | 10 Public API / AI | API keys hashed; per-key limits from `RATE_RULES.publicApi`; outbound webhooks HMAC-signed with retries; AI drafts only, no PHI beyond the feature itself |

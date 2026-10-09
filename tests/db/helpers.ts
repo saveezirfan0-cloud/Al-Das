@@ -16,9 +16,9 @@ export async function connect(): Promise<Client> {
 export async function resetDb(c: Client) {
   await c.query("reset role");
   await c.query("truncate public.orgs cascade");
-  await c.query("truncate public.scheduled_jobs, public.job_runs, public.dead_letters");
+  await c.query("truncate public.scheduled_jobs, public.job_runs, public.dead_letters, public.flow_locks");
   await c.query("delete from auth.users");
-  for (const q of ["outbound", "outbound_priority", "notifications", "meta_events", "webhooks_out", "kb_ingest", "flow_steps"]) {
+  for (const q of ["outbound", "outbound_priority", "flow_steps", "notifications", "meta_events", "webhooks_out", "kb_ingest"]) {
     await c.query(`delete from pgmq.q_${q}`);
     await c.query(`delete from pgmq.a_${q}`);
   }
