@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { CLINICAL_CHAIN, CLINICAL_DATA } from "../fixtures/airtable-clinical";
 import type { AirtableRecord } from "../../scripts/import/airtable-client";
 import { planOrder, runImport, selectKeys } from "../../scripts/import/orchestrator";
 import { overallVerdict, renderReport } from "../../scripts/import/report";
@@ -15,6 +16,7 @@ const E = {
   website: "appkOnjPr1SMD83CP.tblpWst9QqYNuKpwZ",
   mrd: "app7QJ2pvhADHQeBP.tblllKPKIY9qvMoEU",
   unitePatients: "app7QJ2pvhADHQeBP.tbl9856qJP9S7OEqB",
+  appt: "appkOnjPr1SMD83CP.tblhoSfiSjO4zh9cf",
 };
 
 const rec = (id: string, fields: Record<string, unknown>): AirtableRecord => ({
@@ -72,6 +74,13 @@ const DATA: Record<string, AirtableRecord[]> = {
       fldeVUgOhIlFt0fPu: "+971 4 000 0000",
     }),
     rec("recW2", { fld44pzWF1WiW96XW: "01. General", fld87i81Uv5xEbCjh: "Home" }), // duplicate natural key
+  ],
+  [E.appt]: [
+    rec("recAM1", {
+      fldjRghFRS8xkpkWa: "A1",
+      fld5m4VQXx6JQYAIk: "2026-09-03",
+      fldkmbCGn5ovZIxHF: "PIN1",
+    }),
   ],
   [E.mrd]: [
     rec("recV1", {
@@ -207,7 +216,7 @@ describe("importer orchestration", () => {
     });
   });
 
-  it("a dry run writes nothing, but resolves links through an overlay (including pending tables)", async () => {
+  it("a dry run writes nothing, resolves links through an overlay, and validates pending tables", async () => {
     const store = await seededStore();
     const { source, readTables } = fakeSource(DATA);
     const run = await runImport(
@@ -217,10 +226,9 @@ describe("importer orchestration", () => {
         includeTest: false,
         only: [
           "unite.diagnosis",
-          "unite.items",
-          "unite.medication",
           "unite.patients",
           "unite.medical_records",
+          "campaigns.appointment_messages",
         ],
       },
     );
@@ -235,28 +243,37 @@ describe("importer orchestration", () => {
     expect(diag.counters.created).toBe(3); // "would create"
     expect(diag.refsAfter).toBe(3);
 
+    // visits are a ready table now: the overlay records what a real run would create and link
     const mrd = run.results.find((r) => r.key === "unite.medical_records")!;
-    expect(mrd.outcome).toBe("validated");
-    expect(mrd.counters.read).toBe(2);
-    // recV1 → patient recP1 and diagnosis recD1 resolved via overlay; recMISSING / recNOPE do not
-    const labels = mrd.unmatched.map((u) => [u.label, u.count]);
-    expect(labels).toContainEqual(["unite.medical_records · Unite (patient)", 1]);
-    expect(labels).toContainEqual(["unite.medical_records · Diagnosis", 1]);
+    expect(mrd.outcome).toBe("imported");
+    expect(mrd.counters).toMatchObject({ read: 2, created: 2, failed: 0 });
+    expect(mrd.refsAfter).toBe(2);
+    // recV1 → patient recP1 resolves via the overlay; recV2 → recNOPE does not
+    expect(mrd.unmatched.map((u) => [u.label, u.count])).toContainEqual([
+      "unite.medical_records · Unite (patient)",
+      1,
+    ]);
+
+    // appointment messages are still pending: read and validated, never written
+    const am = run.results.find((r) => r.key === "campaigns.appointment_messages")!;
+    expect(am.outcome).toBe("validated");
+    expect(am.counters.read).toBe(1);
     expect(readTables).toContain(E.mrd);
+    expect(readTables).toContain(E.appt);
   });
 
-  it("a real run skips Phase 6 tables without reading them and says why", async () => {
+  it("a real run skips pending tables without reading them and says why", async () => {
     const store = await seededStore();
     const { source, readTables } = fakeSource(DATA);
     const run = await runImport(
       { store, source, runPatients: fakePatients as never },
-      { ...baseOpts, only: ["unite.medical_records", "acute.prescriptions"] },
+      { ...baseOpts, only: ["campaigns.appointment_messages", "campaigns.birthday"] },
     );
     expect(readTables).toEqual([]);
     expect(
       run.results.every((r) => r.outcome === "skipped_pending" && r.verdict === "PENDING"),
     ).toBe(true);
-    expect(run.results[0].note).toMatch(/Phase 6/);
+    expect(run.results.map((r) => r.note).join(" ")).toMatch(/appointments|recall_sends/);
     expect(overallVerdict(run.results)).toBe("PASS");
   });
 
@@ -458,5 +475,154 @@ describe("reconciliation report", () => {
     );
     expect(md).toContain("dry run, nothing written");
     expect(md).toContain("Overall: FAIL");
+  });
+});
+
+/** Rows only: tables a run touched but left empty are not a difference. */
+const snap = (store: MemoryStore) =>
+  JSON.stringify([...store.tables.entries()].filter(([, rows]) => rows.length > 0).sort());
+
+describe("clinical import chain (in-memory store)", () => {
+  const DATA_CLIN = CLINICAL_DATA;
+  const CHAIN = CLINICAL_CHAIN;
+
+  async function chainStore() {
+    const store = new MemoryStore();
+    await store.insertRow("ref_medication_classes", {
+      unite_local_code: "D-100",
+      class: "antibiotic",
+    });
+    await store.insertRow("teams", { name: "Nurse" });
+    await store.insertRow("departments", { name: "Dermatology" });
+    return store;
+  }
+  const runChain = (store: MemoryStore, data = DATA_CLIN) =>
+    runImport(
+      { store, source: fakeSource(data).source, runPatients: fakePatients as never },
+      { ...baseOpts, only: CHAIN },
+    );
+  const row = (store: MemoryStore, table: string, where: Record<string, unknown>) =>
+    store.rows(table).find((r) => Object.entries(where).every(([k, v]) => r[k] === v));
+
+  it("writes the Phase 6 columns, links by reference, and never signs off or notifies anyone", async () => {
+    const store = await chainStore();
+    const run = await runChain(store);
+    const by = Object.fromEntries(run.results.map((r) => [r.key, r]));
+
+    for (const k of CHAIN.filter((x) => !x.endsWith("patients")))
+      expect(by[k].counters.failed, k).toBe(0);
+
+    // doctor → specialist with the department resolved
+    const dept = store.rows("departments")[0];
+    const doc = row(store, "specialists", { name: "Dr Fake" })!;
+    expect(doc.department_id).toBe(dept.id);
+
+    // visits: airtable-sourced, Acute Visits adopted the MRD row instead of adding a second one
+    expect(store.rows("visits")).toHaveLength(2);
+    const v1 = row(store, "visits", { external_id: "recMRD1" })!;
+    expect(v1).toMatchObject({
+      source: "airtable",
+      bp_systolic: 92,
+      bp_diastolic: 61,
+      temp_c: 38.2,
+      contact_id: "contact-1",
+      specialist_id: doc.id,
+      department_mapped: "paediatrics",
+      pap_result: "not_available",
+    });
+    expect(by["acute.visits"].counters.adopted).toBe(1);
+
+    // prescriptions: class from the reference table by CODE, never from Airtable text
+    expect(store.rows("prescriptions")).toHaveLength(2);
+    expect(row(store, "prescriptions", { external_key: "recMRD1-1" })).toMatchObject({
+      class: "antibiotic",
+      visit_id: v1.id,
+      position: 1,
+      source: "airtable_acute",
+    });
+    expect(row(store, "prescriptions", { external_key: "recMRD1-2" })?.class).toBe("unclassified");
+    expect(by["acute.prescriptions"].warnings.class_not_in_reference).toBe(1);
+    expect(by["acute.prescriptions"].counters.invalid).toBe(1); // no visit link → not imported
+
+    // follow-ups: never source 'engine', engine-compatible dedupe key, open only if pending
+    const fu1 = row(store, "clinical_followups", { ref: "FU-1" })!;
+    expect(fu1).toMatchObject({
+      source: "airtable_acute",
+      dedupe_key: "recMRD1-vitals",
+      priority: "high",
+      call_status: "pending",
+      visit_id: v1.id,
+      assigned_team_id: store.rows("teams")[0].id,
+    });
+    expect(fu1.closed_at).toBeUndefined(); // open: the null is omitted on insert
+    const fu2 = row(store, "clinical_followups", { ref: "FU-2" })!;
+    expect(fu2).toMatchObject({
+      closed_reason: "airtable_history",
+      dedupe_key: "recMRD1-bleeding",
+      doctor_notified_at: "2026-01-01T00:00:00.000Z",
+    });
+    expect(typeof fu2.closed_at).toBe("string");
+
+    // feedback + message log: linked, terminal, nothing "scheduled"
+    expect(store.rows("clinical_feedback")[0]).toMatchObject({
+      stage: "after_antibiotics",
+      score: 8,
+      prescription_id: row(store, "prescriptions", { external_key: "recMRD1-1" })!.id,
+    });
+    expect(store.rows("clinical_message_log")[0]).toMatchObject({
+      status: "sent",
+      send_mode: "live",
+      idempotency_key: "recMRD1-1:ABX_DAY3",
+    });
+    expect(store.rows("clinical_message_log").some((r) => r.status === "scheduled")).toBe(false);
+
+    // call scripts: FU_* only, awaiting regardless of Airtable's "Approved"
+    expect(store.rows("clinical_call_scripts")).toHaveLength(1);
+    expect(store.rows("clinical_call_scripts")[0]).toMatchObject({
+      key: "FU_PAED_1",
+      clinical_approval: "awaiting",
+    });
+    expect(by["acute.message_templates"].counters.skipped).toBe(1);
+    expect(by["acute.message_templates"].warnings.airtable_approval_not_imported).toBe(1);
+  });
+
+  it("is idempotent, and never overwrites a row staff have worked in Pulse", async () => {
+    const store = await chainStore();
+    await runChain(store);
+    const snapshot = () => snap(store);
+    const before = snapshot();
+
+    const again = await runChain(store);
+    expect(snapshot()).toBe(before);
+    for (const r of again.results.filter(
+      (x) => CHAIN.includes(x.key) && !x.key.endsWith("patients"),
+    )) {
+      expect(r.counters.created, r.key).toBe(0);
+      expect(r.counters.updated, r.key).toBe(0);
+    }
+
+    // staff work the follow-up in Pulse, a late re-import must not revert it
+    const fu1 = row(store, "clinical_followups", { ref: "FU-1" })!;
+    Object.assign(fu1, {
+      call_status: "completed",
+      notes: "Called, improving",
+      closed_at: "2026-09-10T00:00:00Z",
+    });
+    await runChain(store);
+    expect(row(store, "clinical_followups", { ref: "FU-1" })).toMatchObject({
+      call_status: "completed",
+      notes: "Called, improving",
+    });
+  });
+
+  it("a dry run of the whole chain writes nothing", async () => {
+    const store = await chainStore();
+    const before = snap(store);
+    await runImport(
+      { store, source: fakeSource(DATA_CLIN).source, runPatients: fakePatients as never },
+      { dryRun: true, includeTest: false, only: CHAIN },
+    );
+    expect(snap(store)).toBe(before);
+    expect(store.refs.size).toBe(0);
   });
 });

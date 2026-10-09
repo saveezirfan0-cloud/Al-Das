@@ -642,3 +642,15 @@ All fields of the seven DRAFT tables are **not imported**. Their designs are car
 6. Website → `website_entry_points`; Message Templates → `wa_templates` drafts + `clinical_call_scripts`.
 
 Every row goes through `external_refs(source='airtable', entity='<baseId>.<tableId>', external_id=<recId>)`; re-runs update, never duplicate.
+
+## 9. Deviations in the importer as built (Phase 9 follow-up)
+
+The mapping above is the target design; `scripts/import/tables/clinical.ts` implements it with these deliberate differences:
+
+- **PTF and CFU tables are not imported** (PTF Prescriptions / Feedback / WhatsApp log / Patient Visits, CFU Follow-Up Queue): prototype bases, confirmed mostly test data. The field maps in §4.1 and §5 stay as the reference if real history turns up.
+- **Imported visits are `source='airtable'`** and `visits.external_id` holds the Airtable Medical Records record id. The clinical engine evaluates `source='unite'` visits only. A future Unite visit sync must adopt by contact + date (or map ids) before it runs.
+- **No `visit_diagnoses` / `visit_items` / `prescription_sequences` / `visit_rule_evaluations`**: the junction tables are still drafts, sequences are not scheduled yet, and evaluations are recomputed by the engine. `primary_diagnosis_code` is kept as text.
+- **Follow-ups** use `source='airtable_acute'` and the engine's dedupe key `<visit external_id>-<category>`; only rows still pending (and not test) are imported open, the rest are closed with `closed_reason='airtable_history'`.
+- **Medication class** is looked up in `ref_medication_classes` by code, never read from Airtable; unknown → `unclassified`.
+- **Message log** rows are terminal history; `scheduled` is never written. **Call scripts** import `FU_*` templates only and always as `awaiting` (Airtable approval is not imported).
+- **Doctor branch** → `specialist_locations` is not imported (needs hours and locations configured in Settings).
