@@ -596,6 +596,14 @@ export async function createTag(input: {
     .single();
   if (error)
     return fail(error.code === "23505" ? "That tag already exists." : "Could not create the tag.");
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "tag.created",
+    entity: "tag",
+    entityId: data.id,
+    diff: { scope: "contact" },
+  });
   revalidatePath("/contacts");
   return { ok: true, data };
 }
@@ -754,6 +762,14 @@ export async function bulkSegment(
       .in("contact_id", owned);
   }
   await refreshSegmentCountInternal(admin, member.orgId, segmentId, member.org.timezone);
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: `segment.bulk_${mode}`,
+    entity: "segment",
+    entityId: segmentId,
+    diff: { count: owned.length },
+  });
   revalidatePath("/contacts");
   return {
     ok: true,

@@ -43,6 +43,24 @@ export async function storeChannelToken(
   if (error) throw new Error(`storeChannelToken: ${error.message}`);
 }
 
+/**
+ * Load tests point the client at a local stub (scripts/load/mock-graph.ts) through
+ * META_GRAPH_BASE_URL. Only loopback hosts are honoured, so the System User token
+ * can never be redirected to another machine by a stray environment variable.
+ */
+export function graphBaseUrl(raw = process.env.META_GRAPH_BASE_URL): string | undefined {
+  if (!raw) return undefined;
+  try {
+    const u = new URL(raw);
+    if (["localhost", "127.0.0.1", "[::1]"].includes(u.hostname) && u.protocol === "http:") {
+      return u.origin;
+    }
+  } catch {
+    // fall through
+  }
+  return undefined;
+}
+
 /** A ready-to-use Cloud API client for a channel row. */
 export async function clientForChannel(
   admin: AdminClient,
@@ -55,6 +73,7 @@ export async function clientForChannel(
     phoneNumberId: channel.phone_number_id,
     wabaId: channel.waba_id,
     graphVersion: serverEnv().META_GRAPH_VERSION,
+    baseUrl: graphBaseUrl(),
     fetch: fetchImpl,
   });
 }
@@ -70,6 +89,7 @@ export function clientForToken(
     phoneNumberId: ids.phoneNumberId,
     wabaId: ids.wabaId,
     graphVersion: serverEnv().META_GRAPH_VERSION,
+    baseUrl: graphBaseUrl(),
     fetch: fetchImpl,
   });
 }

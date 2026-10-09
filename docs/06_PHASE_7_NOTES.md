@@ -2,7 +2,7 @@
 
 ## Scope delivered
 
-- **Migration** `20261008001000_campaigns.sql`
+- **Migration** `20261010000100_campaigns.sql`
   - `campaigns` (status machine, schedule, retry rounds, guardrails, stored funnel) and `campaign_recipients` (the audience snapshot and per-recipient state: `pending → queued → sent → delivered → read`, `failed`, `skipped` + reason, timestamps, `replied_at`, `csv_data`). Both have RLS (`campaigns.view` reads; every write is a server action with `can()` and the service role) and org-consistency triggers.
   - `conversations.campaign_only`: a campaign send lands in a normal conversation (`waiting`) that stays **hidden from every inbox folder until the patient replies**; the first inbound clears the flag, routes it (team + round-robin) and opens it like a new conversation.
   - Trigger `messages → campaign_recipients` mirrors message status onto the recipient (forward only, latest message only). Trigger `mark_campaign_replied`: a patient message within 7 days of a campaign message in the same conversation sets `replied_at` (reactions do not count).

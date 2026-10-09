@@ -23,7 +23,12 @@ export type DomainEventName =
   | "campaign.paused"
   | "campaign.resumed"
   | "campaign.completed"
-  | "campaign.cancelled";
+  | "campaign.cancelled"
+  | "appointment.created"
+  | "appointment.updated"
+  | "appointment.status_changed"
+  | "appointment.reminder_sent"
+  | "appointment.reminder_failed";
 
 export type DomainEvent = {
   orgId: string;

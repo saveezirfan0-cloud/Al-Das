@@ -39,3 +39,12 @@ export function maskSecret(value: string | null | undefined): string {
   if (!value) return "";
   return `••••${value.slice(-4)}`;
 }
+
+/** JSON convenience wrappers (integration credentials). */
+export function encryptJson(value: unknown, key?: Buffer): string {
+  return encryptSecret(JSON.stringify(value), key);
+}
+
+export function decryptJson<T>(blob: string, key?: Buffer): T {
+  return JSON.parse(decryptSecret(blob, key)) as T;
+}

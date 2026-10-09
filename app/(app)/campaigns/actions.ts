@@ -629,6 +629,14 @@ export async function rescheduleCampaignAction(id: string, atLocal: string): Pro
     orgId: member.orgId,
     dedupeKey: `campaign:start:${id}`,
   });
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "campaign.rescheduled",
+    entity: "campaign",
+    entityId: id,
+    diff: { scheduled_at: at.toISOString() },
+  });
   return done("Campaign rescheduled.");
 }
 

@@ -1,0 +1,29 @@
+{
+  "MessageStatus": "Success",
+  "DetailMessage": "Synthetic fixture - fake names and PINs only",
+  "DataBalancetoSync": 1,
+  "OverallDataBalancetoSync": 3,
+  "Data": [
+    {
+      "InvDisplayNumber": "ADMC/C/90001",
+      "AppointmentId": "APPT-TEST-1",
+      "ClinicLongName": "Test Clinic One",
+      "IsDeleted": false,
+      "PatientName": "Test Patient One",
+      "ItemsDetails": [
+        { "ItemCode": "T-TEST-1", "ActualCostPrice": 0 },
+        { "ItemCode": "T-TEST-1", "ActualCostPrice": 0 },
+        { "ItemCode": "T-TEST-2", "ActualCostPrice": 0 }
+      ],
+      "PaymentDetails": [{ "PaymentMode": "CARD" }]
+    },
+    {
+      "InvDisplayNumber": "ADMC/90002",
+      "AppointmentId": "",
+      "ClinicLongName": "Test Clinic Two",
+      "IsDeleted": false,
+      "ItemsDetails": [{ "ItemCode": "T-TEST-3", "ActualCostPrice": "0" }],
+      "PaymentDetails": []
+    }
+  ]
+}

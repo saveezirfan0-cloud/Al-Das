@@ -210,6 +210,11 @@ export async function processInbound(
     message_id: message.id,
     contact_id: contact.id,
     kind: event.type,
+    // Lets listeners react to template button replies (appointment Confirm / Reschedule / Cancel).
+    reply_to_wa_message_id: event.replyToWaMessageId,
+    interactive: event.interactive
+      ? { type: event.interactive.type, id: event.interactive.id, title: event.interactive.title }
+      : null,
   });
 
   return { outcome: "stored", messageId: message.id, conversationId: conversation.id, opened };
