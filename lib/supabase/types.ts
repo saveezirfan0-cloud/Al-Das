@@ -1512,6 +1512,51 @@ export type Database = {
           },
         ];
       };
+      integration_accounts: {
+        Row: {
+          config_enc: string;
+          created_at: string;
+          id: string;
+          kind: string;
+          last_error: string | null;
+          org_id: string;
+          status: string;
+          token_expires_at: string | null;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          config_enc: string;
+          created_at?: string;
+          id?: string;
+          kind: string;
+          last_error?: string | null;
+          org_id: string;
+          status?: string;
+          token_expires_at?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          config_enc?: string;
+          created_at?: string;
+          id?: string;
+          kind?: string;
+          last_error?: string | null;
+          org_id?: string;
+          status?: string;
+          token_expires_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "integration_accounts_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       invites: {
         Row: {
           accepted_at: string | null;
@@ -2456,6 +2501,55 @@ export type Database = {
           },
         ];
       };
+      unite_api_calls: {
+        Row: {
+          at: string;
+          batch_id: string | null;
+          duration_ms: number | null;
+          endpoint: string;
+          http_status: number | null;
+          id: number;
+          org_id: string;
+          unite_status: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          at?: string;
+          batch_id?: string | null;
+          duration_ms?: number | null;
+          endpoint: string;
+          http_status?: number | null;
+          id?: never;
+          org_id: string;
+          unite_status?: string | null;
+        };
+        Update: {
+          at?: string;
+          batch_id?: string | null;
+          duration_ms?: number | null;
+          endpoint?: string;
+          http_status?: number | null;
+          id?: never;
+          org_id?: string;
+          unite_status?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "unite_api_calls_batch_id_fkey";
+            columns: ["batch_id"];
+            isOneToOne: false;
+            referencedRelation: "fin_raw_unite_batches";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "unite_api_calls_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       user_grid_prefs: {
         Row: {
           grid_key: string;
@@ -2825,6 +2919,16 @@ export type Database = {
         Args: { p_error: string; p_id: string; p_retry_in?: string };
         Returns: undefined;
       };
+      fin_apply_invoices: {
+        Args: { p_batch_id: string; p_invoices: Json; p_org_id: string };
+        Returns: Json;
+      };
+      fin_auto_close_exceptions: {
+        Args: { p_entity_key: string; p_org_id: string; p_rule_code: string };
+        Returns: number;
+      };
+      fin_batch_mark_failed: { Args: { p_batch_id: string; p_error: string }; Returns: undefined };
+      fin_capture_enqueue_ticks: { Args: Record<PropertyKey, never>; Returns: number };
       fin_capture_release_lease: {
         Args: { p_holder: string; p_org_id: string };
         Returns: undefined;
@@ -2833,6 +2937,27 @@ export type Database = {
         Args: { p_holder: string; p_org_id: string; p_ttl_seconds?: number };
         Returns: boolean;
       };
+      fin_invoice_number_gaps: {
+        Args: { p_from?: string; p_org_id: string };
+        Returns: {
+          missing_count: number;
+          missing_from: number;
+          missing_to: number;
+          series: string;
+        }[];
+      };
+      fin_open_exception: {
+        Args: {
+          p_branch_code?: string;
+          p_detail?: Json;
+          p_entity_key: string;
+          p_entity_type: string;
+          p_org_id: string;
+          p_rule_code: string;
+        };
+        Returns: string;
+      };
+      fin_rederive_branches: { Args: { p_org_id: string }; Returns: number };
       gen_random_uuid: { Args: Record<PropertyKey, never>; Returns: string };
       gen_salt: { Args: { "": string }; Returns: string };
       job_archive: { Args: { p_msg_ids: number[]; p_queue: string }; Returns: number };

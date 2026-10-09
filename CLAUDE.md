@@ -31,12 +31,13 @@ One platform for Al Das Medical that replaces **Sanoflow** (WhatsApp inbox, temp
 16. **Audit files** in `docs/audit/` are the source of truth for migration. Never commit unredacted blueprints, tokens or record exports.
 
 ## Finance & Insurance module (docs/05_FINANCE_MODULE_PLAN.md)
-Captures Unite invoices, matches them to Diligence claim files, and routes exceptions. Phases F0–F6; F0–F1 done. Open items: `docs/finance/open-items.md`.
+Captures Unite invoices, matches them to Diligence claim files, and routes exceptions. Phases F0–F6; F0–F2 built (capture is built but OFF). Open items: `docs/finance/open-items.md`.
 - Tables are `public.fin_*`, `ins_*`, `ops_*` (never separate schemas); raw tables (`fin_raw_*`, capture settings and lease) have RLS and **no policies**: service role only, and the payload column is never selected for the UI.
 - **The Unite Finance API is deliver-once.** Only the F2 `finance_capture` handler may call it, only when `fin_capture_settings.enabled` is true (default false), only after taking `fin_capture_try_lease`, and only after the previous raw payload is stored. No scripts, tests or "quick checks" against it.
 - Store the raw batch first, then process with `fin_process_batch` (idempotent, replayable). Never delete invoice lines (`is_current = false`).
 - Finance tables carry the Unite PIN only; no names, DOB, Emirates ID or member IDs. Test fixtures are synthetic (`tests/unit/finance/fixtures`).
 - Permissions are `finance.*` (see `lib/auth/permissions.ts`); finance reads for staff go through RLS or the `v_fin_*` / `v_ins_*` views, server jobs use the service role after `can()`.
+- Unite JSON field names live ONLY in `lib/finance/unite-mapping.ts`; the mapper fails a batch closed rather than guess. Recover with `pnpm finance:replay <batchId|--failed>` (never calls Unite). Tests must never reach Unite (`tests/setup.ts` blocks the host).
 - `pnpm finance:seed --org=<slug>` adds the Finance/Billing/Insurance/CEO/Medical Director roles and reference rows to an existing org.
 
 ## Conventions

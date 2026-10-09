@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/table";
 import { requirePerm } from "@/lib/auth/session";
 import { getFinanceHealth } from "@/lib/finance/health";
+import { CaptureToggle, CredentialsForm, MaintenanceButtons, SettingsForm } from "./controls";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const metadata = { title: "Finance data health" };
@@ -69,7 +70,42 @@ export default async function FinanceHealthPage() {
         />
       </div>
 
+      {health.balanceStalled && (
+        <Alert variant="destructive">
+          <AlertTitle>Remaining balance is not dropping</AlertTitle>
+          <AlertDescription>
+            The last batches returned records but the remaining balance at Unite did not go down.
+            Check the batch log before the next run.
+          </AlertDescription>
+        </Alert>
+      )}
+      {health.openCaptureExceptions > 0 && (
+        <Alert variant="destructive">
+          <AlertTitle>{health.openCaptureExceptions} open capture exception(s)</AlertTitle>
+          <AlertDescription>
+            A batch failed, a response could not be stored, or the count did not match. Fix the
+            cause, then reprocess unprocessed batches. If Unite records were lost, ask Unite to
+            re-queue them.
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-2">
+        <Stat
+          label="Last successful capture"
+          value={health.lastSuccessfulCaptureAt ? fmt(health.lastSuccessfulCaptureAt) : "Never"}
+          hint={
+            health.integration.configured
+              ? `credentials ${health.integration.status}${health.integration.lastError ? `, last error: ${health.integration.lastError}` : ""}`
+              : "no Unite credentials saved"
+          }
+        />
+        <Stat
+          label="Invoice number gaps"
+          value={health.gaps.reduce((n, g) => n + g.missingCount, 0)}
+          hint={`${health.gaps.length} range(s) missing since ${health.windowFrom}`}
+          bad={health.gaps.length > 0}
+        />
         <Stat
           label="Unmapped services"
           value={health.unmappedServices}
@@ -140,9 +176,73 @@ export default async function FinanceHealthPage() {
         </CardContent>
       </Card>
 
-      <p className="text-muted-foreground text-xs">
-        Invoice-number gap report and the stalled-balance alert arrive with capture (phase F2).
-      </p>
+      {health.gaps.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Invoice number gaps</CardTitle>
+            <CardDescription>
+              Numbers missing inside each series. They usually mean records Unite has not delivered
+              yet.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Series</TableHead>
+                  <TableHead className="text-right">From</TableHead>
+                  <TableHead className="text-right">To</TableHead>
+                  <TableHead className="text-right">Missing</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {health.gaps.map((g) => (
+                  <TableRow key={`${g.series}-${g.missingFrom}`}>
+                    <TableCell className="font-mono text-xs">{g.series}</TableCell>
+                    <TableCell className="text-right tabular-nums">{g.missingFrom}</TableCell>
+                    <TableCell className="text-right tabular-nums">{g.missingTo}</TableCell>
+                    <TableCell className="text-right tabular-nums">{g.missingCount}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Capture controls</CardTitle>
+          <CardDescription>
+            The Unite Finance API delivers each record once. Turning capture on starts consuming
+            records, so do it only after the token check with Make and the Unite re-queue are done.
+            Keep &quot;batches per run&quot; at 1 for the first watched run.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-6">
+          <CaptureToggle enabled={health.captureEnabled} />
+          <SettingsForm
+            batchSize={health.batchSize}
+            maxBatches={health.maxBatchesPerRun}
+            windowFrom={health.windowFrom}
+          />
+          <MaintenanceButtons />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Unite credentials</CardTitle>
+          <CardDescription>
+            {health.integration.configured
+              ? "Saved. Leave a field blank to keep its stored value."
+              : "Not configured yet."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <CredentialsForm configured={health.integration.configured} />
+        </CardContent>
+      </Card>
     </div>
   );
 }

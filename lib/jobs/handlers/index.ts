@@ -3,6 +3,7 @@
  * The jobs API route imports it once per process. Phase 3+ add their handlers here.
  */
 import "@/lib/jobs/handlers/notifications";
+import "@/lib/jobs/handlers/finance-capture";
 
 import { registerKind } from "@/lib/jobs/scheduler";
 

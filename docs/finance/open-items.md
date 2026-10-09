@@ -25,3 +25,12 @@
 4. **Appointments table.** Platform Phase 6 plans `appointments`; F3 should reuse it, so the order of Phase 6 and F3 needs deciding.
 5. **`fin_payments.txn_ref_name`** (from the brief) may contain a cardholder name. Confirm with the first real payload; drop or hash it if it is personal data.
 6. **Production Unite credentials in this environment** do not exist yet (OQ-50). F2 cannot be exercised end to end here; it will be built against synthetic fixtures and a mocked HTTP client.
+
+## Added in F2
+
+7. **Initial token.** How the very first access/refresh token is obtained is unknown. The credentials form accepts an initial pair (copy from the Make Token data store, store 61544); without one, the first `authorize` is sent with no bearer header and may be rejected. Decide with Unite.
+8. **Field mapping.** `lib/finance/unite-mapping.ts` lists alias guesses for each Unite key (based on the field names in the brief). Until Unite confirms the field list, the first real batch will probably fail closed, with a message naming the missing field. That is intended: edit the aliases, then reprocess the batch; no data is lost because the raw payload is stored first. Also confirm which fields are required in practice.
+9. **Duplicate invoice in one batch** is treated as an error (fails the batch). If Unite can deliver the same invoice twice in one response, change `mapBatch` to keep the last.
+10. **Payment keys.** Two payments with the same instalment and receipt (both often blank) are keyed `…#2`, `…#3` in delivery order. Confirm that order is stable across re-deliveries once real data is seen.
+11. **The first live run** must be deliberate and watched: batches per run = 1, then check the batch log, row counts against the Unite UI, and the invoice number gap report before raising it.
+12. **Raw payload retention.** The 90-day PII strip of `fin_raw_unite_batches.payload` is not built yet (phase F6).

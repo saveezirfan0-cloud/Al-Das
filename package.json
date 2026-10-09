@@ -22,6 +22,7 @@
     "import:sanoflow": "tsx scripts/import-sanoflow.ts",
     "jobs:run": "tsx scripts/run-job.ts",
     "finance:seed": "tsx scripts/seed-finance.ts",
+    "finance:replay": "tsx scripts/finance-replay.ts",
     "format": "prettier --write ."
   },
   "dependencies": {

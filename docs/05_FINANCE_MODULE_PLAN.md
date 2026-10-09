@@ -71,6 +71,16 @@ Rules: raw first (if the raw insert fails, process nothing, raise a critical ale
 | `appt.appointments`                                                     | Decided in F3: the platform `appointments` table if it exists, otherwise a thin reference table                                                                      |
 | Feature flag                                                            | Per-org `fin_capture_settings.enabled`, default **false**                                                                                                            |
 
+### F2 as built
+
+- **Scheduling.** `pulse:finance_capture_tick` (hourly, `fin_capture_enqueue_ticks`) enqueues one `{kind:'tick', org_id}` per org with capture enabled and no tick already queued; `pulse:finance_capture` pings the queue every 30 s. The F1 hourly ping alone would never have run anything because the handler drains queued messages.
+- **Handler** `lib/jobs/handlers/finance-capture.ts` → `runCaptureForOrg` → `runCapture` (`lib/finance/capture.ts`, all effects injected). It does nothing unless `fin_capture_settings.enabled`, takes the lease, **first reprocesses any unprocessed raw batch and refuses to pull while one still fails**, then loops: call → store raw (3 attempts) → process. It stops at balance 0, an empty page, `max_batches_per_run`, the time budget (45 s), a failed process or raw insert, an unknown call outcome (E09 "lost response"), or two consecutive non-decreasing balances (E09 "stalled balance").
+- **Mapping is TypeScript, not plpgsql** (`lib/finance/unite-mapping.ts` aliases + `map-invoice.ts`), because Unite's real field names are still unknown. Required fields (invoice number, transaction date, gross, net, total, IsDeleted; line item code and net) that are missing, blank or unparseable fail the whole batch closed; the raw payload is kept and `pnpm finance:replay` (or "Reprocess" on the Data health page) recovers it after the mapping is fixed. Blank never becomes 0 or false. Only normalised fields reach `fin_invoice_versions` (no patient names, no `txn_ref_name`).
+- **SQL** `fin_apply_invoices` applies one batch in one transaction: version bump only when the record hash changes, lines and payments upserted by key and flagged not current when absent (never deleted), reference data filled blank-only, E07 opened/auto-closed, a replay of an older batch never overwrites newer state, an unchanged re-delivery touches nothing.
+- **Unite client** (`lib/unite/`): token manager (authorize → refresh on `Token Expired`, cached for at most 240 s, safety margin 30 s), and the only code that calls `GetFinanceDetails`. It never retries the finance call except once after a body-level token rejection; a transport failure after sending is reported as an unknown outcome, not retried.
+- **Credentials** live encrypted (AES-256-GCM, `lib/crypto.ts`) in `integration_accounts`; the Data health page has a write-only form, capture settings, the enable switch (type ENABLE) and maintenance buttons. Every call is logged to `unite_api_calls` (no bodies).
+- **Tests never reach Unite**: `tests/setup.ts` makes `fetch` throw for the Unite host.
+
 ## 3. Data model (built in F1)
 
 Migrations `20261009000100`–`500`. Natural keys are per org (`unique (org_id, …)`).
