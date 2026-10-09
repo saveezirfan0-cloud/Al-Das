@@ -9,6 +9,7 @@ import type {
   FlowDeps,
   FlowStore,
   FlowView,
+  InboundMessageView,
   RunRecord,
   StepRecord,
   TemplateView,
@@ -179,6 +180,17 @@ export class FakeStore implements FlowStore {
   async setConversationBot(id: string, patch: { bot_active?: boolean; flow_run_id?: string | null }) {
     const c = this.conversations.get(id);
     if (c) Object.assign(c, patch);
+  }
+  inbound = new Map<string, InboundMessageView>();
+  firstInboundText: string | null = null;
+  async listActiveFlows(orgId: string, triggerType: string) {
+    return [...this.flows.values()].filter((f) => f.org_id === orgId && f.trigger_type === triggerType && f.status === "active" && f.published_graph);
+  }
+  async getInboundMessage(id: string) {
+    return this.inbound.get(id) ?? null;
+  }
+  async getFirstInboundText() {
+    return this.firstInboundText;
   }
 }
 

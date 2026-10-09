@@ -7,6 +7,9 @@ import "@/lib/jobs/handlers/meta-events";
 import "@/lib/jobs/handlers/media-fetch";
 import "@/lib/jobs/handlers/outbound";
 import "@/lib/jobs/handlers/inbox-housekeeping";
+import "@/lib/jobs/handlers/flow-steps";
+import "@/lib/jobs/handlers/flow-recurring";
+import "@/lib/flow-engine/listeners";
 
 import { registerKind } from "@/lib/jobs/scheduler";
 
@@ -15,5 +18,6 @@ registerKind("notification.*", "notifications");
 registerKind("email.send", "notifications");
 registerKind("outbound.send", "outbound");
 registerKind("media.fetch", "media_fetch");
+registerKind("flow.*", "flow_steps");
 
 export {};

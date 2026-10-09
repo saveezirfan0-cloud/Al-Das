@@ -1522,6 +1522,63 @@ export type Database = {
           },
         ];
       };
+      flow_versions: {
+        Row: {
+          flow_id: string;
+          graph: NonNullable<Json>;
+          org_id: string;
+          published_at: string;
+          published_by: string | null;
+          version: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          flow_id: string;
+          graph: NonNullable<Json>;
+          org_id: string;
+          published_at?: string;
+          published_by?: string | null;
+          version: number;
+        };
+        Update: {
+          flow_id?: string;
+          graph?: NonNullable<Json>;
+          org_id?: string;
+          published_at?: string;
+          published_by?: string | null;
+          version?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "flow_versions_flow_id_fkey";
+            columns: ["flow_id"];
+            isOneToOne: false;
+            referencedRelation: "flows";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "flow_versions_flow_id_fkey";
+            columns: ["flow_id"];
+            isOneToOne: false;
+            referencedRelation: "v_flow_run_counts";
+            referencedColumns: ["flow_id"];
+          },
+          {
+            foreignKeyName: "flow_versions_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "flow_versions_published_by_fkey";
+            columns: ["published_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       flows: {
         Row: {
           channel_id: string | null;
@@ -4886,6 +4943,7 @@ export type Database = {
       seed_clinical_settings: { Args: { p_org: string }; Returns: undefined };
       seed_condition_groups: { Args: { p_org: string }; Returns: undefined };
       seed_parallel_run_scenarios: { Args: { p_org: string }; Returns: undefined };
+      seed_phase8_defaults: { Args: { p_org: string }; Returns: undefined };
       seed_recall_programmes: { Args: { p_org: string }; Returns: undefined };
       seed_recall_reminder_programme: { Args: { p_org: string }; Returns: undefined };
       seed_reminder_exclusions: { Args: { p_org: string }; Returns: undefined };

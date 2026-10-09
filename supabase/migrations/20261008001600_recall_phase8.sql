@@ -128,6 +128,22 @@ create policy parallel_run_diffs_update on public.parallel_run_diffs for update 
   using (app.has_perm(org_id, 'settings.manage')) with check (app.has_perm(org_id, 'settings.manage'));
 -- make_outputs: engine/importer only (service role), no policies.
 
+-- One call for everything a workspace needs before the recall engine / parallel-run report work.
+-- Idempotent (every seed is ON CONFLICT DO NOTHING). Called lazily by the Recall page and by scripts.
+create or replace function public.seed_phase8_defaults(p_org uuid)
+returns void language plpgsql set search_path = '' as $$
+begin
+  perform public.seed_condition_groups(p_org);
+  perform public.seed_clinical_settings(p_org);
+  perform public.seed_recall_programmes(p_org);
+  perform public.seed_recall_reminder_programme(p_org);
+  perform public.seed_reminder_exclusions(p_org);
+  perform public.seed_unite_appointment_status_map(p_org);
+  perform public.seed_parallel_run_scenarios(p_org);
+end $$;
+revoke all on function public.seed_phase8_defaults(uuid) from public, anon, authenticated;
+grant execute on function public.seed_phase8_defaults(uuid) to service_role;
+
 -- ---------------------------------------------------------------------------
 -- Cron: tasks pinged every minute; each task evaluates its own cron expressions (Asia/Dubai).
 -- Names are unique, so these do not collide with the 20261008000500 unschedule loop.

@@ -36,6 +36,7 @@ import {
   sendChat,
   startConversation,
 } from "./actions";
+import { ShortcutMenu } from "./shortcut-menu";
 import { TemplatePicker } from "./template-picker";
 import type { ConversationDetail, InboxProps } from "./types";
 
@@ -470,6 +471,7 @@ export function Composer({
             >
               <LayoutTemplate /> Template
             </Button>
+            <ShortcutMenu conversationId={selected.id} botActive={selected.bot_active} />
             {quickReplies.length > 0 && (
               <Button
                 variant="ghost"

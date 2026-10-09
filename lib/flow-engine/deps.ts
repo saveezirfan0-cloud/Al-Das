@@ -125,7 +125,24 @@ export interface FlowStore {
   /** Live (running/waiting) top-level run of a conversation. */
   getLiveRunForConversation(conversationId: string): Promise<RunRecord | null>;
   setConversationBot(conversationId: string, patch: { bot_active?: boolean; flow_run_id?: string | null }): Promise<void>;
+  /** Active flows of an org for one trigger type (published only). */
+  listActiveFlows(orgId: string, triggerType: string): Promise<FlowView[]>;
+  getInboundMessage(messageId: string): Promise<InboundMessageView | null>;
+  /** Text of the first inbound message of a conversation (the "keyword" trigger fact). */
+  getFirstInboundText(conversationId: string): Promise<string | null>;
 }
+
+export type InboundMessageView = {
+  id: string;
+  conversation_id: string;
+  contact_id: string | null;
+  kind: string;
+  body: string | null;
+  /** interactive reply id (button_reply / list_reply / template quick-reply payload) */
+  reply_id: string | null;
+  /** template the patient tapped a button on, when it can be resolved */
+  template_id: string | null;
+};
 
 export type SendResult = { messageId: string };
 
