@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import { magicLinkErrorMessage } from "@/lib/auth/magic-link-error";
 import { serverEnv } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 
@@ -50,9 +51,9 @@ export async function sendMagicLink(_prev: AuthState, formData: FormData): Promi
       emailRedirectTo: `${APP_URL}/auth/callback?next=${encodeURIComponent(safeNext(parsed.data.next))}`,
     },
   });
-  if (error)
-    return {
-      error: "We couldn't send a link to that address. Ask your admin for an invite if you're new.",
-    };
+  if (error) {
+    console.warn("[auth] magic link failed", { code: error.code, status: error.status });
+    return { error: magicLinkErrorMessage(error) };
+  }
   return { message: "Check your inbox for a sign-in link." };
 }
