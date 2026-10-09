@@ -27,6 +27,8 @@ export const RATE_RULES = {
   webhookBadSignature: { limit: 30, windowSec: 60, failOpen: true },
   /** Counts only requests with a wrong X-Job-Secret. */
   jobsBadSecret: { limit: 20, windowSec: 60, failOpen: true },
+  /** Counts only incoming-webhook flow calls with a wrong or missing token. */
+  flowWebhookBadToken: { limit: 20, windowSec: 60, failOpen: true },
   loginPerIp: { limit: 30, windowSec: 600, failOpen: false },
   loginPerEmail: { limit: 8, windowSec: 900, failOpen: false },
   magicLinkPerEmail: { limit: 5, windowSec: 900, failOpen: false },

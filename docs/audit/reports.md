@@ -127,7 +127,7 @@ Materialized views refresh every 15 minutes (`pulse:metrics_refresh`), so dashbo
 
 ### 5.1b Enquiry and campaign reports (live since Phases 5 and 7)
 
-Sources are `security_invoker` views revoked from API roles (`v_enquiry_facts`, `v_enquiry_stage_entries`, `v_campaign_facts`), read through service-role `report_enquiries_*`, `report_enquiry_*` and `report_campaigns` functions (migration `20261010000600`).
+Sources are `security_invoker` views revoked from API roles (`v_enquiry_facts`, `v_enquiry_stage_entries`, `v_campaign_facts`), read through service-role `report_enquiries_*`, `report_enquiry_*` and `report_campaigns` functions (migration `20261010001000`).
 
 - **No stage-history table.** The plan said one was needed; the timeline events Phase 5 already writes are the history (`enquiry.created` → `stage_id`; `enquiry.stage_changed` / `enquiry.pipeline_changed` → `to_stage_id`). Enquiries imported or created without timeline events do not appear in *Entered* or *Time in stage*; they do count in created / closed / open numbers.
 - **Closed** means won, lost or disqualified, bucketed by the day `closed_at` falls on, not the creation day. **Conversion** = won ÷ (won + lost + disqualified) among enquiries closed in the period. **Open now** is today's count, not the period's.

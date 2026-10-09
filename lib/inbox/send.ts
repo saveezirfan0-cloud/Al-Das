@@ -130,7 +130,7 @@ export async function queueOutbound(
 /** Internal note (Comment): stored, never sent. Mentions are created by the caller. */
 export async function addNote(
   admin: AdminClient,
-  input: { orgId: string; conversationId: string; body: string; userId: string },
+  input: { orgId: string; conversationId: string; body: string; userId: string | null },
 ): Promise<Tables<"messages">> {
   const now = new Date().toISOString();
   const { data, error } = await admin
