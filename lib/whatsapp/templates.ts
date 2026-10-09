@@ -297,3 +297,13 @@ export function templateBodyText(
 export function isTemplateSendable(status: string | null | undefined): boolean {
   return status === "APPROVED";
 }
+
+/**
+ * CLAUDE.md rule 11: a MARKETING template never goes to a contact who opted out. One rule, used when a
+ * send is requested (inbox, public API) AND again when it is actually sent, because an opt-out can
+ * arrive in between. Utility templates (appointment reminders etc.) are unaffected.
+ */
+export function isMarketingBlocked(category: string | null | undefined, stopMarketing: boolean | null | undefined): boolean {
+  return category === "MARKETING" && stopMarketing === true;
+}
+

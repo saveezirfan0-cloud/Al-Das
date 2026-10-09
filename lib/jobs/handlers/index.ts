@@ -11,6 +11,9 @@ import "@/lib/jobs/handlers/inbox-housekeeping";
 import "@/lib/jobs/handlers/campaign-fanout";
 import "@/lib/jobs/handlers/campaign-tick";
 import "@/lib/jobs/handlers/templates-sync";
+import "@/lib/jobs/handlers/kb-ingest";
+import "@/lib/jobs/handlers/metrics-refresh";
+import "@/lib/jobs/handlers/webhooks-out";
 import "@/lib/jobs/handlers/appointments";
 import "@/lib/jobs/handlers/unite-sync";
 import "@/lib/jobs/handlers/clinical";
@@ -23,6 +26,7 @@ registerKind("email.send", "notifications");
 registerKind("outbound.send", "outbound");
 registerKind("media.fetch", "media_fetch");
 registerKind("campaign.*", "campaign_fanout");
+registerKind("webhook.retry", "webhooks_out");
 registerKind("appointment.reminder", "appointments");
 
 export {};

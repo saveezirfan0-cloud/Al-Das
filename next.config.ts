@@ -32,6 +32,9 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // unpdf bundles pdf.js, which uses `import.meta` in ways webpack cannot bundle. Load it from
+  // node_modules at runtime instead (used only by the kb_ingest handler for PDF sources).
+  serverExternalPackages: ["unpdf"],
   poweredByHeader: false,
   experimental: {
     // Campaign CSV audiences (up to 50k rows) are posted to a server action.

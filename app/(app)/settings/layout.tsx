@@ -7,6 +7,7 @@ export default async function SettingsLayout({ children }: { children: React.Rea
   const member = await requireMember();
   const admin = can(member, "settings.manage");
   const contacts = can(member, "contacts.manage");
+  const kb = can(member, "kb.manage");
   const items = [
     { href: "/settings/account", label: "Account" },
     ...(admin
@@ -17,11 +18,14 @@ export default async function SettingsLayout({ children }: { children: React.Rea
           { href: "/settings/custom-fields", label: "Custom fields" },
           { href: "/settings/channels", label: "Channels" },
           { href: "/settings/inbox", label: "Inbox" },
+          { href: "/settings/api-keys", label: "API keys" },
+          { href: "/settings/webhooks", label: "Webhooks" },
           { href: "/settings/appointments", label: "Appointments" },
           { href: "/settings/unite", label: "Unite EMR" },
         ]
       : []),
     ...(contacts ? [{ href: "/settings/tags", label: "Tags" }] : []),
+    ...(admin || kb ? [{ href: "/settings/knowledge-base", label: "AI & knowledge base" }] : []),
     ...(admin ? [{ href: "/settings/system-health", label: "System health" }] : []),
   ];
   return (
