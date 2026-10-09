@@ -8,6 +8,9 @@ import "@/lib/jobs/handlers/meta-events";
 import "@/lib/jobs/handlers/media-fetch";
 import "@/lib/jobs/handlers/outbound";
 import "@/lib/jobs/handlers/inbox-housekeeping";
+import "@/lib/jobs/handlers/kb-ingest";
+import "@/lib/jobs/handlers/metrics-refresh";
+import "@/lib/jobs/handlers/webhooks-out";
 import "@/lib/jobs/handlers/appointments";
 import "@/lib/jobs/handlers/unite-sync";
 import "@/lib/jobs/handlers/clinical";
@@ -19,6 +22,7 @@ registerKind("notification.*", "notifications");
 registerKind("email.send", "notifications");
 registerKind("outbound.send", "outbound");
 registerKind("media.fetch", "media_fetch");
+registerKind("webhook.retry", "webhooks_out");
 registerKind("appointment.reminder", "appointments");
 
 export {};

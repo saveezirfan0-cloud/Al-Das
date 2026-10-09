@@ -76,6 +76,8 @@ export type InboxProps = {
     settings: boolean;
     appointmentsManage: boolean;
   };
+  /** AI assist is usable here: the member has ai.use AND the workspace switched it on. */
+  ai: { available: boolean };
   query: InboxQuery;
   counts: { folders: Record<FolderKey, number>; teams: Record<string, number> };
   teams: TeamInfo[];

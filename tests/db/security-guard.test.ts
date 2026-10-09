@@ -22,6 +22,9 @@ import {
 
 /** Tables with no API policy on purpose: only the service role (server code after can()) touches them. */
 const SERVICE_ONLY = new Set([
+  // Phase 10: API key hashes and idempotent-response cache; only the public API (server code) touches them
+  "api_idempotency",
+  "api_keys",
   // Phase 6: per-org appointment number counter, only touched by a security-definer trigger
   "appointment_counters",
   "channel_secrets",
