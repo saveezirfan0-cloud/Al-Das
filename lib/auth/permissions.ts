@@ -182,6 +182,12 @@ export const PERMISSIONS = [
     description: "See capture health, raw batches and admin exceptions",
   },
   {
+    key: "portal.recall_sends.write",
+    group: "Portal",
+    label: "Edit recall call-list entries",
+    description: "Update follow-up status and booking details on recall sends",
+  },
+  {
     key: "settings.manage",
     group: "Settings",
     label: "Manage settings, users, roles and teams",

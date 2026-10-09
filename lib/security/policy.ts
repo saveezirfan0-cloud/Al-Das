@@ -14,6 +14,8 @@ export const UNGUARDED_OK: Record<string, string> = {
   "app/api/webhooks/meta/route.ts::GET":
     "Meta verification handshake; compares hub.verify_token and echoes the challenge only.",
   "app/(app)/settings/custom-fields/actions.ts::slugifyKey": "Pure string helper, touches no data.",
+  "app/api/webhooks/in/[flowId]/route.ts::POST":
+    "Authorised by a per-flow bearer token (192-bit random, only its SHA-256 stored, timing-safe compare); the same 401 for an unknown flow and a bad token; failed attempts are rate-limited per IP.",
 };
 
 /**
@@ -95,6 +97,8 @@ export const AUDIT_EXEMPT: Record<string, string> = {
     "Conversation lifecycle is recorded on the contact timeline; the summary text is health data and stays out of audit_log.",
   "app/api/webhooks/meta/route.ts::POST":
     "Raw ingress; the stored webhook_events_in row is the record.",
+  "app/api/webhooks/in/[flowId]/route.ts::POST":
+    "Ingress; the flow_runs row (with its trigger data) is the record and every step is traced in flow_run_steps.",
   "components/shell/actions.ts::setPresence": "Caller's own presence.",
   "components/shell/actions.ts::markAllNotificationsRead": "Caller's own notifications.",
   "components/shell/actions.ts::markNotificationRead": "Caller's own notifications.",
