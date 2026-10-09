@@ -27,7 +27,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/supabase/types";
 import { clientForChannel } from "@/lib/whatsapp/channel";
 import { toE164 } from "@/lib/whatsapp/phone";
-import { renderTemplatePreview } from "@/lib/whatsapp/templates";
+import { isMarketingBlocked, renderTemplatePreview } from "@/lib/whatsapp/templates";
 import type { MetaTemplateComponent } from "@/lib/whatsapp/types";
 
 export type ActionResult<T = undefined> =
@@ -212,7 +212,7 @@ export async function sendTemplateMessage(
       ok: false,
       error: `Template "${tpl.name}" is ${tpl.status}; only approved templates can be sent.`,
     };
-  if (tpl.category === "MARKETING" && conversation.contacts?.stop_marketing)
+  if (isMarketingBlocked(tpl.category, conversation.contacts?.stop_marketing))
     return { ok: false, error: "This patient has opted out of marketing messages." };
   const preview = renderTemplatePreview(
     tpl.components as unknown as MetaTemplateComponent[],

@@ -158,3 +158,17 @@ describe("phone helpers", () => {
     expect(looksLikeBsuid("971500000001")).toBe(false);
   });
 });
+
+import { isMarketingBlocked } from "@/lib/whatsapp/templates";
+
+describe("isMarketingBlocked (CLAUDE.md rule 11)", () => {
+  it("blocks marketing templates for opted-out contacts only", () => {
+    expect(isMarketingBlocked("MARKETING", true)).toBe(true);
+    expect(isMarketingBlocked("MARKETING", false)).toBe(false);
+    expect(isMarketingBlocked("UTILITY", true)).toBe(false);
+    expect(isMarketingBlocked("AUTHENTICATION", true)).toBe(false);
+    expect(isMarketingBlocked(null, true)).toBe(false);
+    expect(isMarketingBlocked("MARKETING", null)).toBe(false);
+    expect(isMarketingBlocked(undefined, undefined)).toBe(false);
+  });
+});

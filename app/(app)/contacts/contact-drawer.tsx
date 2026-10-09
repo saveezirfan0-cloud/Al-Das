@@ -3,6 +3,7 @@
 import * as React from "react";
 import { ContactAppointments } from "./contact-appointments";
 import { ContactConversations } from "./contact-conversations";
+import { ContactEnquiries } from "./contact-enquiries";
 import { Loader2, MessageSquare, Phone, Plus, Save, Star, Trash2, GitMerge } from "lucide-react";
 import { toast } from "sonner";
 
@@ -21,6 +22,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { initials } from "@/components/shell/user-menu";
+import { Timeline } from "@/components/timeline/timeline";
 import { displayName, formatDateTime, tagClass } from "@/lib/contacts/format";
 import { formatPhone } from "@/lib/phone";
 
@@ -62,19 +64,6 @@ function toForm(d: ContactDetail): ContactFormValues {
     custom: c.custom,
   };
 }
-
-const EVENT_LABELS: Record<string, string> = {
-  "contact.created": "Contact created",
-  "contact.updated": "Details updated",
-  "contact.merged": "Merged a duplicate into this contact",
-  "import.created": "Created by import",
-  "import.updated": "Updated by import",
-  "tags.changed": "Tags changed",
-  "phone.added": "Alternate phone added",
-  "phone.removed": "Alternate phone removed",
-  "phone.primary_changed": "Primary phone changed",
-  note: "Note",
-};
 
 export function ContactDrawer({
   contactId,
@@ -408,43 +397,48 @@ export function ContactDrawer({
                       </div>
                     </form>
                   )}
-                  <ol className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto">
-                    {detail.timeline.length === 0 && (
-                      <li className="text-muted-foreground text-sm">No activity yet.</li>
-                    )}
-                    {detail.timeline.map((e) => (
-                      <li key={e.id} className="flex gap-3 text-sm">
-                        <span className="bg-border mt-2 size-2 shrink-0 rounded-full" aria-hidden />
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-baseline gap-x-2">
-                            <span className="font-medium">{EVENT_LABELS[e.type] ?? e.type}</span>
-                            <span className="text-muted-foreground text-xs">
-                              {e.actor_name ??
-                                (e.actor_type === "system"
-                                  ? "System"
-                                  : e.actor_type === "job"
-                                    ? "Automation"
-                                    : "")}{" "}
-                              · {formatDateTime(e.at, bootstrap.timezone)}
-                            </span>
-                          </div>
-                          <TimelinePayload type={e.type} payload={e.payload} />
-                        </div>
-                      </li>
-                    ))}
-                  </ol>
+                  <Timeline events={detail.timeline} timezone={bootstrap.timezone} />
                 </TabsContent>
                 <TabsContent value="inbox" className="pt-3">
                   <ContactConversations contactId={contact.id} />
                 </TabsContent>
                 <TabsContent value="enquiries" className="pt-3">
-                  <Placeholder text="Enquiries linked to this contact appear here (Phase 5)." />
+                  <ContactEnquiries
+                    contactId={contact.id}
+                    timezone={bootstrap.timezone}
+                    canView={bootstrap.can.enquiriesView}
+                    canCreate={bootstrap.can.enquiriesManage}
+                  />
                 </TabsContent>
                 <TabsContent value="appointments" className="pt-3">
                   <ContactAppointments contactId={contact.id} />
                 </TabsContent>
                 <TabsContent value="campaigns" className="pt-3">
-                  <Placeholder text="Campaigns this contact received appear here (Phase 7)." />
+                  {detail && detail.campaigns.length > 0 ? (
+                    <ul className="divide-y rounded-lg border text-sm">
+                      {detail.campaigns.map((c) => (
+                        <li
+                          key={c.id}
+                          className="flex items-center justify-between gap-3 px-3 py-2"
+                        >
+                          <a
+                            href={`/campaigns?c=${c.campaign_id}`}
+                            className="font-medium hover:underline"
+                          >
+                            {c.name}
+                          </a>
+                          <span className="text-muted-foreground text-xs">
+                            {c.status === "skipped" && c.skip_reason
+                              ? `skipped: ${c.skip_reason.replace(/_/g, " ")}`
+                              : c.status}
+                            {c.replied_at ? " · replied" : ""}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <Placeholder text="Campaigns this contact was part of appear here." />
+                  )}
                 </TabsContent>
               </Tabs>
             </div>
@@ -475,29 +469,4 @@ function Placeholder({ text }: { text: string }) {
       {text}
     </p>
   );
-}
-
-function TimelinePayload({ type, payload }: { type: string; payload: unknown }) {
-  const p = (payload ?? {}) as Record<string, unknown>;
-  if (type === "note" && typeof p.text === "string")
-    return <p className="mt-1 whitespace-pre-wrap">{p.text}</p>;
-  if (type === "contact.updated" && p.changes && typeof p.changes === "object") {
-    const changes = p.changes as Record<string, { from: unknown; to: unknown }>;
-    return (
-      <ul className="text-muted-foreground mt-1 text-xs">
-        {Object.entries(changes).map(([k, v]) => (
-          <li key={k}>
-            {k.replace(/_/g, " ")}: {fmt(v.from)} → {fmt(v.to)}
-          </li>
-        ))}
-      </ul>
-    );
-  }
-  return null;
-}
-
-function fmt(v: unknown): string {
-  if (v === null || v === undefined || v === "") return "—";
-  if (typeof v === "object") return JSON.stringify(v);
-  return String(v);
 }

@@ -14,9 +14,9 @@ export function classifyButtonReply(reply: {
   for (const raw of [reply.id, reply.title]) {
     const t = (raw ?? "").trim().toLowerCase();
     if (!t) continue;
-    if (/^(confirm|yes\b)/.test(t)) return "confirm";
-    if (/^(resched|change|move)/.test(t)) return "reschedule";
-    if (/^(cancel|no\b)/.test(t)) return "cancel";
+    if (/^(confirm|yes\b|تأكيد|تاكيد|نعم)/.test(t)) return "confirm";
+    if (/^(resched|change|move|تغيير|تعديل|تأجيل|تاجيل)/.test(t)) return "reschedule";
+    if (/^(cancel|no\b|إلغاء|الغاء|لا(\s|$))/.test(t)) return "cancel";
   }
   return "unknown";
 }

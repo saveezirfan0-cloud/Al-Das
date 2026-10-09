@@ -40,6 +40,10 @@ export const AUTHN_ONLY_OK: Record<string, string> = {
     "Authorised by the invite token hash; rate-limited per IP.",
   "app/api/jobs/[queue]/route.ts::POST":
     "Authorised by the constant-time JOB_SECRET check; failures are rate-limited.",
+  "app/(app)/inbox/ai-actions.ts::aiFeedback":
+    "The kb_feedback row is itself the attributed record (user, conversation, rating; no draft text).",
+  "app/(app)/inbox/ai-actions.ts::saveConversationSummary":
+    "Conversation lifecycle is recorded on the contact timeline; the summary text is health data and stays out of audit_log.",
   "app/api/webhooks/meta/route.ts::POST":
     "Authorised by the X-Hub-Signature-256 HMAC; failures are rate-limited.",
   "app/onboarding/actions.ts::createWorkspace":
@@ -68,6 +72,7 @@ export const AUDIT_EXEMPT: Record<string, string> = {
   "app/(app)/contacts/actions.ts::setContactTags": "Recorded on the contact timeline.",
   "app/(app)/contacts/actions.ts::refreshSegmentCounts": "Derived counts only.",
   "app/(app)/contacts/actions.ts::saveGridPrefs": "Caller's own UI preferences.",
+  "app/(app)/portal/actions.ts::savePortalGridPrefs": "Caller's own UI preferences.",
   "app/(app)/inbox/actions.ts::addComment":
     "The comment is itself the attributed record (messages.sent_by_user_id) and mentions.",
   "app/(app)/inbox/actions.ts::retryFailedMessage": "Message row carries the retry; operational.",
@@ -86,6 +91,10 @@ export const AUDIT_EXEMPT: Record<string, string> = {
   "app/(app)/inbox/actions.ts::startConversation": "The queued message carries sent_by_user_id.",
   "app/(app)/inbox/actions.ts::saveInboxView": "Caller's own saved view.",
   "app/(app)/inbox/actions.ts::deleteInboxView": "Caller's own saved view.",
+  "app/(app)/inbox/ai-actions.ts::aiFeedback":
+    "The kb_feedback row is itself the attributed record (user, conversation, rating; no draft text).",
+  "app/(app)/inbox/ai-actions.ts::saveConversationSummary":
+    "Conversation lifecycle is recorded on the contact timeline; the summary text is health data and stays out of audit_log.",
   "app/api/webhooks/meta/route.ts::POST":
     "Raw ingress; the stored webhook_events_in row is the record.",
   "app/api/webhooks/in/[flowId]/route.ts::POST":

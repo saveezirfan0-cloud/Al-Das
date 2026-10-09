@@ -111,8 +111,24 @@ export function Sidebar({
                   collapsed && "justify-center px-0",
                 )}
               >
-                <Icon className="size-4 shrink-0" />
+                <span className="relative flex shrink-0">
+                  <Icon className="size-4" />
+                  {collapsed && item.badge ? (
+                    <span
+                      className="bg-destructive absolute -top-1 -right-1 size-2 rounded-full"
+                      aria-hidden
+                    />
+                  ) : null}
+                </span>
                 {!collapsed && <span className="truncate">{item.label}</span>}
+                {!collapsed && item.badge ? (
+                  <span
+                    className="bg-destructive ml-auto rounded-full px-1.5 text-[10px] leading-4 font-semibold text-white tabular-nums"
+                    aria-label={`${item.badge} overdue`}
+                  >
+                    {item.badge > 99 ? "99+" : item.badge}
+                  </span>
+                ) : null}
               </Link>
             );
             return (
