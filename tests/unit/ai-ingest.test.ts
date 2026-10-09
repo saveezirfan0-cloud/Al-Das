@@ -74,6 +74,23 @@ describe("extractText", () => {
     expect((await extractText({ bytes: bytes("<p>Hi</p>"), mime: "application/octet-stream", filename: "a.html" })).text).toBe("Hi");
   });
 
+  it("extracts text from a real PDF", async () => {
+    // A minimal one-page PDF. The xref offsets are deliberately omitted: pdf.js rebuilds them.
+    const stream = "BT /F1 18 Tf 20 100 Td (The clinic opens at 8am) Tj ET";
+    const pdf = [
+      "%PDF-1.4",
+      "1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj",
+      "2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj",
+      "3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 300 200]/Contents 4 0 R/Resources<</Font<</F1 5 0 R>>>>>>endobj",
+      `4 0 obj<</Length ${stream.length}>>stream\n${stream}\nendstream endobj`,
+      "5 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj",
+      "trailer<</Root 1 0 R/Size 6>>",
+      "%%EOF",
+    ].join("\n");
+    const r = await extractText({ bytes: new TextEncoder().encode(pdf), mime: "application/pdf" });
+    expect(r.text).toContain("The clinic opens at 8am");
+  });
+
   it("rejects unsupported types with a clear reason", async () => {
     await expect(extractText({ bytes: bytes("x"), mime: "image/png", filename: "a.png" })).rejects.toThrow(UnsupportedContentError);
     await expect(extractText({ bytes: bytes("x"), mime: "application/zip" })).rejects.toThrow(/Unsupported file type/);

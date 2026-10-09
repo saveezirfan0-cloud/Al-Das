@@ -19,8 +19,10 @@ export type SafeRequestOptions = {
   headers?: Record<string, string>;
   body?: string | Buffer;
   timeoutMs?: number;
-  /** Response bodies larger than this abort the request. */
+  /** Response bodies larger than this are cut off (see onOverflow). */
   maxBytes?: number;
+  /** "error" (default) fails the request; "truncate" keeps the first maxBytes and ignores the rest. */
+  onOverflow?: "error" | "truncate";
   /** Follow up to this many redirects, re-validating every hop (0 = never). */
   maxRedirects?: number;
 };
@@ -72,9 +74,15 @@ function once(url: URL, opts: SafeRequestOptions): Promise<SafeResponse> {
       (res) => {
         const chunks: Buffer[] = [];
         let size = 0;
+        let truncated = false;
         res.on("data", (chunk: Buffer) => {
           size += chunk.length;
           if (size > maxBytes) {
+            if (opts.onOverflow === "truncate") {
+              if (!truncated) chunks.push(chunk.subarray(0, Math.max(0, maxBytes - (size - chunk.length))));
+              truncated = true;
+              return;
+            }
             req.destroy(new ResponseTooLargeError(maxBytes));
             return;
           }

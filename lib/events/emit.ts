@@ -6,6 +6,10 @@
  *
  * Listeners run in-process, in order, and never throw into the emitter: a
  * failing listener is logged and the others still run.
+ *
+ * Outbound webhooks are NOT a listener: emit() hands every event to
+ * lib/webhooks/fanout directly, because in-process listeners only exist in the
+ * process that registered them (unreliable on serverless).
  */
 export type DomainEventName =
   | "conversation.opened"
@@ -65,5 +69,18 @@ export async function emit(
       });
     }
   }
+  await fanoutToWebhooks(event);
   return event;
+}
+
+/** Queue outbound webhook deliveries for this event. Skipped without a configured database (tests, build). */
+async function fanoutToWebhooks(event: DomainEvent): Promise<void> {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.NEXT_PUBLIC_SUPABASE_URL) return;
+  try {
+    const { fanoutEvent } = await import("@/lib/webhooks/fanout");
+    await fanoutEvent(event);
+  } catch (err) {
+    // A webhook problem must never break the action that emitted the event.
+    console.error("[events] webhook fan-out failed", { name: event.name, error: err instanceof Error ? err.name : "unknown" });
+  }
 }

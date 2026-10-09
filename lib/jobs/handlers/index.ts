@@ -9,6 +9,7 @@ import "@/lib/jobs/handlers/outbound";
 import "@/lib/jobs/handlers/inbox-housekeeping";
 import "@/lib/jobs/handlers/kb-ingest";
 import "@/lib/jobs/handlers/metrics-refresh";
+import "@/lib/jobs/handlers/webhooks-out";
 
 import { registerKind } from "@/lib/jobs/scheduler";
 
@@ -17,5 +18,6 @@ registerKind("notification.*", "notifications");
 registerKind("email.send", "notifications");
 registerKind("outbound.send", "outbound");
 registerKind("media.fetch", "media_fetch");
+registerKind("webhook.retry", "webhooks_out");
 
 export {};
