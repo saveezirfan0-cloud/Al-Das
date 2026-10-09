@@ -38,6 +38,7 @@ begin
       {"name":"Manager","description":"Runs the clinic day to day: all operational modules and reports, no user/role management.","permissions":["inbox.view_all","inbox.send","contacts.view","contacts.manage","contacts.export","enquiries.view","enquiries.manage","tasks.manage","appointments.view","appointments.manage","campaigns.view","campaigns.create","templates.manage","flows.manage","portal.*","reports.view"]},
       {"name":"Agent","description":"Handles patient conversations, enquiries and tasks.","permissions":["inbox.send","contacts.view","contacts.manage","enquiries.view","enquiries.manage","tasks.manage","appointments.view","portal.*.read"]},
       {"name":"Receptionist","description":"Front desk: bookings, patient details and walk-in enquiries.","permissions":["inbox.send","contacts.view","contacts.manage","enquiries.view","enquiries.manage","tasks.manage","appointments.view","appointments.manage","portal.*.read"]},
+      {"name":"Care coordinator","description":"Works the clinical Follow-Up Queue and patient conversations. Cannot sign off clinical settings.","permissions":["inbox.send","contacts.view","contacts.manage","tasks.manage","appointments.view","appointments.manage","portal.*"]},
       {"name":"Marketing","description":"Campaigns, templates, flows and reporting.","permissions":["inbox.view_all","contacts.view","contacts.export","campaigns.view","campaigns.create","templates.manage","flows.manage","reports.view"]}
     ]'::jsonb,
     v_admin
@@ -314,4 +315,40 @@ begin
     'reminder_test_mode', true,
     'reminder_test_numbers', jsonb_build_array('+971500000001')))
   where id = v_org;
+end $$;
+
+-- ---------------------------------------------------------------------------
+-- Phase 6c: clinical settings (all unsigned: the rules stay inert until a clinical lead signs them off,
+-- and patient-facing messaging stays OFF) plus two SYNTHETIC visits flagged as test records.
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  v_org uuid;
+  v_c1 uuid;
+  v_c2 uuid;
+begin
+  select id into v_org from public.orgs where slug = 'al-das-dev';
+  if v_org is null then
+    return;
+  end if;
+  perform public.seed_clinical_settings(v_org);
+
+  select id into v_c1 from public.contacts where org_id = v_org and phone_e164 = '+971500000001' and deleted_at is null;
+  select id into v_c2 from public.contacts where org_id = v_org and phone_e164 = '+971500000002' and deleted_at is null;
+  if v_c1 is not null then
+    update public.contacts set is_test_record = true, clinical_messaging_consent = true where id in (v_c1, v_c2);
+    insert into public.visits (org_id, external_id, visit_date, department_raw, contact_id, temp_c, bp_systolic, bp_diastolic, spo2, pulse, is_test_record)
+    values (v_org, 'SEED-V-1', current_date - 1, 'General Practice', v_c1, 39.6, 118, 76, 97, 92, true)
+    on conflict do nothing;
+  end if;
+  if v_c2 is not null then
+    insert into public.visits (org_id, external_id, visit_date, department_raw, contact_id, temp_c, spo2, pulse, is_test_record)
+    values (v_org, 'SEED-V-2', current_date - 1, 'Paediatrics', v_c2, 38.2, 98, 110, true)
+    on conflict do nothing;
+  end if;
+
+  if (select count(*) from public.clinical_settings where org_id = v_org) < 50
+     or app.clinical_messaging_enabled(v_org) then
+    raise exception 'seed validation: clinical settings missing, or the messaging gate is not OFF';
+  end if;
 end $$;

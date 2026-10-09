@@ -9,6 +9,7 @@ import "@/lib/jobs/handlers/outbound";
 import "@/lib/jobs/handlers/inbox-housekeeping";
 import "@/lib/jobs/handlers/appointments";
 import "@/lib/jobs/handlers/unite-sync";
+import "@/lib/jobs/handlers/clinical";
 
 import { registerKind } from "@/lib/jobs/scheduler";
 

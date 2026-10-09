@@ -103,3 +103,53 @@ Delivered in three steps on one branch: **6a Appointments**, **6b Unite sync + S
 - `tests/unit/unite-client.test.ts` (20): URL/params/auth, throttle, back-off, 429, forced token refresh, circuit breaker, paging, token store hand-off, no credential leakage.
 - `tests/unit/unite-readonly.test.ts` (4): no write methods, POST only in auth, Finance API refused.
 - `tests/db/unite-sync.test.ts` (14, needs PostgREST): matching / adopt / create / review, idempotent replay, status map, reminder re-planning, cursors and failures, doctors, patients (fill blanks only), the token claim, a full `runUniteSync` with a scripted `fetch`, Sync Review link / dismiss / create, and cross-org isolation of the new tables.
+
+## 6c — Clinical rules, Follow-Up Queue, Clinical settings
+
+Source of truth: `docs/audit/clinical-rules.md` (rules R-01…R-26, Test Plan TP-01…20, BC cases). Nothing here is clinically approved yet; see "Before this goes live".
+
+### What exists now
+
+- **`lib/clinical/`**: pure functions, no I/O. `vitals` / `negation` / `age` / `department` / `triggers/{paeds,gp,gyn}` / `category` / `followup` / `evaluate` / `sequence` / `feedback` / `gate` / `sign-off`. `engine.ts` is the only part that touches the database (load settings, evaluate a visit, write the follow-up, dispatch a message through the gate, record feedback, apply a day-3 reply). `clinical.test.ts` holds the Test Plan cases and boundary cases as table-driven tests on synthetic fixtures.
+- **Schema** (`20261009000500_clinical_core.sql`, `…0600_org_check_triggers.sql`): `clinical_settings` (+ history), `visits`, `prescriptions`, `prescription_sequences`, `visit_rule_evaluations`, `clinical_followups`, `clinical_feedback`, `clinical_message_log`, `clinical_call_scripts`, `ref_medication_classes`, three views, and the gate function `app.clinical_messaging_enabled(org)`. RLS on every table; clinical data is PHI, so reads are gated by `portal.clinical_visits.read` / `portal.clinical_followups.read` rather than plain org membership.
+- **Portal → Follow-Up Queue** (`/portal/follow-ups`): open items, High first then oldest due date, filters, overdue highlighting, drawer with vitals (only if the viewer may read visits), the approved call script for the category, call status / outcome / escalation / assignee / notes, "Notify doctor", Save & close. Staff can only change those columns; engine columns are protected by a database trigger as well as by the server action.
+- **Portal → Clinical settings** (`/portal/clinical-settings`): rows grouped by category with proposed / approved / "in use today" values, owner, signer and date; sign-off, revoke and history. Writes go through the signed-in user's own client so the history trigger records who changed what. `clinical_messaging_enabled` and `allow_unsigned_defaults` additionally need the confirm phrase to be switched on.
+- **Scheduler**: `clinical_evaluate` (pg_cron, every 10 min) re-evaluates visits whose inputs or settings changed.
+- **Permissions**: new "Clinical" group, a "Care coordinator" preset (works the queue, cannot sign off). **Only Admin holds `clinical.settings.manage` by default.**
+
+### Fail-closed policy (the decisions behind the code)
+
+- **A setting counts only when `sign_off_status = 'approved'`.** An unsigned or blank value never fires a rule and never defaults to anything. The one exception is the per-org `allow_unsigned_defaults` switch (itself a signed setting), which lets _proposed_ values stand in for internal validation. It can never open the messaging gate.
+- **OR-terms are evaluated independently.** If GP-01's temperature threshold is unsigned but its SpO₂ threshold is signed, a low SpO₂ still fires. An evaluation records the settings it could not use (`missing_settings`), and the queue page shows how many visits were evaluated that way.
+- **Department undetermined.** If the child/adult cut-off (`paeds_age_cutoff_years`) is unsigned, a visit with a known age gets `department_effective = null`: no department rules run, and it is reported as missing a setting rather than silently treated as GP. A missing date of birth falls back to the department text.
+- **Dedupe key** is `<visit external id>-<category>`. (The enum slug is used rather than a display label because it is stable. If Airtable follow-ups are imported later, their keys must be mapped to these before the engine is allowed to evaluate the same visits, or duplicates will appear.) A follow-up is superseded or closed automatically **only while untouched** (`call_status = pending`, nobody assigned); once a person is working it the engine leaves it alone.
+- **The gate.** `decideClinicalSend` checks, in order: gate signed off → template clinically approved → contact consent → test-record rules for the current send mode. Every attempt is written to `clinical_message_log` with its reason (`suppressed_gate`, `suppressed_test_record`, `blocked`, `sent`…) under a unique idempotency key, so a replay logs nothing twice. With the gate off nothing reaches `messages` or the `outbound` queue.
+- **Replies.** Free text is stored verbatim. A score is parsed (including Arabic-Indic digits); a score at/below the red-flag threshold **or** a side-effect keyword raises the flag, notifies the treating doctor _and_ the coordinators, and stamps both together. If the threshold or keyword list is unsigned, every reply goes to a person.
+- **Day 3.** With the HALT threshold unsigned, a score never decides anything: it goes to human review.
+
+### Deviations and ambiguities resolved
+
+- **Clinic calendar** reuses the appointments booking-rule calendar (working weekdays + holidays) instead of a second table.
+- **Recall** (R-20…R-25: tables, sends, the recall view) is **deferred**: the drafts remain in `supabase/drafts/`. It needs the template texts signed off first.
+- **Sequence scheduling not wired.** Pure planning (`planSequence`), the day-3 decision, the probiotic guard and the dispatch/feedback helpers exist and are tested, but nothing yet schedules the ABX_DAY3 / probiotic messages from a prescription or routes an inbound reply into `applyDay3Reply`. That is deliberate: it would only matter once the gate opens, and it needs the template keys approved.
+- **Visit and prescription ingestion** needs the Unite visits endpoint, which is not documented (see 6b). `lib/clinical/ingest.ts` maps a fixture-shaped payload; nothing calls it yet.
+- Rules where the audit left ambiguity are implemented conservatively and listed in `clinical-rules.md` open questions (OQ-19, 21, 40, 46–48).
+
+### Before this goes live
+
+1. A clinical lead signs off every BLOCKING setting (day-3 HALT threshold, side-effect keywords, …) and the thresholds they accept. Until then the engine is inert by design.
+2. Doctor-approved template texts and call scripts; mark them approved in `wa_templates.clinical_approval` / `clinical_call_scripts`.
+3. Run in `test` send mode against internal numbers (`contacts.is_test_record`) first.
+4. Only then sign off `clinical_messaging_enabled`.
+
+### Not covered / caveats
+
+- The two portal screens are verified by typecheck, lint and the server-side tests, **not driven in a browser** (no Supabase Auth in the build sandbox).
+- No real patient data anywhere: every fixture, seed visit and test row is synthetic (rule 10). The two seeded visits and their contacts are flagged `is_test_record`.
+
+### Test coverage added
+
+- `lib/clinical/clinical.test.ts` (69) and `sign-off.test.ts` (5): Test Plan cases, boundaries, fail-closed behaviour.
+- `tests/db/clinical-rls.test.ts` (12): seed, org isolation, PHI gating, queue edit guard, sign-off integrity and history, the gate function, integrity constraints.
+- `tests/db/clinical-engine.test.ts` (19, needs PostgREST): unsigned vs signed evaluation, create / unchanged / close / supersede / leave-alone, children as paediatrics, negation, history without follow-ups, the scheduled task, the gate in all its states, red flags with dual notification, day-3 outcomes.
+- `tests/db/appointments-rls.test.ts` gained a regression for the column-specific org-check triggers.

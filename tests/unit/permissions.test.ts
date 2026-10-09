@@ -46,16 +46,29 @@ describe("catalogue", () => {
     }
   });
 
-  it("has exactly one Admin with full access and the five seed roles", () => {
+  it("has exactly one Admin with full access and the six seed roles", () => {
     expect(SYSTEM_ROLES.map((r) => r.name)).toEqual([
       "Admin",
       "Manager",
       "Agent",
       "Receptionist",
+      "Care coordinator",
       "Marketing",
     ]);
     expect(SYSTEM_ROLES.filter((r) => r.permissions.includes("*")).map((r) => r.name)).toEqual([
       "Admin",
     ]);
+  });
+
+  it("keeps clinical sign-off out of every preset except Admin (explicit grant only)", () => {
+    const signers = SYSTEM_ROLES.filter((r) =>
+      r.permissions.some((p) => permissionMatches(p, "clinical.settings.manage")),
+    ).map((r) => r.name);
+    expect(signers).toEqual(["Admin"]);
+    // the care coordinator works the queue but cannot approve the thresholds
+    const cc = SYSTEM_ROLES.find((r) => r.name === "Care coordinator")!;
+    expect(
+      cc.permissions.some((p) => permissionMatches(p, "portal.clinical_followups.write")),
+    ).toBe(true);
   });
 });

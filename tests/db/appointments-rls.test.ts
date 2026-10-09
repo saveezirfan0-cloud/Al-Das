@@ -26,6 +26,7 @@ describe.skipIf(!TEST_DATABASE_URL)("appointments RLS", () => {
   let bob: string; // admin B
   let viewer: string; // org A, appointments.view only
   let booker: string; // org A, appointments.view + appointments.manage
+  let blind: string; // org A, can manage appointments but has no contacts.view
   let orgA: string;
   let orgB: string;
   const ids: Record<string, string> = {};
@@ -42,6 +43,7 @@ describe.skipIf(!TEST_DATABASE_URL)("appointments RLS", () => {
     bob = await createAuthUser(c, "bob@example.test");
     viewer = await createAuthUser(c, "viewer@example.test");
     booker = await createAuthUser(c, "booker@example.test");
+    blind = await createAuthUser(c, "blind@example.test");
     orgA = await createOrg(c, "Org A", "org-a", alice);
     orgB = await createOrg(c, "Org B", "org-b", bob);
 
@@ -49,6 +51,7 @@ describe.skipIf(!TEST_DATABASE_URL)("appointments RLS", () => {
       for (const [user, name, perms] of [
         [viewer, "Viewer", ["appointments.view", "contacts.view"]],
         [booker, "Booker", ["appointments.view", "appointments.manage", "contacts.view"]],
+        [blind, "Blind", ["appointments.view", "appointments.manage"]],
       ] as const) {
         const roleId = await insert(
           "insert into public.roles (org_id, name, permissions) values ($1, $2, $3::jsonb)",
@@ -184,6 +187,22 @@ describe.skipIf(!TEST_DATABASE_URL)("appointments RLS", () => {
       ),
     );
     expect(res.rowCount).toBe(1);
+  });
+
+  it("lets a user who can't read contacts still change an appointment (org checks only run on reference columns)", async () => {
+    const res = await asUser(c, blind, () =>
+      c.query("update public.appointments set status = 'confirmed' where id = $1", [ids.appt_a]),
+    );
+    expect(res.rowCount).toBe(1);
+    // …but pointing it at a contact they can't see is still refused
+    await expect(
+      asUser(c, blind, () =>
+        c.query("update public.appointments set contact_id = $2 where id = $1", [
+          ids.appt_a,
+          ids.contact_b,
+        ]),
+      ),
+    ).rejects.toThrow(/does not belong to org/);
   });
 
   it("requires settings.manage to edit the catalogue but lets every member read it", async () => {
