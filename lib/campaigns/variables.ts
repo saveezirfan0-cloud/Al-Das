@@ -47,6 +47,7 @@ export function parseSource(source: string | null | undefined): ParsedSource | n
     return { kind: "custom", key: source.slice(7) };
   if (source.startsWith("csv.") && source.length > 4)
     return { kind: "csv", column: source.slice(4) };
+  if (source === "contact.name") return { kind: "contact", field: "full_name" }; // alias used by the inbox picker and templates
   const m = /^contact\.(first_name|last_name|full_name|phone|email)$/.exec(source);
   if (m) return { kind: "contact", field: m[1] as ContactField };
   return null;

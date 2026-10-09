@@ -5304,10 +5304,12 @@ export type Database = {
         Row: {
           archived_at: string | null;
           category: string;
+          created_by: string | null;
           channel_id: string | null;
           clinical_approval: string;
           components: NonNullable<Json>;
           created_at: string;
+          gallery_key: string | null;
           id: string;
           internal_key: string | null;
           language: string;
@@ -5320,6 +5322,7 @@ export type Database = {
           rejected_reason: string | null;
           retry_on_fail: boolean;
           status: string;
+          submitted_at: string | null;
           type: string;
           updated_at: string;
           variable_map: NonNullable<Json>;
@@ -5329,10 +5332,12 @@ export type Database = {
         Insert: {
           archived_at?: string | null;
           category?: string;
+          created_by?: string | null;
           channel_id?: string | null;
           clinical_approval?: string;
           components?: NonNullable<Json>;
           created_at?: string;
+          gallery_key?: string | null;
           id?: string;
           internal_key?: string | null;
           language: string;
@@ -5345,6 +5350,7 @@ export type Database = {
           rejected_reason?: string | null;
           retry_on_fail?: boolean;
           status?: string;
+          submitted_at?: string | null;
           type?: string;
           updated_at?: string;
           variable_map?: NonNullable<Json>;
@@ -5353,10 +5359,12 @@ export type Database = {
         Update: {
           archived_at?: string | null;
           category?: string;
+          created_by?: string | null;
           channel_id?: string | null;
           clinical_approval?: string;
           components?: NonNullable<Json>;
           created_at?: string;
+          gallery_key?: string | null;
           id?: string;
           internal_key?: string | null;
           language?: string;
@@ -5369,12 +5377,20 @@ export type Database = {
           rejected_reason?: string | null;
           retry_on_fail?: boolean;
           status?: string;
+          submitted_at?: string | null;
           type?: string;
           updated_at?: string;
           variable_map?: NonNullable<Json>;
           waba_id?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "wa_templates_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "wa_templates_channel_id_fkey";
             columns: ["channel_id"];

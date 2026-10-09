@@ -107,7 +107,7 @@ async function loadSendContext(
     admin
       .from("wa_templates")
       .select(
-        "id, name, language, category, status, components, variable_map, waba_id, archived_at",
+        "id, name, language, category, status, type, components, variable_map, waba_id, archived_at",
       )
       .eq("org_id", orgId)
       .eq("id", templateId)
@@ -118,6 +118,8 @@ async function loadSendContext(
     return { ok: false as const, error: "That number is paused or disconnected." };
   if (!template) return { ok: false as const, error: "Choose a template." };
   if (template.archived_at) return { ok: false as const, error: "That template is archived." };
+  if (template.type === "carousel")
+    return { ok: false as const, error: "Carousel templates can't be used in campaigns yet." };
   if (template.status !== "APPROVED")
     return {
       ok: false as const,

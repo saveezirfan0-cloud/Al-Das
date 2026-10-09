@@ -34,9 +34,10 @@ export default async function NewCampaignPage() {
         .order("name"),
       supabase
         .from("wa_templates")
-        .select("id, name, language, category, status, waba_id, components, variable_map")
+        .select("id, name, language, category, status, type, waba_id, components, variable_map")
         .eq("org_id", member.orgId)
         .eq("status", "APPROVED")
+        .neq("type", "carousel") // cards need per-card media at send time; not supported in campaigns yet
         .is("archived_at", null)
         .order("name"),
       supabase

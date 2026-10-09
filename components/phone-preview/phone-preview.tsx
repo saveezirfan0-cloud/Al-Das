@@ -30,6 +30,26 @@ export function PhonePreview({
           </div>
         )}
       </div>
+      {preview && preview.cards.length > 0 && (
+        <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+          {preview.cards.map((c, i) => (
+            <div
+              key={i}
+              className="w-44 shrink-0 rounded-lg bg-white p-1.5 text-xs shadow dark:bg-[#202c33] dark:text-gray-100"
+            >
+              <div className="bg-muted text-muted-foreground mb-1 rounded p-5 text-center uppercase">
+                {c.media ?? "media"}
+              </div>
+              <p className="whitespace-pre-wrap">{c.body}</p>
+              {c.buttons.map((b, j) => (
+                <span key={j} className="mt-1 block border-t pt-1 text-center text-sky-600">
+                  {b}
+                </span>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

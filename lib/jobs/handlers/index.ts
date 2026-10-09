@@ -10,6 +10,7 @@ import "@/lib/jobs/handlers/outbound";
 import "@/lib/jobs/handlers/inbox-housekeeping";
 import "@/lib/jobs/handlers/campaign-fanout";
 import "@/lib/jobs/handlers/campaign-tick";
+import "@/lib/jobs/handlers/templates-sync";
 import "@/lib/jobs/handlers/appointments";
 import "@/lib/jobs/handlers/unite-sync";
 import "@/lib/jobs/handlers/clinical";
