@@ -4,7 +4,7 @@
 
 ## Scope delivered
 
-- **Migration** `supabase/migrations/20261009001000_enquiries.sql` (sorts after Phase 6 and Finance; it builds on Phase 6's `locations`, `departments`, `services` and `specialists` rather than creating its own):
+- **Migration** `supabase/migrations/20261010000300_enquiries.sql` (sorts after Phase 6 and Finance; it builds on Phase 6's `locations`, `departments`, `services` and `specialists` rather than creating its own):
   - **`pipelines`** (card fields, optional `sla_minutes` override, one default per org, archive) and **`stages`**.
   - **`enquiries`**: per-org `number` from `enquiry_counters` (trigger, gap-free per org), `status` (open / won / lost / disqualified) with DB-enforced reason and `closed_at`, `stage_entered_at` maintained by trigger, stage ↔ pipeline ↔ org consistency trigger, SLA columns (`sla_due_at`, `first_touch_at`, `sla_breached_at`), `custom jsonb`, soft delete. Every cross-table FK carries an org check.
   - **`enquiry_views`** (shape of `inbox_views`, plus `mode`, `columns`, `pipeline_id`), **`enquiry_assignment_rules`**, **`tasks`**.
@@ -70,8 +70,19 @@ pnpm jobs:run notifications   # delivers them (in-app notification for the assig
 
 ## Open questions / follow-ups
 
-- Should an outbound WhatsApp reply from the inbox count as the first touch (call `markTouched` from the outbound handler for the contact's open enquiries)?
+- ~~Should an outbound WhatsApp reply count as the first touch?~~ Done in Phase 5b (below).
 - Enquiry-level AI summary, duplicates detection and “enquiry from CTWA ad” attribution are not started.
 - Realtime on the board refreshes the whole board (debounced); a per-card patch would be gentler for very busy boards.
 - The Kanban loads one query per stage; a pipeline with many stages and a huge backlog may want a single windowed query.
 - `lib/events` listeners are in-process, so a notification rule only fires in processes that import `lib/enquiries/service` (server actions and the reminder handler do). Phase 8's persisted subscriptions remove that caveat.
+
+## Phase 5b — connecting enquiries and tasks to the rest of the platform
+
+Webhooks, the enquiries API, the enquiry reports and the dashboard tiles landed with the Phase 10 follow-up (`docs/08_PHASE_10_NOTES.md`, `docs/audit/reports.md` §5.1b). This increment adds what was still missing (migration `20261010001100_task_appointment_link.sql`):
+
+- **Tasks API (read-only).** `GET /api/public/v1/tasks[/{id}]`, scope `tasks:read` (creator needs `tasks.view`). No subject or notes.
+- **Richer webhook ids.** Task events carry `enquiry_id` and `contact_id`; enquiry events carry `contact_id`, so a receiver can follow up without a lookup. Still ids only.
+- **Conversion to appointments** on the Management dashboard and the enquiry funnel report: enquiries created in the period whose contact has a non-cancelled appointment starting after they were created (`report_enquiry_booking_conversion`).
+- **Enquiries past SLA** tile on the team-lead view.
+- **First touch by reply.** A confirmed human WhatsApp send (a person sent it, not a bot, flow, campaign or reaction, and Meta accepted it) sets `first_touch_at` on that contact's open, untouched enquiries (`lib/enquiries/touch.ts`, called from the outbound handler), so the SLA clock stops.
+- **Failed appointment reminder → task.** `reportReminderFailure` also creates a `call` task ("Call patient: reminder for appointment #N not delivered", due in 30 minutes, assigned to the booking's creator when they are still an active member). `tasks.appointment_id` links it; a partial unique index allows one open call task per appointment, so repeats and replays are no-ops. The subject holds the appointment number only, never a name.

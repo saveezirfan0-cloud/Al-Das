@@ -36,6 +36,18 @@ export default async function TeamLeadDashboard() {
     admin.from("v_agent_workload_now").select("*").eq("org_id", member.orgId),
     admin.from("teams").select("id, name").eq("org_id", member.orgId),
   ]);
+  // Enquiries still waiting for a first reply past their SLA (the enquiry SLA clock, Settings → Enquiries).
+  const enquiryPastSla = can(member, "enquiries.view")
+    ? await admin
+        .from("enquiries")
+        .select("id", { count: "exact", head: true })
+        .eq("org_id", member.orgId)
+        .eq("status", "open")
+        .is("deleted_at", null)
+        .is("first_touch_at", null)
+        .not("sla_due_at", "is", null)
+        .lt("sla_due_at", new Date().toISOString())
+    : null;
   const userIds = (load ?? []).map((l) => l.user_id).filter((u): u is string => !!u);
   const { data: profiles } = userIds.length ? await admin.from("profiles").select("id, first_name, last_name, email").in("id", userIds) : { data: [] };
 
@@ -59,6 +71,13 @@ export default async function TeamLeadDashboard() {
         <KpiTile label="Unassigned" value={total("unassigned_count")} hint="nobody owns them" />
         <KpiTile label={`Past the ${sla}-minute SLA`} value={breaches?.length ?? 0} hint={longest !== null ? `longest wait ${formatDuration(longest * 60)}` : "nobody is waiting too long"} />
       </div>
+      {enquiryPastSla && (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Link href="/enquiries" className="rounded-xl focus-visible:ring-2">
+            <KpiTile label="Enquiries past SLA" value={enquiryPastSla.count ?? 0} hint="open, no first reply yet" />
+          </Link>
+        </div>
+      )}
 
       <Card>
         <CardHeader>
