@@ -71,6 +71,19 @@ Rules: raw first (if the raw insert fails, process nothing, raise a critical ale
 | `appt.appointments`                                                     | Decided in F3: the platform `appointments` table if it exists, otherwise a thin reference table                                                                      |
 | Feature flag                                                            | Per-org `fin_capture_settings.enabled`, default **false**                                                                                                            |
 
+### F6 as built
+
+- **Alerts** (`lib/finance/alerts.ts`, hourly `pulse:finance_alerts` → `finance_capture` queue kind `alerts`; never calls Unite): `capture_failed` (unprocessed / failed batch or open capture exception, critical), `capture_stalled` (balance not dropping, critical), `capture_silent` (no capture for more than 3 h = warning, more than 6 h = critical), `no_diligence_upload` (more than 8 days, warning; only once the module is in use), `overdue_exceptions` (info, above 20). Sent in-app to everyone with `finance.capture.manage`; critical ones and their "resolved" notices also by e-mail. Each problem is announced once, again if it gets worse, reminded after 24 h while it lasts (warning and critical), and a critical one that clears sends one resolved notice. State lives in `fin_alert_state` (service role only). Texts hold counts and times only.
+- Data health shows the active alerts, and has an on / off switch for the daily exception digest.
+
+### F5 as built
+
+- **Rules engine** `fin_run_exception_rules(org)` (SQL, set-based, idempotent) reads thresholds from `fin_ref_exception_rules`. It opens what should be open (capped at 1,000 new per rule per run), and auto-closes whatever no longer applies. Daily in the maintenance job, after every Diligence commit, and from "Run rules now". E06 (import), E07/E09 (processing, capture failure) and E10 (invalid file) are raised where they happen; the engine adds a safety net for E07 and the invoice-number gap check for E09.
+- **Guards, so a rule never floods the queue with false alarms:** E01 only when a Diligence file was committed in the last 14 days; E02 and the E09 gap ranges only when the last Unite batch left nothing waiting; E08 only for invoices dated after the first synced appointment. Insurance invoice = `fin_is_insurance_type()` (one SQL definition).
+- **Due dates** come from `fin_ref_exception_rules.due_days` (default 7) via a trigger; overdue rows are highlighted. **Digest** (`fin_capture_settings.digest_enabled`, default off): one e-mail per member with counts per rule, no identifiers, queued on the `notifications` queue.
+- **Screens:** `/finance/exceptions` (filters, overdue, mine / unassigned; detail with what it means, what to do, assign, take, comment, close with a required note), `/finance/invoices` (+ detail with lines, payments, claims, version history, appointment, patient link), `/finance/summary` (month × branch table with totals, revenue by department / doctor / category, CSV export). Views: `v_fin_invoice_list`, `v_fin_revenue_monthly`.
+- **Data health** gains the AppointmentId resolution rate (target above 95%) and open exceptions per rule.
+
 ### F2.1 and F4 as built
 
 - **F2.1 fixes.** A duplicate invoice inside one batch keeps the last occurrence (the count is reported, the batch is never blocked); a replay never blanks `txn_ref_name`; first live runs default to **1 batch per run**; a daily `pulse:finance_maintenance` message (kind `maintenance`, same queue) strips personal data from raw payloads older than 90 days (allowlist: only keys the mapper knows survive, replay-equivalence is tested), re-matches unresolved claims and purges unconfirmed staging older than 7 days. Reference data (branches with Unite clinic names, service categories, doctors, rule thresholds) is edited at `/finance/reference`.

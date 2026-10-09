@@ -31,6 +31,7 @@ const SERVICE_ONLY = new Set([
   "channel_send_slots",
   "dead_letters",
   // Finance module: infrastructure and raw-payload tables, documented as service-only in their migrations
+  "fin_alert_state",
   "fin_capture_lease",
   "fin_capture_settings",
   "fin_raw_diligence_files",
