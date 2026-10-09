@@ -211,6 +211,7 @@ describe.skipIf(!TEST_DATABASE_URL)("jobs framework (db)", () => {
       const names = rows.map((r) => r.jobname.replace("pulse:", "")).sort();
       expect(names).toEqual([
         "campaign_fanout",
+        "flow_recurring",
         "flow_steps",
         "housekeeping",
         "housekeeping_phase3",
@@ -221,6 +222,8 @@ describe.skipIf(!TEST_DATABASE_URL)("jobs framework (db)", () => {
         "notifications",
         "outbound",
         "outbound_priority",
+        "parallel_run",
+        "recall_run",
         "scheduler",
         "unite_sync",
         "webhooks_out",

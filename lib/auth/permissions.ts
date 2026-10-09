@@ -59,6 +59,19 @@ export const PERMISSIONS = [
   { key: "portal.*.read", group: "Portal", label: "Read all portal objects" },
   { key: "reports.view", group: "Reports", label: "View reports and dashboards" },
   {
+    key: "clinical.settings.manage",
+    group: "Settings",
+    label: "Sign off clinical settings",
+    description:
+      "Approve clinical thresholds and switch recall programmes between Test and Live sending",
+  },
+  {
+    key: "portal.recall_sends.write",
+    group: "Portal",
+    label: "Edit recall call-list entries",
+    description: "Update follow-up status and booking details on recall sends",
+  },
+  {
     key: "settings.manage",
     group: "Settings",
     label: "Manage settings, users, roles and teams",
