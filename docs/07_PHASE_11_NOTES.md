@@ -12,7 +12,7 @@ The repository contains Phases 1–3 only (tenancy, jobs, CRM and importers, Wha
 | Webhook signatures checked | Done: route-level tests, 1 MiB cap |
 | Rate limits on the public API | Limiter built and applied to auth, export and failed-signature paths; the public API itself does not exist (Phase 10) |
 | Audit-log coverage | Done: append-only trigger, coverage test, gaps closed |
-| Load test: 20k campaign + 1k events/min webhook burst | Harnesses built and run locally ([`load-test.md`](load-test.md)); the campaign engine itself is Phase 7, so the 20k test drives the same `outbound` lane directly |
+| Load test: 20k campaign + 1k events/min webhook burst | Run locally and passing: 1,000 and 3,000 events/min with zero loss, and the full 20,000-message send (0 dead letters, limit held) — [`load-test.md`](load-test.md). The campaign engine itself is Phase 7, so the 20k test drives the same `outbound` lane directly; repeat it on staging |
 | Final Airtable + Sanoflow import, reconciliation sign-off | Tooling done (`pnpm reconcile`, importer summaries, sign-off file check). Not run: needs the real systems. Only contact tables are importable today |
 | Cut over numbers one at a time; Make parallel week; retire Make, Airtable, Sanoflow | Runbook + `pnpm cutover:preflight` done ([`06_PHASE_11_CUTOVER.md`](06_PHASE_11_CUTOVER.md)). Not executed. The Make parallel week needs Phase 8 |
 

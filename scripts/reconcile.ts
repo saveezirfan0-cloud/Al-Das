@@ -52,7 +52,10 @@ async function countAirtable(): Promise<SourceCountsFile> {
   const out: SourceCountsFile = { airtable: {} };
   for (const m of PATIENT_MAPPERS) {
     let n = 0;
-    for await (const _ of client.records(m.baseId, m.tableId)) n++; // counted in memory, never printed
+    for await (const record of client.records(m.baseId, m.tableId)) {
+      void record; // counted in memory, never printed
+      n++;
+    }
     out.airtable[`${m.baseId}.${m.tableId}`] = { label: m.name, total: n };
     console.log(`  ${m.name}: ${n} records`);
   }
