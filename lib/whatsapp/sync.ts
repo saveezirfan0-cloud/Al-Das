@@ -85,10 +85,8 @@ export async function syncTemplatesForChannel(
     .from("wa_templates")
     .select("id, name, language")
     .eq("waba_id", channel.waba_id)
-    .is("archived_at", null)
-    // Local drafts have never been on Meta; they are not "deleted" just because Meta has not heard of them.
-    .not("meta_template_id", "is", null)
-    .neq("status", "DRAFT");
+    .neq("status", "DRAFT") // local drafts were never on Meta
+    .is("archived_at", null);
   const gone = (existing ?? []).filter((e) => !seen.has(`${e.name}::${e.language}`));
   if (gone.length) {
     await admin

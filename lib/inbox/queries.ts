@@ -88,7 +88,8 @@ function applyFolder<B extends Filterable<B>>(
   ctx: QueryContext,
   mentionIds: string[],
 ): B {
-  let b = builder;
+  // Campaign sends sit in a hidden conversation until the patient replies.
+  let b = builder.eq("campaign_only", false) as B;
   if (team) return b.neq("status", "closed").eq("assignee_team_id", team) as B;
   switch (folder) {
     case "open":

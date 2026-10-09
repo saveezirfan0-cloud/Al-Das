@@ -45,11 +45,12 @@ type RequestOptions = {
   query?: Record<string, string | number | boolean | undefined>;
   json?: unknown;
   form?: FormData;
-  /** Raw bytes (resumable uploads). */
+  /** Raw bytes (resumable upload step 2). */
   raw?: Uint8Array;
+  /** Extra request headers. */
   headers?: Record<string, string>;
-  /** Graph's resumable upload endpoint wants "OAuth <token>"; everything else uses "Bearer". */
-  authScheme?: "Bearer" | "OAuth";
+  /** Authorization scheme (the resumable upload API wants "OAuth"). */
+  scheme?: "Bearer" | "OAuth";
   /** Override the token (e.g. a WABA-level call with a different token). */
   token?: string;
 };
@@ -86,12 +87,12 @@ export class WhatsAppClient {
       if (v !== undefined) url.searchParams.set(k, String(v));
     }
     const headers: Record<string, string> = {
-      Authorization: `${opts.authScheme ?? "Bearer"} ${opts.token ?? this.token}`,
-      ...(opts.headers ?? {}),
+      Authorization: `${opts.scheme ?? "Bearer"} ${opts.token ?? this.token}`,
+      ...opts.headers,
     };
     let body: BodyInit | undefined;
     if (opts.raw) {
-      body = new Blob([new Uint8Array(opts.raw)]);
+      body = new Uint8Array(opts.raw) as unknown as BodyInit;
     } else if (opts.form) {
       body = opts.form;
     } else if (opts.json !== undefined) {
@@ -243,6 +244,31 @@ export class WhatsAppClient {
     return this.request<MediaUploadResult>(this.phonePath("media"), { form });
   }
 
+  /**
+   * Resumable Upload API: uploads a header sample for a template and returns the handle
+   * ("4::…") that goes into `example.header_handle`. Needs the app id (META_APP_ID).
+   */
+  async uploadTemplateSample(
+    file: { data: Uint8Array | ArrayBuffer; mimeType: string; fileName: string },
+    appId = process.env.META_APP_ID,
+  ): Promise<string> {
+    if (!appId) throw new Error("META_APP_ID is not set, so header samples can't be uploaded.");
+    const bytes = file.data instanceof Uint8Array ? file.data : new Uint8Array(file.data);
+    const session = await this.request<{ id: string }>(`${appId}/uploads`, {
+      method: "POST",
+      query: { file_length: bytes.byteLength, file_type: file.mimeType, file_name: file.fileName },
+    });
+    if (!session?.id) throw new Error("Meta did not return an upload session.");
+    const done = await this.request<{ h?: string }>(session.id, {
+      method: "POST",
+      raw: bytes,
+      scheme: "OAuth",
+      headers: { file_offset: "0" },
+    });
+    if (!done?.h) throw new Error("Meta did not return a file handle.");
+    return done.h;
+  }
+
   getMediaInfo(mediaId: string): Promise<MediaInfo> {
     return this.request<MediaInfo>(mediaId, {
       query: this.phoneNumberId ? { phone_number_id: this.phoneNumberId } : {},
@@ -375,35 +401,6 @@ export class WhatsAppClient {
           "id,name,language,status,category,parameter_format,components,quality_score,rejected_reason",
       },
     });
-  }
-
-  /**
-   * Resumable upload of a template header sample (image / video / document). Returns the `4::…`
-   * handle that goes in `example.header_handle`. Two calls: open an upload session on the app, then
-   * send the bytes.
-   */
-  async uploadTemplateSample(
-    appId: string,
-    file: { data: Uint8Array; mimeType: string; filename?: string },
-  ): Promise<{ handle: string }> {
-    if (!appId)
-      throw new Error("WhatsAppClient: META_APP_ID is required to upload a template sample");
-    const session = await this.request<{ id: string }>(`${appId}/uploads`, {
-      method: "POST",
-      query: {
-        file_length: file.data.byteLength,
-        file_type: file.mimeType,
-        file_name: file.filename ?? "sample",
-      },
-    });
-    const done = await this.request<{ h?: string }>(session.id, {
-      method: "POST",
-      raw: file.data,
-      authScheme: "OAuth",
-      headers: { file_offset: "0", "Content-Type": file.mimeType },
-    });
-    if (!done.h) throw new Error("Meta did not return an upload handle");
-    return { handle: done.h };
   }
 
   createTemplate(

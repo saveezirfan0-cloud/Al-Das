@@ -36,6 +36,7 @@ import {
   sendChat,
   startConversation,
 } from "./actions";
+import { AiPanel } from "./ai-panel";
 import { TemplatePicker } from "./template-picker";
 import type { ConversationDetail, InboxProps } from "./types";
 
@@ -93,6 +94,7 @@ type Mode = "chat" | "comment";
 
 export function Composer({
   selected,
+  ai,
   channels,
   quickReplies,
   templates,
@@ -411,6 +413,7 @@ export function Composer({
             mode === "comment" && "border-amber-300 bg-amber-50/60 dark:bg-amber-950/20",
           )}
           aria-label={mode === "comment" ? "Internal note" : "Message"}
+          dir="auto"
         />
       </div>
 
@@ -461,6 +464,14 @@ export function Composer({
             >
               {recording ? <Square /> : <Mic />}
             </Button>
+            {ai.available && (
+              <AiPanel
+                conversationId={selected.id}
+                text={text}
+                onText={setText}
+                disabled={chatDisabled || pending}
+              />
+            )}
             <Button
               variant="ghost"
               size="sm"

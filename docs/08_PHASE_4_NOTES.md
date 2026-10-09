@@ -1,80 +1,57 @@
-# Phase 4 — Templates: what was built and what is left
+# Phase 4 — Templates: what was built and how to use it
 
 ## Scope delivered
 
-`/templates` is now a real screen (it was a "coming soon" page). Staff can build WhatsApp templates in Pulse, preview them as they will look on a phone, submit them to Meta, track review status, edit, duplicate, archive and delete them, and map variables to CRM/appointment fields. The Inbox picker, appointment reminders and (later) campaigns keep reading the same `wa_templates` rows; only `APPROVED` templates stay sendable (`isTemplateSendable`).
+- **`/templates`** (needs `templates.manage`): list filtered by WhatsApp account/number and status (Draft, Pending, Approved, Rejected, Paused, Disabled, Flagged …, plus Archived), search, 30 per page. Columns: name + language + type, message preview, category, status pill (with Meta's rejection reason), updated. Row actions: **Edit**, **Map variables**, **Duplicate** (as a new draft), **Archive / Unarchive**, **Delete**. Header actions: **Sync templates** and **New template** (gallery).
+- **Builder drawer** (`?new=1`, `?edit=<id>`; the URL keeps the list filters):
+  - Name, category (Marketing / Utility), language (English, English US/UK, Arabic; Arabic switches the editors to right-to-left), number, type (**Standard**, **Media & interactive**, **Carousel**).
+  - Header: none / text (one variable) / image / video / document. Media samples go through Meta's **resumable upload API** (`WhatsAppClient.uploadTemplateSample`, needs `META_APP_ID`) and the returned handle is stored as the example.
+  - Body with **bold / italic / strikethrough / monospace** buttons, character counter, and **`@` to insert a dynamic field** (also an _Insert variable_ button). Inserting a field adds the next `{{n}}`, fills its example from a sample and records the mapping. Examples (required by Meta) and the source of each variable are edited under the body.
+  - Footer; buttons (quick reply, link with optional `{{1}}` suffix, call, copy code) with Meta's per-type limits; carousel cards (2–10, same media type and button layout, 160-char text).
+  - **Live phone preview** (shared `components/phone-preview`, now with carousel cards), inline problems (blocking) and warnings (advice), then **Save draft** (local only) or **Submit to Meta**. Editing an approved/rejected/paused template resubmits it for review in place (name and language are locked).
+- **Gallery**: 13 original administrative templates × English and Arabic = **26 starters** (appointment confirmation/reminder/rescheduled/cancelled with Confirm · Reschedule · Cancel buttons, welcome, we-tried-to-reach-you, opening-hours change, visit feedback, review request, birthday greeting, health-check packages, news with an image, invoice ready). Filter by use case and language, preview, _Use this template_ or _Start from scratch_. Every one passes the builder's validation (tests enforce it); two need a clinic action before submitting (upload the header image, replace the placeholder link) and say so. No entry gives clinical advice; clinical recall wording stays with the signed-off recall programmes.
+- **Variable mapping** (per template, `wa_templates.variable_map`): contact first/last/full name and appointment date/time/date-time/doctor/location/service/number, plus fixed text. Used by the inbox template picker, appointment reminders (Phase 6) and as the starting point in campaigns, where each campaign can override it.
+- **Sync**: manual (_Sync templates_, all accounts of the workspace) and **nightly** (`templates_sync` task, pg_cron 03:40 UTC, one Meta call per WABA, failures logged per account). Local drafts are never archived by a sync.
 
-| Plan item                                                                                                                                                                                     | Status                                                                                 |
-| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| List with filters (number, status, category, language, search, archived)                                                                                                                      | Done                                                                                   |
-| Builder drawer: identity, header (text / image / video / document / location), body with formatting and `Add variable`, footer, buttons, carousel cards, live phone preview, validation panel | Done                                                                                   |
-| Meta rules as pure, unit-tested checks (named constants in `LIMITS`)                                                                                                                          | Done: `lib/whatsapp/template-validate.ts`                                              |
-| Resumable header-sample upload (`4::…` handle)                                                                                                                                                | Done: `WhatsAppClient.uploadTemplateSample`; needs `META_APP_ID`                       |
-| Submit / edit submitted / delete / duplicate / archive / variable map                                                                                                                         | Done: `lib/templates/service.ts` + `app/(app)/templates/actions.ts`                    |
-| Edit-limit handling (APPROVED editable once per 24 h, etc.)                                                                                                                                   | Done: blocked early with a message instead of burning Meta attempts                    |
-| Starter gallery, EN + AR                                                                                                                                                                      | Done: 26 entries (13 EN, 13 AR); install creates **drafts** only                       |
-| Nightly sync                                                                                                                                                                                  | Done: `templates_sync` task, `pg_cron` 02:40 UTC; the manual button runs the same code |
-| Offline happy path                                                                                                                                                                            | Done: mock Graph template/upload endpoints + simulator overrides (below)               |
-| Real approval by Meta, real sample upload                                                                                                                                                     | **Not verifiable here** (needs the System User token and a live WABA)                  |
+## Under the hood
 
-## Code map
+| Piece                                                                     | Where                                                                                                                                                                                                     |
+| ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Draft model, Meta authoring rules, draft ↔ components, `@`/format helpers | `lib/templates/builder.ts` (pure)                                                                                                                                                                         |
+| Variable sources                                                          | `lib/templates/sources.ts`                                                                                                                                                                                |
+| Starter templates                                                         | `lib/templates/gallery.ts`                                                                                                                                                                                |
+| List/detail queries                                                       | `lib/templates/queries.ts`                                                                                                                                                                                |
+| Server actions (all audited, `templates.manage`)                          | `app/(app)/templates/actions.ts`: `saveTemplateDraft`, `submitTemplate`, `duplicateTemplate`, `deleteTemplate`, `archiveTemplate`, `saveTemplateVariableMap`, `syncTemplatesAction`, `uploadHeaderSample` |
+| Nightly sync                                                              | `lib/jobs/handlers/templates-sync.ts`                                                                                                                                                                     |
+| Migration                                                                 | `20261010000200_templates.sql` (`created_by`, `submitted_at`, `gallery_key`; cron)                                                                                                                        |
 
-- **Pure library** (no I/O, unit-tested): `lib/whatsapp/template-draft.ts` (form model ⇄ Meta `components`, variable insert/renumber, sample-file limits), `template-validate.ts`, `template-gallery.ts`, `format.ts` (WhatsApp `*bold* _italic_ ~strike~ ```mono```` tokenizer); `components/whatsapp/phone-preview.tsx` (reusable by Campaigns).
-- **Service** `lib/templates/{service,rules,schema}.ts`: all writes go through the service role after `requirePerm("templates.manage")`, each with `recordAudit`. `rules.ts` holds status labels and the edit-limit rules.
-- **Job** `lib/jobs/handlers/templates-sync.ts`; `lib/whatsapp/sync.ts` was made draft-safe (a local `DRAFT` row is never archived because Meta does not list it).
-- **Migration** `20261009000990_templates.sql`: `source`, `gallery_key`, `submitted_at`, `last_error`, `last_edited_at`, `header_sample_path`, `card_sample_paths`, `needs_review`, internal-key columns, local `DRAFT` status, index on `(org_id, channel_id, status)`, private bucket `wa-template-media`, cron entry.
-- **UI** `app/(app)/templates/`: `page.tsx` (server), `templates-workspace.tsx` (list + dialogs), `template-drawer.tsx` (builder), `template-dialogs.tsx` (variable mapper, duplicate, starter gallery), `status-badge.tsx`.
-- **Rate limit** `RATE_RULES.templateSubmitPerUser`: 30 submits/user/hour, fails closed.
+## Rules the builder enforces (Meta, structural)
 
-## Decisions (as in the plan)
+Name `[a-z0-9_]`; body ≤ 1024 with `{{1}}…` numbered without gaps, not at the start or end, never adjacent, one example per variable; header text ≤ 60 with at most `{{1}}`; footer ≤ 60, no variables; ≤ 10 buttons (≤ 2 links, ≤ 1 call, ≤ 1 copy code), button text ≤ 25, links `https://` with a `{{1}}` only at the end, phone in international format; carousel 2–10 cards with identical media type and button types. Advice only: too many variables for the text, marketing without an opt-out line, placeholder `example.com` links. Meta still decides on content.
 
-1. Gallery templates install as drafts and are never auto-submitted.
-2. Arabic gallery entries are marked **needs review** and cannot be submitted until a person marks them reviewed. I can write grammatical Arabic but cannot vouch for tone; a native speaker must read all 13 before they go to Meta.
-3. Editing a submitted template respects Meta's edit limits by blocking early with an explanation.
-4. EN and AR are separate language variants of the same name; there is no auto-translation.
-5. Archive/delete of a template that is in use (appointment settings, recent sends) asks for confirmation and lists where it is used.
+## Behaviour worth knowing
 
-## Security notes
-
-- A client-supplied sample path could have pointed at another organisation's file (the server downloads it and uploads it to Meta). Fixed in this phase: only `<org>/<template>/…` paths with a strict character set are trusted (`ownSamplePath`), covered by a forged-path test.
-- New table columns inherit the existing `wa_templates` RLS; the new bucket policies mirror `wa-media`. `pnpm test:db` (security-guard sweep) passes; `pnpm audit:security` reports 160 entry points, 0 unguarded.
-- Template bodies, examples and sample files are never logged; Meta error text is passed through `redactText` before it is stored in `last_error`.
-
-## Offline happy path
-
-```bash
-# 1. mock Graph with template endpoints (loopback only)
-pnpm load:mock-graph --port 4010
-# 2. app with META_GRAPH_BASE_URL=http://127.0.0.1:4010 and META_APP_ID set to any digits
-# 3. /templates → Starter templates → add a draft → open it → Submit to Meta → row shows Pending
-# 4. approve it the way Meta would: deliver the webhook
-pnpm wa:simulate template-status-update --template-id <meta id shown in the mock: GET /__templates> \
-  --template-name <name> --template-language en --waba <waba id>
-pnpm jobs:run meta_events
-# 5. row turns Approved and appears in the Inbox template picker
-```
-
-`POST /__templates/<id>/status?status=REJECTED` on the mock changes its own copy, which the nightly/manual sync then mirrors.
-
-## Verification run
-
-`pnpm typecheck`, `pnpm lint`, the full unit suite (881 tests) and `pnpm test:db` (193 tests) pass. The security audit shows no unguarded or unaudited entry points. The browser walk-through (Playwright screenshots at desktop and phone width) was **not** run in this environment.
+- **Status changes arrive by webhook** (`message_template_status_update`, handled since Phase 3), so a submitted template flips from Pending to Approved/Rejected without a sync. The nightly sync is the safety net.
+- **Category**: Meta may re-classify (e.g. Utility → Marketing); the response is stored and the toast says so.
+- **Delete** removes the template on Meta (by id) and locally; if a campaign references it, the row is kept as archived/Deleted so history stays intact.
+- **Campaigns** skip carousel templates (cards need a media item per card at send time, which the send path does not support yet), and the server rejects them too.
+- **Arabic quick replies** in the appointment starters are recognised by the reminder button-reply handler (Confirm / Reschedule / Cancel in Arabic added to `classifyButtonReply`).
+- `WhatsAppApiError` now carries Meta's own user-facing wording (`error_user_title` / `error_user_msg`), which the builder shows when Meta rejects a submission.
 
 ## Demo checklist
 
-- [ ] `/templates` shows the starter button, filters and an empty state before any template exists.
-- [ ] Add three English starter templates for a number; they appear as drafts, not submitted.
-- [ ] Open one: edit the body, add a variable with an example, watch the phone preview and the validation panel; remove the example and confirm Submit is blocked.
-- [ ] Submit with the mock Graph running: status becomes Pending; trying to submit a duplicate name shows Meta's error in the drawer.
-- [ ] Deliver the approval webhook; the template becomes Approved and shows in the Inbox picker.
-- [ ] Add an Arabic starter: it shows "needs review" and Submit stays disabled until it is marked reviewed.
-- [ ] Archive an approved template used by appointment reminders: a confirmation lists the usage.
-- [ ] Sign in as a member without `templates.manage`: the list is visible, edit controls are not.
+- [ ] Settings → Channels has a number; `/templates` → **Sync templates** mirrors the account's templates; filters and search work.
+- [ ] **New template** → gallery → _Appointment reminder (Arabic)_: the preview is right-to-left, three buttons, four mapped variables; _Submit to Meta_ creates it (Pending), then it turns Approved by webhook.
+- [ ] Type `@` in the body: the field menu appears; choosing _Contact: first name_ inserts `{{1}}` with the example “Sara”.
+- [ ] Image header: upload a JPEG/PNG sample; without one the submit button stays disabled with the reason listed.
+- [ ] Marketing template without an opt-out line shows the advice; the review-request starter warns about the placeholder link.
+- [ ] Edit an approved template → _Save & resubmit_ returns it to Pending; name/language are locked.
+- [ ] Duplicate → a `_copy` draft; Archive hides it from pickers; Delete asks first and archives instead if a campaign used it.
+- [ ] A carousel with two cards and URL buttons previews as swipeable cards; it does not appear in the campaign template list.
 
-## Open items
+## Open questions / follow-ups
 
-- Native-speaker review of the 13 Arabic starter templates (blocks their submission by design).
-- Run the real header-sample upload and a real submission against a throwaway Meta test number before relying on this at go-live.
-- Playwright smoke test for the builder (not written).
-- Authentication-category (OTP) templates are validated only; WhatsApp Flow buttons are parsed but not built.
-- Campaigns (Phase 7) will reuse `PhonePreview` and the variable map.
+- Needs `META_APP_ID` (already in the env list) for header sample uploads, and a real WABA token to submit; offline, submit shows Meta's mapped error.
+- Named parameters (`{{first_name}}`) are read and sent when they come from a sync, but the builder authors positional variables only.
+- Authentication (OTP) templates, catalogue/flow/MPM buttons and limited-time offers are not in the builder.
+- Template-level analytics (performance per template) arrives with the reports in Phase 10.

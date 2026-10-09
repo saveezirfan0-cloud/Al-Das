@@ -32,6 +32,19 @@ const serverSchema = z.object({
   UNITE_APP_KEY: z.preprocess((v) => (v === "" ? undefined : v), z.string().optional()),
 });
 
+/**
+ * Phase 10: AI + knowledge base. Kept apart from serverEnv() so AI code (and its tests) does not
+ * need the Supabase or job variables. Everything is optional; lib/ai throws a clear
+ * "not configured" error where a value is actually needed.
+ */
+const aiSchema = z.object({
+  ANTHROPIC_API_KEY: z.string().optional(),
+  ANTHROPIC_MODEL: z.string().default("claude-sonnet-5-5"),
+  EMBEDDINGS_API_KEY: z.string().optional(),
+  EMBEDDINGS_PROVIDER: z.enum(["voyage", "fake"]).default("voyage"),
+  EMBEDDINGS_MODEL: z.string().default("voyage-3"),
+});
+
 export function publicEnv() {
   return publicSchema.parse({
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -56,5 +69,15 @@ export function serverEnv() {
     UNITE_BASE_URL: process.env.UNITE_BASE_URL,
     UNITE_APP_ID: process.env.UNITE_APP_ID,
     UNITE_APP_KEY: process.env.UNITE_APP_KEY,
+  });
+}
+
+export function aiEnv() {
+  return aiSchema.parse({
+    ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || undefined,
+    ANTHROPIC_MODEL: process.env.ANTHROPIC_MODEL || undefined,
+    EMBEDDINGS_API_KEY: process.env.EMBEDDINGS_API_KEY || undefined,
+    EMBEDDINGS_PROVIDER: process.env.EMBEDDINGS_PROVIDER || undefined,
+    EMBEDDINGS_MODEL: process.env.EMBEDDINGS_MODEL || undefined,
   });
 }

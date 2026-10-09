@@ -33,8 +33,6 @@ export const RATE_RULES = {
   inviteAcceptPerIp: { limit: 15, windowSec: 600, failOpen: false },
   workspaceCreatePerUser: { limit: 5, windowSec: 3600, failOpen: false },
   contactsExportPerUser: { limit: 6, windowSec: 60, failOpen: false },
-  /** Submitting / editing templates on Meta (Meta also caps template creation per WABA per hour). */
-  templateSubmitPerUser: { limit: 30, windowSec: 3600, failOpen: false },
   /** Phase 10 /api/public/v1, per API key. */
   publicApi: { limit: 120, windowSec: 60, failOpen: true },
 } as const satisfies Record<string, RateRule>;
@@ -105,12 +103,7 @@ export function withRateLimit<Ctx>(
   handler: (request: Request, ctx: Ctx) => Promise<Response>,
 ) {
   return async (request: Request, ctx: Ctx): Promise<Response> => {
-    const result = await checkRateLimit(
-      opts.admin(),
-      opts.scope,
-      await opts.key(request),
-      opts.rule,
-    );
+    const result = await checkRateLimit(opts.admin(), opts.scope, await opts.key(request), opts.rule);
     if (!result.allowed) return tooManyRequests(result);
     return handler(request, ctx);
   };

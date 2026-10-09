@@ -9,9 +9,7 @@
  * Uses APP_URL and META_APP_SECRET from .env.local. Fixtures live in
  * scripts/wa-fixtures (synthetic data only). --phone-number-id rewrites the
  * metadata so the event lands on a channel you connected locally; --from
- * rewrites the sender's wa_id/from; --waba rewrites entry.id; --template-id /
- * --template-name / --template-language point template status fixtures at a template you
- * created locally.
+ * rewrites the sender's wa_id/from; --waba rewrites entry.id.
  */
 import "dotenv/config";
 
@@ -28,9 +26,6 @@ type Opts = {
   phoneNumberId?: string;
   from?: string;
   waba?: string;
-  templateId?: string;
-  templateName?: string;
-  templateLanguage?: string;
   url?: string;
 };
 
@@ -43,9 +38,6 @@ function parseArgs(argv: string[]): Opts {
     else if (a === "--phone-number-id") o.phoneNumberId = argv[++i];
     else if (a === "--from") o.from = argv[++i];
     else if (a === "--waba") o.waba = argv[++i];
-    else if (a === "--template-id") o.templateId = argv[++i];
-    else if (a === "--template-name") o.templateName = argv[++i];
-    else if (a === "--template-language") o.templateLanguage = argv[++i];
     else if (a === "--url") o.url = argv[++i];
     else if (!a.startsWith("--")) o.fixture = a.replace(/\.json$/, "");
   }
@@ -71,14 +63,6 @@ export function rewrite(body: Record<string, unknown>, o: Opts): Record<string, 
       const value = change.value as Record<string, unknown>;
       const metadata = value.metadata as Record<string, unknown> | undefined;
       if (o.phoneNumberId && metadata) metadata.phone_number_id = o.phoneNumberId;
-      if (o.templateId && value.message_template_id !== undefined)
-        value.message_template_id = Number.isSafeInteger(Number(o.templateId))
-          ? Number(o.templateId)
-          : o.templateId;
-      if (o.templateName && value.message_template_name !== undefined)
-        value.message_template_name = o.templateName;
-      if (o.templateLanguage && value.message_template_language !== undefined)
-        value.message_template_language = o.templateLanguage;
       if (o.from) {
         for (const c of (value.contacts as Array<Record<string, unknown>>) ?? [])
           if (c.wa_id) c.wa_id = o.from;
@@ -119,7 +103,7 @@ async function main() {
     console.log("fixtures:\n  " + names.join("\n  "));
     if (!o.list)
       console.log(
-        "\nusage: pnpm wa:simulate <fixture> [--phone-number-id ID] [--from WA_ID] [--waba ID]\n       template-status-*: [--template-id ID] [--template-name NAME] [--template-language CODE]",
+        "\nusage: pnpm wa:simulate <fixture> [--phone-number-id ID] [--from WA_ID] [--waba ID]",
       );
     return;
   }

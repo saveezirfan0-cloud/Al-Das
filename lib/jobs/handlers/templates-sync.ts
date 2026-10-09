@@ -1,39 +1,38 @@
 import { registerTask } from "@/lib/jobs/tasks";
-import { redactText } from "@/lib/redact";
+import { WhatsAppApiError } from "@/lib/whatsapp/errors";
 import { syncTemplatesForChannel } from "@/lib/whatsapp/sync";
 
 /**
- * /api/jobs/templates_sync (pg_cron nightly): mirror every active channel's templates from Meta.
- * One channel failing (expired token, Meta outage) never stops the others; failures are reported in
- * the job_runs meta, not thrown, so one bad number does not hide the rest.
+ * /api/jobs/templates_sync (pg_cron nightly): mirrors each WABA's templates into wa_templates.
+ * One call per WABA (numbers on the same account share their templates). A failing account
+ * is logged and skipped so one bad token does not block the others.
  */
 registerTask("templates_sync", {
-  name: "templates.nightly_sync",
+  name: "templates.sync",
   async run(admin, log) {
     const { data: channels } = await admin
       .from("channels")
       .select("id, org_id, phone_number_id, waba_id")
-      .eq("status", "active");
+      .eq("status", "active")
+      .order("created_at");
+    const seen = new Set<string>();
     let synced = 0;
-    let removed = 0;
-    const failures: Array<{ channel: string; error: string }> = [];
-    for (const ch of channels ?? []) {
+    let failed = 0;
+    for (const channel of channels ?? []) {
+      const key = `${channel.org_id}:${channel.waba_id}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
       try {
-        const r = await syncTemplatesForChannel(admin, ch);
+        const r = await syncTemplatesForChannel(admin, channel);
         synced += r.synced;
-        removed += r.removed;
       } catch (err) {
-        const error = redactText(err, 200);
-        failures.push({ channel: ch.id, error });
-        log.warn("template sync failed", { channel: ch.id, error });
+        failed++;
+        log.warn("template sync failed", {
+          wabaId: channel.waba_id,
+          error: err instanceof WhatsAppApiError ? err.mapped.message : "unexpected error",
+        });
       }
     }
-    return {
-      channels: channels?.length ?? 0,
-      synced,
-      removed,
-      failed: failures.length,
-      failures: failures.slice(0, 10),
-    };
+    return { accounts: seen.size, synced, failed };
   },
 });

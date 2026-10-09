@@ -14,6 +14,7 @@ import {
   saveCaptureSettings,
   saveUniteCredentials,
   setCaptureEnabled,
+  setDigestEnabled,
   type ActionResult,
 } from "./actions";
 
@@ -168,6 +169,25 @@ export function MaintenanceButtons() {
       </Button>
       <Button variant="outline" size="sm" disabled={pending} onClick={() => run(rederiveBranches)}>
         Re-derive branches
+      </Button>
+    </div>
+  );
+}
+
+export function DigestToggle({ enabled }: { enabled: boolean }) {
+  const { pending, run } = useRun();
+  return (
+    <div className="flex items-center gap-3">
+      <span className="text-sm">
+        Daily exception digest e-mail: <strong>{enabled ? "on" : "off"}</strong>
+      </span>
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={pending}
+        onClick={() => run(() => setDigestEnabled(!enabled))}
+      >
+        {pending && <Loader2 className="animate-spin" />} Turn {enabled ? "off" : "on"}
       </Button>
     </div>
   );
