@@ -1,0 +1,9 @@
+{
+  "report": "reconciliation-YYYY-MM-DDTHH-MM-SS.md",
+  "decision": "NO-GO",
+  "signedBy": [
+    { "role": "Operations lead", "name": "", "date": "" },
+    { "role": "Clinical lead", "name": "", "date": "" },
+    { "role": "Engineering", "name": "", "date": "" }
+  ]
+}

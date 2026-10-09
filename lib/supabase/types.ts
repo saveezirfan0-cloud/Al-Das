@@ -300,19 +300,46 @@ export type Database = {
           },
         ];
       };
+      channel_send_cursor: {
+        Row: {
+          channel_id: string;
+          next_slot: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          channel_id: string;
+          next_slot: string;
+        };
+        Update: {
+          channel_id?: string;
+          next_slot?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "channel_send_cursor_channel_id_fkey";
+            columns: ["channel_id"];
+            isOneToOne: true;
+            referencedRelation: "channels";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       channel_send_slots: {
         Row: {
+          booked: number;
           channel_id: string;
           slot: string;
           used: number;
         };
         ComputedFields: never;
         Insert: {
+          booked?: number;
           channel_id: string;
           slot: string;
           used?: number;
         };
         Update: {
+          booked?: number;
           channel_id?: string;
           slot?: string;
           used?: number;
@@ -3679,6 +3706,25 @@ export type Database = {
           },
         ];
       };
+      rate_limit_hits: {
+        Row: {
+          hits: number;
+          key: string;
+          window_start: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          hits?: number;
+          key: string;
+          window_start: string;
+        };
+        Update: {
+          hits?: number;
+          key?: string;
+          window_start?: string;
+        };
+        Relationships: [];
+      };
       reminder_exclusions: {
         Row: {
           active: boolean;
@@ -5748,6 +5794,7 @@ export type Database = {
         Args: { p_delay?: number; p_payload: Json; p_queue: string };
         Returns: number;
       };
+      job_next_due: { Args: { p_queue: string }; Returns: number };
       job_queue_metrics: {
         Args: Record<PropertyKey, never>;
         Returns: {
@@ -5783,6 +5830,19 @@ export type Database = {
       };
       pgp_armor_headers: { Args: { "": string }; Returns: Record<string, unknown>[] };
       pick_round_robin_assignee: { Args: { p_org_id: string; p_team_id: string }; Returns: string };
+      rate_limit_hit: {
+        Args: { p_key: string; p_limit: number; p_window_seconds: number };
+        Returns: {
+          allowed: boolean;
+          hits: number;
+          retry_after: number;
+        }[];
+      };
+      reserve_send_slot: {
+        Args: { p_cap: number; p_channel_id: string };
+        Returns: number;
+      };
+      reconcile_snapshot: { Args: { p_org_id: string }; Returns: NonNullable<Json> };
       seed_clinical_settings: { Args: { p_org: string }; Returns: undefined };
       seed_finance_reference: { Args: { p_org_id: string }; Returns: undefined };
       seed_finance_roles: { Args: { p_org_id: string; p_roles: Json }; Returns: number };

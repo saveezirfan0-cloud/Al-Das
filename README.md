@@ -35,7 +35,10 @@ pnpm test:db                                   # RLS + scheduler/queue + filter 
 pnpm e2e                                       # Playwright smoke tests
 pnpm import:sanoflow --file=contacts.csv --dry-run   # Sanoflow contact export → contacts (docs/04 for options)
 pnpm import:airtable --dry-run                       # Airtable patient tables → contacts
+pnpm audit:security                                  # static security pass (also enforced by `pnpm test`)
 ```
+
+Hardening, load tests and cut-over (Phase 11): `docs/audit/security-pass.md`, `docs/load-test.md`, `docs/06_PHASE_11_CUTOVER.md`, `docs/07_PHASE_11_NOTES.md`.
 
 ## Layout
 
@@ -46,6 +49,7 @@ lib/            auth (can, session, permissions), jobs (registry, runner, schedu
                 contacts (import, export, merge, query), supabase clients, audit, email
 supabase/       migrations, seed.sql (fake data), test/ (plain-Postgres stand-ins for tests)
 tests/          unit (vitest), db (vitest + pg), e2e (playwright)
-scripts/        audit exporters, importers (import-sanoflow, import-airtable + import/mappers), test-db.sh, run-job.ts
+scripts/        audit exporters, importers (import-sanoflow, import-airtable + import/mappers), reconcile, cutover-preflight,
+                audit-security, load/ (webhook burst, 20k send, mock Graph), test-db.sh, run-job.ts
 docs/           spec, build plan, audit, phase notes
 ```

@@ -122,6 +122,13 @@ export async function updateSettingMeta(input: z.input<typeof metaSchema>): Prom
     .eq("org_id", member.orgId)
     .eq("key", d.key);
   if (error) return { ok: false, error: "Could not save." };
+  await recordAudit(createAdminClient(), {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "clinical_setting.meta_updated",
+    entity: "clinical_setting",
+    diff: { key: d.key },
+  });
   revalidatePath("/portal/clinical-settings");
   return { ok: true, message: "Saved." };
 }

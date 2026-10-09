@@ -31,6 +31,7 @@ import {
   parseArgs,
   resolveOrg,
   writeReport,
+  writeSummary,
   type Counters,
 } from "./import/common";
 import { ensureCustomFields } from "./import/custom-fields";
@@ -302,8 +303,22 @@ async function main() {
   ].join("\n");
 
   const file = writeReport("airtable", md);
+  const summaryFile = writeSummary(
+    "airtable",
+    reports.map((r) => ({
+      source: "airtable",
+      entity: r.entity,
+      label: r.name,
+      runAt: new Date().toISOString(),
+      dryRun,
+      since: opts.since ?? null,
+      includeTestRecords: includeTest,
+      counters: r.counters,
+    })),
+  );
   console.log(md);
   console.log(`report → ${file}`);
+  console.log(`summary → ${summaryFile}`);
 }
 
 main().catch((e) => {

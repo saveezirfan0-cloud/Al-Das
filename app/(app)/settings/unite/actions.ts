@@ -89,11 +89,18 @@ export async function testUniteConnection(): Promise<ActionResult> {
 
 export async function resetUniteBreaker(): Promise<ActionResult> {
   const member = await requirePerm("settings.manage");
-  await createAdminClient()
+  const admin = createAdminClient();
+  await admin
     .from("integration_accounts")
     .update({ consecutive_failures: 0, breaker_open_until: null })
     .eq("org_id", member.orgId)
     .eq("kind", "unite");
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "unite.breaker_reset",
+    entity: "integration",
+  });
   refresh();
   return { ok: true, message: "Calls resumed." };
 }

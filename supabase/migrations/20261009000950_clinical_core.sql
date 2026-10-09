@@ -132,6 +132,8 @@ begin
   values (coalesce(new.org_id, old.org_id), coalesce(new.key, old.key), auth.uid(), to_jsonb(old), to_jsonb(new));
   return coalesce(new, old);
 end $$;
+-- A trigger function: nobody calls it through the API.
+revoke all on function public.clinical_settings_audit() from public, anon, authenticated;
 create trigger clinical_settings_audit after insert or update or delete on public.clinical_settings
   for each row execute function public.clinical_settings_audit();
 

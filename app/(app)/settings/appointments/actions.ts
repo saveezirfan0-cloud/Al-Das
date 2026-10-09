@@ -79,6 +79,13 @@ export async function deleteLocation(id: string): Promise<ActionResult> {
   const admin = createAdminClient();
   const { error } = await admin.from("locations").delete().eq("id", id).eq("org_id", member.orgId);
   if (error) return { ok: false, error: "Could not delete the location." };
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "appointments.location_deleted",
+    entity: "location",
+    entityId: id,
+  });
   refresh();
   return { ok: true, message: "Location deleted." };
 }
@@ -103,6 +110,14 @@ export async function saveDepartment(
     ? admin.from("departments").update(row).eq("id", id).eq("org_id", member.orgId)
     : admin.from("departments").insert({ ...row, org_id: member.orgId }));
   if (error) return fail(error, "A department with that name already exists.");
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "appointments.department_saved",
+    entity: "department",
+    entityId: id ?? undefined,
+    diff: { name: row.name } as Json,
+  });
   refresh();
   return { ok: true, message: "Department saved." };
 }
@@ -117,6 +132,13 @@ export async function deleteDepartment(id: string): Promise<ActionResult> {
     .eq("id", id)
     .eq("org_id", member.orgId);
   if (error) return { ok: false, error: "Could not delete the department." };
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "appointments.department_deleted",
+    entity: "department",
+    entityId: id,
+  });
   refresh();
   return { ok: true, message: "Department deleted." };
 }
@@ -152,6 +174,14 @@ export async function saveService(input: z.input<typeof serviceSchema>): Promise
     ? admin.from("services").update(values).eq("id", id).eq("org_id", member.orgId)
     : admin.from("services").insert({ ...values, org_id: member.orgId }));
   if (error) return fail(error, "A service with that name already exists.");
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "appointments.service_saved",
+    entity: "service",
+    entityId: id ?? undefined,
+    diff: { name: row.name } as Json,
+  });
   refresh();
   return { ok: true, message: "Service saved." };
 }
@@ -162,6 +192,13 @@ export async function deleteService(id: string): Promise<ActionResult> {
   const admin = createAdminClient();
   const { error } = await admin.from("services").delete().eq("id", id).eq("org_id", member.orgId);
   if (error) return { ok: false, error: "Could not delete the service." };
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "appointments.service_deleted",
+    entity: "service",
+    entityId: id,
+  });
   refresh();
   return { ok: true, message: "Service deleted." };
 }
@@ -311,6 +348,13 @@ export async function deleteSpecialist(id: string): Promise<ActionResult> {
     .eq("id", id)
     .eq("org_id", member.orgId);
   if (error) return { ok: false, error: "Could not delete the specialist." };
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "appointments.specialist_deleted",
+    entity: "specialist",
+    entityId: id,
+  });
   refresh();
   return { ok: true, message: "Specialist deleted." };
 }
@@ -393,6 +437,13 @@ export async function addExclusion(input: z.input<typeof exclusionSchema>): Prom
     .from("reminder_exclusions")
     .insert({ ...parsed.data, org_id: member.orgId });
   if (error) return fail(error, "That exclusion already exists.");
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "appointments.reminder_exclusion_added",
+    entity: "reminder_exclusion",
+    entityId: undefined,
+  });
   refresh();
   return { ok: true, message: "Exclusion added." };
 }
@@ -402,6 +453,13 @@ export async function removeExclusion(id: string): Promise<ActionResult> {
   if (!uuid.safeParse(id).success) return { ok: false, error: "Invalid exclusion." };
   const admin = createAdminClient();
   await admin.from("reminder_exclusions").delete().eq("id", id).eq("org_id", member.orgId);
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "appointments.reminder_exclusion_removed",
+    entity: "reminder_exclusion",
+    entityId: id,
+  });
   refresh();
   return { ok: true, message: "Exclusion removed." };
 }
@@ -411,6 +469,13 @@ export async function loadDefaultExclusions(): Promise<ActionResult> {
   const admin = createAdminClient();
   const { error } = await admin.rpc("seed_reminder_exclusions", { p_org: member.orgId });
   if (error) return { ok: false, error: "Could not load the defaults." };
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "appointments.reminder_exclusions_defaults_loaded",
+    entity: "reminder_exclusion",
+    entityId: undefined,
+  });
   refresh();
   return { ok: true, message: "Defaults from the previous Make scenarios loaded." };
 }

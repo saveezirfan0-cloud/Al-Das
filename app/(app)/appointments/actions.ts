@@ -501,7 +501,15 @@ export async function blockTime(input: z.input<typeof blockSchema>): Promise<Act
 export async function deleteBlock(id: string): Promise<ActionResult> {
   const member = await requirePerm("appointments.manage");
   if (!uuid.safeParse(id).success) return fail("Invalid block.");
-  await createAdminClient().from("time_blocks").delete().eq("id", id).eq("org_id", member.orgId);
+  const admin = createAdminClient();
+  await admin.from("time_blocks").delete().eq("id", id).eq("org_id", member.orgId);
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "appointments.block_removed",
+    entity: "time_block",
+    entityId: id,
+  });
   refresh();
   return { ok: true, message: "Block removed." };
 }
@@ -586,12 +594,21 @@ export async function updateAppointmentNotes(input: {
     .object({ id: uuid, notes: z.string().trim().max(2000), notifyEarly: z.boolean() })
     .safeParse(input);
   if (!p.success) return fail("Invalid notes.");
-  const { error } = await createAdminClient()
+  const admin = createAdminClient();
+  const { error } = await admin
     .from("appointments")
     .update({ notes: p.data.notes || null, notify_early: p.data.notifyEarly })
     .eq("id", p.data.id)
     .eq("org_id", member.orgId);
   if (error) return fail("Could not save.");
+  // The notes themselves are health data: the audit entry records only that they changed.
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "appointment.notes_updated",
+    entity: "appointment",
+    entityId: p.data.id,
+  });
   refresh();
   return { ok: true, message: "Saved." };
 }

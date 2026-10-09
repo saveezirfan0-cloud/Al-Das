@@ -1,10 +1,12 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { recordAudit } from "@/lib/audit";
 import { hashInviteToken, inviteState } from "@/lib/invites/token";
+import { checkRateLimit, clientIp, RATE_RULES, waitText } from "@/lib/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -33,6 +35,14 @@ export async function acceptInvite(_prev: AcceptState, formData: FormData): Prom
   const { token, first_name, last_name, password } = parsed.data;
 
   const admin = createAdminClient();
+  const limited = await checkRateLimit(
+    admin,
+    "invite-accept",
+    clientIp(await headers()),
+    RATE_RULES.inviteAcceptPerIp,
+  );
+  if (!limited.allowed)
+    return { error: `Too many attempts. Try again in ${waitText(limited.retryAfter)}.` };
   const { data: invite } = await admin
     .from("invites")
     .select("*")
