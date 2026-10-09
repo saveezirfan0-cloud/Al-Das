@@ -30,6 +30,7 @@ create table public.conversations (
   last_message_preview text,
   last_message_direction text check (last_message_direction is null or last_message_direction in ('in', 'out', 'note')),
   unread_count integer not null default 0 check (unread_count >= 0),
+  unread_alerted_at timestamptz,                     -- last "unread assigned conversation" email alert
   category_id uuid references public.conv_categories (id) on delete set null,
   summary text,
   ai_tags text[] not null default '{}',

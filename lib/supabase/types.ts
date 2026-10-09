@@ -479,6 +479,7 @@ export type Database = {
           org_id: string;
           status: string;
           summary: string | null;
+          unread_alerted_at: string | null;
           unread_count: number;
           updated_at: string;
         };
@@ -506,6 +507,7 @@ export type Database = {
           org_id: string;
           status?: string;
           summary?: string | null;
+          unread_alerted_at?: string | null;
           unread_count?: number;
           updated_at?: string;
         };
@@ -532,6 +534,7 @@ export type Database = {
           org_id?: string;
           status?: string;
           summary?: string | null;
+          unread_alerted_at?: string | null;
           unread_count?: number;
           updated_at?: string;
         };
