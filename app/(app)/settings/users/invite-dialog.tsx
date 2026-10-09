@@ -41,6 +41,7 @@ export function InviteDialog({
   );
   const [teamIds, setTeamIds] = useState<string[]>([]);
   const [link, setLink] = useState<string | null>(null);
+  const [linkNote, setLinkNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -48,6 +49,7 @@ export function InviteDialog({
     setEmail("");
     setTeamIds([]);
     setLink(null);
+    setLinkNote(null);
     setError(null);
   }
 
@@ -61,7 +63,10 @@ export function InviteDialog({
         return;
       }
       toast.success(res.message);
-      if (res.link) setLink(res.link);
+      if (res.link) {
+        setLink(res.link);
+        setLinkNote(res.message ?? null);
+      }
       else {
         setOpen(false);
         reset();
@@ -92,7 +97,7 @@ export function InviteDialog({
         {link ? (
           <div className="flex flex-col gap-3">
             <p className="text-sm">
-              Email delivery isn&apos;t configured. Share this link directly:
+              {linkNote ?? "The email wasn't sent. Share this link directly."}
             </p>
             <div className="flex gap-2">
               <Input readOnly value={link} onFocus={(e) => e.currentTarget.select()} />
