@@ -14,7 +14,9 @@ export const PERMISSION_GROUPS = [
   "Campaigns & templates",
   "Flows",
   "Portal",
+  "Clinical",
   "Reports",
+  "Finance",
   "Settings",
 ] as const;
 
@@ -57,7 +59,96 @@ export const PERMISSIONS = [
     description: "Equivalent to portal.<object>.read and .write for every object",
   },
   { key: "portal.*.read", group: "Portal", label: "Read all portal objects" },
+  {
+    key: "portal.sync_review.write",
+    group: "Portal",
+    label: "Resolve Sync Review items",
+    description: "Link, create or dismiss Unite patients that could not be matched",
+  },
+  {
+    key: "portal.clinical_followups.read",
+    group: "Clinical",
+    label: "View the Follow-Up Queue",
+    description:
+      "Clinical follow-ups, feedback and the evaluations behind them (patient health data)",
+  },
+  {
+    key: "portal.clinical_followups.write",
+    group: "Clinical",
+    label: "Work the Follow-Up Queue",
+    description: "Update call outcomes, assign and close follow-ups",
+  },
+  {
+    key: "portal.clinical_visits.read",
+    group: "Clinical",
+    label: "View clinical visits and prescriptions",
+    description: "Vitals, notes and prescriptions synced from Unite (patient health data)",
+  },
+  {
+    key: "portal.clinical_feedback.write",
+    group: "Clinical",
+    label: "Edit patient feedback records",
+  },
+  {
+    key: "portal.prescription_sequences.write",
+    group: "Clinical",
+    label: "Edit medication sequences",
+  },
+  {
+    key: "portal.medication_classes.write",
+    group: "Clinical",
+    label: "Classify medications",
+    description: "Antibiotic / steroid / probiotic by Unite code",
+  },
+  {
+    key: "clinical.settings.manage",
+    group: "Clinical",
+    label: "Sign off clinical settings",
+    description:
+      "Approve the thresholds the clinical rules use and switch patient-facing clinical messaging on. Give this to the clinical lead, not to everyone.",
+  },
   { key: "reports.view", group: "Reports", label: "View reports and dashboards" },
+  {
+    key: "finance.view",
+    group: "Finance",
+    label: "View finance reports",
+    description: "Monthly summary and aggregate finance views (no individual invoices)",
+  },
+  {
+    key: "finance.invoices.view",
+    group: "Finance",
+    label: "View invoices",
+    description: "Invoices, lines, payments and billing exceptions",
+  },
+  {
+    key: "finance.claims.view",
+    group: "Finance",
+    label: "View insurance claims",
+    description: "Claim activities, their history and insurance exceptions",
+  },
+  {
+    key: "finance.claims.import",
+    group: "Finance",
+    label: "Upload Diligence claim files",
+  },
+  {
+    key: "finance.exceptions.manage",
+    group: "Finance",
+    label: "Work exceptions",
+    description: "Assign, comment on and close finance exceptions you own",
+  },
+  {
+    key: "finance.reference.manage",
+    group: "Finance",
+    label: "Edit finance reference data",
+    description: "Branch map, doctor departments, service categories, rule thresholds",
+  },
+  {
+    key: "finance.capture.manage",
+    group: "Finance",
+    label: "Data health and capture",
+    description: "See capture health, raw batches and admin exceptions",
+  },
   {
     key: "settings.manage",
     group: "Settings",
@@ -78,6 +169,45 @@ export type RolePreset = {
   description: string;
   permissions: string[];
 };
+
+/**
+ * Finance & Insurance presets. Also applied to existing orgs with
+ * `pnpm finance:seed` (calls the seed_finance_roles RPC). Admin (`*`) already
+ * covers everything and is not repeated here.
+ */
+export const FINANCE_ROLES: readonly RolePreset[] = [
+  {
+    name: "Finance",
+    description: "Finance reports, invoices and reference data. Sees all finance aggregates.",
+    permissions: [
+      "reports.view",
+      "finance.view",
+      "finance.invoices.view",
+      "finance.claims.view",
+      "finance.reference.manage",
+    ],
+  },
+  {
+    name: "Billing",
+    description: "Invoices, lines and payments, and the billing exception queue.",
+    permissions: ["finance.invoices.view", "finance.exceptions.manage"],
+  },
+  {
+    name: "Insurance",
+    description: "Uploads Diligence claim files and works the insurance exception queue.",
+    permissions: ["finance.claims.view", "finance.claims.import", "finance.exceptions.manage"],
+  },
+  {
+    name: "CEO",
+    description: "Read-only view of every finance report and dashboard.",
+    permissions: ["reports.view", "finance.view", "finance.invoices.view", "finance.claims.view"],
+  },
+  {
+    name: "Medical Director",
+    description: "Read-only finance reports (doctor and department revenue, denials).",
+    permissions: ["reports.view", "finance.view"],
+  },
+];
 
 /** Seed roles created with every org (is_system = true). Admin must keep '*'. */
 export const SYSTEM_ROLES: readonly RolePreset[] = [
@@ -139,6 +269,20 @@ export const SYSTEM_ROLES: readonly RolePreset[] = [
     ],
   },
   {
+    name: "Care coordinator",
+    description:
+      "Works the clinical Follow-Up Queue and patient conversations. Cannot sign off clinical settings.",
+    permissions: [
+      "inbox.send",
+      "contacts.view",
+      "contacts.manage",
+      "tasks.manage",
+      "appointments.view",
+      "appointments.manage",
+      "portal.*",
+    ],
+  },
+  {
     name: "Marketing",
     description: "Campaigns, templates, flows and reporting.",
     permissions: [
@@ -152,6 +296,7 @@ export const SYSTEM_ROLES: readonly RolePreset[] = [
       "reports.view",
     ],
   },
+  ...FINANCE_ROLES,
 ];
 
 /**

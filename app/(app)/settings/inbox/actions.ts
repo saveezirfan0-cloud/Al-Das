@@ -69,6 +69,14 @@ export async function addCategory(name: string): Promise<ActionResult> {
       error:
         error.code === "23505" ? "That category already exists." : "Could not add the category.",
     };
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "inbox_category.created",
+    entity: "inbox_category",
+    entityId: null,
+    diff: { name: n.data },
+  });
   revalidate();
   return { ok: true, message: "Category added." };
 }
@@ -82,6 +90,13 @@ export async function deleteCategory(id: string): Promise<ActionResult> {
     .eq("id", id)
     .eq("org_id", member.orgId);
   if (error) return { ok: false, error: "Could not delete the category." };
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "inbox_category.deleted",
+    entity: "inbox_category",
+    entityId: id,
+  });
   revalidate();
   return { ok: true, message: "Category deleted." };
 }
@@ -124,6 +139,14 @@ export async function saveQuickReply(
       ok: false,
       error: error.code === "23505" ? "That shortcut is taken." : "Could not save the quick reply.",
     };
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "quick_reply.saved",
+    entity: "quick_reply",
+    entityId: id,
+    diff: { shortcut: parsed.data.shortcut },
+  });
   revalidate();
   return { ok: true, message: "Quick reply saved." };
 }
@@ -137,6 +160,13 @@ export async function deleteQuickReply(id: string): Promise<ActionResult> {
     .eq("id", id)
     .eq("org_id", member.orgId);
   if (error) return { ok: false, error: "Could not delete the quick reply." };
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "quick_reply.deleted",
+    entity: "quick_reply",
+    entityId: id,
+  });
   revalidate();
   return { ok: true, message: "Quick reply deleted." };
 }
@@ -171,6 +201,14 @@ export async function saveLabel(
       ok: false,
       error: error.code === "23505" ? "That label already exists." : "Could not save the label.",
     };
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "label.saved",
+    entity: "label",
+    entityId: id,
+    diff: { name: parsed.data.name },
+  });
   revalidate();
   return { ok: true, message: "Label saved." };
 }
@@ -185,6 +223,13 @@ export async function deleteLabel(id: string): Promise<ActionResult> {
     .eq("org_id", member.orgId)
     .eq("scope", "conversation");
   if (error) return { ok: false, error: "Could not delete the label." };
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "label.deleted",
+    entity: "label",
+    entityId: id,
+  });
   revalidate();
   return { ok: true, message: "Label deleted." };
 }
