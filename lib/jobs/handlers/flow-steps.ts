@@ -37,13 +37,22 @@ registerHandler({
   concurrency: "parallel",
   async handler(raw, ctx) {
     const parsed = jobSchema.safeParse(raw);
-    if (!parsed.success) throw new PermanentJobError(`invalid flow job: ${parsed.error.issues[0]?.message}`);
+    if (!parsed.success)
+      throw new PermanentJobError(`invalid flow job: ${parsed.error.issues[0]?.message}`);
     const job = parsed.data;
     const deps = createFlowDeps(ctx.admin);
 
     if ("type" in job && job.type === "trigger") {
-      const out = await handleTriggerEvent(deps, { orgId: job.org_id, name: job.event, payload: job.payload });
-      ctx.log.info("flow.trigger", { event: job.event, started: out.started.length, resumed: out.resumed });
+      const out = await handleTriggerEvent(deps, {
+        orgId: job.org_id,
+        name: job.event,
+        payload: job.payload,
+      });
+      ctx.log.info("flow.trigger", {
+        event: job.event,
+        started: out.started.length,
+        resumed: out.resumed,
+      });
       return;
     }
 
@@ -56,14 +65,20 @@ registerHandler({
 
     try {
       const r = await advance(deps, job.run_id);
-      if (r.status === "locked") await enqueue("flow_steps", { type: "step", run_id: job.run_id }, { delaySeconds: 2 });
+      if (r.status === "locked")
+        await enqueue("flow_steps", { type: "step", run_id: job.run_id }, { delaySeconds: 2 });
     } catch (err) {
       // Infrastructure errors retry (the step row makes the replay idempotent). On the last read, fail the run
       // so it does not sit in "running" forever.
       if (ctx.readCt >= MAX_READS) {
         const run = await deps.store.getRun(job.run_id);
         if (run && (run.status === "running" || run.status === "waiting")) {
-          await finishRun(deps, run, "failed", `Step could not be completed: ${(err as Error).message}`.slice(0, 300));
+          await finishRun(
+            deps,
+            run,
+            "failed",
+            `Step could not be completed: ${(err as Error).message}`.slice(0, 300),
+          );
         }
         throw new PermanentJobError((err as Error).message);
       }

@@ -27,7 +27,12 @@ export function node(id: string, type: NodeType, data: Record<string, unknown> =
   return { id, type, position: { x: 0, y: 0 }, data };
 }
 export function edge(source: string, target: string, handle?: string): FlowEdge {
-  return { id: `${source}-${handle ?? "default"}-${target}`, source, target, sourceHandle: handle ?? null };
+  return {
+    id: `${source}-${handle ?? "default"}-${target}`,
+    source,
+    target,
+    sourceHandle: handle ?? null,
+  };
 }
 export function graph(nodes: FlowNode[], edges: FlowEdge[]): FlowGraph {
   return { nodes, edges };
@@ -110,18 +115,33 @@ export class FakeStore implements FlowStore {
   async insertStep(step: Omit<StepRecord, "id" | "status" | "output" | "error">) {
     const existing = this.steps.find((s) => s.run_id === step.run_id && s.seq === step.seq);
     if (existing) return { step: structuredClone(existing), created: false };
-    const rec: StepRecord = { ...step, id: randomUUID(), status: "running", output: null, error: null };
+    const rec: StepRecord = {
+      ...step,
+      id: randomUUID(),
+      status: "running",
+      output: null,
+      error: null,
+    };
     this.steps.push(rec);
     return { step: structuredClone(rec), created: true };
   }
-  async updateStep(id: string, patch: { status: StepRecord["status"]; output?: Record<string, unknown> | null; error?: string | null }) {
+  async updateStep(
+    id: string,
+    patch: {
+      status: StepRecord["status"];
+      output?: Record<string, unknown> | null;
+      error?: string | null;
+    },
+  ) {
     const s = this.steps.find((x) => x.id === id)!;
     s.status = patch.status;
     if (patch.output !== undefined) s.output = structuredClone(patch.output);
     if (patch.error !== undefined) s.error = patch.error;
   }
   async finishWaitingStep(runId: string, nodeId: string, output: Record<string, unknown>) {
-    const s = [...this.steps].reverse().find((x) => x.run_id === runId && x.node_id === nodeId && x.status === "waiting");
+    const s = [...this.steps]
+      .reverse()
+      .find((x) => x.run_id === runId && x.node_id === nodeId && x.status === "waiting");
     if (s) {
       s.status = "ok";
       s.output = { ...(s.output ?? {}), ...output };
@@ -136,7 +156,10 @@ export class FakeStore implements FlowStore {
   async createRun(input: Parameters<FlowStore["createRun"]>[0]) {
     if (input.conversation_id && !input.parent_run_id) {
       const live = [...this.runs.values()].find(
-        (r) => r.conversation_id === input.conversation_id && !r.parent_run_id && (r.status === "running" || r.status === "waiting"),
+        (r) =>
+          r.conversation_id === input.conversation_id &&
+          !r.parent_run_id &&
+          (r.status === "running" || r.status === "waiting"),
       );
       if (live) return null;
     }
@@ -173,18 +196,30 @@ export class FakeStore implements FlowStore {
   }
   async getLiveRunForConversation(conversationId: string) {
     const r = [...this.runs.values()].find(
-      (x) => x.conversation_id === conversationId && !x.parent_run_id && (x.status === "running" || x.status === "waiting"),
+      (x) =>
+        x.conversation_id === conversationId &&
+        !x.parent_run_id &&
+        (x.status === "running" || x.status === "waiting"),
     );
     return r ? structuredClone(r) : null;
   }
-  async setConversationBot(id: string, patch: { bot_active?: boolean; flow_run_id?: string | null }) {
+  async setConversationBot(
+    id: string,
+    patch: { bot_active?: boolean; flow_run_id?: string | null },
+  ) {
     const c = this.conversations.get(id);
     if (c) Object.assign(c, patch);
   }
   inbound = new Map<string, InboundMessageView>();
   firstInboundText: string | null = null;
   async listActiveFlows(orgId: string, triggerType: string) {
-    return [...this.flows.values()].filter((f) => f.org_id === orgId && f.trigger_type === triggerType && f.status === "active" && f.published_graph);
+    return [...this.flows.values()].filter(
+      (f) =>
+        f.org_id === orgId &&
+        f.trigger_type === triggerType &&
+        f.status === "active" &&
+        f.published_graph,
+    );
   }
   async getInboundMessage(id: string) {
     return this.inbound.get(id) ?? null;
@@ -201,7 +236,12 @@ export class FakeActions implements FlowActions {
   comments: string[] = [];
   contactUpdates: Array<{ field: string; value: string }> = [];
   notifications: Array<{ target: unknown; title: string; body: string }> = [];
-  httpCalls: Array<{ method: string; url: string; headers: Record<string, string>; body?: string }> = [];
+  httpCalls: Array<{
+    method: string;
+    url: string;
+    headers: Record<string, string>;
+    body?: string;
+  }> = [];
   httpResponse: { status: number; body: unknown } = { status: 200, body: { ok: true } };
 
   async send(_run: RunRecord, spec: SendSpec, body: string | null) {
@@ -220,7 +260,12 @@ export class FakeActions implements FlowActions {
   async updateContactField(_run: RunRecord, field: string, value: string) {
     this.contactUpdates.push({ field, value });
   }
-  async notify(_run: RunRecord, target: { type: string; id?: string }, title: string, body: string) {
+  async notify(
+    _run: RunRecord,
+    target: { type: string; id?: string },
+    title: string,
+    body: string,
+  ) {
     this.notifications.push({ target, title, body });
     return 1;
   }

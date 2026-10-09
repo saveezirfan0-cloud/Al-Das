@@ -44,7 +44,12 @@ export async function ensureConversation(
   if (existing.data) return existing.data;
   const { data, error } = await admin
     .from("conversations")
-    .insert({ org_id: input.orgId, channel_id: channelId, contact_id: input.contactId, status: "open" })
+    .insert({
+      org_id: input.orgId,
+      channel_id: channelId,
+      contact_id: input.contactId,
+      status: "open",
+    })
     .select("*")
     .single();
   if (error) {

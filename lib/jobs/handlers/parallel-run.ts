@@ -7,7 +7,10 @@ registerTask("parallel_run", {
   name: "parallel_run.nightly",
   async run(admin) {
     const day = previousDay(new Date());
-    const { data: rows } = await admin.from("parallel_run_scenarios").select("org_id, scenario_key, native_built").eq("native_built", true);
+    const { data: rows } = await admin
+      .from("parallel_run_scenarios")
+      .select("org_id, scenario_key, native_built")
+      .eq("native_built", true);
     let compared = 0;
     for (const r of rows ?? []) {
       const key = r.scenario_key as ScenarioKey;

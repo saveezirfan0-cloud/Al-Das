@@ -1,6 +1,13 @@
 import { z } from "zod";
 
-import { fail, freeFormBlocked, parseConfig, text, type ExecCtx, type Executor } from "@/lib/flow-engine/executors/common";
+import {
+  fail,
+  freeFormBlocked,
+  parseConfig,
+  text,
+  type ExecCtx,
+  type Executor,
+} from "@/lib/flow-engine/executors/common";
 import type { Outcome } from "@/lib/flow-engine/types";
 import { isTemplateSendable } from "@/lib/whatsapp/templates";
 import type { InteractiveObject } from "@/lib/whatsapp/types";
@@ -35,7 +42,12 @@ export const questionSchema = z
       .string()
       .regex(/^[A-Za-z][A-Za-z0-9_]{0,63}$/)
       .optional(),
-    timeout_seconds: z.number().int().min(30).max(60 * 60 * 24 * 30).optional(),
+    timeout_seconds: z
+      .number()
+      .int()
+      .min(30)
+      .max(60 * 60 * 24 * 30)
+      .optional(),
   })
   .superRefine((v, c) => {
     if (v.style === "buttons" && (v.options.length < 1 || v.options.length > 3)) {
@@ -59,13 +71,21 @@ function interactiveFor(
     return {
       type: "button",
       body: { text: body },
-      action: { buttons: options.map((o) => ({ type: "reply" as const, reply: { id: o.id, title: o.title } })) },
+      action: {
+        buttons: options.map((o) => ({
+          type: "reply" as const,
+          reply: { id: o.id, title: o.title },
+        })),
+      },
     };
   }
   return {
     type: "list",
     body: { text: body },
-    action: { button: listLabel, sections: [{ rows: options.map((o) => ({ id: o.id, title: o.title })) }] },
+    action: {
+      button: listLabel,
+      sections: [{ rows: options.map((o) => ({ id: o.id, title: o.title })) }],
+    },
   };
 }
 
@@ -84,14 +104,24 @@ export const question: Executor = async (ctx) => {
       ? await ctx.deps.actions.send(ctx.run, { type: "text", body }, body)
       : await ctx.deps.actions.send(
           ctx.run,
-          { type: "interactive", interactive: interactiveFor(c.style, body, options, c.list_button_label) },
+          {
+            type: "interactive",
+            interactive: interactiveFor(c.style, body, options, c.list_button_label),
+          },
           body,
         );
 
   const token = ctx.deps.uuid();
-  const timeoutAt = c.timeout_seconds ? new Date(ctx.deps.now().getTime() + c.timeout_seconds * 1000) : null;
+  const timeoutAt = c.timeout_seconds
+    ? new Date(ctx.deps.now().getTime() + c.timeout_seconds * 1000)
+    : null;
   if (timeoutAt) {
-    await ctx.deps.jobs.scheduleResume({ orgId: ctx.run.org_id, runId: ctx.run.id, token, runAt: timeoutAt });
+    await ctx.deps.jobs.scheduleResume({
+      orgId: ctx.run.org_id,
+      runId: ctx.run.id,
+      token,
+      runAt: timeoutAt,
+    });
   }
   return {
     kind: "wait",
@@ -122,7 +152,10 @@ export const quick_reply: Executor = async (ctx) => {
   if (!body) return fail("Message is empty after filling in variables");
   const sent = await ctx.deps.actions.send(
     ctx.run,
-    { type: "interactive", interactive: interactiveFor("buttons", body, cfg.data.buttons, "Choose") },
+    {
+      type: "interactive",
+      interactive: interactiveFor("buttons", body, cfg.data.buttons, "Choose"),
+    },
     body,
   );
   return { kind: "next", output: { message_id: sent.messageId } };
@@ -163,6 +196,10 @@ export const template: Executor = async (ctx: ExecCtx): Promise<Outcome> => {
     // variable_map entries are bare paths ("contact.first_name"); node overrides may be free text.
     values[key] = text(ctx, expr.includes("{") ? expr : `{${expr}}`).trim();
   }
-  const sent = await ctx.deps.actions.send(ctx.run, { type: "template", template_id: tpl.id, values }, null);
+  const sent = await ctx.deps.actions.send(
+    ctx.run,
+    { type: "template", template_id: tpl.id, values },
+    null,
+  );
   return { kind: "next", output: { message_id: sent.messageId, template: tpl.name } };
 };

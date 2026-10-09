@@ -13,7 +13,10 @@ registerTask("recall_run", {
   name: "recall.run",
   async run(admin, log) {
     const now = new Date();
-    const { data: programmes } = await admin.from("recall_programmes").select("id, key, cron_expression").eq("status", "active");
+    const { data: programmes } = await admin
+      .from("recall_programmes")
+      .select("id, key, cron_expression")
+      .eq("status", "active");
     const deps = createRecallDeps(admin);
     const results: Array<Record<string, unknown>> = [];
     for (const p of programmes ?? []) {
@@ -31,7 +34,10 @@ registerTask("recall_run", {
         log.info("recall.run", { ...summary });
         results.push({ ...summary });
       } catch (err) {
-        log.error("recall.run failed", { programme: p.key, error: err instanceof Error ? err.message : String(err) });
+        log.error("recall.run failed", {
+          programme: p.key,
+          error: err instanceof Error ? err.message : String(err),
+        });
         results.push({ programme: p.key, error: "failed" });
       }
     }

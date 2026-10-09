@@ -30,7 +30,15 @@ describe("cron", () => {
     expect(cronMatches("15 12 13 * 2", monday1215)).toBe(false);
   });
   it("rejects invalid expressions", () => {
-    for (const bad of ["", "* * * *", "60 * * * *", "* 24 * * *", "a b c d e", "*/0 * * * *", "5-1 * * * *"]) {
+    for (const bad of [
+      "",
+      "* * * *",
+      "60 * * * *",
+      "* 24 * * *",
+      "a b c d e",
+      "*/0 * * * *",
+      "5-1 * * * *",
+    ]) {
       expect(isValidCron(bad), bad).toBe(false);
       expect(cronMatches(bad, monday1215)).toBe(false);
     }

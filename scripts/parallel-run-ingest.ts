@@ -14,7 +14,12 @@ import { readFileSync } from "node:fs";
 
 import { createClient } from "@supabase/supabase-js";
 
-import { COMPARABLE, makeOutputRows, SCENARIO_KEYS, type ScenarioKey } from "../lib/parallel-run/diff";
+import {
+  COMPARABLE,
+  makeOutputRows,
+  SCENARIO_KEYS,
+  type ScenarioKey,
+} from "../lib/parallel-run/diff";
 
 function arg(name: string): string | undefined {
   const i = process.argv.indexOf(`--${name}`);
@@ -28,7 +33,9 @@ async function main() {
   const file = arg("file");
   const dry = process.argv.includes("--dry-run");
   if (!slug || !scenario || !day || !file) {
-    console.error("usage: pnpm parallel:ingest --org <slug> --scenario <key> --date YYYY-MM-DD --file <ids.txt> [--dry-run]");
+    console.error(
+      "usage: pnpm parallel:ingest --org <slug> --scenario <key> --date YYYY-MM-DD --file <ids.txt> [--dry-run]",
+    );
     process.exit(1);
   }
   if (!SCENARIO_KEYS.includes(scenario) || !COMPARABLE.has(scenario)) {
@@ -60,10 +67,17 @@ async function main() {
   }
 
   const rows = makeOutputRows(org.id, scenario, day, ids);
-  console.log(`${ids.length} ids read, ${rows.length} unique${dry ? " (dry run: nothing written)" : ""}`);
+  console.log(
+    `${ids.length} ids read, ${rows.length} unique${dry ? " (dry run: nothing written)" : ""}`,
+  );
   if (dry || rows.length === 0) return;
   for (let i = 0; i < rows.length; i += 500) {
-    const { error } = await admin.from("parallel_run_make_outputs").upsert(rows.slice(i, i + 500), { onConflict: "org_id,scenario_key,run_date,ref_hash", ignoreDuplicates: true });
+    const { error } = await admin
+      .from("parallel_run_make_outputs")
+      .upsert(rows.slice(i, i + 500), {
+        onConflict: "org_id,scenario_key,run_date,ref_hash",
+        ignoreDuplicates: true,
+      });
     if (error) throw new Error(error.message);
   }
   console.log("Imported. The nightly parallel_run job (or the next run) will compute the diff.");

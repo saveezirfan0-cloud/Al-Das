@@ -8,7 +8,9 @@ import { MAX_FLOW_DEPTH } from "@/lib/flow-engine/types";
 const branchSchema = z.object({
   logic: z.enum(["and", "or"]).default("and"),
   conditions: z
-    .array(z.object({ left: z.string().min(1), op: z.enum(BRANCH_OPS), right: z.string().optional() }))
+    .array(
+      z.object({ left: z.string().min(1), op: z.enum(BRANCH_OPS), right: z.string().optional() }),
+    )
     .max(20),
 });
 
@@ -34,7 +36,12 @@ export const wait: Executor = async (ctx) => {
   if (ms > MAX_WAIT_MS) return fail("Waits are limited to 30 days");
   const resumeAt = new Date(ctx.deps.now().getTime() + ms);
   const token = ctx.deps.uuid();
-  await ctx.deps.jobs.scheduleResume({ orgId: ctx.run.org_id, runId: ctx.run.id, token, runAt: resumeAt });
+  await ctx.deps.jobs.scheduleResume({
+    orgId: ctx.run.org_id,
+    runId: ctx.run.id,
+    token,
+    runAt: resumeAt,
+  });
   return {
     kind: "wait",
     output: { resume_at: resumeAt.toISOString() },
@@ -55,7 +62,8 @@ export const run_flow: Executor = async (ctx) => {
   const cfg = parseConfig(ctx, runFlowSchema);
   if (!cfg.ok) return cfg.outcome;
   const depth = (ctx.run.context.depth ?? 0) + 1;
-  if (depth > MAX_FLOW_DEPTH) return fail(`Flows can be nested ${MAX_FLOW_DEPTH} levels deep at most`);
+  if (depth > MAX_FLOW_DEPTH)
+    return fail(`Flows can be nested ${MAX_FLOW_DEPTH} levels deep at most`);
   if (cfg.data.flow_id === ctx.run.flow_id) return fail("A flow cannot run itself");
   const flow = await ctx.deps.store.getFlow(cfg.data.flow_id);
   if (!flow || flow.org_id !== ctx.run.org_id) return fail("Flow not found");
@@ -70,7 +78,12 @@ export const run_flow: Executor = async (ctx) => {
     conversation_id: ctx.run.conversation_id,
     enquiry_id: ctx.run.enquiry_id,
     current_node_id: trigger.id,
-    context: { vars: { ...ctx.run.context.vars }, trigger: ctx.run.context.trigger, steps: {}, depth },
+    context: {
+      vars: { ...ctx.run.context.vars },
+      trigger: ctx.run.context.trigger,
+      steps: {},
+      depth,
+    },
     parent_run_id: ctx.run.id,
   });
   if (!child) return fail("Could not start the nested flow");
@@ -78,7 +91,12 @@ export const run_flow: Executor = async (ctx) => {
   return {
     kind: "wait",
     output: { child_run_id: child.id },
-    waiting: { kind: "child", token: ctx.deps.uuid(), node_id: ctx.node.id, child_run_id: child.id },
+    waiting: {
+      kind: "child",
+      token: ctx.deps.uuid(),
+      node_id: ctx.node.id,
+      child_run_id: child.id,
+    },
   };
 };
 

@@ -28,6 +28,8 @@ describe("recurring schedule builder", () => {
     expect(formFromCron("0 9 31 * *")).toEqual({ freq: "custom", cron: "0 9 31 * *" });
   });
   it("describes schedules", () => {
-    expect(describeSchedule({ freq: "weekly", time: "09:00", weekday: 1 })).toBe("Every Monday at 09:00");
+    expect(describeSchedule({ freq: "weekly", time: "09:00", weekday: 1 })).toBe(
+      "Every Monday at 09:00",
+    );
   });
 });

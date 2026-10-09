@@ -16,7 +16,16 @@ export function RecallTabs() {
   return (
     <nav className="flex gap-1 border-b" aria-label="Recall sections">
       {TABS.map((t) => (
-        <Link key={t.href} href={t.href} className={cn("-mb-px border-b-2 px-3 py-2 text-sm", pathname === t.href ? "border-primary font-medium" : "text-muted-foreground hover:text-foreground border-transparent")}>
+        <Link
+          key={t.href}
+          href={t.href}
+          className={cn(
+            "-mb-px border-b-2 px-3 py-2 text-sm",
+            pathname === t.href
+              ? "border-primary font-medium"
+              : "text-muted-foreground hover:text-foreground border-transparent",
+          )}
+        >
           {t.label}
         </Link>
       ))}

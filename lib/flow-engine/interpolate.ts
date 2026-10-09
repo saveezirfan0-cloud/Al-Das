@@ -27,11 +27,7 @@ export function getPath(scope: unknown, path: string): unknown {
 
 /** DD MMM HH:mm style tokens → date-fns-tz pattern. */
 function toDateFnsPattern(fmt: string): string {
-  return fmt
-    .replace(/YYYY/g, "yyyy")
-    .replace(/YY/g, "yy")
-    .replace(/DD/g, "dd")
-    .replace(/D/g, "d");
+  return fmt.replace(/YYYY/g, "yyyy").replace(/YY/g, "yy").replace(/DD/g, "dd").replace(/D/g, "d");
 }
 
 function applyFilter(value: unknown, filter: string, timezone: string): unknown {
@@ -81,7 +77,10 @@ export function interpolate(
     if (!/^[A-Za-z_][A-Za-z0-9_.-]*$/.test(path)) return whole; // not a token (e.g. JSON braces)
     let value = getPath(scope, path);
     const filters = parts.slice(1);
-    if ((value === undefined || value === null) && !filters.some((f) => f.trim().startsWith("default"))) {
+    if (
+      (value === undefined || value === null) &&
+      !filters.some((f) => f.trim().startsWith("default"))
+    ) {
       missing.push(path);
       return "";
     }

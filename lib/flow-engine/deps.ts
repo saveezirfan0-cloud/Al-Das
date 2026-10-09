@@ -2,7 +2,13 @@
  * Ports the engine talks to. Production wiring is in `supabase-deps.ts`; unit tests use the
  * in-memory fakes in tests/unit/flow-fakes.ts. Executors never touch Supabase directly.
  */
-import type { FlowGraph, RunContext, RunStatus, StepStatus, WaitingFor } from "@/lib/flow-engine/types";
+import type {
+  FlowGraph,
+  RunContext,
+  RunStatus,
+  StepStatus,
+  WaitingFor,
+} from "@/lib/flow-engine/types";
 import type { SendSpec } from "@/lib/inbox/send";
 
 export type ContactView = {
@@ -89,7 +95,10 @@ export type StepRecord = {
 
 export interface FlowStore {
   getRun(runId: string): Promise<RunRecord | null>;
-  updateRun(runId: string, patch: Partial<Omit<RunRecord, "id" | "org_id">> & { ended_at?: string | null }): Promise<void>;
+  updateRun(
+    runId: string,
+    patch: Partial<Omit<RunRecord, "id" | "org_id">> & { ended_at?: string | null },
+  ): Promise<void>;
   /** Insert-or-return-existing on (run_id, seq). */
   insertStep(step: {
     run_id: string;
@@ -99,7 +108,10 @@ export interface FlowStore {
     node_type: string;
     input: Record<string, unknown> | null;
   }): Promise<{ step: StepRecord; created: boolean }>;
-  updateStep(stepId: string, patch: { status: StepStatus; output?: Record<string, unknown> | null; error?: string | null }): Promise<void>;
+  updateStep(
+    stepId: string,
+    patch: { status: StepStatus; output?: Record<string, unknown> | null; error?: string | null },
+  ): Promise<void>;
   /** Mark the latest 'waiting' step of a node finished (after a resume). */
   finishWaitingStep(runId: string, nodeId: string, output: Record<string, unknown>): Promise<void>;
   getGraph(flowId: string, version: number): Promise<FlowGraph | null>;
@@ -124,7 +136,10 @@ export interface FlowStore {
   getTemplate(orgId: string, templateId: string): Promise<TemplateView | null>;
   /** Live (running/waiting) top-level run of a conversation. */
   getLiveRunForConversation(conversationId: string): Promise<RunRecord | null>;
-  setConversationBot(conversationId: string, patch: { bot_active?: boolean; flow_run_id?: string | null }): Promise<void>;
+  setConversationBot(
+    conversationId: string,
+    patch: { bot_active?: boolean; flow_run_id?: string | null },
+  ): Promise<void>;
   /** Active flows of an org for one trigger type (published only). */
   listActiveFlows(orgId: string, triggerType: string): Promise<FlowView[]>;
   getInboundMessage(messageId: string): Promise<InboundMessageView | null>;
@@ -148,11 +163,19 @@ export type SendResult = { messageId: string };
 
 export interface FlowActions {
   send(run: RunRecord, spec: SendSpec, body: string | null): Promise<SendResult>;
-  assign(run: RunRecord, target: { type: "user" | "team" | "bot" | "unassign"; id?: string }): Promise<void>;
+  assign(
+    run: RunRecord,
+    target: { type: "user" | "team" | "bot" | "unassign"; id?: string },
+  ): Promise<void>;
   closeConversation(run: RunRecord): Promise<void>;
   addComment(run: RunRecord, body: string): Promise<void>;
   updateContactField(run: RunRecord, field: string, value: string): Promise<void>;
-  notify(run: RunRecord, target: { type: "user" | "team" | "role"; id?: string }, title: string, body: string): Promise<number>;
+  notify(
+    run: RunRecord,
+    target: { type: "user" | "team" | "role"; id?: string },
+    title: string,
+    body: string,
+  ): Promise<number>;
   /** SSRF-guarded HTTP call. Never logs headers or bodies. */
   http(req: {
     method: string;
@@ -175,7 +198,12 @@ export interface FlowJobs {
   /** Enqueue the next `flow_steps` job for a run (one job per node). */
   enqueueStep(runId: string, opts?: { delaySeconds?: number }): Promise<void>;
   /** Schedule a timer/timeout resume (scheduled_jobs, never in-memory timers). */
-  scheduleResume(input: { orgId: string; runId: string; token: string; runAt: Date }): Promise<void>;
+  scheduleResume(input: {
+    orgId: string;
+    runId: string;
+    token: string;
+    runAt: Date;
+  }): Promise<void>;
 }
 
 export interface FlowLock {

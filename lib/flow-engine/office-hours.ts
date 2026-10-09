@@ -14,7 +14,9 @@ export const officeHoursSchema = z.object({
 export type OfficeHours = z.infer<typeof officeHoursSchema>;
 
 export function isWithinOfficeHours(cfg: OfficeHours, now: Date): boolean {
-  const day = formatInTimeZone(now, cfg.timezone, "EEE").toLowerCase().slice(0, 3) as (typeof DAYS)[number];
+  const day = formatInTimeZone(now, cfg.timezone, "EEE")
+    .toLowerCase()
+    .slice(0, 3) as (typeof DAYS)[number];
   const time = formatInTimeZone(now, cfg.timezone, "HH:mm");
   const slots = cfg.schedule[day] ?? [];
   // end is exclusive; a slot where end <= start is ignored (misconfigured → closed).

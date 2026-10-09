@@ -34,7 +34,10 @@ const str = (v: unknown): string | null => (typeof v === "string" && v ? v : nul
 
 /** Source / Keyword / Ad facts for a conversation-scoped trigger. */
 export function factsFromReferral(referral: unknown, keyword: string | null): TriggerFacts {
-  const r = (referral && typeof referral === "object" ? referral : null) as Record<string, unknown> | null;
+  const r = (referral && typeof referral === "object" ? referral : null) as Record<
+    string,
+    unknown
+  > | null;
   return {
     source: r ? (str(r.source_url) ?? str(r.source_type) ?? "ad") : "direct",
     keyword,
@@ -47,7 +50,10 @@ function conditionsOf(flow: FlowView) {
   return parsed.success ? parsed.data : null; // malformed conditions never match (fail closed)
 }
 
-export async function handleTriggerEvent(deps: FlowDeps, ev: TriggerEvent): Promise<TriggerOutcome> {
+export async function handleTriggerEvent(
+  deps: FlowDeps,
+  ev: TriggerEvent,
+): Promise<TriggerOutcome> {
   const out: TriggerOutcome = { started: [], resumed: false, skipped: [] };
   const conversationId = str(ev.payload.conversation_id);
   let contactId = str(ev.payload.contact_id);
@@ -68,8 +74,13 @@ export async function handleTriggerEvent(deps: FlowDeps, ev: TriggerEvent): Prom
     const live = await deps.store.getLiveRunForConversation(msg.conversation_id);
     if (live) {
       if (live.status === "waiting" && live.waiting_for?.kind === "reply") {
-        const kind = msg.kind === "button" || (msg.kind === "interactive" && msg.reply_id) ? "button" : "text";
-        const r = await resumeFromReply(deps, live.id, { kind, text: msg.body ?? "", optionId: msg.reply_id });
+        const kind =
+          msg.kind === "button" || (msg.kind === "interactive" && msg.reply_id) ? "button" : "text";
+        const r = await resumeFromReply(deps, live.id, {
+          kind,
+          text: msg.body ?? "",
+          optionId: msg.reply_id,
+        });
         out.resumed = r.resumed;
       }
       return out;
@@ -78,13 +89,21 @@ export async function handleTriggerEvent(deps: FlowDeps, ev: TriggerEvent): Prom
     triggerType = "template_button";
     templateId = msg.template_id;
     buttonText = msg.body;
-    extra = { ...extra, button_text: msg.body, button_payload: msg.reply_id, template_id: msg.template_id };
+    extra = {
+      ...extra,
+      button_text: msg.body,
+      button_payload: msg.reply_id,
+      template_id: msg.template_id,
+    };
     facts = { source: "template", keyword: msg.body, ad: null };
   } else if (triggerType && conversationId) {
     const conv = await deps.store.getConversation(conversationId);
     if (!conv) return out;
     contactId = contactId ?? conv.contact_id;
-    facts = factsFromReferral(conv.ad_referral, await deps.store.getFirstInboundText(conversationId));
+    facts = factsFromReferral(
+      conv.ad_referral,
+      await deps.store.getFirstInboundText(conversationId),
+    );
     if (ev.name === "conversation.opened" && ev.payload.ad_referral) {
       facts = factsFromReferral(ev.payload.ad_referral, facts.keyword ?? null);
     }
@@ -94,7 +113,9 @@ export async function handleTriggerEvent(deps: FlowDeps, ev: TriggerEvent): Prom
   if (!triggerType) return out;
 
   const flows = await deps.store.listActiveFlows(ev.orgId, triggerType);
-  const channelId = conversationId ? ((await deps.store.getConversation(conversationId))?.channel_id ?? null) : null;
+  const channelId = conversationId
+    ? ((await deps.store.getConversation(conversationId))?.channel_id ?? null)
+    : null;
   for (const flow of flows) {
     if (flow.channel_id && channelId && flow.channel_id !== channelId) {
       out.skipped.push(flow.id);

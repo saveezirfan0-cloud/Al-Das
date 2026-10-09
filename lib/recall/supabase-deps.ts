@@ -2,7 +2,15 @@ import "server-only";
 
 import { ensureConversation } from "@/lib/inbox/conversations";
 import { queueOutbound } from "@/lib/inbox/send";
-import { ALLOWED_VIEWS, ELIGIBLE_FLAG_VIEWS, type EligibleRow, type ProgrammeRow, type RecallDeps, type RecallStore, type TemplateMapRow } from "@/lib/recall/types";
+import {
+  ALLOWED_VIEWS,
+  ELIGIBLE_FLAG_VIEWS,
+  type EligibleRow,
+  type ProgrammeRow,
+  type RecallDeps,
+  type RecallStore,
+  type TemplateMapRow,
+} from "@/lib/recall/types";
 import { parseOrderBy } from "@/lib/recall/engine";
 import type { AdminClient } from "@/lib/supabase/admin";
 import { renderTemplatePreview } from "@/lib/whatsapp/templates";
@@ -49,35 +57,48 @@ export function supabaseRecallStore(admin: AdminClient): RecallStore {
       const view = p.eligibility_view;
       if (!view || !ALLOWED_VIEWS.has(view)) return [];
       // Dynamic view name: the allow-list above is the only reason this is safe.
-      let q = (admin as unknown as { from(v: string): { select(c: string): LooseQuery } }).from(view).select("*").eq("org_id", p.org_id);
+      let q = (admin as unknown as { from(v: string): { select(c: string): LooseQuery } })
+        .from(view)
+        .select("*")
+        .eq("org_id", p.org_id);
       if (ELIGIBLE_FLAG_VIEWS.has(view)) q = q.eq("eligible", true);
       const order = parseOrderBy(p.config.order_by);
-      q = order ? q.order(order.column, { ascending: order.ascending }) : q.order("contact_id", { ascending: true });
+      q = order
+        ? q.order(order.column, { ascending: order.ascending })
+        : q.order("contact_id", { ascending: true });
       const { data, error } = await q.limit(limit);
       if (error) throw new Error(`eligibility view ${view}: ${error.message}`);
       return (data ?? []) as unknown as EligibleRow[];
     },
     async templateMap(programmeId) {
-      const { data } = await admin.from("recall_programme_templates").select("*").eq("programme_id", programmeId);
-      return (data ?? []).map(
-        (t): TemplateMapRow => ({
-          id: t.id,
-          segment_key: t.segment_key,
-          wa_template_id: t.wa_template_id,
-          legacy_sanoflow_template_id: t.legacy_sanoflow_template_id,
-          variables_map: (t.variables_map as Record<string, string>) ?? {},
-          active: t.active,
-        }),
-      );
+      const { data } = await admin
+        .from("recall_programme_templates")
+        .select("*")
+        .eq("programme_id", programmeId);
+      return (data ?? []).map((t): TemplateMapRow => ({
+        id: t.id,
+        segment_key: t.segment_key,
+        wa_template_id: t.wa_template_id,
+        legacy_sanoflow_template_id: t.legacy_sanoflow_template_id,
+        variables_map: (t.variables_map as Record<string, string>) ?? {},
+        active: t.active,
+      }));
     },
     async template(orgId, id) {
-      const { data } = await admin.from("wa_templates").select("id, name, status, category").eq("id", id).eq("org_id", orgId).maybeSingle();
+      const { data } = await admin
+        .from("wa_templates")
+        .select("id, name, status, category")
+        .eq("id", id)
+        .eq("org_id", orgId)
+        .maybeSingle();
       return data ?? null;
     },
     async contact(orgId, id) {
       const { data } = await admin
         .from("contacts")
-        .select("id, first_name, last_name, full_name, phone_e164, stop_marketing, promotions_opt_in, clinical_messaging_consent, is_test_record")
+        .select(
+          "id, first_name, last_name, full_name, phone_e164, stop_marketing, promotions_opt_in, clinical_messaging_consent, is_test_record",
+        )
         .eq("id", id)
         .eq("org_id", orgId)
         .is("deleted_at", null)
@@ -99,14 +120,27 @@ export function supabaseRecallStore(admin: AdminClient): RecallStore {
     async testContacts(orgId, phones) {
       const out: Array<{ id: string; phone_e164: string }> = [];
       for (const phone of phones) {
-        const { data: existing } = await admin.from("contacts").select("id").eq("org_id", orgId).eq("phone_e164", phone).is("deleted_at", null).maybeSingle();
+        const { data: existing } = await admin
+          .from("contacts")
+          .select("id")
+          .eq("org_id", orgId)
+          .eq("phone_e164", phone)
+          .is("deleted_at", null)
+          .maybeSingle();
         if (existing) {
           out.push({ id: existing.id, phone_e164: phone });
           continue;
         }
         const { data: created } = await admin
           .from("contacts")
-          .insert({ org_id: orgId, phone_e164: phone, first_name: "Test", last_name: "Recipient", source: "api", is_test_record: true })
+          .insert({
+            org_id: orgId,
+            phone_e164: phone,
+            first_name: "Test",
+            last_name: "Recipient",
+            source: "api",
+            is_test_record: true,
+          })
           .select("id")
           .single();
         if (created) out.push({ id: created.id, phone_e164: phone });
@@ -120,7 +154,12 @@ export function supabaseRecallStore(admin: AdminClient): RecallStore {
         .select("id")
         .single();
       if (!tag) return;
-      await admin.from("contact_tags").upsert({ org_id: orgId, contact_id: contactId, tag_id: tag.id }, { onConflict: "contact_id,tag_id", ignoreDuplicates: true });
+      await admin
+        .from("contact_tags")
+        .upsert(
+          { org_id: orgId, contact_id: contactId, tag_id: tag.id },
+          { onConflict: "contact_id,tag_id", ignoreDuplicates: true },
+        );
     },
     async touchProgramme(id, at) {
       await admin.from("recall_programmes").update({ last_run_at: at.toISOString() }).eq("id", id);
@@ -134,7 +173,11 @@ export function createRecallDeps(admin: AdminClient): RecallDeps {
     sender: {
       async sendTemplate({ orgId, contactId, waTemplateId, values }) {
         const conv = await ensureConversation(admin, { orgId, contactId });
-        const { data: tpl } = await admin.from("wa_templates").select("components").eq("id", waTemplateId).single();
+        const { data: tpl } = await admin
+          .from("wa_templates")
+          .select("components")
+          .eq("id", waTemplateId)
+          .single();
         const body = tpl ? renderTemplatePreview(tpl.components as never, values).body : null;
         const msg = await queueOutbound(admin, {
           orgId,

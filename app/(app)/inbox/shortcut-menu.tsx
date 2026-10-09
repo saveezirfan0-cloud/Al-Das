@@ -11,7 +11,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { listShortcutFlows, runShortcut, type ShortcutFlow } from "./actions";
 
 /** Composer "Shortcut" action: pick a flow with the Shortcut trigger and run it on this conversation. */
-export function ShortcutMenu({ conversationId, botActive }: { conversationId: string; botActive: boolean }) {
+export function ShortcutMenu({
+  conversationId,
+  botActive,
+}: {
+  conversationId: string;
+  botActive: boolean;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [flows, setFlows] = useState<ShortcutFlow[] | null>(null);
@@ -71,7 +77,9 @@ export function ShortcutMenu({ conversationId, botActive }: { conversationId: st
                   className="w-full rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent disabled:opacity-50"
                 >
                   <span className="block font-medium">{f.name}</span>
-                  {f.description && <span className="block text-xs text-muted-foreground">{f.description}</span>}
+                  {f.description && (
+                    <span className="block text-xs text-muted-foreground">{f.description}</span>
+                  )}
                 </button>
               </li>
             ))}

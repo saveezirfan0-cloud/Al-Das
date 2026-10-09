@@ -25,7 +25,11 @@ registerTask("flow_recurring", {
     let fired = 0;
     let runs = 0;
     for (const flow of flows ?? []) {
-      const cfg = (flow.trigger_config ?? {}) as { cron?: string; timezone?: string; segment_id?: string };
+      const cfg = (flow.trigger_config ?? {}) as {
+        cron?: string;
+        timezone?: string;
+        segment_id?: string;
+      };
       if (!cfg.cron || !cronMatches(cfg.cron, now, cfg.timezone ?? "Asia/Dubai")) continue;
 
       const cutoff = new Date(now.getTime() - 55_000).toISOString();

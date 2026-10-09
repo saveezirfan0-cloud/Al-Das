@@ -17,7 +17,12 @@ import type {
   TemplateView,
 } from "@/lib/flow-engine/deps";
 import { guardedHttp } from "@/lib/flow-engine/http-action";
-import { graphSchema, type FlowGraph, type RunContext, type WaitingFor } from "@/lib/flow-engine/types";
+import {
+  graphSchema,
+  type FlowGraph,
+  type RunContext,
+  type WaitingFor,
+} from "@/lib/flow-engine/types";
 import { ensureConversation } from "@/lib/inbox/conversations";
 import { addNote, queueOutbound, type SendSpec } from "@/lib/inbox/send";
 import { enqueue, scheduleJob } from "@/lib/jobs/enqueue";
@@ -77,7 +82,10 @@ export function supabaseStore(admin: AdminClient): FlowStore {
       for (const [k, v] of Object.entries(patch)) {
         row[k] = k === "context" || k === "waiting_for" ? (v === null ? null : j(v)) : v;
       }
-      const { error } = await admin.from("flow_runs").update(row as never).eq("id", id);
+      const { error } = await admin
+        .from("flow_runs")
+        .update(row as never)
+        .eq("id", id);
       if (error) throw new Error(`updateRun: ${error.message}`);
     },
     async insertStep(step) {
@@ -102,7 +110,9 @@ export function supabaseStore(admin: AdminClient): FlowStore {
         .from("flow_run_steps")
         .update({
           status: patch.status,
-          ...(patch.output !== undefined ? { output: patch.output === null ? null : j(patch.output) } : {}),
+          ...(patch.output !== undefined
+            ? { output: patch.output === null ? null : j(patch.output) }
+            : {}),
           ...(patch.error !== undefined ? { error: patch.error } : {}),
           finished_at: patch.status === "waiting" ? null : new Date().toISOString(),
         })
@@ -180,7 +190,9 @@ export function supabaseStore(admin: AdminClient): FlowStore {
     async getContact(id) {
       const { data } = await admin
         .from("contacts")
-        .select("id, org_id, first_name, last_name, full_name, email, gender, language, label, stop_marketing, promotions_opt_in, phone_e164, wa_bsuid, custom")
+        .select(
+          "id, org_id, first_name, last_name, full_name, email, gender, language, label, stop_marketing, promotions_opt_in, phone_e164, wa_bsuid, custom",
+        )
         .eq("id", id)
         .maybeSingle();
       if (!data) return null;
@@ -221,11 +233,20 @@ export function supabaseStore(admin: AdminClient): FlowStore {
       return view;
     },
     async getVariables(orgId) {
-      const { data } = await admin.from("flow_variables").select("key, value").eq("org_id", orgId).eq("enabled", true);
+      const { data } = await admin
+        .from("flow_variables")
+        .select("key, value")
+        .eq("org_id", orgId)
+        .eq("enabled", true);
       return Object.fromEntries((data ?? []).map((v) => [v.key, v.value]));
     },
     async getTemplate(orgId, id): Promise<TemplateView | null> {
-      const { data } = await admin.from("wa_templates").select("*").eq("id", id).eq("org_id", orgId).maybeSingle();
+      const { data } = await admin
+        .from("wa_templates")
+        .select("*")
+        .eq("id", id)
+        .eq("org_id", orgId)
+        .maybeSingle();
       if (!data) return null;
       return {
         id: data.id,
@@ -267,7 +288,9 @@ export function supabaseStore(admin: AdminClient): FlowStore {
     async getInboundMessage(messageId) {
       const { data } = await admin
         .from("messages")
-        .select("id, org_id, conversation_id, kind, body, payload, reply_to_wa_message_id, conversations(contact_id)")
+        .select(
+          "id, org_id, conversation_id, kind, body, payload, reply_to_wa_message_id, conversations(contact_id)",
+        )
         .eq("id", messageId)
         .eq("direction", "in")
         .maybeSingle();
@@ -318,7 +341,11 @@ export function supabaseActions(admin: AdminClient): FlowActions {
       let conversationId = run.conversation_id;
       if (!conversationId) {
         if (!run.contact_id) throw new Error("Run has no contact to message");
-        const { data: flow } = await admin.from("flows").select("channel_id").eq("id", run.flow_id).maybeSingle();
+        const { data: flow } = await admin
+          .from("flows")
+          .select("channel_id")
+          .eq("id", run.flow_id)
+          .maybeSingle();
         const conv = await ensureConversation(admin, {
           orgId: run.org_id,
           contactId: run.contact_id,
@@ -330,7 +357,11 @@ export function supabaseActions(admin: AdminClient): FlowActions {
       }
       let text = body;
       if (spec.type === "template" && text === null) {
-        const { data: tpl } = await admin.from("wa_templates").select("components").eq("id", spec.template_id).maybeSingle();
+        const { data: tpl } = await admin
+          .from("wa_templates")
+          .select("components")
+          .eq("id", spec.template_id)
+          .maybeSingle();
         text = tpl ? renderTemplatePreview(tpl.components as never, spec.values).body : null;
       }
       const message = await queueOutbound(admin, {
@@ -355,7 +386,11 @@ export function supabaseActions(admin: AdminClient): FlowActions {
             : target.type === "bot"
               ? { bot_active: true }
               : { assignee_user_id: null, assignee_team_id: null };
-      const { error } = await admin.from("conversations").update(patch).eq("id", run.conversation_id).eq("org_id", run.org_id);
+      const { error } = await admin
+        .from("conversations")
+        .update(patch)
+        .eq("id", run.conversation_id)
+        .eq("org_id", run.org_id);
       if (error) throw new Error(`assign failed: ${error.message}`);
       if (target.type === "user" && target.id) {
         await createNotification(admin, {
@@ -384,21 +419,38 @@ export function supabaseActions(admin: AdminClient): FlowActions {
         .eq("id", run.conversation_id)
         .eq("org_id", run.org_id);
       if (error) throw new Error(`close failed: ${error.message}`);
-      await emit(run.org_id, "conversation.closed", { conversation_id: run.conversation_id, by: "flow" });
+      await emit(run.org_id, "conversation.closed", {
+        conversation_id: run.conversation_id,
+        by: "flow",
+      });
     },
 
     async addComment(run, body) {
       if (!run.conversation_id) return;
-      await addNote(admin, { orgId: run.org_id, conversationId: run.conversation_id, body, userId: null });
+      await addNote(admin, {
+        orgId: run.org_id,
+        conversationId: run.conversation_id,
+        body,
+        userId: null,
+      });
     },
 
     async updateContactField(run, field, value) {
       if (!run.contact_id) return;
       if (field.startsWith("custom.")) {
         const key = field.slice("custom.".length);
-        const { data } = await admin.from("contacts").select("custom").eq("id", run.contact_id).eq("org_id", run.org_id).single();
+        const { data } = await admin
+          .from("contacts")
+          .select("custom")
+          .eq("id", run.contact_id)
+          .eq("org_id", run.org_id)
+          .single();
         const custom = { ...((data?.custom as Record<string, unknown>) ?? {}), [key]: value };
-        const { error } = await admin.from("contacts").update({ custom: j(custom) }).eq("id", run.contact_id).eq("org_id", run.org_id);
+        const { error } = await admin
+          .from("contacts")
+          .update({ custom: j(custom) })
+          .eq("id", run.contact_id)
+          .eq("org_id", run.org_id);
         if (error) throw new Error(`contact update failed: ${error.message}`);
       } else {
         const { error } = await admin
@@ -421,7 +473,11 @@ export function supabaseActions(admin: AdminClient): FlowActions {
       let userIds: string[] = [];
       if (target.type === "user" && target.id) userIds = [target.id];
       if (target.type === "team" && target.id) {
-        const { data } = await admin.from("team_members").select("user_id").eq("team_id", target.id).eq("org_id", run.org_id);
+        const { data } = await admin
+          .from("team_members")
+          .select("user_id")
+          .eq("team_id", target.id)
+          .eq("org_id", run.org_id);
         userIds = (data ?? []).map((r) => r.user_id);
       }
       if (target.type === "role" && target.id) {
@@ -456,7 +512,11 @@ export function createFlowDeps(admin: AdminClient): FlowDeps {
     actions: supabaseActions(admin),
     jobs: {
       async enqueueStep(runId, opts) {
-        await enqueue("flow_steps", { type: "step", run_id: runId }, { delaySeconds: opts?.delaySeconds });
+        await enqueue(
+          "flow_steps",
+          { type: "step", run_id: runId },
+          { delaySeconds: opts?.delaySeconds },
+        );
       },
       async scheduleResume({ orgId, runId, token, runAt }) {
         await scheduleJob({
@@ -470,7 +530,11 @@ export function createFlowDeps(admin: AdminClient): FlowDeps {
     },
     lock: {
       async claim(key, owner) {
-        const { data, error } = await admin.rpc("claim_flow_lock", { p_key: key, p_owner: owner, p_ttl_seconds: 60 });
+        const { data, error } = await admin.rpc("claim_flow_lock", {
+          p_key: key,
+          p_owner: owner,
+          p_ttl_seconds: 60,
+        });
         if (error) throw new Error(`claim_flow_lock: ${error.message}`);
         return Boolean(data);
       },

@@ -8,11 +8,26 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 import { explainDiff, updateChecklist } from "../actions";
 
-type Day = { run_date: string; make_count: number; native_count: number; only_in_make: string[]; only_in_native: string[]; explained: boolean; reason: string };
+type Day = {
+  run_date: string;
+  make_count: number;
+  native_count: number;
+  only_in_make: string[];
+  only_in_native: string[];
+  explained: boolean;
+  reason: string;
+};
 export type ScenarioVM = {
   key: string;
   name: string;
@@ -26,12 +41,22 @@ export type ScenarioVM = {
   readiness: { ready: boolean; reasons: string[] };
 };
 
-export function ParallelRunReport({ scenarios, canEdit }: { scenarios: ScenarioVM[]; canEdit: boolean }) {
+export function ParallelRunReport({
+  scenarios,
+  canEdit,
+}: {
+  scenarios: ScenarioVM[];
+  canEdit: boolean;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [reasons, setReasons] = useState<Record<string, string>>({});
 
-  const toggle = (scenario_key: string, field: "native_built" | "diffs_explained" | "make_off", value: boolean) =>
+  const toggle = (
+    scenario_key: string,
+    field: "native_built" | "diffs_explained" | "make_off",
+    value: boolean,
+  ) =>
     startTransition(async () => {
       const r = await updateChecklist({ scenario_key: scenario_key as never, field, value });
       if (r.ok) router.refresh();
@@ -62,23 +87,47 @@ export function ParallelRunReport({ scenarios, canEdit }: { scenarios: ScenarioV
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Checkbox checked={s.nativeBuilt} disabled={!canEdit || pending} aria-label={`${s.name}: native built`} onCheckedChange={(v) => toggle(s.key, "native_built", v === true)} />
+                  <Checkbox
+                    checked={s.nativeBuilt}
+                    disabled={!canEdit || pending}
+                    aria-label={`${s.name}: native built`}
+                    onCheckedChange={(v) => toggle(s.key, "native_built", v === true)}
+                  />
                 </TableCell>
                 <TableCell className="text-sm">
                   {s.comparable ? (
                     <span className="inline-flex items-center gap-1">
-                      {s.days.length >= 7 ? <CheckCircle2 className="size-4 text-emerald-600" /> : <Circle className="text-muted-foreground size-4" />} {Math.min(s.days.length, 7)} / 7 days
+                      {s.days.length >= 7 ? (
+                        <CheckCircle2 className="size-4 text-emerald-600" />
+                      ) : (
+                        <Circle className="text-muted-foreground size-4" />
+                      )}{" "}
+                      {Math.min(s.days.length, 7)} / 7 days
                     </span>
                   ) : (
                     <span className="text-muted-foreground">Not comparable yet</span>
                   )}
                 </TableCell>
                 <TableCell>
-                  <Checkbox checked={s.diffsExplained} disabled={!canEdit || pending} aria-label={`${s.name}: differences explained`} onCheckedChange={(v) => toggle(s.key, "diffs_explained", v === true)} />
+                  <Checkbox
+                    checked={s.diffsExplained}
+                    disabled={!canEdit || pending}
+                    aria-label={`${s.name}: differences explained`}
+                    onCheckedChange={(v) => toggle(s.key, "diffs_explained", v === true)}
+                  />
                 </TableCell>
                 <TableCell>
-                  <Checkbox checked={s.makeOff} disabled={!canEdit || pending || !s.readiness.ready} aria-label={`${s.name}: Make switched off`} onCheckedChange={(v) => toggle(s.key, "make_off", v === true)} />
-                  {!s.readiness.ready && s.readiness.reasons[0] && <div className="text-muted-foreground mt-1 max-w-48 text-xs">{s.readiness.reasons[0]}</div>}
+                  <Checkbox
+                    checked={s.makeOff}
+                    disabled={!canEdit || pending || !s.readiness.ready}
+                    aria-label={`${s.name}: Make switched off`}
+                    onCheckedChange={(v) => toggle(s.key, "make_off", v === true)}
+                  />
+                  {!s.readiness.ready && s.readiness.reasons[0] && (
+                    <div className="text-muted-foreground mt-1 max-w-48 text-xs">
+                      {s.readiness.reasons[0]}
+                    </div>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
@@ -119,14 +168,26 @@ export function ParallelRunReport({ scenarios, canEdit }: { scenarios: ScenarioV
                             <span className="text-emerald-700 text-sm">Identical</span>
                           ) : (
                             <div className="flex items-center gap-1.5">
-                              <Input aria-label={`Reason for ${s.name} on ${d.run_date}`} className="min-w-56" value={reasons[k] ?? d.reason} disabled={!canEdit} placeholder="e.g. already messaged by Make before cut-over" onChange={(e) => setReasons((r) => ({ ...r, [k]: e.target.value }))} />
+                              <Input
+                                aria-label={`Reason for ${s.name} on ${d.run_date}`}
+                                className="min-w-56"
+                                value={reasons[k] ?? d.reason}
+                                disabled={!canEdit}
+                                placeholder="e.g. already messaged by Make before cut-over"
+                                onChange={(e) => setReasons((r) => ({ ...r, [k]: e.target.value }))}
+                              />
                               <Button
                                 size="sm"
                                 variant={d.explained ? "secondary" : "default"}
                                 disabled={!canEdit || pending}
                                 onClick={() =>
                                   startTransition(async () => {
-                                    const r = await explainDiff({ scenario_key: s.key as never, run_date: d.run_date, reason: reasons[k] ?? d.reason, explained: true });
+                                    const r = await explainDiff({
+                                      scenario_key: s.key as never,
+                                      run_date: d.run_date,
+                                      reason: reasons[k] ?? d.reason,
+                                      explained: true,
+                                    });
                                     if (r.ok) router.refresh();
                                     else toast.error(r.error);
                                   })
@@ -147,8 +208,13 @@ export function ParallelRunReport({ scenarios, canEdit }: { scenarios: ScenarioV
         ))}
 
       <p className="text-muted-foreground text-xs">
-        Only salted hashes of Unite PINs and appointment ids are stored for the comparison: no names, phone numbers or messages. Import a day of Make output with{" "}
-        <code className="bg-muted rounded px-1">pnpm parallel:ingest --org &lt;slug&gt; --scenario birthday --date YYYY-MM-DD --file ids.txt</code>. The nightly job compares yesterday at 00:30 Dubai time.
+        Only salted hashes of Unite PINs and appointment ids are stored for the comparison: no
+        names, phone numbers or messages. Import a day of Make output with{" "}
+        <code className="bg-muted rounded px-1">
+          pnpm parallel:ingest --org &lt;slug&gt; --scenario birthday --date YYYY-MM-DD --file
+          ids.txt
+        </code>
+        . The nightly job compares yesterday at 00:30 Dubai time.
       </p>
     </div>
   );

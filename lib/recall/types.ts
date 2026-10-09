@@ -103,7 +103,16 @@ export interface RecallStore {
   contact(orgId: string, contactId: string): Promise<RecallContact | null>;
   /** Insert-first; returns null when (programme, contact, cycle) already has a row. */
   insertSend(row: NewSend): Promise<{ id: string } | null>;
-  updateSend(id: string, patch: { status?: SendStatus; message_id?: string | null; sent_at?: string | null; sent_to_phone_e164?: string | null; notes?: string | null }): Promise<void>;
+  updateSend(
+    id: string,
+    patch: {
+      status?: SendStatus;
+      message_id?: string | null;
+      sent_at?: string | null;
+      sent_to_phone_e164?: string | null;
+      notes?: string | null;
+    },
+  ): Promise<void>;
   /** Find-or-create internal test contacts (is_test_record) for these E.164 numbers. */
   testContacts(orgId: string, phones: string[]): Promise<Array<{ id: string; phone_e164: string }>>;
   tagContact(orgId: string, contactId: string, tag: string): Promise<void>;
@@ -142,10 +151,17 @@ export type RunSummary = {
 };
 
 /** Views the engine may read. The eligibility_view column is data; never trust it as a table name. */
-export const ALLOWED_VIEWS = new Set(["v_chronic_recall_eligibility", "v_birthday_today", "v_appointment_reminder_due"]);
+export const ALLOWED_VIEWS = new Set([
+  "v_chronic_recall_eligibility",
+  "v_birthday_today",
+  "v_appointment_reminder_due",
+]);
 
 /** Views that list ineligible rows too and expose an `eligible` flag. */
-export const ELIGIBLE_FLAG_VIEWS = new Set(["v_chronic_recall_eligibility", "v_appointment_reminder_due"]);
+export const ELIGIBLE_FLAG_VIEWS = new Set([
+  "v_chronic_recall_eligibility",
+  "v_appointment_reminder_due",
+]);
 
 export const DEFAULT_TAGS: Record<string, string> = {
   chronic_90d: "chronic_recall_sent",

@@ -9,7 +9,11 @@ import type { TriggerConditions } from "@/lib/flow-engine/types";
 
 export type TriggerFacts = { source?: string | null; keyword?: string | null; ad?: string | null };
 
-function textTest(op: "equals" | "not_equals" | "contains" | "not_contains", actual: string, expected: string): boolean {
+function textTest(
+  op: "equals" | "not_equals" | "contains" | "not_contains",
+  actual: string,
+  expected: string,
+): boolean {
   const a = actual.trim().toLowerCase();
   const e = expected.trim().toLowerCase();
   switch (op) {
@@ -25,9 +29,14 @@ function textTest(op: "equals" | "not_equals" | "contains" | "not_contains", act
 }
 
 /** Empty condition list always matches. */
-export function matchTriggerConditions(cond: TriggerConditions | null | undefined, facts: TriggerFacts): boolean {
+export function matchTriggerConditions(
+  cond: TriggerConditions | null | undefined,
+  facts: TriggerFacts,
+): boolean {
   if (!cond || cond.conditions.length === 0) return true;
-  const results = cond.conditions.map((c) => textTest(c.op, String(facts[c.category] ?? ""), c.value));
+  const results = cond.conditions.map((c) =>
+    textTest(c.op, String(facts[c.category] ?? ""), c.value),
+  );
   return cond.logic === "or" ? results.some(Boolean) : results.every(Boolean);
 }
 
@@ -65,18 +74,34 @@ export function evaluateBranch(rule: BranchRule, scope: InterpolateScope): boole
       case "is_not_empty":
         return !isBlank(leftVal);
       case "eq":
-        return String(leftVal ?? "").trim().toLowerCase() === right.trim().toLowerCase();
+        return (
+          String(leftVal ?? "")
+            .trim()
+            .toLowerCase() === right.trim().toLowerCase()
+        );
       case "neq":
-        return String(leftVal ?? "").trim().toLowerCase() !== right.trim().toLowerCase();
+        return (
+          String(leftVal ?? "")
+            .trim()
+            .toLowerCase() !== right.trim().toLowerCase()
+        );
       case "contains":
-        return String(leftVal ?? "").toLowerCase().includes(right.toLowerCase());
+        return String(leftVal ?? "")
+          .toLowerCase()
+          .includes(right.toLowerCase());
       case "not_contains":
-        return !String(leftVal ?? "").toLowerCase().includes(right.toLowerCase());
+        return !String(leftVal ?? "")
+          .toLowerCase()
+          .includes(right.toLowerCase());
       case "in":
         return right
           .split(",")
           .map((s) => s.trim().toLowerCase())
-          .includes(String(leftVal ?? "").trim().toLowerCase());
+          .includes(
+            String(leftVal ?? "")
+              .trim()
+              .toLowerCase(),
+          );
       case "gt":
       case "gte":
       case "lt":

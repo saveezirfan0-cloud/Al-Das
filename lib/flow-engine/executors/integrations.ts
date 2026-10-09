@@ -28,7 +28,12 @@ export const api_action: Executor = async (ctx) => {
   });
   const ok = res.status >= 200 && res.status < 300;
   // Response body is kept for {steps.<node>.response.x}; headers and request body are never stored.
-  const output = { status: res.status, ...(typeof res.body === "object" && res.body !== null ? (res.body as Record<string, unknown>) : { body: res.body }) };
+  const output = {
+    status: res.status,
+    ...(typeof res.body === "object" && res.body !== null
+      ? (res.body as Record<string, unknown>)
+      : { body: res.body }),
+  };
   return ok ? { kind: "next", output } : { kind: "fail", error: `HTTP ${res.status}`, output };
 };
 

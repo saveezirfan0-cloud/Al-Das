@@ -3,16 +3,50 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { CheckCircle2, Copy, Hourglass, Loader2, MoreHorizontal, Plus, ScrollText, Trash2, TriangleAlert } from "lucide-react";
+import {
+  CheckCircle2,
+  Copy,
+  Hourglass,
+  Loader2,
+  MoreHorizontal,
+  Plus,
+  ScrollText,
+  Trash2,
+  TriangleAlert,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { TRIGGER_LABELS } from "@/lib/flow-engine/labels";
 import { STARTER_FLOWS } from "@/lib/flow-engine/starter-flows";
 import { TRIGGER_TYPES } from "@/lib/flow-engine/types";
@@ -46,7 +80,10 @@ export function FlowsList({ rows }: { rows: FlowRow[] }) {
   const [starter, setStarter] = useState<string>("blank");
   const [pending, startTransition] = useTransition();
 
-  function run(fn: () => Promise<{ ok: boolean; message?: string; error?: string }>, after?: () => void) {
+  function run(
+    fn: () => Promise<{ ok: boolean; message?: string; error?: string }>,
+    after?: () => void,
+  ) {
     startTransition(async () => {
       const r = await fn();
       if (r.ok) {
@@ -59,7 +96,11 @@ export function FlowsList({ rows }: { rows: FlowRow[] }) {
 
   function create() {
     startTransition(async () => {
-      const r = await createFlow({ name, trigger_type: trigger as never, starter: starter === "blank" ? undefined : starter });
+      const r = await createFlow({
+        name,
+        trigger_type: trigger as never,
+        starter: starter === "blank" ? undefined : starter,
+      });
       if (r.ok) router.push(`/flows/${r.data.id}`);
       else toast.error(r.error);
     });
@@ -73,7 +114,9 @@ export function FlowsList({ rows }: { rows: FlowRow[] }) {
         </Button>
       </div>
       {rows.length === 0 ? (
-        <p className="text-muted-foreground rounded-xl border border-dashed p-10 text-center text-sm">No flows yet. Create one to automate replies, reminders and hand-overs.</p>
+        <p className="text-muted-foreground rounded-xl border border-dashed p-10 text-center text-sm">
+          No flows yet. Create one to automate replies, reminders and hand-overs.
+        </p>
       ) : (
         <Table>
           <TableHeader>
@@ -93,9 +136,13 @@ export function FlowsList({ rows }: { rows: FlowRow[] }) {
                   <Link href={`/flows/${f.id}`} className="font-medium hover:underline">
                     {f.name}
                   </Link>
-                  <div className="text-muted-foreground text-xs">{f.version > 0 ? `v${f.version}` : "Never published"}</div>
+                  <div className="text-muted-foreground text-xs">
+                    {f.version > 0 ? `v${f.version}` : "Never published"}
+                  </div>
                 </TableCell>
-                <TableCell className="text-sm">{TRIGGER_LABELS[f.trigger_type] ?? f.trigger_type}</TableCell>
+                <TableCell className="text-sm">
+                  {TRIGGER_LABELS[f.trigger_type] ?? f.trigger_type}
+                </TableCell>
                 <TableCell className="text-sm">{f.channel}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-3 text-sm tabular-nums">
@@ -128,15 +175,24 @@ export function FlowsList({ rows }: { rows: FlowRow[] }) {
                           <ScrollText /> Logs
                         </Link>
                       </DropdownMenuItem>
-                      {f.status === "active" && <DropdownMenuItem onSelect={() => run(() => setFlowStatus(f.id, "paused"))}>Pause</DropdownMenuItem>}
-                      {f.status === "paused" && <DropdownMenuItem onSelect={() => run(() => setFlowStatus(f.id, "active"))}>Resume</DropdownMenuItem>}
+                      {f.status === "active" && (
+                        <DropdownMenuItem onSelect={() => run(() => setFlowStatus(f.id, "paused"))}>
+                          Pause
+                        </DropdownMenuItem>
+                      )}
+                      {f.status === "paused" && (
+                        <DropdownMenuItem onSelect={() => run(() => setFlowStatus(f.id, "active"))}>
+                          Resume
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem onSelect={() => run(() => duplicateFlow(f.id))}>
                         <Copy /> Duplicate
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-destructive"
                         onSelect={() => {
-                          if (confirm(`Delete "${f.name}"? Its run history is deleted too.`)) run(() => deleteFlow(f.id));
+                          if (confirm(`Delete "${f.name}"? Its run history is deleted too.`))
+                            run(() => deleteFlow(f.id));
                         }}
                       >
                         <Trash2 /> Delete
@@ -156,8 +212,24 @@ export function FlowsList({ rows }: { rows: FlowRow[] }) {
             <DialogTitle>New flow</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-3">
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Flow name" aria-label="Flow name" autoFocus />
-            <Select value={starter} onValueChange={(v) => { setStarter(v); const f = STARTER_FLOWS.find((s) => s.key === v); if (f) { setTrigger(f.trigger_type); if (!name.trim()) setName(f.name); } }}>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Flow name"
+              aria-label="Flow name"
+              autoFocus
+            />
+            <Select
+              value={starter}
+              onValueChange={(v) => {
+                setStarter(v);
+                const f = STARTER_FLOWS.find((s) => s.key === v);
+                if (f) {
+                  setTrigger(f.trigger_type);
+                  if (!name.trim()) setName(f.name);
+                }
+              }}
+            >
               <SelectTrigger aria-label="Start from">
                 <SelectValue />
               </SelectTrigger>
@@ -184,7 +256,9 @@ export function FlowsList({ rows }: { rows: FlowRow[] }) {
                 </SelectContent>
               </Select>
             ) : (
-              <p className="text-muted-foreground text-xs">{STARTER_FLOWS.find((s) => s.key === starter)?.description}</p>
+              <p className="text-muted-foreground text-xs">
+                {STARTER_FLOWS.find((s) => s.key === starter)?.description}
+              </p>
             )}
           </div>
           <DialogFooter>

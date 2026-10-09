@@ -15,7 +15,8 @@ export function cronFromForm(f: ScheduleForm): string | null {
   if (!m) return null;
   const [h, min] = [Number(m[1]), Number(m[2])];
   if (f.freq === "daily") return `${min} ${h} * * *`;
-  if (f.freq === "weekly") return f.weekday >= 0 && f.weekday <= 6 ? `${min} ${h} * * ${f.weekday}` : null;
+  if (f.freq === "weekly")
+    return f.weekday >= 0 && f.weekday <= 6 ? `${min} ${h} * * ${f.weekday}` : null;
   return f.day >= 1 && f.day <= 28 ? `${min} ${h} ${f.day} * *` : null;
 }
 
@@ -26,7 +27,8 @@ export function formFromCron(cron: string | undefined): ScheduleForm {
     const time = `${m[2]!.padStart(2, "0")}:${m[1]!.padStart(2, "0")}`;
     if (m[3] === "*" && m[4] === "*") return { freq: "daily", time };
     if (m[3] === "*" && m[4] !== "*") return { freq: "weekly", time, weekday: Number(m[4]) };
-    if (m[3] !== "*" && m[4] === "*" && Number(m[3]) <= 28) return { freq: "monthly", time, day: Number(m[3]) };
+    if (m[3] !== "*" && m[4] === "*" && Number(m[3]) <= 28)
+      return { freq: "monthly", time, day: Number(m[3]) };
   }
   return c ? { freq: "custom", cron: c } : { freq: "daily", time: "09:00" };
 }

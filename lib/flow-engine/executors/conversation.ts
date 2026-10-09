@@ -14,9 +14,13 @@ export const assign_to: Executor = async (ctx) => {
   if (!cfg.ok) return cfg.outcome;
   if (!ctx.conversation) return fail("This step needs a conversation");
   const t = cfg.data.target;
-  await ctx.deps.actions.assign(ctx.run, t.type === "user" || t.type === "team" ? { type: t.type, id: t.id } : { type: t.type });
+  await ctx.deps.actions.assign(
+    ctx.run,
+    t.type === "user" || t.type === "team" ? { type: t.type, id: t.id } : { type: t.type },
+  );
   // Handing to a human ends the bot's turn: the flow stops here (human takeover).
-  if (t.type === "user" || t.type === "team") return { kind: "end", status: "completed", output: { assigned_to: t.type } };
+  if (t.type === "user" || t.type === "team")
+    return { kind: "end", status: "completed", output: { assigned_to: t.type } };
   return { kind: "next", output: { assigned_to: t.type } };
 };
 

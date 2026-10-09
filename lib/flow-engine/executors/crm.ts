@@ -1,10 +1,17 @@
 import { z } from "zod";
 
-import { fail, parseConfig, text, type ExecCtx, type Executor } from "@/lib/flow-engine/executors/common";
+import {
+  fail,
+  parseConfig,
+  text,
+  type ExecCtx,
+  type Executor,
+} from "@/lib/flow-engine/executors/common";
 import type { Outcome } from "@/lib/flow-engine/types";
 
 /** Phone is the contact's identity (E.164 match key), so flows may not rewrite it. */
-const FIELD = /^(first_name|last_name|email|gender|language|label|custom\.[A-Za-z][A-Za-z0-9_]{0,63})$/;
+const FIELD =
+  /^(first_name|last_name|email|gender|language|label|custom\.[A-Za-z][A-Za-z0-9_]{0,63})$/;
 
 const updateFieldSchema = z.object({
   field: z.string().regex(FIELD, "unsupported field"),
@@ -29,7 +36,11 @@ export const update_contact_field: Executor = async (ctx) => {
 type PortMethod = "createEnquiry" | "addTask" | "upsertPortalRecord" | "bookAppointment";
 
 /** CRM nodes call a port; until the module's phase registers an adapter the step fails closed with a clear reason. */
-function portNode(method: PortMethod, label: string, schema: z.ZodType<Record<string, unknown>>): Executor {
+function portNode(
+  method: PortMethod,
+  label: string,
+  schema: z.ZodType<Record<string, unknown>>,
+): Executor {
   return async (ctx: ExecCtx): Promise<Outcome> => {
     const cfg = parseConfig(ctx, schema);
     if (!cfg.ok) return cfg.outcome;
@@ -37,7 +48,8 @@ function portNode(method: PortMethod, label: string, schema: z.ZodType<Record<st
     if (!fn) return fail(`${label} is not available yet (module not installed)`);
     // Interpolate every string value one level deep.
     const input: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(cfg.data)) input[k] = typeof v === "string" ? text(ctx, v) : v;
+    for (const [k, v] of Object.entries(cfg.data))
+      input[k] = typeof v === "string" ? text(ctx, v) : v;
     const created = await fn.call(ctx.deps.crm, ctx.run, input);
     return { kind: "next", output: { id: created.id } };
   };

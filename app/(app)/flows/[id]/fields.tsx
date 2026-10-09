@@ -5,12 +5,26 @@ import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
 /** Small form controls for the properties panel. Everything is controlled and works on plain config objects. */
 
-export function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+export function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="flex flex-col gap-1.5">
       <Label className="text-xs font-medium">{label}</Label>
@@ -20,22 +34,64 @@ export function Field({ label, hint, children }: { label: string; hint?: string;
   );
 }
 
-export function TextField({ label, value, onChange, hint, placeholder, mono }: { label: string; value: string; onChange: (v: string) => void; hint?: string; placeholder?: string; mono?: boolean }) {
+export function TextField({
+  label,
+  value,
+  onChange,
+  hint,
+  placeholder,
+  mono,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  hint?: string;
+  placeholder?: string;
+  mono?: boolean;
+}) {
   return (
     <Field label={label} hint={hint}>
-      <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className={mono ? "font-mono text-xs" : undefined} />
+      <Input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className={mono ? "font-mono text-xs" : undefined}
+      />
     </Field>
   );
 }
 
-export function AreaField({ label, value, onChange, hint, variables, rows = 4 }: { label: string; value: string; onChange: (v: string) => void; hint?: string; variables: string[]; rows?: number }) {
-  const tokens = ["{contact.first_name}", "{contact.last_name}", ...variables.map((v) => `{vars.${v}}`)];
+export function AreaField({
+  label,
+  value,
+  onChange,
+  hint,
+  variables,
+  rows = 4,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  hint?: string;
+  variables: string[];
+  rows?: number;
+}) {
+  const tokens = [
+    "{contact.first_name}",
+    "{contact.last_name}",
+    ...variables.map((v) => `{vars.${v}}`),
+  ];
   return (
     <Field label={label} hint={hint}>
       <Textarea value={value} onChange={(e) => onChange(e.target.value)} rows={rows} />
       <div className="flex flex-wrap gap-1">
         {tokens.map((t) => (
-          <button key={t} type="button" onClick={() => onChange(`${value}${t}`)} className="text-muted-foreground hover:bg-accent rounded border px-1.5 py-0.5 font-mono text-[10px]">
+          <button
+            key={t}
+            type="button"
+            onClick={() => onChange(`${value}${t}`)}
+            className="text-muted-foreground hover:bg-accent rounded border px-1.5 py-0.5 font-mono text-[10px]"
+          >
             {t}
           </button>
         ))}
@@ -44,15 +100,49 @@ export function AreaField({ label, value, onChange, hint, variables, rows = 4 }:
   );
 }
 
-export function NumberField({ label, value, onChange, min, max, hint }: { label: string; value: number | undefined; onChange: (v: number | undefined) => void; min?: number; max?: number; hint?: string }) {
+export function NumberField({
+  label,
+  value,
+  onChange,
+  min,
+  max,
+  hint,
+}: {
+  label: string;
+  value: number | undefined;
+  onChange: (v: number | undefined) => void;
+  min?: number;
+  max?: number;
+  hint?: string;
+}) {
   return (
     <Field label={label} hint={hint}>
-      <Input type="number" min={min} max={max} value={value ?? ""} onChange={(e) => onChange(e.target.value === "" ? undefined : Number(e.target.value))} />
+      <Input
+        type="number"
+        min={min}
+        max={max}
+        value={value ?? ""}
+        onChange={(e) => onChange(e.target.value === "" ? undefined : Number(e.target.value))}
+      />
     </Field>
   );
 }
 
-export function SelectField({ label, value, onChange, options, placeholder, hint }: { label: string; value: string; onChange: (v: string) => void; options: Array<{ value: string; label: string }>; placeholder?: string; hint?: string }) {
+export function SelectField({
+  label,
+  value,
+  onChange,
+  options,
+  placeholder,
+  hint,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: Array<{ value: string; label: string }>;
+  placeholder?: string;
+  hint?: string;
+}) {
   return (
     <Field label={label} hint={hint}>
       <Select value={value || undefined} onValueChange={onChange}>
@@ -73,8 +163,25 @@ export function SelectField({ label, value, onChange, options, placeholder, hint
 
 export type Option = { id: string; title: string };
 
-export function OptionsEditor({ label, value, onChange, max, hint }: { label: string; value: Option[]; onChange: (v: Option[]) => void; max: number; hint?: string }) {
-  const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 40) || "option";
+export function OptionsEditor({
+  label,
+  value,
+  onChange,
+  max,
+  hint,
+}: {
+  label: string;
+  value: Option[];
+  onChange: (v: Option[]) => void;
+  max: number;
+  hint?: string;
+}) {
+  const slug = (s: string) =>
+    s
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_|_$/g, "")
+      .slice(0, 40) || "option";
   return (
     <Field label={`${label} (${value.length}/${max})`} hint={hint}>
       <div className="flex flex-col gap-1.5">
@@ -88,17 +195,31 @@ export function OptionsEditor({ label, value, onChange, max, hint }: { label: st
                 const next = [...value];
                 // Keep the id stable once edges point at it; only auto-derive while it still matches the old title.
                 const autoId = o.id === slug(o.title) || o.id.startsWith("option");
-                next[i] = { id: autoId ? uniqueId(slug(e.target.value), value, i) : o.id, title: e.target.value };
+                next[i] = {
+                  id: autoId ? uniqueId(slug(e.target.value), value, i) : o.id,
+                  title: e.target.value,
+                };
                 onChange(next);
               }}
             />
-            <Button type="button" variant="ghost" size="icon-sm" aria-label={`Remove option ${i + 1}`} onClick={() => onChange(value.filter((_, j) => j !== i))}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              aria-label={`Remove option ${i + 1}`}
+              onClick={() => onChange(value.filter((_, j) => j !== i))}
+            >
               <Trash2 />
             </Button>
           </div>
         ))}
         {value.length < max && (
-          <Button type="button" variant="outline" size="sm" onClick={() => onChange([...value, { id: uniqueId("option", value, -1), title: "" }])}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => onChange([...value, { id: uniqueId("option", value, -1), title: "" }])}
+          >
             <Plus /> Add
           </Button>
         )}
@@ -114,21 +235,69 @@ function uniqueId(base: string, existing: Option[], skip: number): string {
   return id;
 }
 
-export function KvEditor({ label, value, onChange, hint, keyPlaceholder = "Name", valuePlaceholder = "Value" }: { label: string; value: Record<string, string>; onChange: (v: Record<string, string>) => void; hint?: string; keyPlaceholder?: string; valuePlaceholder?: string }) {
+export function KvEditor({
+  label,
+  value,
+  onChange,
+  hint,
+  keyPlaceholder = "Name",
+  valuePlaceholder = "Value",
+}: {
+  label: string;
+  value: Record<string, string>;
+  onChange: (v: Record<string, string>) => void;
+  hint?: string;
+  keyPlaceholder?: string;
+  valuePlaceholder?: string;
+}) {
   const entries = Object.entries(value);
   return (
     <Field label={label} hint={hint}>
       <div className="flex flex-col gap-1.5">
         {entries.map(([k, v], i) => (
           <div key={i} className="flex gap-1.5">
-            <Input aria-label={`${label} name ${i + 1}`} value={k} placeholder={keyPlaceholder} className="w-2/5 font-mono text-xs" onChange={(e) => onChange(Object.fromEntries(entries.map(([ek, ev], j) => (j === i ? [e.target.value, ev] : [ek, ev]))))} />
-            <Input aria-label={`${label} value ${i + 1}`} value={v} placeholder={valuePlaceholder} onChange={(e) => onChange(Object.fromEntries(entries.map(([ek, ev], j) => (j === i ? [ek, e.target.value] : [ek, ev]))))} />
-            <Button type="button" variant="ghost" size="icon-sm" aria-label={`Remove ${label} ${i + 1}`} onClick={() => onChange(Object.fromEntries(entries.filter((_, j) => j !== i)))}>
+            <Input
+              aria-label={`${label} name ${i + 1}`}
+              value={k}
+              placeholder={keyPlaceholder}
+              className="w-2/5 font-mono text-xs"
+              onChange={(e) =>
+                onChange(
+                  Object.fromEntries(
+                    entries.map(([ek, ev], j) => (j === i ? [e.target.value, ev] : [ek, ev])),
+                  ),
+                )
+              }
+            />
+            <Input
+              aria-label={`${label} value ${i + 1}`}
+              value={v}
+              placeholder={valuePlaceholder}
+              onChange={(e) =>
+                onChange(
+                  Object.fromEntries(
+                    entries.map(([ek, ev], j) => (j === i ? [ek, e.target.value] : [ek, ev])),
+                  ),
+                )
+              }
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              aria-label={`Remove ${label} ${i + 1}`}
+              onClick={() => onChange(Object.fromEntries(entries.filter((_, j) => j !== i)))}
+            >
               <Trash2 />
             </Button>
           </div>
         ))}
-        <Button type="button" variant="outline" size="sm" onClick={() => onChange({ ...value, [`key${entries.length + 1}`]: "" })}>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => onChange({ ...value, [`key${entries.length + 1}`]: "" })}
+        >
           <Plus /> Add
         </Button>
       </div>

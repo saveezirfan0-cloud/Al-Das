@@ -13,8 +13,15 @@ export default async function FlowsPage() {
   const member = await requirePerm("flows.manage");
   const admin = createAdminClient();
   const [{ data: flows }, { data: counts }, { data: channels }] = await Promise.all([
-    admin.from("flows").select("id, name, status, trigger_type, channel_id, version, updated_at").eq("org_id", member.orgId).order("updated_at", { ascending: false }),
-    admin.from("v_flow_run_counts").select("flow_id, completed, failed, pending").eq("org_id", member.orgId),
+    admin
+      .from("flows")
+      .select("id, name, status, trigger_type, channel_id, version, updated_at")
+      .eq("org_id", member.orgId)
+      .order("updated_at", { ascending: false }),
+    admin
+      .from("v_flow_run_counts")
+      .select("flow_id, completed, failed, pending")
+      .eq("org_id", member.orgId),
     admin.from("channels").select("id, name").eq("org_id", member.orgId),
   ]);
   const byFlow = new Map((counts ?? []).map((c) => [c.flow_id, c]));
@@ -34,7 +41,10 @@ export default async function FlowsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Flows" description="Automations and bots: what starts them, which number they use, and how their runs are going.">
+      <PageHeader
+        title="Flows"
+        description="Automations and bots: what starts them, which number they use, and how their runs are going."
+      >
         <Button variant="outline" asChild>
           <Link href="/flows/variables">Variables</Link>
         </Button>

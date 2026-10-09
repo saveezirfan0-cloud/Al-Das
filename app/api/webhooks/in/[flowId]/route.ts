@@ -29,12 +29,17 @@ const bodySchema = z
  * POST /api/webhooks/in/<flowId>   Authorization: Bearer <token shown once when the flow was created>
  * Starts an "Incoming webhook" flow for a contact. Responds 202 quickly; the flow runs in the job queue.
  */
-export async function POST(request: NextRequest, { params }: { params: Promise<{ flowId: string }> }) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ flowId: string }> },
+) {
   const { flowId } = await params;
-  if (!z.string().uuid().safeParse(flowId).success) return NextResponse.json({ error: "not_found" }, { status: 404 });
+  if (!z.string().uuid().safeParse(flowId).success)
+    return NextResponse.json({ error: "not_found" }, { status: 404 });
 
   const raw = await request.text();
-  if (raw.length > MAX_BODY) return NextResponse.json({ error: "payload_too_large" }, { status: 413 });
+  if (raw.length > MAX_BODY)
+    return NextResponse.json({ error: "payload_too_large" }, { status: 413 });
 
   const admin = createAdminClient();
   const { data: flow } = await admin
@@ -42,12 +47,19 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     .select("id, org_id, status, trigger_type, trigger_config")
     .eq("id", flowId)
     .maybeSingle();
-  const auth = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? request.headers.get("x-flow-token");
+  const auth =
+    request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ??
+    request.headers.get("x-flow-token");
   // Same answer for "no such flow" and "bad token" so flow ids cannot be probed.
-  if (!flow || flow.trigger_type !== "webhook" || !tokenMatches(auth, (flow.trigger_config as Record<string, unknown>).webhook_token_hash)) {
+  if (
+    !flow ||
+    flow.trigger_type !== "webhook" ||
+    !tokenMatches(auth, (flow.trigger_config as Record<string, unknown>).webhook_token_hash)
+  ) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
-  if (flow.status !== "active") return NextResponse.json({ error: "flow_inactive" }, { status: 409 });
+  if (flow.status !== "active")
+    return NextResponse.json({ error: "flow_inactive" }, { status: 409 });
 
   let json: unknown;
   try {
@@ -56,12 +68,22 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
   const parsed = bodySchema.safeParse(json);
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "invalid_body" }, { status: 400 });
+  if (!parsed.success)
+    return NextResponse.json(
+      { error: parsed.error.issues[0]?.message ?? "invalid_body" },
+      { status: 400 },
+    );
   const body = parsed.data;
 
   let contactId = body.contact_id ?? null;
   if (contactId) {
-    const { data } = await admin.from("contacts").select("id").eq("id", contactId).eq("org_id", flow.org_id).is("deleted_at", null).maybeSingle();
+    const { data } = await admin
+      .from("contacts")
+      .select("id")
+      .eq("id", contactId)
+      .eq("org_id", flow.org_id)
+      .is("deleted_at", null)
+      .maybeSingle();
     if (!data) return NextResponse.json({ error: "contact_not_found" }, { status: 404 });
   } else {
     const e164 = toE164(body.phone);
@@ -77,10 +99,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     else {
       const { data: created, error } = await admin
         .from("contacts")
-        .insert({ org_id: flow.org_id, phone_e164: e164, first_name: body.first_name ?? "", last_name: body.last_name ?? "", source: "api" })
+        .insert({
+          org_id: flow.org_id,
+          phone_e164: e164,
+          first_name: body.first_name ?? "",
+          last_name: body.last_name ?? "",
+          source: "api",
+        })
         .select("id")
         .single();
-      if (error || !created) return NextResponse.json({ error: "contact_create_failed" }, { status: 500 });
+      if (error || !created)
+        return NextResponse.json({ error: "contact_create_failed" }, { status: 500 });
       contactId = created.id;
     }
   }

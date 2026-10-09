@@ -28,7 +28,12 @@ export function parseConfig<T extends z.ZodTypeAny>(
   const r = schema.safeParse(ctx.node.data);
   if (r.success) return { ok: true, data: r.data };
   const first = r.error.issues[0];
-  return { ok: false, outcome: fail(`Invalid ${ctx.node.type} settings: ${first?.path.join(".") || "node"} ${first?.message ?? ""}`.trim()) };
+  return {
+    ok: false,
+    outcome: fail(
+      `Invalid ${ctx.node.type} settings: ${first?.path.join(".") || "node"} ${first?.message ?? ""}`.trim(),
+    ),
+  };
 }
 
 export function text(ctx: ExecCtx, input: string): string {

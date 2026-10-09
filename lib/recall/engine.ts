@@ -25,7 +25,10 @@ import {
   type SendMode,
 } from "@/lib/recall/types";
 
-export function effectiveMode(programme: Pick<ProgrammeRow, "send_mode_override">, settingValue: string | null): SendMode {
+export function effectiveMode(
+  programme: Pick<ProgrammeRow, "send_mode_override">,
+  settingValue: string | null,
+): SendMode {
   const v = (programme.send_mode_override ?? settingValue ?? "").trim().toLowerCase();
   return v === "live" ? "live" : "test"; // anything else, including unsigned / blank, is Test
 }
@@ -43,12 +46,17 @@ export function parseTestNumbers(raw: string | null): string[] {
 /** `order_by` is data: accept only "<column> asc|desc" over a small allow-list. */
 export function parseOrderBy(raw: unknown): { column: string; ascending: boolean } | null {
   if (typeof raw !== "string") return null;
-  const m = /^(days_since_last_visit|starts_at|last_visit_date|contact_id)\s+(asc|desc)$/i.exec(raw.trim());
+  const m = /^(days_since_last_visit|starts_at|last_visit_date|contact_id)\s+(asc|desc)$/i.exec(
+    raw.trim(),
+  );
   return m ? { column: m[1]!.toLowerCase(), ascending: m[2]!.toLowerCase() === "asc" } : null;
 }
 
 function tagFor(programme: ProgrammeRow, cycleKey: string): string | null {
-  const tpl = (typeof programme.config.tag === "string" ? programme.config.tag : null) ?? DEFAULT_TAGS[programme.key] ?? null;
+  const tpl =
+    (typeof programme.config.tag === "string" ? programme.config.tag : null) ??
+    DEFAULT_TAGS[programme.key] ??
+    null;
   return tpl ? tpl.replace("{cycle}", cycleKey) : null;
 }
 
@@ -70,13 +78,15 @@ export async function runProgramme(deps: RecallDeps, programmeId: string): Promi
   });
   if (!p) return empty("test", "programme_not_found");
   if (p.status !== "active") return empty("test", `programme_${p.status}`);
-  if (!p.eligibility_view || !ALLOWED_VIEWS.has(p.eligibility_view)) return empty("test", "no_eligibility_view");
+  if (!p.eligibility_view || !ALLOWED_VIEWS.has(p.eligibility_view))
+    return empty("test", "no_eligibility_view");
 
   const mode = effectiveMode(p, await store.setting(p.org_id, "recall_send_mode"));
   const summary = empty(mode);
 
   if (mode === "live" && CLINICAL_KINDS.has(p.kind)) {
-    const enabled = (await store.setting(p.org_id, "clinical_messaging_enabled"))?.toLowerCase() === "true";
+    const enabled =
+      (await store.setting(p.org_id, "clinical_messaging_enabled"))?.toLowerCase() === "true";
     if (!enabled) {
       summary.blocked = "clinical_messaging_disabled";
       await store.touchProgramme(p.id, deps.now());
@@ -104,19 +114,28 @@ export async function runProgramme(deps: RecallDeps, programmeId: string): Promi
   const rows = await store.listEligible(p, limit);
   summary.listed = rows.length;
 
-  const templates = new Map((await store.templateMap(p.id)).filter((t) => t.active).map((t) => [t.segment_key, t]));
-  const bump = (created: unknown, key: "excluded" | "skipped_no_template" | "skipped_opted_out") => {
+  const templates = new Map(
+    (await store.templateMap(p.id)).filter((t) => t.active).map((t) => [t.segment_key, t]),
+  );
+  const bump = (
+    created: unknown,
+    key: "excluded" | "skipped_no_template" | "skipped_opted_out",
+  ) => {
     if (created) summary[key] += 1;
     else summary.already_handled += 1;
   };
-  const sampleSize = typeof p.config.test_sample_size === "number" ? p.config.test_sample_size : DEFAULT_TEST_SAMPLE;
+  const sampleSize =
+    typeof p.config.test_sample_size === "number" ? p.config.test_sample_size : DEFAULT_TEST_SAMPLE;
   let delivered = 0;
 
   for (const row of rows) {
     const contact = await store.contact(p.org_id, row.contact_id);
     if (!contact) continue;
 
-    const base: Omit<NewSend, "status" | "template_id" | "legacy_template_ref" | "sent_to_phone_e164" | "notes"> = {
+    const base: Omit<
+      NewSend,
+      "status" | "template_id" | "legacy_template_ref" | "sent_to_phone_e164" | "notes"
+    > = {
       org_id: p.org_id,
       programme_id: p.id,
       contact_id: row.contact_id,
@@ -129,7 +148,15 @@ export async function runProgramme(deps: RecallDeps, programmeId: string): Promi
       appointment_id: row.appointment_id ?? null,
     };
     const record = async (status: NewSend["status"], extra: Partial<NewSend> = {}) =>
-      store.insertSend({ ...base, status, template_id: null, legacy_template_ref: null, sent_to_phone_e164: null, notes: null, ...extra });
+      store.insertSend({
+        ...base,
+        status,
+        template_id: null,
+        legacy_template_ref: null,
+        sent_to_phone_e164: null,
+        notes: null,
+        ...extra,
+      });
 
     // 1. Exclusions and opt-outs never reach a template lookup.
     if (row.excluded) {
@@ -146,21 +173,41 @@ export async function runProgramme(deps: RecallDeps, programmeId: string): Promi
     }
 
     // 2. Template map: segment first, then '*'. A null segment (uncovered band) only matches '*'.
-    const map = (row.segment_key ? templates.get(row.segment_key) : undefined) ?? templates.get("*");
+    const map =
+      (row.segment_key ? templates.get(row.segment_key) : undefined) ?? templates.get("*");
     const tpl = map?.wa_template_id ? await store.template(p.org_id, map.wa_template_id) : null;
     if (!map || !tpl || tpl.status !== "APPROVED") {
-      const note = !map ? "No template mapped for this segment" : !map.wa_template_id ? "Template not linked yet" : "Template not approved";
-      bump(await record("skipped_no_template", { template_id: map?.id ?? null, legacy_template_ref: map?.legacy_sanoflow_template_id ?? null, notes: note }), "skipped_no_template");
+      const note = !map
+        ? "No template mapped for this segment"
+        : !map.wa_template_id
+          ? "Template not linked yet"
+          : "Template not approved";
+      bump(
+        await record("skipped_no_template", {
+          template_id: map?.id ?? null,
+          legacy_template_ref: map?.legacy_sanoflow_template_id ?? null,
+          notes: note,
+        }),
+        "skipped_no_template",
+      );
       continue;
     }
     if (tpl.category.toUpperCase() === "MARKETING" && !contact.promotions_opt_in) {
-      bump(await record("skipped_opted_out", { template_id: map.id, legacy_template_ref: map.legacy_sanoflow_template_id }), "skipped_opted_out");
+      bump(
+        await record("skipped_opted_out", {
+          template_id: map.id,
+          legacy_template_ref: map.legacy_sanoflow_template_id,
+        }),
+        "skipped_opted_out",
+      );
       continue;
     }
 
     // 3. Who actually receives it.
     const recipient =
-      mode === "test" ? testContacts[(summary.queued + summary.recorded_only) % testContacts.length]! : { id: contact.id, phone_e164: contact.phone_e164 ?? "" };
+      mode === "test"
+        ? testContacts[(summary.queued + summary.recorded_only) % testContacts.length]!
+        : { id: contact.id, phone_e164: contact.phone_e164 ?? "" };
     const deliver = mode === "live" || delivered < sampleSize;
 
     // 4. Insert first; a unique-violation means a concurrent / earlier run owns this contact+cycle.
@@ -181,8 +228,16 @@ export async function runProgramme(deps: RecallDeps, programmeId: string): Promi
 
     const values = renderValues(map.variables_map, contact, row, deps);
     try {
-      const sent = await deps.sender.sendTemplate({ orgId: p.org_id, contactId: recipient.id, waTemplateId: tpl.id, values });
-      await store.updateSend(send.id, { message_id: sent.messageId, sent_at: deps.now().toISOString() });
+      const sent = await deps.sender.sendTemplate({
+        orgId: p.org_id,
+        contactId: recipient.id,
+        waTemplateId: tpl.id,
+        values,
+      });
+      await store.updateSend(send.id, {
+        message_id: sent.messageId,
+        sent_at: deps.now().toISOString(),
+      });
       summary.queued++;
       delivered++;
       if (mode === "live") {
@@ -190,7 +245,10 @@ export async function runProgramme(deps: RecallDeps, programmeId: string): Promi
         if (tag) await store.tagContact(p.org_id, contact.id, tag);
       }
     } catch (err) {
-      await store.updateSend(send.id, { status: "failed", notes: (err instanceof Error ? err.message : "send failed").slice(0, 200) });
+      await store.updateSend(send.id, {
+        status: "failed",
+        notes: (err instanceof Error ? err.message : "send failed").slice(0, 200),
+      });
       summary.failed++;
     }
   }
@@ -207,13 +265,19 @@ export function renderValues(
   deps: Pick<RecallDeps, "timezone">,
 ): Record<string, string> {
   const scope = {
-    contact: { first_name: contact.first_name, last_name: contact.last_name, full_name: contact.full_name },
+    contact: {
+      first_name: contact.first_name,
+      last_name: contact.last_name,
+      full_name: contact.full_name,
+    },
     appointment: { starts_at: row.starts_at ?? "", doctor_name: row.doctor_name ?? "" },
     recall: { segment: row.segment_key ?? "", cycle: row.cycle_key },
   };
   const out: Record<string, string> = {};
   for (const [k, expr] of Object.entries(map)) {
-    out[k] = interpolate(expr.includes("{") ? expr : `{${expr}}`, scope, { timezone: deps.timezone }).text.trim();
+    out[k] = interpolate(expr.includes("{") ? expr : `{${expr}}`, scope, {
+      timezone: deps.timezone,
+    }).text.trim();
   }
   return out;
 }

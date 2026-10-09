@@ -20,13 +20,33 @@ import {
   type Node,
   type NodeChange,
 } from "@xyflow/react";
-import { ArrowLeft, Copy, Loader2, Pause, Play, Redo2, Rocket, Save, ScrollText, Search, Trash2, Undo2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Copy,
+  Loader2,
+  Pause,
+  Play,
+  Redo2,
+  Rocket,
+  Save,
+  ScrollText,
+  Search,
+  Trash2,
+  Undo2,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { NODE_DEFS, NODE_GROUPS, defFor, outputsFor, searchNodes, type NodeDef } from "@/lib/flow-engine/catalog";
+import {
+  NODE_DEFS,
+  NODE_GROUPS,
+  defFor,
+  outputsFor,
+  searchNodes,
+  type NodeDef,
+} from "@/lib/flow-engine/catalog";
 import { hasErrors, validateGraph, type GraphIssue } from "@/lib/flow-engine/graph";
 import type { FlowGraph, NodeType } from "@/lib/flow-engine/types";
 
@@ -74,9 +94,20 @@ function fromGraph(graph: FlowGraph): { nodes: Node[]; edges: Edge[] } {
     data: { kind: n.type, config: n.data } satisfies CanvasNodeData,
   }));
   if (!nodes.some((n) => (n.data as CanvasNodeData).kind === "trigger")) {
-    nodes.unshift({ id: TRIGGER_ID, type: "flowNode", position: { x: 0, y: 0 }, deletable: false, data: { kind: "trigger", config: {} } satisfies CanvasNodeData });
+    nodes.unshift({
+      id: TRIGGER_ID,
+      type: "flowNode",
+      position: { x: 0, y: 0 },
+      deletable: false,
+      data: { kind: "trigger", config: {} } satisfies CanvasNodeData,
+    });
   }
-  const edges: Edge[] = graph.edges.map((e) => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.sourceHandle ?? "default" }));
+  const edges: Edge[] = graph.edges.map((e) => ({
+    id: e.id,
+    source: e.source,
+    target: e.target,
+    sourceHandle: e.sourceHandle ?? "default",
+  }));
   return { nodes, edges };
 }
 
@@ -84,9 +115,19 @@ function toGraph(nodes: Node[], edges: Edge[]): FlowGraph {
   return {
     nodes: nodes.map((n) => {
       const d = n.data as unknown as CanvasNodeData;
-      return { id: n.id, type: d.kind as NodeType, position: { x: Math.round(n.position.x), y: Math.round(n.position.y) }, data: d.config };
+      return {
+        id: n.id,
+        type: d.kind as NodeType,
+        position: { x: Math.round(n.position.x), y: Math.round(n.position.y) },
+        data: d.config,
+      };
     }),
-    edges: edges.map((e) => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.sourceHandle ?? "default" })),
+    edges: edges.map((e) => ({
+      id: e.id,
+      source: e.source,
+      target: e.target,
+      sourceHandle: e.sourceHandle ?? "default",
+    })),
   };
 }
 
@@ -106,7 +147,13 @@ function Builder({ flow, lookups }: { flow: BuilderFlow; lookups: BuilderLookups
   const initial = useMemo(() => fromGraph(flow.graph), [flow.graph]);
   const [nodes, setNodes] = useState<Node[]>(initial.nodes);
   const [edges, setEdges] = useState<Edge[]>(initial.edges);
-  const [meta, setMeta] = useState<TriggerState>({ name: flow.name, description: flow.description, trigger_type: flow.trigger_type, trigger_config: flow.trigger_config, channel_id: flow.channel_id });
+  const [meta, setMeta] = useState<TriggerState>({
+    name: flow.name,
+    description: flow.description,
+    trigger_type: flow.trigger_type,
+    trigger_config: flow.trigger_config,
+    channel_id: flow.channel_id,
+  });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
   const [query, setQuery] = useState("");
@@ -135,7 +182,15 @@ function Builder({ flow, lookups }: { flow: BuilderFlow; lookups: BuilderLookups
     return m;
   }, [issues]);
   const canvasNodes = useMemo(
-    () => nodes.map((n) => ({ ...n, data: { ...(n.data as unknown as CanvasNodeData), triggerType: meta.trigger_type, issue: issueByNode.get(n.id) } })),
+    () =>
+      nodes.map((n) => ({
+        ...n,
+        data: {
+          ...(n.data as unknown as CanvasNodeData),
+          triggerType: meta.trigger_type,
+          issue: issueByNode.get(n.id),
+        },
+      })),
     [nodes, meta.trigger_type, issueByNode],
   );
 
@@ -157,7 +212,8 @@ function Builder({ flow, lookups }: { flow: BuilderFlow; lookups: BuilderLookups
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement | null;
-      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable)) return;
+      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable))
+        return;
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z") {
         e.preventDefault();
         if (e.shiftKey) redo();
@@ -178,15 +234,35 @@ function Builder({ flow, lookups }: { flow: BuilderFlow; lookups: BuilderLookups
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty]);
 
-  const onNodesChange = useCallback((changes: NodeChange[]) => setNodes((ns) => applyNodeChanges(changes.filter((c) => !(c.type === "remove" && c.id === TRIGGER_ID)), ns)), []);
-  const onEdgesChange = useCallback((changes: EdgeChange[]) => setEdges((es) => applyEdgeChanges(changes, es)), []);
+  const onNodesChange = useCallback(
+    (changes: NodeChange[]) =>
+      setNodes((ns) =>
+        applyNodeChanges(
+          changes.filter((c) => !(c.type === "remove" && c.id === TRIGGER_ID)),
+          ns,
+        ),
+      ),
+    [],
+  );
+  const onEdgesChange = useCallback(
+    (changes: EdgeChange[]) => setEdges((es) => applyEdgeChanges(changes, es)),
+    [],
+  );
 
   const onConnect = useCallback(
     (c: Connection) => {
       if (!c.source || !c.target || c.source === c.target) return;
       recordChange();
       const handle = c.sourceHandle ?? "default";
-      setEdges((es) => [...es.filter((e) => !(e.source === c.source && (e.sourceHandle ?? "default") === handle)), { id: `${c.source}-${handle}-${c.target}`, source: c.source!, target: c.target!, sourceHandle: handle }]);
+      setEdges((es) => [
+        ...es.filter((e) => !(e.source === c.source && (e.sourceHandle ?? "default") === handle)),
+        {
+          id: `${c.source}-${handle}-${c.target}`,
+          source: c.source!,
+          target: c.target!,
+          sourceHandle: handle,
+        },
+      ]);
     },
     [recordChange],
   );
@@ -195,10 +271,17 @@ function Builder({ flow, lookups }: { flow: BuilderFlow; lookups: BuilderLookups
     (def: NodeDef, at?: { x: number; y: number }) => {
       recordChange();
       const id = newId(def.type);
-      const center = at ?? rf.screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
+      const center =
+        at ?? rf.screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
       setNodes((ns) => [
         ...ns.map((n) => ({ ...n, selected: false })),
-        { id, type: "flowNode", position: center, selected: true, data: { kind: def.type, config: structuredClone(def.defaults) } satisfies CanvasNodeData },
+        {
+          id,
+          type: "flowNode",
+          position: center,
+          selected: true,
+          data: { kind: def.type, config: structuredClone(def.defaults) } satisfies CanvasNodeData,
+        },
       ]);
       setSelectedId(id);
     },
@@ -219,13 +302,28 @@ function Builder({ flow, lookups }: { flow: BuilderFlow; lookups: BuilderLookups
     recordChange();
     const d = n.data as unknown as CanvasNodeData;
     const copy = newId(d.kind);
-    setNodes((ns) => [...ns.map((x) => ({ ...x, selected: false })), { ...n, id: copy, selected: true, position: { x: n.position.x + 40, y: n.position.y + 60 }, data: { kind: d.kind, config: structuredClone(d.config) } satisfies CanvasNodeData }]);
+    setNodes((ns) => [
+      ...ns.map((x) => ({ ...x, selected: false })),
+      {
+        ...n,
+        id: copy,
+        selected: true,
+        position: { x: n.position.x + 40, y: n.position.y + 60 },
+        data: { kind: d.kind, config: structuredClone(d.config) } satisfies CanvasNodeData,
+      },
+    ]);
     setSelectedId(copy);
   };
 
   const updateConfig = (id: string, next: Record<string, unknown>) => {
     recordBurst();
-    setNodes((ns) => ns.map((n) => (n.id === id ? { ...n, data: { ...(n.data as unknown as CanvasNodeData), config: next } } : n)));
+    setNodes((ns) =>
+      ns.map((n) =>
+        n.id === id
+          ? { ...n, data: { ...(n.data as unknown as CanvasNodeData), config: next } }
+          : n,
+      ),
+    );
     // Questions: drop edges that pointed at options that no longer exist.
     const node = nodes.find((n) => n.id === id);
     if (node && (node.data as unknown as CanvasNodeData).kind === "question") {
@@ -291,14 +389,32 @@ function Builder({ flow, lookups }: { flow: BuilderFlow; lookups: BuilderLookups
           </Link>
         </Button>
         <h2 className="min-w-0 truncate text-lg font-semibold">{meta.name || "Untitled flow"}</h2>
-        <Badge variant="secondary">{flow.status === "active" ? "Active" : flow.status === "paused" ? "Paused" : "Draft"}</Badge>
-        <span className="text-muted-foreground text-xs">{flow.version > 0 ? `v${flow.version} published` : "Never published"}</span>
+        <Badge variant="secondary">
+          {flow.status === "active" ? "Active" : flow.status === "paused" ? "Paused" : "Draft"}
+        </Badge>
+        <span className="text-muted-foreground text-xs">
+          {flow.version > 0 ? `v${flow.version} published` : "Never published"}
+        </span>
         {dirty && <span className="text-xs text-amber-600">Unsaved changes</span>}
         <div className="ml-auto flex flex-wrap items-center gap-1.5">
-          <Button variant="ghost" size="icon-sm" aria-label="Undo" title="Undo (Ctrl+Z)" disabled={!history.canUndo} onClick={undo}>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Undo"
+            title="Undo (Ctrl+Z)"
+            disabled={!history.canUndo}
+            onClick={undo}
+          >
             <Undo2 />
           </Button>
-          <Button variant="ghost" size="icon-sm" aria-label="Redo" title="Redo (Ctrl+Shift+Z)" disabled={!history.canRedo} onClick={redo}>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Redo"
+            title="Redo (Ctrl+Shift+Z)"
+            disabled={!history.canRedo}
+            onClick={redo}
+          >
             <Redo2 />
           </Button>
           <Button variant="ghost" size="sm" asChild>
@@ -307,38 +423,71 @@ function Builder({ flow, lookups }: { flow: BuilderFlow; lookups: BuilderLookups
             </Link>
           </Button>
           {flow.status === "active" && (
-            <Button variant="outline" size="sm" disabled={pending} onClick={() => changeStatus("paused")}>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={pending}
+              onClick={() => changeStatus("paused")}
+            >
               <Pause /> Pause
             </Button>
           )}
           {flow.status === "paused" && (
-            <Button variant="outline" size="sm" disabled={pending} onClick={() => changeStatus("active")}>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={pending}
+              onClick={() => changeStatus("active")}
+            >
               <Play /> Resume
             </Button>
           )}
-          <Button variant="outline" size="sm" disabled={pending || !dirty} onClick={() => persist()}>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={pending || !dirty}
+            onClick={() => persist()}
+          >
             {pending ? <Loader2 className="animate-spin" /> : <Save />} Save draft
           </Button>
-          <Button size="sm" disabled={pending || hasErrors(issues)} title={hasErrors(issues) ? "Fix the errors first" : undefined} onClick={publish}>
+          <Button
+            size="sm"
+            disabled={pending || hasErrors(issues)}
+            title={hasErrors(issues) ? "Fix the errors first" : undefined}
+            onClick={publish}
+          >
             <Rocket /> Publish
           </Button>
         </div>
       </div>
 
       <div className="grid min-h-0 flex-1 grid-cols-[14rem_1fr_21rem] gap-3">
-        <aside className="flex min-h-0 flex-col gap-2 overflow-hidden rounded-xl border p-2" aria-label="Node palette">
+        <aside
+          className="flex min-h-0 flex-col gap-2 overflow-hidden rounded-xl border p-2"
+          aria-label="Node palette"
+        >
           <div className="relative">
             <Search className="text-muted-foreground absolute left-2 top-2.5 size-4" />
-            <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search nodes" aria-label="Search nodes" className="pl-8" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search nodes"
+              aria-label="Search nodes"
+              className="pl-8"
+            />
           </div>
           <div className="flex-1 overflow-y-auto">
-            {palette.length === 0 && <p className="text-muted-foreground p-2 text-sm">No node matches “{query}”.</p>}
+            {palette.length === 0 && (
+              <p className="text-muted-foreground p-2 text-sm">No node matches “{query}”.</p>
+            )}
             {NODE_GROUPS.map((g) => {
               const items = palette.filter((d) => d.group === g);
               if (!items.length) return null;
               return (
                 <div key={g} className="mb-2">
-                  <div className="text-muted-foreground px-1 py-1 text-[11px] font-semibold uppercase tracking-wide">{g}</div>
+                  <div className="text-muted-foreground px-1 py-1 text-[11px] font-semibold uppercase tracking-wide">
+                    {g}
+                  </div>
                   {items.map((d) => (
                     <button
                       key={d.type}
@@ -358,12 +507,19 @@ function Builder({ flow, lookups }: { flow: BuilderFlow; lookups: BuilderLookups
           </div>
         </aside>
 
-        <div className="min-h-0 overflow-hidden rounded-xl border" onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }} onDrop={(e) => {
-          e.preventDefault();
-          const type = e.dataTransfer.getData("application/x-flow-node");
-          const def = NODE_DEFS.find((d) => d.type === type);
-          if (def) addNode(def, rf.screenToFlowPosition({ x: e.clientX, y: e.clientY }));
-        }}>
+        <div
+          className="min-h-0 overflow-hidden rounded-xl border"
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            const type = e.dataTransfer.getData("application/x-flow-node");
+            const def = NODE_DEFS.find((d) => d.type === type);
+            if (def) addNode(def, rf.screenToFlowPosition({ x: e.clientX, y: e.clientY }));
+          }}
+        >
           <ReactFlow
             nodes={canvasNodes}
             edges={edges}
@@ -391,40 +547,79 @@ function Builder({ flow, lookups }: { flow: BuilderFlow; lookups: BuilderLookups
           </ReactFlow>
         </div>
 
-        <aside className="flex min-h-0 flex-col gap-3 overflow-y-auto rounded-xl border p-3" aria-label="Properties">
+        <aside
+          className="flex min-h-0 flex-col gap-3 overflow-y-auto rounded-xl border p-3"
+          aria-label="Properties"
+        >
           {selected && selData && selData.kind !== "trigger" ? (
             <>
               <div className="flex items-center justify-between gap-2">
                 <h3 className="font-semibold">{defFor(selData.kind)?.label ?? selData.kind}</h3>
                 <div className="flex gap-1">
-                  <Button variant="ghost" size="icon-sm" aria-label="Duplicate node" onClick={() => duplicateNode(selected.id)}>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label="Duplicate node"
+                    onClick={() => duplicateNode(selected.id)}
+                  >
                     <Copy />
                   </Button>
-                  <Button variant="ghost" size="icon-sm" aria-label="Delete node" onClick={() => deleteNode(selected.id)}>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label="Delete node"
+                    onClick={() => deleteNode(selected.id)}
+                  >
                     <Trash2 />
                   </Button>
                 </div>
               </div>
               <p className="text-muted-foreground text-xs">{defFor(selData.kind)?.description}</p>
-              <NodeForm type={selData.kind as NodeType} config={selData.config} onChange={(next) => updateConfig(selected.id, next)} lookups={lookups} />
+              <NodeForm
+                type={selData.kind as NodeType}
+                config={selData.config}
+                onChange={(next) => updateConfig(selected.id, next)}
+                lookups={lookups}
+              />
             </>
           ) : (
             <>
               <h3 className="font-semibold">{selected ? "Trigger" : "Flow settings"}</h3>
-              <TriggerForm flowId={flow.id} state={meta} onChange={updateMeta} lookups={lookups} hasToken={flow.has_webhook_token} />
-              {flow.status === "active" && <p className="text-muted-foreground text-xs">Trigger settings apply as soon as you save. Changes to the steps only apply after you publish.</p>}
+              <TriggerForm
+                flowId={flow.id}
+                state={meta}
+                onChange={updateMeta}
+                lookups={lookups}
+                hasToken={flow.has_webhook_token}
+              />
+              {flow.status === "active" && (
+                <p className="text-muted-foreground text-xs">
+                  Trigger settings apply as soon as you save. Changes to the steps only apply after
+                  you publish.
+                </p>
+              )}
             </>
           )}
 
           <div className="mt-auto border-t pt-3">
-            <h4 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Checks</h4>
+            <h4 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Checks
+            </h4>
             {issues.length === 0 ? (
               <p className="text-xs text-emerald-700 dark:text-emerald-400">No problems found.</p>
             ) : (
               <ul className="flex flex-col gap-1">
                 {issues.map((i, k) => (
                   <li key={k}>
-                    <button type="button" className={`w-full text-left text-xs hover:underline ${i.level === "error" ? "text-destructive" : "text-amber-700 dark:text-amber-400"}`} onClick={() => i.nodeId && (setSelectedId(i.nodeId), rf.fitView({ nodes: [{ id: i.nodeId }], duration: 300, maxZoom: 1 }))}>
+                    <button
+                      type="button"
+                      className={`w-full text-left text-xs hover:underline ${i.level === "error" ? "text-destructive" : "text-amber-700 dark:text-amber-400"}`}
+                      onClick={() =>
+                        i.nodeId &&
+                        (setSelectedId(i.nodeId),
+                        rf.fitView({ nodes: [{ id: i.nodeId }], duration: 300, maxZoom: 1 }))
+                      }
+                    >
                       {i.level === "error" ? "Error: " : "Note: "}
                       {i.message}
                     </button>

@@ -1,12 +1,24 @@
 import { describe, expect, it } from "vitest";
 
-import { advance, cancelActiveRunForConversation, cancelRun, resumeFromReply, resumeFromTimer, startRun } from "@/lib/flow-engine/run";
+import {
+  advance,
+  cancelActiveRunForConversation,
+  cancelRun,
+  resumeFromReply,
+  resumeFromTimer,
+  startRun,
+} from "@/lib/flow-engine/run";
 import { MAX_STEPS } from "@/lib/flow-engine/types";
 
 import { CONTACT, CONV, FLOW, ORG, edge, graph, harness, node, type Harness } from "./flow-fakes";
 
 async function start(h: Harness, input: Partial<Parameters<typeof startRun>[1]> = {}) {
-  const r = await startRun(h.deps, { flowId: FLOW, contactId: CONTACT, conversationId: CONV, ...input });
+  const r = await startRun(h.deps, {
+    flowId: FLOW,
+    contactId: CONTACT,
+    conversationId: CONV,
+    ...input,
+  });
   if (!r.started) throw new Error(`not started: ${r.reason}`);
   return r.runId;
 }
@@ -26,19 +38,34 @@ describe("startRun", () => {
     const h = harness();
     h.store.addFlow(graph([node("t", "trigger"), node("e", "end_flow")], [edge("t", "e")]));
     await start(h);
-    expect(await startRun(h.deps, { flowId: FLOW, contactId: CONTACT, conversationId: CONV })).toEqual({ started: false, reason: "live_run_exists" });
+    expect(
+      await startRun(h.deps, { flowId: FLOW, contactId: CONTACT, conversationId: CONV }),
+    ).toEqual({ started: false, reason: "live_run_exists" });
   });
   it("refuses drafts, paused flows and missing flows", async () => {
     const h = harness();
     h.store.addFlow(graph([node("t", "trigger")], []), { status: "draft" });
-    expect(await startRun(h.deps, { flowId: FLOW, contactId: CONTACT, conversationId: CONV })).toEqual({ started: false, reason: "flow_inactive" });
-    expect(await startRun(h.deps, { flowId: "00000000-0000-4000-8000-0000000000aa", contactId: null, conversationId: null })).toEqual({ started: false, reason: "flow_inactive" });
+    expect(
+      await startRun(h.deps, { flowId: FLOW, contactId: CONTACT, conversationId: CONV }),
+    ).toEqual({ started: false, reason: "flow_inactive" });
+    expect(
+      await startRun(h.deps, {
+        flowId: "00000000-0000-4000-8000-0000000000aa",
+        contactId: null,
+        conversationId: null,
+      }),
+    ).toEqual({ started: false, reason: "flow_inactive" });
   });
 });
 
 describe("advance", () => {
   const linear = graph(
-    [node("t", "trigger"), node("m1", "message", { text: "Hello {contact.first_name}" }), node("m2", "message", { text: "Bye" }), node("e", "end_flow")],
+    [
+      node("t", "trigger"),
+      node("m1", "message", { text: "Hello {contact.first_name}" }),
+      node("m2", "message", { text: "Bye" }),
+      node("e", "end_flow"),
+    ],
     [edge("t", "m1"), edge("m1", "m2"), edge("m2", "e")],
   );
 
@@ -51,7 +78,10 @@ describe("advance", () => {
     expect(first).toEqual({ status: "ok", next: "enqueued" });
     expect(h.jobs.steps).toEqual([id]); // exactly one follow-up job per step
     await h.drain();
-    expect(h.actions.sent.map((s) => (s.spec as { body: string }).body)).toEqual(["Hello Test", "Bye"]);
+    expect(h.actions.sent.map((s) => (s.spec as { body: string }).body)).toEqual([
+      "Hello Test",
+      "Bye",
+    ]);
     expect(run(h, id)).toMatchObject({ status: "completed", step_count: 4 });
     expect(h.store.steps.map((s) => [s.seq, s.node_id, s.status])).toEqual([
       [1, "t", "ok"],
@@ -64,7 +94,9 @@ describe("advance", () => {
 
   it("completes when a node has no outgoing edge", async () => {
     const h = harness();
-    h.store.addFlow(graph([node("t", "trigger"), node("m", "message", { text: "x" })], [edge("t", "m")]));
+    h.store.addFlow(
+      graph([node("t", "trigger"), node("m", "message", { text: "x" })], [edge("t", "m")]),
+    );
     const id = await start(h);
     await h.drain();
     expect(run(h, id).status).toBe("completed");
@@ -72,7 +104,12 @@ describe("advance", () => {
 
   it("is idempotent: a redelivered job does not send twice", async () => {
     const h = harness();
-    h.store.addFlow(graph([node("t", "trigger"), node("m", "message", { text: "once" }), node("e", "end_flow")], [edge("t", "m"), edge("m", "e")]));
+    h.store.addFlow(
+      graph(
+        [node("t", "trigger"), node("m", "message", { text: "once" }), node("e", "end_flow")],
+        [edge("t", "m"), edge("m", "e")],
+      ),
+    );
     const id = await start(h);
     await advance(h.deps, id); // trigger
     await advance(h.deps, id); // message sent
@@ -109,7 +146,11 @@ describe("advance", () => {
     const h = harness();
     h.store.addFlow(
       graph(
-        [node("t", "trigger"), node("a", "add_comment", { text: "a" }), node("b", "add_comment", { text: "b" })],
+        [
+          node("t", "trigger"),
+          node("a", "add_comment", { text: "a" }),
+          node("b", "add_comment", { text: "b" }),
+        ],
         [edge("t", "a"), edge("a", "b"), edge("b", "a")],
       ),
     );
@@ -123,7 +164,16 @@ describe("advance", () => {
 
   it("fails the run when a step fails and has no fallback", async () => {
     const h = harness();
-    h.store.addFlow(graph([node("t", "trigger"), node("m", "message", { text: "{contact.nope}" }), node("e", "end_flow")], [edge("t", "m"), edge("m", "e")]));
+    h.store.addFlow(
+      graph(
+        [
+          node("t", "trigger"),
+          node("m", "message", { text: "{contact.nope}" }),
+          node("e", "end_flow"),
+        ],
+        [edge("t", "m"), edge("m", "e")],
+      ),
+    );
     const id = await start(h);
     await h.drain();
     expect(run(h, id)).toMatchObject({ status: "failed" });
@@ -136,7 +186,12 @@ describe("advance", () => {
     const h = harness();
     h.store.addFlow(
       graph(
-        [node("t", "trigger"), node("m", "message", { text: "{contact.nope}" }), node("c", "add_comment", { text: "send failed" }), node("e", "end_flow")],
+        [
+          node("t", "trigger"),
+          node("m", "message", { text: "{contact.nope}" }),
+          node("c", "add_comment", { text: "send failed" }),
+          node("e", "end_flow"),
+        ],
         [edge("t", "m"), edge("m", "e"), edge("m", "c", "fallback")],
       ),
     );
@@ -151,7 +206,9 @@ describe("advance", () => {
     h.actions.send = async () => {
       throw new Error("db down");
     };
-    h.store.addFlow(graph([node("t", "trigger"), node("m", "message", { text: "x" })], [edge("t", "m")]));
+    h.store.addFlow(
+      graph([node("t", "trigger"), node("m", "message", { text: "x" })], [edge("t", "m")]),
+    );
     const id = await start(h);
     await h.drain();
     expect(run(h, id)).toMatchObject({ status: "failed", error: "db down" });
@@ -181,12 +238,20 @@ describe("advance", () => {
     const id = await start(h);
     run(h, id).status = "cancelled";
     expect(await advance(h.deps, id)).toEqual({ status: "skipped", reason: "run_cancelled" });
-    expect(await advance(h.deps, "00000000-0000-4000-8000-0000000000bb")).toEqual({ status: "skipped", reason: "run_not_found" });
+    expect(await advance(h.deps, "00000000-0000-4000-8000-0000000000bb")).toEqual({
+      status: "skipped",
+      reason: "run_not_found",
+    });
   });
 
   it("does not resurrect a run cancelled while its node was executing", async () => {
     const h = harness();
-    h.store.addFlow(graph([node("t", "trigger"), node("m", "message", { text: "x" }), node("e", "end_flow")], [edge("t", "m"), edge("m", "e")]));
+    h.store.addFlow(
+      graph(
+        [node("t", "trigger"), node("m", "message", { text: "x" }), node("e", "end_flow")],
+        [edge("t", "m"), edge("m", "e")],
+      ),
+    );
     const id = await start(h);
     await advance(h.deps, id); // trigger
     const realSend = h.actions.send.bind(h.actions);
@@ -204,12 +269,26 @@ describe("question → reply", () => {
   const g = graph(
     [
       node("t", "trigger"),
-      node("q", "question", { text: "Book?", style: "buttons", options: [{ id: "y", title: "Yes" }, { id: "n", title: "No" }], variable: "answer", timeout_seconds: 300 }),
+      node("q", "question", {
+        text: "Book?",
+        style: "buttons",
+        options: [
+          { id: "y", title: "Yes" },
+          { id: "n", title: "No" },
+        ],
+        variable: "answer",
+        timeout_seconds: 300,
+      }),
       node("yes", "add_comment", { text: "wants booking: {vars.answer}" }),
       node("no", "add_comment", { text: "declined" }),
       node("fb", "add_comment", { text: "no answer" }),
     ],
-    [edge("t", "q"), edge("q", "yes", "option:y"), edge("q", "no", "option:n"), edge("q", "fb", "fallback")],
+    [
+      edge("t", "q"),
+      edge("q", "yes", "option:y"),
+      edge("q", "no", "option:n"),
+      edge("q", "fb", "fallback"),
+    ],
   );
 
   async function waiting(h: Harness) {
@@ -251,11 +330,17 @@ describe("question → reply", () => {
 
   it("unmatched text without a fallback keeps waiting", async () => {
     const h = harness();
-    const noFallback = graph(g.nodes.filter((n) => n.id !== "fb"), g.edges.filter((e) => e.sourceHandle !== "fallback"));
+    const noFallback = graph(
+      g.nodes.filter((n) => n.id !== "fb"),
+      g.edges.filter((e) => e.sourceHandle !== "fallback"),
+    );
     h.store.addFlow(noFallback);
     const id = await start(h);
     await h.drain();
-    expect(await resumeFromReply(h.deps, id, { kind: "text", text: "???" })).toEqual({ resumed: false, reason: "unmatched_reply" });
+    expect(await resumeFromReply(h.deps, id, { kind: "text", text: "???" })).toEqual({
+      resumed: false,
+      reason: "unmatched_reply",
+    });
     expect(run(h, id).status).toBe("waiting");
   });
 
@@ -263,12 +348,18 @@ describe("question → reply", () => {
     const h = harness();
     const id = await waiting(h);
     const { token } = h.jobs.resumes[0]!;
-    expect(await resumeFromTimer(h.deps, id, "wrong-token")).toEqual({ resumed: false, reason: "stale_token" });
+    expect(await resumeFromTimer(h.deps, id, "wrong-token")).toEqual({
+      resumed: false,
+      reason: "stale_token",
+    });
     expect(await resumeFromTimer(h.deps, id, token)).toEqual({ resumed: true });
     await h.drain();
     expect(h.actions.comments).toEqual(["no answer"]);
     // a late duplicate timer is a no-op
-    expect(await resumeFromTimer(h.deps, id, token)).toEqual({ resumed: false, reason: "not_waiting" });
+    expect(await resumeFromTimer(h.deps, id, token)).toEqual({
+      resumed: false,
+      reason: "not_waiting",
+    });
   });
 
   it("a reply after the run finished is ignored", async () => {
@@ -276,14 +367,21 @@ describe("question → reply", () => {
     const id = await waiting(h);
     await resumeFromReply(h.deps, id, { kind: "button", text: "Yes", optionId: "y" });
     await h.drain();
-    expect(await resumeFromReply(h.deps, id, { kind: "text", text: "Yes" })).toEqual({ resumed: false, reason: "not_waiting" });
+    expect(await resumeFromReply(h.deps, id, { kind: "text", text: "Yes" })).toEqual({
+      resumed: false,
+      reason: "not_waiting",
+    });
   });
 
   it("free-text question saves the answer and takes default", async () => {
     const h = harness();
     h.store.addFlow(
       graph(
-        [node("t", "trigger"), node("q", "question", { text: "Your concern?", variable: "concern" }), node("c", "add_comment", { text: "concern={vars.concern}" })],
+        [
+          node("t", "trigger"),
+          node("q", "question", { text: "Your concern?", variable: "concern" }),
+          node("c", "add_comment", { text: "concern={vars.concern}" }),
+        ],
         [edge("t", "q"), edge("q", "c")],
       ),
     );
@@ -298,7 +396,16 @@ describe("question → reply", () => {
 describe("wait", () => {
   it("resumes via the scheduled timer, not in memory", async () => {
     const h = harness();
-    h.store.addFlow(graph([node("t", "trigger"), node("w", "wait", { amount: 1, unit: "days" }), node("c", "add_comment", { text: "later" })], [edge("t", "w"), edge("w", "c")]));
+    h.store.addFlow(
+      graph(
+        [
+          node("t", "trigger"),
+          node("w", "wait", { amount: 1, unit: "days" }),
+          node("c", "add_comment", { text: "later" }),
+        ],
+        [edge("t", "w"), edge("w", "c")],
+      ),
+    );
     const id = await start(h);
     await h.drain();
     expect(run(h, id).status).toBe("waiting");
@@ -313,7 +420,16 @@ describe("wait", () => {
 
 describe("cancel / human takeover", () => {
   function waitingRun(h: Harness) {
-    h.store.addFlow(graph([node("t", "trigger"), node("q", "question", { text: "Hi?" }), node("c", "add_comment", { text: "after" })], [edge("t", "q"), edge("q", "c")]));
+    h.store.addFlow(
+      graph(
+        [
+          node("t", "trigger"),
+          node("q", "question", { text: "Hi?" }),
+          node("c", "add_comment", { text: "after" }),
+        ],
+        [edge("t", "q"), edge("q", "c")],
+      ),
+    );
     return start(h).then(async (id) => {
       await h.drain();
       return id;
@@ -326,7 +442,9 @@ describe("cancel / human takeover", () => {
     expect(await cancelRun(h.deps, id, "human takeover")).toBe(true);
     expect(run(h, id)).toMatchObject({ status: "cancelled", error: "human takeover" });
     expect(h.store.conversations.get(CONV)).toMatchObject({ bot_active: false, flow_run_id: null });
-    expect(await resumeFromReply(h.deps, id, { kind: "text", text: "hello" })).toMatchObject({ resumed: false });
+    expect(await resumeFromReply(h.deps, id, { kind: "text", text: "hello" })).toMatchObject({
+      resumed: false,
+    });
   });
 
   it("cancelActiveRunForConversation finds the live run; no run still clears the flag", async () => {
@@ -343,16 +461,33 @@ describe("cancel / human takeover", () => {
     const h = harness();
     const id = await waitingRun(h);
     await cancelRun(h.deps, id, "x");
-    expect((await startRun(h.deps, { flowId: FLOW, contactId: CONTACT, conversationId: CONV })).started).toBe(true);
+    expect(
+      (await startRun(h.deps, { flowId: FLOW, contactId: CONTACT, conversationId: CONV })).started,
+    ).toBe(true);
   });
 
   it("cancelling a parent cancels its nested run", async () => {
     const h = harness();
     const CHILD = "00000000-0000-4000-8000-0000000000f2";
-    const childGraph = graph([node("t", "trigger"), node("q", "question", { text: "child?" })], [edge("t", "q")]);
-    h.store.flows.set(CHILD, { id: CHILD, org_id: ORG, name: "child", status: "active", trigger_type: "shortcut", trigger_config: {}, channel_id: null, version: 1, published_graph: childGraph });
+    const childGraph = graph(
+      [node("t", "trigger"), node("q", "question", { text: "child?" })],
+      [edge("t", "q")],
+    );
+    h.store.flows.set(CHILD, {
+      id: CHILD,
+      org_id: ORG,
+      name: "child",
+      status: "active",
+      trigger_type: "shortcut",
+      trigger_config: {},
+      channel_id: null,
+      version: 1,
+      published_graph: childGraph,
+    });
     h.store.graphs.set(`${CHILD}:1`, childGraph);
-    h.store.addFlow(graph([node("t", "trigger"), node("r", "run_flow", { flow_id: CHILD })], [edge("t", "r")]));
+    h.store.addFlow(
+      graph([node("t", "trigger"), node("r", "run_flow", { flow_id: CHILD })], [edge("t", "r")]),
+    );
     const parent = await start(h);
     await h.drain();
     const child = [...h.store.runs.values()].find((r) => r.parent_run_id === parent)!;
@@ -366,11 +501,26 @@ describe("cancel / human takeover", () => {
 describe("nested flows", () => {
   const CHILD = "00000000-0000-4000-8000-0000000000f2";
   function setup(h: Harness, childGraph: ReturnType<typeof graph>) {
-    h.store.flows.set(CHILD, { id: CHILD, org_id: ORG, name: "child", status: "active", trigger_type: "shortcut", trigger_config: {}, channel_id: null, version: 1, published_graph: childGraph });
+    h.store.flows.set(CHILD, {
+      id: CHILD,
+      org_id: ORG,
+      name: "child",
+      status: "active",
+      trigger_type: "shortcut",
+      trigger_config: {},
+      channel_id: null,
+      version: 1,
+      published_graph: childGraph,
+    });
     h.store.graphs.set(`${CHILD}:1`, childGraph);
     h.store.addFlow(
       graph(
-        [node("t", "trigger"), node("r", "run_flow", { flow_id: CHILD }), node("after", "add_comment", { text: "parent continues" }), node("onfail", "add_comment", { text: "child failed" })],
+        [
+          node("t", "trigger"),
+          node("r", "run_flow", { flow_id: CHILD }),
+          node("after", "add_comment", { text: "parent continues" }),
+          node("onfail", "add_comment", { text: "child failed" }),
+        ],
         [edge("t", "r"), edge("r", "after"), edge("r", "onfail", "fallback")],
       ),
     );
@@ -378,7 +528,13 @@ describe("nested flows", () => {
 
   it("parent resumes on its default edge when the child completes", async () => {
     const h = harness();
-    setup(h, graph([node("t", "trigger"), node("c", "add_comment", { text: "child ran" })], [edge("t", "c")]));
+    setup(
+      h,
+      graph(
+        [node("t", "trigger"), node("c", "add_comment", { text: "child ran" })],
+        [edge("t", "c")],
+      ),
+    );
     const parent = await start(h);
     await h.drain();
     expect(h.actions.comments).toEqual(["child ran", "parent continues"]);
@@ -389,7 +545,13 @@ describe("nested flows", () => {
 
   it("parent takes the fallback edge when the child fails", async () => {
     const h = harness();
-    setup(h, graph([node("t", "trigger"), node("c", "add_comment", { text: "{vars.nope}" })], [edge("t", "c")]));
+    setup(
+      h,
+      graph(
+        [node("t", "trigger"), node("c", "add_comment", { text: "{vars.nope}" })],
+        [edge("t", "c")],
+      ),
+    );
     const parent = await start(h);
     await h.drain();
     expect(h.actions.comments).toEqual(["child failed"]);

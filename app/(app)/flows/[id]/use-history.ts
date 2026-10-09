@@ -40,5 +40,12 @@ export function useHistory<T>(limit = 100) {
     bump((n) => n + 1);
   }, []);
 
-  return { record, undo, redo, reset, canUndo: past.current.length > 0, canRedo: future.current.length > 0 };
+  return {
+    record,
+    undo,
+    redo,
+    reset,
+    canUndo: past.current.length > 0,
+    canRedo: future.current.length > 0,
+  };
 }

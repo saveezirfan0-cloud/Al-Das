@@ -37,7 +37,8 @@ function parseField(src: string, [min, max]: readonly [number, number]): Field |
       lo = Number(rangePart);
       hi = stepPart === undefined ? lo : max;
     }
-    if (!Number.isInteger(lo) || !Number.isInteger(hi) || lo < min || hi > max || lo > hi) return null;
+    if (!Number.isInteger(lo) || !Number.isInteger(hi) || lo < min || hi > max || lo > hi)
+      return null;
     for (let v = lo; v <= hi; v += step) values.add(v);
   }
   return { values, star };
