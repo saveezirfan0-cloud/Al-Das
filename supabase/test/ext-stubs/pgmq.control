@@ -1,0 +1,4 @@
+comment = 'pgmq: lightweight message queue (SQL-only build for tests)'
+default_version = '1.5.1'
+relocatable = false
+schema = pgmq

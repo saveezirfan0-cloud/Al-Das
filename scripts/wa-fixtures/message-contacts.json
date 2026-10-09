@@ -1,0 +1,52 @@
+{
+  "object": "whatsapp_business_account",
+  "entry": [
+    {
+      "id": "200000000000001",
+      "changes": [
+        {
+          "field": "messages",
+          "value": {
+            "messaging_product": "whatsapp",
+            "metadata": {
+              "display_phone_number": "+971 4 000 0000",
+              "phone_number_id": "100000000000001"
+            },
+            "contacts": [
+              {
+                "profile": {
+                  "name": "Test Patient"
+                },
+                "wa_id": "971500000001"
+              }
+            ],
+            "messages": [
+              {
+                "from": "971500000001",
+                "id": "wamid.FIXTURE_CONTACTS",
+                "timestamp": "1760000000",
+                "type": "contacts",
+                "contacts": [
+                  {
+                    "name": {
+                      "formatted_name": "Sample Relative",
+                      "first_name": "Sample",
+                      "last_name": "Relative"
+                    },
+                    "phones": [
+                      {
+                        "phone": "+971 50 000 0002",
+                        "type": "MOBILE",
+                        "wa_id": "971500000002"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
