@@ -30,6 +30,14 @@ if [ -n "$SHAREDIR" ] && [ -w "$SHAREDIR/extension" ]; then
      "$ROOT"/supabase/test/ext-stubs/pg_net.control "$ROOT"/supabase/test/ext-stubs/pg_net--*.sql "$SHAREDIR/extension/" 2>/dev/null || true
 fi
 
+# pgvector is required from Phase 10 (kb_chunks.embedding). It is a compiled extension, so it cannot be
+# stubbed: install it into the test Postgres first (e.g. apt install postgresql-<ver>-pgvector).
+if [ -n "$SHAREDIR" ] && [ ! -f "$SHAREDIR/extension/vector.control" ]; then
+  echo "pgvector is not installed in this Postgres (missing $SHAREDIR/extension/vector.control)." >&2
+  echo "Install it, e.g.: sudo apt-get install postgresql-$(pg_config --version | sed -E 's/[^0-9]*([0-9]+).*/\1/')-pgvector" >&2
+  exit 1
+fi
+
 psql "$MAINT" -v ON_ERROR_STOP=1 -q -c "drop database if exists \"$DB\"" -c "create database \"$DB\""
 psql "$TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -q -f "$ROOT/supabase/test/auth-stub.sql"
 for f in "$ROOT"/supabase/migrations/*.sql; do

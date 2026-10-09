@@ -75,9 +75,17 @@ describe("runMaintenance", () => {
       saveStripped: async (id, p) => void saved.push({ id, payload: p }),
       rematchUnresolved: async () => 4,
       purgeStaleStaging: async () => 2,
+      runRules: async () => ({ E01: { opened: 1 } }),
+      sendDigest: async () => 3,
     });
     expect(cutoff.startsWith("2026-07-11")).toBe(true);
-    expect(res).toEqual({ stripped: 1, rematched: 4, purgedStaging: 2 });
+    expect(res).toEqual({
+      stripped: 1,
+      rematched: 4,
+      purgedStaging: 2,
+      rules: { E01: { opened: 1 } },
+      digests: 3,
+    });
     expect(JSON.stringify(saved[0].payload)).not.toContain("Test Patient One");
   });
 });

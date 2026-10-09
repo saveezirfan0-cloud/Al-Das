@@ -263,9 +263,23 @@ export function Sidebar({
             )}
           </TabsContent>
           <TabsContent value="more" className="flex flex-col gap-2 px-3 pb-4">
-            <Button variant="outline" size="sm" disabled title="Enquiries arrive in Phase 5">
-              <KanbanSquare /> Create enquiry
-            </Button>
+            {perms.enquiriesManage ? (
+              <Button variant="outline" size="sm" asChild>
+                <Link
+                  href={`/enquiries?${new URLSearchParams({
+                    new: "1",
+                    contact: c.id,
+                    ...(selected.channel_id ? { channel: selected.channel_id } : {}),
+                  }).toString()}`}
+                >
+                  <KanbanSquare /> Create enquiry
+                </Link>
+              </Button>
+            ) : (
+              <Button variant="outline" size="sm" disabled title="You cannot create enquiries">
+                <KanbanSquare /> Create enquiry
+              </Button>
+            )}
             {perms.appointmentsManage ? (
               <Button variant="outline" size="sm" asChild>
                 <Link href={`/appointments?new=${c.id}`}>
@@ -277,7 +291,6 @@ export function Sidebar({
                 <CalendarPlus /> Book appointment
               </Button>
             )}
-            <p className="text-muted-foreground text-[11px]">Enquiries (Phase 5) plug in here.</p>
           </TabsContent>
         </ScrollArea>
       </Tabs>

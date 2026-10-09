@@ -26,7 +26,12 @@ export default async function ContactsPage() {
   const bootstrap: ContactsBootstrap = {
     userId: member.userId,
     timezone: member.org.timezone,
-    can: { manage: can(member, "contacts.manage"), export: can(member, "contacts.export") },
+    can: {
+      manage: can(member, "contacts.manage"),
+      export: can(member, "contacts.export"),
+      enquiriesView: can(member, "enquiries.view"),
+      enquiriesManage: can(member, "enquiries.manage"),
+    },
     customFields: ctx.customFields,
     fields: ctx.registry
       .list()

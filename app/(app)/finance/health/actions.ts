@@ -238,3 +238,23 @@ export async function rederiveBranches(): Promise<ActionResult> {
   revalidatePath(PATH);
   return { ok: true, message: `${data} invoice(s) updated.` };
 }
+
+/** Daily e-mail of open / overdue exception counts to the people who work the queues. Off by default. */
+export async function setDigestEnabled(enabled: boolean): Promise<ActionResult> {
+  const member = await requirePerm(PERM);
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("fin_capture_settings")
+    .update({ digest_enabled: enabled, updated_by: member.userId })
+    .eq("org_id", member.orgId);
+  if (error) return { ok: false, error: "Could not change the digest setting." };
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: enabled ? "finance.digest.enabled" : "finance.digest.disabled",
+    entity: "fin_capture_settings",
+    entityId: member.orgId,
+  });
+  revalidatePath(PATH);
+  return { ok: true, message: enabled ? "Daily digest is ON." : "Daily digest is OFF." };
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 
 import { closeConversation } from "./actions";
+import { aiSummarize } from "./ai-actions";
 import type { CategoryInfo } from "./types";
 
 const NONE = "__none__";
@@ -34,17 +35,32 @@ export function CloseDialog({
   conversationId,
   categories,
   settings,
+  aiAvailable = false,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   conversationId: string;
   categories: CategoryInfo[];
   settings: { require_category_on_close: boolean; require_summary_on_close: boolean };
+  aiAvailable?: boolean;
 }) {
   const [category, setCategory] = useState<string>(NONE);
   const [summary, setSummary] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [summarizing, startSummarize] = useTransition();
+
+  function suggestSummary() {
+    setError(null);
+    startSummarize(async () => {
+      const r = await aiSummarize({ conversation_id: conversationId });
+      if (!r.ok) {
+        setError(r.error);
+        return;
+      }
+      setSummary(r.data.text); // a draft in the box: the person edits it and decides when to close
+    });
+  }
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -96,16 +112,24 @@ export function CloseDialog({
             </Select>
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="close-summary">
-              Summary{" "}
-              {settings.require_summary_on_close && <span className="text-destructive">*</span>}
-            </Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="close-summary">
+                Summary{" "}
+                {settings.require_summary_on_close && <span className="text-destructive">*</span>}
+              </Label>
+              {aiAvailable && (
+                <Button type="button" variant="ghost" size="xs" onClick={suggestSummary} disabled={summarizing || pending}>
+                  {summarizing ? <Loader2 className="animate-spin" /> : <Sparkles />} Draft with AI
+                </Button>
+              )}
+            </div>
             <Textarea
               id="close-summary"
               value={summary}
               onChange={(e) => setSummary(e.target.value)}
               rows={3}
               placeholder="What was resolved?"
+              dir="auto"
             />
           </div>
           {error && (

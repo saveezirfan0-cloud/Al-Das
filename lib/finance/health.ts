@@ -28,6 +28,7 @@ export type FinanceHealth = {
   unmappedServices: number;
   unknownClinicInvoices: number;
   maxBatchesPerRun: number;
+  digestEnabled: boolean;
   /** Credentials metadata only; secrets never leave the server. */
   integration: {
     configured: boolean;
@@ -39,6 +40,9 @@ export type FinanceHealth = {
   /** True when the last batches returned records but the remaining balance did not drop. */
   balanceStalled: boolean;
   openCaptureExceptions: number;
+  /** Share of invoices (last 60 days, after the first synced appointment) whose AppointmentId resolves. */
+  appointmentResolution: { withId: number; resolved: number };
+  openByRule: Record<string, number>;
   gaps: Array<{ series: string; missingFrom: number; missingTo: number; missingCount: number }>;
 };
 
@@ -60,59 +64,78 @@ export function isBalanceStalled(
  * column is deliberately never selected.
  */
 export async function getFinanceHealth(admin: AdminClient, orgId: string): Promise<FinanceHealth> {
-  const [settings, batches, pending, files, unmapped, unknown, account, success, exceptions, gaps] =
-    await Promise.all([
-      admin.from("fin_capture_settings").select("*").eq("org_id", orgId).maybeSingle(),
-      admin
-        .from("fin_raw_unite_batches")
-        .select(
-          "id, requested_at, from_date, to_date, http_status, message_status, record_count, balance_in_range, process_status, error",
-        )
-        .eq("org_id", orgId)
-        .order("requested_at", { ascending: false })
-        .limit(25),
-      admin
-        .from("fin_raw_unite_batches")
-        .select("id", { count: "exact", head: true })
-        .eq("org_id", orgId)
-        .neq("process_status", "processed"),
-      admin
-        .from("fin_raw_diligence_files")
-        .select("uploaded_at, status, row_count")
-        .eq("org_id", orgId)
-        .order("uploaded_at", { ascending: false })
-        .limit(1),
-      admin
-        .from("fin_ref_services")
-        .select("item_code", { count: "exact", head: true })
-        .eq("org_id", orgId)
-        .eq("service_category", "Unmapped"),
-      admin
-        .from("fin_invoices")
-        .select("id", { count: "exact", head: true })
-        .eq("org_id", orgId)
-        .is("branch_code", null),
-      admin
-        .from("integration_accounts")
-        .select("status, token_expires_at, last_error")
-        .eq("org_id", orgId)
-        .eq("kind", "unite")
-        .maybeSingle(),
-      admin
-        .from("fin_raw_unite_batches")
-        .select("processed_at")
-        .eq("org_id", orgId)
-        .eq("process_status", "processed")
-        .order("processed_at", { ascending: false })
-        .limit(1),
-      admin
-        .from("ops_exceptions")
-        .select("id", { count: "exact", head: true })
-        .eq("org_id", orgId)
-        .eq("rule_code", "E09")
-        .in("status", ["open", "in_progress"]),
-      admin.rpc("fin_invoice_number_gaps", { p_org_id: orgId, p_from: "2026-01-01" }),
-    ]);
+  const [
+    settings,
+    batches,
+    pending,
+    files,
+    unmapped,
+    unknown,
+    account,
+    success,
+    exceptions,
+    gaps,
+    resolution,
+    openRules,
+  ] = await Promise.all([
+    admin.from("fin_capture_settings").select("*").eq("org_id", orgId).maybeSingle(),
+    admin
+      .from("fin_raw_unite_batches")
+      .select(
+        "id, requested_at, from_date, to_date, http_status, message_status, record_count, balance_in_range, process_status, error",
+      )
+      .eq("org_id", orgId)
+      .order("requested_at", { ascending: false })
+      .limit(25),
+    admin
+      .from("fin_raw_unite_batches")
+      .select("id", { count: "exact", head: true })
+      .eq("org_id", orgId)
+      .neq("process_status", "processed"),
+    admin
+      .from("fin_raw_diligence_files")
+      .select("uploaded_at, status, row_count")
+      .eq("org_id", orgId)
+      .order("uploaded_at", { ascending: false })
+      .limit(1),
+    admin
+      .from("fin_ref_services")
+      .select("item_code", { count: "exact", head: true })
+      .eq("org_id", orgId)
+      .eq("service_category", "Unmapped"),
+    admin
+      .from("fin_invoices")
+      .select("id", { count: "exact", head: true })
+      .eq("org_id", orgId)
+      .is("branch_code", null),
+    admin
+      .from("integration_accounts")
+      .select("status, token_expires_at, last_error")
+      .eq("org_id", orgId)
+      .eq("kind", "unite")
+      .maybeSingle(),
+    admin
+      .from("fin_raw_unite_batches")
+      .select("processed_at")
+      .eq("org_id", orgId)
+      .eq("process_status", "processed")
+      .order("processed_at", { ascending: false })
+      .limit(1),
+    admin
+      .from("ops_exceptions")
+      .select("id", { count: "exact", head: true })
+      .eq("org_id", orgId)
+      .eq("rule_code", "E09")
+      .in("status", ["open", "in_progress"]),
+    admin.rpc("fin_invoice_number_gaps", { p_org_id: orgId, p_from: "2026-01-01" }),
+    admin.rpc("fin_appointment_resolution", { p_org_id: orgId, p_days: 60 }),
+    admin
+      .from("ops_exceptions")
+      .select("rule_code")
+      .eq("org_id", orgId)
+      .in("status", ["open", "in_progress"])
+      .limit(20000),
+  ]);
 
   const rows: BatchRow[] = (batches.data ?? []).map((b) => ({
     id: b.id,
@@ -141,7 +164,8 @@ export async function getFinanceHealth(admin: AdminClient, orgId: string): Promi
       : null,
     unmappedServices: unmapped.count ?? 0,
     unknownClinicInvoices: unknown.count ?? 0,
-    maxBatchesPerRun: settings.data?.max_batches_per_run ?? 10,
+    maxBatchesPerRun: settings.data?.max_batches_per_run ?? 1,
+    digestEnabled: settings.data?.digest_enabled ?? false,
     integration: {
       configured: !!account.data,
       status: account.data?.status ?? null,
@@ -151,6 +175,14 @@ export async function getFinanceHealth(admin: AdminClient, orgId: string): Promi
     lastSuccessfulCaptureAt: success.data?.[0]?.processed_at ?? null,
     balanceStalled: isBalanceStalled(rows),
     openCaptureExceptions: exceptions.count ?? 0,
+    appointmentResolution: {
+      withId: Number(resolution.data?.[0]?.with_id ?? 0),
+      resolved: Number(resolution.data?.[0]?.resolved ?? 0),
+    },
+    openByRule: (openRules.data ?? []).reduce<Record<string, number>>((acc, e) => {
+      acc[e.rule_code] = (acc[e.rule_code] ?? 0) + 1;
+      return acc;
+    }, {}),
     gaps: (gaps.data ?? []).slice(0, 100).map((g) => ({
       series: g.series,
       missingFrom: Number(g.missing_from),

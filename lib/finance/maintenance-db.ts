@@ -7,6 +7,7 @@ import {
   type MaintenanceDeps,
   type MaintenanceResult,
 } from "@/lib/finance/maintenance";
+import { runRulesForOrg, sendDigestForOrg } from "@/lib/finance/rules-db";
 import type { AdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/types";
 
@@ -41,6 +42,8 @@ export function dbMaintenanceDeps(admin: AdminClient, orgId: string): Maintenanc
     },
     rematchUnresolved: async () =>
       (await matchClaimsForOrg(store, orgId, { kind: "unresolved" })).changed,
+    runRules: () => runRulesForOrg(admin, orgId),
+    sendDigest: () => sendDigestForOrg(admin, orgId),
     purgeStaleStaging: async () => {
       const { data, error } = await admin.rpc("ins_purge_stale_staging");
       if (error) throw new Error(`purge staging: ${error.message}`);

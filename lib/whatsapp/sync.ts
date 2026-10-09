@@ -85,6 +85,7 @@ export async function syncTemplatesForChannel(
     .from("wa_templates")
     .select("id, name, language")
     .eq("waba_id", channel.waba_id)
+    .neq("status", "DRAFT") // local drafts were never on Meta
     .is("archived_at", null);
   const gone = (existing ?? []).filter((e) => !seen.has(`${e.name}::${e.language}`));
   if (gone.length) {

@@ -33,6 +33,7 @@ export default async function FailedMessagesPage() {
     .eq("org_id", member.orgId)
     .eq("direction", "out")
     .eq("status", "failed")
+    .is("campaign_recipient_id", null) // campaign failures live in the campaign's report
     .order("at", { ascending: false })
     .limit(200);
 

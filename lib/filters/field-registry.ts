@@ -70,7 +70,9 @@ export type FieldDef = {
     | "locations"
     | "specialists"
     | "services"
-    | "departments";
+    | "departments"
+    | "pipelines"
+    | "sources";
   /** Hidden from the UI (and rejected by the compiler) until the relation exists. */
   available: boolean;
   /** Can be used in ORDER BY (column / custom / count only). */
@@ -252,6 +254,7 @@ export const CONTACT_RELATIONS: Record<RelationKey, RelationDef> = {
       service_id: "uuid",
       source: "text",
     },
+    extraWhere: "r.deleted_at is null",
   },
   appointments: {
     key: "appointments",
@@ -292,6 +295,8 @@ export const AVAILABLE_RELATIONS: readonly RelationKey[] = [
   "contact_phones",
   "mentions",
   "appointments",
+  "enquiries",
+  "tasks",
 ];
 
 export type CustomFieldDefInput = {
