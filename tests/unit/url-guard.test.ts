@@ -22,6 +22,11 @@ describe("isBlockedIp", () => {
     "::ffff:10.0.0.1", // IPv4-mapped private
     "::ffff:127.0.0.1",
     "64:ff9b::7f00:1", // NAT64 wrapping 127.0.0.1
+    "::7f00:1", // IPv4-compatible 127.0.0.1
+    "2002:7f00:1::1", // 6to4 embedding 127.0.0.1
+    "2001:0:4136:e378:8000:63bf:80ff:fffe", // Teredo
+    "fec0::1", // site-local
+    "192.88.99.1",
     "not-an-ip",
   ])("blocks %s", (ip) => {
     expect(isBlockedIp(ip)).toBe(true);

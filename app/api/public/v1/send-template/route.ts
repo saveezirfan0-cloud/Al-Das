@@ -1,5 +1,6 @@
 import { beginIdempotent, completeIdempotent, hashRequest, releaseIdempotent } from "@/lib/public-api/idempotency";
 import { apiError, json, readJson, validationError } from "@/lib/public-api/http";
+import { recordAudit } from "@/lib/audit";
 import { apiRoute } from "@/lib/public-api/route";
 import { sendTemplateSchema, sendTemplateViaApi } from "@/lib/public-api/send-template";
 import type { Json } from "@/lib/supabase/types";
@@ -32,6 +33,7 @@ export const POST = apiRoute("messages:send_template", async ({ request, admin, 
       await releaseIdempotent(admin, begin.id); // a failed attempt can be retried with the same key once fixed
       return apiError(result.status, result.code, result.message, { details: result.details });
     }
+    await recordAudit(admin, { orgId: ctx.orgId, userId: null, action: "api.template_sent", entity: "message", entityId: result.data.message_id, diff: { api_key_id: ctx.keyId, template: parsed.data.template, language: parsed.data.language } });
     await completeIdempotent(admin, begin.id, 202, result.data as unknown as Json);
     return json(result.data, 202);
   } catch (err) {

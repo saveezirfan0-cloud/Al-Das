@@ -66,6 +66,7 @@ registerHandler({
           [SIGNATURE_HEADER]: signPayload(decryptSecret(secretRow.secret_enc), body),
         },
         timeoutMs: 10_000,
+        deadlineMs: 20_000, // the whole attempt, however slowly the receiver answers (queue visibility is 60 s)
         maxBytes: 4096,
         onOverflow: "truncate",
         maxRedirects: 0,

@@ -2,7 +2,9 @@ import { z } from "zod";
 
 import { serializeContact, updateContact, updateContactSchema } from "@/lib/public-api/contacts";
 import { apiError, json, readJson, validationError } from "@/lib/public-api/http";
+import { recordAudit } from "@/lib/audit";
 import { apiRoute } from "@/lib/public-api/route";
+import { hasScope } from "@/lib/public-api/scopes";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -34,5 +36,6 @@ export const PATCH = apiRoute("contacts:write", async ({ request, admin, ctx, pa
 
   const result = await updateContact(admin, ctx.orgId, params.id, parsed.data);
   if (!result.ok) return apiError(result.status, result.code, result.message);
-  return json(serializeContact(result.contact));
+  await recordAudit(admin, { orgId: ctx.orgId, userId: null, action: "api.contact_updated", entity: "contact", entityId: result.contact.id, diff: { api_key_id: ctx.keyId, fields: Object.keys(parsed.data) } });
+  return json(hasScope(ctx.scopes, "contacts:read") ? serializeContact(result.contact) : { id: result.contact.id });
 });

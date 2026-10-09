@@ -59,9 +59,10 @@ export function AiSettingsCard({
         <Alert>
           <AlertTitle>What leaves the platform</AlertTitle>
           <AlertDescription>
-            When staff use AI assist, the recent messages of that conversation (with phone numbers and emails masked) are sent to the AI provider
-            to write the draft, and knowledge-base text is sent to the embeddings provider. Confirm this fits your data-residency and consent
-            requirements before turning it on. Nothing is sent until a member of staff presses an AI button.
+            When staff use AI assist, the recent messages of that conversation (phone numbers and emails masked, names and everything else
+            unchanged) are sent to the AI provider to write the draft. For Suggested Reply, the patient&apos;s latest messages are also sent to the
+            embeddings provider to find matching knowledge-base text, and your knowledge-base pages and files are sent to it when they are processed.
+            Confirm this fits your data-residency and consent requirements before turning it on. Nothing is sent until a member of staff presses an AI button.
           </AlertDescription>
         </Alert>
         {!providerReady && (

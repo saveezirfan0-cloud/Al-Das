@@ -25,7 +25,7 @@ type Common = { llm: Llm; clinicName?: string; now?: () => number };
 async function run(
   deps: Common,
   user: string,
-  opts: { patientFacing: boolean; effort: "low" | "medium"; chunkIds?: string[]; extraFlags?: string[] },
+  opts: { patientFacing: boolean; effort: "low" | "medium"; chunkIds?: string[]; extraFlags?: string[]; sourceText?: string },
 ): Promise<AiResult> {
   const now = deps.now ?? Date.now;
   const started = now();
@@ -50,7 +50,7 @@ async function run(
     const flags = opts.extraFlags ?? [];
     return { ...base, text: res.text, status: flags.length ? "needs_review" : "ok", flags };
   }
-  const checked = checkDraft(res.text);
+  const checked = checkDraft(res.text, { sourceText: opts.sourceText });
   const flags = [...checked.flags, ...(opts.extraFlags ?? [])];
   return { ...base, text: checked.text, status: flags.length ? "needs_review" : "ok", flags };
 }
@@ -76,6 +76,8 @@ export async function suggestReply(
   return run(deps, suggestReplyPrompt(input.transcript, input.passages, { extraInstruction: extra }), {
     patientFacing: true,
     effort: "medium",
+    // anything the draft cites must come from what the model was shown
+    sourceText: [input.transcript, ...input.passages.map((p) => p.content), extra ?? ""].join("\n"),
     chunkIds: input.passages.map((p) => p.chunkId),
     extraFlags: input.passages.length
       ? []
@@ -89,5 +91,6 @@ export async function rewrite(deps: Common, input: { draft: string; mode: Rewrit
   return run(deps, rewritePrompt(draft.slice(0, MAX_DRAFT_CHARS), input.mode), {
     patientFacing: true,
     effort: "low",
+    sourceText: draft, // a rewrite must not introduce links or numbers the staff member did not write
   });
 }

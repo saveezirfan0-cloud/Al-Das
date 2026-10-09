@@ -18,7 +18,10 @@ export type SafeRequestOptions = {
   method?: "GET" | "POST";
   headers?: Record<string, string>;
   body?: string | Buffer;
+  /** Idle socket timeout (default 10 s). */
   timeoutMs?: number;
+  /** Absolute limit for the whole request, however slowly the server sends (default 30 s). */
+  deadlineMs?: number;
   /** Response bodies larger than this are cut off (see onOverflow). */
   maxBytes?: number;
   /** "error" (default) fails the request; "truncate" keeps the first maxBytes and ignores the rest. */
@@ -63,24 +66,42 @@ export function guardedLookup(
 function once(url: URL, opts: SafeRequestOptions): Promise<SafeResponse> {
   const maxBytes = opts.maxBytes ?? 5 * 1024 * 1024;
   return new Promise((resolve, reject) => {
+    let settled = false;
+    const done = (fn: () => void) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(deadline); // declared below; only ever called after the request starts
+      fn();
+    };
+
     const req = httpsRequest(
       url,
       {
         method: opts.method ?? "GET",
         headers: opts.headers,
         lookup: guardedLookup as never,
-        timeout: opts.timeoutMs ?? 10_000,
+        timeout: opts.timeoutMs ?? 10_000, // idle socket timeout
       },
       (res) => {
         const chunks: Buffer[] = [];
         let size = 0;
-        let truncated = false;
+        const finish = () => {
+          const headers: Record<string, string> = {};
+          for (const [k, v] of Object.entries(res.headers)) {
+            if (typeof v === "string") headers[k.toLowerCase()] = v;
+            else if (Array.isArray(v)) headers[k.toLowerCase()] = v.join(", ");
+          }
+          done(() => resolve({ status: res.statusCode ?? 0, headers, body: Buffer.concat(chunks), finalUrl: url.toString() }));
+        };
         res.on("data", (chunk: Buffer) => {
+          if (settled) return;
           size += chunk.length;
           if (size > maxBytes) {
             if (opts.onOverflow === "truncate") {
-              if (!truncated) chunks.push(chunk.subarray(0, Math.max(0, maxBytes - (size - chunk.length))));
-              truncated = true;
+              // Keep what fits and stop reading: do not drain an endless body.
+              chunks.push(chunk.subarray(0, Math.max(0, maxBytes - (size - chunk.length))));
+              finish();
+              res.destroy();
               return;
             }
             req.destroy(new ResponseTooLargeError(maxBytes));
@@ -88,19 +109,15 @@ function once(url: URL, opts: SafeRequestOptions): Promise<SafeResponse> {
           }
           chunks.push(chunk);
         });
-        res.on("end", () => {
-          const headers: Record<string, string> = {};
-          for (const [k, v] of Object.entries(res.headers)) {
-            if (typeof v === "string") headers[k.toLowerCase()] = v;
-            else if (Array.isArray(v)) headers[k.toLowerCase()] = v.join(", ");
-          }
-          resolve({ status: res.statusCode ?? 0, headers, body: Buffer.concat(chunks), finalUrl: url.toString() });
-        });
-        res.on("error", reject);
+        res.on("end", finish);
+        res.on("error", (err) => done(() => reject(err)));
       },
     );
+    // The socket timeout above only fires when a connection goes idle: a server that trickles one
+    // byte at a time would never trip it. This deadline bounds the whole request.
+    const deadline = setTimeout(() => req.destroy(new Error("Request timed out.")), opts.deadlineMs ?? 30_000);
     req.on("timeout", () => req.destroy(new Error("Request timed out.")));
-    req.on("error", reject);
+    req.on("error", (err) => done(() => reject(err)));
     if (opts.body !== undefined) req.write(opts.body);
     req.end();
   });

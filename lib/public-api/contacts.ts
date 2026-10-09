@@ -100,7 +100,8 @@ export type ContactResult =
   | { ok: false; status: number; code: string; message: string };
 
 const invalidPhone = { ok: false, status: 422, code: "invalid_phone", message: "That phone number is not valid. Use international format, e.g. +971501234567." } as const;
-const conflict = (what: string): ContactResult => ({ ok: false, status: 409, code: "conflict", message: `Another contact already has that ${what}.` });
+// Deliberately does not say which value clashed, so a write-only key cannot probe for existing external ids.
+const conflict = (): ContactResult => ({ ok: false, status: 409, code: "conflict", message: "That value conflicts with an existing contact." });
 
 function updateFromInput(input: Partial<CreateContactInput & UpdateContactInput>): TablesUpdate<"contacts"> {
   const patch: TablesUpdate<"contacts"> = {};
@@ -110,15 +111,36 @@ function updateFromInput(input: Partial<CreateContactInput & UpdateContactInput>
   return patch;
 }
 
-async function findByPhone(admin: AdminClient, orgId: string, phone: string): Promise<ContactRow | null> {
-  const { data } = await admin
+/**
+ * Every live contact that owns this phone: the primary number first, then alternates in
+ * contact_phones (secondary and merged numbers). Matching only the primary column would miss a
+ * patient reached on their second number and create a duplicate with stop_marketing = false,
+ * which could send marketing to someone who opted out (CLAUDE.md rules 5 and 11).
+ */
+export async function findContactsByPhone(admin: AdminClient, orgId: string, phone: string): Promise<ContactRow[]> {
+  const found: ContactRow[] = [];
+  const { data: primary } = await admin
     .from("contacts")
     .select("*")
     .eq("org_id", orgId)
     .eq("phone_e164", phone)
     .is("deleted_at", null)
-    .maybeSingle();
-  return data ?? null;
+    .is("merged_into_id", null);
+  found.push(...(primary ?? []));
+
+  const { data: alts } = await admin.from("contact_phones").select("contact_id").eq("org_id", orgId).eq("phone_e164", phone);
+  const extraIds = [...new Set((alts ?? []).map((a) => a.contact_id))].filter((id) => !found.some((c) => c.id === id));
+  if (extraIds.length) {
+    const { data: more } = await admin
+      .from("contacts")
+      .select("*")
+      .eq("org_id", orgId)
+      .in("id", extraIds)
+      .is("deleted_at", null)
+      .is("merged_into_id", null);
+    found.push(...(more ?? []));
+  }
+  return found;
 }
 
 async function afterWrite(orgId: string, before: ContactRow | null, after: ContactRow) {
@@ -133,11 +155,11 @@ export async function upsertContact(admin: AdminClient, orgId: string, input: Cr
   const patch = updateFromInput(input);
 
   for (let attempt = 0; attempt < 2; attempt++) {
-    const existing = await findByPhone(admin, orgId, phone);
+    const existing = (await findContactsByPhone(admin, orgId, phone))[0];
     if (existing) {
       if (Object.keys(patch).length === 0) return { ok: true, contact: existing, created: false };
       const { data, error } = await admin.from("contacts").update(patch).eq("id", existing.id).eq("org_id", orgId).select("*").single();
-      if (error) return error.code === "23505" ? conflict("external id") : { ok: false, status: 500, code: "internal_error", message: "Could not update the contact." };
+      if (error) return error.code === "23505" ? conflict() : { ok: false, status: 500, code: "internal_error", message: "Could not update the contact." };
       await afterWrite(orgId, existing, data);
       return { ok: true, contact: data, created: false };
     }
@@ -152,8 +174,8 @@ export async function upsertContact(admin: AdminClient, orgId: string, input: Cr
     }
     if (error.code !== "23505") return { ok: false, status: 500, code: "internal_error", message: "Could not create the contact." };
     // Unique violation: either a concurrent create of the same phone (retry finds it) or a clashing external id.
-    if (await findByPhone(admin, orgId, phone)) continue;
-    return conflict("external id");
+    if ((await findContactsByPhone(admin, orgId, phone)).length) continue;
+    return conflict();
   }
   return { ok: false, status: 409, code: "conflict", message: "The contact was changed by another request. Retry." };
 }
@@ -169,7 +191,7 @@ export async function updateContact(admin: AdminClient, orgId: string, id: strin
     patch.phone_e164 = phone;
   }
   const { data, error } = await admin.from("contacts").update(patch).eq("id", id).eq("org_id", orgId).select("*").single();
-  if (error) return error.code === "23505" ? conflict("phone or external id") : { ok: false, status: 500, code: "internal_error", message: "Could not update the contact." };
+  if (error) return error.code === "23505" ? conflict() : { ok: false, status: 500, code: "internal_error", message: "Could not update the contact." };
   await afterWrite(orgId, existing, data);
   return { ok: true, contact: data, created: false };
 }

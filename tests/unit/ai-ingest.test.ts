@@ -104,3 +104,30 @@ describe("contentHash", () => {
     expect(contentHash("a")).toMatch(/^[0-9a-f]{64}$/);
   });
 });
+
+describe("htmlToText on hostile input", () => {
+  const time = (fn: () => unknown) => {
+    const t = Date.now();
+    fn();
+    return Date.now() - t;
+  };
+
+  it("stays linear on unclosed or dense block tags (a quadratic regex took seconds here)", () => {
+    expect(time(() => htmlToText("<script ".repeat(200_000)))).toBeLessThan(1500);
+    expect(time(() => htmlToText("<nav>x</nav>".repeat(150_000)))).toBeLessThan(1500);
+    expect(time(() => htmlToText("<title ".repeat(200_000)))).toBeLessThan(1500);
+    expect(time(() => htmlToText("<script ".repeat(200_000) + ">"))).toBeLessThan(1500);
+    expect(time(() => htmlToText("<!--".repeat(200_000)))).toBeLessThan(1500);
+    expect(time(() => htmlToText("<a".repeat(300_000)))).toBeLessThan(1500);
+  });
+
+  it("only removes real block tags, handles case and unclosed openers", () => {
+    expect(htmlToText("<p>keep</p><NAV>menu</NAV><navigation>stay</navigation><SCRIPT>bad()</SCRIPT>").text).toBe("keep\n\nstay");
+    expect(htmlToText("<p>before</p><script src=x><p>after</p>").text).toBe("before\n\nafter");
+  });
+
+  it("ignores everything past the size cap", () => {
+    const html = "<p>start</p>" + "a".repeat(2_100_000) + "<p>TAIL-MARKER</p>";
+    expect(htmlToText(html).text).not.toContain("TAIL-MARKER");
+  });
+});

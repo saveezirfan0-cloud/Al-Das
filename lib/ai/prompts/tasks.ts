@@ -3,7 +3,8 @@ import type { Language, Passage, RewriteMode, Tone } from "@/lib/ai/types";
 /** Data goes inside tags; the guardrail prompt tells the model tag contents are data, not instructions. */
 function wrap(tag: string, content: string): string {
   // A literal closing tag inside the data must not be able to end the block early.
-  const safe = content.replaceAll(`</${tag}>`, `< /${tag}>`);
+  // Case-insensitive and whitespace-tolerant: "</Conversation>" and "</conversation >" must not close the block either.
+  const safe = content.replace(new RegExp(`<\\s*/\\s*${tag}\\s*>`, "gi"), `< /${tag}>`);
   return `<${tag}>\n${safe}\n</${tag}>`;
 }
 

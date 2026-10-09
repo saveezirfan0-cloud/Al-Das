@@ -46,7 +46,7 @@ pnpm jobs:run metrics_refresh                                  # fills the dashb
 
 ## Going live
 
-1. **Decide data handling first (OQ-49, OQ-57).** AI sends recent conversation text (numbers and emails masked) to Anthropic, and KB text to Voyage. Get the residency/consent answer before anyone turns the org switch on. It is off until an admin does.
+1. **Decide data handling first (OQ-49, OQ-57).** AI sends recent conversation text (numbers and emails masked; names and clinical content are NOT masked) to Anthropic. Voyage receives the knowledge-base text when it is processed **and the patient's latest messages (the retrieval query) whenever Suggested Reply runs**. Get the residency/consent answer before anyone turns the org switch on. It is off until an admin does.
 2. Env: `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`, `EMBEDDINGS_API_KEY` (`EMBEDDINGS_PROVIDER=voyage`, `EMBEDDINGS_MODEL=voyage-3`, which must output 1024 dimensions to match the column), `ENCRYPTION_KEY`. `EMBEDDINGS_PROVIDER=fake` is refused in production.
 3. Supabase: apply the migrations; confirm the `kb-files` bucket exists; vault secrets `app_url` / `job_secret` (Phase 1) so `pulse:metrics_refresh` and `pulse:kb_ingest` / `pulse:webhooks_out` fire.
 4. Grant roles: Manager already gets `ai.use`, `kb.manage`, `reports.export`; Agent/Receptionist get `ai.use`. The migration backfills existing orgs' system roles; custom roles are edited in Settings → Roles.
@@ -94,6 +94,26 @@ Request: `POST` JSON `{ id, type, created_at, org_id, data }` with headers `X-Pu
 - Heavy report aggregation moved into SQL functions (`…001300`), an addition to the plan, because of PostgREST's 1000-row cap.
 - API-key and webhook management sit under `settings.manage` rather than new permission keys.
 - Idempotency keys and finished webhook deliveries (30 days) are pruned by the `metrics_refresh` task rather than a separate cron.
+
+## Security review (independent pass over the four Phase 10 commits)
+
+No critical or high findings; key authentication, cross-org scoping, the SSRF core, SQL grants/RLS, the webhook payload allowlist and server-action permissions all held. Fixed afterwards:
+
+- **Write-only keys could read patient records** through the upsert response: without `contacts:read` a write now returns the id only (POST and PATCH), and conflicts no longer say which value clashed.
+- **Marketing opt-out bypass through alternate numbers:** the API matched only `contacts.phone_e164`, so a patient reached on a second number (`contact_phones`) was missed, duplicated with `stop_marketing = false`, and could receive marketing. Both API paths now match primary and alternate numbers and refuse a marketing template if any matching record opted out. The same rule (`isMarketingBlocked`) is also checked **again when the message is actually sent**, because an opt-out can arrive between queueing and sending.
+- **Audit trail:** every API write and send writes an `audit_log` row (key id, field names; never values).
+- **API keys can only carry powers their creator holds** (`contacts.view` / `contacts.manage` / `inbox.send`), so `settings.manage` alone cannot mint a key that exports patients.
+- **Disclosure corrected:** the patient's latest messages are also sent to the embeddings provider (the retrieval query), and names and clinical text are not masked. The settings page, these notes and OQ-57 now say so.
+- **Hostile-input hardening:** the KB HTML extractor was quadratic on unclosed tags (a 1.6 MB page stalled it for seconds); it is now a linear scan with a size cap. `safeRequest` has an absolute deadline and stops reading in truncate mode; webhook deliveries use a 20 s deadline. More reserved IP ranges are blocked (6to4, Teredo, site-local, IPv4-compatible).
+- **Prompt hardening:** closing tags are neutralised case-insensitively; `[[STAFF]]` is stripped wherever it appears; links, bank accounts and phone numbers in a patient-facing draft that are not in the conversation or knowledge are flagged.
+
+Known and deliberately left for later (decide before production):
+
+- **No API rate limit yet** (Phase 11 installs it through `setRateLimiter`). Until then a leaked read key can page every contact; keep keys short-lived and scoped.
+- **Read access is not audited** per request (only writes and sends); add aggregate read logging with the limiter.
+- **AI rate limit can be exceeded by parallel requests** (usage is counted after the call). Add a reservation row or an org daily cap.
+- `promotions_opt_in` can be set to `true` by any `contacts:write` key without consent evidence, and marketing sends check `stop_marketing` only (as the inbox does), not `promotions_opt_in`. Decide whether marketing requires a recorded opt-in.
+- Webhook and KB URLs may use any HTTPS port (probing of non-443 services on public IPs); a crash between inserting a queued message and enqueueing it can leave an orphan message.
 
 ## Demo checklist
 

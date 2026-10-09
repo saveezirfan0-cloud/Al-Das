@@ -88,6 +88,33 @@ describe("upsertContact", () => {
     expect(admin._calls.filter((c) => c.table === "contacts" && c.op === "update")).toHaveLength(0);
   });
 
+  it("matches a contact by an alternate number instead of creating a duplicate", async () => {
+    const { admin, as } = setup({
+      contacts: [{ id: "c1", org_id: "org1", phone_e164: "+971501111111", first_name: "Amal", deleted_at: null }],
+      contact_phones: [{ id: "p1", org_id: "org1", contact_id: "c1", phone_e164: "+971502222222" }],
+    });
+    const r = await upsertContact(as, "org1", { phone: "+971502222222", first_name: "Amal M." });
+    expect(r.ok && r.created).toBe(false);
+    expect(admin._rows("contacts")).toHaveLength(1);
+    expect(admin._rows("contacts")[0]).toMatchObject({ id: "c1", first_name: "Amal M.", phone_e164: "+971501111111" });
+  });
+
+  it("ignores alternate numbers of deleted or merged contacts and of other orgs", async () => {
+    const { admin, as } = setup({
+      contacts: [
+        { id: "c1", org_id: "org1", phone_e164: null, deleted_at: "2026-01-01", merged_into_id: "c9" },
+        { id: "cB", org_id: "orgB", phone_e164: "+971509999999", deleted_at: null },
+      ],
+      contact_phones: [
+        { id: "p1", org_id: "org1", contact_id: "c1", phone_e164: "+971502222222" },
+        { id: "p2", org_id: "orgB", contact_id: "cB", phone_e164: "+971502222222" },
+      ],
+    });
+    const r = await upsertContact(as, "org1", { phone: "+971502222222" });
+    expect(r.ok && r.created).toBe(true);
+    expect(admin._rows("contacts")).toHaveLength(3);
+  });
+
   it("does not see another org's contact with the same phone", async () => {
     const { admin, as } = setup({ contacts: [{ id: "c9", org_id: "orgB", phone_e164: "+971501234567", first_name: "B", deleted_at: null }] });
     const r = await upsertContact(as, "org1", { phone: "+971501234567", first_name: "A" });

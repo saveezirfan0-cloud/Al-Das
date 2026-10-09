@@ -4,8 +4,10 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { recordAudit } from "@/lib/audit";
+import { can } from "@/lib/auth/can";
 import { requirePerm } from "@/lib/auth/session";
-import { API_KEY_SCOPES, generateApiKey } from "@/lib/public-api/keys";
+import { generateApiKey } from "@/lib/public-api/keys";
+import { API_KEY_SCOPES, type ApiKeyScope } from "@/lib/public-api/scopes";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export type CreateResult =
@@ -15,6 +17,13 @@ export type ActionResult = { ok: true; message: string } | { ok: false; error: s
 
 const PATH = "/settings/api-keys";
 const MAX_ACTIVE_KEYS = 50;
+
+/** A key may only carry powers its creator already has: settings.manage alone must not unlock patient data. */
+const SCOPE_REQUIRES: Record<ApiKeyScope, string> = {
+  "contacts:read": "contacts.view",
+  "contacts:write": "contacts.manage",
+  "messages:send_template": "inbox.send",
+};
 
 const createSchema = z.object({
   name: z.string().trim().min(1, "Give the key a name, e.g. the system that will use it.").max(80),
@@ -27,6 +36,8 @@ export async function createApiKey(input: z.input<typeof createSchema>): Promise
   const member = await requirePerm("settings.manage");
   const parsed = createSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  const missing = parsed.data.scopes.filter((sc) => !can(member, SCOPE_REQUIRES[sc]));
+  if (missing.length) return { ok: false, error: `You can only grant permissions you hold yourself. You lack access for: ${missing.join(", ")}.` };
   const admin = createAdminClient();
 
   const { count } = await admin

@@ -3,6 +3,8 @@ import { z } from "zod";
 import { createContactSchema, serializeContact, upsertContact } from "@/lib/public-api/contacts";
 import { decodeCursor, encodeCursor } from "@/lib/public-api/cursor";
 import { apiError, json, readJson, validationError } from "@/lib/public-api/http";
+import { recordAudit } from "@/lib/audit";
+import { hasScope } from "@/lib/public-api/scopes";
 import { apiRoute } from "@/lib/public-api/route";
 import { toE164 } from "@/lib/whatsapp/phone";
 
@@ -13,7 +15,8 @@ const listQuery = z.object({
   limit: z.coerce.number().int().min(1).max(200).default(50),
   cursor: z.string().max(500).optional(),
   phone: z.string().max(32).optional(),
-  email: z.string().max(254).optional(),
+  // PostgREST treats * as a wildcard in ilike, so it is not allowed in an "exact" match.
+  email: z.string().max(254).refine((v) => !v.includes("*"), "email cannot contain *").optional(),
   external_id: z.string().max(100).optional(),
   updated_since: z.string().datetime({ offset: true }).optional(),
 });
@@ -74,5 +77,8 @@ export const POST = apiRoute("contacts:write", async ({ request, admin, ctx }) =
 
   const result = await upsertContact(admin, ctx.orgId, parsed.data);
   if (!result.ok) return apiError(result.status, result.code, result.message);
-  return json(serializeContact(result.contact), result.created ? 201 : 200);
+  await recordAudit(admin, { orgId: ctx.orgId, userId: null, action: result.created ? "api.contact_created" : "api.contact_updated", entity: "contact", entityId: result.contact.id, diff: { api_key_id: ctx.keyId } });
+  // A write-only key must not be able to read patient records back: without contacts:read it gets the id only.
+  const resource = hasScope(ctx.scopes, "contacts:read") ? serializeContact(result.contact) : { id: result.contact.id };
+  return json(resource, result.created ? 201 : 200);
 });

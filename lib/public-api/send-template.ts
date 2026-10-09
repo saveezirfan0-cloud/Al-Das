@@ -3,12 +3,13 @@ import "server-only";
 import { z } from "zod";
 
 import { emit } from "@/lib/events/emit";
+import { findContactsByPhone } from "@/lib/public-api/contacts";
 import { routeNewConversation } from "@/lib/inbox/inbound";
 import { queueOutbound } from "@/lib/inbox/send";
 import { readInboxSettings } from "@/lib/inbox/settings";
 import type { AdminClient } from "@/lib/supabase/admin";
 import { toE164 } from "@/lib/whatsapp/phone";
-import { renderTemplatePreview } from "@/lib/whatsapp/templates";
+import { isMarketingBlocked, renderTemplatePreview } from "@/lib/whatsapp/templates";
 import type { MetaTemplateComponent } from "@/lib/whatsapp/types";
 
 /**
@@ -74,8 +75,10 @@ export async function sendTemplateViaApi(admin: AdminClient, orgId: string, inpu
   if (preview.headerMedia) return fail(422, "unsupported_template", "Templates with a media or location header cannot be sent through the API yet.");
   if (preview.missing.length) return fail(422, "missing_variables", "Some template variables have no value.", { missing: preview.missing });
 
-  // 3. The patient: reuse the contact that owns this phone, or create one
-  let { data: contact } = await admin.from("contacts").select("id, stop_marketing").eq("org_id", orgId).eq("phone_e164", phone).is("deleted_at", null).maybeSingle();
+  // 3. The patient: reuse the contact that owns this phone (primary or alternate number), or create one.
+  //    A marketing template is refused if ANY matching record has opted out.
+  const matches = await findContactsByPhone(admin, orgId, phone);
+  let contact = matches[0] as { id: string; stop_marketing: boolean } | undefined;
   if (!contact) {
     const { data: created, error } = await admin
       .from("contacts")
@@ -84,7 +87,7 @@ export async function sendTemplateViaApi(admin: AdminClient, orgId: string, inpu
       .single();
     if (error) {
       // A concurrent request may have just created it.
-      const { data: again } = await admin.from("contacts").select("id, stop_marketing").eq("org_id", orgId).eq("phone_e164", phone).is("deleted_at", null).maybeSingle();
+      const again = (await findContactsByPhone(admin, orgId, phone))[0];
       if (!again) return fail(500, "internal_error", "Could not create the contact.");
       contact = again;
     } else {
@@ -92,7 +95,7 @@ export async function sendTemplateViaApi(admin: AdminClient, orgId: string, inpu
       await emit(orgId, "contact.created", { contact_id: created.id, source: "api" });
     }
   }
-  if (tpl.category === "MARKETING" && contact.stop_marketing) {
+  if (isMarketingBlocked(tpl.category, contact.stop_marketing) || matches.some((m) => isMarketingBlocked(tpl.category, m.stop_marketing))) {
     return fail(422, "recipient_opted_out", "This patient has opted out of marketing messages.");
   }
 

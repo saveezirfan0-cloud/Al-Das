@@ -18,7 +18,7 @@ const CHANNEL = { id: "ch1", org_id: "org1", waba_id: "w1", status: "active" };
 
 function setup(seed: Record<string, Record<string, unknown>[]> = {}) {
   const admin = createFakeAdmin(
-    { orgs: [{ id: "org1", settings: {} }], channels: [CHANNEL], wa_templates: [TEMPLATE], contacts: [], conversations: [], messages: [], ...seed },
+    { orgs: [{ id: "org1", settings: {} }], channels: [CHANNEL], wa_templates: [TEMPLATE], contacts: [], contact_phones: [], conversations: [], messages: [], ...seed },
     {
       unique: { contacts: [["org_id", "phone_e164"]] },
       defaults: {
@@ -161,6 +161,30 @@ describe("sendTemplateViaApi", () => {
       await expectRefused(await sendTemplateViaApi(as, "org1", input()), admin, 422, "recipient_opted_out");
       expect(admin._rows("conversations")).toHaveLength(0);
     });
+  });
+
+  it("refuses a marketing template when the number is an ALTERNATE number of an opted-out contact", async () => {
+    // The opted-out patient's second number lives in contact_phones. Matching only the primary column
+    // would miss them, create a fresh contact with stop_marketing = false and send the marketing message.
+    const { admin, as } = setup({
+      wa_templates: [{ ...TEMPLATE, category: "MARKETING" }],
+      contacts: [{ id: "c1", org_id: "org1", phone_e164: "+971509999999", stop_marketing: true, deleted_at: null }],
+      contact_phones: [{ id: "p1", org_id: "org1", contact_id: "c1", phone_e164: "+971501234567" }],
+    });
+    const r = await sendTemplateViaApi(as, "org1", input());
+    expect(r).toMatchObject({ ok: false, status: 422, code: "recipient_opted_out" });
+    expect(admin._rows("contacts")).toHaveLength(1); // no duplicate created
+    expect(admin._rows("messages")).toHaveLength(0);
+  });
+
+  it("sends to the existing contact found through an alternate number", async () => {
+    const { admin, as } = setup({
+      contacts: [{ id: "c1", org_id: "org1", phone_e164: "+971509999999", stop_marketing: false, deleted_at: null }],
+      contact_phones: [{ id: "p1", org_id: "org1", contact_id: "c1", phone_e164: "+971501234567" }],
+    });
+    const r = await sendTemplateViaApi(as, "org1", input());
+    expect(r.ok && r.data.contact_id).toBe("c1");
+    expect(admin._rows("contacts")).toHaveLength(1);
   });
 
   it("still sends a utility template to a contact who opted out of marketing", async () => {

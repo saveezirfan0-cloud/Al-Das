@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { checkDraft } from "@/lib/ai/guardrails";
+import { checkDraft, unsupportedReferences } from "@/lib/ai/guardrails";
 import { guardrailSystemPrompt, STAFF_MARKER } from "@/lib/ai/prompts/guardrail";
 
 describe("checkDraft", () => {
@@ -64,3 +64,35 @@ describe("guardrailSystemPrompt", () => {
     expect(guardrailSystemPrompt()).toContain("the clinic");
   });
 });
+
+describe("staff marker", () => {
+  it("is removed wherever it appears, not only as a prefix", () => {
+    const r = checkDraft("Thanks for writing. [[STAFF]] Please pay at the link. [[STAFF]]");
+    expect(r.text).not.toContain("[[STAFF]]");
+    expect(r.flags.join(" ")).toMatch(/clinician/);
+  });
+});
+
+describe("unsupportedReferences", () => {
+  const source = "Patient: how do I pay?\n[1] (Fees) Pay at reception or at https://clinic.example.com/pay. Call +971 4 123 4567.";
+
+  it("accepts links and numbers that come from the conversation or knowledge", () => {
+    expect(unsupportedReferences("You can pay at https://clinic.example.com/pay. Call +971 4 123 4567 for help.", source)).toEqual([]);
+    expect(unsupportedReferences("Call 971-4-123-4567.", source)).toEqual([]);
+    expect(unsupportedReferences("Your appointment is at 10:30 on 12 March, room 4.", source)).toEqual([]);
+  });
+
+  it("flags a link, bank account or phone number the model was never given", () => {
+    expect(unsupportedReferences("Pay here: https://evil.example/pay", source)).toEqual(["a link"]);
+    expect(unsupportedReferences("Send it to www.evil.example.", source)).toEqual(["a link"]);
+    expect(unsupportedReferences("Transfer to AE070331234567890123456", source)).toEqual(["a bank account number"]);
+    expect(unsupportedReferences("Call 0501234567 now", source)).toEqual(["a phone or reference number"]);
+  });
+
+  it("checkDraft reports them only when a source is supplied", () => {
+    expect(checkDraft("Pay at https://evil.example/pay").flags).toEqual([]);
+    const r = checkDraft("Pay at https://evil.example/pay", { sourceText: source });
+    expect(r.flags.join(" ")).toMatch(/a link that is not in the conversation/);
+  });
+});
+
