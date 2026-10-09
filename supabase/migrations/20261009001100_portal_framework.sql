@@ -1,11 +1,11 @@
 -- Phase 9: back-office portal framework.
 -- Registry (portal_objects), saved views, generic timeline / comments / attachments for any
 -- portal record, a table-agnostic search RPC, and the first Airtable-derived config table
--- (website_entry_points). Reference tables and clinical_settings come from migration ...1000.
+-- (website_entry_points). Reference tables come from migration ...1000 (portal_ref_tables).
 --
--- Permissions: read = portal.<key>.read, write = portal.<key>.write (or the object's own write
--- key, e.g. clinical.settings.manage). RLS uses app.has_perm_wild so 'portal.*' and
--- 'portal.*.read' (roles Manager / Agent) are honoured in SQL exactly like lib/auth/can.ts.
+-- Permissions: read = the object's read_perm (portal.<key>.read by default; PHI-adjacent objects
+-- can name a stricter key), write = its write_perm. RLS uses app.has_perm_wild (Phase 6) so
+-- 'portal.*' and 'portal.*.read' (roles Manager / Agent) are honoured in SQL like lib/auth/can.ts.
 
 -- ---------------------------------------------------------------------------
 -- portal_objects — which tables the portal exposes, per org. Column definitions (types,
@@ -134,6 +134,24 @@ select app.add_tenant_rls('website_entry_points', 'portal.website_entry_points.w
 -- RLS for the portal tables. Writes go through the service role after can() checks, except
 -- nothing here is writable by `authenticated` directly.
 -- ---------------------------------------------------------------------------
+-- Can the caller read this portal object? Looks the permission up in portal_objects so objects
+-- with a stricter read key (e.g. medication classes) stay consistent across comments, timeline,
+-- attachments and saved views.
+create or replace function app.portal_can_read(p_org_id uuid, p_object_key text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1 from public.portal_objects po
+    where po.org_id = p_org_id and po.key = p_object_key
+      and app.has_perm_wild(p_org_id, po.read_perm)
+  );
+$$;
+grant execute on function app.portal_can_read(uuid, text) to authenticated, service_role;
+
 alter table public.portal_objects enable row level security;
 alter table public.saved_views enable row level security;
 alter table public.portal_record_events enable row level security;
@@ -145,18 +163,18 @@ create policy portal_objects_select on public.portal_objects for select to authe
 
 create policy saved_views_select on public.saved_views for select to authenticated
   using (
-    app.has_perm_wild(org_id, 'portal.' || object_key || '.read') and (
+    app.portal_can_read(org_id, object_key) and (
       owner_id = auth.uid() or shared_all
       or shared_team_ids && array(select app.user_team_ids(org_id))
     )
   );
 
 create policy portal_record_events_select on public.portal_record_events for select to authenticated
-  using (app.has_perm_wild(org_id, 'portal.' || object_key || '.read'));
+  using (app.portal_can_read(org_id, object_key));
 create policy portal_comments_select on public.portal_comments for select to authenticated
-  using (deleted_at is null and app.has_perm_wild(org_id, 'portal.' || object_key || '.read'));
+  using (deleted_at is null and app.portal_can_read(org_id, object_key));
 create policy portal_attachments_select on public.portal_attachments for select to authenticated
-  using (app.has_perm_wild(org_id, 'portal.' || object_key || '.read'));
+  using (app.portal_can_read(org_id, object_key));
 
 -- ---------------------------------------------------------------------------
 -- Table-agnostic search for portal lists / exports. Service role only: the table comes from
@@ -265,8 +283,8 @@ revoke all on function public.portal_ids(uuid, text, text, jsonb, integer) from 
 grant execute on function public.portal_ids(uuid, text, text, jsonb, integer) to service_role;
 
 -- ---------------------------------------------------------------------------
--- Registration of the objects whose tables exist in this phase. Draft-only tables
--- (visits, follow-ups, recall, …) are registered when Phase 6 promotes them.
+-- Registration of the generic portal objects. Clinical settings, the Follow-Up Queue and Sync
+-- Review have dedicated Phase 6 screens (app/(app)/portal/*) and are not repeated here.
 -- Run per org (importer, org bootstrap, seed): select public.seed_portal_objects('<org uuid>');
 -- ---------------------------------------------------------------------------
 create or replace function public.seed_portal_objects(p_org uuid)
@@ -281,8 +299,7 @@ as $$
     (p_org, 'ref_condition_groups',  'Condition groups',     'layers',      'ref_condition_groups',  'app7QJ2pvhADHQeBP.tblZqf4Zcw5Kweadh', 'portal.ref_condition_groups.read',  'portal.ref_condition_groups.write',  20),
     (p_org, 'ref_medications',       'Medications',          'pill',        'ref_medications',       'app7QJ2pvhADHQeBP.tblLM2BXjA680GQws', 'portal.ref_medications.read',       'portal.ref_medications.write',       30),
     (p_org, 'ref_items',             'Items & tests',        'flask',       'ref_items',             'app7QJ2pvhADHQeBP.tblTJtk6aIMbwpoA2', 'portal.ref_items.read',             'portal.ref_items.write',             40),
-    (p_org, 'ref_medication_classes','Medication classes',   'tag',         'ref_medication_classes','appH2jHpsNR1nqEQ2.tblIxa5xUOG3GRwmt', 'portal.ref_medication_classes.read','portal.medication_classes.write',      50),
-    (p_org, 'clinical_settings',     'Clinical settings',    'sliders',     'clinical_settings',     'appH2jHpsNR1nqEQ2.tbl69r1kelxG4g93L', 'portal.clinical_settings.read',     'clinical.settings.manage',           60),
+    (p_org, 'ref_medication_classes','Medication classes',   'tag',         'ref_medication_classes','appH2jHpsNR1nqEQ2.tblIxa5xUOG3GRwmt', 'portal.clinical_visits.read',        'portal.medication_classes.write',      50),
     (p_org, 'website_entry_points',  'Website entry points', 'globe',       'website_entry_points',  'appkOnjPr1SMD83CP.tblpWst9QqYNuKpwZ', 'portal.website_entry_points.read',  'portal.website_entry_points.write',  70)
   on conflict (org_id, key) do nothing;
 $$;

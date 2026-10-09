@@ -289,11 +289,11 @@ describe("importer orchestration", () => {
   });
 });
 
-describe("clinical settings sign-off rules", () => {
+describe("clinical settings: sign-off stays in Pulse", () => {
   const S = (id: string, f: Record<string, unknown>) =>
     rec(id, { fldpn14HNQN3BFEfc: `Param ${id}`, fld7M5zm094N0rlcm: "GP / Adults", ...f });
 
-  it("never overwrites a signed-off setting, never trusts an unsigned 'approved', and fails closed on unknown categories", async () => {
+  it("never signs anything off, leaves signed-off rows alone, and fails closed on unknown categories", async () => {
     const store = new MemoryStore();
     await store.insertRow("clinical_settings", {
       key: "signed",
@@ -323,37 +323,53 @@ describe("clinical settings sign-off rules", () => {
           fld51DuMTqkow2Qic: "2026-02-02",
           fldezo13piyceP6Ex: "Approved",
         }),
-        S("recU", { fldg7eo4b6905Vouh: "new", fldezo13piyceP6Ex: "Approved" }), // approved but unsigned
-        S("recN", { fldg7eo4b6905Vouh: "x", fld7M5zm094N0rlcm: "GP / Adults" }),
+        S("recU", {
+          fldg7eo4b6905Vouh: "new",
+          fld5xepAeK9pdB6mE: "7",
+          fldU8lQx3G30drRGi: "Someone",
+          fld51DuMTqkow2Qic: "2026-02-02",
+          fldezo13piyceP6Ex: "Approved",
+        }),
+        S("recN", {
+          fldg7eo4b6905Vouh: "x",
+          fldezo13piyceP6Ex: "Approved",
+          fld5xepAeK9pdB6mE: "9",
+        }),
+        S("recB", { fldg7eo4b6905Vouh: "y", fldezo13piyceP6Ex: "Blocking" }),
         S("recX", { fld7M5zm094N0rlcm: "Astrology" }),
       ],
     });
     const run = await runImport({ store, source }, { ...baseOpts, only: ["acute.settings"] });
     const rows = store.rows("clinical_settings");
-    expect(rows.find((r) => r.airtable_record_id === "recS")).toMatchObject({
+    const by = (id: string) => rows.find((r) => r.airtable_record_id === id);
+    // signed-off row untouched, even though Airtable disagrees
+    expect(by("recS")).toMatchObject({
       approved_value: "5",
       signed_by: "Dr Fake",
       proposed_value: "5",
+      sign_off_status: "approved",
     });
-    expect(rows.find((r) => r.airtable_record_id === "recU")).toMatchObject({
-      proposed_value: "new",
-      sign_off_status: "awaiting",
-    });
-    expect(rows.find((r) => r.airtable_record_id === "recU")?.approved_value).toBeUndefined();
-    expect(rows.find((r) => r.airtable_record_id === "recN")).toMatchObject({
-      category: "gp_adults",
+    // open row: proposal refreshed, still awaiting, no approval imported
+    expect(by("recU")).toMatchObject({ proposed_value: "new", sign_off_status: "awaiting" });
+    expect(by("recU")?.approved_value).toBeUndefined();
+    expect(by("recU")?.signed_by).toBeUndefined();
+    // new rows: "Approved" in Airtable lands as awaiting; blocking is preserved
+    expect(by("recN")).toMatchObject({
       sign_off_status: "awaiting",
       source: "airtable",
       key: "param_recn",
     });
-    expect(rows.find((r) => r.airtable_record_id === "recX")).toBeUndefined();
+    expect(by("recN")?.approved_value).toBeUndefined();
+    expect(by("recB")?.sign_off_status).toBe("blocking");
+    expect(by("recX")).toBeUndefined();
     const r = run.results[0];
     expect(r.failures).toEqual([["recX", "unknown_category"]]);
-    expect(r.warnings).toMatchObject({ kept_signed_off_setting: 1, approved_without_signature: 1 });
+    expect(r.warnings).toMatchObject({ kept_signed_off_setting: 1 });
+    expect(r.warnings.airtable_sign_off_not_imported).toBeGreaterThanOrEqual(3);
     expect(r.verdict).toBe("FAIL");
   });
 
-  it("a fully signed Airtable row signs off an open setting", async () => {
+  it("a fully signed Airtable row does not sign off an open setting", async () => {
     const store = new MemoryStore();
     await store.insertRow("clinical_settings", {
       key: "k",
@@ -372,13 +388,12 @@ describe("clinical settings sign-off rules", () => {
         }),
       ],
     });
-    await runImport({ store, source }, { ...baseOpts, only: ["acute.settings"] });
-    expect(store.rows("clinical_settings")[0]).toMatchObject({
-      sign_off_status: "approved",
-      approved_value: "48 hours",
-      signed_by: "Dr Fake",
-      signed_at: "2026-03-03",
-    });
+    const run = await runImport({ store, source }, { ...baseOpts, only: ["acute.settings"] });
+    const row = store.rows("clinical_settings")[0];
+    expect(row.sign_off_status).toBe("awaiting");
+    expect(row.approved_value).toBeUndefined();
+    expect(row.signed_by).toBeUndefined();
+    expect(run.results[0].warnings.airtable_sign_off_not_imported).toBe(1);
   });
 });
 

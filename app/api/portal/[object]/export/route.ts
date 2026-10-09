@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { recordAudit } from "@/lib/audit";
+import { can } from "@/lib/auth/can";
 import { getCurrentMember } from "@/lib/auth/session";
 import { filterSchema } from "@/lib/filters/ast";
 import { portalRowsToCsv } from "@/lib/portal/export";
-import { canReadObject } from "@/lib/portal/permissions";
 import { fetchPortalRows, matchingPortalIds, MAX_EXPORT } from "@/lib/portal/query";
 import { loadPortalRegistry, resolveEnabledObject } from "@/lib/portal/server";
 import { resolveLinks } from "@/lib/portal/service";
@@ -29,7 +29,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ object: string
   const admin = createAdminClient();
   const def = await resolveEnabledObject(admin, member.orgId, object);
   // Unknown and forbidden look the same.
-  if (!def || !canReadObject(member, def))
+  if (!def || !can(member, def.readPerm))
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
   const parsed = bodySchema.safeParse(await req.json().catch(() => ({})));

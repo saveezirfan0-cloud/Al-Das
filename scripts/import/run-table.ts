@@ -171,7 +171,7 @@ async function writeGeneric(
 }
 
 // ---------------------------------------------------------------------------
-// clinical_settings: sign-off rules
+// clinical_settings: sign-off stays in Pulse
 // ---------------------------------------------------------------------------
 
 const SETTING_CATEGORIES = new Set([
@@ -187,9 +187,11 @@ const SETTING_CATEGORIES = new Set([
 const SIGN_OFF = new Set(["blocking", "awaiting", "confirm_exclusion", "approved"]);
 
 /**
- * Clinical settings are governed data: a signed-off row in Pulse is never overwritten, an
- * "approved" status only counts when an approved value, signer and date all exist, and Airtable
- * can never downgrade a sign-off. Unknown categories fail closed (row not imported).
+ * Clinical settings are governed data. Phase 6 made sign-off a Pulse workflow (clinical.settings.manage,
+ * confirm phrase, history trigger recording who signed what and when), so the importer NEVER signs
+ * anything off: an "approved" status, approved value or signature in Airtable is reported and ignored,
+ * and the setting stays awaiting until a clinical lead signs it in Pulse. Existing signed-off rows
+ * are untouched. Unknown categories fail closed (row not imported).
  */
 async function writeSetting(
   mapped: MappedRow,
@@ -204,36 +206,30 @@ async function writeSetting(
   existing ??= await store.findOne("clinical_settings", { airtable_record_id: mapped.recordId });
   existing ??= await store.findOne("clinical_settings", { label: v.label });
 
-  const signed = !!(v.approved_value && v.signed_by && v.signed_at);
+  if (v.approved_value || v.signed_by || v.signed_at || v.sign_off_status === "approved")
+    addWarning(result.warnings, "airtable_sign_off_not_imported");
   let status =
     typeof v.sign_off_status === "string" && SIGN_OFF.has(v.sign_off_status)
       ? v.sign_off_status
       : null;
   if (v.sign_off_status && !status) addWarning(result.warnings, "unknown_sign_off_status");
-  if (status === "approved" && !signed) {
-    addWarning(result.warnings, "approved_without_signature");
-    status = null; // never trust an unsigned "approved"
-  }
+  if (status === "approved") status = "awaiting";
 
   if (!existing) {
     const category = typeof v.category === "string" ? v.category : "";
     if (!SETTING_CATEGORIES.has(category)) return { outcome: "failed", error: "unknown_category" };
-    const row = {
+    const ins = await store.insertRow("clinical_settings", {
       key: slug(v.label).slice(0, 80),
       label: v.label,
       category,
       value_type: "text",
       proposed_value: v.proposed_value,
-      approved_value: signed ? v.approved_value : null,
       sign_off_status: status ?? "awaiting",
       owner: v.owner,
       notes: v.notes,
-      signed_by: signed ? v.signed_by : null,
-      signed_at: signed ? v.signed_at : null,
       source: "airtable",
       airtable_record_id: mapped.recordId,
-    };
-    const ins = await store.insertRow("clinical_settings", row);
+    });
     if ("error" in ins) return { outcome: "failed", error: ins.error };
     await store.upsertRef({
       entity,
@@ -245,25 +241,11 @@ async function writeSetting(
   }
 
   const patch: Record<string, unknown> = {};
-  const keepSigned = existing.sign_off_status === "approved";
-  if (keepSigned) {
+  if (existing.sign_off_status === "approved") {
     addWarning(result.warnings, "kept_signed_off_setting");
   } else {
-    for (const col of ["proposed_value", "owner", "notes"] as const) {
+    for (const col of ["proposed_value", "owner", "notes"] as const)
       if (v[col] !== null && !sameValue(existing[col], v[col])) patch[col] = v[col];
-    }
-    if (signed) {
-      for (const col of ["approved_value", "signed_by", "signed_at"] as const)
-        if (!sameValue(existing[col], v[col])) patch[col] = v[col];
-      if (existing.sign_off_status !== "approved") patch.sign_off_status = "approved";
-    } else if (
-      status &&
-      status !== "approved" &&
-      existing.sign_off_status !== status &&
-      existing.sign_off_status === "awaiting"
-    ) {
-      patch.sign_off_status = status; // only moves out of the default 'awaiting'
-    }
     if (!existing.airtable_record_id) patch.airtable_record_id = mapped.recordId;
   }
   if (Object.keys(patch).length > 0) {

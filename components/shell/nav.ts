@@ -1,3 +1,4 @@
+import { PORTAL_SECTIONS } from "@/app/(app)/portal/sections";
 import { PORTAL_OBJECTS } from "@/lib/portal/objects";
 
 /** Left-nav modules. `permission` hides the entry for members without it. */
@@ -13,6 +14,7 @@ export type NavIcon =
   | "flows"
   | "portal"
   | "reports"
+  | "finance"
   | "settings";
 
 export type NavItem = {
@@ -20,8 +22,8 @@ export type NavItem = {
   label: string;
   icon: NavIcon;
   permission?: string;
-  /** Visible when the member holds at least one of these (e.g. any portal object). */
-  anyPermission?: readonly string[];
+  /** Visible when the member holds at least one of these. */
+  permissions?: readonly string[];
 };
 
 export const NAV_ITEMS: readonly NavItem[] = [
@@ -43,9 +45,21 @@ export const NAV_ITEMS: readonly NavItem[] = [
     href: "/portal",
     label: "Portal",
     icon: "portal",
-    anyPermission: PORTAL_OBJECTS.map((o) => o.readPerm),
+    permissions: [...PORTAL_SECTIONS.map((x) => x.read), ...PORTAL_OBJECTS.map((o) => o.readPerm)],
   },
   { href: "/reports", label: "Reports", icon: "reports", permission: "reports.view" },
+  {
+    href: "/finance",
+    label: "Finance",
+    icon: "finance",
+    permissions: [
+      "finance.view",
+      "finance.invoices.view",
+      "finance.claims.view",
+      "finance.exceptions.manage",
+      "finance.capture.manage",
+    ],
+  },
   { href: "/settings", label: "Settings", icon: "settings" },
 ];
 

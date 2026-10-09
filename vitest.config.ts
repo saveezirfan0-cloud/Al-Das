@@ -2,6 +2,8 @@ import { defineConfig } from "vitest/config";
 import path from "node:path";
 
 export default defineConfig({
+  // tsconfig keeps JSX as-is for Next; tests need it compiled.
+  oxc: { jsx: { runtime: "automatic" } },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "."),
@@ -10,7 +12,7 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["tests/unit/**/*.test.ts", "tests/db/**/*.test.ts", "lib/**/*.test.ts"],
+    include: ["tests/unit/**/*.test.{ts,tsx}", "tests/db/**/*.test.ts", "lib/**/*.test.ts"],
     exclude: ["tests/e2e/**", "node_modules/**"],
     setupFiles: ["tests/setup.ts"],
     testTimeout: 20_000,

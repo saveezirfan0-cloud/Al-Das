@@ -16,7 +16,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const items = NAV_ITEMS.filter(
     (i) =>
       (!i.permission || can(member, i.permission)) &&
-      (!i.anyPermission || canAny(member, i.anyPermission)),
+      (!i.permissions || canAny(member, i.permissions)),
   );
 
   const supabase = await createClient();

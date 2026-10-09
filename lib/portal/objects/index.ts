@@ -1,6 +1,5 @@
 import type { PortalObjectDef } from "@/lib/portal/types";
 
-import { CLINICAL_SETTINGS } from "./clinical";
 import {
   REF_CONDITION_GROUPS,
   REF_DIAGNOSES,
@@ -11,9 +10,9 @@ import {
 import { WEBSITE_ENTRY_POINTS } from "./website";
 
 /**
- * Every object the portal can expose. Phase 9 registers the objects whose tables exist; the
- * draft-only objects (visits, follow-ups, recall, prescription sequences, clinic calendar)
- * are added here in Phase 6 when supabase/drafts 0102–0105 are promoted.
+ * Every generic (registry-driven) portal object. Clinical settings, the Follow-Up Queue and Sync
+ * Review are dedicated Phase 6 screens (app/(app)/portal/sections.ts) with their own workflows
+ * and are deliberately not duplicated here. Recall tables (drafts 0104) join when they are promoted.
  */
 export const PORTAL_OBJECTS: readonly PortalObjectDef[] = [
   REF_DIAGNOSES,
@@ -21,7 +20,6 @@ export const PORTAL_OBJECTS: readonly PortalObjectDef[] = [
   REF_MEDICATIONS,
   REF_ITEMS,
   REF_MEDICATION_CLASSES,
-  CLINICAL_SETTINGS,
   WEBSITE_ENTRY_POINTS,
 ];
 

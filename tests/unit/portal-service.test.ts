@@ -117,15 +117,11 @@ describe("portal service", () => {
     expect(events.map((e) => e.name)).toEqual(["portal.record_created"]);
   });
 
-  it("refuses to create objects that are not creatable here", async () => {
+  it("throws on an object that is not in the registry (e.g. the dedicated clinical settings screen)", async () => {
     const { client } = fakeAdmin();
-    const res = await createRecord(
-      client,
-      { ...manager, permissions: ["*"] },
-      "clinical_settings",
-      { label: "x" },
-    );
-    expect(res).toMatchObject({ ok: false, error: expect.stringMatching(/cannot be created/) });
+    await expect(
+      createRecord(client, { ...manager, permissions: ["*"] }, "clinical_settings", { label: "x" }),
+    ).rejects.toThrow(/Unknown portal object/);
   });
 
   it("updates only changed fields and records a field-level diff", async () => {

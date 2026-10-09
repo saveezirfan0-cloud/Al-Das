@@ -173,7 +173,8 @@ export const REF_MEDICATION_CLASSES: PortalObjectDef = {
   table: "ref_medication_classes",
   titleColumn: "unite_local_code",
   sourceAirtable: `${AT_ACUTE}.tblIxa5xUOG3GRwmt`,
-  readPerm: "portal.ref_medication_classes.read",
+  // Same key the table's RLS uses (Phase 6): medication classes drive clinical sequences.
+  readPerm: "portal.clinical_visits.read",
   writePerm: "portal.medication_classes.write",
   sort: 50,
   allowCreate: true,

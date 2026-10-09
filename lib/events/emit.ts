@@ -19,6 +19,11 @@ export type DomainEventName =
   | "contact.stop_marketing"
   | "channel.quality_changed"
   | "template.status_changed"
+  | "appointment.created"
+  | "appointment.updated"
+  | "appointment.status_changed"
+  | "appointment.reminder_sent"
+  | "appointment.reminder_failed"
   | "portal.record_created"
   | "portal.record_updated"
   | "portal.record_deleted";

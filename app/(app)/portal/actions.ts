@@ -7,10 +7,10 @@ import { z } from "zod";
 
 import { recordAudit } from "@/lib/audit";
 import { filterSchema } from "@/lib/filters/ast";
+import { can } from "@/lib/auth/can";
 import { requireMember } from "@/lib/auth/session";
 import { loose } from "@/lib/portal/db";
 import { countPortal, queryPortal, MAX_PAGE_SIZE } from "@/lib/portal/query";
-import { canReadObject, canWriteObject } from "@/lib/portal/permissions";
 import {
   addComment,
   addRecordEvent,
@@ -36,13 +36,18 @@ const fail = (error: string): { ok: false; error: string } => ({ ok: false, erro
 const uuid = z.string().uuid();
 const objectKey = z.string().regex(/^[a-z][a-z0-9_]{0,48}$/);
 
+/** Write access to an object: its own write key (portal.<object>.write, covered by portal.*). */
+function canWrite(member: Parameters<typeof can>[0], def: PortalObjectDef): boolean {
+  return !!def.writePerm && can(member, def.writePerm);
+}
+
 /** Resolves the object, enforcing org enablement and the read permission. */
 async function readable(key: string) {
   const member = await requireMember();
   const admin = createAdminClient();
   const k = objectKey.safeParse(key);
   const def = k.success ? await resolveEnabledObject(admin, member.orgId, k.data) : null;
-  if (!def || !canReadObject(member, def)) return { member, admin, def: null as null };
+  if (!def || !can(member, def.readPerm)) return { member, admin, def: null as null };
   return { member, admin, def: def as PortalObjectDef };
 }
 
@@ -239,6 +244,7 @@ export async function createPortalRecord(
 ): Promise<ActionResult<{ id: string }>> {
   const { member, admin, def } = await writableContext(key);
   if (!def) return fail("Unknown object.");
+  if (!canWrite(member, def)) return fail("You do not have permission to do that.");
   const res = await createRecord(admin, member, def.key, values);
   if (!res.ok) return res;
   revalidatePath(`/portal/${def.key}`);
@@ -252,6 +258,7 @@ export async function updatePortalRecord(
 ): Promise<ActionResult<PortalRow>> {
   const { member, admin, def } = await writableContext(key);
   if (!def) return fail("Unknown object.");
+  if (!canWrite(member, def)) return fail("You do not have permission to do that.");
   if (!uuid.safeParse(id).success) return fail("Invalid record.");
   const res = await updateRecord(admin, member, def.key, id, values);
   if (!res.ok) return res;
@@ -265,6 +272,7 @@ export async function deletePortalRecord(
 ): Promise<ActionResult<{ id: string }>> {
   const { member, admin, def } = await writableContext(key);
   if (!def) return fail("Unknown object.");
+  if (!canWrite(member, def)) return fail("You do not have permission to do that.");
   if (!uuid.safeParse(id).success) return fail("Invalid record.");
   const res = await deleteRecord(admin, member, def.key, id);
   if (!res.ok) return res;
@@ -303,8 +311,7 @@ export async function createPortalUpload(
   input: z.input<typeof uploadSchema>,
 ): Promise<ActionResult<{ path: string; token: string }>> {
   const { member, admin, def } = await readable(key);
-  if (!def || !canWriteObject(member, def))
-    return fail("You do not have permission to attach files.");
+  if (!def || !canWrite(member, def)) return fail("You do not have permission to attach files.");
   const parsed = uploadSchema.safeParse(input);
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid input");
   const rec = await getRecord(admin, member, def, parsed.data.recordId);
@@ -323,8 +330,7 @@ export async function registerPortalAttachment(
   input: z.input<typeof registerSchema>,
 ): Promise<ActionResult<{ id: string }>> {
   const { member, admin, def } = await readable(key);
-  if (!def || !canWriteObject(member, def))
-    return fail("You do not have permission to attach files.");
+  if (!def || !canWrite(member, def)) return fail("You do not have permission to attach files.");
   const parsed = registerSchema.safeParse(input);
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid input");
   const d = parsed.data;
@@ -352,6 +358,13 @@ export async function registerPortalAttachment(
     type: "attachment",
     actorId: member.userId,
     payload: { file_name: d.fileName },
+  });
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "portal.attachment_added",
+    entity: def.key,
+    entityId: d.recordId,
   });
   return { ok: true, data: { id: data.id as string } };
 }
@@ -383,7 +396,7 @@ export async function deletePortalAttachment(
   attachmentId: string,
 ): Promise<ActionResult> {
   const { member, admin, def } = await readable(key);
-  if (!def || !canWriteObject(member, def))
+  if (!def || !canWrite(member, def))
     return fail("You do not have permission to remove attachments.");
   if (!uuid.safeParse(attachmentId).success) return fail("Invalid attachment.");
   const l = loose(admin);
@@ -443,7 +456,7 @@ export async function savePortalView(
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid input");
   const v = parsed.data;
   // Sharing makes a view visible to colleagues; only people who can edit the object share.
-  if ((v.sharedAll || v.sharedTeamIds.length > 0) && !canWriteObject(member, def))
+  if ((v.sharedAll || v.sharedTeamIds.length > 0) && !canWrite(member, def))
     return fail("You can save private views only.");
   const row = {
     org_id: member.orgId,
@@ -468,10 +481,26 @@ export async function savePortalView(
       .select("id")
       .maybeSingle();
     if (error || !data) return fail("Could not update the view.");
+    await recordAudit(admin, {
+      orgId: member.orgId,
+      userId: member.userId,
+      action: "portal.view_updated",
+      entity: def.key,
+      entityId: data.id as string,
+      diff: { shared: v.sharedAll },
+    });
     return { ok: true, data: { id: data.id as string }, message: "View updated." };
   }
   const { data, error } = await l.from("saved_views").insert(row).select("id").single();
   if (error || !data) return fail("Could not save the view.");
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "portal.view_saved",
+    entity: def.key,
+    entityId: data.id as string,
+    diff: { shared: v.sharedAll },
+  });
   return { ok: true, data: { id: data.id as string }, message: "View saved." };
 }
 
@@ -488,6 +517,13 @@ export async function deletePortalView(key: string, id: string): Promise<ActionR
     .eq("owner_id", member.userId)
     .select("id");
   if (error || !data || data.length === 0) return fail("Only the owner can delete a view.");
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "portal.view_deleted",
+    entity: def.key,
+    entityId: id,
+  });
   return { ok: true, data: undefined, message: "View deleted." };
 }
 

@@ -23,7 +23,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { AirtableClient } from "./import/airtable-client";
-import { adminFromEnv, parseArgs, resolveOrg, writeReport } from "./import/common";
+import { adminFromEnv, parseArgs, resolveOrg, writeReport, writeSummary } from "./import/common";
 import { runImport } from "./import/orchestrator";
 import { runPatientTable } from "./import/patients";
 import { REGISTRY } from "./import/registry";
@@ -135,8 +135,38 @@ async function main() {
 
   const md = renderReport(run, { org: org.slug });
   const file = writeReport("airtable", md);
+  // Machine-readable twin (counts only) read by `pnpm reconcile`. Its accounting identity is
+  // created + updated + skipped + invalid + duplicates + review + failed = read, so rows that were
+  // found unchanged or adopted on their natural key count as "updated". Only tables this run
+  // actually imported or validated are included.
+  const runAt = new Date().toISOString();
+  const summaryFile = writeSummary(
+    "airtable",
+    run.results
+      .filter((r) => r.outcome === "imported" || r.outcome === "validated")
+      .map((r) => ({
+        source: "airtable",
+        entity: r.entity,
+        label: r.name,
+        runAt,
+        dryRun: dryRun || r.outcome === "validated",
+        since: opts.since ?? null,
+        includeTestRecords: flags.has("include-test-records"),
+        counters: {
+          read: r.counters.read,
+          created: r.counters.created,
+          updated: r.counters.updated + r.counters.unchanged + r.counters.adopted,
+          skipped: r.counters.skipped,
+          invalid: r.counters.invalid,
+          duplicates: r.counters.duplicates,
+          review: r.counters.review,
+          failed: r.counters.failed,
+        },
+      })),
+  );
   console.log(md);
   console.log(`report → ${file}`);
+  console.log(`summary → ${summaryFile}`);
   if (overallVerdict(run.results) === "FAIL") process.exit(2);
 }
 

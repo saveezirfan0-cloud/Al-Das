@@ -277,6 +277,19 @@ describe.skipIf(!TEST_DATABASE_URL)("Airtable importer against the real schema",
     ).toBe(0);
   });
 
+  it("an Airtable approval is never imported; the Pulse sign-off workflow owns it", async () => {
+    await run(false);
+    const { rows } = await c.query(
+      "select sign_off_status, approved_value, signed_by from public.clinical_settings where org_id=$1 and airtable_record_id='recNEW000000001'",
+      [orgA],
+    );
+    expect(rows[0]).toMatchObject({
+      sign_off_status: "blocking",
+      approved_value: null,
+      signed_by: null,
+    });
+  });
+
   it("a signed-off setting survives a re-import", async () => {
     await asServiceRole(c, () =>
       c.query(

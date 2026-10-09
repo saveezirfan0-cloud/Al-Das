@@ -147,8 +147,8 @@ describe.skipIf(!TEST_DATABASE_URL)("portal framework", () => {
     });
 
     it("portal_objects is visible only to members who can read the object", async () => {
-      expect(await asUser(c, alice, () => count(c, "select 1 from public.portal_objects"))).toBe(7);
-      expect(await asUser(c, erin, () => count(c, "select 1 from public.portal_objects"))).toBe(7);
+      expect(await asUser(c, alice, () => count(c, "select 1 from public.portal_objects"))).toBe(6);
+      expect(await asUser(c, erin, () => count(c, "select 1 from public.portal_objects"))).toBe(6);
       expect(await asUser(c, frank, () => count(c, "select 1 from public.portal_objects"))).toBe(0);
       expect(
         await asUser(c, bob, () =>
@@ -163,7 +163,7 @@ describe.skipIf(!TEST_DATABASE_URL)("portal framework", () => {
         await asServiceRole(c, () =>
           count(c, "select 1 from public.portal_objects where org_id = $1", [orgA]),
         ),
-      ).toBe(7);
+      ).toBe(6);
       await expect(
         asUser(c, alice, () => c.query("select public.seed_portal_objects($1)", [orgA])),
       ).rejects.toThrow(/permission denied/);

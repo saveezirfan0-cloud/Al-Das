@@ -14,14 +14,21 @@ const member = (perms: string[], status = "active") => ({ permissions: perms, st
 
 describe("portal permissions", () => {
   const diag = requirePortalObject("ref_diagnoses");
-  const settings = requirePortalObject("clinical_settings");
+  const classes = requirePortalObject("ref_medication_classes");
 
-  it("Manager (portal.*) reads and writes every object but cannot sign off clinical settings", () => {
+  it("Manager (portal.*) reads and writes every object", () => {
     const m = member(role("Manager").permissions);
-    expect(canReadObject(m, diag)).toBe(true);
-    expect(canWriteObject(m, diag)).toBe(true);
-    expect(canReadObject(m, settings)).toBe(true);
-    expect(canWriteObject(m, settings)).toBe(false);
+    for (const o of [diag, classes]) {
+      expect(canReadObject(m, o)).toBe(true);
+      expect(canWriteObject(m, o)).toBe(true);
+    }
+  });
+
+  it("medication classes use the stricter clinical read key, matching the table's RLS", () => {
+    expect(classes.readPerm).toBe("portal.clinical_visits.read");
+    expect(canReadObject(member(["portal.ref_medication_classes.read"]), classes)).toBe(false);
+    expect(canReadObject(member(["portal.clinical_visits.read"]), classes)).toBe(true);
+    expect(canWriteObject(member(["portal.medication_classes.write"]), classes)).toBe(true);
   });
 
   it("Agent / Receptionist (portal.*.read) read only", () => {
@@ -40,10 +47,6 @@ describe("portal permissions", () => {
   it("a per-object key grants only that object", () => {
     const m = member(["portal.ref_items.read"]);
     expect(readableObjects(m).map((o) => o.key)).toEqual(["ref_items"]);
-  });
-
-  it("clinical.settings.manage unlocks settings writes", () => {
-    expect(canWriteObject(member(["clinical.settings.manage"]), settings)).toBe(true);
   });
 
   it("suspended members and missing members have no access", () => {

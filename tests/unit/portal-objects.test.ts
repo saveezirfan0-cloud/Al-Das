@@ -8,7 +8,7 @@ import { portalObjectPermissionKeys, isPortalPermissionKey } from "@/lib/portal/
 import { isAssignablePermission } from "@/lib/auth/permissions";
 
 const MIGRATIONS = join(__dirname, "../../supabase/migrations");
-const framework = readFileSync(join(MIGRATIONS, "20261008001100_portal_framework.sql"), "utf8");
+const framework = readFileSync(join(MIGRATIONS, "20261009001100_portal_framework.sql"), "utf8");
 
 describe("portal object registry", () => {
   it("has unique object keys and unique, snake_case column keys", () => {
@@ -44,7 +44,11 @@ describe("portal object registry", () => {
 
   it("permission keys follow the portal.<object>.read|write convention", () => {
     for (const o of PORTAL_OBJECTS) {
-      expect(o.readPerm).toBe(`portal.${o.key}.read`);
+      // Objects whose table RLS (Phase 6) uses a stricter clinical key name it explicitly.
+      const STRICTER: Record<string, string> = {
+        ref_medication_classes: "portal.clinical_visits.read",
+      };
+      expect(o.readPerm).toBe(STRICTER[o.key] ?? `portal.${o.key}.read`);
       if (o.writePerm) expect(isPortalPermissionKey(o.writePerm)).toBe(true);
       expect(isAssignablePermission(o.readPerm)).toBe(true);
     }
