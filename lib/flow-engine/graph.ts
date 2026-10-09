@@ -21,7 +21,7 @@ import {
 export type GraphIssue = { severity: "error" | "warning"; nodeId?: string; message: string };
 
 /** Nodes that talk to the patient or act on the conversation. */
-const NEEDS_CONVERSATION: ReadonlySet<NodeType> = new Set<NodeType>([
+export const NEEDS_CONVERSATION: ReadonlySet<NodeType> = new Set<NodeType>([
   "message",
   "question",
   "quick_reply",
@@ -203,8 +203,11 @@ export function validateGraph(
     const queue = [trigger.id];
     while (queue.length) {
       const cur = queue.pop()!;
-      for (const e of graph.edges)
-        if (e.source === cur && !reach.has(e.target)) (reach.add(e.target), queue.push(e.target));
+      for (const e of graph.edges) {
+        if (e.source !== cur || reach.has(e.target)) continue;
+        reach.add(e.target);
+        queue.push(e.target);
+      }
     }
     for (const n of graph.nodes)
       if (!reach.has(n.id))
@@ -284,4 +287,9 @@ function hasWaitFreeCycle(graph: FlowGraph): boolean {
     return false;
   };
   return graph.nodes.some((n) => visit(n.id));
+}
+
+/** True when any step messages the patient or acts on the conversation. */
+export function graphNeedsConversation(graph: FlowGraph): boolean {
+  return graph.nodes.some((n) => NEEDS_CONVERSATION.has(n.type));
 }

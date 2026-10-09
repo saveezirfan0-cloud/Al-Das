@@ -10,6 +10,8 @@ export const UNGUARDED_OK: Record<string, string> = {
     "Pre-auth by definition; Supabase Auth verifies credentials. Rate-limited per IP and per e-mail.",
   "app/(auth)/login/actions.ts::sendMagicLink":
     "Pre-auth; shouldCreateUser is false. Rate-limited per IP and per e-mail.",
+  "app/api/flows/hooks/[token]/route.ts::POST":
+    "Authorised by the per-flow secret in the path (only its hash is stored); unknown tokens are rate-limited per IP and accepted calls per flow.",
   "app/api/jobs/[queue]/route.ts::GET": "Returns 405.",
   "app/api/webhooks/meta/route.ts::GET":
     "Meta verification handshake; compares hub.verify_token and echoes the challenge only.",

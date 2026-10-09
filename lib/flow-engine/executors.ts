@@ -197,6 +197,7 @@ export const executors: { [K in NodeType]: Exec<K> } = {
       pipelineId: d.pipelineId,
       stageId: d.stageId,
       status: d.status,
+      lostReason: d.lostReason,
       subject: d.subject ? i(env, d.subject) : undefined,
     });
     return next("default", {
@@ -253,8 +254,8 @@ export const executors: { [K in NodeType]: Exec<K> } = {
       action: "create",
       specialistId: d.specialistId,
       locationId: d.locationId,
+      serviceId: d.serviceId,
       startsAt,
-      durationMinutes: d.durationMinutes,
     });
     return next("default", {
       output: { id: res.id },

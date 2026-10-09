@@ -3316,6 +3316,399 @@ export type Database = {
           },
         ];
       };
+      flow_locks: {
+        Row: {
+          expires_at: string;
+          holder: string;
+          key: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          expires_at: string;
+          holder: string;
+          key: string;
+        };
+        Update: {
+          expires_at?: string;
+          holder?: string;
+          key?: string;
+        };
+        Relationships: [];
+      };
+      flow_run_steps: {
+        Row: {
+          detail: NonNullable<Json>;
+          duration_ms: number | null;
+          error: string | null;
+          handle: string | null;
+          id: string;
+          node_id: string;
+          node_type: string;
+          org_id: string;
+          run_id: string;
+          seq: number;
+          started_at: string;
+          status: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          detail?: NonNullable<Json>;
+          duration_ms?: number | null;
+          error?: string | null;
+          handle?: string | null;
+          id?: string;
+          node_id: string;
+          node_type: string;
+          org_id: string;
+          run_id: string;
+          seq: number;
+          started_at?: string;
+          status: string;
+        };
+        Update: {
+          detail?: NonNullable<Json>;
+          duration_ms?: number | null;
+          error?: string | null;
+          handle?: string | null;
+          id?: string;
+          node_id?: string;
+          node_type?: string;
+          org_id?: string;
+          run_id?: string;
+          seq?: number;
+          started_at?: string;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "flow_run_steps_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "flow_run_steps_run_id_fkey";
+            columns: ["run_id"];
+            isOneToOne: false;
+            referencedRelation: "flow_runs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      flow_runs: {
+        Row: {
+          cancel_reason: string | null;
+          contact_id: string | null;
+          context: NonNullable<Json>;
+          conversation_id: string | null;
+          current_node_id: string | null;
+          depth: number;
+          error: string | null;
+          event: NonNullable<Json>;
+          finished_at: string | null;
+          flow_id: string;
+          flow_version: number;
+          id: string;
+          org_id: string;
+          parent_run_id: string | null;
+          started_at: string;
+          started_by: string | null;
+          status: string;
+          step_count: number;
+          steps: NonNullable<Json>;
+          trigger_key: string | null;
+          updated_at: string;
+          vars: NonNullable<Json>;
+          wait: Json | null;
+          wait_seq: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          cancel_reason?: string | null;
+          contact_id?: string | null;
+          context?: NonNullable<Json>;
+          conversation_id?: string | null;
+          current_node_id?: string | null;
+          depth?: number;
+          error?: string | null;
+          event?: NonNullable<Json>;
+          finished_at?: string | null;
+          flow_id: string;
+          flow_version: number;
+          id?: string;
+          org_id: string;
+          parent_run_id?: string | null;
+          started_at?: string;
+          started_by?: string | null;
+          status?: string;
+          step_count?: number;
+          steps?: NonNullable<Json>;
+          trigger_key?: string | null;
+          updated_at?: string;
+          vars?: NonNullable<Json>;
+          wait?: Json | null;
+          wait_seq?: number;
+        };
+        Update: {
+          cancel_reason?: string | null;
+          contact_id?: string | null;
+          context?: NonNullable<Json>;
+          conversation_id?: string | null;
+          current_node_id?: string | null;
+          depth?: number;
+          error?: string | null;
+          event?: NonNullable<Json>;
+          finished_at?: string | null;
+          flow_id?: string;
+          flow_version?: number;
+          id?: string;
+          org_id?: string;
+          parent_run_id?: string | null;
+          started_at?: string;
+          started_by?: string | null;
+          status?: string;
+          step_count?: number;
+          steps?: NonNullable<Json>;
+          trigger_key?: string | null;
+          updated_at?: string;
+          vars?: NonNullable<Json>;
+          wait?: Json | null;
+          wait_seq?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "flow_runs_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "flow_runs_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: true;
+            referencedRelation: "conversations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "flow_runs_flow_id_fkey";
+            columns: ["flow_id"];
+            isOneToOne: false;
+            referencedRelation: "flows";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "flow_runs_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "flow_runs_parent_run_id_fkey";
+            columns: ["parent_run_id"];
+            isOneToOne: false;
+            referencedRelation: "flow_runs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "flow_runs_started_by_fkey";
+            columns: ["started_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      flow_variables: {
+        Row: {
+          created_at: string;
+          default_value: string | null;
+          description: string | null;
+          id: string;
+          key: string;
+          label: string | null;
+          org_id: string;
+          updated_at: string;
+          value_type: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          default_value?: string | null;
+          description?: string | null;
+          id?: string;
+          key: string;
+          label?: string | null;
+          org_id: string;
+          updated_at?: string;
+          value_type?: string;
+        };
+        Update: {
+          created_at?: string;
+          default_value?: string | null;
+          description?: string | null;
+          id?: string;
+          key?: string;
+          label?: string | null;
+          org_id?: string;
+          updated_at?: string;
+          value_type?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "flow_variables_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      flow_versions: {
+        Row: {
+          flow_id: string;
+          graph: NonNullable<Json>;
+          id: string;
+          org_id: string;
+          published_at: string;
+          published_by: string | null;
+          version: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          flow_id: string;
+          graph: NonNullable<Json>;
+          id?: string;
+          org_id: string;
+          published_at?: string;
+          published_by?: string | null;
+          version: number;
+        };
+        Update: {
+          flow_id?: string;
+          graph?: NonNullable<Json>;
+          id?: string;
+          org_id?: string;
+          published_at?: string;
+          published_by?: string | null;
+          version?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "flow_versions_flow_id_fkey";
+            columns: ["flow_id"];
+            isOneToOne: false;
+            referencedRelation: "flows";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "flow_versions_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "flow_versions_published_by_fkey";
+            columns: ["published_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      flows: {
+        Row: {
+          channel_id: string | null;
+          conditions: Json | null;
+          created_at: string;
+          created_by: string | null;
+          description: string | null;
+          draft_graph: NonNullable<Json>;
+          id: string;
+          name: string;
+          org_id: string;
+          published_at: string | null;
+          published_by: string | null;
+          status: string;
+          trigger_config: NonNullable<Json>;
+          trigger_type: string;
+          updated_at: string;
+          version: number;
+          webhook_token_hash: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          channel_id?: string | null;
+          conditions?: Json | null;
+          created_at?: string;
+          created_by?: string | null;
+          description?: string | null;
+          draft_graph?: NonNullable<Json>;
+          id?: string;
+          name: string;
+          org_id: string;
+          published_at?: string | null;
+          published_by?: string | null;
+          status?: string;
+          trigger_config?: NonNullable<Json>;
+          trigger_type: string;
+          updated_at?: string;
+          version?: number;
+          webhook_token_hash?: string | null;
+        };
+        Update: {
+          channel_id?: string | null;
+          conditions?: Json | null;
+          created_at?: string;
+          created_by?: string | null;
+          description?: string | null;
+          draft_graph?: NonNullable<Json>;
+          id?: string;
+          name?: string;
+          org_id?: string;
+          published_at?: string | null;
+          published_by?: string | null;
+          status?: string;
+          trigger_config?: NonNullable<Json>;
+          trigger_type?: string;
+          updated_at?: string;
+          version?: number;
+          webhook_token_hash?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "flows_channel_id_fkey";
+            columns: ["channel_id"];
+            isOneToOne: false;
+            referencedRelation: "channels";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "flows_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "flows_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "flows_published_by_fkey";
+            columns: ["published_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       inbox_views: {
         Row: {
           created_at: string;
@@ -7778,6 +8171,17 @@ export type Database = {
           },
         ];
       };
+      v_flow_run_counts: {
+        Row: {
+          completed: number | null;
+          failed: number | null;
+          flow_id: string | null;
+          last_run_at: string | null;
+          live: number | null;
+          org_id: string | null;
+        };
+        Relationships: [];
+      };
       v_followup_queue: {
         Row: {
           age_at_visit: number | null;
@@ -8381,6 +8785,11 @@ export type Database = {
         };
         Returns: number;
       };
+      flow_lock_acquire: {
+        Args: { p_holder: string; p_key: string; p_ttl_seconds?: number };
+        Returns: boolean;
+      };
+      flow_lock_release: { Args: { p_holder: string; p_key: string }; Returns: undefined };
       job_enqueue: {
         Args: { p_delay?: number; p_payload: Json; p_queue: string };
         Returns: number;

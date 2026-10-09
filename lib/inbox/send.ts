@@ -70,6 +70,8 @@ export type QueueOutboundInput = {
   sentByUserId: string | null;
   replyToWaMessageId?: string | null;
   flowRunId?: string | null;
+  /** Extra keys stored beside `send` in the message payload (e.g. flow_step, used to avoid double sends on retry). */
+  extraPayload?: Record<string, unknown>;
   campaignRecipientId?: string | null;
   /** Live chat → outbound_priority; campaigns/automations → outbound. */
   priority?: boolean;
@@ -91,7 +93,7 @@ export async function queueOutbound(
       direction: "out",
       kind,
       body: input.body,
-      payload: { send: spec } as unknown as NonNullable<Json>,
+      payload: { send: spec, ...(input.extraPayload ?? {}) } as unknown as NonNullable<Json>,
       media_path: spec.type === "media" ? spec.media_path : null,
       media_mime: spec.type === "media" ? spec.mime_type : null,
       media_filename: spec.type === "media" ? (spec.filename ?? null) : null,

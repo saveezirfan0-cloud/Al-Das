@@ -17,6 +17,7 @@ import "@/lib/jobs/handlers/webhooks-out";
 import "@/lib/jobs/handlers/appointments";
 import "@/lib/jobs/handlers/unite-sync";
 import "@/lib/jobs/handlers/clinical";
+import "@/lib/jobs/handlers/flow-steps";
 
 import { registerKind } from "@/lib/jobs/scheduler";
 

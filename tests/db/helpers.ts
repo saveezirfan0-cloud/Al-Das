@@ -18,7 +18,7 @@ export async function resetDb(c: Client) {
   await c.query("truncate public.orgs cascade");
   await c.query("truncate public.scheduled_jobs, public.job_runs, public.dead_letters");
   await c.query("delete from auth.users");
-  for (const q of ["outbound", "notifications", "meta_events", "webhooks_out", "kb_ingest"]) {
+  for (const q of ["outbound", "outbound_priority", "notifications", "meta_events", "webhooks_out", "kb_ingest", "flow_steps"]) {
     await c.query(`delete from pgmq.q_${q}`);
     await c.query(`delete from pgmq.a_${q}`);
   }

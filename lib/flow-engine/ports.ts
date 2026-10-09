@@ -17,6 +17,7 @@ export type EnquiryInput = {
   pipelineId?: string;
   stageId?: string;
   status?: "open" | "won" | "lost";
+  lostReason?: string;
   subject?: string;
 };
 
@@ -35,8 +36,8 @@ export type AppointmentInput =
       action: "create";
       specialistId?: string;
       locationId?: string;
+      serviceId?: string;
       startsAt: Date;
-      durationMinutes?: number;
     };
 
 export type HttpInput = {

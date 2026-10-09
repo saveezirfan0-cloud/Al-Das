@@ -95,7 +95,6 @@ export const NODE_TYPES = [
 export type NodeType = (typeof NODE_TYPES)[number];
 
 const text = (max: number) => z.string().trim().min(1).max(max);
-const optId = z.string().trim().min(1).max(80).optional();
 
 export const optionSchema = z.object({
   id: z
@@ -245,6 +244,7 @@ export const nodeDataSchemas = {
     pipelineId: z.string().uuid().optional(),
     stageId: z.string().uuid().optional(),
     status: z.enum(["open", "won", "lost"]).optional(),
+    lostReason: z.string().max(200).optional(),
     subject: z.string().max(200).optional(),
   }),
   add_task: z.object({
@@ -269,8 +269,8 @@ export const nodeDataSchemas = {
     appointmentId: z.string().max(200).optional(),
     specialistId: z.string().uuid().optional(),
     locationId: z.string().uuid().optional(),
+    serviceId: z.string().uuid().optional(),
     startsAt: z.string().max(100).optional(),
-    durationMinutes: z.number().int().min(5).max(480).optional(),
   }),
   api_action: z.object({
     method: z.enum(["GET", "POST"]),

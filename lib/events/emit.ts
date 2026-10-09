@@ -92,7 +92,28 @@ export async function emit(
     }
   }
   await fanoutToWebhooks(event);
+  await queueFlowEvent(event);
   return event;
+}
+
+/** Hand flow-relevant events to the flow_steps queue; the handler decides which flows start. */
+async function queueFlowEvent(event: DomainEvent): Promise<void> {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.NEXT_PUBLIC_SUPABASE_URL) return;
+  try {
+    const { FLOW_EVENTS } = await import("@/lib/flow-engine/triggers");
+    if (!FLOW_EVENTS.has(event.name)) return;
+    const { enqueue } = await import("@/lib/jobs/enqueue");
+    await enqueue("flow_steps", {
+      type: "event",
+      org_id: event.orgId,
+      name: event.name,
+      payload: event.payload,
+      at: event.at.toISOString(),
+    } as never);
+  } catch (err) {
+    // Flows must never break the action that emitted the event.
+    console.error("[events] flow dispatch failed", { name: event.name, error: err instanceof Error ? err.name : "unknown" });
+  }
 }
 
 /** Queue outbound webhook deliveries for this event. Skipped without a configured database (tests, build). */

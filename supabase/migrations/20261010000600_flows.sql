@@ -65,7 +65,8 @@ create table public.flow_runs (
   status text not null default 'running' check (status in ('running', 'waiting', 'completed', 'failed', 'cancelled')),
   conversation_id uuid references public.conversations (id) on delete set null,
   contact_id uuid references public.contacts (id) on delete set null,
-  context jsonb not null default '{}'::jsonb,          -- ids + trimmed event payload (enquiry_id, appointment_id, ...)
+  context jsonb not null default '{}'::jsonb,          -- ids only (enquiry_id, appointment_id, message_id, ...)
+  event jsonb not null default '{}'::jsonb,            -- trimmed trigger payload ({event.*}); webhook bodies live here
   vars jsonb not null default '{}'::jsonb,             -- {vars.KEY}
   steps jsonb not null default '{}'::jsonb,            -- {steps.<node>.response...}
   current_node_id text,
@@ -81,7 +82,7 @@ create table public.flow_runs (
   started_at timestamptz not null default now(),
   finished_at timestamptz,
   updated_at timestamptz not null default now(),
-  check (jsonb_typeof(vars) = 'object' and jsonb_typeof(steps) = 'object' and jsonb_typeof(context) = 'object')
+  check (jsonb_typeof(vars) = 'object' and jsonb_typeof(steps) = 'object' and jsonb_typeof(context) = 'object' and jsonb_typeof(event) = 'object')
 );
 -- One bot run per conversation at a time.
 create unique index flow_runs_live_conversation_uidx on public.flow_runs (conversation_id)

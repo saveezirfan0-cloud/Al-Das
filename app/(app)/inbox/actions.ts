@@ -8,6 +8,7 @@ import { recordAudit } from "@/lib/audit";
 import { can } from "@/lib/auth/can";
 import { requireMember, requirePerm, type CurrentMember } from "@/lib/auth/session";
 import { emit } from "@/lib/events/emit";
+import { cancelConversationRuns } from "@/lib/flow-engine/service";
 import { addTimelineEvent } from "@/lib/contacts/timeline";
 import { contactDisplayName } from "@/lib/inbox/contact-name";
 import { parseMentions } from "@/lib/inbox/mentions";
@@ -54,6 +55,15 @@ function refresh() {
   revalidatePath("/inbox");
 }
 
+/** A person replying (or assigning) takes the conversation over: any bot run on it stops. */
+async function humanTakeover(
+  admin: ReturnType<typeof createAdminClient>,
+  orgId: string,
+  conversation: { id: string; bot_active: boolean },
+) {
+  if (conversation.bot_active) await cancelConversationRuns(admin, orgId, conversation.id, "takeover");
+}
+
 /** Replaces {contact.first_name} style variables in quick replies / free text. */
 function fillVars(
   text: string,
@@ -95,6 +105,7 @@ export async function sendChat(
     return { ok: false, error: "This number is paused or disconnected." };
   const body = fillVars(parsed.data.text, conversation.contacts, member);
   const admin = createAdminClient();
+  await humanTakeover(admin, member.orgId, conversation);
   const msg = await queueOutbound(admin, {
     orgId: member.orgId,
     conversationId: conversation.id,
@@ -167,6 +178,7 @@ export async function sendAttachment(
     caption: d.caption ? fillVars(d.caption, conversation.contacts, member) : undefined,
   };
   const admin = createAdminClient();
+  await humanTakeover(admin, member.orgId, conversation);
   const msg = await queueOutbound(admin, {
     orgId: member.orgId,
     conversationId: conversation.id,
@@ -213,6 +225,7 @@ export async function sendTemplateMessage(
     parsed.data.values,
   );
   if (preview.missing.length) return { ok: false, error: `Fill in: ${preview.missing.join(", ")}` };
+  await humanTakeover(admin, member.orgId, conversation);
   const msg = await queueOutbound(admin, {
     orgId: member.orgId,
     conversationId: conversation.id,
@@ -371,6 +384,7 @@ export async function assignConversation(
     .eq("id", conversation.id);
   if (upErr)
     return { ok: false, error: "Could not assign (is the user a member of this workspace?)." };
+  await humanTakeover(admin, member.orgId, conversation);
   if (parsed.data.user_id && parsed.data.user_id !== member.userId) {
     await createNotification(admin, {
       orgId: member.orgId,
@@ -389,6 +403,37 @@ export async function assignConversation(
   });
   refresh();
   return { ok: true, message: "Assigned.", data: undefined };
+}
+
+/** "Take over" button: stops the bot on this conversation and assigns it to the caller. */
+export async function takeOverConversation(conversationId: string): Promise<ActionResult> {
+  const member = await requireMember();
+  const { error, conversation } = await visibleConversation(member, conversationId);
+  if (error || !conversation) return { ok: false, error: error ?? "Conversation not found." };
+  const admin = createAdminClient();
+  await humanTakeover(admin, member.orgId, conversation);
+  const { error: upErr } = await admin
+    .from("conversations")
+    .update({ assignee_user_id: member.userId, bot_active: false })
+    .eq("id", conversation.id)
+    .eq("org_id", member.orgId);
+  if (upErr) return { ok: false, error: "Could not take over the conversation." };
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "conversation.taken_over",
+    entity: "conversation",
+    entityId: conversation.id,
+    diff: { bot_was_active: conversation.bot_active },
+  });
+  await emit(member.orgId, "conversation.assigned", {
+    conversation_id: conversation.id,
+    user_id: member.userId,
+    team_id: conversation.assignee_team_id,
+    by: member.userId,
+  });
+  refresh();
+  return { ok: true, message: "You took over this conversation.", data: undefined };
 }
 
 /** Round-robin to the next online member of the conversation's team (or the default team). */
@@ -480,6 +525,8 @@ export async function closeConversation(input: z.input<typeof closeSchema>): Pro
     })
     .eq("id", conversation.id);
   if (upErr) return { ok: false, error: "Could not close the conversation." };
+  if (conversation.bot_active)
+    await cancelConversationRuns(admin, member.orgId, conversation.id, "conversation_closed");
   await emit(member.orgId, "conversation.closed", {
     conversation_id: conversation.id,
     category_id: parsed.data.category_id,

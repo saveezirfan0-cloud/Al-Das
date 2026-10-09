@@ -323,9 +323,7 @@ describe("CRM nodes", () => {
       status: "confirmed",
       appointmentId: "A-77",
     });
-    const c = run(
-      node("appointment", { action: "create", startsAt: "{vars.when}", durationMinutes: 30 }),
-    );
+    const c = run(node("appointment", { action: "create", startsAt: "{vars.when}" }));
     const res = next(await c.promise);
     expect(res.context).toEqual({ appointment_id: "apt-1" });
     await expect(

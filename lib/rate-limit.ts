@@ -33,6 +33,12 @@ export const RATE_RULES = {
   inviteAcceptPerIp: { limit: 15, windowSec: 600, failOpen: false },
   workspaceCreatePerUser: { limit: 5, windowSec: 3600, failOpen: false },
   contactsExportPerUser: { limit: 6, windowSec: 60, failOpen: false },
+  /** Counts only requests with an unknown flow webhook token (guessing). */
+  flowWebhookBadToken: { limit: 30, windowSec: 60, failOpen: true },
+  /** Accepted calls to one flow's incoming webhook. */
+  flowWebhookPerFlow: { limit: 120, windowSec: 60, failOpen: true },
+  /** Manual "run flow" shortcuts from the inbox, per user. */
+  flowShortcutPerUser: { limit: 60, windowSec: 60, failOpen: false },
   /** Phase 10 /api/public/v1, per API key. */
   publicApi: { limit: 120, windowSec: 60, failOpen: true },
 } as const satisfies Record<string, RateRule>;
