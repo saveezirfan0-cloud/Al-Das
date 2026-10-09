@@ -19,6 +19,13 @@ const inviteSchema = z.object({
   team_ids: z.array(z.string().uuid()).default([]),
 });
 
+/** Why an invite email didn't go out, in words an admin can act on. */
+function undeliveredMessage(reason: string, shareHint: string): string {
+  return reason === "email_not_configured"
+    ? `Email isn't configured, so ${shareHint}`
+    : `The email couldn't be sent (${reason}). ${shareHint[0].toUpperCase()}${shareHint.slice(1)}`;
+}
+
 async function deliverInvite(opts: {
   email: string;
   link: string;
@@ -131,7 +138,11 @@ export async function inviteUser(input: {
   revalidatePath("/settings/users");
   return delivery.delivered
     ? { ok: true, message: `Invite sent to ${email}.` }
-    : { ok: true, message: "Email isn't configured, so share this link with them directly.", link };
+    : {
+        ok: true,
+        message: undeliveredMessage(delivery.reason, "share this link with them directly."),
+        link,
+      };
 }
 
 export async function resendInvite(inviteId: string): Promise<ActionResult> {
@@ -184,7 +195,11 @@ export async function resendInvite(inviteId: string): Promise<ActionResult> {
   revalidatePath("/settings/users");
   return delivery.delivered
     ? { ok: true, message: "Invite resent." }
-    : { ok: true, message: "Email isn't configured, so share this link directly.", link };
+    : {
+        ok: true,
+        message: undeliveredMessage(delivery.reason, "share this link directly."),
+        link,
+      };
 }
 
 export async function revokeInvite(inviteId: string): Promise<ActionResult> {
