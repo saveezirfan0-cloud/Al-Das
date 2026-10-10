@@ -14,6 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { requirePerm } from "@/lib/auth/session";
+import { money } from "@/lib/finance/format";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Invoices" };
@@ -37,10 +38,6 @@ const safe = (v: string | undefined) =>
     .trim()
     .slice(0, 80);
 const day = (v: string | undefined) => (/^\d{4}-\d{2}-\d{2}$/.test(v ?? "") ? (v as string) : "");
-const money = (n: number | null) =>
-  n === null
-    ? "—"
-    : n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export default async function InvoicesPage({ searchParams }: { searchParams: Promise<Search> }) {
   await requirePerm("finance.invoices.view");
@@ -95,7 +92,16 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
       <Card>
         <CardContent className="pt-6">
           {(data ?? []).length === 0 ? (
-            <p className="text-muted-foreground text-sm">No invoices found.</p>
+            <p className="text-muted-foreground text-sm">
+              {Object.values(sp).some(Boolean)
+                ? "No invoices match these filters. "
+                : "No invoices captured yet. They arrive hourly once Unite capture is switched on (Finance → Data health). "}
+              {Object.values(sp).some(Boolean) && (
+                <Link href="/finance/invoices" className="underline underline-offset-2">
+                  Clear filters
+                </Link>
+              )}
+            </p>
           ) : (
             <Table>
               <TableHeader>

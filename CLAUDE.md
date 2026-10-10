@@ -3,15 +3,18 @@
 > Rename to `CLAUDE.md` at the repo root. Put `01_FEASIBILITY_AND_TEARDOWN.md` and `02_CLAUDE_CODE_BUILD_PLAN.md` in `/docs`. The Airtable/Make audit goes in `/docs/audit/`.
 
 ## What we're building
+
 One platform for Al Das Medical that replaces **Sanoflow** (WhatsApp inbox, templates, campaigns, enquiries, appointments, bots, AI assist, reports) and the **Airtable + Make.com back office** (patient CRM, operational portal screens, Unite sync, native automations, management dashboards). The spec is `docs/01`; the plan and phase prompts are `docs/02`. **Work one phase at a time and start each in Plan Mode.**
 
 ## Stack — Supabase + Vercel only
+
 - Next.js 15 App Router, TypeScript strict, Tailwind, shadcn/ui, deployed on Vercel.
 - Supabase: Postgres (SQL migrations via the Supabase CLI), Auth, Realtime, Storage, **pgmq** (queues), **pg_cron + pg_net** (cron calls `/api/jobs/[queue]`), pgvector.
 - `supabase-js` with generated types. No Prisma, no Redis, no separate worker server.
 - TanStack Table, dnd-kit, @xyflow/react, FullCalendar, Recharts, Tiptap, Zod, Anthropic SDK, Resend, Sentry, Vitest, Playwright.
 
 ## Non-negotiable rules
+
 1. **RLS on every table**, keyed on `org_id` via memberships. Use the service role only in server code after `can()` checks. Keep a test suite proving cross-org access fails.
 2. **Permissions:** every mutation and sensitive read checks `can(member, 'perm.key')`.
 3. **Meta webhooks:** verify `X-Hub-Signature-256` → store raw → `pgmq.send` → 200 fast. Processing happens in job handlers and is idempotent (unique `wa_message_id`; status only moves forward).
@@ -32,7 +35,9 @@ One platform for Al Das Medical that replaces **Sanoflow** (WhatsApp inbox, temp
 17. **Security guards are tests.** A new table needs RLS and a policy scoped to `org_id` (or an entry in the service-only list in `tests/db/security-guard.test.ts`); a new server action or route needs `requirePerm`/`can` and, if it mutates, `recordAudit` (or a reasoned entry in `lib/security/policy.ts`); rate-limit anything unauthenticated with `lib/rate-limit.ts`; pass free-form error text through `lib/redact.ts` before logging or persisting it.
 
 ## Finance & Insurance module (docs/05_FINANCE_MODULE_PLAN.md)
-Captures Unite invoices, matches them to Diligence claim files, and routes exceptions. Phases F0–F6; F0–F6 built (Unite capture is built but OFF; only the closed-month review with Saeed remains, a human step). Open items: `docs/finance/open-items.md`.
+
+Captures Unite invoices, matches them to Diligence claim files, and routes exceptions. Phases F0–F6 plus the F7 UI polish pass; all built (Unite capture is built but OFF; only the closed-month review with Saeed remains, a human step). Open items: `docs/finance/open-items.md`.
+
 - Tables are `public.fin_*`, `ins_*`, `ops_*` (never separate schemas); raw tables (`fin_raw_*`, capture settings and lease) have RLS and **no policies**: service role only, and the payload column is never selected for the UI.
 - **The Unite Finance API is deliver-once.** Only the F2 `finance_capture` handler may call it, only when `fin_capture_settings.enabled` is true (default false), only after taking `fin_capture_try_lease`, and only after the previous raw payload is stored. No scripts, tests or "quick checks" against it.
 - Store the raw batch first, then process with `fin_process_batch` (idempotent, replayable). Never delete invoice lines (`is_current = false`).
@@ -45,6 +50,7 @@ Captures Unite invoices, matches them to Diligence claim files, and routes excep
 - `pnpm finance:seed --org=<slug>` adds the Finance/Billing/Insurance/CEO/Medical Director roles and reference rows to an existing org.
 
 ## Conventions
+
 - Business logic in `lib/*` as plain TS with unit tests. Route handlers and server actions stay thin and validate with Zod.
 - Phones are always E.164 (`libphonenumber-js`). Times are stored in UTC and displayed in location/org timezone (`date-fns-tz`).
 - Domain events go through `emit(orgId, 'enquiry.stage_changed', payload)`, which triggers flows and outbound webhooks.
@@ -53,6 +59,7 @@ Captures Unite invoices, matches them to Diligence claim files, and routes excep
 - Back-office objects: core entities merge into core tables; everything else becomes a real table registered in `portal_objects`.
 
 ## Commands
+
 ```
 pnpm dev                     # next dev
 supabase start               # local stack
@@ -74,6 +81,7 @@ pnpm cutover:preflight --org <slug> --stage pre-cutover   # read-only go/no-go b
 ```
 
 ## Env
+
 ```
 NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
 JOB_SECRET, ENCRYPTION_KEY, APP_URL
@@ -86,4 +94,5 @@ META_GRAPH_BASE_URL   # load tests only; honoured only for http://localhost|127.
 ```
 
 ## Definition of done per task
+
 Typecheck, lint and tests pass. The happy path works locally (webhook simulator for WhatsApp). RLS is covered for new tables. No PHI in logs or fixtures. Docs are updated if behaviour changed.

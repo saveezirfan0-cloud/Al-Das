@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { money } from "@/lib/finance/format";
 import { createClient } from "@/lib/supabase/client";
 
 import {
@@ -19,9 +20,6 @@ import {
   processDiligenceUpload,
   type ProcessOutcome,
 } from "./actions";
-
-const money = (n: number) =>
-  n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export function UploadFlow() {
   const input = useRef<HTMLInputElement>(null);

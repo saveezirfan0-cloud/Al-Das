@@ -103,3 +103,82 @@ export function groupRevenue(rows: readonly RevenueRow[], group: RevenueGroup) {
     }))
     .sort((a, b) => b.net - a.net || a.label.localeCompare(b.label));
 }
+
+// ---------------------------------------------------------------------------
+// Range presets and period-over-period comparison (UTC month arithmetic)
+// ---------------------------------------------------------------------------
+
+export type RangeKey = "this_month" | "last_month" | "last_3" | "ytd" | "last_12";
+export const RANGE_PRESETS: ReadonlyArray<{ key: RangeKey; label: string }> = [
+  { key: "this_month", label: "This month" },
+  { key: "last_month", label: "Last month" },
+  { key: "last_3", label: "Last 3 months" },
+  { key: "ytd", label: "Year to date" },
+  { key: "last_12", label: "Last 12 months" },
+];
+
+export function rangeFor(key: RangeKey, now = new Date()): { from: string; to: string } {
+  const cur = currentMonth(now);
+  switch (key) {
+    case "this_month":
+      return { from: cur, to: cur };
+    case "last_month":
+      return { from: monthsAgo(1, now), to: monthsAgo(1, now) };
+    case "last_3":
+      return { from: monthsAgo(2, now), to: cur };
+    case "ytd":
+      return { from: `${cur.slice(0, 4)}-01`, to: cur };
+    default:
+      return { from: monthsAgo(11, now), to: cur };
+  }
+}
+
+/** The preset whose range equals from/to, if any (to highlight the active chip). */
+export function activeRange(from: string, to: string, now = new Date()): RangeKey | null {
+  for (const p of RANGE_PRESETS) {
+    const r = rangeFor(p.key, now);
+    if (r.from === from && r.to === to) return p.key;
+  }
+  return null;
+}
+
+/** Number of calendar months from..to inclusive (0 when to is before from). */
+export function monthSpan(from: string, to: string): number {
+  const [fy, fm] = from.split("-").map(Number);
+  const [ty, tm] = to.split("-").map(Number);
+  return Math.max(0, (ty - fy) * 12 + (tm - fm) + 1);
+}
+
+function shiftMonth(ym: string, by: number): string {
+  const [y, m] = ym.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1 + by, 1)).toISOString().slice(0, 7);
+}
+
+/** The range of equal length directly before from..to. */
+export function previousRange(from: string, to: string): { from: string; to: string } {
+  const n = Math.max(1, monthSpan(from, to));
+  return { from: shiftMonth(from, -n), to: shiftMonth(from, -1) };
+}
+
+/** Splits rows fetched over (previous + current) into the two periods by month. */
+export function splitPeriods<T extends { month: string }>(
+  rows: readonly T[],
+  from: string,
+): { current: T[]; previous: T[] } {
+  const cut = `${from}-01`;
+  return {
+    current: rows.filter((r) => r.month >= cut),
+    previous: rows.filter((r) => r.month < cut),
+  };
+}
+
+/** Per-month totals (all branches), oldest first, for the trend chart. */
+export function monthlySeries(
+  rows: readonly SummaryRow[],
+): Array<{ month: string } & Record<SummaryColumn, number>> {
+  const by = new Map<string, SummaryRow[]>();
+  for (const r of rows) by.set(r.month.slice(0, 7), [...(by.get(r.month.slice(0, 7)) ?? []), r]);
+  return [...by.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([month, rs]) => ({ month, ...totals(rs) }));
+}
