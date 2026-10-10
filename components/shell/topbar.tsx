@@ -1,12 +1,14 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useState } from "react";
-import { Menu } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Menu, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 
+import { OPEN_PALETTE_EVENT } from "./command-palette";
+import { OPEN_NAV_EVENT } from "./mobile-tabs";
 import { NotificationsMenu, type NotificationItem } from "./notifications-menu";
 import type { NavItem } from "./nav";
 import { Sidebar } from "./sidebar";
@@ -25,6 +27,12 @@ export function Topbar({
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  useEffect(() => {
+    const onOpen = () => setOpen(true);
+    window.addEventListener(OPEN_NAV_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_NAV_EVENT, onOpen);
+  }, []);
+
   const current = items.find((i) => pathname === i.href || pathname.startsWith(i.href + "/"));
 
   return (
@@ -54,6 +62,27 @@ export function Topbar({
       <h1 className="truncate text-base font-semibold">{current?.label ?? "Pulse"}</h1>
 
       <div className="ml-auto flex items-center gap-1">
+        <Button
+          variant="outline"
+          size="sm"
+          className="text-muted-foreground hidden w-56 justify-between font-normal md:inline-flex"
+          onClick={() => window.dispatchEvent(new Event(OPEN_PALETTE_EVENT))}
+          aria-label="Quick search"
+        >
+          <span className="flex items-center gap-2">
+            <Search className="size-3.5" /> Search pages…
+          </span>
+          <kbd className="bg-muted rounded px-1.5 font-mono text-[10px]">Ctrl K</kbd>
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="md:hidden"
+          onClick={() => window.dispatchEvent(new Event(OPEN_PALETTE_EVENT))}
+          aria-label="Quick search"
+        >
+          <Search />
+        </Button>
         <NotificationsMenu initial={notifications} orgId={user.orgId} userId={user.userId} />
         <UserMenu {...user} />
       </div>
