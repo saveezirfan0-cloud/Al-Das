@@ -260,6 +260,31 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance row level security", () => {
     });
   });
 
+  it("data-freshness view is permission-gated and org-scoped, with counts only", async () => {
+    await asRole("fin", async () => {
+      const { rows } = await q("select * from public.v_fin_data_freshness");
+      expect(rows).toHaveLength(1);
+      expect(rows[0].org_id).toBe(orgA);
+      expect(rows[0].capture_enabled).toBe(false);
+      expect(rows[0].credentials_configured).toBe(false);
+      expect(Number(rows[0].invoice_count)).toBe(1);
+      expect(Number(rows[0].claim_count)).toBe(1);
+      expect(Number(rows[0].active_rules)).toBeGreaterThan(0);
+    });
+    // Billing and Insurance hold no finance.view, so they get nothing.
+    for (const who of ["billing", "ins"]) {
+      await asRole(who, async () => {
+        expect(await count(c, "select 1 from public.v_fin_data_freshness")).toBe(0);
+      });
+    }
+    // Another org's admin sees their own row only.
+    await asRole("bob", async () => {
+      expect(
+        await count(c, "select 1 from public.v_fin_data_freshness where org_id = $1", [orgA]),
+      ).toBe(0);
+    });
+  });
+
   it("finance data cannot be written by authenticated members", async () => {
     await asRole("alice", async () => {
       await expect(

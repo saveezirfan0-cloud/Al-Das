@@ -15,15 +15,12 @@ import {
 } from "@/components/ui/table";
 import { can } from "@/lib/auth/can";
 import { requirePerm } from "@/lib/auth/session";
+import { money } from "@/lib/finance/format";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Invoice" };
 export const dynamic = "force-dynamic";
 
-const money = (n: number | null | undefined) =>
-  n === null || n === undefined
-    ? "—"
-    : n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmt = (v: unknown) => (v === null || v === undefined || v === "" ? "—" : String(v));
 
 export default async function InvoiceDetail({ params }: { params: Promise<{ id: string }> }) {

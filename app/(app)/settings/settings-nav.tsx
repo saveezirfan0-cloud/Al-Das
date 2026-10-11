@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 
 import { cn } from "@/lib/utils";
 
-export type SettingsNavItem = { href: string; label: string; section?: string };
+export type SettingsNavItem = { href: string; label: string; section?: string; badge?: number };
 
 export function SettingsNav({
   items,
@@ -48,6 +48,11 @@ export function SettingsNav({
                       )}
                     >
                       {i.label}
+                      {!!i.badge && (
+                        <span className="bg-destructive ml-2 rounded-full px-1.5 py-0.5 text-[10px] font-medium text-white">
+                          {i.badge > 99 ? "99+" : i.badge}
+                        </span>
+                      )}
                     </Link>
                   </li>
                 );
