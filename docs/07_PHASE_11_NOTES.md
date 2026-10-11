@@ -2,7 +2,7 @@
 
 ## Scope delivered
 
-The repository contains Phases 1–3 only (tenancy, jobs, CRM and importers, WhatsApp ingress, Inbox). Phases 4–10 are not built, so this phase **hardened what exists, built the load-test, reconciliation and preflight tooling, and wrote the cut-over runbook**. The live steps (real imports, moving numbers, retiring Make/Airtable/Sanoflow) were deliberately not executed: they need real credentials and patient data and change systems Pulse does not own.
+_Update 11 Oct 2026: Phases 4–10 have since been built; this note describes the state when Phase 11 was written. See `docs/09_STATUS_AND_ROADMAP.md`._ The repository contained Phases 1–3 only at the time (tenancy, jobs, CRM and importers, WhatsApp ingress, Inbox). Phases 4–10 were not built, so this phase **hardened what exists, built the load-test, reconciliation and preflight tooling, and wrote the cut-over runbook**. The live steps (real imports, moving numbers, retiring Make/Airtable/Sanoflow) were deliberately not executed: they need real credentials and patient data and change systems Pulse does not own.
 
 | Checklist item | Status |
 |---|---|
