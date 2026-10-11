@@ -6,7 +6,7 @@
 -- filtered by app.has_perm(org_id, 'finance.view'), so a member only ever sees
 -- their own org and only with the Finance permission.
 
-create view public.v_fin_data_freshness with (security_invoker = false) as
+create or replace view public.v_fin_data_freshness with (security_invoker = false) as
 select s.org_id,
        s.enabled                                                                   as capture_enabled,
        exists (select 1 from public.integration_accounts a

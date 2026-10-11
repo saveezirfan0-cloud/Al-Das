@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { countsAsFirstTouch, markContactEnquiriesTouched } from "@/lib/enquiries/touch";
 import { emit } from "@/lib/events/emit";
 import { sendSpecSchema, type SendSpec } from "@/lib/inbox/send";
 import { readInboxSettings } from "@/lib/inbox/settings";
@@ -14,11 +15,12 @@ import {
 import { PermanentJobError, type JobContext } from "@/lib/jobs/types";
 import type { QueueName } from "@/lib/jobs/queues";
 import type { AdminClient } from "@/lib/supabase/admin";
+import { guardCampaignMessage } from "@/lib/campaigns/engine";
 import { MEDIA_BUCKET } from "@/lib/jobs/handlers/media-fetch";
 import { clientForChannel } from "@/lib/whatsapp/channel";
 import { WhatsAppApiError, mapMetaError } from "@/lib/whatsapp/errors";
 import { e164ToWaId } from "@/lib/whatsapp/phone";
-import { buildTemplateSend, isTemplateSendable } from "@/lib/whatsapp/templates";
+import { buildTemplateSend, isMarketingBlocked, isTemplateSendable } from "@/lib/whatsapp/templates";
 import type { MetaTemplateComponent, SendResult } from "@/lib/whatsapp/types";
 import { serviceWindow } from "@/lib/whatsapp/window";
 
@@ -46,7 +48,7 @@ export async function deliverOutbound(
   const { data: message } = await admin
     .from("messages")
     .select(
-      "id, org_id, conversation_id, at, status, wa_message_id, payload, body, sent_by_user_id, reply_to_wa_message_id, media_meta_id, media_filename, conversations(id, status, last_inbound_at, ad_referral, opened_at, channel_id, contact_id, contacts(id, phone_e164, wa_bsuid, stop_marketing), channels(id, org_id, status, phone_number_id, waba_id, send_rate_per_sec))",
+      "id, org_id, conversation_id, at, status, wa_message_id, payload, body, sent_by_user_id, reply_to_wa_message_id, media_meta_id, media_filename, campaign_recipient_id, conversations(id, status, last_inbound_at, ad_referral, opened_at, channel_id, contact_id, contacts(id, phone_e164, wa_bsuid, stop_marketing), channels(id, org_id, status, phone_number_id, waba_id, send_rate_per_sec))",
     )
     .eq("id", messageId)
     .maybeSingle();
@@ -65,6 +67,20 @@ export async function deliverOutbound(
     return;
   }
   const spec = specParsed.data;
+
+  // Campaign messages are withdrawn when the campaign was paused/cancelled or the contact opted out since dispatch.
+  if (message.campaign_recipient_id) {
+    const gate = await guardCampaignMessage(
+      admin,
+      message.id,
+      message.campaign_recipient_id,
+      contact,
+    );
+    if (gate === "released") {
+      log.info("campaign message released", { messageId: message.id });
+      return;
+    }
+  }
 
   if (channel.status !== "active") {
     await markFailed(admin, message.id, -1, "The WhatsApp number is paused or disconnected.");
@@ -201,7 +217,7 @@ export async function deliverOutbound(
       case "template": {
         const { data: tpl } = await admin
           .from("wa_templates")
-          .select("name, language, components, status, parameter_format")
+          .select("name, language, components, status, parameter_format, category")
           .eq("id", spec.template_id)
           .eq("org_id", message.org_id)
           .maybeSingle();
@@ -213,6 +229,17 @@ export async function deliverOutbound(
             132001,
             `Template "${tpl.name}" is ${tpl.status}, not APPROVED.`,
           );
+          return;
+        }
+        // Opt-outs can arrive between queueing and sending (CLAUDE.md rule 11): check again now.
+        if (isMarketingBlocked(tpl.category, contact.stop_marketing)) {
+          await markFailed(admin, message.id, 131050, "The recipient opted out of marketing messages.");
+          await emit(message.org_id, "message.failed", {
+            message_id: message.id,
+            conversation_id: conversation.id,
+            code: 131050,
+            category: "recipient",
+          });
           return;
         }
         const template = buildTemplateSend(
@@ -266,6 +293,13 @@ export async function deliverOutbound(
         convPatch.status = "waiting";
     }
     await admin.from("conversations").update(convPatch).eq("id", conversation.id);
+    // A person's reply stops the SLA clock of this patient's open enquiries. Best effort: the
+    // message is already sent, so a failure here must not re-queue it.
+    if (countsAsFirstTouch(message, spec.type)) {
+      await markContactEnquiriesTouched(admin, message.org_id, contact.id).catch((e) =>
+        log.warn("enquiry first touch failed", { messageId: message.id, error: e instanceof Error ? e.message : "unknown" }),
+      );
+    }
     await emit(message.org_id, "message.sent", {
       message_id: message.id,
       conversation_id: conversation.id,

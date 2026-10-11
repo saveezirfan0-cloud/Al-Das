@@ -1,3 +1,6 @@
+import { PORTAL_SECTIONS } from "@/app/(app)/portal/sections";
+import { PORTAL_OBJECTS } from "@/lib/portal/objects";
+
 /** Left-nav modules. `permission` hides the entry for members without it. */
 export type NavIcon =
   | "dashboard"
@@ -9,6 +12,7 @@ export type NavIcon =
   | "campaigns"
   | "templates"
   | "flows"
+  | "recall"
   | "portal"
   | "reports"
   | "finance"
@@ -19,6 +23,8 @@ export type NavItem = {
   label: string;
   icon: NavIcon;
   permission?: string;
+  /** Count shown next to the label (e.g. overdue tasks). */
+  badge?: number;
   /** Visible when the member holds at least one of these. */
   permissions?: readonly string[];
 };
@@ -28,7 +34,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { href: "/inbox", label: "Inbox", icon: "inbox" },
   { href: "/contacts", label: "Contacts", icon: "contacts", permission: "contacts.view" },
   { href: "/enquiries", label: "Enquiries", icon: "enquiries", permission: "enquiries.view" },
-  { href: "/tasks", label: "Tasks", icon: "tasks" },
+  { href: "/tasks", label: "Tasks", icon: "tasks", permission: "tasks.view" },
   {
     href: "/appointments",
     label: "Appointments",
@@ -38,7 +44,13 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { href: "/campaigns", label: "Campaigns", icon: "campaigns", permission: "campaigns.view" },
   { href: "/templates", label: "Templates", icon: "templates", permission: "templates.manage" },
   { href: "/flows", label: "Flows", icon: "flows", permission: "flows.manage" },
-  { href: "/portal", label: "Portal", icon: "portal" },
+  { href: "/recall", label: "Recall", icon: "recall", permission: "campaigns.view" },
+  {
+    href: "/portal",
+    label: "Portal",
+    icon: "portal",
+    permissions: [...PORTAL_SECTIONS.map((x) => x.read), ...PORTAL_OBJECTS.map((o) => o.readPerm)],
+  },
   { href: "/reports", label: "Reports", icon: "reports", permission: "reports.view" },
   {
     href: "/finance",

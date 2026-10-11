@@ -445,19 +445,19 @@ export function Thread(props: InboxProps & { selected: ConversationDetail; onBac
                           !m.error_message
                         }
                       />
-                      {m.body && <p className="whitespace-pre-wrap">{m.body}</p>}
+                      {m.body && <p className="whitespace-pre-wrap" dir="auto">{m.body}</p>}
                     </div>
                   ) : m.kind === "template" ? (
                     <div>
                       <div className="mb-0.5 text-[10px] uppercase opacity-70">Template</div>
-                      <p className="whitespace-pre-wrap">{m.body}</p>
+                      <p className="whitespace-pre-wrap" dir="auto">{m.body}</p>
                     </div>
                   ) : m.kind === "unsupported" ? (
                     <p className="text-xs italic opacity-80">
                       Unsupported message type (not shown).
                     </p>
                   ) : (
-                    <p className="break-words whitespace-pre-wrap">{m.body}</p>
+                    <p className="break-words whitespace-pre-wrap" dir="auto">{m.body}</p>
                   )}
                   <div
                     className={cn(
@@ -523,6 +523,7 @@ export function Thread(props: InboxProps & { selected: ConversationDetail; onBac
         conversationId={selected.id}
         categories={props.categories}
         settings={props.settings}
+        aiAvailable={props.ai.available}
       />
     </div>
   );

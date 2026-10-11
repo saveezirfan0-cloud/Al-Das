@@ -64,6 +64,7 @@ pnpm jobs:run <queue>        # drain a queue through /api/jobs like pg_cron does
 pnpm wa:simulate <fixture>   # post a sample Meta webhook locally
 pnpm import:airtable --dry-run
 pnpm import:sanoflow --dry-run
+pnpm parallel:ingest --org <slug> --scenario birthday --date YYYY-MM-DD --file ids.txt   # one day of Make output for the parallel-run report (ids are hashed)
 pnpm tsx scripts/export-airtable-schema.ts --counts
 pnpm tsx scripts/export-make.ts --all
 pnpm audit:security          # static security pass → docs/audit/security-pass.generated.md

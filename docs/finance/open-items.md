@@ -22,7 +22,7 @@
 1. **Token lifetime.** The brief says `expires_in` = 240 **minutes**; CLAUDE.md rule 7 says tokens expire in about 240 **seconds**. The token manager must refresh on demand and must not assume either until checked against a real response.
 2. **App id/key pairs.** The brief says authorize and refresh use two different pairs; `docs/audit/open-questions.md` OQ-26 found three pairs (plus the Sanoflow key) in the Make Token scenario. Request fresh keys for the platform (OQ-26) and list exactly which are needed.
 3. **`line_key` stability.** `inv|item_code|occurrence` can shift if an amendment removes an earlier duplicate line; claim matches reference lines, so F2 must record `position` and flag shifts rather than silently re-pointing matches.
-4. **Appointments table.** Platform Phase 6 plans `appointments`; F3 should reuse it, so the order of Phase 6 and F3 needs deciding.
+4. **Appointments table.** Decided: F3 reuses the platform `appointments` table. The Phase 6 Unite appointment sync (read-only, off until its flag is on) fills it, and rule E08 reads `appointments` rows with `source = 'unite'`. E08 stays silent until the first appointment has synced (item 25), so enable the appointment sync before the Finance backfill.
 5. **`fin_payments.txn_ref_name`** (from the brief) may contain a cardholder name. Confirm with the first real payload; drop or hash it if it is personal data.
 6. **Production Unite credentials in this environment** do not exist yet (OQ-50). F2 cannot be exercised end to end here; it will be built against synthetic fixtures and a mocked HTTP client.
 
@@ -46,7 +46,7 @@
 19. **Blank amounts stay null** (never 0). Views treat null as 0 in sums. Confirm with Sharaf that a blank remitted amount means nothing was remitted.
 20. **Write-off "approved" value** is still assumed (`approved`, case-insensitive) in the ageing and summary views.
 21. **Files above 30,000 rows** are rejected (one atomic commit). A full year of claims for a clinic of this size should fit; tell us if not.
-22. **Not built yet:** F3 appointments sync (needs the platform `appointments` table and Unite appointments credentials), F5 exception rule engine and invoices / monthly summary screens, a browser-driven check of the finance pages, and a fixed-IP route to Unite if Unite allow-lists addresses.
+22. **Not built yet:** a browser-driven check of the finance pages, and a fixed-IP route to Unite if Unite allow-lists addresses. (The appointments sync, the exception rule engine and the invoice / monthly summary screens are built; see the status table in `05_FINANCE_MODULE_PLAN.md`.)
 
 ## Added in F5
 

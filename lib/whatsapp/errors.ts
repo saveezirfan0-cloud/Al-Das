@@ -454,6 +454,8 @@ export class WhatsAppApiError extends Error {
   readonly httpStatus: number;
   readonly fbtraceId: string | null;
   readonly details: string | null;
+  /** Meta's own wording for the person (error_user_title / error_user_msg), when it sends one. */
+  readonly userMessage: string | null;
   readonly mapped: MappedError;
 
   constructor(
@@ -471,6 +473,17 @@ export class WhatsAppApiError extends Error {
     this.httpStatus = httpStatus;
     this.fbtraceId = err?.fbtrace_id ?? null;
     this.details = err?.error_data?.details ?? null;
+    this.userMessage =
+      [err?.error_user_title, err?.error_user_msg].filter(Boolean).join(": ").slice(0, 400) || null;
     this.mapped = mapped;
   }
+}
+
+/** Error codes a campaign retry round may re-send (everything the error map marks retryable, incl. 5xx). */
+export function retryableErrorCodes(): number[] {
+  const codes = Object.entries(KNOWN)
+    .filter(([, e]) => e.retryable)
+    .map(([c]) => Number(c));
+  for (let c = 500; c <= 599; c++) codes.push(c);
+  return codes;
 }

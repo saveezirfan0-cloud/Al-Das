@@ -1,10 +1,20 @@
 import Link from "next/link";
+import {
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight,
+  FileSearch,
+  Filter,
+  RotateCcw,
+} from "lucide-react";
 
 import { PageHeader } from "@/components/shell/page-header";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -14,103 +24,192 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { requirePerm } from "@/lib/auth/session";
-import { money } from "@/lib/finance/format";
+import {
+  PAGE_SIZE,
+  activeFilterCount,
+  claimProgress,
+  filterProblem,
+  pageQuery,
+  parseInvoiceFilters,
+  type InvoiceSearch,
+} from "@/lib/finance/invoice-list";
 import { createClient } from "@/lib/supabase/server";
+import { cn } from "@/lib/utils";
+
+import { ClaimProgressBadge } from "./claim-progress-badge";
 
 export const metadata = { title: "Invoices" };
 export const dynamic = "force-dynamic";
 
-const PAGE_SIZE = 50;
-type Search = {
-  q?: string;
-  from?: string;
-  to?: string;
-  branch?: string;
-  doctor?: string;
-  type?: string;
-  page?: string;
-};
+const money = (n: number | null) =>
+  n === null
+    ? "—"
+    : n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-// PostgREST filter values must not carry grammar characters.
-const safe = (v: string | undefined) =>
-  (v ?? "")
-    .replace(/[(),%*\\]/g, " ")
-    .trim()
-    .slice(0, 80);
-const day = (v: string | undefined) => (/^\d{4}-\d{2}-\d{2}$/.test(v ?? "") ? (v as string) : "");
-
-export default async function InvoicesPage({ searchParams }: { searchParams: Promise<Search> }) {
+export default async function InvoicesPage({
+  searchParams,
+}: {
+  searchParams: Promise<InvoiceSearch>;
+}) {
   await requirePerm("finance.invoices.view");
-  const sp = await searchParams;
-  const page = Math.max(1, Number(sp.page) || 1);
+  const f = parseInvoiceFilters(await searchParams);
+  const problem = filterProblem(f);
+  const active = activeFilterCount(f);
   const supabase = await createClient();
 
-  let q = supabase
-    .from("v_fin_invoice_list")
-    .select(
-      "id, inv_display_number, transaction_date, branch_code, doctor_name, doctor_dha_id, inv_type, is_deleted, net, total, version, claim_count, claimed, remitted, rejected, paid",
-      { count: "exact" },
-    )
-    .order("transaction_date", { ascending: false, nullsFirst: false })
-    .order("inv_display_number", { ascending: false })
-    .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
-  if (safe(sp.q)) q = q.ilike("inv_display_number", `%${safe(sp.q)}%`);
-  if (day(sp.from)) q = q.gte("transaction_date", day(sp.from));
-  if (day(sp.to)) q = q.lte("transaction_date", day(sp.to));
-  if (safe(sp.branch)) q = q.eq("branch_code", safe(sp.branch).toUpperCase());
-  if (safe(sp.doctor))
-    q = q.or(`doctor_name.ilike.%${safe(sp.doctor)}%,doctor_dha_id.eq.${safe(sp.doctor)}`);
-  if (safe(sp.type)) q = q.ilike("inv_type", `%${safe(sp.type)}%`);
+  async function fetchRows() {
+    let q = supabase
+      .from("v_fin_invoice_list")
+      .select(
+        "id, inv_display_number, transaction_date, branch_code, doctor_name, doctor_dha_id, inv_type, is_deleted, net, total, version, claim_count, claimed, remitted, rejected, paid",
+        { count: "exact" },
+      )
+      .order("transaction_date", { ascending: false, nullsFirst: false })
+      .order("inv_display_number", { ascending: false })
+      .range((f.page - 1) * PAGE_SIZE, f.page * PAGE_SIZE - 1);
+    if (f.q) q = q.ilike("inv_display_number", `%${f.q}%`);
+    if (f.from) q = q.gte("transaction_date", f.from);
+    if (f.to) q = q.lte("transaction_date", f.to);
+    if (f.branch) q = q.eq("branch_code", f.branch.toUpperCase());
+    if (f.doctor) q = q.or(`doctor_name.ilike.%${f.doctor}%,doctor_dha_id.eq.${f.doctor}`);
+    if (f.type) q = q.ilike("inv_type", `%${f.type}%`);
+    const { data, count } = await q;
+    return { rows: data ?? [], total: count ?? 0 };
+  }
 
-  const { data, count } = await q;
-  const total = count ?? 0;
+  const { rows, total } = problem ? { rows: [], total: 0 } : await fetchRows();
+
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const link = (p: number) => {
-    const params = new URLSearchParams(
-      Object.entries({ ...sp, page: String(p) }).filter(([, v]) => v) as [string, string][],
-    );
-    return `/finance/invoices?${params.toString()}`;
-  };
+  const page = Math.min(f.page, pages);
+  const shownFrom = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const shownTo = Math.min(page * PAGE_SIZE, total);
+  const link = (p: number) => `/finance/invoices${pageQuery(f, p)}`;
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Invoices"
-        description={`${total.toLocaleString()} invoices captured from Unite, with claim progress from Diligence.`}
+        description={`${total.toLocaleString()} ${total === 1 ? "invoice" : "invoices"}${active > 0 ? " match your filters" : " captured from Unite"}, with claim progress from Diligence.`}
       />
-      <form className="grid gap-2 sm:grid-cols-7">
-        <Input name="q" placeholder="Invoice no." defaultValue={sp.q} className="sm:col-span-2" />
-        <Input name="from" type="date" defaultValue={sp.from} aria-label="From date" />
-        <Input name="to" type="date" defaultValue={sp.to} aria-label="To date" />
-        <Input name="branch" placeholder="Branch" defaultValue={sp.branch} />
-        <Input name="doctor" placeholder="Doctor" defaultValue={sp.doctor} />
-        <Input name="type" placeholder="Type (insurance…)" defaultValue={sp.type} />
-        <Button type="submit" variant="secondary" className="sm:col-span-7 sm:w-32">
-          Filter
-        </Button>
-      </form>
-      <Card>
-        <CardContent className="pt-6">
-          {(data ?? []).length === 0 ? (
-            <p className="text-muted-foreground text-sm">
-              {Object.values(sp).some(Boolean)
-                ? "No invoices match these filters. "
-                : "No invoices captured yet. They arrive hourly once Unite capture is switched on (Finance → Data health). "}
-              {Object.values(sp).some(Boolean) && (
-                <Link href="/finance/invoices" className="underline underline-offset-2">
-                  Clear filters
-                </Link>
+
+      {/* A plain GET form: the filters live in the URL, so a view can be bookmarked or shared. */}
+      <form action="/finance/invoices" aria-label="Filter invoices">
+        <Card>
+          <CardContent className="flex flex-col gap-4 pt-6">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="inv-q">Invoice no.</Label>
+                <Input id="inv-q" name="q" placeholder="e.g. 10452" defaultValue={f.q} />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="inv-from">From</Label>
+                <Input
+                  id="inv-from"
+                  name="from"
+                  type="date"
+                  defaultValue={f.from}
+                  max={f.to || undefined}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="inv-to">To</Label>
+                <Input
+                  id="inv-to"
+                  name="to"
+                  type="date"
+                  defaultValue={f.to}
+                  min={f.from || undefined}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="inv-branch">Branch</Label>
+                <Input
+                  id="inv-branch"
+                  name="branch"
+                  placeholder="Any branch"
+                  defaultValue={f.branch}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="inv-doctor">Doctor</Label>
+                <Input
+                  id="inv-doctor"
+                  name="doctor"
+                  placeholder="Name or DHA ID"
+                  defaultValue={f.doctor}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="inv-type">Type</Label>
+                <Input
+                  id="inv-type"
+                  name="type"
+                  placeholder="e.g. Insurance"
+                  defaultValue={f.type}
+                />
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button type="submit" size="sm">
+                <Filter />
+                Apply filters
+              </Button>
+              {active > 0 && (
+                <Button asChild variant="ghost" size="sm">
+                  <Link href="/finance/invoices">
+                    <RotateCcw />
+                    Reset
+                  </Link>
+                </Button>
               )}
-            </p>
+              {active > 0 && (
+                <span className="text-muted-foreground text-sm">
+                  {active} {active === 1 ? "filter" : "filters"} applied
+                </span>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </form>
+
+      {problem && (
+        <Alert variant="destructive">
+          <AlertCircle />
+          <AlertDescription>{problem}</AlertDescription>
+        </Alert>
+      )}
+
+      <Card className="overflow-hidden py-0">
+        <CardContent className="p-0">
+          {rows.length === 0 ? (
+            <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
+              <span className="bg-muted text-muted-foreground flex size-12 items-center justify-center rounded-full">
+                <FileSearch className="size-6" aria-hidden />
+              </span>
+              <div className="flex flex-col gap-1">
+                <p className="font-medium">No invoices found</p>
+                <p className="text-muted-foreground mx-auto max-w-sm text-sm">
+                  {active > 0
+                    ? "Nothing matches these filters. Try widening the dates or clearing a field."
+                    : "Invoices appear here once they are captured from Unite."}
+                </p>
+              </div>
+              {active > 0 && (
+                <Button asChild variant="outline" size="sm">
+                  <Link href="/finance/invoices">Reset filters</Link>
+                </Button>
+              )}
+            </div>
           ) : (
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="bg-muted/40 hover:bg-muted/40">
                   <TableHead>Invoice</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Branch</TableHead>
                   <TableHead>Doctor</TableHead>
                   <TableHead>Type</TableHead>
+                  <TableHead>Claim</TableHead>
                   <TableHead className="text-right">Net</TableHead>
                   <TableHead className="text-right">Paid</TableHead>
                   <TableHead className="text-right">Claimed</TableHead>
@@ -119,61 +218,99 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(data ?? []).map((i) => (
-                  <TableRow key={i.id ?? i.inv_display_number}>
-                    <TableCell className="font-mono text-xs">
-                      <Link
-                        href={`/finance/invoices/${i.id}`}
-                        className="underline-offset-2 hover:underline"
+                {rows.map((i) => {
+                  const hasClaim = Number(i.claim_count) > 0;
+                  return (
+                    <TableRow
+                      key={i.id ?? i.inv_display_number}
+                      className={cn(i.is_deleted && "opacity-60")}
+                    >
+                      <TableCell className="font-mono text-xs whitespace-nowrap">
+                        <Link
+                          href={`/finance/invoices/${i.id}`}
+                          className="font-medium underline-offset-2 hover:underline"
+                        >
+                          {i.inv_display_number}
+                        </Link>{" "}
+                        {i.is_deleted && <Badge variant="destructive">deleted</Badge>}
+                        {(i.version ?? 1) > 1 && <Badge variant="outline">v{i.version}</Badge>}
+                      </TableCell>
+                      <TableCell className="text-xs whitespace-nowrap">
+                        {i.transaction_date ?? "—"}
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        {i.branch_code ?? <Badge variant="warning">unknown</Badge>}
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        {i.doctor_name ?? i.doctor_dha_id ?? "—"}
+                      </TableCell>
+                      <TableCell className="text-xs">{i.inv_type ?? "—"}</TableCell>
+                      <TableCell>
+                        <ClaimProgressBadge progress={claimProgress(i)} />
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">{money(i.net)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{money(i.paid)}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {hasClaim ? money(i.claimed) : "—"}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {hasClaim ? money(i.remitted) : "—"}
+                      </TableCell>
+                      <TableCell
+                        className={cn(
+                          "text-right tabular-nums",
+                          hasClaim && Number(i.rejected) > 0 && "text-destructive font-medium",
+                        )}
                       >
-                        {i.inv_display_number}
-                      </Link>{" "}
-                      {i.is_deleted && <Badge variant="destructive">deleted</Badge>}
-                      {(i.version ?? 1) > 1 && <Badge variant="outline">v{i.version}</Badge>}
-                    </TableCell>
-                    <TableCell className="text-xs">{i.transaction_date ?? "—"}</TableCell>
-                    <TableCell className="text-xs">
-                      {i.branch_code ?? <Badge variant="warning">unknown</Badge>}
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {i.doctor_name ?? i.doctor_dha_id ?? "—"}
-                    </TableCell>
-                    <TableCell className="text-xs">{i.inv_type ?? "—"}</TableCell>
-                    <TableCell className="text-right tabular-nums">{money(i.net)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{money(i.paid)}</TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {Number(i.claim_count) > 0 ? money(i.claimed) : "—"}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {Number(i.claim_count) > 0 ? money(i.remitted) : "—"}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {Number(i.claim_count) > 0 ? money(i.rejected) : "—"}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                        {hasClaim ? money(i.rejected) : "—"}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}
         </CardContent>
       </Card>
-      <div className="flex items-center justify-between text-sm">
-        <span className="text-muted-foreground">
+
+      <nav
+        className="text-muted-foreground flex items-center justify-between gap-3 text-sm"
+        aria-label="Pagination"
+      >
+        <p>
           Page {page} of {pages}
-        </span>
+          {total > 0 &&
+            ` · ${shownFrom.toLocaleString()}–${shownTo.toLocaleString()} of ${total.toLocaleString()}`}
+        </p>
         <div className="flex gap-2">
-          {page > 1 && (
+          {page > 1 ? (
             <Button asChild variant="outline" size="sm">
-              <Link href={link(page - 1)}>Previous</Link>
+              <Link href={link(page - 1)}>
+                <ChevronLeft />
+                Previous
+              </Link>
+            </Button>
+          ) : (
+            <Button variant="outline" size="sm" disabled>
+              <ChevronLeft />
+              Previous
             </Button>
           )}
-          {page < pages && (
+          {page < pages ? (
             <Button asChild variant="outline" size="sm">
-              <Link href={link(page + 1)}>Next</Link>
+              <Link href={link(page + 1)}>
+                Next
+                <ChevronRight />
+              </Link>
+            </Button>
+          ) : (
+            <Button variant="outline" size="sm" disabled>
+              Next
+              <ChevronRight />
             </Button>
           )}
         </div>
-      </div>
+      </nav>
     </div>
   );
 }

@@ -16,6 +16,7 @@ export const PERMISSION_GROUPS = [
   "Portal",
   "Clinical",
   "Reports",
+  "AI & knowledge base",
   "Finance",
   "Settings",
 ] as const;
@@ -45,6 +46,19 @@ export const PERMISSIONS = [
   },
   { key: "enquiries.view", group: "Enquiries & tasks", label: "View enquiries" },
   { key: "enquiries.manage", group: "Enquiries & tasks", label: "Create and move enquiries" },
+  {
+    key: "enquiries.export",
+    group: "Enquiries & tasks",
+    label: "Export enquiries",
+    description: "Download enquiry data as CSV",
+  },
+  {
+    key: "enquiries.delete",
+    group: "Enquiries & tasks",
+    label: "Delete enquiries",
+    description: "Delete enquiries, singly or in bulk",
+  },
+  { key: "tasks.view", group: "Enquiries & tasks", label: "View tasks" },
   { key: "tasks.manage", group: "Enquiries & tasks", label: "Create and complete tasks" },
   { key: "appointments.view", group: "Appointments", label: "View appointments" },
   { key: "appointments.manage", group: "Appointments", label: "Book and change appointments" },
@@ -109,6 +123,24 @@ export const PERMISSIONS = [
   },
   { key: "reports.view", group: "Reports", label: "View reports and dashboards" },
   {
+    key: "reports.export",
+    group: "Reports",
+    label: "Export reports",
+    description: "Download report data as CSV",
+  },
+  {
+    key: "ai.use",
+    group: "AI & knowledge base",
+    label: "Use AI assist in the inbox",
+    description: "Summarize, suggest replies and rewrite drafts (drafts only, never auto-sent)",
+  },
+  {
+    key: "kb.manage",
+    group: "AI & knowledge base",
+    label: "Manage the knowledge base",
+    description: "Add, re-crawl and remove knowledge sources and groups",
+  },
+  {
     key: "finance.view",
     group: "Finance",
     label: "View finance reports",
@@ -148,6 +180,12 @@ export const PERMISSIONS = [
     group: "Finance",
     label: "Data health and capture",
     description: "See capture health, raw batches and admin exceptions",
+  },
+  {
+    key: "portal.recall_sends.write",
+    group: "Portal",
+    label: "Edit recall call-list entries",
+    description: "Update follow-up status and booking details on recall sends",
   },
   {
     key: "settings.manage",
@@ -228,6 +266,9 @@ export const SYSTEM_ROLES: readonly RolePreset[] = [
       "contacts.export",
       "enquiries.view",
       "enquiries.manage",
+      "enquiries.export",
+      "enquiries.delete",
+      "tasks.view",
       "tasks.manage",
       "appointments.view",
       "appointments.manage",
@@ -237,6 +278,9 @@ export const SYSTEM_ROLES: readonly RolePreset[] = [
       "flows.manage",
       "portal.*",
       "reports.view",
+      "reports.export",
+      "ai.use",
+      "kb.manage",
     ],
   },
   {
@@ -248,9 +292,11 @@ export const SYSTEM_ROLES: readonly RolePreset[] = [
       "contacts.manage",
       "enquiries.view",
       "enquiries.manage",
+      "tasks.view",
       "tasks.manage",
       "appointments.view",
       "portal.*.read",
+      "ai.use",
     ],
   },
   {
@@ -262,10 +308,12 @@ export const SYSTEM_ROLES: readonly RolePreset[] = [
       "contacts.manage",
       "enquiries.view",
       "enquiries.manage",
+      "tasks.view",
       "tasks.manage",
       "appointments.view",
       "appointments.manage",
       "portal.*.read",
+      "ai.use",
     ],
   },
   {
@@ -319,4 +367,15 @@ export function permissionMatches(granted: string, requested: string): boolean {
     if (g[i] !== r[i]) return false;
   }
   return g.length === r.length;
+}
+
+/** Per-object portal keys a role may hold: portal.<object>.read | portal.<object>.write. */
+export const PORTAL_OBJECT_PERMISSION_RE = /^portal\.[a-z][a-z0-9_]{0,48}\.(read|write)$/;
+
+/**
+ * Is this a key a role may hold? Catalogue keys, '*', and the per-object portal keys
+ * (portal.<object>.read | portal.<object>.write) generated from the portal registry.
+ */
+export function isAssignablePermission(key: string): boolean {
+  return key === "*" || PERMISSION_KEYS.includes(key) || PORTAL_OBJECT_PERMISSION_RE.test(key);
 }

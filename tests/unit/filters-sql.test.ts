@@ -185,10 +185,10 @@ describe("filter → SQL compiler", () => {
       "exists (select 1 from public.mentions r where r.contact_id = c.id and r.user_id = ($1 ->> 0)::uuid)",
     );
     expect(sql).toContain(
-      "not exists (select 1 from public.enquiries r where r.contact_id = c.id and r.status = ($1 ->> 1))",
+      "not exists (select 1 from public.enquiries r where r.contact_id = c.id and r.deleted_at is null and r.status = ($1 ->> 1))",
     );
     expect(sql).toContain(
-      "(select count(*) from public.enquiries r where r.contact_id = c.id) >= ($1 ->> 2)::integer",
+      "(select count(*) from public.enquiries r where r.contact_id = c.id and r.deleted_at is null) >= ($1 ->> 2)::integer",
     );
     expect(sql).toContain(
       "exists (select 1 from public.contact_phones r where r.contact_id = c.id and r.phone_e164 ilike ($1 ->> 3) escape '\\')",
@@ -245,7 +245,7 @@ describe("filter → SQL compiler", () => {
       "c.full_name asc nulls last, (case when jsonb_typeof(c.custom -> 'visits') = 'number' then (c.custom ->> 'visits')::numeric end) desc nulls last",
     );
     expect(compileOrderBy([{ field: "enquiry_count", dir: "desc" }], registry)).toBe(
-      "(select count(*) from public.enquiries r where r.contact_id = c.id) desc nulls last",
+      "(select count(*) from public.enquiries r where r.contact_id = c.id and r.deleted_at is null) desc nulls last",
     );
     expect(() => compileOrderBy([{ field: "tags", dir: "asc" }], registry)).toThrow(
       FilterCompileError,

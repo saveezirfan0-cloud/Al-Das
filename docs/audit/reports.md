@@ -80,7 +80,7 @@ Birthday Messages rows with a create form. → `recall_sends` list, programme bi
 
 | KPI | Source tables | Status |
 |---|---|---|
-| Enquiries in / closed / converted; conversion to appointments | `enquiries`, `appointments` | Phase 5/10 |
+| Enquiries in / closed / converted; conversion to appointments | `enquiries`, `appointments` | Live (§5.1b) |
 | Appointments by status / location / specialist; no-shows | `appointments` (+ Unite status map) | Phase 6/10, OQ-23 |
 | Response times | `messages`, `conversations` | Phase 3/10 |
 | Campaign results | `campaigns`, `campaign_recipients` | Phase 7/10 |
@@ -94,3 +94,55 @@ Birthday Messages rows with a create form. → `recall_sends` list, programme bi
 - OQ-45: purpose of the Unite grid views `Z00`, `2024`, `2025`, `Vitamin D`.
 - OQ-23: Unite appointment status codes, without which no-show reporting is impossible.
 - The Airtable "no-show rate" tile measures field fill rate, not no-shows; management should be told the historical number was wrong before the new dashboard shows a different one.
+
+## 5. As built in Phase 10 (`docs/08_PHASE_10_NOTES.md`)
+
+### 5.1 Live reports and their metric definitions
+
+OQ-44 (the Data Requirements Matrix) is still missing, so these are **working definitions**. Confirm them with management and change them in one place (`supabase/migrations/…001200_metrics.sql`).
+
+| Metric | Definition |
+|---|---|
+| Day | Calendar day in the organisation's timezone (`orgs.timezone`, default Asia/Dubai). Periods, presets and the heatmap all use it. |
+| Conversation opened | `conversations.opened_at`. A closed conversation that reopens on a new patient message keeps one row, so "opened" counts the first open, not every reopen. |
+| First response | The first outbound message **sent by a staff member** (`messages.sent_by_user_id` set; bots, flows and automated templates excluded) at or after the conversation's first patient message. Conversations that started with an outbound message have no first-response time. |
+| Resolution time | `closed_at − opened_at`, for closed conversations. |
+| Returning contact | The contact had an earlier conversation than this one. Unique contacts = distinct contacts with a conversation opened in the period. |
+| Answered by staff | Conversations with a first response ÷ conversations opened in the period. "Waiting for a staff reply" = a patient message and no staff reply yet. |
+| SLA breach (live) | Open conversation whose last message is from the patient and older than `orgs.settings.reports.sla_minutes` (default 15). |
+| Agent figures | Sums and counts per staff member per day, re-aggregated over the period, so averages are exact. A first reply is credited to whoever sent it; a closure to `closed_by`. |
+| Usage | Outbound messages by day, template vs free-form, and delivery status. **Cost is not included** (no pricing data yet). |
+
+Filter applicability: **channel** (WhatsApp number) — conversation, response, usage and the heatmap; **team** — conversation-level numbers (`assignee_team_id`) and the agent report (members of the team); **staff member** — the agent report. Daily message volume has no team dimension; the page says so when a team filter is active.
+
+Materialized views refresh every 15 minutes (`pulse:metrics_refresh`), so dashboards can be up to 15 minutes behind; the Team lead dashboard reads live views and is current.
+
+### 5.1a Appointment reports (live since the Phase 6 merge)
+
+`v_appointment_facts` (a `security_invoker` view, service role only) is the contract: `id, org_id, day, status, source, location_id, location_name, specialist_id, specialist_name, external_status`, where `day` is the appointment's date in the org timezone (the day it takes place, not the day it was booked). Both reports read it through the `report_appointments_*` and `report_unite_*` functions (migration `20261009001400`).
+
+- **No-show rate** = no-shows ÷ (completed + no-shows). Cancelled, awaiting and confirmed are outside the base, so a clinic with no outcomes yet shows "—", not 0%. The old Airtable "No-show rate per doctor" tile measured field fill rate (OQ-54); this is the replacement and will differ from it.
+- **Unite status codes (OQ-23).** `appointments.status` follows `unite_appointment_status_map`. A code whose mapping is still empty leaves the appointment at *Awaiting*, so Unite no-shows and cancellations are undercounted until Settings → Unite EMR is filled in. The Unite report lists every raw code with its current mapping and the count of appointments still unmapped, so the gap is visible rather than silent.
+- No location/specialist filter yet: both are breakdowns inside the report. A shared location filter needs the filter bar and export route extended.
+
+### 5.1b Enquiry and campaign reports (live since Phases 5 and 7)
+
+Sources are `security_invoker` views revoked from API roles (`v_enquiry_facts`, `v_enquiry_stage_entries`, `v_campaign_facts`), read through service-role `report_enquiries_*`, `report_enquiry_*` and `report_campaigns` functions (migration `20261010001000`).
+
+- **No stage-history table.** The plan said one was needed; the timeline events Phase 5 already writes are the history (`enquiry.created` → `stage_id`; `enquiry.stage_changed` / `enquiry.pipeline_changed` → `to_stage_id`). Enquiries imported or created without timeline events do not appear in *Entered* or *Time in stage*; they do count in created / closed / open numbers.
+- **Closed** means won, lost or disqualified, bucketed by the day `closed_at` falls on, not the creation day. **Conversion** = won ÷ (won + lost + disqualified) among enquiries closed in the period. **Open now** is today's count, not the period's.
+- **Time in stage**: entry → next entry; the last stay of a closed enquiry ends at `closed_at`; the stay an open enquiry is in now is not counted. Bucketed by the day the stay ended.
+- **Team and staff filters** use the enquiry's *current* assignee (assignment history is not kept).
+- **Campaigns** are placed in the period by the day they started (scheduled, or created, if they never started); drafts are excluded. Counts are read live from `campaign_recipients`; *Skipped* (opted out, no number, missing variable) is not *Failed*.
+- **Conversion to appointments** (migration `20261010001100`, `report_enquiry_booking_conversion`): of the enquiries created in the period, the share whose contact has a non-cancelled appointment starting after the enquiry was created. Appointments carry no enquiry link, so the contact is the link; enquiries with no linked contact never count as booked; a no-show still counts as a booking. The team and staff filters do not apply to it.
+- Still awaiting: WhatsApp *cost*.
+
+### 5.2 Data contract for the awaiting reports
+
+A report goes live when its source view exists with these columns and a `run` function is added to `lib/reports/registry.ts`. Days are org-timezone dates; every view carries `org_id`; materialized views follow the same access rules as the Phase 10 ones (revoked from API roles, read through a service-role function).
+
+| Report | View | Columns (minimum) | Delivered by |
+|---|---|---|---|
+| WhatsApp cost | `mv_wa_usage` | `org_id, day, channel_id, category, country, messages, cost` from Meta `pricing_analytics` | a pricing-ingestion task (new) |
+
+Management dashboard widgets that still wait on these: WhatsApp cost.

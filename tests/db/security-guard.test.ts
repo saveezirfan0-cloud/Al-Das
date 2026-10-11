@@ -22,11 +22,16 @@ import {
 
 /** Tables with no API policy on purpose: only the service role (server code after can()) touches them. */
 const SERVICE_ONLY = new Set([
+  // Phase 10: API key hashes and idempotent-response cache; only the public API (server code) touches them
+  "api_idempotency",
+  "api_keys",
   // Phase 6: per-org appointment number counter, only touched by a security-definer trigger
   "appointment_counters",
   "channel_secrets",
   "channel_send_slots",
   "dead_letters",
+  // Phase 5: per-org enquiry number counter, only touched by a security-definer trigger
+  "enquiry_counters",
   // Finance module: infrastructure and raw-payload tables, documented as service-only in their migrations
   "fin_alert_state",
   "fin_capture_lease",
@@ -37,6 +42,8 @@ const SERVICE_ONLY = new Set([
   "integration_accounts",
   "unite_api_calls",
   "job_runs",
+  // Phase 8: salted hashes of Make's daily output for the parallel run, written by the importer script only
+  "parallel_run_make_outputs",
   "rate_limit_hits",
   "scheduled_jobs",
   "webhook_events_in",
@@ -50,7 +57,7 @@ const AUTHENTICATED_RPCS = new Set(["mark_all_notifications_read", "set_presence
  * raise before RLS is evaluated, so the generic insert probe sees 23514 instead of 42501.
  * Their policies are proven by the dedicated per-table suites, which this file checks by name.
  */
-const TRIGGER_GUARDED = new Set(["conversation_labels", "conversations", "invites", "memberships", "team_members"]);
+const TRIGGER_GUARDED = new Set(["conversation_labels", "conversations", "enquiries", "invites", "memberships", "team_members"]);
 
 /** Helpers a policy must call to be considered org-scoped. */
 const ORG_SCOPE_MARKERS = [
@@ -257,7 +264,7 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
   });
 
   it("has a dedicated cross-org suite for every trigger-guarded table", () => {
-    const suites = ["rls.test.ts", "crm-rls.test.ts", "inbox-rls.test.ts"]
+    const suites = ["rls.test.ts", "crm-rls.test.ts", "inbox-rls.test.ts", "enquiries-rls.test.ts"]
       .map((f) => fs.readFileSync(path.join(__dirname, f), "utf8"))
       .join("\n");
     for (const t of TRIGGER_GUARDED) expect(suites, `${t} is not covered by a per-table RLS suite`).toMatch(new RegExp(`\\b${t}\\b`));
