@@ -50,6 +50,7 @@ Captures Unite invoices, matches them to Diligence claim files, and routes excep
 - Domain events go through `emit(orgId, 'enquiry.stage_changed', payload)`, which triggers flows and outbound webhooks.
 - UI patterns: right-side drawers for records, DataGrid for lists with saved views, a phone preview for templates/campaigns.
 - Every schema change is a new migration. Never edit applied migrations. Regenerate types after migrating.
+- Navigation: sidebar entries live in `components/shell/nav.ts` (with `group` and search `keywords`); Settings pages live in `components/shell/settings-pages.ts`, which feeds both the Settings menu and Ctrl+K quick search. A new page is added there, gated by its permission. Status, gaps and roadmap: `docs/09_STATUS_AND_ROADMAP.md`.
 - Back-office objects: core entities merge into core tables; everything else becomes a real table registered in `portal_objects`.
 
 ## Commands
