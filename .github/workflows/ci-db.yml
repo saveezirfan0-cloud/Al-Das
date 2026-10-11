@@ -1,0 +1,52 @@
+name: CI (database)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-db-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  db-tests:
+    name: Row-level security, jobs and service tests on Postgres
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/pulse_test
+      TEST_POSTGREST_URL: http://127.0.0.1:3998
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Postgres 16 with pgvector
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-16 postgresql-16-pgvector
+          sudo pg_ctlcluster 16 main start
+          sudo -u postgres psql -c "alter user postgres password 'postgres'"
+          echo "/usr/lib/postgresql/16/bin" >> "$GITHUB_PATH"
+      - run: pnpm install --frozen-lockfile
+      - name: pgmq (third-party SQL, not committed)
+        run: curl -fsSL -o supabase/test/ext-stubs/pgmq--1.5.1.sql https://raw.githubusercontent.com/pgmq/pgmq/v1.5.1/pgmq-extension/sql/pgmq.sql
+      - name: Create the test database from the migrations
+        run: sudo chmod -R a+w "$(pg_config --sharedir)/extension" && bash scripts/test-db.sh
+      - name: PostgREST for the supabase-js tests
+        run: |
+          curl -fsSL -o pgrst.tar.xz https://github.com/PostgREST/postgrest/releases/download/v12.2.3/postgrest-v12.2.3-linux-static-x64.tar.xz
+          tar -xf pgrst.tar.xz
+          printf '%s\n' 'db-uri = "postgresql://postgres:postgres@127.0.0.1:5432/pulse_test"' 'db-schemas = "public"' 'db-anon-role = "anon"' 'jwt-secret = "pulse-test-jwt-secret-pulse-test-jwt-secret"' 'server-port = 3999' > pgrst.conf
+          nohup ./postgrest pgrst.conf > pgrst.log 2>&1 &
+          nohup node supabase/test/rest-proxy.mjs 3998 http://127.0.0.1:3999 > proxy.log 2>&1 &
+          sleep 3
+      - name: Database tests
+        run: |
+          export TEST_SERVICE_JWT=$(node -e 'const c=require("crypto"),b=(o)=>Buffer.from(JSON.stringify(o)).toString("base64url"),h=b({alg:"HS256",typ:"JWT"}),p=b({role:"service_role",exp:4102444800});console.log(h+"."+p+"."+c.createHmac("sha256","pulse-test-jwt-secret-pulse-test-jwt-secret").update(h+"."+p).digest("base64url"))')
+          pnpm exec vitest run tests/db

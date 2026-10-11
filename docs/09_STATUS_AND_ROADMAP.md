@@ -26,11 +26,11 @@ Phases 1 to 11 and Finance F0 to F6 are **built, tested and merged**. Pulse alre
 | TypeScript | about 108,000 lines |
 | Permission keys | 40 (plus wildcards) |
 | Unit test files / tests | 107 files / **1,245 passing** (includes the 19 added this session) |
-| Database test files | 34 files (423 tests; they need a Postgres, skipped here) |
+| Database test files | 32 files, **423 tests passing** on Postgres 16 with pgvector and PostgREST (run 11 Oct 2026, see `docs/11_PHASE_12B_NOTES.md`) |
 | Browser (Playwright) specs | 6 |
 | `pnpm typecheck`, `pnpm lint`, `pnpm test` | **all clean** on a fresh install |
 
-Not run this session: the database tests (no Postgres in the sandbox) and the browser tests (no auth stack). They passed when each phase landed.
+Not run: the browser tests and any click-through (no Supabase auth stack in the sandbox). The database tests were run on 11 Oct 2026 and all pass.
 
 ### 1.3 Scorecard
 
@@ -87,7 +87,7 @@ Still to do on these: click through them on a real stack (section 2.2).
 These are the most valuable things to do before any client sees the product, because every one is a likely source of embarrassing first-demo bugs.
 
 1. **Run the whole app once on a real Supabase stack** (`supabase start`, `pnpm db:reset`, `pnpm dev`) and click every page as three different roles (admin, receptionist, finance). The phase notes all say the UI "was type-checked and built but not driven in a browser". Expect cosmetic and flow bugs.
-2. **Run the database tests** (`pnpm test:db`) and the Playwright suite (`pnpm e2e`) on that stack. Add them to CI (a Postgres service with pgvector, PostgREST for the service-level tests).
+2. **Run the Playwright suite** (`pnpm e2e`) on that stack. The database tests were run on 11 Oct 2026 (423 pass) and now run in CI (`.github/workflows/ci-db.yml`).
 3. **Real Meta round trip** on a test number: signed webhook in, message in the inbox in under 2 seconds, template out, ticks back. `pnpm wa:simulate` has only simulated this.
 4. **Load rehearsal on staging**: `pnpm load:webhook`, `pnpm load:outbound` (20,000 messages against the mock Graph, then a small real batch).
 5. **Accessibility pass** (WCAG 2.1 AA) and a **real-phone pass** (iOS Safari and Android Chrome).
@@ -129,7 +129,7 @@ Never paste any of these into chat, GitHub, a doc or a screenshot. Put them in V
 |---|---|---|---|---|
 | 1 | **Supabase project** (Pro plan, region decided with legal, see OQ-49) with extensions `pgmq`, `pg_cron`, `pg_net`, `vector`; point-in-time recovery on | supabase.com, new project, then `supabase link` and `supabase db push` | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (server only) | Everything |
 | 2 | **Vercel Pro project** linked to the GitHub repo, production domain (for example `pulse.<your domain>`) | vercel.com, import repo | `APP_URL` | Deploys, cron callbacks |
-| 3 | **Two random secrets** | `openssl rand -base64 32` for the key; any 32+ character random string for the job secret | `ENCRYPTION_KEY`, `JOB_SECRET` | Encrypting channel and integration tokens; pg_cron calling `/api/jobs/*`. **Back up `ENCRYPTION_KEY` somewhere safe: losing it makes stored tokens unreadable** |
+| 3 | **Two random secrets** | Run `bash scripts/generate-secrets.sh` on your own machine (it uses `openssl rand`) | `ENCRYPTION_KEY`, `JOB_SECRET` | Encrypting channel and integration tokens; pg_cron calling `/api/jobs/*`. **Back up `ENCRYPTION_KEY` somewhere safe: losing it makes stored tokens unreadable** |
 | 4 | **Meta (WhatsApp Cloud API)** under Al Das's own Business Portfolio: verified business, a Business-type app, a System User with a permanent token, the WABA and the three phone numbers | business.facebook.com, developers.facebook.com | `META_APP_ID`, `META_APP_SECRET`, `META_WEBHOOK_VERIFY_TOKEN` (you choose it), `META_SYSTEM_USER_TOKEN`, `META_GRAPH_VERSION`; plus WABA ID and phone number IDs entered in Settings, Channels | Inbox, templates, campaigns, reminders |
 | 5 | **Unite EMR credentials for the platform** (fresh app id/key, not the ones in Make) | Ask Unite. The email draft is `docs/finance/unite-request-email.md` | `UNITE_BASE_URL`, `UNITE_APP_ID`, `UNITE_APP_KEY` (entered encrypted in Settings, Unite EMR) | Appointment, doctor and patient sync |
 | 6 | **Anthropic API key** | console.anthropic.com | `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` | AI assist (after OQ-57) |
