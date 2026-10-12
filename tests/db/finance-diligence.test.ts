@@ -28,7 +28,20 @@ import {
   TEST_DATABASE_URL,
 } from "./helpers";
 
+// ExcelJS also stamps each zip entry with the current time (2 s resolution), so two builds of the same rows
+// that straddle a clock tick are different bytes. Build each distinct workbook once and reuse the bytes.
+const xlsxCache = new Map<string, Buffer>();
+
 async function xlsx(rows: Array<Record<string, unknown>>, drop: string[] = []): Promise<Buffer> {
+  const cacheKey = JSON.stringify([rows, drop]);
+  const cached = xlsxCache.get(cacheKey);
+  if (cached) return cached;
+  const built = await buildXlsx(rows, drop);
+  xlsxCache.set(cacheKey, built);
+  return built;
+}
+
+async function buildXlsx(rows: Array<Record<string, unknown>>, drop: string[]): Promise<Buffer> {
   const ExcelJS = (await import("exceljs")).default;
   const wb = new ExcelJS.Workbook();
   // ExcelJS stamps the creation time into the file. Identical rows must give identical bytes (the import
