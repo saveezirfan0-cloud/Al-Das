@@ -30,6 +30,8 @@ import {
   updateStage,
 } from "@/lib/enquiries/pipelines";
 import { on } from "@/lib/events/emit";
+import { sanitizePayload } from "@/lib/webhooks/payload";
+import { markContactEnquiriesTouched } from "@/lib/enquiries/touch";
 import { handleScheduled } from "@/lib/jobs/handlers/reminders";
 import { createTask, setTasksDone, updateTask } from "@/lib/tasks/service";
 import type { AdminClient } from "@/lib/supabase/admin";
@@ -52,6 +54,7 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)(
     let main: { id: string; s1: string; s2: string; s3: string };
     let second: { id: string; s1: string };
     const events: string[] = [];
+    const emitted: Array<{ name: string; payload: Record<string, unknown> }> = [];
 
     async function one<T>(sql: string, params: unknown[] = []): Promise<T> {
       const { rows } = await c.query(sql, params);
@@ -108,6 +111,7 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)(
 
       on("*", (e) => {
         events.push(e.name);
+        emitted.push({ name: e.name, payload: e.payload });
       });
     });
 
@@ -341,6 +345,36 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)(
       );
     });
 
+    it("a confirmed reply touches only that patient's open, untouched enquiries and stops the SLA clock", async () => {
+      const mkContact = async (phone: string) =>
+        (await one<{ id: string }>(
+          "insert into public.contacts (org_id, first_name, phone_e164) values ($1, 'Test', $2) returning id",
+          [org, phone],
+        )).id;
+      const patient = await mkContact("+971500000301");
+      const other = await mkContact("+971500000302");
+      const mine = await createEnquiry(ctx, { title: "Reply", pipelineId: main.id, contactId: patient });
+      const closed = await createEnquiry(ctx, { title: "Closed", pipelineId: main.id, contactId: patient });
+      await setStatus(ctx, closed.id, "lost", "No answer");
+      const theirs = await createEnquiry(ctx, { title: "Other patient", pipelineId: main.id, contactId: other });
+      const touchedAt = async (id: string) =>
+        (await one<{ first_touch_at: Date | null }>("select first_touch_at from public.enquiries where id = $1", [id])).first_touch_at;
+
+      const closedBefore = await touchedAt(closed.id); // closing already counts as a touch
+      expect(await markContactEnquiriesTouched(admin, org, patient)).toBe(1);
+      expect(await touchedAt(mine.id)).not.toBeNull();
+      expect(await touchedAt(closed.id)).toEqual(closedBefore); // a closed enquiry is left alone
+      expect(await touchedAt(theirs.id)).toBeNull(); // another patient's enquiry is untouched
+      const first = await touchedAt(mine.id);
+      expect(await markContactEnquiriesTouched(admin, org, patient)).toBe(0); // idempotent
+      expect(await touchedAt(mine.id)).toEqual(first);
+
+      // The SLA job now no-ops for it, even once past due.
+      await c.query("update public.enquiries set sla_due_at = now() - interval '1 minute' where id = $1", [mine.id]);
+      const env = { kind: "enquiry.sla", org_id: org, scheduled_job_id: "j-touch", payload: { enquiry_id: mine.id } };
+      expect(await handleScheduled(env, admin)).toBe("skipped");
+    });
+
     it("schedules a task reminder, notifies once, and drops stale reminders", async () => {
       const due = new Date(Date.now() + 3600_000);
       const t = await createTask(
@@ -412,6 +446,72 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)(
           )
         ).n,
       ).toBe(before);
+    });
+
+    it("webhook payloads built from what the services really emit carry ids and enums only", async () => {
+      // Emit the full family against real rows, then sanitise exactly as fan-out does.
+      const e = await createEnquiry(ctx, {
+        title: "Hip pain, Mrs Example",
+        pipelineId: main.id,
+        assigneeId: carol,
+      });
+      await moveStage(ctx, e.id, main.s2);
+      await setStatus(ctx, e.id, "lost", "Chose another clinic after her surgery");
+      await movePipeline(ctx, e.id, second.id);
+      const t = await createTask(
+        { admin, orgId: org, userId: alice },
+        {
+          type: "call",
+          subject: "Call Mrs Example about her results",
+          dueAt: new Date(Date.now() + 3600_000).toISOString(),
+          enquiryId: e.id,
+        },
+      );
+      await setTasksDone({ admin, orgId: org, userId: alice }, [t.id], true);
+
+      const wanted = [
+        "enquiry.created",
+        "enquiry.assigned",
+        "enquiry.stage_changed",
+        "enquiry.status_changed",
+        "enquiry.pipeline_changed",
+        "task.created",
+        "task.completed",
+      ];
+      for (const name of wanted) {
+        const hit = emitted.filter((x) => x.name === name).pop();
+        expect(hit, `${name} was not emitted`).toBeDefined();
+        const data = sanitizePayload(hit!.payload);
+        const text = JSON.stringify(data);
+        for (const secret of [
+          "Hip pain",
+          "Mrs",
+          "Example",
+          "surgery",
+          "results",
+          "another clinic",
+          "Contacted",
+        ]) {
+          expect(text, `${name} leaks ${secret}`).not.toContain(secret);
+        }
+        for (const [k, v] of Object.entries(data)) {
+          const ok =
+            v === null ||
+            /^[0-9a-f-]{36}$/.test(String(v)) ||
+            ["by", "from", "to", "number"].includes(k);
+          expect(ok, `${name}.${k} is neither an id nor an enum`).toBe(true);
+        }
+        expect(data.enquiry_id ?? data.task_id, `${name} lost its primary id`).toBeTruthy();
+      }
+      // The follow-up ids a receiver needs are present.
+      const done = sanitizePayload(
+        emitted.filter((x) => x.name === "task.completed").pop()!.payload,
+      );
+      expect(done).toMatchObject({ task_id: t.id, enquiry_id: e.id });
+      const status = sanitizePayload(
+        emitted.filter((x) => x.name === "enquiry.status_changed").pop()!.payload,
+      );
+      expect(status).toMatchObject({ from: "open", to: "lost" });
     });
 
     it("soft-deletes enquiries and hides them from the search RPC", async () => {

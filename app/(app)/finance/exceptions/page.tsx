@@ -172,7 +172,10 @@ export default async function ExceptionsPage({ searchParams }: { searchParams: P
       <Card>
         <CardContent className="pt-6">
           {(data ?? []).length === 0 ? (
-            <p className="text-muted-foreground text-sm">No exceptions match.</p>
+            <p className="text-muted-foreground text-sm">
+              No exceptions match. That is good news if the filters are clear; the rules run daily
+              and flag anything that needs an owner.
+            </p>
           ) : (
             <Table>
               <TableHeader>

@@ -12,6 +12,7 @@ import { registerHandler } from "@/lib/jobs/registry";
 import { registerTask } from "@/lib/jobs/tasks";
 import { PermanentJobError, type JobLogger } from "@/lib/jobs/types";
 import { notifyMembersWithPermission } from "@/lib/notifications";
+import { createTask } from "@/lib/tasks/service";
 import type { AdminClient } from "@/lib/supabase/admin";
 import type { TablesUpdate } from "@/lib/supabase/types";
 
@@ -117,7 +118,16 @@ export async function processReminder(
   return "sent";
 }
 
-async function reportReminderFailure(
+/** How long reception has to ring the patient before the task is overdue. */
+const CALL_TASK_DUE_MS = 30 * 60_000;
+
+/**
+ * A reminder that did not reach the patient: tell reception, and leave a "call patient" task so the
+ * call cannot be forgotten. Idempotent: one open call task per appointment (also enforced by a
+ * partial unique index), so a repeat failure, a replayed job or both failure paths add nothing.
+ * The task subject carries the appointment number only, never the patient's name.
+ */
+export async function reportReminderFailure(
   admin: AdminClient,
   orgId: string,
   appointmentId: string,
@@ -125,13 +135,71 @@ async function reportReminderFailure(
   reason: string,
 ): Promise<void> {
   await emit(orgId, "appointment.reminder_failed", { appointment_id: appointmentId, reason });
-  // No tasks table until Phase 5: ring reception through a notification instead.
+  await createCallTask(admin, orgId, appointmentId, number);
   await notifyMembersWithPermission(admin, orgId, "appointments.manage", {
     type: "appointment.reminder_failed",
     title: "Appointment reminder not delivered",
     body: `Appointment #${number}: call the patient to remind them.`,
     payload: { appointment_id: appointmentId },
   });
+}
+
+async function createCallTask(
+  admin: AdminClient,
+  orgId: string,
+  appointmentId: string,
+  number: number,
+): Promise<void> {
+  const openTask = () =>
+    admin
+      .from("tasks")
+      .select("id")
+      .eq("org_id", orgId)
+      .eq("appointment_id", appointmentId)
+      .eq("type", "call")
+      .eq("done", false)
+      .limit(1)
+      .maybeSingle();
+  if ((await openTask()).data) return;
+
+  const { data: appt } = await admin
+    .from("appointments")
+    .select("contact_id, created_by")
+    .eq("id", appointmentId)
+    .eq("org_id", orgId)
+    .maybeSingle();
+  if (!appt) return;
+
+  // The booking's creator owns the call if they still work here; otherwise it is left unassigned.
+  let assigneeId: string | null = null;
+  if (appt.created_by) {
+    const { data: m } = await admin
+      .from("memberships")
+      .select("user_id")
+      .eq("org_id", orgId)
+      .eq("user_id", appt.created_by)
+      .eq("status", "active")
+      .maybeSingle();
+    assigneeId = m?.user_id ?? null;
+  }
+
+  try {
+    await createTask(
+      { admin, orgId, userId: null },
+      {
+        type: "call",
+        subject: `Call patient: reminder for appointment #${number} not delivered`,
+        dueAt: new Date(Date.now() + CALL_TASK_DUE_MS).toISOString(),
+        assigneeId,
+        contactId: appt.contact_id,
+        appointmentId,
+      },
+    );
+  } catch (e) {
+    // A concurrent failure path may have created it first; that is the outcome we wanted.
+    if ((await openTask()).data) return;
+    throw e;
+  }
 }
 
 registerHandler({

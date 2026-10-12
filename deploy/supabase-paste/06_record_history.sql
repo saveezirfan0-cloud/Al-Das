@@ -1,0 +1,33 @@
+-- Records the repo migration versions so a later 'supabase db push' does not re-run them.
+insert into supabase_migrations.schema_migrations (version, name)
+values
+  ('20261008000100', 'extensions_and_helpers'),
+  ('20261008000200', 'tenancy'),
+  ('20261008000300', 'jobs'),
+  ('20261008000400', 'queues'),
+  ('20261008000500', 'cron'),
+  ('20261008000600', 'realtime'),
+  ('20261008000700', 'crm'),
+  ('20261008000800', 'channels'),
+  ('20261008000900', 'inbox'),
+  ('20261009000100', 'finance_raw'),
+  ('20261009000200', 'finance_ref'),
+  ('20261009000300', 'finance_core'),
+  ('20261009000400', 'finance_views'),
+  ('20261009000500', 'finance_queue'),
+  ('20261009000600', 'finance_capture'),
+  ('20261009000700', 'hardening'),
+  ('20261009000800', 'reconcile'),
+  ('20261009000900', 'rls_helpers'),
+  ('20261009000910', 'appointments'),
+  ('20261009000920', 'appointments_ext'),
+  ('20261009000930', 'appointment_jobs'),
+  ('20261009000940', 'unite'),
+  ('20261009000950', 'clinical_core'),
+  ('20261009000960', 'org_check_triggers'),
+  ('20261009000970', 'finance_f21'),
+  ('20261009000980', 'finance_diligence'),
+  ('20261009000990', 'finance_rules'),
+  ('20261009000991', 'finance_alerts'),
+  ('20261009001000', 'finance_ui_views')
+on conflict (version) do nothing;

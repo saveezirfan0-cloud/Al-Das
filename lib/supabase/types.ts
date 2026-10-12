@@ -7376,6 +7376,7 @@ export type Database = {
       };
       tasks: {
         Row: {
+          appointment_id: string | null;
           assignee_id: string | null;
           completed_by: string | null;
           contact_id: string | null;
@@ -7395,6 +7396,7 @@ export type Database = {
         };
         ComputedFields: never;
         Insert: {
+          appointment_id?: string | null;
           assignee_id?: string | null;
           completed_by?: string | null;
           contact_id?: string | null;
@@ -7413,6 +7415,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          appointment_id?: string | null;
           assignee_id?: string | null;
           completed_by?: string | null;
           contact_id?: string | null;
@@ -7431,6 +7434,20 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "tasks_appointment_id_fkey";
+            columns: ["appointment_id"];
+            isOneToOne: false;
+            referencedRelation: "appointments";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tasks_appointment_id_fkey";
+            columns: ["appointment_id"];
+            isOneToOne: false;
+            referencedRelation: "v_appointment_facts";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "tasks_assignee_id_fkey";
             columns: ["assignee_id"];
@@ -9104,6 +9121,57 @@ export type Database = {
           },
         ];
       };
+      v_fin_data_freshness: {
+        Row: {
+          active_rules: number | null;
+          batch_count: number | null;
+          branches_mapped: number | null;
+          capture_enabled: boolean | null;
+          claim_count: number | null;
+          credentials_configured: boolean | null;
+          invoice_count: number | null;
+          last_capture_at: string | null;
+          last_import_at: string | null;
+          open_exceptions: number | null;
+          org_id: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          active_rules?: never;
+          batch_count?: never;
+          branches_mapped?: never;
+          capture_enabled?: boolean | null;
+          claim_count?: never;
+          credentials_configured?: never;
+          invoice_count?: never;
+          last_capture_at?: never;
+          last_import_at?: never;
+          open_exceptions?: never;
+          org_id?: string | null;
+        };
+        Update: {
+          active_rules?: never;
+          batch_count?: never;
+          branches_mapped?: never;
+          capture_enabled?: boolean | null;
+          claim_count?: never;
+          credentials_configured?: never;
+          invoice_count?: never;
+          last_capture_at?: never;
+          last_import_at?: never;
+          open_exceptions?: never;
+          org_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_capture_settings_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: true;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       v_fin_denials: {
         Row: {
           claim_activities: number | null;
@@ -10290,6 +10358,13 @@ export type Database = {
           open_now: number;
           won: number;
           won_value: number;
+        }[];
+      };
+      report_enquiry_booking_conversion: {
+        Args: { p_from: string; p_org: string; p_to: string };
+        Returns: {
+          booked: number;
+          created: number;
         }[];
       };
       report_enquiry_funnel: {

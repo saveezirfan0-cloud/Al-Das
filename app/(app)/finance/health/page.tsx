@@ -1,3 +1,4 @@
+import { SetupChecklist } from "@/components/finance/setup-checklist";
 import { PageHeader } from "@/components/shell/page-header";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +12,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { requirePerm } from "@/lib/auth/session";
+import { loadFreshness } from "@/lib/finance/freshness";
 import { getFinanceHealth } from "@/lib/finance/health";
+import { isReady, readinessSteps } from "@/lib/finance/readiness";
+import { createClient } from "@/lib/supabase/server";
 import {
   CaptureToggle,
   CredentialsForm,
@@ -41,6 +45,8 @@ export default async function FinanceHealthPage() {
   const admin = createAdminClient();
   const health = await getFinanceHealth(admin, member.orgId);
   const alerts = evaluateAlerts(await loadAlertSnapshot(admin, member.orgId));
+  const freshness = await loadFreshness(await createClient());
+  const steps = freshness ? readinessSteps(freshness) : null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -48,6 +54,13 @@ export default async function FinanceHealthPage() {
         title="Data health"
         description="Unite capture, the Diligence import and reference-data gaps."
       />
+
+      {steps && !isReady(steps) && (
+        <SetupChecklist
+          steps={steps}
+          allowed={["finance.capture.manage", "finance.reference.manage", "finance.claims.import"]}
+        />
+      )}
 
       {alerts.length > 0 && (
         <Card>

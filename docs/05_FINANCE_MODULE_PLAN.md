@@ -71,6 +71,13 @@ Rules: raw first (if the raw insert fails, process nothing, raise a critical ale
 | `appt.appointments`                                                     | Decided in F3: the platform `appointments` table if it exists, otherwise a thin reference table                                                                      |
 | Feature flag                                                            | Per-org `fin_capture_settings.enabled`, default **false**                                                                                                            |
 
+### F7 as built (UI polish)
+
+- **Monthly summary:** headline cards with change against the previous period of equal length (rises in Rejected / Outstanding are not shown as good news), quick-range chips, branch / department / doctor selects, generated-vs-remitted trend, outstanding-by-age, top denial reasons, claims by payer, revenue grouped by department / doctor / service / branch, month rows that drill down to Invoices, and a "data as of" line. Charts are server-rendered bars (no chart library); every value is also in a table.
+- **Setup checklist** (`lib/finance/readiness.ts`) on the empty Summary and on Data health: credentials, branch mapping, capture on, first invoices, first Diligence import, rules active.
+- `v_fin_data_freshness` (migration `…001000`): dates, counts and yes/no flags only, gated by `finance.view`, so Summary users need no Data-health permission. Exceptions tab shows an open-count badge. Shared formatters in `lib/finance/format.ts`.
+- Not yet click-tested in a browser against live data.
+
 ### F6 as built
 
 - **Alerts** (`lib/finance/alerts.ts`, hourly `pulse:finance_alerts` → `finance_capture` queue kind `alerts`; never calls Unite): `capture_failed` (unprocessed / failed batch or open capture exception, critical), `capture_stalled` (balance not dropping, critical), `capture_silent` (no capture for more than 3 h = warning, more than 6 h = critical), `no_diligence_upload` (more than 8 days, warning; only once the module is in use), `overdue_exceptions` (info, above 20). Sent in-app to everyone with `finance.capture.manage`; critical ones and their "resolved" notices also by e-mail. Each problem is announced once, again if it gets worse, reminded after 24 h while it lasts (warning and critical), and a critical one that clears sends one resolved notice. State lives in `fin_alert_state` (service role only). Texts hold counts and times only.

@@ -10,6 +10,7 @@ const PUBLIC_PREFIXES = [
   "/api/public",
   "/_next",
   "/favicon",
+  "/manifest.webmanifest",
 ];
 
 function isPublicPath(pathname: string) {

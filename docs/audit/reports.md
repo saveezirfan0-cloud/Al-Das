@@ -80,7 +80,7 @@ Birthday Messages rows with a create form. → `recall_sends` list, programme bi
 
 | KPI | Source tables | Status |
 |---|---|---|
-| Enquiries in / closed / converted; conversion to appointments | `enquiries`, `appointments` | Phase 5/10 |
+| Enquiries in / closed / converted; conversion to appointments | `enquiries`, `appointments` | Live (§5.1b) |
 | Appointments by status / location / specialist; no-shows | `appointments` (+ Unite status map) | Phase 6/10, OQ-23 |
 | Response times | `messages`, `conversations` | Phase 3/10 |
 | Campaign results | `campaigns`, `campaign_recipients` | Phase 7/10 |
@@ -134,7 +134,8 @@ Sources are `security_invoker` views revoked from API roles (`v_enquiry_facts`, 
 - **Time in stage**: entry → next entry; the last stay of a closed enquiry ends at `closed_at`; the stay an open enquiry is in now is not counted. Bucketed by the day the stay ended.
 - **Team and staff filters** use the enquiry's *current* assignee (assignment history is not kept).
 - **Campaigns** are placed in the period by the day they started (scheduled, or created, if they never started); drafts are excluded. Counts are read live from `campaign_recipients`; *Skipped* (opted out, no number, missing variable) is not *Failed*.
-- Still awaiting: *Conversion to appointments* on the Management dashboard (enquiries carry `appt_date` but no link to an appointment) and WhatsApp *cost*.
+- **Conversion to appointments** (migration `20261010001100`, `report_enquiry_booking_conversion`): of the enquiries created in the period, the share whose contact has a non-cancelled appointment starting after the enquiry was created. Appointments carry no enquiry link, so the contact is the link; enquiries with no linked contact never count as booked; a no-show still counts as a booking. The team and staff filters do not apply to it.
+- Still awaiting: WhatsApp *cost*.
 
 ### 5.2 Data contract for the awaiting reports
 
@@ -144,4 +145,4 @@ A report goes live when its source view exists with these columns and a `run` fu
 |---|---|---|---|
 | WhatsApp cost | `mv_wa_usage` | `org_id, day, channel_id, category, country, messages, cost` from Meta `pricing_analytics` | a pricing-ingestion task (new) |
 
-Management dashboard widgets that wait on these: enquiries in/closed/converted, conversion to appointments, appointments by status/location/specialist, no-shows, campaign results, WhatsApp cost.
+Management dashboard widgets that still wait on these: WhatsApp cost.

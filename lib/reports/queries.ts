@@ -327,12 +327,15 @@ const ENQUIRY_NOTE =
 export async function enquiryFunnelReport(ctx: ReportContext): Promise<ReportResult> {
   const { admin } = ctx;
   const args = enquiryArgs(ctx);
-  const [summary, byDay, funnel] = await Promise.all([
+  const [summary, byDay, funnel, booking] = await Promise.all([
     rpc(admin.rpc("report_enquiries_summary", args), "enquiries summary"),
     rpc(admin.rpc("report_enquiries_by_day", args), "enquiries by day"),
     rpc(admin.rpc("report_enquiry_funnel", args), "enquiry funnel"),
+    rpc(admin.rpc("report_enquiry_booking_conversion", { p_org: ctx.orgId, p_from: ctx.range.fromDay, p_to: ctx.range.toDay }), "enquiry booking conversion"),
   ]);
   const s = summary[0];
+  const created = orZero(booking[0]?.created);
+  const booked = orZero(booking[0]?.booked);
   const won = orZero(s?.won);
   const lost = orZero(s?.lost);
   const disq = orZero(s?.disqualified);
@@ -345,6 +348,13 @@ export async function enquiryFunnelReport(ctx: ReportContext): Promise<ReportRes
       { key: "lost", label: "Lost", value: lost, format: "number" },
       { key: "disqualified", label: "Disqualified", value: disq, format: "number" },
       { key: "conversion", label: "Conversion", value: conversion(won, lost, disq), format: "percent", hint: "won of won + lost + disqualified" },
+      {
+        key: "booked",
+        label: "Conversion to appointments",
+        value: created > 0 ? booked / created : null,
+        format: "percent",
+        hint: `${booked} of ${created} new enquiries have a booking`,
+      },
       { key: "open", label: "Open now", value: orZero(s?.open_now), format: "number", hint: "as of today, not the period" },
       { key: "value", label: "Won value", value: orZero(s?.won_value), format: "number", hint: "estimated value of won enquiries" },
     ],
@@ -389,6 +399,7 @@ export async function enquiryFunnelReport(ctx: ReportContext): Promise<ReportRes
     notes: [
       ENQUIRY_NOTE,
       "'Won here', 'Lost here' and 'Disqualified here' count enquiries closed in the period while sitting in that stage. Enquiries without timeline events (imported or created before this module) are not in 'Entered'.",
+      "Conversion to appointments: of the enquiries created in the period, the share whose contact has a non-cancelled appointment starting after the enquiry was created. Enquiries without a linked contact never count as booked, and the team and staff filters do not apply to this figure.",
     ],
   };
 }

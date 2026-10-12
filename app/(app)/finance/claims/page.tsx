@@ -108,7 +108,10 @@ export default async function ClaimsPage({ searchParams }: { searchParams: Promi
       <Card>
         <CardContent className="pt-6">
           {(data ?? []).length === 0 ? (
-            <p className="text-muted-foreground text-sm">No claims found.</p>
+            <p className="text-muted-foreground text-sm">
+              No claims to show. Claims appear after the Diligence report is imported (Finance →
+              Insurance upload), or clear the filters if some are set.
+            </p>
           ) : (
             <Table>
               <TableHeader>

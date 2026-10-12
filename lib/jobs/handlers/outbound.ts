@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { countsAsFirstTouch, markContactEnquiriesTouched } from "@/lib/enquiries/touch";
 import { emit } from "@/lib/events/emit";
 import { sendSpecSchema, type SendSpec } from "@/lib/inbox/send";
 import { readInboxSettings } from "@/lib/inbox/settings";
@@ -292,6 +293,13 @@ export async function deliverOutbound(
         convPatch.status = "waiting";
     }
     await admin.from("conversations").update(convPatch).eq("id", conversation.id);
+    // A person's reply stops the SLA clock of this patient's open enquiries. Best effort: the
+    // message is already sent, so a failure here must not re-queue it.
+    if (countsAsFirstTouch(message, spec.type)) {
+      await markContactEnquiriesTouched(admin, message.org_id, contact.id).catch((e) =>
+        log.warn("enquiry first touch failed", { messageId: message.id, error: e instanceof Error ? e.message : "unknown" }),
+      );
+    }
     await emit(message.org_id, "message.sent", {
       message_id: message.id,
       conversation_id: conversation.id,

@@ -18,7 +18,7 @@ import {
   syncAppointmentReminders,
 } from "@/lib/appointments/service";
 import { localDate, localMinutesToInstant } from "@/lib/appointments/slots";
-import { processReminder } from "@/lib/jobs/handlers/appointments";
+import { processReminder, reportReminderFailure } from "@/lib/jobs/handlers/appointments";
 import type { AdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/lib/supabase/types";
 
@@ -463,6 +463,69 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)(
         .eq("id", r3)
         .single();
       expect(x3?.exclusion_reason).toBe("exclusion_list");
+    });
+
+    it("a reminder that cannot be sent leaves one 'call patient' task, however often it is reported", async () => {
+      await c.query("delete from public.reminder_exclusions where org_id = $1", [org]);
+      await c.query(
+        `update public.orgs set settings = jsonb_set(settings, '{appointments,templates,reminder}', 'null'::jsonb) where id = $1`,
+        [org],
+      );
+      const r = await createAppointment(admin, {
+        orgId: org,
+        actorId: user,
+        contactId: id.contact,
+        locationId: id.loc,
+        specialistId: id.spec,
+        serviceId: id.svc,
+        startsAt: at("11:45"),
+        override: true,
+      });
+      if (!r.ok) throw new Error(r.error);
+      const appt = r.appointment;
+      const { data: rem } = await admin
+        .from("appointment_reminders")
+        .select("id")
+        .eq("appointment_id", appt.id)
+        .single();
+      await admin
+        .from("appointment_reminders")
+        .update({ due_at: new Date(Date.now() - 1000).toISOString() })
+        .eq("id", rem!.id);
+
+      // No tasks exist for a reminder that went out fine (the earlier appointment's was sent).
+      const none = await admin.from("tasks").select("id").eq("appointment_id", apptId);
+      expect(none.data).toHaveLength(0);
+
+      expect(await processReminder(admin, org, rem!.id, log)).toBe("failed");
+      const tasks = async () =>
+        (await admin.from("tasks").select("*").eq("appointment_id", appt.id)).data ?? [];
+      let rows = await tasks();
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({
+        type: "call",
+        done: false,
+        contact_id: id.contact,
+        assignee_id: user,
+        enquiry_id: null,
+      });
+      // Appointment number only: no patient or doctor names in the subject.
+      expect(rows[0].subject).toContain(`#${appt.number}`);
+      expect(rows[0].subject).not.toMatch(/Sara|Example/);
+      const due = new Date(rows[0].due_at).getTime() - Date.now();
+      expect(due).toBeGreaterThan(25 * 60_000);
+      expect(due).toBeLessThan(31 * 60_000);
+
+      // Reported again (a replayed job, or the delivery-failed hook after the send): still one.
+      await reportReminderFailure(admin, org, appt.id, appt.number, "delivery failed");
+      expect(await tasks()).toHaveLength(1);
+
+      // Once the call is made, a later failure may raise a new one.
+      await admin.from("tasks").update({ done: true, done_at: new Date().toISOString() }).eq("id", rows[0].id);
+      await reportReminderFailure(admin, org, appt.id, appt.number, "delivery failed");
+      rows = await tasks();
+      expect(rows).toHaveLength(2);
+      expect(rows.filter((t) => !t.done)).toHaveLength(1);
     });
   },
 );

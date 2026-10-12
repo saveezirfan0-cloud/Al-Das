@@ -86,7 +86,7 @@ export function InboxShell(props: InboxProps) {
   }
 
   return (
-    <div className="-m-4 flex h-[calc(100svh-3.5rem)] overflow-hidden md:-m-6">
+    <div className="-m-4 flex h-[calc(100svh-7rem-env(safe-area-inset-bottom))] overflow-hidden md:-m-6 md:h-[calc(100svh-3.5rem)]">
       <FoldersRail {...props} onNavigate={(q) => navigate(q, null)} className="hidden lg:flex" />
       <ConversationList
         {...props}
