@@ -118,9 +118,10 @@ I also considered and **rejected** indexes for `mentions.conversation_id` (the e
 | Check | Result |
 |---|---|
 | `pnpm typecheck`, `pnpm lint` | clean |
-| `pnpm test` | **129 files, 1,497 tests pass** (was 119 / 1,395 at Phase 15; 1,402 on `main` after #31); 509 database tests are skipped without `TEST_DATABASE_URL` |
-| `bash scripts/test-db.sh` then `pnpm exec vitest run tests/db` (with PostgREST) | **38 files, 509 tests pass** (was 484). One run failed `finance-diligence` ("expected 'staged' to be 'duplicate'"), which passes alone (twice) and passed in the next two full runs. I could not reproduce it; treat it as an unexplained flake in a file this phase did not touch |
+| `pnpm test` | **129 files, 1,497 tests pass** (was 119 / 1,395 at Phase 15; 1,402 on `main` after #31); 511 database tests are skipped without `TEST_DATABASE_URL` |
+| `bash scripts/test-db.sh` then `pnpm exec vitest run tests/db` (with PostgREST) | **38 files, 511 tests pass** (was 484). One run failed `finance-diligence` ("expected 'staged' to be 'duplicate'"), which passes alone (twice) and passed in all three later full runs. I could not reproduce it; treat it as an unexplained flake in a file this phase did not touch |
 | `pnpm build` with placeholder Supabase variables | passes; `pnpm bundle:check` passes against its log |
+| `next start` smoke (placeholder variables, no Supabase) | `/sw.js`, `/offline.html`, `/manifest.webmanifest` and the icons are served to a signed-out visitor (the middleware matcher lets them through; `sw.js` carries `Cache-Control: no-cache` and `Service-Worker-Allowed`); `/inbox`, `/notifications`, `/settings/notifications` and `/dashboard` redirect to `/login`; the page head has the manifest link, the apple-touch icon and `viewport-fit=cover` |
 | `pnpm audit:security` | 308 entry points, 0 unguarded and unreviewed; the new actions are in `lib/security/policy.ts` with reasons, the mutating ones that matter (`saveEscalation`, `setTeamLead`) call `requirePerm` and `recordAudit` |
 | The paste file | `deploy/supabase-paste/13_phase_13_notifications_speed.sql` applied cleanly on top of a database built from the earlier migrations |
 

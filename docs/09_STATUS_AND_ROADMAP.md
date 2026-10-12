@@ -42,7 +42,7 @@ Phases 1 to 11 and Finance F0 to F6 are **built, tested and merged**. Pulse alre
 | Unit test files / tests | 107 files / **1,245 passing** (includes the 19 added this session) |
 | Database test files | 32 files, **423 tests passing** on Postgres 16 with pgvector and PostgREST (run 11 Oct 2026, see `docs/11_PHASE_12B_NOTES.md`) |
 | After Phase 15 (branch `claude/nifty-brown-y9l5ry`) | 48 migrations, 134 tables in `public`, 64 app pages, **119 test files / 1,395 tests in `pnpm test`** and **35 database test files / 476 tests**, all passing |
-| After Phase 13 (branch `claude/nifty-brown-y9l5ry`) | 53 migrations, 138 tables in `public`, 66 app pages, **129 test files / 1,497 tests in `pnpm test`** and **38 database test files / 509 tests**, all passing |
+| After Phase 13 (branch `claude/nifty-brown-y9l5ry`) | 53 migrations, 138 tables in `public`, 66 app pages, **129 test files / 1,497 tests in `pnpm test`** and **38 database test files / 511 tests**, all passing |
 | Browser (Playwright) specs | 6 |
 | `pnpm typecheck`, `pnpm lint`, `pnpm test` | **all clean** on a fresh install |
 
