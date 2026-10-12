@@ -66,8 +66,13 @@ export function createFakeAdmin(seed: Record<string, Row[]> = {}, options: FakeA
         const created: Row[] = [];
         for (const item of input) {
           const row: Row = { id: randomUUID(), created_at: new Date().toISOString(), updated_at: new Date().toISOString(), ...(options.defaults?.[table]?.() ?? {}), ...item };
-          if (op === "upsert" && upsertOn.length && rows(table).some((r) => upsertOn.every((c) => r[c] === row[c]))) {
+          const existing = op === "upsert" && upsertOn.length ? rows(table).find((r) => upsertOn.every((c) => r[c] === row[c])) : undefined;
+          if (existing) {
             if (upsertIgnore) continue;
+            // ON CONFLICT DO UPDATE: the existing row takes the new values (its id and created_at stay).
+            Object.assign(existing, item, { updated_at: new Date().toISOString() });
+            created.push(existing);
+            continue;
           } else if (conflicts(table, row)) {
             return { data: null, error: { code: "23505", message: `duplicate key value violates unique constraint on ${table}` } };
           }

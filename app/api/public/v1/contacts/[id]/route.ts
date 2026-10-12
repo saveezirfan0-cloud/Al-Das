@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { auditApiRead } from "@/lib/public-api/audit-read";
 import { serializeContact, updateContact, updateContactSchema } from "@/lib/public-api/contacts";
 import { apiError, json, readJson, validationError } from "@/lib/public-api/http";
 import { recordAudit } from "@/lib/audit";
@@ -23,6 +24,7 @@ export const GET = apiRoute("contacts:read", async ({ admin, ctx, params }) => {
     .is("merged_into_id", null)
     .maybeSingle();
   if (!data) return apiError(404, "not_found", "Contact not found.");
+  await auditApiRead(admin, ctx, "contacts", 1);
   return json(serializeContact(data));
 });
 

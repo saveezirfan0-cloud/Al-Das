@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { createContactSchema, serializeContact, upsertContact } from "@/lib/public-api/contacts";
+import { auditApiRead } from "@/lib/public-api/audit-read";
 import { decodeCursor, encodeCursor } from "@/lib/public-api/cursor";
 import { apiError, json, readJson, validationError } from "@/lib/public-api/http";
 import { recordAudit } from "@/lib/audit";
@@ -62,6 +63,7 @@ export const GET = apiRoute("contacts:read", async ({ request, admin, ctx }) => 
   const rows = data ?? [];
   const page = rows.slice(0, q.limit);
   const last = page[page.length - 1];
+  await auditApiRead(admin, ctx, "contacts", page.length);
   return json({
     data: page.map(serializeContact),
     next_cursor: rows.length > q.limit && last ? encodeCursor({ t: last.created_at, id: last.id }) : null,

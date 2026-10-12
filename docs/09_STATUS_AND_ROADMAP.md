@@ -52,11 +52,11 @@ Not run: the browser tests and any click-through (no Supabase auth stack in the 
 | 4 | Templates: builder, Meta submit and sync, 26 starter templates (13 in English and Arabic) | Yes | Needs `META_APP_ID` and a real WABA; no OTP, catalogue or flow-button templates |
 | 5 | Enquiries and tasks: pipelines, Kanban, SLA, assignment, reminders, first-touch | Yes | No enquiry tags join table, no CSV import, no AI summary |
 | 5b | Tasks API, booking conversion, failed reminder becomes a call task | Yes | None |
-| 6 | Appointments, slot engine, reminders, button replies; read-only Unite sync; clinical rules engine; Follow-Up Queue; Clinical settings | Yes | No DB lock against simultaneous double-booking; clinical messaging deliberately OFF until sign-off; Unite sync OFF until credentials |
+| 6 | Appointments, slot engine, reminders, button replies; read-only Unite sync; clinical rules engine; Follow-Up Queue; Clinical settings | Yes | Bookings and moves re-check the slot under a per-specialist lock (`book_appointment` / `move_appointment`); clinical messaging deliberately OFF until sign-off; Unite sync OFF until credentials |
 | 7 | Campaigns: audience snapshots, fan-out, throttling, funnel, retries | Yes | No recurring campaigns, A/B variants, per-recipient media headers |
 | 8 | Flows (21 node types), recall programmes, parallel-run tooling | Yes | Live path untested; recall in Test mode only; Token and MRD-sync parallel runs need Make exports |
 | 9 | Back-office portal and complete Airtable importer | Yes | Clinical importer mappers now write the real Phase 6 tables (dry-run first, then a real run against a real base is still to do); no portal bulk edit |
-| 10 | AI assist and knowledge base, metrics, dashboards, reports, public API, webhooks | Yes | AI switch OFF until legal answer (OQ-57); WhatsApp cost report not built; no `ai_tags`; no scheduled digests |
+| 10 | AI assist and knowledge base, metrics, dashboards, reports, public API, webhooks | Yes | AI switch OFF until legal answer (OQ-57); WhatsApp cost report built but never run against live Meta (OQ-62); no `ai_tags`; no scheduled digests |
 | 11 | Hardening, load tests, reconciliation, cut-over tooling | Yes | Load tests only run against a mock Graph; live rehearsal not done |
 | F0-F6 | Finance and insurance: Unite capture, Diligence upload and matching, exceptions E01-E10, summary | Yes | Unite capture is OFF by design; closed-month review with Saeed is a human step |
 
@@ -106,15 +106,15 @@ These are the most valuable things to do before any client sees the product, bec
 
 | Area | Gap |
 |---|---|
-| Appointments | No database-level lock against two staff booking the same slot at the same instant (add a per-specialist advisory lock RPC). Google Calendar sync not built |
+| Appointments | Google Calendar sync not built. (The double-booking race is closed: `book_appointment` / `move_appointment` re-check under a per-specialist advisory lock) |
 | Inbox | Presence has no inactivity timeout (round-robin depends on people setting Away). Create enquiry and Book appointment buttons in the contact sidebar need checking now that the modules exist |
 | Flows | Question node does not re-ask on an unmatched answer. A crash between "queued" and "step recorded" can resend once on replay. Outbound webhooks node and CRM nodes are wired, but untested live |
 | Campaigns | One audience snapshot per campaign (no recurring); no A/B; no carousel |
 | Templates | Positional variables only in the builder; no OTP or catalogue templates |
 | Portal | No bulk edit; no per-object custom fields or tags |
-| Reports | WhatsApp cost report (needs Meta `pricing_analytics`), scheduled email digests, AI tags |
-| Public API | Rate limit is per key and fixed-window; reads are not audited; `promotions_opt_in` can be set without consent evidence; webhook and KB URLs allow any HTTPS port |
-| AI | Rate limit can be exceeded by parallel calls; add an org daily cap |
+| Reports | Scheduled email digests, AI tags. (WhatsApp cost is built; its Meta response parser is unverified live, OQ-62) |
+| Public API | Rate limit is per key and fixed-window; reads are audited but sampled (one row per key and resource per 15 minutes); marketing opt-in through the API needs `consent` evidence; URLs limited to port 443. Open: marketing sends still check `stop_marketing` only |
+| AI | Limits are atomic (per user per minute, plus a workspace daily cap). Rate limits count calls, not tokens |
 | Finance | Several thresholds are placeholders until Sharaf agrees them; Unite IP allow-listing may need a fixed-IP relay (Vercel has no fixed outbound IPs) |
 | Security | No MFA enforcement, no session list, no login history, no read-access log for patient records (see 4.11) |
 

@@ -93,3 +93,13 @@ describe("assertPublicHttpsUrl", () => {
     ).resolves.toBeInstanceOf(URL);
   });
 });
+
+describe("ports", () => {
+  it("allows only the standard HTTPS port, so a user-supplied URL cannot probe other services", () => {
+    expect(parsePublicHttpsUrl("https://hooks.example.com/x").port).toBe("");
+    expect(parsePublicHttpsUrl("https://hooks.example.com:443/x").hostname).toBe("hooks.example.com");
+    for (const bad of ["https://hooks.example.com:8443/x", "https://hooks.example.com:22/", "https://93.184.216.34:6379/"]) {
+      expect(() => parsePublicHttpsUrl(bad), bad).toThrow(/port/i);
+    }
+  });
+});

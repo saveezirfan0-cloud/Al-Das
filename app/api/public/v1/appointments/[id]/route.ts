@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { auditApiRead } from "@/lib/public-api/audit-read";
 import { serializeAppointment } from "@/lib/public-api/appointments";
 import { apiError, json } from "@/lib/public-api/http";
 import { apiRoute } from "@/lib/public-api/route";
@@ -14,5 +15,6 @@ export const GET = apiRoute("appointments:read", async ({ admin, ctx, params }) 
   if (!id.safeParse(params.id).success) return apiError(404, "not_found", "Appointment not found.");
   const { data } = await admin.from("appointments").select("*").eq("id", params.id).eq("org_id", ctx.orgId).maybeSingle();
   if (!data) return apiError(404, "not_found", "Appointment not found.");
+  await auditApiRead(admin, ctx, "appointments", 1);
   return json(serializeAppointment(data));
 });
