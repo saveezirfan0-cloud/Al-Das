@@ -94,6 +94,26 @@ export const NOTIFICATION_EVENTS = [
     permission: "documents.manage",
   },
   {
+    key: "finance.preauth_expiring",
+    group: "Work",
+    label: "A pre-authorisation is about to expire",
+    description:
+      "An approved insurance pre-authorisation reaches its reminder date (Finance, Workflow settings). Push and e-mail say only that one is expiring; open Pulse to see which.",
+    channels: ALL,
+    defaults: { in_app: true, email: false, push: false },
+    permission: "finance.preauth.manage",
+  },
+  {
+    key: "finance.denial_deadline",
+    group: "Work",
+    label: "A denied claim is close to its resubmission deadline",
+    description:
+      "A denial case that is still being worked is within the warning window (or past) its resubmission deadline. Push and e-mail say only that a deadline is close.",
+    channels: ALL,
+    defaults: { in_app: true, email: false, push: false },
+    permission: "finance.denials.manage",
+  },
+  {
     key: "task.due",
     group: "Work",
     label: "A task is due",
@@ -169,6 +189,8 @@ export function categoryForType(type: string): NotificationCategory {
     type.startsWith("enquiry.") ||
     type.startsWith("appointment.") ||
     type.startsWith("document.") ||
+    type === "finance.preauth_expiring" ||
+    type === "finance.denial_deadline" ||
     type === "reminder.failed"
   )
     return "work";
@@ -188,7 +210,7 @@ export function typeFilterForCategory(category: NotificationCategory): {
       return { exact: ["escalation"], prefixes: [] };
     case "work":
       return {
-        exact: ["reminder.failed"],
+        exact: ["reminder.failed", "finance.preauth_expiring", "finance.denial_deadline"],
         prefixes: ["task.", "enquiry.", "appointment.", "document."],
       };
     case "security":

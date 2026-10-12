@@ -200,6 +200,13 @@ async function Services({
               defaultValue={s.service_category}
               className={cn(field, "w-48", s.service_category === "Unmapped" && "border-amber-500")}
             />
+            <label
+              className="flex items-center gap-1 text-xs"
+              title="Needs a pre-authorisation before it can be billed to an insurer"
+            >
+              <input type="checkbox" name="requires_preauth" defaultChecked={s.requires_preauth} />{" "}
+              Pre-auth
+            </label>
           </RowForm>
         ))}
         {(data ?? []).length === 0 && (

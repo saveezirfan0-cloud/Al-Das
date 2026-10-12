@@ -1,0 +1,121 @@
+{
+  "_comment": "Synthetic daily aggregates and an account map for the accounting export. Amounts in AED.",
+  "source": {
+    "sales": [
+      {
+        "date": "2026-09-03",
+        "branch": "P",
+        "type": "insurance",
+        "category": "Consultation",
+        "net": 400.0,
+        "vat": 20.0
+      },
+      {
+        "date": "2026-09-03",
+        "branch": "P",
+        "type": "insurance",
+        "category": "Laboratory",
+        "net": 100.0,
+        "vat": 5.0
+      },
+      {
+        "date": "2026-09-03",
+        "branch": "P",
+        "type": "self_pay",
+        "category": "Consultation",
+        "net": 250.0,
+        "vat": 12.5
+      },
+      {
+        "date": "2026-09-04",
+        "branch": "M",
+        "type": "self_pay",
+        "category": "Unmapped",
+        "net": 80.0,
+        "vat": 0
+      }
+    ],
+    "totals": [
+      {
+        "date": "2026-09-03",
+        "branch": "P",
+        "type": "insurance",
+        "total": 525.0,
+        "write_off": 25.0,
+        "credit_note": 0
+      },
+      {
+        "date": "2026-09-03",
+        "branch": "P",
+        "type": "self_pay",
+        "total": 262.51,
+        "write_off": 0,
+        "credit_note": 10.0
+      },
+      {
+        "date": "2026-09-04",
+        "branch": "M",
+        "type": "self_pay",
+        "total": 80.0,
+        "write_off": 0,
+        "credit_note": 0
+      }
+    ],
+    "receipts": [
+      { "date": "2026-09-03", "branch": "P", "type": "self_pay", "mode": "CASH", "paid": 100.0 },
+      { "date": "2026-09-03", "branch": "P", "type": "self_pay", "mode": "CARD", "paid": 162.51 },
+      { "date": "2026-09-03", "branch": "P", "type": "insurance", "mode": "CARD", "paid": 50.0 }
+    ],
+    "refunds": [
+      { "date": "2026-09-04", "branch": "M", "type": "self_pay", "mode": "CASH", "refund": 20.0 }
+    ]
+  },
+  "accounts": [
+    {
+      "kind": "revenue",
+      "key": "Consultation",
+      "account_code": "4000",
+      "account_name": "Consultation revenue"
+    },
+    {
+      "kind": "revenue",
+      "key": "Laboratory",
+      "account_code": "4100",
+      "account_name": "Laboratory revenue"
+    },
+    {
+      "kind": "revenue",
+      "key": "Unmapped",
+      "account_code": "4999",
+      "account_name": "Suspense - unmapped services"
+    },
+    {
+      "kind": "payment_mode",
+      "key": "CASH",
+      "account_code": "1010",
+      "account_name": "Cash on hand"
+    },
+    {
+      "kind": "payment_mode",
+      "key": "CARD",
+      "account_code": "1020",
+      "account_name": "Card settlements"
+    },
+    {
+      "kind": "receivable",
+      "key": "insurance",
+      "account_code": "1200",
+      "account_name": "Insurance receivable"
+    },
+    {
+      "kind": "receivable",
+      "key": "self_pay",
+      "account_code": "1210",
+      "account_name": "Patient receivable"
+    },
+    { "kind": "vat_output", "key": "*", "account_code": "2200", "account_name": "VAT output" },
+    { "kind": "writeoff", "key": "*", "account_code": "5900", "account_name": "Write-offs" },
+    { "kind": "credit_note", "key": "*", "account_code": "5910", "account_name": "Credit notes" },
+    { "kind": "rounding", "key": "*", "account_code": "5990", "account_name": "Rounding" }
+  ]
+}

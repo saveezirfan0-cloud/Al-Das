@@ -161,6 +161,34 @@ export const GUIDES: readonly Guide[] = [
     watchOut: ["Finance data never shows patient names, only the Unite PIN."],
   },
   {
+    id: "finance-workflows",
+    title: "Finance workflows",
+    pages: [
+      "/finance/preauth",
+      "/finance/eligibility",
+      "/finance/denials",
+      "/finance/remittance",
+      "/finance/recovery",
+      "/finance/close",
+      "/finance/cashup",
+      "/finance/export",
+    ],
+    purpose:
+      "Pre-authorisations, eligibility, denials, payments received, reminders, the month-end close and the cash-up.",
+    steps: [
+      "Eligibility lists what is not ready to bill and why. Fix it before the invoice goes out.",
+      "Denials: assign each case, write the appeal and send it yourself. Pulse only drafts the letter.",
+      "Remittance: upload the payer's file, check the proposed matches, then commit. The original file is deleted.",
+      "Month-end close: build the pack, finance signs, then the CEO signs the same version. The month is then locked.",
+      "Cash-up: count each branch at the end of the day, submit, and note any difference.",
+    ],
+    watchOut: [
+      "Reminders to patients are off until the tone has been approved and an administrator switches them on.",
+      "Every AI-written appeal starts with a DRAFT banner. Read it and check the figures before using it.",
+      "A signed month cannot be changed. Withdraw the finance sign-off first if something is wrong.",
+    ],
+  },
+  {
     id: "settings",
     title: "Settings",
     pages: ["/settings"],

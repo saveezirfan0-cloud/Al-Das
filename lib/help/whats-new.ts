@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-10-16-finance-upgrades",
+    date: "2026-10-16",
+    title: "Finance and insurance upgrades",
+    body: "Track pre-authorisations, see which visits are not ready to bill, work denials with a drafted appeal letter, match the payer's remittance to invoices, and see payer scorecards and a collections forecast. Close the month with a finance and CEO sign-off, count the cash at the end of each day and export to your accounting package. Each part is switched on by its own permission, and patient reminders stay off until approved.",
+  },
+  {
     id: "2026-10-15-media-library",
     date: "2026-10-15",
     title: "Media Library",

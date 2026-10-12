@@ -1,0 +1,177 @@
+import { canAny, type MemberLike } from "@/lib/auth/can";
+
+/**
+ * The Finance section's own navigation, in one list so the layout, the landing redirect and the tests agree. Each entry is
+ * visible to a member holding ANY of its permissions; the page checks again on its own. `badge` names a count the layout
+ * fetches (only for members who can see the entry).
+ */
+
+export type FinanceBadge =
+  "exceptions" | "preauth" | "denials" | "notReady" | "remittance" | "close";
+
+export type FinanceNavEntry = {
+  href: string;
+  label: string;
+  section: string;
+  permissions: readonly string[];
+  badge?: FinanceBadge;
+};
+
+const CLOSE = [
+  "finance.close.view",
+  "finance.close.manage",
+  "finance.close.signoff.finance",
+  "finance.close.signoff.ceo",
+] as const;
+
+export const FINANCE_NAV: readonly FinanceNavEntry[] = [
+  {
+    href: "/finance/summary",
+    label: "Monthly summary",
+    section: "Overview",
+    permissions: ["finance.view"],
+  },
+  {
+    href: "/finance/revenue",
+    label: "Revenue",
+    section: "Overview",
+    permissions: ["finance.revenue.view"],
+  },
+  {
+    href: "/finance/scorecards",
+    label: "Payer scorecards",
+    section: "Overview",
+    permissions: ["finance.scorecards.view"],
+  },
+  {
+    href: "/finance/forecast",
+    label: "Collections forecast",
+    section: "Overview",
+    permissions: ["finance.forecast.view"],
+  },
+  {
+    href: "/finance/invoices",
+    label: "Invoices",
+    section: "Billing and claims",
+    permissions: ["finance.invoices.view"],
+  },
+  {
+    href: "/finance/claims",
+    label: "Claims",
+    section: "Billing and claims",
+    permissions: ["finance.claims.view"],
+  },
+  {
+    href: "/finance/upload",
+    label: "Insurance upload",
+    section: "Billing and claims",
+    permissions: ["finance.claims.import"],
+  },
+  {
+    href: "/finance/eligibility",
+    label: "Eligibility",
+    section: "Billing and claims",
+    permissions: ["finance.eligibility.manage"],
+    badge: "notReady",
+  },
+  {
+    href: "/finance/preauth",
+    label: "Pre-authorisations",
+    section: "Billing and claims",
+    permissions: ["finance.preauth.manage"],
+    badge: "preauth",
+  },
+  {
+    href: "/finance/denials",
+    label: "Denials",
+    section: "Billing and claims",
+    permissions: ["finance.denials.manage"],
+    badge: "denials",
+  },
+  {
+    href: "/finance/remittance",
+    label: "Remittance",
+    section: "Billing and claims",
+    permissions: ["finance.remittance.manage"],
+    badge: "remittance",
+  },
+  {
+    href: "/finance/exceptions",
+    label: "Exceptions",
+    section: "Billing and claims",
+    permissions: ["finance.exceptions.manage"],
+    badge: "exceptions",
+  },
+  {
+    href: "/finance/cashup",
+    label: "Cash-up",
+    section: "Money",
+    permissions: ["finance.cashup.manage"],
+  },
+  {
+    href: "/finance/recovery",
+    label: "Self-pay reminders",
+    section: "Money",
+    permissions: ["finance.recovery.manage", "finance.recovery.approve"],
+  },
+  {
+    href: "/finance/close",
+    label: "Month-end close",
+    section: "Money",
+    permissions: CLOSE,
+    badge: "close",
+  },
+  {
+    href: "/finance/export",
+    label: "Accounting export",
+    section: "Money",
+    permissions: ["finance.export.run"],
+  },
+  {
+    href: "/finance/health",
+    label: "Data health",
+    section: "Setup",
+    permissions: ["finance.capture.manage"],
+  },
+  {
+    href: "/finance/reference",
+    label: "Reference data",
+    section: "Setup",
+    permissions: ["finance.reference.manage"],
+  },
+  {
+    href: "/finance/workflow-settings",
+    label: "Workflow settings",
+    section: "Setup",
+    permissions: ["finance.reference.manage"],
+  },
+];
+
+export type NavBadges = Partial<Record<FinanceBadge, number>>;
+
+/** The entries this member may see, with their badge counts. */
+export function financeNavFor(
+  member: MemberLike,
+  badges: NavBadges = {},
+): Array<{ href: string; label: string; section: string; badge?: number }> {
+  return FINANCE_NAV.filter((e) => canAny(member, e.permissions)).map((e) => ({
+    href: e.href,
+    label: e.label,
+    section: e.section,
+    badge: e.badge ? (badges[e.badge] ?? 0) : undefined,
+  }));
+}
+
+/** Where /finance sends a member: the first entry they may open. */
+export function financeLanding(member: MemberLike): string | null {
+  return financeNavFor(member)[0]?.href ?? null;
+}
+
+/** Which badges to fetch for this member (so a Billing user does not pay for the claims counts). */
+export function badgesNeeded(member: MemberLike): FinanceBadge[] {
+  return [
+    ...new Set(
+      FINANCE_NAV.filter((e) => e.badge && canAny(member, e.permissions)).map((e) => e.badge!),
+    ),
+  ];
+}

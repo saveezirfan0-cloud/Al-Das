@@ -1,0 +1,121 @@
+{
+  "_comment": "Synthetic taxonomy and code cases. Shared by tests/unit/finance/denials.test.ts and tests/db/finance-denials.test.ts.",
+  "defaultResubmitDays": 30,
+  "taxonomy": [
+    {
+      "code": "AUTH",
+      "isFamily": true,
+      "description": "Prior authorisation missing",
+      "category": "authorization",
+      "defaultOwnerRole": "insurance",
+      "resubmitDays": 20,
+      "appealable": true,
+      "active": true
+    },
+    {
+      "code": "MNEC",
+      "isFamily": true,
+      "description": "Not medically necessary",
+      "category": "medical_necessity",
+      "defaultOwnerRole": "insurance",
+      "resubmitDays": null,
+      "appealable": true,
+      "active": true
+    },
+    {
+      "code": "MNEC-003",
+      "isFamily": false,
+      "description": "Service not clinically indicated for this diagnosis",
+      "category": "medical_necessity",
+      "defaultOwnerRole": "finance",
+      "resubmitDays": 10,
+      "appealable": true,
+      "active": true
+    },
+    {
+      "code": "DUPL",
+      "isFamily": true,
+      "description": "Duplicate claim",
+      "category": "duplicate",
+      "defaultOwnerRole": "billing",
+      "resubmitDays": 15,
+      "appealable": false,
+      "active": true
+    },
+    {
+      "code": "OLDX",
+      "isFamily": true,
+      "description": "Retired family",
+      "category": "coding",
+      "defaultOwnerRole": "billing",
+      "resubmitDays": 5,
+      "appealable": true,
+      "active": false
+    }
+  ],
+  "lookups": [
+    {
+      "code": "MNEC-003",
+      "expectCode": "MNEC-003",
+      "expectCategory": "medical_necessity",
+      "expectOwner": "finance",
+      "expectDays": 10
+    },
+    {
+      "code": "mnec-003",
+      "expectCode": "MNEC-003",
+      "expectCategory": "medical_necessity",
+      "expectOwner": "finance",
+      "expectDays": 10
+    },
+    {
+      "code": "MNEC-007",
+      "expectCode": "MNEC",
+      "expectCategory": "medical_necessity",
+      "expectOwner": "insurance",
+      "expectDays": 30
+    },
+    {
+      "code": "AUTH-001",
+      "expectCode": "AUTH",
+      "expectCategory": "authorization",
+      "expectOwner": "insurance",
+      "expectDays": 20
+    },
+    {
+      "code": "DUPL-001",
+      "expectCode": "DUPL",
+      "expectCategory": "duplicate",
+      "expectOwner": "billing",
+      "expectDays": 15
+    },
+    {
+      "code": "OLDX-1",
+      "expectCode": null,
+      "expectCategory": "other",
+      "expectOwner": "insurance",
+      "expectDays": 30
+    },
+    {
+      "code": "ZZZZ-9",
+      "expectCode": null,
+      "expectCategory": "other",
+      "expectOwner": "insurance",
+      "expectDays": 30
+    },
+    {
+      "code": "12345",
+      "expectCode": null,
+      "expectCategory": "other",
+      "expectOwner": "insurance",
+      "expectDays": 30
+    },
+    {
+      "code": null,
+      "expectCode": null,
+      "expectCategory": "other",
+      "expectOwner": "insurance",
+      "expectDays": 30
+    }
+  ]
+}

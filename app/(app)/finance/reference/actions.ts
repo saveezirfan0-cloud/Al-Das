@@ -100,6 +100,7 @@ const serviceSchema = z.object({
   item_code: text.min(1),
   service_category: text.min(1),
   cpt_code: nullable,
+  requires_preauth: checkbox,
 });
 export async function saveService(formData: FormData): Promise<ActionResult> {
   const member = await requirePerm(PERM);

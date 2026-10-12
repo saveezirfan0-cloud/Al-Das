@@ -20,10 +20,13 @@ import {
   PHASE14_TABLES,
   PHASE15_TABLES,
   PHASE16_TABLES,
+  PHASE18_SERVICE_ONLY_TABLES,
+  PHASE18_TABLES,
   resetDb,
   seedPhase13Rows,
   seedPhase14Rows,
   seedPhase16Rows,
+  seedPhase18Rows,
   seedSecurityRows,
   TEST_DATABASE_URL,
 } from "./helpers";
@@ -47,6 +50,10 @@ const SERVICE_ONLY = new Set([
   "fin_raw_diligence_files",
   "fin_raw_unite_batches",
   "ins_staged_activities",
+  // Phase 18: an uploaded payment advice (name, sha256, validation result) and its sanitised staged lines. They wait for
+  // the confirm step and are deleted at commit; only server code (service role, after can('finance.remittance.manage')) reads them
+  "fin_raw_remittance_files",
+  "fin_staged_remittance_lines",
   "integration_accounts",
   "unite_api_calls",
   "job_runs",
@@ -74,6 +81,32 @@ const PHASE15_SERVICE_FUNCTIONS = [
 
 /** Phase 16 SECURITY DEFINER functions that only server code (service role) may run. */
 const PHASE16_SERVICE_FUNCTIONS = ["erase_contact", "media_asset_usage", "storage_usage_summary"];
+
+/**
+ * Phase 18 SECURITY DEFINER functions that only server code (service role) may run: the analytics (they take the org
+ * explicitly, so the server runs can() first), the commit functions, the close / cash-up state machines.
+ */
+const PHASE18_SERVICE_FUNCTIONS = [
+  "fin_cashup_expected",
+  "fin_cashup_refresh",
+  "fin_cashup_submit",
+  "fin_close_month_figures",
+  "fin_close_sign_ceo",
+  "fin_close_sign_finance",
+  "fin_close_store_snapshot",
+  "fin_close_withdraw",
+  "fin_denial_reasons",
+  "fin_forecast_history",
+  "fin_forecast_outstanding",
+  "fin_journal_source",
+  "fin_link_preauth_claims",
+  "fin_payer_scorecard",
+  "fin_revenue_breakdown",
+  "fin_selfpay_balances",
+  "fin_sync_denial_cases",
+  "ins_claims_for_remittance",
+  "ins_commit_remittance",
+];
 
 /** Phase 14 SECURITY DEFINER functions that only server code (service role) may run. */
 const PHASE14_SERVICE_FUNCTIONS = ["accept_slot_offer", "demo_wipe_org"];
@@ -249,6 +282,33 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 16 service-role functions", () => {
   });
 });
 
+describe.skipIf(!TEST_DATABASE_URL)("phase 18 service-role functions", () => {
+  it("exist and are executable by the service role only", async () => {
+    const c = await connect();
+    try {
+      const { rows } = await c.query<{ name: string; anon: boolean; auth: boolean; svc: boolean }>(
+        `select p.proname as name,
+                has_function_privilege('anon', p.oid, 'execute') as anon,
+                has_function_privilege('authenticated', p.oid, 'execute') as auth,
+                has_function_privilege('service_role', p.oid, 'execute') as svc
+         from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+         where n.nspname = 'public' and p.proname = any ($1)`,
+        [PHASE18_SERVICE_FUNCTIONS],
+      );
+      expect(rows.map((r) => r.name).sort()).toEqual([...PHASE18_SERVICE_FUNCTIONS].sort());
+      for (const r of rows)
+        expect({ name: r.name, anon: r.anon, auth: r.auth, svc: r.svc }).toEqual({
+          name: r.name,
+          anon: false,
+          auth: false,
+          svc: true,
+        });
+    } finally {
+      await c.end();
+    }
+  });
+});
+
 describe.skipIf(!TEST_DATABASE_URL)("phase 14 service-role functions", () => {
   it("exist and are executable by the service role only", async () => {
     const c = await connect();
@@ -335,6 +395,8 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
     await seedPhase14Rows(c, orgA, alice);
     // Phase 16 tables likewise.
     await seedPhase16Rows(c, orgA, alice);
+    // Phase 18 tables likewise.
+    await seedPhase18Rows(c, orgA, alice);
   });
   afterAll(async () => {
     await resetDb(c);
@@ -345,14 +407,14 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
     expect(orgTables.length).toBeGreaterThanOrEqual(25);
   });
 
-  it("sweeps every Phase 13, 14, 15 and 16 table (a new table must be added to PHASE13_TABLES / PHASE14_TABLES / PHASE15_TABLES / PHASE16_TABLES and seeded)", () => {
-    for (const t of [...PHASE16_TABLES, ...PHASE15_TABLES, ...PHASE14_TABLES, ...PHASE13_TABLES])
+  it("sweeps every Phase 13, 14, 15, 16 and 18 table (a new table must be added to PHASE13_TABLES / PHASE14_TABLES / PHASE15_TABLES / PHASE16_TABLES / PHASE18_TABLES and seeded)", () => {
+    for (const t of [...PHASE18_TABLES, ...PHASE16_TABLES, ...PHASE15_TABLES, ...PHASE14_TABLES, ...PHASE13_TABLES])
       expect(orgTables, `${t} is not in the org sweep`).toContain(t);
   });
 
-  it("really holds org A rows in the Phase 13, 14, 15 and 16 tables, visible to org A's admin (control for the leak sweep)", async () => {
+  it("really holds org A rows in the Phase 13, 14, 15, 16 and 18 tables, visible to org A's admin (control for the leak sweep)", async () => {
     await asUser(c, alice, async () => {
-      for (const t of [...PHASE16_TABLES, ...PHASE15_TABLES, ...PHASE14_TABLES, ...PHASE13_TABLES]) {
+      for (const t of [...PHASE18_TABLES, ...PHASE16_TABLES, ...PHASE15_TABLES, ...PHASE14_TABLES, ...PHASE13_TABLES]) {
         const { rows } = await c.query<{ n: string }>(
           `select count(*)::text as n from public.${t} where org_id = $1`,
           [orgA],
@@ -411,6 +473,7 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
         "channel_secrets",
         "channel_send_slots",
         "scheduled_jobs",
+        ...PHASE18_SERVICE_ONLY_TABLES,
       ]) {
         const { rows } = await c
           .query<{ n: string }>(`select count(*)::text as n from public.${t}`)

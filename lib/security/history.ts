@@ -15,6 +15,10 @@ export const HISTORY_TABLES = {
   ref_items: "Item",
   ref_medication_classes: "Medication class",
   website_entry_points: "Website entry point",
+  fin_pre_authorisations: "Pre-authorisation",
+  fin_eligibility_checks: "Eligibility check",
+  ins_denial_cases: "Denial case",
+  fin_period_closes: "Month-end close",
 } as const;
 
 export type HistoryTable = keyof typeof HISTORY_TABLES;
@@ -31,6 +35,10 @@ export const HISTORY_PERMISSION: Partial<Record<HistoryTable, string>> = {
   tasks: "tasks.view",
   wa_templates: "templates.manage",
   flows: "flows.manage",
+  fin_pre_authorisations: "finance.preauth.manage",
+  fin_eligibility_checks: "finance.eligibility.manage",
+  ins_denial_cases: "finance.denials.manage",
+  fin_period_closes: "finance.close.view",
 };
 
 export type HistoryChange = { field: string; label: string; from: string; to: string };

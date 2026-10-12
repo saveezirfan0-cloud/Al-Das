@@ -1,0 +1,295 @@
+{
+  "_comment": "Synthetic claims, agreed prices and payment-advice lines. Amounts in AED. Shared by match-remittance.test.ts and the DB commit test.",
+  "settings": { "toleranceAmount": 1.0, "tolerancePct": 0.01 },
+  "claims": [
+    {
+      "id": "c1",
+      "claim_activity_number": "CA-R-1",
+      "invoice_no": "ADMC/C/70001",
+      "cpt_code": "99213",
+      "payer_id": "PAYER-A",
+      "quantity": 1,
+      "net": 200,
+      "transaction_date": "2026-09-02",
+      "activity_start_date": "2026-09-02"
+    },
+    {
+      "id": "c2",
+      "claim_activity_number": "CA-R-2",
+      "invoice_no": "ADMC/C/70002",
+      "cpt_code": "99214",
+      "payer_id": "PAYER-A",
+      "quantity": 1,
+      "net": 300,
+      "transaction_date": "2026-09-03",
+      "activity_start_date": "2026-09-03"
+    },
+    {
+      "id": "c3",
+      "claim_activity_number": "CA-R-3",
+      "invoice_no": "ADMC/C/70003",
+      "cpt_code": "80053",
+      "payer_id": "PAYER-B",
+      "quantity": 2,
+      "net": 90,
+      "transaction_date": "2026-09-04",
+      "activity_start_date": "2026-09-04"
+    },
+    {
+      "id": "c4a",
+      "claim_activity_number": "CA-R-4A",
+      "invoice_no": "ADMC/C/70004",
+      "cpt_code": "36415",
+      "payer_id": "PAYER-A",
+      "quantity": 1,
+      "net": 20,
+      "transaction_date": "2026-09-05",
+      "activity_start_date": "2026-09-05"
+    },
+    {
+      "id": "c4b",
+      "claim_activity_number": "CA-R-4B",
+      "invoice_no": "ADMC/C/70004",
+      "cpt_code": "36415",
+      "payer_id": "PAYER-A",
+      "quantity": 1,
+      "net": 25,
+      "transaction_date": "2026-09-05",
+      "activity_start_date": "2026-09-05"
+    },
+    {
+      "id": "c5",
+      "claim_activity_number": "CA-R-5",
+      "invoice_no": "ADMC/C/70005",
+      "cpt_code": "99203",
+      "payer_id": "PAYER-A",
+      "quantity": 1,
+      "net": 150,
+      "transaction_date": "2026-09-06",
+      "activity_start_date": "2026-09-06"
+    }
+  ],
+  "prices": [
+    {
+      "payer_id": "PAYER-A",
+      "cpt_code": "99213",
+      "agreed_price": 180,
+      "effective_from": "2026-01-01",
+      "effective_to": null
+    },
+    {
+      "payer_id": "PAYER-A",
+      "cpt_code": "99214",
+      "agreed_price": 250,
+      "effective_from": "2026-01-01",
+      "effective_to": "2026-08-31"
+    },
+    {
+      "payer_id": "PAYER-A",
+      "cpt_code": "99214",
+      "agreed_price": 280,
+      "effective_from": "2026-09-01",
+      "effective_to": null
+    },
+    {
+      "payer_id": "PAYER-A",
+      "cpt_code": "99203",
+      "agreed_price": 190,
+      "effective_from": "2026-01-01",
+      "effective_to": null
+    },
+    {
+      "payer_id": "PAYER-B",
+      "cpt_code": "80053",
+      "agreed_price": 45,
+      "effective_from": "2026-01-01",
+      "effective_to": null
+    }
+  ],
+  "lines": [
+    {
+      "name": "paid the agreed price when billed higher: not short",
+      "line": {
+        "remittance_ref": "RM-1",
+        "paid_on": "2026-10-01",
+        "payer_id": "PAYER-A",
+        "claim_activity_number": "CA-R-1",
+        "invoice_no": null,
+        "cpt_code": null,
+        "quantity": null,
+        "claimed_amount": 200,
+        "paid_amount": 180,
+        "denied_amount": 0,
+        "denial_code": null
+      },
+      "expect": {
+        "match_status": "matched",
+        "expected_amount": 180,
+        "expected_basis": "price_list",
+        "short_amount": 0,
+        "flags": ["billed_above_contract"]
+      }
+    },
+    {
+      "name": "paid less than the agreed price: short",
+      "line": {
+        "remittance_ref": "RM-1",
+        "paid_on": "2026-10-01",
+        "payer_id": "PAYER-A",
+        "claim_activity_number": "CA-R-2",
+        "invoice_no": null,
+        "cpt_code": null,
+        "quantity": null,
+        "claimed_amount": 300,
+        "paid_amount": 240,
+        "denied_amount": 0,
+        "denial_code": null
+      },
+      "expect": {
+        "match_status": "matched",
+        "expected_amount": 280,
+        "expected_basis": "price_list",
+        "short_amount": 40,
+        "flags": ["short_paid", "billed_above_contract"]
+      }
+    },
+    {
+      "name": "quantity multiplies the agreed price; payment within tolerance",
+      "line": {
+        "remittance_ref": "RM-1",
+        "paid_on": "2026-10-01",
+        "payer_id": "PAYER-B",
+        "claim_activity_number": "CA-R-3",
+        "invoice_no": null,
+        "cpt_code": null,
+        "quantity": 2,
+        "claimed_amount": 90,
+        "paid_amount": 90,
+        "denied_amount": 0,
+        "denial_code": null
+      },
+      "expect": {
+        "match_status": "matched",
+        "expected_amount": 90,
+        "expected_basis": "price_list",
+        "short_amount": 0,
+        "flags": []
+      }
+    },
+    {
+      "name": "matched by invoice and code, ambiguous pair narrowed by the claimed amount",
+      "line": {
+        "remittance_ref": "RM-1",
+        "paid_on": "2026-10-01",
+        "payer_id": null,
+        "claim_activity_number": null,
+        "invoice_no": "admc/c/70004",
+        "cpt_code": "36415",
+        "quantity": null,
+        "claimed_amount": 25,
+        "paid_amount": 25,
+        "denied_amount": 0,
+        "denial_code": null
+      },
+      "expect": {
+        "match_status": "matched",
+        "expected_amount": 25,
+        "expected_basis": "claim_net",
+        "short_amount": 0,
+        "flags": []
+      }
+    },
+    {
+      "name": "invoice and code match two claims and nothing narrows it: ambiguous",
+      "line": {
+        "remittance_ref": "RM-1",
+        "paid_on": "2026-10-01",
+        "payer_id": null,
+        "claim_activity_number": null,
+        "invoice_no": "ADMC/C/70004",
+        "cpt_code": "36415",
+        "quantity": null,
+        "claimed_amount": null,
+        "paid_amount": 20,
+        "denied_amount": 0,
+        "denial_code": null
+      },
+      "expect": {
+        "match_status": "ambiguous",
+        "expected_amount": null,
+        "expected_basis": "none",
+        "short_amount": 0,
+        "flags": ["ambiguous"]
+      }
+    },
+    {
+      "name": "denied part explains the gap: not short, but flagged denied",
+      "line": {
+        "remittance_ref": "RM-1",
+        "paid_on": "2026-10-01",
+        "payer_id": "PAYER-A",
+        "claim_activity_number": "CA-R-5",
+        "invoice_no": null,
+        "cpt_code": null,
+        "quantity": null,
+        "claimed_amount": 150,
+        "paid_amount": 100,
+        "denied_amount": 50,
+        "denial_code": "AUTH-001"
+      },
+      "expect": {
+        "match_status": "matched",
+        "expected_amount": 150,
+        "expected_basis": "price_list",
+        "short_amount": 0,
+        "flags": ["denied", "billed_below_contract"]
+      }
+    },
+    {
+      "name": "unknown claim number: unmatched, expectation from the file",
+      "line": {
+        "remittance_ref": "RM-1",
+        "paid_on": "2026-10-01",
+        "payer_id": "PAYER-A",
+        "claim_activity_number": "CA-NOPE",
+        "invoice_no": null,
+        "cpt_code": null,
+        "quantity": null,
+        "claimed_amount": 100,
+        "paid_amount": 60,
+        "denied_amount": 0,
+        "denial_code": null
+      },
+      "expect": {
+        "match_status": "unmatched",
+        "expected_amount": 100,
+        "expected_basis": "file",
+        "short_amount": 40,
+        "flags": ["unmatched", "short_paid"]
+      }
+    },
+    {
+      "name": "paid more than expected: overpaid",
+      "line": {
+        "remittance_ref": "RM-1",
+        "paid_on": "2026-10-01",
+        "payer_id": "PAYER-A",
+        "claim_activity_number": "CA-R-4A",
+        "invoice_no": null,
+        "cpt_code": null,
+        "quantity": null,
+        "claimed_amount": 20,
+        "paid_amount": 35,
+        "denied_amount": 0,
+        "denial_code": null
+      },
+      "expect": {
+        "match_status": "matched",
+        "expected_amount": 20,
+        "expected_basis": "claim_net",
+        "short_amount": 0,
+        "flags": ["overpaid"]
+      }
+    }
+  ]
+}

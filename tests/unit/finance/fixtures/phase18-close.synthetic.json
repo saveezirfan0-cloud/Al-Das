@@ -1,0 +1,89 @@
+{
+  "_comment": "Synthetic month figures for the close pack. Amounts in AED; names are fake.",
+  "orgName": "Demo Clinic",
+  "month": "2026-09-01",
+  "builtAt": "2026-10-02T06:00:00.000Z",
+  "figures": {
+    "by_branch": [
+      {
+        "branch": "G",
+        "generated": 12000.5,
+        "invoices": 80,
+        "claimed": 9000,
+        "remitted": 6000,
+        "rejected": 900,
+        "outstanding": 2100,
+        "claims": 70,
+        "self_pay_collected": 3000.25
+      },
+      {
+        "branch": "M",
+        "generated": 20000,
+        "invoices": 120,
+        "claimed": 15000,
+        "remitted": 12000,
+        "rejected": 1000,
+        "outstanding": 2000,
+        "claims": 100,
+        "self_pay_collected": 5000
+      },
+      {
+        "branch": "P",
+        "generated": 30000,
+        "invoices": 200,
+        "claimed": 25000,
+        "remitted": 20000,
+        "rejected": 2000,
+        "outstanding": 3000,
+        "claims": 180,
+        "self_pay_collected": 5000
+      }
+    ],
+    "collections": [
+      { "mode": "CARD", "paid": 40000, "refunds": 150 },
+      { "mode": "CASH", "paid": 8000.25, "refunds": 50 }
+    ],
+    "adjustments": { "write_off": 300, "credit_note": 120 },
+    "ageing": [
+      { "bucket": "0-30", "claims": 100, "outstanding": 3000 },
+      { "bucket": "31-60", "claims": 40, "outstanding": 2000 },
+      { "bucket": "90+", "claims": 10, "outstanding": 2100 }
+    ],
+    "denials": {
+      "opened_in_month": 14,
+      "active_now": 9,
+      "active_amount": 3300.5,
+      "past_deadline": 2
+    },
+    "remittance": {
+      "batches": 3,
+      "lines": 120,
+      "short_lines": 7,
+      "short_amount": 640.75,
+      "paid": 30000
+    },
+    "cashups": [{ "branch": "P", "days": 26, "expected": 21000, "counted": 20995, "variance": -5 }],
+    "open_exceptions": 12,
+    "freshness": {
+      "last_capture_at": "2026-10-02T05:00:00Z",
+      "last_import_at": "2026-10-01T09:00:00Z"
+    }
+  },
+  "revenue": {
+    "by_category": [
+      { "key": "Consultation", "label": null, "net": 40000, "invoices": 300 },
+      { "key": "Laboratory", "label": null, "net": 22000.5, "invoices": 150 }
+    ],
+    "by_department": [{ "key": "Dermatology", "label": null, "net": 30000, "invoices": 200 }],
+    "by_doctor": [{ "key": "DHA-T1", "label": "Dr Test One", "net": 25000, "invoices": 120 }],
+    "by_branch": [{ "key": "P", "label": "Palm", "net": 30000, "invoices": 200 }]
+  },
+  "denialReasons": [
+    {
+      "reason_code": "AUTH-001",
+      "description": "Prior authorisation missing",
+      "claims": 8,
+      "amount": 1900
+    }
+  ]
+}
