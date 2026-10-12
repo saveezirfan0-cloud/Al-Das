@@ -19,6 +19,7 @@ export const PERMISSION_GROUPS = [
   "AI & knowledge base",
   "Finance",
   "Settings",
+  "Security & privacy",
 ] as const;
 
 export type PermissionGroup = (typeof PERMISSION_GROUPS)[number];
@@ -192,6 +193,20 @@ export const PERMISSIONS = [
     group: "Settings",
     label: "Manage settings, users, roles and teams",
     description: "Full administrative access to Settings and System health",
+  },
+  {
+    key: "security.manage",
+    group: "Security & privacy",
+    label: "Manage security and access",
+    description:
+      "Two-step verification rules, access reviews, off-boarding, retention and alert settings. Give this to the administrator who owns access control.",
+  },
+  {
+    key: "privacy.manage",
+    group: "Security & privacy",
+    label: "Patient data export and erasure",
+    description:
+      "Raise, approve and carry out patient data export and erasure requests (two people are always required). Give this to the data-protection owner only.",
   },
 ] as const satisfies ReadonlyArray<{
   key: string;

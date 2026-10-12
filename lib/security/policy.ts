@@ -36,6 +36,18 @@ export const AUTHN_ONLY_OK: Record<string, string> = {
   "app/(app)/settings/account/actions.ts::updateProfile": "Caller's own profile.",
   "app/(app)/settings/account/actions.ts::changePassword":
     "Caller's own credentials; current password re-verified.",
+  "app/(app)/settings/account/actions.ts::signOutThisDevice":
+    "Ends the caller's own session only; writes an auth_events row.",
+  "app/(app)/settings/account/actions.ts::signOutOtherDevices":
+    "Ends the caller's own other sessions only; writes auth_events and audit_log rows.",
+  "app/(app)/settings/account/actions.ts::signOutEverywhere":
+    "Ends all of the caller's own sessions; writes auth_events and audit_log rows.",
+  "app/(auth)/mfa/actions.ts::confirmMfaEnrolled":
+    "Caller's own authenticator app; the server re-checks that Supabase Auth reports an aal2 session and a verified factor before writing the auth event.",
+  "app/(auth)/mfa/actions.ts::confirmMfaVerified":
+    "Caller's own session; the server re-checks aal2 before writing the auth event.",
+  "app/(auth)/mfa/actions.ts::removeMfaFactor":
+    "Caller's own authenticator app; Supabase Auth itself demands an aal2 session to remove a verified factor. Audited.",
   "app/(auth)/invite/[token]/actions.ts::acceptInvite":
     "Authorised by the invite token hash; rate-limited per IP.",
   "app/api/jobs/[queue]/route.ts::POST":
