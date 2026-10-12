@@ -76,6 +76,8 @@ export const AUTHN_ONLY_OK: Record<string, string> = {
     "Removes only the caller's own device (org, user and endpoint hash must all match).",
   "app/(app)/settings/notifications/actions.ts::removePushDevice":
     "Removes only the caller's own device (org and user must match the row).",
+  "app/(app)/help/actions.ts::submitFeedback":
+    "Any signed-in member may send feedback about the app. The row is written with the caller's own id and workspace, the page path has ids stripped, and it is rate-limited (10 per hour).",
   "app/(app)/settings/notifications/actions.ts::sendTestPush":
     "Sends a fixed generic message to the caller's own devices only; rate-limited.",
 };
@@ -139,6 +141,14 @@ export const AUDIT_EXEMPT: Record<string, string> = {
     "Caller's own notification preferences.",
   "app/(app)/settings/notifications/actions.ts::removePushDevice":
     "Caller's own device registration; the push_subscriptions row itself is the record.",
+  "app/(app)/front-desk/actions.ts::setCheckin":
+    "High-volume desk work (four taps per patient). appointments is a history-tracked table, so record_history names the person, the field and the time of every change (the action writes through createAdminClient(userId)).",
+  "app/(app)/help/actions.ts::submitFeedback":
+    "The help_feedback row is itself the attributed record (user, page, time); administrators triage it.",
+  "app/(app)/front-desk/actions.ts::addHandoverNote":
+    "The note is itself the attributed record (created_by, created_at); it carries no audit-worthy configuration.",
+  "app/(app)/front-desk/actions.ts::resolveHandoverNote":
+    "The note records who resolved it and when (resolved_by, resolved_at).",
 };
 
 /** Modules allowed to read channel_secrets (they decrypt or store the Meta token). */

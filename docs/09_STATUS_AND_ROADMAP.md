@@ -18,6 +18,8 @@ This is the single document to work from. Section 1 says where we are, 2 says wh
 
 **Phase 13 (mobile, notifications and speed) is built** on branch `claude/nifty-brown-y9l5ry` (on top of Phase 15) and waits for review and merge: installable app with service worker, offline page and update prompt; phone inbox (full-screen thread above the keyboard, pull to refresh, swipe to take or close, camera and gallery upload), card grids and an agenda list on phones; notification preferences with quiet hours, Web Push, escalation ladder, daily and weekly digest e-mails and a notification centre with snooze; and the speed work (one-call dashboard tiles, query-free layout, local token checks for page navigations, lazy FullCalendar, React Flow and Recharts, bundle budgets in CI, four new indexes). Before and after bundle numbers, what was verified and what was not (no browser, no real push service, no Lighthouse) are in `docs/13_PHASE_13_NOTES.md`. The three new migrations (`20261013000100` to `…300`) are in `deploy/supabase-paste/13_phase_13_notifications_speed.sql`.
 
+**Phase 14 (front desk, help and training mode) is built** on branch `claude/nifty-brown-y9l5ry` (on top of Phases 13 and 15) and waits for review and merge: the `/front-desk` workspace (Today board, check-in states kept in Pulse only, patient card beside the inbox, walk-in registration, desk QR, end-of-day sheet and handover notes), the waiting list with timed WhatsApp slot offers (first YES wins under the same per-specialist lock as booking), household links with guardian addressing and shared-phone matching, bilingual quick replies, the Help menu (training page, "?" guides, what's new, feedback, shortcuts), training mode (blocks all real WhatsApp) and `pnpm demo:reset`. What was verified and what was not (no browser, no phone, no real WhatsApp) is in `docs/14_PHASE_14_NOTES.md`. The four new migrations (`20261014000100` to `…400`) are in `deploy/supabase-paste/14_phase_14_front_desk.sql`.
+
 **Open work from other sessions.** The Airtable clinical importer from `claude/upbeat-brown-n1q8nq` was merged as PR #22 on 12 Oct, and a follow-up (PR #28: Appointment Messages, Birthday, Chronic Recall and the `FU_` templates are still to come) is open from another session. Do not merge or reset that branch from here. Of the other `claude/*` branches, eleven carry nothing main lacks and five are older versions of work main already has in another form (`magical-planck-nx16wi` is an early Phase 5 that would add about 16,000 duplicate lines). Delete the stale ones once you agree; none should be merged.
 
 ## 1. Where we are
@@ -43,6 +45,7 @@ Phases 1 to 11 and Finance F0 to F6 are **built, tested and merged**. Pulse alre
 | Database test files | 32 files, **423 tests passing** on Postgres 16 with pgvector and PostgREST (run 11 Oct 2026, see `docs/11_PHASE_12B_NOTES.md`) |
 | After Phase 15 (branch `claude/nifty-brown-y9l5ry`) | 48 migrations, 134 tables in `public`, 64 app pages, **119 test files / 1,395 tests in `pnpm test`** and **35 database test files / 476 tests**, all passing |
 | After Phase 13 (branch `claude/nifty-brown-y9l5ry`) | 53 migrations, 138 tables in `public`, 66 app pages, **129 test files / 1,497 tests in `pnpm test`** and **38 database test files / 511 tests**, all passing |
+| After Phase 14 (branch `claude/nifty-brown-y9l5ry`) | 57 migrations, 143 tables in `public`, 73 app pages, **139 test files / 1,619 tests in `pnpm test`** and **41 database test files / 570 tests**, all passing |
 | Browser (Playwright) specs | 6 |
 | `pnpm typecheck`, `pnpm lint`, `pnpm test` | **all clean** on a fresh install |
 
@@ -390,9 +393,9 @@ Each phase starts in Plan Mode and uses the prompt of the same number in `docs/1
 | Phase | Outcome | Needs from you | Effort |
 |---|---|---|---|
 | **12a** | UX foundation: grouped menu, quick search, mobile tabs, skeletons, error pages, PWA manifest, Activity log, CI. **Done in this session** | nothing | done |
-| **12b** | Make it real: bring up the Supabase and Vercel stack, seed demo org, click every page as three roles, fix what breaks, DB and e2e tests in CI, update stale docs | accounts 1, 2, 3 | 1 week |
+| **12b** | Make it real: bring up the Supabase and Vercel stack, seed demo org, click every page as three roles, fix what breaks, DB and e2e tests in CI, update stale docs. (`pnpm demo:reset`, item 6, was built in Phase 14.) | accounts 1, 2, 3 | 1 week |
 | **13** | Mobile, notifications and speed: service worker, web push, preference matrix, escalation ladder, digests, layout/dashboard query cuts, dynamic imports, performance budget. **Built; waiting for review, merge and a real-device check** (`docs/13_PHASE_13_NOTES.md`) | VAPID keys (`pnpm push:keys`) | done in code |
-| **14** | Front desk mode, waitlist, walk-in registration, household linking, quick replies, in-app help and training mode | clinic input | 2 weeks |
+| **14** | Front desk mode, waitlist, walk-in registration, household linking, quick replies, in-app help and training mode, `pnpm demo:reset`. **Built; waiting for review, merge, a real-device check, Meta approval of the offer templates and the training videos** (`docs/14_PHASE_14_NOTES.md`) | clinic input (offer wording), recorded videos | done in code |
 | **15** | Security and audit: MFA, login history, sessions, record access log, access review, anomaly alerts, History tabs. **Built; waiting for review, merge and a real-stack check** (`docs/12_PHASE_15_NOTES.md`) | none | done in code |
 | **16** | Media Library and patient documents | residency answer | 1.5 weeks |
 | **17** | AI: Flow Copilot, Campaign Copilot, intent routing, reply-quality loop | OQ-57, OQ-61 | 2 weeks |

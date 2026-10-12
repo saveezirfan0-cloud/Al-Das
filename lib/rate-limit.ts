@@ -42,6 +42,8 @@ export const RATE_RULES = {
   pushTestPerUser: { limit: 5, windowSec: 60, failOpen: false },
   /** Phase 13: registering a device for Web Push. */
   pushRegisterPerUser: { limit: 20, windowSec: 600, failOpen: false },
+  /** Phase 14: the Feedback button in the Help menu. */
+  helpFeedbackPerUser: { limit: 10, windowSec: 3600, failOpen: false },
   /** Phase 10 /api/public/v1, per API key. */
   publicApi: { limit: 120, windowSec: 60, failOpen: true },
 } as const satisfies Record<string, RateRule>;

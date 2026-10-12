@@ -1,7 +1,11 @@
 import { readAiSettings } from "@/lib/ai/settings";
 import { can } from "@/lib/auth/can";
 import { requireMember } from "@/lib/auth/session";
+import { formatCardTime, loadPatientCard } from "@/lib/front-desk/server";
+import { loadDeskOptions } from "@/lib/front-desk/options";
+import { quickReplyAppointmentValues } from "@/lib/front-desk/patient-card";
 import { contactDisplayName } from "@/lib/inbox/contact-name";
+import type { QuickReplyContext } from "@/lib/inbox/quick-reply";
 import { parseInboxQuery, viewFilterToQuery, type InboxQuery } from "@/lib/inbox/folders";
 import {
   folderCounts,
@@ -74,7 +78,7 @@ export default async function InboxPage({
       .order("name"),
     supabase
       .from("quick_replies")
-      .select("id, shortcut, text")
+      .select("id, shortcut, text, text_ar, label")
       .eq("org_id", member.orgId)
       .order("shortcut"),
     supabase
@@ -132,6 +136,10 @@ export default async function InboxPage({
   let selected: InboxProps["selected"] = null;
   let messages: InboxProps["messages"] = [];
   let sidebar: SidebarData | null = null;
+  let quickReplyContext: QuickReplyContext = {
+    agent_name: `${member.profile.first_name} ${member.profile.last_name}`.trim() || null,
+    clinic_name: member.org.name,
+  };
   const sel = selectedRow?.data;
   if (sel && sel.contacts) {
     const c = sel.contacts;
@@ -209,7 +217,59 @@ export default async function InboxPage({
           });
       }
     }
+    // Family members are not duplicates of each other: a guardian, her dependants and their siblings.
+    const { data: household } = await admin
+      .from("household_links")
+      .select("guardian_contact_id, dependant_contact_id")
+      .eq("org_id", member.orgId)
+      .or(`guardian_contact_id.eq.${c.id},dependant_contact_id.eq.${c.id}`);
+    const family = new Set<string>();
+    for (const l of household ?? []) {
+      family.add(l.guardian_contact_id);
+      family.add(l.dependant_contact_id);
+      if (l.dependant_contact_id === c.id) {
+        const { data: siblings } = await admin
+          .from("household_links")
+          .select("dependant_contact_id")
+          .eq("org_id", member.orgId)
+          .eq("guardian_contact_id", l.guardian_contact_id);
+        for (const sib of siblings ?? []) family.add(sib.dependant_contact_id);
+      }
+    }
+    family.delete(c.id);
+    for (let i = merge.length - 1; i >= 0; i--) if (family.has(merge[i].id)) merge.splice(i, 1);
+
+    // Front desk screen pop: the patient card beside the conversation (only for people who use the desk).
+    const showDesk = can(member, "frontdesk.use") && can(member, "appointments.view");
+    const tz = member.org.timezone || "Asia/Dubai";
+    const card = showDesk ? await loadPatientCard(admin, member.orgId, c.id) : null;
+    const desk = showDesk
+      ? {
+          card,
+          options: await loadDeskOptions(admin, member.orgId, tz),
+          can: {
+            appointments: can(member, "appointments.manage"),
+            contacts: can(member, "contacts.manage"),
+            tasks: can(member, "tasks.manage"),
+            send: can(member, "inbox.send"),
+          },
+        }
+      : null;
+    const apptValues = quickReplyAppointmentValues(
+      card?.next_appointment ?? (await nextAppointmentForReplies(admin, member.orgId, c.id)),
+      (iso) => formatCardTime(iso, tz),
+    );
+    quickReplyContext = {
+      first_name: c.first_name || null,
+      last_name: c.last_name || null,
+      full_name: [c.first_name, c.last_name].filter(Boolean).join(" ") || null,
+      agent_name: `${member.profile.first_name} ${member.profile.last_name}`.trim() || null,
+      clinic_name: member.org.name,
+      ...apptValues,
+    };
+
     sidebar = {
+      desk,
       media: (media.data ?? []).map((m) => ({
         ...m,
         conversation_id: sel.id,
@@ -260,6 +320,7 @@ export default async function InboxPage({
     categories: categories ?? [],
     views: (views ?? []).map((v) => ({ ...v, shared_team_ids: v.shared_team_ids ?? [] })),
     quickReplies: quickReplies ?? [],
+    quickReplyContext,
     templates: (templates ?? []).map((t) => ({
       ...t,
       components: t.components as unknown as MetaTemplateComponent[],
@@ -284,4 +345,34 @@ export default async function InboxPage({
   };
 
   return <InboxShell {...props} />;
+}
+
+/** Next live appointment of a patient, for {{doctor}} / {{appointment_time}} when the desk card is not loaded. */
+async function nextAppointmentForReplies(
+  admin: ReturnType<typeof createAdminClient>,
+  orgId: string,
+  contactId: string,
+) {
+  const { data } = await admin
+    .from("appointments")
+    .select("starts_at, specialists(name), locations(name)")
+    .eq("org_id", orgId)
+    .eq("contact_id", contactId)
+    .in("status", ["awaiting", "confirmed"])
+    .gte("starts_at", new Date().toISOString())
+    .order("starts_at")
+    .limit(1)
+    .maybeSingle();
+  const row = data as unknown as {
+    starts_at: string;
+    specialists: { name: string } | null;
+    locations: { name: string } | null;
+  } | null;
+  return row
+    ? {
+        starts_at: row.starts_at,
+        specialist_name: row.specialists?.name ?? null,
+        location_name: row.locations?.name ?? null,
+      }
+    : null;
 }

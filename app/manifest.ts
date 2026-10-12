@@ -7,7 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Pulse · Al Das Medical",
     short_name: "Pulse",
     description: "Clinic inbox, appointments and back office",
-    start_url: "/dashboard",
+    start_url: "/", // the home route sends each role to its own landing page
     scope: "/",
     display: "standalone",
     display_override: ["standalone", "minimal-ui"],

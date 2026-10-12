@@ -127,5 +127,5 @@ export async function acceptInvite(_prev: AcceptState, formData: FormData): Prom
     });
     if (signInErr) redirect("/login");
   }
-  redirect("/dashboard");
+  redirect("/");
 }

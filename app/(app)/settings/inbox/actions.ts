@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { recordAudit } from "@/lib/audit";
+import { unknownVariables } from "@/lib/inbox/quick-reply";
 import { requirePerm } from "@/lib/auth/session";
 import { inboxSettingsSchema, writeInboxSettings, type InboxSettings } from "@/lib/inbox/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -110,27 +111,39 @@ const quickReplySchema = z.object({
     .toLowerCase()
     .regex(/^[a-z0-9_-]{1,40}$/, "Shortcut: letters, numbers, - and _ only"),
   text: z.string().trim().min(1).max(4096),
+  text_ar: z.string().trim().max(4096).optional(),
 });
 
 export async function saveQuickReply(
   id: string | null,
-  input: { shortcut: string; text: string },
+  input: { shortcut: string; text: string; text_ar?: string },
 ): Promise<ActionResult> {
   const member = await requirePerm("settings.manage");
   const parsed = quickReplySchema.safeParse(input);
   if (!parsed.success)
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   const admin = createAdminClient();
+  // A variable name nobody supports is almost always a typo ({{docter}}): say so instead of sending it to patients.
+  const unknown = [
+    ...unknownVariables(parsed.data.text),
+    ...unknownVariables(parsed.data.text_ar ?? ""),
+  ];
+  if (unknown.length)
+    return {
+      ok: false,
+      error: `Unknown variable${unknown.length === 1 ? "" : "s"}: ${[...new Set(unknown)].map((v) => `{{${v}}}`).join(", ")}`,
+    };
   const row = {
     org_id: member.orgId,
     shortcut: parsed.data.shortcut,
     text: parsed.data.text,
+    text_ar: parsed.data.text_ar || null,
     created_by: member.userId,
   };
   const { error } = id
     ? await admin
         .from("quick_replies")
-        .update({ shortcut: row.shortcut, text: row.text })
+        .update({ shortcut: row.shortcut, text: row.text, text_ar: row.text_ar })
         .eq("id", id)
         .eq("org_id", member.orgId)
     : await admin.from("quick_replies").insert(row);

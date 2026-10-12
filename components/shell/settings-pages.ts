@@ -82,6 +82,14 @@ export const SETTINGS_PAGES: readonly SettingsPage[] = [
   },
 
   {
+    href: "/settings/training",
+    label: "Training mode",
+    section: "Workspace",
+    keywords: ["sandbox", "demo", "practice", "videos", "help", "onboarding"],
+    allow: admin,
+  },
+
+  {
     href: "/settings/channels",
     label: "WhatsApp channels",
     section: "Channels & integrations",
@@ -127,6 +135,13 @@ export const SETTINGS_PAGES: readonly SettingsPage[] = [
     label: "Appointment rules",
     section: "Clinic operations",
     keywords: ["hours", "reminders", "slots"],
+    allow: admin,
+  },
+  {
+    href: "/settings/front-desk",
+    label: "Front desk",
+    section: "Clinic operations",
+    keywords: ["waitlist", "waiting list", "offers", "qr", "walk-in", "check in", "running late", "location message"],
     allow: admin,
   },
   {

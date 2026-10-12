@@ -17,6 +17,7 @@ import type { QueueName } from "@/lib/jobs/queues";
 import type { AdminClient } from "@/lib/supabase/admin";
 import { guardCampaignMessage } from "@/lib/campaigns/engine";
 import { MEDIA_BUCKET } from "@/lib/jobs/handlers/media-fetch";
+import { isTrainingOrg, simulateTrainingSend } from "@/lib/training/mode";
 import { clientForChannel } from "@/lib/whatsapp/channel";
 import { WhatsAppApiError, mapMetaError } from "@/lib/whatsapp/errors";
 import { e164ToWaId } from "@/lib/whatsapp/phone";
@@ -67,6 +68,13 @@ export async function deliverOutbound(
     return;
   }
   const spec = specParsed.data;
+
+  // Training workspace (Phase 14): nothing reaches Meta. The message is marked sent on screen only.
+  if (await isTrainingOrg(admin, message.org_id)) {
+    await simulateTrainingSend(admin, message);
+    log.info("training send simulated", { messageId: message.id });
+    return;
+  }
 
   // Campaign messages are withdrawn when the campaign was paused/cancelled or the contact opted out since dispatch.
   if (message.campaign_recipient_id) {

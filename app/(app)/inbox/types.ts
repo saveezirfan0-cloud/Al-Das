@@ -1,4 +1,8 @@
+import type { DeskCan } from "@/app/(app)/front-desk/types";
+import type { DeskOptions } from "@/lib/front-desk/options";
+import type { PatientCardData } from "@/lib/front-desk/server";
 import type { FolderKey, InboxQuery } from "@/lib/inbox/folders";
+import type { QuickReplyContext } from "@/lib/inbox/quick-reply";
 import type { ConversationListRow, MessageRow } from "@/lib/inbox/queries";
 import type { MetaTemplateComponent } from "@/lib/whatsapp/types";
 
@@ -12,7 +16,14 @@ export type ChannelInfo = {
 };
 export type LabelInfo = { id: string; name: string; color: string };
 export type CategoryInfo = { id: string; name: string };
-export type QuickReply = { id: string; shortcut: string; text: string };
+export type QuickReply = {
+  id: string;
+  shortcut: string;
+  text: string;
+  /** Arabic wording; used for Arabic-speaking patients. */
+  text_ar: string | null;
+  label: string | null;
+};
 export type ViewInfo = {
   id: string;
   name: string;
@@ -56,6 +67,8 @@ export type ConversationDetail = ConversationListRow & { contact: ContactDetail 
 export type MergeSuggestion = { id: string; name: string; phone: string | null; reason: string };
 
 export type SidebarData = {
+  /** Front desk screen pop (null without the frontdesk.use permission). */
+  desk: { card: PatientCardData | null; options: DeskOptions; can: DeskCan } | null;
   media: MessageRow[];
   merge: MergeSuggestion[];
   otherConversations: Array<{
@@ -87,6 +100,8 @@ export type InboxProps = {
   categories: CategoryInfo[];
   views: ViewInfo[];
   quickReplies: QuickReply[];
+  /** Values for {{variables}} in quick replies, for the open conversation's patient. */
+  quickReplyContext: QuickReplyContext;
   templates: TemplateInfo[];
   people: Person[];
   settings: { require_category_on_close: boolean; require_summary_on_close: boolean };

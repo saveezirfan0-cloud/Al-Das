@@ -8,6 +8,7 @@
 import { formatInTimeZone } from "date-fns-tz";
 
 import { isInactive, type AppointmentStatus } from "@/lib/appointments/status";
+import { householdNameValues } from "@/lib/household/addressing";
 import { templateVariables } from "@/lib/whatsapp/templates";
 import type { MetaTemplateComponent } from "@/lib/whatsapp/types";
 
@@ -74,23 +75,39 @@ export function formatAppointmentTime(startsAt: Date, timezone: string): string 
 }
 
 export type AppointmentTemplateContext = {
+  /** The patient the appointment belongs to. */
   contact: { first_name: string | null; last_name: string | null };
+  /**
+   * Set when the message is written to the patient's guardian (a household dependant). The guardian's name
+   * goes in `contact.*` and the patient is named alongside it; see lib/household/addressing.ts.
+   */
+  guardian?: { first_name: string | null; last_name: string | null } | null;
+  /** The template maps a `patient.*` variable itself, so `contact.*` stays the plain guardian name. */
+  explicitPatientVariable?: boolean;
   startsAt: Date;
   timezone: string;
   specialist?: string | null;
   location?: string | null;
   service?: string | null;
   number?: number | null;
+  /** Front desk "running late" template: how many minutes behind the clinic is. */
+  delayMinutes?: number | null;
 };
 
 /** Values a variable_map entry may point at. */
 export function appointmentValueMap(ctx: AppointmentTemplateContext): Record<string, string> {
   const first = (ctx.contact.first_name ?? "").trim().split(/\s+/)[0] || "Patient";
   const last = (ctx.contact.last_name ?? "").trim();
+  const household = householdNameValues({
+    patient: ctx.contact,
+    guardian: ctx.guardian ?? null,
+    explicitPatientVariable: ctx.explicitPatientVariable ?? false,
+  });
   return {
     "contact.first_name": first,
     "contact.last_name": last,
     "contact.name": [first === "Patient" ? "" : first, last].filter(Boolean).join(" ") || "Patient",
+    ...household,
     "appointment.datetime": formatAppointmentTime(ctx.startsAt, ctx.timezone),
     "appointment.date": formatInTimeZone(ctx.startsAt, ctx.timezone, "EEEE d MMMM"),
     "appointment.time": formatInTimeZone(ctx.startsAt, ctx.timezone, "h:mm a"),
@@ -98,6 +115,7 @@ export function appointmentValueMap(ctx: AppointmentTemplateContext): Record<str
     "appointment.location": ctx.location?.trim() || "the clinic",
     "appointment.service": ctx.service?.trim() || "your appointment",
     "appointment.number": ctx.number ? String(ctx.number) : "",
+    "delay.minutes": ctx.delayMinutes ? String(ctx.delayMinutes) : "",
   };
 }
 
@@ -119,7 +137,12 @@ export function buildAppointmentTemplateValues(
   variableMap: Record<string, string> | null | undefined,
   ctx: AppointmentTemplateContext,
 ): Record<string, string> {
-  const values = appointmentValueMap(ctx);
+  const values = appointmentValueMap({
+    ...ctx,
+    explicitPatientVariable:
+      ctx.explicitPatientVariable ??
+      Object.values(variableMap ?? {}).some((v) => typeof v === "string" && v.startsWith("patient.")),
+  });
   const out: Record<string, string> = {};
   for (const v of templateVariables(components)) {
     if (v.component === "button" || v.kind !== "text") continue;

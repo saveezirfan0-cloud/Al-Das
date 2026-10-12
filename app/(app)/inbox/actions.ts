@@ -26,6 +26,7 @@ import { recordAccess } from "@/lib/security/access-log";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/supabase/types";
+import { TrainingModeError } from "@/lib/training/mode";
 import { clientForChannel } from "@/lib/whatsapp/channel";
 import { toE164 } from "@/lib/whatsapp/phone";
 import { isMarketingBlocked, renderTemplatePreview } from "@/lib/whatsapp/templates";
@@ -347,9 +348,11 @@ export async function markConversationRead(conversationId: string): Promise<Acti
       const client = await clientForChannel(admin, conversation.channels);
       await client.markRead(last.wa_message_id);
     } catch (err) {
-      console.warn("[inbox] mark-read failed", {
-        error: redactText(err),
-      });
+      // A training workspace never contacts Meta; that is expected, not a warning.
+      if (!(err instanceof TrainingModeError))
+        console.warn("[inbox] mark-read failed", {
+          error: redactText(err),
+        });
     }
   }
   return { ok: true, data: undefined };

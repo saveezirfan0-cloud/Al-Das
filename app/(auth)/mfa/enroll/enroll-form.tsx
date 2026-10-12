@@ -72,7 +72,7 @@ export function EnrollForm({ next }: { next?: string }) {
     const res = await confirmMfaEnrolled();
     setBusy(false);
     if (!res.ok) return setError(res.error);
-    router.replace(safeNextPath(next));
+    router.replace(safeNextPath(next, "/"));
     router.refresh();
   }
 

@@ -7,6 +7,8 @@ import { Menu, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 
+import { HelpMenu } from "@/components/help/help-menu";
+
 import { OPEN_PALETTE_EVENT } from "./command-palette";
 import { OPEN_NAV_EVENT } from "./mobile-tabs";
 import { NotificationsMenu } from "./notifications-menu";
@@ -18,10 +20,13 @@ export function Topbar({
   items,
   orgName,
   user,
+  helpVideos,
 }: {
   items: readonly NavItem[];
   orgName: string;
   user: UserMenuProps;
+  /** Recorded training clips by id (orgs.settings.help.videos), for the ? button. */
+  helpVideos: Record<string, string>;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -34,7 +39,7 @@ export function Topbar({
   const current = items.find((i) => pathname === i.href || pathname.startsWith(i.href + "/"));
 
   return (
-    <header className="bg-background flex h-14 shrink-0 items-center gap-3 border-b px-4">
+    <header className="bg-background flex h-14 shrink-0 items-center gap-3 border-b px-4 print:hidden">
       <Button
         variant="ghost"
         size="icon"
@@ -81,6 +86,7 @@ export function Topbar({
         >
           <Search />
         </Button>
+        <HelpMenu roleName={user.roleName} videos={helpVideos} />
         <NotificationsMenu />
         <UserMenu {...user} />
       </div>

@@ -6,6 +6,7 @@
  * Replaying the same payload changes nothing and emits no events.
  */
 import { syncAppointmentReminders } from "@/lib/appointments/service";
+import { freedSlotFromRow, scheduleSlotFreed } from "@/lib/front-desk/freed";
 import { isAppointmentStatus, type AppointmentStatus } from "@/lib/appointments/status";
 import { addTimelineEvent } from "@/lib/contacts/timeline";
 import {
@@ -258,7 +259,10 @@ export async function resolvePatient(
       source: SOURCE,
       entity: "patient",
       externalId: key,
-      reason: `multiple_${match.candidates[0]?.matched_on ?? "identifier"}_matches`,
+      reason:
+        match.candidates[0]?.matched_on === "shared_phone"
+          ? "shared_phone"
+          : `multiple_${match.candidates[0]?.matched_on ?? "identifier"}_matches`,
       candidates: match.candidates,
       incoming,
     });
@@ -605,6 +609,18 @@ async function afterWrite(
       to: row.status,
       via: SOURCE,
     });
+    // A cancellation in Unite frees the slot for the waiting list (off unless the clinic turned offers on).
+    if (row.status === "cancelled" && prev.status !== "cancelled") {
+      const freed = freedSlotFromRow({
+        id: row.id,
+        specialist_id: prev.specialist_id,
+        location_id: prev.location_id,
+        service_id: null, // Unite does not tell us the service; only waitlist entries that name one can match
+        starts_at: prev.starts_at,
+        ends_at: prev.ends_at,
+      });
+      if (freed) await scheduleSlotFreed(orgId, freed);
+    }
   }
   if (prev && new Date(prev.starts_at).getTime() !== new Date(row.starts_at).getTime()) {
     if (row.contact_id)

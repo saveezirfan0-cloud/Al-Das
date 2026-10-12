@@ -33,7 +33,7 @@ export function MobileTabs({ items: rawItems }: { items: readonly NavItem[] }) {
   return (
     <nav
       aria-label="Quick navigation"
-      className="bg-background fixed inset-x-0 bottom-0 z-30 border-t pb-[env(safe-area-inset-bottom)] md:hidden"
+      className="bg-background fixed inset-x-0 bottom-0 z-30 border-t pb-[env(safe-area-inset-bottom)] md:hidden print:hidden"
     >
       <ul
         className="grid"

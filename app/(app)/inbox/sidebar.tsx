@@ -1,6 +1,8 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { CalendarPlus, KanbanSquare, Loader2, Merge } from "lucide-react";
 import { toast } from "sonner";
@@ -26,6 +28,16 @@ import type { ConversationDetail, InboxProps } from "./types";
 
 const UNSET = "__unset__";
 
+// The patient card (dialogs, selects, time-zone formatting) is only needed by people with the Front desk
+// permission and only once a conversation is open, so it stays out of the inbox's first load.
+const PatientCardView = dynamic(
+  () => import("@/app/(app)/front-desk/patient-card").then((m) => m.PatientCardView),
+  {
+    ssr: false,
+    loading: () => <p className="text-muted-foreground text-xs">Loading the patient card…</p>,
+  },
+);
+
 export function Sidebar({
   selected,
   sidebar,
@@ -33,6 +45,8 @@ export function Sidebar({
   className,
 }: InboxProps & { selected: ConversationDetail; className?: string }) {
   const c = selected.contact;
+  const router = useRouter();
+  const desk = sidebar?.desk ?? null;
   const [form, setForm] = useState(toForm(c));
   const [pending, startTransition] = useTransition();
   useEffect(() => setForm(toForm(c)), [c]);
@@ -70,8 +84,9 @@ export function Sidebar({
       className={cn("bg-background w-80 shrink-0 flex-col border-l", className)}
       aria-label="Conversation details"
     >
-      <Tabs defaultValue="contact" className="flex h-full flex-col">
-        <TabsList className="m-2 grid grid-cols-4">
+      <Tabs defaultValue={desk ? "patient" : "contact"} className="flex h-full flex-col">
+        <TabsList className={cn("m-2 grid", desk ? "grid-cols-5" : "grid-cols-4")}>
+          {desk && <TabsTrigger value="patient">Patient</TabsTrigger>}
           <TabsTrigger value="contact">Contact</TabsTrigger>
           <TabsTrigger value="media">Media</TabsTrigger>
           <TabsTrigger value="merge">
@@ -80,6 +95,21 @@ export function Sidebar({
           <TabsTrigger value="more">More</TabsTrigger>
         </TabsList>
         <ScrollArea className="flex-1">
+          {desk && (
+            <TabsContent value="patient" className="px-3 pb-4">
+              {desk.card ? (
+                <PatientCardView
+                  card={desk.card}
+                  options={desk.options}
+                  can={desk.can}
+                  compact
+                  onChanged={() => router.refresh()}
+                />
+              ) : (
+                <p className="text-muted-foreground text-xs">No patient card for this contact.</p>
+              )}
+            </TabsContent>
+          )}
           <TabsContent value="contact" className="px-3 pb-4">
             <form onSubmit={save} className="flex flex-col gap-3 text-sm">
               <div className="grid grid-cols-2 gap-2">

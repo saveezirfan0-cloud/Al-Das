@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { mentionQueryAtCaret } from "@/lib/inbox/mentions";
+import { matchShortcuts, pickQuickReplyText, renderQuickReply } from "@/lib/inbox/quick-reply";
 import type { MessageRow } from "@/lib/inbox/queries";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -41,7 +42,7 @@ import {
 import { AiPanel } from "./ai-panel";
 import { ShortcutMenu } from "./shortcut-menu";
 import { TemplatePicker } from "./template-picker";
-import type { ConversationDetail, InboxProps } from "./types";
+import type { ConversationDetail, InboxProps, QuickReply } from "./types";
 
 const EMOJI = [
   "😊",
@@ -100,6 +101,7 @@ export function Composer({
   ai,
   channels,
   quickReplies,
+  quickReplyContext,
   templates,
   people,
   me,
@@ -138,10 +140,19 @@ export function Composer({
       ? text.slice(1).toLowerCase()
       : null;
   const slashMatches = useMemo(
-    () =>
-      slash === null ? [] : quickReplies.filter((q) => q.shortcut.startsWith(slash)).slice(0, 8),
+    () => (slash === null ? [] : matchShortcuts(quickReplies, `/${slash}`)),
     [slash, quickReplies],
   );
+  // The wording for this patient's language with {{variables}} filled in. A variable with no value stays
+  // visible ({{doctor}}) so it is fixed before sending instead of going out blank.
+  const fillQuickReply = (q: QuickReply) =>
+    renderQuickReply(pickQuickReplyText(q, selected.contact.language), quickReplyContext);
+  function applyQuickReply(q: QuickReply) {
+    const { text: filled, unresolved } = fillQuickReply(q);
+    setText(filled);
+    if (unresolved.length)
+      toast.warning(`Fill in before sending: ${unresolved.map((v) => `{{${v}}}`).join(", ")}`);
+  }
   const mention = mode === "comment" ? mentionQueryAtCaret(text, caret) : null;
   const mentionMatches = useMemo(
     () =>
@@ -370,10 +381,15 @@ export function Composer({
                 <button
                   type="button"
                   className="hover:bg-accent flex w-full flex-col rounded px-2 py-1 text-left text-sm"
-                  onClick={() => setText(q.text)}
+                  onClick={() => applyQuickReply(q)}
                 >
-                  <span className="font-mono text-xs">/{q.shortcut}</span>
-                  <span className="text-muted-foreground line-clamp-1 text-xs">{q.text}</span>
+                  <span className="font-mono text-xs">
+                    /{q.shortcut}
+                    {q.text_ar && <span className="text-muted-foreground"> · EN / AR</span>}
+                  </span>
+                  <span className="text-muted-foreground line-clamp-1 text-xs" dir="auto">
+                    {fillQuickReply(q).text}
+                  </span>
                 </button>
               </li>
             ))}
@@ -414,7 +430,7 @@ export function Composer({
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
               e.preventDefault();
-              if (slashMatches.length === 1 && slash !== null) setText(slashMatches[0].text);
+              if (slashMatches.length === 1 && slash !== null) applyQuickReply(slashMatches[0]);
               else submit();
             }
           }}

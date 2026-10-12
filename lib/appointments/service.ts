@@ -17,6 +17,9 @@ import {
   type AppointmentStatus,
 } from "@/lib/appointments/status";
 import { addTimelineEvent } from "@/lib/contacts/timeline";
+import { resolveRecipient, type HouseholdContact } from "@/lib/household/addressing";
+import { loadHouseholdLink } from "@/lib/household/server";
+import { freedSlotFromRow, scheduleSlotFreed } from "@/lib/front-desk/freed";
 import { emit } from "@/lib/events/emit";
 import { ensureConversation } from "@/lib/inbox/conversations";
 import { queueOutbound } from "@/lib/inbox/send";
@@ -187,7 +190,7 @@ export async function sendAppointmentTemplate(
   const [{ data: contact }, { data: tpl }, location, specialist, service] = await Promise.all([
     admin
       .from("contacts")
-      .select("first_name, last_name, phone_e164, wa_bsuid, stop_marketing")
+      .select("id, first_name, last_name, phone_e164, wa_bsuid, stop_marketing")
       .eq("id", appt.contact_id)
       .eq("org_id", input.orgId)
       .maybeSingle(),
@@ -208,12 +211,16 @@ export async function sendAppointmentTemplate(
       : Promise.resolve({ data: null }),
   ]);
   if (!contact) return { ok: false, error: "Patient not found." };
-  if (!contact.phone_e164 && !contact.wa_bsuid)
-    return { ok: false, error: "The patient has no WhatsApp identifier." };
+  // A dependant's message goes to the guardian's number and names the patient (lib/household).
+  const target = resolveRecipient(
+    contact as HouseholdContact,
+    await loadHouseholdLink(admin, input.orgId, contact.id),
+  );
+  if (!target) return { ok: false, error: "The patient has no WhatsApp identifier." };
   if (!tpl) return { ok: false, error: "The mapped template no longer exists." };
   if (tpl.status !== "APPROVED")
     return { ok: false, error: `Template "${tpl.name}" is ${tpl.status}, not approved.` };
-  if (tpl.category === "MARKETING" && contact.stop_marketing)
+  if (tpl.category === "MARKETING" && target.recipient.stop_marketing)
     return { ok: false, error: "The patient has opted out of marketing messages." };
 
   // Send from the channel that owns the template's WABA.
@@ -236,6 +243,7 @@ export async function sendAppointmentTemplate(
     tpl.variable_map as Record<string, string>,
     {
       contact,
+      guardian: target.viaGuardian ? target.recipient : null,
       startsAt: new Date(appt.starts_at),
       timezone: location.data?.timezone ?? orgTz,
       specialist: specialist.data?.name,
@@ -248,7 +256,7 @@ export async function sendAppointmentTemplate(
   if (preview.missing.length)
     return { ok: false, error: `Template variables are not mapped: ${preview.missing.join(", ")}` };
 
-  const conversation = await ensureConversation(admin, input.orgId, appt.contact_id, channelId);
+  const conversation = await ensureConversation(admin, input.orgId, target.recipient.id, channelId);
   const message = await queueOutbound(admin, {
     orgId: input.orgId,
     conversationId: conversation.id,
@@ -452,6 +460,12 @@ export async function changeAppointmentStatus(
   if (isInactive(input.to)) await cancelAppointmentReminders(admin, input.orgId, current.id);
   else await syncAppointmentReminders(admin, appointment);
 
+  // A cancellation gives the slot back: tell the waiting list (a durable job, so the cancel never waits on it).
+  if (input.to === "cancelled" && !isInactive(from)) {
+    const freed = freedSlotFromRow(current);
+    if (freed) await scheduleSlotFreed(input.orgId, freed);
+  }
+
   if (current.contact_id) {
     await addTimelineEvent(admin, {
       orgId: input.orgId,
@@ -547,6 +561,11 @@ export async function rescheduleAppointment(
     return { ok: false, error: error?.message ?? "Could not move the appointment." };
 
   await syncAppointmentReminders(admin, appointment);
+  // The time the patient moved away from is free again.
+  if (new Date(current.starts_at).getTime() !== new Date(appointment.starts_at).getTime() || current.specialist_id !== appointment.specialist_id) {
+    const freed = freedSlotFromRow(current);
+    if (freed) await scheduleSlotFreed(input.orgId, freed);
+  }
   if (current.contact_id) {
     await addTimelineEvent(admin, {
       orgId: input.orgId,

@@ -17,9 +17,11 @@ import {
   createAuthUser,
   createOrg,
   PHASE13_TABLES,
+  PHASE14_TABLES,
   PHASE15_TABLES,
   resetDb,
   seedPhase13Rows,
+  seedPhase14Rows,
   seedSecurityRows,
   TEST_DATABASE_URL,
 } from "./helpers";
@@ -61,14 +63,29 @@ const AUTHENTICATED_RPCS = new Set(["mark_all_notifications_read", "set_presence
  * app has run can()). The generic RPC test above already fails if any of them is callable by a signed-in
  * user; this list makes the intent explicit and fails if one disappears.
  */
-const PHASE15_SERVICE_FUNCTIONS = ["api_read_log_hit", "erase_contact", "offboard_member", "security_maintenance"];
+const PHASE15_SERVICE_FUNCTIONS = [
+  "api_read_log_hit",
+  "erase_contact",
+  "offboard_member",
+  "security_maintenance",
+];
+
+/** Phase 14 SECURITY DEFINER functions that only server code (service role) may run. */
+const PHASE14_SERVICE_FUNCTIONS = ["accept_slot_offer", "demo_wipe_org"];
 
 /**
  * Tables whose BEFORE-INSERT triggers (cross-org consistency checks, system-role protection)
  * raise before RLS is evaluated, so the generic insert probe sees 23514 instead of 42501.
  * Their policies are proven by the dedicated per-table suites, which this file checks by name.
  */
-const TRIGGER_GUARDED = new Set(["conversation_labels", "conversations", "enquiries", "invites", "memberships", "team_members"]);
+const TRIGGER_GUARDED = new Set([
+  "conversation_labels",
+  "conversations",
+  "enquiries",
+  "invites",
+  "memberships",
+  "team_members",
+]);
 
 /** Helpers a policy must call to be considered org-scoped. */
 const ORG_SCOPE_MARKERS = [
@@ -129,16 +146,21 @@ describe.skipIf(!TEST_DATABASE_URL)("security guard (catalog)", () => {
       roles: string;
       qual: string | null;
       with_check: string | null;
-    }>(`select tablename, policyname, roles::text as roles, qual, with_check from pg_policies where schemaname = 'public'`);
+    }>(
+      `select tablename, policyname, roles::text as roles, qual, with_check from pg_policies where schemaname = 'public'`,
+    );
     const orgTables = new Set(rels.filter((r) => r.has_org).map((r) => r.name));
     const bad: string[] = [];
     for (const p of rows) {
-      if (/anon|public/.test(p.roles) && !/authenticated/.test(p.roles)) bad.push(`${p.tablename}.${p.policyname}: applies to anon/public`);
+      if (/anon|public/.test(p.roles) && !/authenticated/.test(p.roles))
+        bad.push(`${p.tablename}.${p.policyname}: applies to anon/public`);
       const exprs = [p.qual, p.with_check].filter((e): e is string => !!e);
-      if (exprs.some((e) => e.trim() === "true")) bad.push(`${p.tablename}.${p.policyname}: always true`);
+      if (exprs.some((e) => e.trim() === "true"))
+        bad.push(`${p.tablename}.${p.policyname}: always true`);
       if (orgTables.has(p.tablename) && exprs.length > 0) {
         const joined = exprs.join(" ");
-        if (!ORG_SCOPE_MARKERS.some((m) => joined.includes(m))) bad.push(`${p.tablename}.${p.policyname}: not org-scoped`);
+        if (!ORG_SCOPE_MARKERS.some((m) => joined.includes(m)))
+          bad.push(`${p.tablename}.${p.policyname}: not org-scoped`);
       }
     }
     expect(bad).toEqual([]);
@@ -161,7 +183,9 @@ describe.skipIf(!TEST_DATABASE_URL)("security guard (catalog)", () => {
       from pg_proc p join pg_namespace n on n.oid = p.pronamespace
       where n.nspname = 'public' and p.prokind = 'f' and p.prosecdef`);
     expect(rows.filter((r) => r.anon).map((r) => r.name)).toEqual([]);
-    expect(rows.filter((r) => r.auth && !AUTHENTICATED_RPCS.has(r.name)).map((r) => r.name)).toEqual([]);
+    expect(
+      rows.filter((r) => r.auth && !AUTHENTICATED_RPCS.has(r.name)).map((r) => r.name),
+    ).toEqual([]);
     expect(rows.some((r) => AUTHENTICATED_RPCS.has(r.name) && r.auth)).toBe(true);
   });
 });
@@ -180,7 +204,40 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 15 service-role functions", () => {
         [PHASE15_SERVICE_FUNCTIONS],
       );
       expect(rows.map((r) => r.name).sort()).toEqual([...PHASE15_SERVICE_FUNCTIONS].sort());
-      for (const r of rows) expect({ name: r.name, anon: r.anon, auth: r.auth, svc: r.svc }).toEqual({ name: r.name, anon: false, auth: false, svc: true });
+      for (const r of rows)
+        expect({ name: r.name, anon: r.anon, auth: r.auth, svc: r.svc }).toEqual({
+          name: r.name,
+          anon: false,
+          auth: false,
+          svc: true,
+        });
+    } finally {
+      await c.end();
+    }
+  });
+});
+
+describe.skipIf(!TEST_DATABASE_URL)("phase 14 service-role functions", () => {
+  it("exist and are executable by the service role only", async () => {
+    const c = await connect();
+    try {
+      const { rows } = await c.query<{ name: string; anon: boolean; auth: boolean; svc: boolean }>(
+        `select p.proname as name,
+                has_function_privilege('anon', p.oid, 'execute') as anon,
+                has_function_privilege('authenticated', p.oid, 'execute') as auth,
+                has_function_privilege('service_role', p.oid, 'execute') as svc
+         from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+         where n.nspname = 'public' and p.proname = any ($1)`,
+        [PHASE14_SERVICE_FUNCTIONS],
+      );
+      expect(rows.map((r) => r.name).sort()).toEqual([...PHASE14_SERVICE_FUNCTIONS].sort());
+      for (const r of rows)
+        expect({ name: r.name, anon: r.anon, auth: r.auth, svc: r.svc }).toEqual({
+          name: r.name,
+          anon: false,
+          auth: false,
+          svc: true,
+        });
     } finally {
       await c.end();
     }
@@ -217,17 +274,33 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
 
     // Give org A some rows in tables that are service-only or otherwise easy to seed.
     await asServiceRole(c, async () => {
-      await c.query("insert into public.rate_limit_hits (key, window_start, hits) values ('sweep', now(), 1)");
-      await c.query("insert into public.webhook_events_in (source, payload) values ('meta', '{}'::jsonb)");
-      await c.query("insert into public.job_runs (queue, handler, started_at) values ('sweep', 'sweep', now())").catch(() => {});
+      await c.query(
+        "insert into public.rate_limit_hits (key, window_start, hits) values ('sweep', now(), 1)",
+      );
+      await c.query(
+        "insert into public.webhook_events_in (source, payload) values ('meta', '{}'::jsonb)",
+      );
+      await c
+        .query(
+          "insert into public.job_runs (queue, handler, started_at) values ('sweep', 'sweep', now())",
+        )
+        .catch(() => {});
       await c.query("insert into public.teams (org_id, name) values ($1, 'Front desk')", [orgA]);
-      await c.query("insert into public.notifications (org_id, user_id, type, title) values ($1, $2, 'system', 'hello')", [orgA, alice]);
-      await c.query("insert into public.audit_log (org_id, user_id, action, entity) values ($1, $2, 'sweep.test', 'org')", [orgA, alice]);
+      await c.query(
+        "insert into public.notifications (org_id, user_id, type, title) values ($1, $2, 'system', 'hello')",
+        [orgA, alice],
+      );
+      await c.query(
+        "insert into public.audit_log (org_id, user_id, action, entity) values ($1, $2, 'sweep.test', 'org')",
+        [orgA, alice],
+      );
     });
     // Phase 15 tables: one row each in org A, so the cross-org sweeps below are not vacuous for them.
     await seedSecurityRows(c, orgA, alice);
     // Phase 13 tables likewise.
     await seedPhase13Rows(c, orgA, alice);
+    // Phase 14 tables likewise.
+    await seedPhase14Rows(c, orgA, alice);
   });
   afterAll(async () => {
     await resetDb(c);
@@ -238,14 +311,18 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
     expect(orgTables.length).toBeGreaterThanOrEqual(25);
   });
 
-  it("sweeps every Phase 13 and Phase 15 table (a new table must be added to PHASE13_TABLES / PHASE15_TABLES and seeded)", () => {
-    for (const t of [...PHASE15_TABLES, ...PHASE13_TABLES]) expect(orgTables, `${t} is not in the org sweep`).toContain(t);
+  it("sweeps every Phase 13, 14 and 15 table (a new table must be added to PHASE13_TABLES / PHASE14_TABLES / PHASE15_TABLES and seeded)", () => {
+    for (const t of [...PHASE15_TABLES, ...PHASE14_TABLES, ...PHASE13_TABLES])
+      expect(orgTables, `${t} is not in the org sweep`).toContain(t);
   });
 
-  it("really holds org A rows in the Phase 13 and 15 tables, visible to org A's admin (control for the leak sweep)", async () => {
+  it("really holds org A rows in the Phase 13, 14 and 15 tables, visible to org A's admin (control for the leak sweep)", async () => {
     await asUser(c, alice, async () => {
-      for (const t of [...PHASE15_TABLES, ...PHASE13_TABLES]) {
-        const { rows } = await c.query<{ n: string }>(`select count(*)::text as n from public.${t} where org_id = $1`, [orgA]);
+      for (const t of [...PHASE15_TABLES, ...PHASE14_TABLES, ...PHASE13_TABLES]) {
+        const { rows } = await c.query<{ n: string }>(
+          `select count(*)::text as n from public.${t} where org_id = $1`,
+          [orgA],
+        );
         expect(Number(rows[0].n), t).toBeGreaterThan(0);
       }
     });
@@ -255,7 +332,10 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
     const leaks: string[] = [];
     await asUser(c, bob, async () => {
       for (const t of orgTables) {
-        const { rows } = await c.query<{ n: string }>(`select count(*)::text as n from public.${t} where org_id = $1`, [orgA]);
+        const { rows } = await c.query<{ n: string }>(
+          `select count(*)::text as n from public.${t} where org_id = $1`,
+          [orgA],
+        );
         if (Number(rows[0].n) !== 0) leaks.push(t);
       }
     });
@@ -266,14 +346,18 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
     const seen: string[] = [];
     await asUser(c, nobody, async () => {
       for (const t of orgTables) {
-        const { rows } = await c.query<{ n: string }>(`select count(*)::text as n from public.${t}`);
+        const { rows } = await c.query<{ n: string }>(
+          `select count(*)::text as n from public.${t}`,
+        );
         if (Number(rows[0].n) !== 0) seen.push(`authenticated:${t}`);
       }
     });
     await c.query("set role anon");
     try {
       for (const t of allTables) {
-        const { rows } = await c.query<{ n: string }>(`select count(*)::text as n from public.${t}`).catch(() => ({ rows: [{ n: "0" }] }));
+        const { rows } = await c
+          .query<{ n: string }>(`select count(*)::text as n from public.${t}`)
+          .catch(() => ({ rows: [{ n: "0" }] }));
         if (Number(rows[0].n) !== 0) seen.push(`anon:${t}`);
       }
     } finally {
@@ -285,8 +369,18 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
   it("denies signed-in users every read of the service-only tables", async () => {
     const seen: string[] = [];
     await asUser(c, alice, async () => {
-      for (const t of ["rate_limit_hits", "webhook_events_in", "dead_letters", "job_runs", "channel_secrets", "channel_send_slots", "scheduled_jobs"]) {
-        const { rows } = await c.query<{ n: string }>(`select count(*)::text as n from public.${t}`).catch(() => ({ rows: [{ n: "0" }] }));
+      for (const t of [
+        "rate_limit_hits",
+        "webhook_events_in",
+        "dead_letters",
+        "job_runs",
+        "channel_secrets",
+        "channel_send_slots",
+        "scheduled_jobs",
+      ]) {
+        const { rows } = await c
+          .query<{ n: string }>(`select count(*)::text as n from public.${t}`)
+          .catch(() => ({ rows: [{ n: "0" }] }));
         if (Number(rows[0].n) !== 0) seen.push(t);
       }
     });
@@ -316,7 +410,10 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
     const suites = ["rls.test.ts", "crm-rls.test.ts", "inbox-rls.test.ts", "enquiries-rls.test.ts"]
       .map((f) => fs.readFileSync(path.join(__dirname, f), "utf8"))
       .join("\n");
-    for (const t of TRIGGER_GUARDED) expect(suites, `${t} is not covered by a per-table RLS suite`).toMatch(new RegExp(`\\b${t}\\b`));
+    for (const t of TRIGGER_GUARDED)
+      expect(suites, `${t} is not covered by a per-table RLS suite`).toMatch(
+        new RegExp(`\\b${t}\\b`),
+      );
   });
 
   it("the insert probe can tell RLS from other failures (control: org A's admin reaches the constraint check)", async () => {
@@ -335,8 +432,12 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
     await asUser(c, bob, async () => {
       for (const t of orgTables) {
         await c.query("begin");
-        const u = await c.query(`update public.${t} set org_id = org_id where org_id = $1`, [orgA]).catch(() => ({ rowCount: 0 }));
-        const d = await c.query(`delete from public.${t} where org_id = $1`, [orgA]).catch(() => ({ rowCount: 0 }));
+        const u = await c
+          .query(`update public.${t} set org_id = org_id where org_id = $1`, [orgA])
+          .catch(() => ({ rowCount: 0 }));
+        const d = await c
+          .query(`delete from public.${t} where org_id = $1`, [orgA])
+          .catch(() => ({ rowCount: 0 }));
         await c.query("rollback");
         expect(u.rowCount ?? 0, `${t} update`).toBe(0);
         expect(d.rowCount ?? 0, `${t} delete`).toBe(0);
@@ -350,10 +451,12 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
     });
     await asUser(c, bob, async () => {
       await c.query("begin");
-      const err = await c.query("update public.teams set org_id = $1 where org_id = $2", [orgA, orgB]).then(
-        () => null,
-        (e: { code?: string }) => e,
-      );
+      const err = await c
+        .query("update public.teams set org_id = $1 where org_id = $2", [orgA, orgB])
+        .then(
+          () => null,
+          (e: { code?: string }) => e,
+        );
       await c.query("rollback");
       expect(err?.code).toBe("42501");
     });
@@ -371,7 +474,10 @@ describe.skipIf(!TEST_DATABASE_URL)("audit_log is append-only", () => {
     alice = await createAuthUser(c, "alice@example.test");
     orgA = await createOrg(c, "Org A", "org-a", alice);
     await asServiceRole(c, async () => {
-      await c.query("insert into public.audit_log (org_id, user_id, action, entity) values ($1, $2, 'x.created', 'x')", [orgA, alice]);
+      await c.query(
+        "insert into public.audit_log (org_id, user_id, action, entity) values ($1, $2, 'x.created', 'x')",
+        [orgA, alice],
+      );
     });
   });
   afterAll(async () => {
@@ -399,7 +505,10 @@ describe.skipIf(!TEST_DATABASE_URL)("audit_log is append-only", () => {
 
   it("still allows inserts, the user_id null-out when a user is removed, and the org cascade", async () => {
     await asServiceRole(c, async () => {
-      await c.query("insert into public.audit_log (org_id, user_id, action, entity) values ($1, $2, 'y.created', 'y')", [orgA, alice]);
+      await c.query(
+        "insert into public.audit_log (org_id, user_id, action, entity) values ($1, $2, 'y.created', 'y')",
+        [orgA, alice],
+      );
     });
     await c.query("delete from auth.users where id = $1", [alice]);
     const { rows } = await c.query<{ n: string; nulls: string }>(
@@ -464,7 +573,9 @@ describe.skipIf(!TEST_DATABASE_URL)("rate_limit_hit()", () => {
     try {
       const results = await Promise.all(
         Array.from({ length: 40 }, (_, i) =>
-          clients[i % clients.length].query<{ allowed: boolean }>("select allowed from public.rate_limit_hit('parallel', 10, 60)"),
+          clients[i % clients.length].query<{ allowed: boolean }>(
+            "select allowed from public.rate_limit_hit('parallel', 10, 60)",
+          ),
         ),
       );
       expect(results.filter((r) => r.rows[0].allowed)).toHaveLength(10);

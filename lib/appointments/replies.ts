@@ -4,6 +4,7 @@ import { classifyButtonReply, decideReply } from "@/lib/appointments/button-repl
 import { changeAppointmentStatus, loadOrgSettings } from "@/lib/appointments/service";
 import { isAppointmentStatus } from "@/lib/appointments/status";
 import { addTimelineEvent } from "@/lib/contacts/timeline";
+import { isGuardianOf } from "@/lib/household/server";
 import { notifyMembersWithPermission } from "@/lib/notifications";
 import type { AdminClient } from "@/lib/supabase/admin";
 
@@ -48,8 +49,14 @@ export async function applyReminderReply(
     .eq("message_id", outbound.id)
     .maybeSingle();
   const appt = reminder?.appointments;
-  // The reply must come from the patient the appointment belongs to.
-  if (!appt || appt.contact_id !== reply.contactId) return "no_reminder";
+  // The reply must come from the patient the appointment belongs to, or from their guardian (a dependant's
+  // reminder goes to the guardian's number, so the guardian's tap is the patient's answer).
+  if (!appt || !appt.contact_id) return "no_reminder";
+  if (
+    appt.contact_id !== reply.contactId &&
+    !(await isGuardianOf(admin, reply.orgId, reply.contactId, appt.contact_id))
+  )
+    return "no_reminder";
 
   const { settings } = await loadOrgSettings(admin, reply.orgId);
   const decision = decideReply(
@@ -78,7 +85,7 @@ export async function applyReminderReply(
 
   await addTimelineEvent(admin, {
     orgId: reply.orgId,
-    contactId: reply.contactId,
+    contactId: appt.contact_id, // the patient's timeline, even when their guardian tapped the button
     type: "appointment.reply",
     actorType: "contact",
     payload: { appointment_id: appt.id, action, reason: decision.reason },

@@ -4,6 +4,7 @@ import { PORTAL_OBJECTS } from "@/lib/portal/objects";
 /** Left-nav modules. `permission` hides the entry for members without it. */
 export type NavIcon =
   | "dashboard"
+  | "frontdesk"
   | "inbox"
   | "contacts"
   | "enquiries"
@@ -45,6 +46,14 @@ export type NavItem = {
 
 export const NAV_ITEMS: readonly NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
+  {
+    href: "/front-desk",
+    label: "Front desk",
+    icon: "frontdesk",
+    group: "Today",
+    keywords: ["reception", "check in", "arrivals", "walk-in", "waitlist", "waiting list", "handover"],
+    permission: "frontdesk.use",
+  },
   {
     href: "/inbox",
     label: "Inbox",
