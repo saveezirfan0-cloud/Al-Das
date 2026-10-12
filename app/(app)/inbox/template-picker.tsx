@@ -17,7 +17,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { MediaPicker } from "@/components/media/media-picker";
 import { PhonePreview } from "@/components/phone-preview/phone-preview";
+import { TEMPLATE_HEADER_TYPES } from "@/lib/media/limits";
+import { mediaSource } from "@/lib/media/paths";
 import { renderTemplatePreview, templateVariables } from "@/lib/whatsapp/templates";
 import { cn } from "@/lib/utils";
 
@@ -37,6 +40,8 @@ function defaults(t: TemplateInfo, c: ConversationDetail): Record<string, string
   for (const v of templateVariables(t.components)) {
     const mapped = t.variable_map[v.key];
     if (mapped && mapped in source && source[mapped]) out[v.key] = source[mapped];
+    // A header file chosen from the Media Library travels as a reference; the outbound job makes it a fresh link.
+    else if (mapped && v.key === "header.media" && mapped.startsWith("media:")) out[v.key] = mapped;
   }
   return out;
 }
@@ -46,12 +51,16 @@ export function TemplatePicker({
   onOpenChange,
   conversation,
   templates,
+  canMedia = false,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   conversation: ConversationDetail;
   templates: TemplateInfo[];
+  /** May pick from the Media Library (media.view). */
+  canMedia?: boolean;
 }) {
+  const [libraryFor, setLibraryFor] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [picked, setPicked] = useState<TemplateInfo | null>(null);
   const [values, setValues] = useState<Record<string, string>>({});
@@ -170,12 +179,37 @@ export function TemplatePicker({
                             </span>
                           )}
                         </Label>
-                        <Input
-                          id={`v-${v.key}`}
-                          value={values[v.key] ?? ""}
-                          onChange={(e) => setValues((p) => ({ ...p, [v.key]: e.target.value }))}
-                          placeholder={v.example ?? ""}
-                        />
+                        {values[v.key]?.startsWith("media:") ? (
+                          <div className="flex flex-wrap items-center gap-2 text-sm">
+                            <span>A Media Library file will be sent.</span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setValues((p) => ({ ...p, [v.key]: "" }))}
+                            >
+                              Use a link instead
+                            </Button>
+                          </div>
+                        ) : (
+                          <Input
+                            id={`v-${v.key}`}
+                            value={values[v.key] ?? ""}
+                            onChange={(e) => setValues((p) => ({ ...p, [v.key]: e.target.value }))}
+                            placeholder={v.example ?? ""}
+                          />
+                        )}
+                        {canMedia && v.key === "header.media" && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="w-fit"
+                            onClick={() => setLibraryFor(v.key)}
+                          >
+                            Choose from the Media Library
+                          </Button>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -185,6 +219,20 @@ export function TemplatePicker({
             )}
           </div>
         </div>
+        {libraryFor && picked && (
+          <MediaPicker
+            open
+            onOpenChange={(o) => !o && setLibraryFor(null)}
+            kind={vars.find((x) => x.key === libraryFor)?.kind as "image" | "video" | "document"}
+            mimes={
+              TEMPLATE_HEADER_TYPES[
+                vars.find((x) => x.key === libraryFor)?.kind as "image" | "video" | "document"
+              ]
+            }
+            title="Choose the header file"
+            onPick={(a) => setValues((p) => ({ ...p, [libraryFor]: mediaSource(a.id) }))}
+          />
+        )}
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Cancel

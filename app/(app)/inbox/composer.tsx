@@ -640,6 +640,7 @@ export function Composer({
         open={templateOpen}
         onOpenChange={setTemplateOpen}
         conversation={selected}
+        canMedia={perms.media}
         templates={templates.filter((t) => !t.channel_id || t.channel_id === selected.channel_id)}
       />
     </div>

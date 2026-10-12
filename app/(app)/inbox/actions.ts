@@ -21,7 +21,9 @@ import { enqueue } from "@/lib/jobs/enqueue";
 import { MEDIA_BUCKET, extensionFor } from "@/lib/jobs/handlers/media-fetch";
 import { notify } from "@/lib/notify/dispatch-db";
 import { isMediaPathFor, parseMediaPath } from "@/lib/inbox/media-path";
+import { headerAssetId } from "@/lib/media/header";
 import { LIBRARY_BUCKET, isLibraryPathFor } from "@/lib/media/paths";
+import { checkMediaReferences } from "@/lib/media/resolve";
 import { validateMedia } from "@/lib/media/limits";
 import { isServable } from "@/lib/media/scan";
 import { redactText } from "@/lib/redact";
@@ -289,6 +291,27 @@ export async function sendTemplateMessage(
     parsed.data.values,
   );
   if (preview.missing.length) return { ok: false, error: `Fill in: ${preview.missing.join(", ")}` };
+  // A Media Library file in the header ("media:<id>"): the template's own file is always allowed; any other file
+  // needs access to the library, and it must be usable as this header (same organisation, finished, not blocked).
+  const headerRef = headerAssetId(parsed.data.values);
+  if (headerRef) {
+    const { data: own } = await admin
+      .from("wa_templates")
+      .select("variable_map")
+      .eq("id", tpl.id)
+      .eq("org_id", member.orgId)
+      .maybeSingle();
+    const ownMap = (own?.variable_map ?? {}) as Record<string, string>;
+    if (headerAssetId(ownMap) !== headerRef && !canAny(member, ["media.view", "media.manage"]))
+      return { ok: false, error: "You don't have access to the Media Library." };
+    const problem = await checkMediaReferences(
+      admin,
+      member.orgId,
+      tpl.components as unknown as MetaTemplateComponent[],
+      parsed.data.values,
+    );
+    if (problem) return { ok: false, error: problem };
+  }
   await takeOverFromBot(admin, conversation.id);
   const msg = await queueOutbound(admin, {
     orgId: member.orgId,

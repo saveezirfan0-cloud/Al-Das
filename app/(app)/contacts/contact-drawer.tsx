@@ -4,7 +4,13 @@ import * as React from "react";
 import { ContactAppointments } from "./contact-appointments";
 import { ContactConversations } from "./contact-conversations";
 import { ContactEnquiries } from "./contact-enquiries";
-import { ContactDocuments } from "./documents/documents-tab";
+import dynamic from "next/dynamic";
+
+// The Documents tab brings the uploader and the photo editor; load them only when someone opens the tab.
+const ContactDocuments = dynamic(
+  () => import("./documents/documents-tab").then((m) => m.ContactDocuments),
+  { ssr: false, loading: () => <Loader2 className="text-muted-foreground size-4 animate-spin" /> },
+);
 import { Loader2, MessageSquare, Phone, Plus, Save, Star, Trash2, GitMerge } from "lucide-react";
 import { toast } from "sonner";
 

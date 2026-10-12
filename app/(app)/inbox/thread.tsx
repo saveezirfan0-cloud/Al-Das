@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { Lightbox } from "@/components/media/lightbox";
+import dynamic from "next/dynamic";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -47,6 +47,11 @@ import { CloseDialog } from "./close-dialog";
 import { Composer } from "./composer";
 import { MediaBubble } from "./media-bubble";
 import type { ConversationDetail, InboxProps } from "./types";
+
+// The picture viewer is only needed once someone taps a picture.
+const Lightbox = dynamic(() => import("@/components/media/lightbox").then((m) => m.Lightbox), {
+  ssr: false,
+});
 
 function Ticks({ status }: { status: string }) {
   switch (status) {

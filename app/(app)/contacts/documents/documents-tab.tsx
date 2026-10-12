@@ -15,7 +15,9 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { ImageEditorDialog, type ImageEdit } from "@/components/media/image-editor";
+import dynamic from "next/dynamic";
+
+import type { ImageEdit } from "@/components/media/image-editor";
 import { ScanBadge } from "@/components/media/scan-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -35,8 +37,7 @@ import {
   suggestsExpiry,
   type DocumentCategory,
 } from "@/lib/documents/categories";
-import { prepareImage } from "@/lib/media/client-image";
-import { baseName, CONVERTIBLE_IMAGE, putToSignedUrl } from "@/lib/media/client-upload";
+import { baseName, CONVERTIBLE_IMAGE } from "@/lib/media/upload-names";
 import { formatBytes, PATIENT_DOCUMENT_MAX_BYTES, validateMedia } from "@/lib/media/limits";
 import { DOCUMENT_BUCKET } from "@/lib/media/paths";
 import { cn } from "@/lib/utils";
@@ -55,6 +56,11 @@ import {
   type DocumentRow,
   type DocumentsView,
 } from "./actions";
+
+const ImageEditorDialog = dynamic(
+  () => import("@/components/media/image-editor").then((m) => m.ImageEditorDialog),
+  { ssr: false },
+);
 
 const EXPIRY_CLASS: Record<string, string> = {
   expired: "border-red-300 bg-red-50 text-red-800 dark:bg-red-950/40 dark:text-red-200",
@@ -416,6 +422,10 @@ function UploadDialog({
     setProblem(null);
     let documentId: string | null = null;
     try {
+      const [{ prepareImage }, { putToSignedUrl }] = await Promise.all([
+        import("@/lib/media/client-image"),
+        import("@/lib/media/client-upload"),
+      ]);
       let blob: Blob = file;
       let mime = file.type;
       if (isPhoto) {

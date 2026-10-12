@@ -16,8 +16,9 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { ImageEditorDialog, type ImageEdit } from "@/components/media/image-editor";
-import { Lightbox } from "@/components/media/lightbox";
+import dynamic from "next/dynamic";
+
+import type { ImageEdit } from "@/components/media/image-editor";
 import { ScanBadge } from "@/components/media/scan-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,8 +32,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { parseTags } from "@/lib/documents/schema";
-import { makeThumbnail, prepareImage } from "@/lib/media/client-image";
-import { baseName, CONVERTIBLE_IMAGE, putToSignedUrl } from "@/lib/media/client-upload";
+import { baseName, CONVERTIBLE_IMAGE } from "@/lib/media/upload-names";
 import { formatBytes, validateMedia, WHATSAPP_LIMITS } from "@/lib/media/limits";
 import { LIBRARY_BUCKET } from "@/lib/media/paths";
 import type { AssetUsage, LibraryAsset } from "@/lib/media/library";
@@ -51,6 +51,14 @@ import {
   rescanAsset,
   updateAsset,
 } from "./actions";
+
+const ImageEditorDialog = dynamic(
+  () => import("@/components/media/image-editor").then((m) => m.ImageEditorDialog),
+  { ssr: false },
+);
+const Lightbox = dynamic(() => import("@/components/media/lightbox").then((m) => m.Lightbox), {
+  ssr: false,
+});
 
 type Filters = { folder: string; kind: string; tag: string; q: string };
 type Folder = { id: string; name: string };
@@ -127,6 +135,11 @@ export function MediaLibrary({
       setJobs((js) => [...js.slice(-5), { id, label: baseName(file.name), state: "working" }]);
       let assetId: string | null = null;
       try {
+        // Canvas and storage code is loaded only when something is actually uploaded.
+        const [{ makeThumbnail, prepareImage }, { putToSignedUrl }] = await Promise.all([
+          import("@/lib/media/client-image"),
+          import("@/lib/media/client-upload"),
+        ]);
         let blob: Blob = file;
         let mime = file.type;
         let width: number | null = null;
