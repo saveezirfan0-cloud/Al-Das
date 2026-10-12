@@ -20,6 +20,7 @@ export const EVENT_TRIGGERS: Record<string, TriggerType> = {
   "appointment.created": "appointment_created",
   "appointment.updated": "appointment_updated",
   "appointment.status_changed": "appointment_status_changed",
+  "conversation.ai_tagged": "conversation_ai_tagged",
 };
 
 /** Events the listener must enqueue (the mapped ones plus inbound messages). */
@@ -129,6 +130,17 @@ export async function handleTriggerEvent(
         continue;
       }
       if (wantButton && wantButton.toLowerCase() !== (buttonText ?? "").trim().toLowerCase()) {
+        out.skipped.push(flow.id);
+        continue;
+      }
+    }
+    if (triggerType === "conversation_ai_tagged") {
+      // The flow names the tags it reacts to; it starts only when one of them was just added.
+      const wanted = Array.isArray(flow.trigger_config.tags)
+        ? (flow.trigger_config.tags as unknown[])
+        : [];
+      const added = Array.isArray(ev.payload.tags) ? (ev.payload.tags as unknown[]) : [];
+      if (!wanted.some((t) => typeof t === "string" && added.includes(t))) {
         out.skipped.push(flow.id);
         continue;
       }

@@ -8,12 +8,15 @@ export async function recordUsage(
   admin: AdminClient,
   row: {
     orgId: string;
-    userId: string;
+    /** null for background work (intent detection) that no person started. */
+    userId: string | null;
     conversationId: string | null;
     feature: AiFeature;
     model: string;
     status: AiStatus;
     result?: Pick<AiResult, "inputTokens" | "outputTokens" | "latencyMs">;
+    /** suggest_reply only: whether knowledge-base passages were found. A flag, never content. */
+    grounded?: boolean | null;
   },
 ): Promise<string | null> {
   const { data, error } = await admin
@@ -28,6 +31,7 @@ export async function recordUsage(
       input_tokens: row.result?.inputTokens ?? 0,
       output_tokens: row.result?.outputTokens ?? 0,
       latency_ms: row.result?.latencyMs ?? 0,
+      grounded: row.grounded ?? null,
     })
     .select("id")
     .single();
@@ -58,4 +62,19 @@ export async function checkRateLimit(
     if (!day.allowed) return { allowed: false, reason: "daily" };
   }
   return { allowed: true };
+}
+
+/**
+ * A second model call inside one feature (the single repair attempt) is a call like any other: it counts toward the
+ * workspace's daily cap. The per-minute limit is not charged again; one button press is one request.
+ */
+export async function countExtraCall(admin: AdminClient, orgId: string, dailyCap: number): Promise<void> {
+  if (dailyCap > 0) await checkLimit(admin, "ai-org-day", orgId, { limit: dailyCap, windowSec: 86_400, failOpen: true });
+}
+
+/** Background work (intent detection) has no person to rate-limit: only the workspace's daily cap applies. */
+export async function checkOrgDailyCap(admin: AdminClient, orgId: string, dailyCap: number): Promise<boolean> {
+  if (dailyCap <= 0) return true;
+  const day = await checkLimit(admin, "ai-org-day", orgId, { limit: dailyCap, windowSec: 86_400, failOpen: true });
+  return day.allowed;
 }

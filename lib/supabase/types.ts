@@ -57,11 +57,201 @@ export type Database = {
           },
         ];
       };
+      ai_message_intents: {
+        Row: {
+          conversation_id: string;
+          created_at: string;
+          escalated_at: string | null;
+          id: string;
+          intents: string[];
+          message_id: string;
+          org_id: string;
+          signals: string[];
+          source: string;
+          topic: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          conversation_id: string;
+          created_at?: string;
+          escalated_at?: string | null;
+          id?: string;
+          intents?: string[];
+          message_id: string;
+          org_id: string;
+          signals?: string[];
+          source: string;
+          topic?: string | null;
+        };
+        Update: {
+          conversation_id?: string;
+          created_at?: string;
+          escalated_at?: string | null;
+          id?: string;
+          intents?: string[];
+          message_id?: string;
+          org_id?: string;
+          signals?: string[];
+          source?: string;
+          topic?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ai_message_intents_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ai_message_intents_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "mv_conversation_facts";
+            referencedColumns: ["conversation_id"];
+          },
+          {
+            foreignKeyName: "ai_message_intents_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "v_sla_breaches_now";
+            referencedColumns: ["conversation_id"];
+          },
+          {
+            foreignKeyName: "ai_message_intents_message_id_fkey";
+            columns: ["message_id"];
+            isOneToOne: false;
+            referencedRelation: "messages";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ai_message_intents_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      ai_quality_reports: {
+        Row: {
+          created_at: string;
+          gaps: NonNullable<Json>;
+          id: string;
+          org_id: string;
+          stats: NonNullable<Json>;
+          week_end: string;
+          week_start: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          gaps?: NonNullable<Json>;
+          id?: string;
+          org_id: string;
+          stats: NonNullable<Json>;
+          week_end: string;
+          week_start: string;
+        };
+        Update: {
+          created_at?: string;
+          gaps?: NonNullable<Json>;
+          id?: string;
+          org_id?: string;
+          stats?: NonNullable<Json>;
+          week_end?: string;
+          week_start?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ai_quality_reports_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      ai_suggestion_outcomes: {
+        Row: {
+          ai_usage_id: string;
+          conversation_id: string | null;
+          created_at: string;
+          org_id: string;
+          outcome: string;
+          similarity: number;
+          user_id: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          ai_usage_id: string;
+          conversation_id?: string | null;
+          created_at?: string;
+          org_id: string;
+          outcome: string;
+          similarity: number;
+          user_id?: string | null;
+        };
+        Update: {
+          ai_usage_id?: string;
+          conversation_id?: string | null;
+          created_at?: string;
+          org_id?: string;
+          outcome?: string;
+          similarity?: number;
+          user_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ai_suggestion_outcomes_ai_usage_id_fkey";
+            columns: ["ai_usage_id"];
+            isOneToOne: true;
+            referencedRelation: "ai_usage";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ai_suggestion_outcomes_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ai_suggestion_outcomes_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "mv_conversation_facts";
+            referencedColumns: ["conversation_id"];
+          },
+          {
+            foreignKeyName: "ai_suggestion_outcomes_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "v_sla_breaches_now";
+            referencedColumns: ["conversation_id"];
+          },
+          {
+            foreignKeyName: "ai_suggestion_outcomes_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ai_suggestion_outcomes_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       ai_usage: {
         Row: {
           conversation_id: string | null;
           created_at: string;
           feature: string;
+          grounded: boolean | null;
           id: string;
           input_tokens: number;
           latency_ms: number;
@@ -76,6 +266,7 @@ export type Database = {
           conversation_id?: string | null;
           created_at?: string;
           feature: string;
+          grounded?: boolean | null;
           id?: string;
           input_tokens?: number;
           latency_ms?: number;
@@ -89,6 +280,7 @@ export type Database = {
           conversation_id?: string | null;
           created_at?: string;
           feature?: string;
+          grounded?: boolean | null;
           id?: string;
           input_tokens?: number;
           latency_ms?: number;
@@ -5097,6 +5289,10 @@ export type Database = {
       };
       flows: {
         Row: {
+          ai_drafted_at: string | null;
+          ai_review_required: boolean;
+          ai_reviewed_at: string | null;
+          ai_reviewed_by: string | null;
           channel_id: string | null;
           created_at: string;
           created_by: string | null;
@@ -5117,6 +5313,10 @@ export type Database = {
         };
         ComputedFields: never;
         Insert: {
+          ai_drafted_at?: string | null;
+          ai_review_required?: boolean;
+          ai_reviewed_at?: string | null;
+          ai_reviewed_by?: string | null;
           channel_id?: string | null;
           created_at?: string;
           created_by?: string | null;
@@ -5136,6 +5336,10 @@ export type Database = {
           version?: number;
         };
         Update: {
+          ai_drafted_at?: string | null;
+          ai_review_required?: boolean;
+          ai_reviewed_at?: string | null;
+          ai_reviewed_by?: string | null;
           channel_id?: string | null;
           created_at?: string;
           created_by?: string | null;
@@ -5155,6 +5359,13 @@ export type Database = {
           version?: number;
         };
         Relationships: [
+          {
+            foreignKeyName: "flows_ai_reviewed_by_fkey";
+            columns: ["ai_reviewed_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "flows_channel_id_fkey";
             columns: ["channel_id"];
@@ -12684,6 +12895,10 @@ export type Database = {
       accept_slot_offer: {
         Args: { p_now?: string; p_offer_id: string; p_org_id: string };
         Returns: Json;
+      };
+      ai_add_conversation_tags: {
+        Args: { p_conversation: string; p_org: string; p_tags: string[] };
+        Returns: string[];
       };
       api_read_log_hit: {
         Args: { p_key: string; p_org: string; p_resource: string; p_rows: number };

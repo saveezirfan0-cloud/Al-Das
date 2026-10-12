@@ -114,6 +114,16 @@ export const NOTIFICATION_EVENTS = [
     permission: "finance.denials.manage",
   },
   {
+    key: "ai.insights_ready",
+    group: "Work",
+    label: "The weekly AI reply-quality report is ready",
+    description:
+      "Last week's AI suggestions accepted, edited and rejected, and the topics the knowledge base does not cover. Push and e-mail only say that the report is ready.",
+    channels: ALL,
+    defaults: { in_app: true, email: false, push: false },
+    permission: "ai.insights.view",
+  },
+  {
     key: "task.due",
     group: "Work",
     label: "A task is due",
@@ -127,6 +137,16 @@ export const NOTIFICATION_EVENTS = [
     label: "A conversation was not picked up",
     description:
       "You are the team lead or on call, and a conversation has had no owner for too long.",
+    channels: ALL,
+    defaults: { in_app: true, email: false, push: true },
+    urgent: true,
+  },
+  {
+    key: "inbox.emergency",
+    group: "Escalation",
+    label: "A patient message may describe an emergency",
+    description:
+      "The words in a patient's message suggest something urgent (for example chest pain, trouble breathing, heavy bleeding or thoughts of self-harm). It goes to the person who owns the conversation, the team lead and the on-call people at once. It is a prompt to look, not a diagnosis; push and e-mail say only that a message needs attention.",
     channels: ALL,
     defaults: { in_app: true, email: false, push: true },
     urgent: true,
@@ -189,6 +209,7 @@ export function categoryForType(type: string): NotificationCategory {
     type.startsWith("enquiry.") ||
     type.startsWith("appointment.") ||
     type.startsWith("document.") ||
+    type === "ai.insights_ready" ||
     type === "finance.preauth_expiring" ||
     type === "finance.denial_deadline" ||
     type === "reminder.failed"
@@ -210,7 +231,12 @@ export function typeFilterForCategory(category: NotificationCategory): {
       return { exact: ["escalation"], prefixes: [] };
     case "work":
       return {
-        exact: ["reminder.failed", "finance.preauth_expiring", "finance.denial_deadline"],
+        exact: [
+          "reminder.failed",
+          "finance.preauth_expiring",
+          "finance.denial_deadline",
+          "ai.insights_ready",
+        ],
         prefixes: ["task.", "enquiry.", "appointment.", "document."],
       };
     case "security":

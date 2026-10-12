@@ -44,6 +44,8 @@ export const RATE_RULES = {
   pushRegisterPerUser: { limit: 20, windowSec: 600, failOpen: false },
   /** Phase 14: the Feedback button in the Help menu. */
   helpFeedbackPerUser: { limit: 10, windowSec: 3600, failOpen: false },
+  /** Phase 17: a dry run of a flow with sample messages (CPU only; no model, no network). */
+  flowDryRunPerUser: { limit: 30, windowSec: 60, failOpen: true },
   /** Phase 10 /api/public/v1, per API key. */
   publicApi: { limit: 120, windowSec: 60, failOpen: true },
 } as const satisfies Record<string, RateRule>;

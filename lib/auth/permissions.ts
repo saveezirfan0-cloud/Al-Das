@@ -76,6 +76,13 @@ export const PERMISSIONS = [
   { key: "campaigns.create", group: "Campaigns & templates", label: "Create and send campaigns" },
   { key: "templates.manage", group: "Campaigns & templates", label: "Manage WhatsApp templates" },
   {
+    key: "campaigns.ai",
+    group: "Campaigns & templates",
+    label: "Use the Campaign Copilot",
+    description:
+      "Describe an audience in words and get a validated filter with a count, and get English and Arabic template wording checked against Meta's rules (drafts only, nothing is sent). Also needs the Create and send campaigns permission.",
+  },
+  {
     key: "media.view",
     group: "Media & documents",
     label: "View the Media Library",
@@ -104,6 +111,13 @@ export const PERMISSIONS = [
       "Add, edit, expire and delete a patient's documents, and see who has opened them. Give this to the front desk and care team only.",
   },
   { key: "flows.manage", group: "Flows", label: "Build and publish flows" },
+  {
+    key: "flows.ai",
+    group: "Flows",
+    label: "Use the Flow Copilot",
+    description:
+      "Describe a bot in words and get an unpublished draft flow, and dry-run a flow with sample messages. An AI draft can never be published until a person has reviewed it. Also needs the Build and publish flows permission.",
+  },
   {
     key: "portal.*",
     group: "Portal",
@@ -171,6 +185,13 @@ export const PERMISSIONS = [
     group: "AI & knowledge base",
     label: "Use AI assist in the inbox",
     description: "Summarize, suggest replies and rewrite drafts (drafts only, never auto-sent)",
+  },
+  {
+    key: "ai.insights.view",
+    group: "AI & knowledge base",
+    label: "View the AI reply-quality report",
+    description:
+      "The weekly report of AI suggestions accepted, edited and rejected, and the topics patients ask about that the knowledge base does not cover (counts and topics only, no message text)",
   },
   {
     key: "kb.manage",
@@ -473,10 +494,13 @@ export const SYSTEM_ROLES: readonly RolePreset[] = [
       "documents.view",
       "documents.manage",
       "flows.manage",
+      "flows.ai",
+      "campaigns.ai",
       "portal.*",
       "reports.view",
       "reports.export",
       "ai.use",
+      "ai.insights.view",
       "kb.manage",
     ],
   },
@@ -548,6 +572,8 @@ export const SYSTEM_ROLES: readonly RolePreset[] = [
       "media.view",
       "media.manage",
       "flows.manage",
+      "flows.ai",
+      "campaigns.ai",
       "reports.view",
     ],
   },

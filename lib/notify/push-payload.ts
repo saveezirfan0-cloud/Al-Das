@@ -50,6 +50,14 @@ const GENERIC: Record<string, { title: string; body: string }> = {
     title: "Waiting list",
     body: "A waiting-list patient took an offered slot.",
   },
+  "inbox.emergency": {
+    title: "Message needs attention now",
+    body: "A patient message may be urgent. Open the conversation.",
+  },
+  "ai.insights_ready": {
+    title: "AI report ready",
+    body: "The weekly AI reply-quality report is ready.",
+  },
   escalation: {
     title: "Conversation not picked up",
     body: "A conversation has no owner. Please take it.",
@@ -69,6 +77,7 @@ export function pushUrl(event: string, ids: PushIds): string {
     case "inbox.message":
     case "inbox.assigned":
     case "inbox.mention":
+    case "inbox.emergency":
     case "escalation":
       return conversation ? `/inbox?c=${conversation}` : "/inbox";
     case "sla.breach":
@@ -80,6 +89,8 @@ export function pushUrl(event: string, ids: PushIds): string {
       return cleanId(ids.task_id) ? "/tasks" : "/notifications";
     case "waitlist.booked":
       return "/front-desk";
+    case "ai.insights_ready":
+      return "/reports/ai-quality";
     case "finance.preauth_expiring":
       return "/finance/preauth";
     case "finance.denial_deadline":
