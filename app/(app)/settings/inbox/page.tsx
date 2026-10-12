@@ -28,7 +28,7 @@ export default async function InboxSettingsPage() {
       .order("name"),
     admin
       .from("quick_replies")
-      .select("id, shortcut, text")
+      .select("id, shortcut, text, text_ar")
       .eq("org_id", member.orgId)
       .order("shortcut"),
     admin

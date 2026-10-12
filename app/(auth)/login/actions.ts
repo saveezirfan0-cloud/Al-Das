@@ -21,7 +21,7 @@ const credentials = z.object({
 export type AuthState = { error?: string; message?: string } | undefined;
 
 function safeNext(next: string | undefined): string {
-  if (!next || !next.startsWith("/") || next.startsWith("//")) return "/dashboard";
+  if (!next || !next.startsWith("/") || next.startsWith("//")) return "/"; // the home route sends each role to its own landing page
   return next;
 }
 

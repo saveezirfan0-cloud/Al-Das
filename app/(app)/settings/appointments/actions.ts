@@ -47,6 +47,16 @@ const locationSchema = z.object({
   timezone: z.string().refine(isTimezone, "Unknown timezone"),
   address: optionalText(300),
   external_id: optionalText(60),
+  /** Where to send people (Front desk "Location" button): coordinates together, and/or a map link. */
+  latitude: z.coerce.number().min(-90).max(90).nullish(),
+  longitude: z.coerce.number().min(-180).max(180).nullish(),
+  maps_url: z
+    .string()
+    .trim()
+    .max(500)
+    .refine((u) => u === "" || /^https:\/\//.test(u), "Use a full https link.")
+    .transform((u) => (u === "" ? null : u))
+    .nullish(),
   active: z.boolean().default(true),
 });
 
@@ -55,6 +65,8 @@ export async function saveLocation(input: z.input<typeof locationSchema>): Promi
   const parsed = locationSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid" };
   const { id, ...row } = parsed.data;
+  if ((row.latitude == null) !== (row.longitude == null))
+    return { ok: false, error: "Enter both latitude and longitude, or neither." };
   const admin = createAdminClient();
   const q = id
     ? admin.from("locations").update(row).eq("id", id).eq("org_id", member.orgId)

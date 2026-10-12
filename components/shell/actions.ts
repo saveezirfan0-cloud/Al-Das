@@ -36,5 +36,5 @@ export async function switchOrg(orgId: string) {
   if (!member || !member.orgs.some((o) => o.id === orgId)) return;
   const cookieStore = await cookies();
   cookieStore.set(ORG_COOKIE, orgId, { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
-  redirect("/dashboard");
+  redirect("/");
 }

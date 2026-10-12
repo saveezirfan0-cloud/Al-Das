@@ -227,8 +227,8 @@ export type PatientCardData = {
   last_visit: CardAppointment | null;
   open_enquiry: { id: string; number: number; title: string; stage: string | null } | null;
   household: {
-    guardian: { id: string; name: string } | null;
-    dependants: Array<{ id: string; name: string; next_starts_at: string | null }>;
+    guardian: { id: string; name: string; phone: string | null } | null;
+    dependants: Array<{ id: string; link_id: string; name: string; next_starts_at: string | null }>;
   };
   open_call_tasks: number;
   waitlist: Array<{ id: string; specialist_name: string | null; service_name: string | null }>;
@@ -266,26 +266,35 @@ export async function loadPatientCard(
   const [{ data: guardianLink }, { data: dependantLinks }] = await Promise.all([
     admin
       .from("household_links")
-      .select("guardian:contacts!household_links_guardian_contact_id_fkey(id, full_name)")
+      .select(
+        "guardian:contacts!household_links_guardian_contact_id_fkey(id, full_name, phone_e164)",
+      )
       .eq("org_id", orgId)
       .eq("dependant_contact_id", contactId)
       .maybeSingle(),
     admin
       .from("household_links")
-      .select("dependant:contacts!household_links_dependant_contact_id_fkey(id, full_name)")
+      .select("id, dependant:contacts!household_links_dependant_contact_id_fkey(id, full_name)")
       .eq("org_id", orgId)
       .eq("guardian_contact_id", contactId),
   ]);
-  const g = (guardianLink?.guardian as { id: string; full_name: string | null } | null) ?? null;
-  const guardian = g ? { id: g.id, full_name: g.full_name ?? "" } : null;
+  const g =
+    (guardianLink?.guardian as {
+      id: string;
+      full_name: string | null;
+      phone_e164: string | null;
+    } | null) ?? null;
+  const guardian = g ? { id: g.id, full_name: g.full_name ?? "", phone: g.phone_e164 } : null;
   const dependants = (
     (dependantLinks ?? []) as unknown as Array<{
+      id: string;
       dependant: { id: string; full_name: string | null } | null;
     }>
   )
-    .map((l) => l.dependant)
-    .filter((d): d is { id: string; full_name: string | null } => !!d)
-    .map((d) => ({ id: d.id, full_name: d.full_name ?? "" }));
+    .filter(
+      (l): l is typeof l & { dependant: { id: string; full_name: string | null } } => !!l.dependant,
+    )
+    .map((l) => ({ id: l.dependant.id, link_id: l.id, full_name: l.dependant.full_name ?? "" }));
 
   const ids = [contactId, ...dependants.map((d) => d.id)];
   const yearAgo = new Date(now.getTime() - 365 * 24 * 3600_000).toISOString();
@@ -405,9 +414,12 @@ export async function loadPatientCard(
         }
       : null,
     household: {
-      guardian: guardian ? { id: guardian.id, name: guardian.full_name } : null,
+      guardian: guardian
+        ? { id: guardian.id, name: guardian.full_name, phone: guardian.phone }
+        : null,
       dependants: dependants.map((d) => ({
         id: d.id,
+        link_id: d.link_id,
         name: d.full_name,
         next_starts_at: dependantNext.get(d.id) ?? null,
       })),

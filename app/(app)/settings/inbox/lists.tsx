@@ -1,5 +1,6 @@
 "use client";
 
+import { QUICK_REPLY_VARIABLES } from "@/lib/inbox/quick-reply";
 import { useState, useTransition } from "react";
 import { Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -206,19 +207,21 @@ export function LabelsCard({
 export function QuickRepliesCard({
   items,
 }: {
-  items: Array<{ id: string; shortcut: string; text: string }>;
+  items: Array<{ id: string; shortcut: string; text: string; text_ar: string | null }>;
 }) {
-  const [editing, setEditing] = useState<{ id: string | null; shortcut: string; text: string }>({
-    id: null,
-    shortcut: "",
-    text: "",
-  });
+  type Editing = { id: string | null; shortcut: string; text: string; text_ar: string };
+  const blank: Editing = { id: null, shortcut: "", text: "", text_ar: "" };
+  const [editing, setEditing] = useState<Editing>(blank);
   const { pending, run } = useRun();
   return (
     <Card>
       <CardHeader>
         <CardTitle>Quick replies</CardTitle>
-        <CardDescription>Type / in the composer to insert one.</CardDescription>
+        <CardDescription>
+          Type / in the composer to insert one. Give an Arabic version and Arabic-speaking patients
+          get that one. Variables are filled in when used:{" "}
+          {QUICK_REPLY_VARIABLES.map((v) => `{{${v.key}}}`).join(" ")}
+        </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <form
@@ -226,8 +229,13 @@ export function QuickRepliesCard({
           onSubmit={(e) => {
             e.preventDefault();
             run(
-              () => saveQuickReply(editing.id, { shortcut: editing.shortcut, text: editing.text }),
-              () => setEditing({ id: null, shortcut: "", text: "" }),
+              () =>
+                saveQuickReply(editing.id, {
+                  shortcut: editing.shortcut,
+                  text: editing.text,
+                  text_ar: editing.text_ar,
+                }),
+              () => setEditing(blank),
             );
           }}
         >
@@ -239,17 +247,19 @@ export function QuickRepliesCard({
           <Textarea
             value={editing.text}
             onChange={(e) => setEditing((p) => ({ ...p, text: e.target.value }))}
-            placeholder="Reply text. {contact.first_name} is replaced when sent."
+            placeholder="Reply text in English, e.g. Hello {{first_name}}, your visit is on {{appointment_date}} at {{appointment_time}}."
             rows={3}
+          />
+          <Textarea
+            value={editing.text_ar}
+            onChange={(e) => setEditing((p) => ({ ...p, text_ar: e.target.value }))}
+            placeholder="Arabic version (optional)"
+            rows={3}
+            dir="rtl"
           />
           <div className="flex justify-end gap-2">
             {editing.id && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setEditing({ id: null, shortcut: "", text: "" })}
-              >
+              <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(blank)}>
                 Cancel
               </Button>
             )}
@@ -271,13 +281,25 @@ export function QuickRepliesCard({
               <span className="min-w-0">
                 <span className="font-mono text-xs">/{q.shortcut}</span>
                 <span className="text-muted-foreground line-clamp-2 block text-xs">{q.text}</span>
+                {q.text_ar && (
+                  <span className="text-muted-foreground line-clamp-2 block text-xs" dir="rtl">
+                    {q.text_ar}
+                  </span>
+                )}
               </span>
               <span className="flex shrink-0">
                 <Button
                   variant="ghost"
                   size="icon-sm"
                   aria-label={`Edit /${q.shortcut}`}
-                  onClick={() => setEditing({ id: q.id, shortcut: q.shortcut, text: q.text })}
+                  onClick={() =>
+                    setEditing({
+                      id: q.id,
+                      shortcut: q.shortcut,
+                      text: q.text,
+                      text_ar: q.text_ar ?? "",
+                    })
+                  }
                 >
                   <Pencil />
                 </Button>

@@ -41,6 +41,9 @@ export type Location = {
   timezone: string;
   address: string | null;
   external_id: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  maps_url: string | null;
   active: boolean;
 };
 export type Department = { id: string; name: string; active: boolean };
@@ -203,6 +206,9 @@ export function Locations({
     timezone: defaultTimezone,
     address: "",
     external_id: "",
+    latitude: "",
+    longitude: "",
+    maps_url: "",
     active: true,
   };
   const [form, setForm] = useState<typeof blank | null>(null);
@@ -239,6 +245,9 @@ export function Locations({
                   timezone: l.timezone,
                   address: l.address ?? "",
                   external_id: l.external_id ?? "",
+                  latitude: l.latitude === null ? "" : String(l.latitude),
+                  longitude: l.longitude === null ? "" : String(l.longitude),
+                  maps_url: l.maps_url ?? "",
                   active: l.active,
                 })
               }
@@ -255,7 +264,12 @@ export function Locations({
         onSubmit={() =>
           form &&
           run(
-            () => saveLocation(form),
+            () =>
+              saveLocation({
+                ...form,
+                latitude: form.latitude === "" ? null : Number(form.latitude),
+                longitude: form.longitude === "" ? null : Number(form.longitude),
+              }),
             () => setForm(null),
           )
         }
@@ -290,6 +304,31 @@ export function Locations({
               <Input
                 value={form.address}
                 onChange={(e) => setForm({ ...form, address: e.target.value })}
+              />
+            </Field>
+            <Field
+              label="Map pin"
+              hint="Used by the Front desk Location button. Latitude and longitude together make a WhatsApp location pin."
+            >
+              <div className="grid grid-cols-2 gap-2">
+                <Input
+                  inputMode="decimal"
+                  placeholder="Latitude, e.g. 25.2048"
+                  value={form.latitude}
+                  onChange={(e) => setForm({ ...form, latitude: e.target.value })}
+                />
+                <Input
+                  inputMode="decimal"
+                  placeholder="Longitude, e.g. 55.2708"
+                  value={form.longitude}
+                  onChange={(e) => setForm({ ...form, longitude: e.target.value })}
+                />
+              </div>
+              <Input
+                className="mt-2"
+                placeholder="Map link (https://…), optional"
+                value={form.maps_url}
+                onChange={(e) => setForm({ ...form, maps_url: e.target.value })}
               />
             </Field>
             <Field label="Unite clinic id" hint="DHA licence of the branch, e.g. DHA-F-0000000.">
