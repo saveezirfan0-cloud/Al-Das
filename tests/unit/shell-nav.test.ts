@@ -96,3 +96,26 @@ describe("quick links", () => {
     expect(rankQuickLinks("patient", mixed)[0].href).toBe("/b");
   });
 });
+
+describe("Phase 16 navigation", () => {
+  it("shows the Media Library to anyone who can view or manage it, and to nobody else", () => {
+    const item = NAV_ITEMS.find((i) => i.href === "/media")!;
+    expect(item).toBeDefined();
+    expect(item.group).toBe("Growth");
+    expect(item.permissions).toEqual(["media.view", "media.manage"]);
+    const sees = (perms: string[]) => item.permissions!.some((p) => perms.includes(p));
+    expect(sees(["media.view"])).toBe(true);
+    expect(sees(["media.manage"])).toBe(true);
+    expect(sees(["templates.manage", "contacts.view", "documents.view"])).toBe(false);
+  });
+
+  it("puts Patient documents settings behind settings.manage and makes them findable", () => {
+    const page = SETTINGS_PAGES.find((p) => p.href === "/settings/documents")!;
+    expect(page.section).toBe("Clinic operations");
+    expect(page.allow(member(["documents.manage", "documents.view"]))).toBe(false);
+    expect(page.allow(member(["settings.manage"]))).toBe(true);
+    expect(page.keywords).toEqual(
+      expect.arrayContaining(["insurance card", "retention", "storage"]),
+    );
+  });
+});

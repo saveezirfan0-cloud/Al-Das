@@ -182,3 +182,14 @@ describe("settings and input schemas", () => {
     expect(parseTags(Array.from({ length: 20 }, (_, i) => `t${i}`).join(",")).length).toBe(10);
   });
 });
+
+describe("addDays", () => {
+  it("adds across month, year and leap-day boundaries", async () => {
+    const { addDays } = await import("@/lib/documents/expiry");
+    expect(addDays("2026-10-12", 14)).toBe("2026-10-26");
+    expect(addDays("2026-12-25", 14)).toBe("2027-01-08");
+    expect(addDays("2028-02-28", 1)).toBe("2028-02-29");
+    expect(addDays("2026-03-01", -1)).toBe("2026-02-28");
+    expect(addDays("nope", 1)).toBeNull();
+  });
+});

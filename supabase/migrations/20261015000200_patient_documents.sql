@@ -1,4 +1,4 @@
--- Phase 16 (2/3): patient documents.
+-- Phase 16 (2/4): patient documents.
 --
 --   patient_documents             a patient's referral letters, lab reports, insurance cards and consent forms.
 --                                 Bytes live in the private `patient-documents` bucket at
@@ -6,7 +6,7 @@
 --   document_retention_policies   how long each category is kept, and whether the nightly job may delete (off by default)
 --
 -- Permissions documents.view / documents.manage are NOT inherited from contacts.* (granted to existing roles in
--- migration 1/3). The SELECT policy needs documents.view; writes are server-only (service role after can()), so
+-- migration 1/4). The SELECT policy needs documents.view; writes are server-only (service role after can()), so
 -- every upload, edit and delete is audited by the server action. Who opened a file goes to record_access_log.
 -- Orphaned uploads (status 'pending') and expiring cards are handled by the daily documents_maintenance task.
 

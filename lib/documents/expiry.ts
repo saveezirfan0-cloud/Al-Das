@@ -97,3 +97,9 @@ export function validExpiryDate(value: string, today: string): boolean {
   if (e === null || t === null) return false;
   return e >= dayNumber("1990-01-01")! && e <= t + 30 * 366;
 }
+
+/** YYYY-MM-DD plus a number of days (negative goes back), or null for a date that is not real. */
+export function addDays(date: string, days: number): string | null {
+  const n = dayNumber(date);
+  return n === null ? null : new Date((n + days) * 86_400_000).toISOString().slice(0, 10);
+}

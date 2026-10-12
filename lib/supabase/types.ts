@@ -12007,6 +12007,10 @@ export type Database = {
       set_presence: { Args: { p_org_id: string; p_presence: string }; Returns: undefined };
       show_limit: { Args: Record<PropertyKey, never>; Returns: number };
       show_trgm: { Args: { "": string }; Returns: string[] };
+      storage_usage_summary: {
+        Args: { p_org: string };
+        Returns: Json;
+      };
       uuid_generate_v1: { Args: Record<PropertyKey, never>; Returns: string };
       uuid_generate_v1mc: { Args: Record<PropertyKey, never>; Returns: string };
       uuid_generate_v3: { Args: { name: string; namespace: string }; Returns: string };

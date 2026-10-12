@@ -28,7 +28,7 @@ export default async function InboxSettingsPage() {
       .order("name"),
     admin
       .from("quick_replies")
-      .select("id, shortcut, text, text_ar")
+      .select("id, shortcut, text, text_ar, media_asset_id, media_assets(name)")
       .eq("org_id", member.orgId)
       .order("shortcut"),
     admin
@@ -49,7 +49,16 @@ export default async function InboxSettingsPage() {
       <div className="grid gap-4 lg:grid-cols-3">
         <CategoriesCard items={categories ?? []} />
         <LabelsCard items={labels ?? []} />
-        <QuickRepliesCard items={quickReplies ?? []} />
+        <QuickRepliesCard
+          items={(quickReplies ?? []).map((q) => ({
+            id: q.id,
+            shortcut: q.shortcut,
+            text: q.text,
+            text_ar: q.text_ar,
+            media_asset_id: q.media_asset_id,
+            media_name: q.media_assets?.name ?? null,
+          }))}
+        />
       </div>
     </div>
   );

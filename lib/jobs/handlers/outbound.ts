@@ -21,6 +21,7 @@ import { isTrainingOrg, simulateTrainingSend } from "@/lib/training/mode";
 import { clientForChannel } from "@/lib/whatsapp/channel";
 import { WhatsAppApiError, mapMetaError } from "@/lib/whatsapp/errors";
 import { e164ToWaId } from "@/lib/whatsapp/phone";
+import { MediaUseError, resolveHeaderMedia } from "@/lib/media/resolve";
 import { buildTemplateSend, isMarketingBlocked, isTemplateSendable } from "@/lib/whatsapp/templates";
 import type { MetaTemplateComponent, SendResult } from "@/lib/whatsapp/types";
 import { serviceWindow } from "@/lib/whatsapp/window";
@@ -250,14 +251,23 @@ export async function deliverOutbound(
           });
           return;
         }
+        const components = tpl.components as unknown as MetaTemplateComponent[];
+        // A Media Library header ("media:<id>") becomes a fresh signed link now, so it never expires in the queue.
+        let values = spec.values;
+        try {
+          values = await resolveHeaderMedia(admin, message.org_id, components, spec.values);
+        } catch (err) {
+          if (err instanceof MediaUseError) throw new PermanentJobError(err.message);
+          throw err;
+        }
         const template = buildTemplateSend(
           {
             name: tpl.name,
             language: tpl.language,
-            components: tpl.components as unknown as MetaTemplateComponent[],
+            components,
             parameterFormat: tpl.parameter_format as "positional" | "named",
           },
-          spec.values,
+          values,
         );
         result = await client.sendTemplate(to, template, replyTo);
         break;

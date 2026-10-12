@@ -22,6 +22,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { MediaPicker } from "@/components/media/media-picker";
+import { TEMPLATE_HEADER_TYPES, type MediaKind } from "@/lib/media/limits";
+import { mediaSource } from "@/lib/media/paths";
 import { TEMPLATE_SOURCES } from "@/lib/templates/sources";
 
 import { saveTemplateVariableMap } from "./actions";
@@ -31,13 +34,17 @@ export type MapTemplate = {
   name: string;
   variables: Array<{ key: string; example: string | null }>;
   map: Record<string, string>;
+  /** The header media format this template needs, if any (offers the Media Library for `header.media`). */
+  headerKind?: MediaKind | null;
 };
 
 const NONE = "__none__";
 const TEXT = "__text__";
+const LIBRARY = "__library__";
 
 function kindOf(value: string | undefined) {
   if (!value) return NONE;
+  if (value.startsWith("media:")) return LIBRARY;
   return value.startsWith("text:") ? TEXT : value;
 }
 
@@ -53,8 +60,13 @@ export function MapDialog({
   const router = useRouter();
   const [map, setMap] = useState<Record<string, string>>(template.map);
   const [pending, startTransition] = useTransition();
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   function set(key: string, kind: string) {
+    if (kind === LIBRARY) {
+      setPickerOpen(true);
+      return;
+    }
     setMap((p) => {
       const next = { ...p };
       if (kind === NONE) delete next[key];
@@ -116,8 +128,21 @@ export function MapDialog({
                           </SelectItem>
                         ))}
                         <SelectItem value={TEXT}>Fixed text…</SelectItem>
+                        {v.key === "header.media" && template.headerKind && (
+                          <SelectItem value={LIBRARY}>
+                            {kind === LIBRARY
+                              ? "Media Library file (change…)"
+                              : "Media Library file…"}
+                          </SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
+                    {kind === LIBRARY && (
+                      <span className="text-muted-foreground text-xs">
+                        A Media Library file is sent with every message. Change it from the list
+                        above.
+                      </span>
+                    )}
                     {kind === TEXT && (
                       <Input
                         value={map[v.key]?.slice(5) ?? ""}
@@ -132,6 +157,16 @@ export function MapDialog({
               );
             })}
           </div>
+        )}
+        {template.headerKind && (
+          <MediaPicker
+            open={pickerOpen}
+            onOpenChange={setPickerOpen}
+            kind={template.headerKind}
+            mimes={TEMPLATE_HEADER_TYPES[template.headerKind]}
+            title="Choose the header file"
+            onPick={(a) => setMap((p) => ({ ...p, "header.media": mediaSource(a.id) }))}
+          />
         )}
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>

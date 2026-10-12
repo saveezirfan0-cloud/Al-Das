@@ -2,9 +2,10 @@
 
 import { QUICK_REPLY_VARIABLES } from "@/lib/inbox/quick-reply";
 import { useState, useTransition } from "react";
-import { Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import { Images, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { MediaPicker } from "@/components/media/media-picker";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -207,11 +208,33 @@ export function LabelsCard({
 export function QuickRepliesCard({
   items,
 }: {
-  items: Array<{ id: string; shortcut: string; text: string; text_ar: string | null }>;
+  items: Array<{
+    id: string;
+    shortcut: string;
+    text: string;
+    text_ar: string | null;
+    media_asset_id: string | null;
+    media_name: string | null;
+  }>;
 }) {
-  type Editing = { id: string | null; shortcut: string; text: string; text_ar: string };
-  const blank: Editing = { id: null, shortcut: "", text: "", text_ar: "" };
+  type Editing = {
+    id: string | null;
+    shortcut: string;
+    text: string;
+    text_ar: string;
+    media_asset_id: string | null;
+    media_name: string | null;
+  };
+  const blank: Editing = {
+    id: null,
+    shortcut: "",
+    text: "",
+    text_ar: "",
+    media_asset_id: null,
+    media_name: null,
+  };
   const [editing, setEditing] = useState<Editing>(blank);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const { pending, run } = useRun();
   return (
     <Card>
@@ -234,6 +257,7 @@ export function QuickRepliesCard({
                   shortcut: editing.shortcut,
                   text: editing.text,
                   text_ar: editing.text_ar,
+                  media_asset_id: editing.media_asset_id,
                 }),
               () => setEditing(blank),
             );
@@ -256,6 +280,34 @@ export function QuickRepliesCard({
             placeholder="Arabic version (optional)"
             rows={3}
             dir="rtl"
+          />
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={() => setPickerOpen(true)}>
+              <Images /> {editing.media_asset_id ? "Change file" : "Attach a library file"}
+            </Button>
+            {editing.media_asset_id && (
+              <>
+                <span className="text-muted-foreground min-w-0 truncate text-xs">
+                  {editing.media_name ?? "Library file"} is sent with this reply
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() =>
+                    setEditing((p) => ({ ...p, media_asset_id: null, media_name: null }))
+                  }
+                >
+                  Remove file
+                </Button>
+              </>
+            )}
+          </div>
+          <MediaPicker
+            open={pickerOpen}
+            onOpenChange={setPickerOpen}
+            title="Attach a file to this reply"
+            onPick={(a) => setEditing((p) => ({ ...p, media_asset_id: a.id, media_name: a.name }))}
           />
           <div className="flex justify-end gap-2">
             {editing.id && (
@@ -286,6 +338,11 @@ export function QuickRepliesCard({
                     {q.text_ar}
                   </span>
                 )}
+                {q.media_asset_id && (
+                  <span className="text-muted-foreground block text-xs">
+                    + file: {q.media_name ?? "Media Library file"}
+                  </span>
+                )}
               </span>
               <span className="flex shrink-0">
                 <Button
@@ -298,6 +355,8 @@ export function QuickRepliesCard({
                       shortcut: q.shortcut,
                       text: q.text,
                       text_ar: q.text_ar ?? "",
+                      media_asset_id: q.media_asset_id,
+                      media_name: q.media_name,
                     })
                   }
                 >

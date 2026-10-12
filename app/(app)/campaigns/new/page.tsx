@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { PageHeader } from "@/components/shell/page-header";
 import { Button } from "@/components/ui/button";
+import { canAny } from "@/lib/auth/can";
 import { requirePerm } from "@/lib/auth/session";
 import { sentThisMonth } from "@/lib/campaigns/queries";
 import { loadCustomFields } from "@/lib/contacts/server";
@@ -96,6 +97,7 @@ export default async function NewCampaignPage() {
         segments={formSegments}
         customFields={customFields.map((f) => ({ key: f.key, label: f.label }))}
         timezone={member.org.timezone}
+        canMedia={canAny(member, ["media.view", "media.manage"])}
       />
     </div>
   );

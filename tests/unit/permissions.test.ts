@@ -71,7 +71,9 @@ describe("catalogue", () => {
     for (const key of ["ai.use", "kb.manage", "reports.export"]) {
       expect(PERMISSION_KEYS).toContain(key);
     }
-    expect(perms("Manager")).toEqual(expect.arrayContaining(["ai.use", "kb.manage", "reports.export"]));
+    expect(perms("Manager")).toEqual(
+      expect.arrayContaining(["ai.use", "kb.manage", "reports.export"]),
+    );
     expect(perms("Agent")).toContain("ai.use");
     expect(perms("Receptionist")).toContain("ai.use");
     // Agents can use AI but never manage the knowledge base or export reports.
@@ -135,7 +137,15 @@ describe("Phase 16 permissions", () => {
   });
 
   it("does not let contacts.* or inbox rights open patient documents", () => {
-    for (const granted of ["contacts.view", "contacts.manage", "contacts.export", "inbox.view_all", "inbox.send", "portal.*", "settings.manage"]) {
+    for (const granted of [
+      "contacts.view",
+      "contacts.manage",
+      "contacts.export",
+      "inbox.view_all",
+      "inbox.send",
+      "portal.*",
+      "settings.manage",
+    ]) {
       expect(permissionMatches(granted, "documents.view"), granted).toBe(false);
       expect(permissionMatches(granted, "documents.manage"), granted).toBe(false);
     }
@@ -144,9 +154,19 @@ describe("Phase 16 permissions", () => {
 
   it("gives patient documents to the front desk and care team, never to Agent, Marketing or the finance roles", () => {
     for (const name of ["Manager", "Receptionist", "Care coordinator"]) {
-      expect(perms(name), name).toEqual(expect.arrayContaining(["documents.view", "documents.manage"]));
+      expect(perms(name), name).toEqual(
+        expect.arrayContaining(["documents.view", "documents.manage"]),
+      );
     }
-    for (const name of ["Agent", "Marketing", "Finance", "Billing", "Insurance", "CEO", "Medical Director"]) {
+    for (const name of [
+      "Agent",
+      "Marketing",
+      "Finance",
+      "Billing",
+      "Insurance",
+      "CEO",
+      "Medical Director",
+    ]) {
       expect(perms(name), name).not.toContain("documents.view");
       expect(perms(name), name).not.toContain("documents.manage");
     }

@@ -4,7 +4,10 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { recordAudit } from "@/lib/audit";
+import { canAny } from "@/lib/auth/can";
 import { requirePerm } from "@/lib/auth/session";
+import { LIBRARY_BUCKET, parseMediaSource } from "@/lib/media/paths";
+import { checkMediaReferences, loadUsableAsset, MediaUseError } from "@/lib/media/resolve";
 import {
   buildComponents,
   draftSchema,
@@ -444,9 +447,20 @@ export async function saveTemplateVariableMap(
   for (const [k, v] of Object.entries(parsed.data)) {
     if (!v) continue;
     if (!keys.has(k)) return fail(`This template has no variable “${k}”.`);
+    if (k === "header.media" && parseMediaSource(v)) {
+      clean[k] = v; // a Media Library file; checked below
+      continue;
+    }
     if (!isTemplateSource(v)) return fail(`“${v}” is not a field a variable can be filled from.`);
     clean[k] = v;
   }
+  const mediaProblem = await checkMediaReferences(
+    found.admin,
+    member.orgId,
+    found.template.components as unknown as MetaTemplateComponent[],
+    clean,
+  );
+  if (mediaProblem) return fail(mediaProblem);
   await found.admin
     .from("wa_templates")
     .update({ variable_map: clean as unknown as NonNullable<Json> })
@@ -519,6 +533,61 @@ const SAMPLE_TYPES: Record<string, "IMAGE" | "VIDEO" | "DOCUMENT"> = {
   "application/pdf": "DOCUMENT",
 };
 const MAX_SAMPLE_BYTES = 16 * 1024 * 1024;
+
+const librarySampleSchema = z.object({
+  asset_id: uuid,
+  channel_id: uuid,
+  format: z.enum(["IMAGE", "VIDEO", "DOCUMENT"]),
+});
+
+/**
+ * Uses a Media Library file as the header sample: reads it from the private bucket and hands it to Meta's
+ * resumable upload. Needs templates.manage and access to the library; the file must be one Meta accepts as a header.
+ */
+export async function uploadHeaderSampleFromLibrary(
+  input: z.input<typeof librarySampleSchema>,
+): Promise<ActionResult<{ handle: string; name: string; format: "IMAGE" | "VIDEO" | "DOCUMENT" }>> {
+  const member = await requirePerm("templates.manage");
+  if (!canAny(member, ["media.view", "media.manage"]))
+    return fail("You do not have access to the Media Library.");
+  const parsed = librarySampleSchema.safeParse(input);
+  if (!parsed.success) return fail("Choose a file and a WhatsApp number first.");
+  const admin = createAdminClient(member.userId);
+  const ch = await activeChannel(admin, member.orgId, parsed.data.channel_id);
+  if (!ch.ok) return fail(ch.error);
+  try {
+    const asset = await loadUsableAsset(
+      admin,
+      member.orgId,
+      parsed.data.asset_id,
+      parsed.data.format.toLowerCase() as "image" | "video" | "document",
+    );
+    if (asset.size_bytes > MAX_SAMPLE_BYTES) return fail("Samples are limited to 16 MB.");
+    const { data: blob, error } = await admin.storage
+      .from(LIBRARY_BUCKET)
+      .download(asset.storage_path);
+    if (error || !blob) return fail("Could not read the library file.");
+    const { data: row } = await admin
+      .from("media_assets")
+      .select("name")
+      .eq("id", asset.id)
+      .eq("org_id", member.orgId)
+      .maybeSingle();
+    const client = await clientForChannel(admin, ch.channel);
+    const handle = await client.uploadTemplateSample({
+      data: new Uint8Array(await blob.arrayBuffer()),
+      mimeType: asset.mime_type,
+      fileName: `${asset.id}.${asset.storage_path.split(".").pop() ?? "bin"}`,
+    });
+    return {
+      ok: true,
+      data: { handle, name: row?.name ?? "Library file", format: parsed.data.format },
+    };
+  } catch (err) {
+    if (err instanceof MediaUseError) return fail(err.message);
+    return fail(metaError(err, "The upload failed."));
+  }
+}
 
 /** Uploads a header sample for the builder and returns Meta's handle. */
 export async function uploadHeaderSample(

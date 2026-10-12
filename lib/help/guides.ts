@@ -72,10 +72,12 @@ export const GUIDES: readonly Guide[] = [
       "Search by name or phone, or build a saved view with filters.",
       "Open a row to edit details, add tags and see the timeline.",
       "Two records for the same person? Use Merge. Two people who share a phone (a parent and child) are linked as a household instead.",
+      "The Documents tab (if you have access) keeps referral letters, lab reports, insurance cards and consent forms. Add one with a title, a category and, for an insurance card, its expiry date.",
     ],
     watchOut: [
       "Phone numbers must include the country code if they are not UAE numbers.",
       "Stop marketing means no campaign messages, but appointment messages still go out.",
+      "Every time someone opens or downloads a document it is recorded. Open only what you need for the patient in front of you.",
     ],
   },
   {
@@ -115,6 +117,24 @@ export const GUIDES: readonly Guide[] = [
     watchOut: [
       "Patients who opted out of marketing are always left out.",
       "Send a small test to your own number first.",
+    ],
+  },
+  {
+    id: "media",
+    title: "Media Library",
+    pages: ["/media"],
+    purpose:
+      "One shared place for the images, PDFs and videos you use in templates, campaigns, quick replies and conversations.",
+    steps: [
+      "Upload files, or take a photo on your phone. Pictures are made smaller automatically so they fit WhatsApp's limits.",
+      "Put files in folders and add tags so colleagues can find them. Search looks at names and tags.",
+      "Open a file to see where it is used. A file used by a live template, campaign or quick reply cannot be deleted.",
+      "Pick a file from the library when you build a template header, set up a campaign or send in a conversation.",
+    ],
+    watchOut: [
+      "WhatsApp allows images up to 5 MB, videos up to 16 MB and documents up to 100 MB.",
+      "A file marked Not scanned has not been checked for malware, because no scanner is set up yet.",
+      "Never put patient documents here. They belong on the patient, in the Documents tab.",
     ],
   },
   {

@@ -108,3 +108,48 @@ describe("planCompression", () => {
     expect(firstFitting([0, 3], 5)).toBe(1);
   });
 });
+
+describe("encodeWithin (compression retry loop)", () => {
+  type Blobish = { size: number; tag: string };
+  const plan = {
+    width: 1000,
+    height: 800,
+    attempts: [
+      { mime: "image/png" as const, quality: 1 },
+      { mime: "image/jpeg" as const, quality: 0.8 },
+      { mime: "image/jpeg" as const, quality: 0.5 },
+    ],
+  };
+
+  it("returns the first encoding that fits", async () => {
+    const { encodeWithin } = await import("@/lib/media/encode");
+    const calls: string[] = [];
+    const r = await encodeWithin<Blobish>(plan, 500, async (mime, q, w, h) => {
+      calls.push(`${mime}:${q}:${w}x${h}`);
+      return { size: mime === "image/png" ? 900 : q === 0.8 ? 400 : 200, tag: `${mime}:${q}` };
+    });
+    expect(r).toMatchObject({ ok: true, mime: "image/jpeg", width: 1000, height: 800, shrinks: 0 });
+    expect(calls).toEqual(["image/png:1:1000x800", "image/jpeg:0.8:1000x800"]);
+  });
+
+  it("shrinks the picture by a fifth and retries when nothing fits, then gives up", async () => {
+    const { encodeWithin } = await import("@/lib/media/encode");
+    // size is proportional to area, so one shrink (0.64 of the area) is enough for 700 vs a 1000 baseline
+    const area = async (_m: string, _q: number, w: number, h: number): Promise<Blobish> => ({
+      size: Math.round((w * h) / 800),
+      tag: "x",
+    });
+    const r = await encodeWithin<Blobish>(plan, 700, area);
+    expect(r).toMatchObject({ ok: true, shrinks: 1, width: 800, height: 640 });
+    const never = await encodeWithin<Blobish>(plan, 1, area);
+    expect(never).toEqual({ ok: false });
+  });
+
+  it("treats a failed or empty encode as a miss", async () => {
+    const { encodeWithin } = await import("@/lib/media/encode");
+    const r = await encodeWithin<Blobish>(plan, 500, async () => null);
+    expect(r).toEqual({ ok: false });
+    const empty = await encodeWithin<Blobish>(plan, 500, async () => ({ size: 0, tag: "e" }));
+    expect(empty).toEqual({ ok: false });
+  });
+});

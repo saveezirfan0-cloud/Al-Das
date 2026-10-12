@@ -6,6 +6,7 @@ import {
   Camera,
   FileText,
   Image as ImageIcon,
+  Images,
   LayoutTemplate,
   Loader2,
   Mic,
@@ -17,6 +18,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { MediaPicker } from "@/components/media/media-picker";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -37,6 +39,7 @@ import {
   createAttachmentUpload,
   sendAttachment,
   sendChat,
+  sendLibraryMedia,
   startConversation,
 } from "./actions";
 import { AiPanel } from "./ai-panel";
@@ -104,6 +107,7 @@ export function Composer({
   quickReplyContext,
   templates,
   people,
+  perms,
   me,
   windowOpen,
   replyTo,
@@ -121,6 +125,8 @@ export function Composer({
   const [pending, startTransition] = useTransition();
   const [templateOpen, setTemplateOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [attachment, setAttachment] = useState<NonNullable<QuickReply["media"]> | null>(null);
+  const [libraryOpen, setLibraryOpen] = useState(false);
   const [recording, setRecording] = useState(false);
   const recorder = useRef<MediaRecorder | null>(null);
   const chunks = useRef<Blob[]>([]);
@@ -132,6 +138,7 @@ export function Composer({
   useEffect(() => {
     setText("");
     setMode("chat");
+    setAttachment(null);
   }, [selected.id]);
 
   const chatDisabled = mode === "chat" && !windowOpen;
@@ -150,6 +157,8 @@ export function Composer({
   function applyQuickReply(q: QuickReply) {
     const { text: filled, unresolved } = fillQuickReply(q);
     setText(filled);
+    // A quick reply can carry a Media Library file: it is attached and goes out with the text as its caption.
+    setAttachment(q.media);
     if (unresolved.length)
       toast.warning(`Fill in before sending: ${unresolved.map((v) => `{{${v}}}`).join(", ")}`);
   }
@@ -183,10 +192,16 @@ export function Composer({
 
   function submit() {
     const body = text.trim();
-    if (!body || pending) return;
+    const withFile = mode === "chat" ? attachment : null;
+    if ((!body && !withFile) || pending) return;
     startTransition(async () => {
-      const r =
-        mode === "chat"
+      const r = withFile
+        ? await sendLibraryMedia({
+            conversation_id: selected.id,
+            asset_id: withFile.id,
+            caption: body || undefined,
+          })
+        : mode === "chat"
           ? await sendChat({
               conversation_id: selected.id,
               text: body,
@@ -198,6 +213,7 @@ export function Composer({
         return;
       }
       setText("");
+      setAttachment(null);
       onClearReply();
     });
   }
@@ -419,6 +435,23 @@ export function Composer({
             ))}
           </ul>
         )}
+        {mode === "chat" && attachment && (
+          <div className="bg-muted mb-1.5 flex items-center gap-2 rounded-md border px-2 py-1 text-xs">
+            <Images className="size-3.5 shrink-0" aria-hidden />
+            <span className="min-w-0 flex-1 truncate">
+              Sending the library file “{attachment.name}”
+              {text.trim() ? " with this text as its caption" : ""}
+            </span>
+            <button
+              type="button"
+              className="pointer-coarse:size-11 inline-flex size-6 items-center justify-center rounded hover:bg-black/10"
+              aria-label="Remove the attached file"
+              onClick={() => setAttachment(null)}
+            >
+              <X className="size-3.5" />
+            </button>
+          </div>
+        )}
         <textarea
           ref={textarea}
           value={text}
@@ -534,6 +567,17 @@ export function Composer({
             >
               {uploading ? <Loader2 className="animate-spin" /> : <Paperclip />}
             </Button>
+            {perms.media && (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Choose a file from the Media Library"
+                disabled={chatDisabled || uploading}
+                onClick={() => setLibraryOpen(true)}
+              >
+                <Images />
+              </Button>
+            )}
             <Button
               variant={recording ? "destructive" : "ghost"}
               size="icon-sm"
@@ -578,12 +622,20 @@ export function Composer({
           className="ml-auto"
           size="sm"
           onClick={submit}
-          disabled={pending || chatDisabled || !text.trim()}
+          disabled={pending || chatDisabled || (!text.trim() && !(mode === "chat" && attachment))}
         >
           {pending ? <Loader2 className="animate-spin" /> : <Send />}{" "}
           {mode === "comment" ? "Add note" : "Send"}
         </Button>
       </div>
+      {perms.media && (
+        <MediaPicker
+          open={libraryOpen}
+          onOpenChange={setLibraryOpen}
+          title="Send a library file"
+          onPick={(a) => setAttachment({ id: a.id, name: a.name, kind: a.kind })}
+        />
+      )}
       <TemplatePicker
         open={templateOpen}
         onOpenChange={setTemplateOpen}

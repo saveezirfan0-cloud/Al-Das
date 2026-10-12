@@ -20,6 +20,7 @@ import {
   getTemplate,
   listTemplates,
 } from "@/lib/templates/queries";
+import { headerMediaKind } from "@/lib/media/header";
 import { createClient } from "@/lib/supabase/server";
 import { templateVariables } from "@/lib/whatsapp/templates";
 import { cn } from "@/lib/utils";
@@ -292,6 +293,7 @@ export default async function TemplatesPage({ searchParams }: { searchParams: Pr
                           name: t.name,
                           variables: vars.map((v) => ({ key: v.key, example: v.example })),
                           map: t.variable_map,
+                          headerKind: headerMediaKind(t.components),
                         }}
                       />
                     </TableCell>

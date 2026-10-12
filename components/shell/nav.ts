@@ -13,6 +13,7 @@ export type NavIcon =
   | "campaigns"
   | "templates"
   | "flows"
+  | "media"
   | "recall"
   | "portal"
   | "reports"
@@ -108,6 +109,14 @@ export const NAV_ITEMS: readonly NavItem[] = [
     group: "Growth",
     keywords: ["whatsapp", "messages"],
     permission: "templates.manage",
+  },
+  {
+    href: "/media",
+    label: "Media Library",
+    icon: "media",
+    group: "Growth",
+    keywords: ["images", "pictures", "photos", "pdf", "video", "files", "assets", "brochure"],
+    permissions: ["media.view", "media.manage"],
   },
   {
     href: "/flows",

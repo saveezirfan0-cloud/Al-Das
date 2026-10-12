@@ -6,6 +6,7 @@ import {
   AtSign,
   Bold,
   Code,
+  Images,
   Italic,
   Loader2,
   Plus,
@@ -17,6 +18,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { MediaPicker } from "@/components/media/media-picker";
 import { PhonePreview } from "@/components/phone-preview/phone-preview";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -52,11 +54,18 @@ import {
   type DraftCard,
   type TemplateDraft,
 } from "@/lib/templates/builder";
+import { TEMPLATE_HEADER_TYPES } from "@/lib/media/limits";
+import { mediaSource } from "@/lib/media/paths";
 import { TEMPLATE_SOURCES, sampleFor } from "@/lib/templates/sources";
 import { renderTemplatePreview } from "@/lib/whatsapp/templates";
 import { cn } from "@/lib/utils";
 
-import { saveTemplateDraft, submitTemplate, uploadHeaderSample } from "./actions";
+import {
+  saveTemplateDraft,
+  submitTemplate,
+  uploadHeaderSample,
+  uploadHeaderSampleFromLibrary,
+} from "./actions";
 import { STATUS_LABEL } from "./format";
 
 export type BuilderChannel = { id: string; name: string; phone: string | null; wabaId: string };
@@ -248,6 +257,7 @@ export function TemplateBuilder({
   const [saving, startSave] = useTransition();
   const [submitting, startSubmit] = useTransition();
   const [uploading, setUploading] = useState<string | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [atMenu, setAtMenu] = useState<{ at: number } | null>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
   const isRtl = draft.language.startsWith("ar");
@@ -338,13 +348,40 @@ export function TemplateBuilder({
     toast.success("Sample uploaded.");
   }
 
+  /** A Media Library file as the header: Meta gets it as the sample, and the template remembers it as its media. */
+  async function pickHeaderFromLibrary(assetId: string) {
+    if (!mediaHeader) return;
+    setUploading("header");
+    const r = await uploadHeaderSampleFromLibrary({
+      asset_id: assetId,
+      channel_id: channelId,
+      format: mediaHeader.format,
+    });
+    setUploading(null);
+    if (!r.ok || !r.data) {
+      toast.error(r.ok ? "Could not use that file." : r.error);
+      return;
+    }
+    const data = r.data;
+    setDraft((d) => ({
+      ...d,
+      header: { kind: "media", format: data.format, handle: data.handle, sampleName: data.name },
+      variableMap: { ...d.variableMap, "header.media": mediaSource(assetId) },
+    }));
+    toast.success("Library file set as the header.");
+  }
+
   /** Drops mapping/examples for variables that are no longer in the text. */
   function clean(d: TemplateDraft): TemplateDraft {
     const keep = new Set(variableNumbers(d.body).map((n) => `body.${n}`));
     return {
       ...d,
       bodyExamples: alignExamples(d.body, d.bodyExamples, ""),
-      variableMap: Object.fromEntries(Object.entries(d.variableMap).filter(([k]) => keep.has(k))),
+      variableMap: Object.fromEntries(
+        Object.entries(d.variableMap).filter(
+          ([k]) => keep.has(k) || (k === "header.media" && d.header.kind === "media"),
+        ),
+      ),
     };
   }
 
@@ -392,6 +429,7 @@ export function TemplateBuilder({
   }
 
   const mediaHeader = draft.header.kind === "media" ? draft.header : null;
+  const usesLibrary = !!draft.variableMap["header.media"]?.startsWith("media:");
   const issueFor = (prefix: string) =>
     errors.filter((e) => e.path === prefix || e.path.startsWith(`${prefix}.`));
 
@@ -616,13 +654,19 @@ export function TemplateBuilder({
                           upload(
                             e.target.files?.[0],
                             (r) =>
-                              patch({
-                                header: {
-                                  kind: "media",
-                                  format: mediaHeader.format,
-                                  handle: r.handle,
-                                  sampleName: r.name,
-                                },
+                              setDraft((d) => {
+                                // A device sample replaces a library file as the example Meta reviews.
+                                const { "header.media": _lib, ...rest } = d.variableMap;
+                                return {
+                                  ...d,
+                                  header: {
+                                    kind: "media",
+                                    format: mediaHeader.format,
+                                    handle: r.handle,
+                                    sampleName: r.name,
+                                  },
+                                  variableMap: _lib?.startsWith("media:") ? rest : d.variableMap,
+                                };
                               }),
                             "header",
                           )
@@ -639,11 +683,36 @@ export function TemplateBuilder({
                           : `Upload sample ${mediaHeader.format.toLowerCase()}`}
                       </span>
                     </label>
+                    {!locked && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={!channelId || uploading === "header"}
+                        onClick={() => setPickerOpen(true)}
+                      >
+                        <Images className="size-4" /> Choose from the library
+                      </Button>
+                    )}
                     <span className="text-muted-foreground text-xs">
                       {mediaHeader.handle
-                        ? (mediaHeader.sampleName ?? "Sample uploaded")
+                        ? usesLibrary
+                          ? `${mediaHeader.sampleName ?? "Library file"} (Media Library, sent with every message)`
+                          : (mediaHeader.sampleName ?? "Sample uploaded")
                         : "Meta needs an example file to review. Each message sends its own file."}
                     </span>
+                    <MediaPicker
+                      open={pickerOpen}
+                      onOpenChange={setPickerOpen}
+                      kind={mediaHeader.format.toLowerCase() as "image" | "video" | "document"}
+                      mimes={
+                        TEMPLATE_HEADER_TYPES[
+                          mediaHeader.format.toLowerCase() as "image" | "video" | "document"
+                        ]
+                      }
+                      title="Choose the header file"
+                      onPick={(a) => void pickHeaderFromLibrary(a.id)}
+                    />
                   </div>
                 )}
               </section>

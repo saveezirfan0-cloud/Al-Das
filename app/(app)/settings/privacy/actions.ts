@@ -14,6 +14,8 @@ import {
   validReason,
   type PrivacyRequestLike,
 } from "@/lib/security/privacy";
+import { DOCUMENT_BUCKET, isDocumentPathInOrg } from "@/lib/media/paths";
+import { removeObjects } from "@/lib/media/probe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/types";
 
@@ -281,6 +283,32 @@ export async function executeErasure(id: string): Promise<ActionResult> {
     }
   }
 
+  // 1b. The patient's uploaded documents (referrals, lab reports, insurance cards, consent forms), same rule: files
+  // first, retryable, and nothing else is touched if any file cannot be removed.
+  const { data: docs } = await admin
+    .from("patient_documents")
+    .select("id, storage_path")
+    .eq("org_id", member.orgId)
+    .eq("contact_id", req.contact_id)
+    .limit(20_000);
+  const docList = docs ?? [];
+  // The patient segment of a path can differ after a record merge, so only org and document id are compared.
+  if (docList.some((d) => !isDocumentPathInOrg(d.storage_path, member.orgId, d.id))) {
+    return {
+      ok: false,
+      error:
+        "A document has an unexpected storage location. Nothing was changed; ask an administrator.",
+    };
+  }
+  const docPaths = docList.map((d) => d.storage_path);
+  if (!(await removeObjects(admin, DOCUMENT_BUCKET, docPaths))) {
+    console.error("[privacy] document storage removal failed");
+    return {
+      ok: false,
+      error: "Could not remove the patient's documents. Nothing else was changed; try again.",
+    };
+  }
+
   // 2. Database anonymisation, one transaction.
   const { data, error } = await admin.rpc("erase_contact", {
     p_org: member.orgId,
@@ -294,7 +322,11 @@ export async function executeErasure(id: string): Promise<ActionResult> {
       error: known ? error.message : "Could not erase the patient. Nothing was changed.",
     };
   }
-  const result = { ...((data ?? {}) as Record<string, Json>), media_files_removed: removedFiles };
+  const result = {
+    ...((data ?? {}) as Record<string, Json>),
+    media_files_removed: removedFiles,
+    document_files_removed: docPaths.length,
+  };
   await admin
     .from("privacy_requests")
     .update({

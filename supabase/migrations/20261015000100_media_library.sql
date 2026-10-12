@@ -1,4 +1,4 @@
--- Phase 16 (1/3): the Media Library.
+-- Phase 16 (1/4): the Media Library.
 --
 --   media_folders    one flat level of folders per org
 --   media_assets     org-wide images, PDFs and videos used by the template builder (header media), campaigns,
@@ -14,7 +14,7 @@
 -- by the server after a permission check.
 
 -- ---------------------------------------------------------------------------
--- Permissions for existing system roles (Phase 16 also adds documents.* here, used by migration 2/3)
+-- Permissions for existing system roles (Phase 16 also adds documents.* here, used by migration 2/4)
 -- ---------------------------------------------------------------------------
 do $$
 declare

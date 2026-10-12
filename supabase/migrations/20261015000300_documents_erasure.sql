@@ -1,4 +1,4 @@
--- Phase 16 (3/3): erasure covers a patient's documents.
+-- Phase 16 (3/4): erasure covers a patient's documents.
 --
 -- public.erase_contact() is replaced with the Phase 15 body plus one step: the patient's rows in
 -- patient_documents are deleted and the count is reported as documents_deleted. The files themselves are

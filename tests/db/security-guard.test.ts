@@ -73,7 +73,7 @@ const PHASE15_SERVICE_FUNCTIONS = [
 ];
 
 /** Phase 16 SECURITY DEFINER functions that only server code (service role) may run. */
-const PHASE16_SERVICE_FUNCTIONS = ["erase_contact", "media_asset_usage"];
+const PHASE16_SERVICE_FUNCTIONS = ["erase_contact", "media_asset_usage", "storage_usage_summary"];
 
 /** Phase 14 SECURITY DEFINER functions that only server code (service role) may run. */
 const PHASE14_SERVICE_FUNCTIONS = ["accept_slot_offer", "demo_wipe_org"];

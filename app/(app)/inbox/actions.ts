@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { recordAudit } from "@/lib/audit";
-import { can } from "@/lib/auth/can";
+import { can, canAny } from "@/lib/auth/can";
 import { requireMember, requirePerm, type CurrentMember } from "@/lib/auth/session";
 import { emit } from "@/lib/events/emit";
 import "@/lib/flow-engine/listeners";
@@ -21,6 +21,9 @@ import { enqueue } from "@/lib/jobs/enqueue";
 import { MEDIA_BUCKET, extensionFor } from "@/lib/jobs/handlers/media-fetch";
 import { notify } from "@/lib/notify/dispatch-db";
 import { isMediaPathFor, parseMediaPath } from "@/lib/inbox/media-path";
+import { LIBRARY_BUCKET, isLibraryPathFor } from "@/lib/media/paths";
+import { validateMedia } from "@/lib/media/limits";
+import { isServable } from "@/lib/media/scan";
 import { redactText } from "@/lib/redact";
 import { recordAccess } from "@/lib/security/access-log";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -180,6 +183,71 @@ export async function sendAttachment(
     conversationId: conversation.id,
     spec,
     body: d.caption ?? null,
+    sentByUserId: member.userId,
+  });
+  refresh();
+  return { ok: true, data: { message_id: msg.id } };
+}
+
+const libraryMediaSchema = z.object({
+  conversation_id: uuid,
+  asset_id: uuid,
+  caption: z.string().trim().max(1024).optional(),
+});
+
+/**
+ * Sends a Media Library file in a conversation (also used by quick replies that carry a file). The bytes are
+ * copied into the conversation's own folder of the inbox bucket, so the normal attachment path (strict path check,
+ * media upload to Meta in the outbound job, 24-hour window, rate limit) does the sending.
+ */
+export async function sendLibraryMedia(
+  input: z.input<typeof libraryMediaSchema>,
+): Promise<ActionResult<{ message_id: string }>> {
+  const member = await requirePerm("inbox.send");
+  if (!canAny(member, ["media.view", "media.manage"]))
+    return { ok: false, error: "You don't have access to the Media Library." };
+  const parsed = libraryMediaSchema.safeParse(input);
+  if (!parsed.success)
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  const { error, conversation } = await visibleConversation(member, parsed.data.conversation_id);
+  if (error || !conversation) return { ok: false, error: error ?? "Conversation not found." };
+  const admin = createAdminClient();
+  const { data: asset } = await admin
+    .from("media_assets")
+    .select("id, name, kind, mime_type, size_bytes, storage_path, status, scan_status")
+    .eq("id", parsed.data.asset_id)
+    .eq("org_id", member.orgId)
+    .maybeSingle();
+  if (!asset || asset.status !== "ready")
+    return { ok: false, error: "That library file no longer exists." };
+  if (!isServable(asset.scan_status))
+    return { ok: false, error: "The malware scan blocked this file." };
+  if (!isLibraryPathFor(asset.storage_path, member.orgId, asset.id))
+    return { ok: false, error: "That library file has an invalid location." };
+  const check = validateMedia({ mime: asset.mime_type, size: asset.size_bytes }, "library");
+  if (!check.ok || check.kind === "patient_document")
+    return { ok: false, error: check.ok ? "That file cannot be sent." : check.message };
+  const path = `${member.orgId}/${conversation.id}/${randomUUID()}.${check.extension}`;
+  const { error: copyErr } = await admin.storage
+    .from(LIBRARY_BUCKET)
+    .copy(asset.storage_path, path, { destinationBucket: MEDIA_BUCKET });
+  if (copyErr) return { ok: false, error: "Could not prepare the file for sending." };
+  const spec: SendSpec = {
+    type: "media",
+    media_type: check.kind,
+    media_path: path,
+    mime_type: check.mime,
+    filename: `${asset.name}.${check.extension}`.slice(0, 200),
+    caption: parsed.data.caption
+      ? fillVars(parsed.data.caption, conversation.contacts, member)
+      : undefined,
+  };
+  await takeOverFromBot(admin, conversation.id);
+  const msg = await queueOutbound(admin, {
+    orgId: member.orgId,
+    conversationId: conversation.id,
+    spec,
+    body: parsed.data.caption ?? null,
     sentByUserId: member.userId,
   });
   refresh();
@@ -555,7 +623,8 @@ export async function setBotActive(conversationId: string, active: boolean): Pro
   const { error, conversation } = await visibleConversation(member, conversationId);
   if (error || !conversation) return { ok: false, error: error ?? "Conversation not found." };
   const admin = createAdminClient();
-  if (active) await admin.from("conversations").update({ bot_active: true }).eq("id", conversation.id);
+  if (active)
+    await admin.from("conversations").update({ bot_active: true }).eq("id", conversation.id);
   else await takeOverFromBot(admin, conversation.id, "Agent took over");
   refresh();
   return {
@@ -834,9 +903,7 @@ export async function mergeContacts(primaryId: string, duplicateId: string): Pro
 }
 
 /** Conversations for a contact (Contacts drawer → Inbox tab). RLS decides what the caller sees. */
-export async function listContactConversations(
-  contactId: string,
-): Promise<
+export async function listContactConversations(contactId: string): Promise<
   ActionResult<
     Array<{
       id: string;
@@ -887,7 +954,12 @@ export async function signedMediaUrl(path: string): Promise<ActionResult<{ url: 
   const { data, error } = await admin.storage.from(MEDIA_BUCKET).createSignedUrl(path, 3600);
   if (error || !data) return { ok: false, error: "Could not load the file." };
   // Media is logged as a sampled document view: a single thread can show dozens of images.
-  await recordAccess(admin, member, { entity: "document", entityId: parts.conversationId, action: "list", detail: { source: "inbox_media" } });
+  await recordAccess(admin, member, {
+    entity: "document",
+    entityId: parts.conversationId,
+    action: "list",
+    detail: { source: "inbox_media" },
+  });
   return { ok: true, data: { url: data.signedUrl } };
 }
 
@@ -899,7 +971,8 @@ export type ShortcutFlow = { id: string; name: string; description: string | nul
 
 export async function listShortcutFlows(): Promise<ActionResult<ShortcutFlow[]>> {
   const member = await requireMember();
-  if (!can(member, "inbox.send")) return { ok: false, error: "You don't have permission for that." };
+  if (!can(member, "inbox.send"))
+    return { ok: false, error: "You don't have permission for that." };
   const admin = createAdminClient();
   const { data } = await admin
     .from("flows")
@@ -913,7 +986,9 @@ export async function listShortcutFlows(): Promise<ActionResult<ShortcutFlow[]>>
 
 const shortcutSchema = z.object({ conversation_id: uuid, flow_id: uuid });
 
-export async function runShortcut(input: z.input<typeof shortcutSchema>): Promise<ActionResult<{ run_id: string }>> {
+export async function runShortcut(
+  input: z.input<typeof shortcutSchema>,
+): Promise<ActionResult<{ run_id: string }>> {
   const member = await requireMember();
   const parsed = shortcutSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Invalid input" };

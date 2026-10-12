@@ -33,12 +33,15 @@ export function MediaBubble({
   mime,
   filename,
   pending,
+  onOpen,
 }: {
   kind: string;
   path: string | null;
   mime: string | null;
   filename: string | null;
   pending?: boolean;
+  /** Opens the picture viewer. Without it a picture opens in a new tab. */
+  onOpen?: () => void;
 }) {
   const { url, error } = useSignedUrl(path);
   if (!path) {
@@ -51,6 +54,26 @@ export function MediaBubble({
   }
   if (error) return <p className="text-destructive text-xs">Could not load the file.</p>;
   if (!url) return <Loader2 className="text-muted-foreground size-4 animate-spin" />;
+  if (kind === "image" && onOpen) {
+    // A fixed-size thumbnail (cropped to fill); the viewer shows the whole picture.
+    return (
+      <button
+        type="button"
+        onClick={onOpen}
+        className="focus-visible:ring-ring block overflow-hidden rounded-md outline-none focus-visible:ring-2"
+        aria-label={`Open picture${filename ? ` ${filename}` : ""}`}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element -- signed, short-lived storage URL */}
+        <img
+          src={url}
+          alt={filename ?? "Picture"}
+          loading="lazy"
+          decoding="async"
+          className="size-36 object-cover sm:size-44"
+        />
+      </button>
+    );
+  }
   if (kind === "image" || kind === "sticker") {
     return (
       <a href={url} target="_blank" rel="noreferrer">

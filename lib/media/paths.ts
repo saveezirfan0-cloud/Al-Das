@@ -96,6 +96,15 @@ export function documentObjectPath(
   return `${orgId}/${contactId}/${documentId}.${extension}`;
 }
 
+/**
+ * True when `path` is a well-formed document path in this org for exactly this document. The patient segment is
+ * deliberately not compared: merging two patient records moves a document to the surviving patient but not its file.
+ */
+export function isDocumentPathInOrg(path: string, orgId: string, documentId: string): boolean {
+  const p = parseDocumentPath(path);
+  return !!p && p.orgId === orgId.toLowerCase() && p.documentId === documentId.toLowerCase();
+}
+
 /** True when `path` is a well-formed document path inside exactly this org and patient. */
 export function isDocumentPathFor(
   path: string,

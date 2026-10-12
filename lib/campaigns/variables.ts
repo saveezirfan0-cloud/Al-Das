@@ -5,8 +5,10 @@
  *   custom.<key>       a contact custom field
  *   csv.<column>       an extra column of the uploaded CSV row
  *   text:<literal>     the same constant for everyone (also media URLs)
+ *   media:<asset id>   a Media Library file (header media only); the outbound job turns it into a signed link
  * Pure; unit-tested.
  */
+import { parseMediaSource } from "@/lib/media/paths";
 import {
   templateVariables,
   type TemplateValues,
@@ -38,11 +40,14 @@ export type ParsedSource =
   | { kind: "contact"; field: ContactField }
   | { kind: "custom"; key: string }
   | { kind: "csv"; column: string }
-  | { kind: "text"; value: string };
+  | { kind: "text"; value: string }
+  | { kind: "media"; assetId: string };
 
 export function parseSource(source: string | null | undefined): ParsedSource | null {
   if (!source) return null;
   if (source.startsWith("text:")) return { kind: "text", value: source.slice(5) };
+  const asset = parseMediaSource(source);
+  if (asset) return { kind: "media", assetId: asset };
   if (source.startsWith("custom.") && source.length > 7)
     return { kind: "custom", key: source.slice(7) };
   if (source.startsWith("csv.") && source.length > 4)
@@ -81,6 +86,8 @@ function rawValue(
   switch (src.kind) {
     case "text":
       return src.value;
+    case "media":
+      return `media:${src.assetId}`;
     case "csv":
       return csv?.[src.column] ?? "";
     case "custom":

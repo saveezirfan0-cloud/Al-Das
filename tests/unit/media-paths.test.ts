@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   documentObjectPath,
   isDocumentPathFor,
+  isDocumentPathInOrg,
   isLibraryPathFor,
   libraryObjectPath,
   mediaSource,
@@ -86,6 +87,16 @@ describe("document paths", () => {
     expect(isDocumentPathFor(p, OTHER, A)).toBe(false);
     expect(isDocumentPathFor(p, ORG, D)).toBe(false);
     expect(isDocumentPathFor(p, ORG, A, A)).toBe(false);
+  });
+});
+
+describe("documents after a patient merge", () => {
+  it("accepts the original patient segment as long as the org and the document match", () => {
+    const p = documentObjectPath(ORG, A, D, "pdf");
+    expect(isDocumentPathInOrg(p, ORG, D)).toBe(true);
+    expect(isDocumentPathInOrg(p, OTHER, D)).toBe(false);
+    expect(isDocumentPathInOrg(p, ORG, A)).toBe(false);
+    expect(isDocumentPathInOrg(`${ORG}/${A}/../${D}.pdf`, ORG, D)).toBe(false);
   });
 });
 
