@@ -5,6 +5,8 @@
  * Runs only with TEST_DATABASE_URL (and TEST_POSTGREST_URL + TEST_SERVICE_JWT for the second half). Fake data only.
  */
 import { randomBytes } from "node:crypto";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 
 import { createClient } from "@supabase/supabase-js";
 import type { Client } from "pg";
@@ -20,6 +22,8 @@ import {
 } from "@/lib/push/store-db";
 import { endpointHash } from "@/lib/push/endpoint";
 import { auditApiRead } from "@/lib/public-api/audit-read";
+import { processInbound } from "@/lib/inbox/inbound";
+import { parseWebhookBody } from "@/lib/whatsapp/parse";
 import { handleEscalation, scheduleFirstEscalation } from "@/lib/notify/escalation-job";
 import { applyCentreFilters } from "@/lib/notify/centre-query";
 import { memberIdsWithPermission, notify } from "@/lib/notify/dispatch-db";
@@ -887,7 +891,71 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)(
       });
     });
 
-    describe("management digests", () => {
+    describe("the inbound message hook (processInbound)", () => {
+    const fixture = JSON.parse(readFileSync(path.join(process.cwd(), "scripts/wa-fixtures/message-text.json"), "utf8"));
+    const log = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+    const inbound = async (waId: string, wamid: string, phone: string, phoneNumberId: string) => {
+      const body = structuredClone(fixture);
+      const value = body.entry[0].changes[0].value;
+      value.metadata.phone_number_id = phoneNumberId;
+      value.contacts[0].wa_id = phone.replace("+", "");
+      value.messages[0].from = phone.replace("+", "");
+      value.messages[0].id = wamid;
+      const parsed = parseWebhookBody(body);
+      if (!parsed.ok) throw new Error("fixture did not parse");
+      const event = parsed.events.find((e) => e.kind === "message");
+      if (!event || event.kind !== "message") throw new Error("no message event");
+      return processInbound(admin, event, log);
+    };
+
+    it("tells the owner about the first unread message only, with no patient details in the queued push", async () => {
+      await c.query("delete from pgmq.q_notifications");
+      const pnid = "pn-hook-owned";
+      await asServiceRole(c, async () => {
+        await c.query("insert into public.channels (org_id, name, waba_id, phone_number_id) values ($1, 'Hook A', 'waba-h', $2)", [org, pnid]);
+      });
+      const phone = "+971500000021";
+      const contact = await asServiceRole(c, async () => insert(c, "insert into public.contacts (org_id, first_name, last_name, phone_e164) values ($1, 'Hana', 'Hook', $2)", [org, phone]));
+      const channelId = (await c.query<{ id: string }>("select id from public.channels where phone_number_id = $1", [pnid])).rows[0].id;
+      await asServiceRole(c, async () => insert(c, "insert into public.conversations (org_id, channel_id, contact_id, status, unread_count, assignee_user_id) values ($1, $2, $3, 'open', 0, $4)", [org, channelId, contact, carol]));
+
+      expect(await inbound("w", "wamid.HOOK_1", phone, pnid)).toMatchObject({ outcome: "stored" });
+      expect(await count(c, "select 1 from public.notifications where user_id = $1 and type = 'inbox.message'", [carol])).toBe(1);
+      const pushes = await queued("push");
+      expect(pushes).toEqual([expect.objectContaining({ user_id: carol, event: "inbox.message" })]);
+      expect(JSON.stringify(pushes)).not.toMatch(/Hana|Hook|Hello|book an appointment|971500000021/);
+
+      // a second message while the first is still unread does not ping again
+      expect(await inbound("w", "wamid.HOOK_2", phone, pnid)).toMatchObject({ outcome: "stored" });
+      expect(await count(c, "select 1 from public.notifications where user_id = $1 and type = 'inbox.message'", [carol])).toBe(1);
+      // and a redelivered webhook changes nothing
+      expect(await inbound("w", "wamid.HOOK_2", phone, pnid)).toMatchObject({ outcome: "duplicate" });
+    });
+
+    it("starts the escalation ladder when nobody owns the conversation, once, and only when enabled", async () => {
+      const pnid = "pn-hook-unowned";
+      await asServiceRole(c, async () => {
+        await c.query("insert into public.channels (org_id, name, waba_id, phone_number_id) values ($1, 'Hook B', 'waba-h2', $2)", [org, pnid]);
+        await c.query("update public.orgs set settings = jsonb_build_object('escalation', jsonb_build_object('enabled', false)) where id = $1", [org]);
+      });
+      await c.query("delete from public.scheduled_jobs where kind = 'inbox.escalate'");
+      await inbound("w", "wamid.HOOK_3", "+971500000022", pnid);
+      expect(await count(c, "select 1 from public.scheduled_jobs where kind = 'inbox.escalate'")).toBe(0); // switched off
+
+      await asServiceRole(c, async () => {
+        await c.query("update public.orgs set settings = jsonb_build_object('escalation', jsonb_build_object('enabled', true, 'lead_after_minutes', 5, 'on_call_after_minutes', 15)) where id = $1", [org]);
+      });
+      await inbound("w", "wamid.HOOK_4", "+971500000022", pnid);
+      await inbound("w", "wamid.HOOK_5", "+971500000022", pnid); // same conversation, second message
+      const jobs = (await c.query<{ payload: { conversation_id: string; level: number } }>("select payload from public.scheduled_jobs where kind = 'inbox.escalate'")).rows;
+      expect(jobs).toHaveLength(1);
+      expect(jobs[0].payload.level).toBe(1);
+      const conv = await c.query("select assignee_user_id from public.conversations where id = $1", [jobs[0].payload.conversation_id]);
+      expect(conv.rows[0].assignee_user_id).toBeNull();
+    });
+  });
+
+  describe("management digests", () => {
       it("sends each opted-in person one digest per period, with the dashboard's numbers, once", async () => {
         await c.query("delete from pgmq.q_notifications");
         await asServiceRole(c, async () => {
