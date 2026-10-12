@@ -131,6 +131,23 @@ export const SETTINGS_PAGES: readonly SettingsPage[] = [
   },
 
   {
+    href: "/settings/ai-copilots",
+    label: "AI copilots",
+    section: "Channels & integrations",
+    keywords: [
+      "ai",
+      "flow copilot",
+      "campaign copilot",
+      "intent",
+      "emergency",
+      "tags",
+      "label messages",
+      "clinical sign-off",
+    ],
+    allow: (m) => can(m, "settings.manage") || can(m, "clinical.settings.manage"),
+  },
+
+  {
     href: "/settings/appointments",
     label: "Appointment rules",
     section: "Clinic operations",

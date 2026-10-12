@@ -16,6 +16,7 @@ export type DomainEventName =
   | "conversation.closed"
   | "conversation.waiting"
   | "conversation.assigned"
+  | "conversation.ai_tagged"
   | "message.received"
   | "message.sent"
   | "message.failed"

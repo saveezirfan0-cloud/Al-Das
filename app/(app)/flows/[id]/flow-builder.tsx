@@ -2,6 +2,7 @@
 
 import "@xyflow/react/dist/style.css";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
@@ -31,6 +32,8 @@ import {
   Save,
   ScrollText,
   Search,
+  Sparkles,
+  TestTube2,
   Trash2,
   Undo2,
 } from "lucide-react";
@@ -52,10 +55,19 @@ import { hasErrors, validateGraph, type GraphIssue } from "@/lib/flow-engine/gra
 import type { FlowGraph, NodeType } from "@/lib/flow-engine/types";
 
 import { publishFlow, saveFlowDraft, setFlowStatus } from "../actions";
+import { markAiFlowReviewed } from "../ai-actions";
 import { FlowCanvasNode, type CanvasNodeData } from "./builder-node";
 import { NodeForm } from "./node-form";
 import { TriggerForm, type TriggerState } from "./trigger-form";
 import { useHistory } from "./use-history";
+
+// The copilot dialogs are only needed when someone opens them: keep them out of the builder's first load.
+const AiDraftDialog = dynamic(() => import("../ai-draft-dialog").then((m) => m.AiDraftDialog), {
+  ssr: false,
+});
+const DryRunDialog = dynamic(() => import("./dry-run-dialog").then((m) => m.DryRunDialog), {
+  ssr: false,
+});
 
 export type BuilderLookups = {
   channels: Array<{ id: string; name: string }>;
@@ -79,6 +91,8 @@ export type BuilderFlow = {
   channel_id: string | null;
   graph: FlowGraph;
   published_graph: FlowGraph | null;
+  /** Drafted by the Flow Copilot and not yet marked reviewed by a person: cannot be published until then. */
+  ai_review_required: boolean;
 };
 
 type Snapshot = { nodes: Node[]; edges: Edge[]; meta: TriggerState };
@@ -134,7 +148,7 @@ function toGraph(nodes: Node[], edges: Edge[]): FlowGraph {
 
 const newId = (type: string) => `${type}_${Math.random().toString(36).slice(2, 7)}`;
 
-export function FlowBuilder(props: { flow: BuilderFlow; lookups: BuilderLookups }) {
+export function FlowBuilder(props: { flow: BuilderFlow; lookups: BuilderLookups; canAi: boolean }) {
   return (
     <ReactFlowProvider>
       <Builder {...props} />
@@ -142,7 +156,15 @@ export function FlowBuilder(props: { flow: BuilderFlow; lookups: BuilderLookups 
   );
 }
 
-function Builder({ flow, lookups }: { flow: BuilderFlow; lookups: BuilderLookups }) {
+function Builder({
+  flow,
+  lookups,
+  canAi,
+}: {
+  flow: BuilderFlow;
+  lookups: BuilderLookups;
+  canAi: boolean;
+}) {
   const router = useRouter();
   const rf = useReactFlow();
   const initial = useMemo(() => fromGraph(flow.graph), [flow.graph]);
@@ -158,6 +180,8 @@ function Builder({ flow, lookups }: { flow: BuilderFlow; lookups: BuilderLookups
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
   const [query, setQuery] = useState("");
+  const [dryRunOpen, setDryRunOpen] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const history = useHistory<Snapshot>();
   const burst = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -379,6 +403,15 @@ function Builder({ flow, lookups }: { flow: BuilderFlow; lookups: BuilderLookups
       router.refresh();
     });
 
+  const markReviewed = () =>
+    startTransition(async () => {
+      const r = await markAiFlowReviewed(flow.id);
+      if (r.ok) toast.success(r.message);
+      else toast.error(r.error);
+      router.refresh();
+    });
+
+  const needChoice = issues.filter((i) => i.kind === "setup").length;
   const palette = searchNodes(query);
 
   return (
@@ -444,6 +477,14 @@ function Builder({ flow, lookups }: { flow: BuilderFlow; lookups: BuilderLookups
               <Play /> Resume
             </Button>
           )}
+          <Button variant="outline" size="sm" onClick={() => setDryRunOpen(true)}>
+            <TestTube2 /> Dry run
+          </Button>
+          {canAi && (
+            <Button variant="outline" size="sm" onClick={() => setAiOpen(true)}>
+              <Sparkles /> AI draft
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"
@@ -454,14 +495,51 @@ function Builder({ flow, lookups }: { flow: BuilderFlow; lookups: BuilderLookups
           </Button>
           <Button
             size="sm"
-            disabled={pending || hasErrors(issues)}
-            title={hasErrors(issues) ? "Fix the errors first" : undefined}
+            disabled={pending || hasErrors(issues) || flow.ai_review_required}
+            title={
+              flow.ai_review_required
+                ? "An AI draft must be marked as reviewed first"
+                : hasErrors(issues)
+                  ? "Fix the errors first"
+                  : undefined
+            }
             onClick={publish}
           >
             <Rocket /> Publish
           </Button>
         </div>
       </div>
+
+      {flow.ai_review_required && (
+        <div
+          role="status"
+          className="flex flex-wrap items-center gap-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200"
+        >
+          <Sparkles className="size-4 shrink-0" />
+          <p className="min-w-0 flex-1">
+            <strong>Drafted by AI.</strong> It is not published and cannot be until you have read
+            every message, chosen the highlighted templates and teams
+            {needChoice > 0 ? ` (${needChoice} still to do)` : ""}, tried the dry run and marked it
+            reviewed.
+          </p>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={pending || dirty}
+            title={dirty ? "Save the draft first" : undefined}
+            onClick={() => {
+              if (
+                window.confirm(
+                  "I have read every message in this flow and it is safe to publish once it is set up.",
+                )
+              )
+                markReviewed();
+            }}
+          >
+            Mark as reviewed
+          </Button>
+        </div>
+      )}
 
       <div className="grid min-h-0 flex-1 grid-cols-[14rem_1fr_21rem] gap-3">
         <aside
@@ -632,6 +710,20 @@ function Builder({ flow, lookups }: { flow: BuilderFlow; lookups: BuilderLookups
           </div>
         </aside>
       </div>
+      {dryRunOpen && (
+        <DryRunDialog
+          open={dryRunOpen}
+          onOpenChange={setDryRunOpen}
+          graph={graph}
+          triggerType={meta.trigger_type}
+          triggerConfig={meta.trigger_config}
+          onSelectNode={(id) => {
+            setSelectedId(id);
+            rf.fitView({ nodes: [{ id }], duration: 300, maxZoom: 1 });
+          }}
+        />
+      )}
+      {canAi && aiOpen && <AiDraftDialog open={aiOpen} onOpenChange={setAiOpen} />}
     </div>
   );
 }

@@ -52,6 +52,8 @@ export const TRIGGER_TYPES = [
   "appointment_created",
   "appointment_updated",
   "appointment_status_changed",
+  /** An AI tag (booking, price, complaint, report_request) was put on a conversation. Only fires once the clinical lead has signed it off. */
+  "conversation_ai_tagged",
 ] as const;
 export type TriggerType = (typeof TRIGGER_TYPES)[number];
 

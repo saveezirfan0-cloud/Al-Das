@@ -27,6 +27,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { INTENT_LABELS, type Intent } from "@/lib/ai/intent/labels";
 import { contactDisplayName } from "@/lib/inbox/contact-name";
 import { labelClass } from "@/lib/inbox/labels";
 import type { MessageRow } from "@/lib/inbox/queries";
@@ -43,6 +44,7 @@ import {
   toggleConversationLabel,
   type ActionResult,
 } from "./actions";
+import { dismissAiTag } from "./ai-actions";
 import { CloseDialog } from "./close-dialog";
 import { Composer } from "./composer";
 import { MediaBubble } from "./media-bubble";
@@ -165,6 +167,29 @@ export function Thread(props: InboxProps & { selected: ConversationDetail; onBac
               <Bot className="size-3" /> bot
             </Badge>
           )}
+          {(selected.ai_tags ?? [])
+            .filter((t): t is Intent => t in INTENT_LABELS)
+            .map((tag) => (
+              <Badge
+                key={tag}
+                variant={tag === "emergency" ? "destructive" : "secondary"}
+                className="gap-1"
+                title="Added by AI. Read the message and use your own judgement."
+              >
+                {INTENT_LABELS[tag]}
+                {perms.send && (
+                  <button
+                    type="button"
+                    className="ml-0.5 rounded px-0.5 hover:bg-black/10"
+                    aria-label={`Clear the tag ${INTENT_LABELS[tag]}`}
+                    disabled={pending}
+                    onClick={() => run(() => dismissAiTag({ conversation_id: selected.id, tag }))}
+                  >
+                    ×
+                  </button>
+                )}
+              </Badge>
+            ))}
           {perms.send && (
             <>
               <DropdownMenu>

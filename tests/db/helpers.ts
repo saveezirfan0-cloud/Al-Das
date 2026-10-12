@@ -20,7 +20,7 @@ export async function resetDb(c: Client) {
   await c.query("truncate public.orgs cascade");
   await c.query("truncate public.scheduled_jobs, public.job_runs, public.dead_letters, public.flow_locks");
   await c.query("delete from auth.users");
-  for (const q of ["outbound", "outbound_priority", "flow_steps", "notifications", "meta_events", "webhooks_out", "kb_ingest"]) {
+  for (const q of ["outbound", "outbound_priority", "flow_steps", "notifications", "meta_events", "webhooks_out", "kb_ingest", "ai_insights"]) {
     await c.query(`delete from pgmq.q_${q}`);
     await c.query(`delete from pgmq.a_${q}`);
   }
@@ -324,3 +324,51 @@ export const PHASE18_SERVICE_ONLY_TABLES = [
   "fin_raw_remittance_files",
   "fin_staged_remittance_lines",
 ] as const;
+
+/**
+ * One row in every Phase 17 table, for an org, so the cross-org sweeps are not vacuous for them (synthetic ids only; no
+ * message text anywhere in these tables). Service role only: none of them has a write policy.
+ */
+export async function seedPhase17Rows(c: Client, orgId: string, userId: string) {
+  const ids: Record<string, string> = {};
+  await asServiceRole(c, async () => {
+    const one = async (sql: string, params: unknown[]) =>
+      (await c.query<{ id: string }>(sql + " returning id::text", params)).rows[0].id;
+    ids.channel17 = await one(
+      "insert into public.channels (org_id, name, waba_id, phone_number_id) values ($1, 'Seed 17', 'waba-17-' || gen_random_uuid()::text, 'pn-17-' || gen_random_uuid()::text)",
+      [orgId],
+    );
+    ids.contact17 = await one(
+      "insert into public.contacts (org_id, first_name, last_name, phone_e164) values ($1, 'Intent', 'Seed', '+971500000171')",
+      [orgId],
+    );
+    ids.conversation17 = await one(
+      "insert into public.conversations (org_id, channel_id, contact_id, assignee_user_id, last_inbound_at) values ($1, $2, $3, $4, now())",
+      [orgId, ids.channel17, ids.contact17, userId],
+    );
+    ids.message17 = await one(
+      "insert into public.messages (org_id, conversation_id, direction, kind, body, wa_message_id, status) values ($1, $2, 'in', 'text', 'synthetic message', 'wamid.seed17.' || gen_random_uuid()::text, 'received')",
+      [orgId, ids.conversation17],
+    );
+    ids.intent = await one(
+      "insert into public.ai_message_intents (org_id, conversation_id, message_id, source, intents, topic) values ($1, $2, $3, 'model', array['booking'], 'booking')",
+      [orgId, ids.conversation17, ids.message17],
+    );
+    ids.usage17 = await one(
+      "insert into public.ai_usage (org_id, user_id, conversation_id, feature, model, status, grounded) values ($1, $2, $3, 'suggest_reply', 'test-model', 'ok', false)",
+      [orgId, userId, ids.conversation17],
+    );
+    await c.query(
+      "insert into public.ai_suggestion_outcomes (ai_usage_id, org_id, user_id, conversation_id, outcome, similarity) values ($1, $2, $3, $4, 'edited', 61)",
+      [ids.usage17, orgId, userId, ids.conversation17],
+    );
+    ids.report = await one(
+      "insert into public.ai_quality_reports (org_id, week_start, week_end, stats, gaps) values ($1, '2026-10-05', '2026-10-12', '{\"suggestions\":{\"total\":1}}'::jsonb, '[]'::jsonb)",
+      [orgId],
+    );
+  });
+  return ids;
+}
+
+/** Phase 17 tables with a browser (select) policy. */
+export const PHASE17_TABLES = ["ai_message_intents", "ai_quality_reports", "ai_suggestion_outcomes"] as const;

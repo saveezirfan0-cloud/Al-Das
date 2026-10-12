@@ -3,11 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { recordAudit } from "@/lib/audit";
 import { can } from "@/lib/auth/can";
 import { requireMember, type CurrentMember } from "@/lib/auth/session";
 import { embedderFromEnv } from "@/lib/ai/embeddings";
 import { ask, EmptyInputError, rewrite, suggestReply, summarize } from "@/lib/ai/features";
 import { maskContactDetails, buildTranscript } from "@/lib/ai/context";
+import { classifySuggestionOutcome } from "@/lib/ai/insights/outcome";
 import { retrieveKnowledge } from "@/lib/ai/kb";
 import { AiProviderError, createAnthropicLlm, type Llm } from "@/lib/ai/llm";
 import { readAiSettings } from "@/lib/ai/settings";
@@ -145,7 +147,14 @@ async function execute(
     return { ok: false, error: "AI assist hit a problem. Please try again." };
   }
 
-  const usageId = await recordUsage(admin, { ...usage, model: result.model, status: result.status, result });
+  const usageId = await recordUsage(admin, {
+    ...usage,
+    model: result.model,
+    status: result.status,
+    result,
+    // Did the knowledge base have anything for this suggestion? Feeds the weekly "questions to add to the knowledge base".
+    grounded: feature === "suggest_reply" ? result.chunkIds.length > 0 : null,
+  });
   if (result.status === "refused") {
     return { ok: false, error: "The assistant couldn't help with that request. Write the reply yourself or hand it to a colleague." };
   }
@@ -328,4 +337,84 @@ export async function saveConversationSummary(input: z.input<typeof saveSummaryS
   if (error) return { ok: false, error: "Could not save the summary." };
   revalidatePath("/inbox");
   return { ok: true, data: undefined, message: "Summary saved." };
+}
+
+const outcomeSchema = z.object({
+  usage_id: uuid,
+  /** What the AI suggested and what was sent, compared in memory and then forgotten. Omit both when the draft was thrown away. */
+  suggestion: z.string().max(4000).optional(),
+  sent: z.string().max(4096).optional(),
+  discarded: z.boolean().optional(),
+});
+
+/**
+ * After a member of staff sends (or throws away) an AI suggested reply: was it used as written, edited, or replaced? The two
+ * texts are compared here and NOT stored; only the verdict and a similarity percentage are. Feeds the weekly reply-quality
+ * report. Only the person who asked for the suggestion can report on it.
+ */
+export async function recordSuggestionOutcome(input: z.input<typeof outcomeSchema>): Promise<ActionResult> {
+  const member = await requireMember();
+  if (!can(member, "ai.use")) return { ok: false, error: "You don't have permission to use AI assist." };
+  const parsed = outcomeSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Invalid input" };
+  const admin = createAdminClient();
+  const { data: usage } = await admin
+    .from("ai_usage")
+    .select("id, conversation_id, feature")
+    .eq("id", parsed.data.usage_id)
+    .eq("org_id", member.orgId)
+    .eq("user_id", member.userId)
+    .maybeSingle();
+  if (!usage || usage.feature !== "suggest_reply") return { ok: false, error: "That AI result is no longer available." };
+  const verdict =
+    parsed.data.discarded || parsed.data.sent === undefined || parsed.data.suggestion === undefined
+      ? { outcome: "rejected" as const, similarity: 0 }
+      : classifySuggestionOutcome(parsed.data.suggestion, parsed.data.sent);
+  const { error } = await admin.from("ai_suggestion_outcomes").insert({
+    ai_usage_id: usage.id,
+    org_id: member.orgId,
+    user_id: member.userId,
+    conversation_id: usage.conversation_id,
+    outcome: verdict.outcome,
+    similarity: verdict.similarity,
+  });
+  // The first verdict stands (a suggestion is sent once); a repeat is not an error.
+  if (error && error.code !== "23505") return { ok: false, error: "Could not record that." };
+  return { ok: true, data: undefined };
+}
+
+const dismissSchema = z.object({ conversation_id: uuid, tag: z.string().trim().min(1).max(40) });
+
+/** A member of staff clears an AI tag they judge wrong (for example a false emergency flag). Audited. */
+export async function dismissAiTag(input: z.input<typeof dismissSchema>): Promise<ActionResult> {
+  const member = await requireMember();
+  if (!can(member, "inbox.send")) return { ok: false, error: "You don't have permission for that." };
+  const parsed = dismissSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Invalid input" };
+  const supabase = await createClient();
+  const { data: conversation } = await supabase
+    .from("conversations")
+    .select("id, ai_tags")
+    .eq("id", parsed.data.conversation_id)
+    .eq("org_id", member.orgId)
+    .maybeSingle();
+  if (!conversation) return { ok: false, error: "Conversation not found." };
+  if (!conversation.ai_tags.includes(parsed.data.tag)) return { ok: true, data: undefined };
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("conversations")
+    .update({ ai_tags: conversation.ai_tags.filter((t) => t !== parsed.data.tag) })
+    .eq("id", conversation.id)
+    .eq("org_id", member.orgId);
+  if (error) return { ok: false, error: "Could not clear the tag." };
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "conversation.ai_tag_dismissed",
+    entity: "conversation",
+    entityId: conversation.id,
+    diff: { tag: parsed.data.tag },
+  });
+  revalidatePath("/inbox");
+  return { ok: true, data: undefined, message: "Tag cleared." };
 }

@@ -2,6 +2,8 @@ import Link from "next/link";
 
 import { PageHeader } from "@/components/shell/page-header";
 import { Button } from "@/components/ui/button";
+import { readAiSettings } from "@/lib/ai/settings";
+import { can } from "@/lib/auth/can";
 import { requirePerm } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -15,7 +17,7 @@ export default async function FlowsPage() {
   const [{ data: flows }, { data: counts }, { data: channels }] = await Promise.all([
     admin
       .from("flows")
-      .select("id, name, status, trigger_type, channel_id, version, updated_at")
+      .select("id, name, status, trigger_type, channel_id, version, updated_at, ai_review_required")
       .eq("org_id", member.orgId)
       .order("updated_at", { ascending: false }),
     admin
@@ -34,6 +36,7 @@ export default async function FlowsPage() {
     channel: f.channel_id ? (channelName.get(f.channel_id) ?? "—") : "All numbers",
     version: f.version,
     updated_at: f.updated_at,
+    ai_review_required: f.ai_review_required,
     ok: Number(byFlow.get(f.id)?.completed ?? 0),
     failed: Number(byFlow.get(f.id)?.failed ?? 0),
     waiting: Number(byFlow.get(f.id)?.pending ?? 0),
@@ -49,7 +52,10 @@ export default async function FlowsPage() {
           <Link href="/flows/variables">Variables</Link>
         </Button>
       </PageHeader>
-      <FlowsList rows={rows} />
+      <FlowsList
+        rows={rows}
+        canAi={can(member, "flows.ai") && readAiSettings(member.org.settings).enabled}
+      />
     </div>
   );
 }

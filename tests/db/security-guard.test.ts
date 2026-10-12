@@ -20,12 +20,14 @@ import {
   PHASE14_TABLES,
   PHASE15_TABLES,
   PHASE16_TABLES,
+  PHASE17_TABLES,
   PHASE18_SERVICE_ONLY_TABLES,
   PHASE18_TABLES,
   resetDb,
   seedPhase13Rows,
   seedPhase14Rows,
   seedPhase16Rows,
+  seedPhase17Rows,
   seedPhase18Rows,
   seedSecurityRows,
   TEST_DATABASE_URL,
@@ -107,6 +109,9 @@ const PHASE18_SERVICE_FUNCTIONS = [
   "ins_claims_for_remittance",
   "ins_commit_remittance",
 ];
+
+/** Phase 17 SECURITY DEFINER functions that only server code (service role) may run. */
+const PHASE17_SERVICE_FUNCTIONS = ["ai_add_conversation_tags"];
 
 /** Phase 14 SECURITY DEFINER functions that only server code (service role) may run. */
 const PHASE14_SERVICE_FUNCTIONS = ["accept_slot_offer", "demo_wipe_org"];
@@ -309,6 +314,33 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 18 service-role functions", () => {
   });
 });
 
+describe.skipIf(!TEST_DATABASE_URL)("phase 17 service-role functions", () => {
+  it("exist and are executable by the service role only", async () => {
+    const c = await connect();
+    try {
+      const { rows } = await c.query<{ name: string; anon: boolean; auth: boolean; svc: boolean }>(
+        `select p.proname as name,
+                has_function_privilege('anon', p.oid, 'execute') as anon,
+                has_function_privilege('authenticated', p.oid, 'execute') as auth,
+                has_function_privilege('service_role', p.oid, 'execute') as svc
+         from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+         where n.nspname = 'public' and p.proname = any ($1)`,
+        [PHASE17_SERVICE_FUNCTIONS],
+      );
+      expect(rows.map((r) => r.name).sort()).toEqual([...PHASE17_SERVICE_FUNCTIONS].sort());
+      for (const r of rows)
+        expect({ name: r.name, anon: r.anon, auth: r.auth, svc: r.svc }).toEqual({
+          name: r.name,
+          anon: false,
+          auth: false,
+          svc: true,
+        });
+    } finally {
+      await c.end();
+    }
+  });
+});
+
 describe.skipIf(!TEST_DATABASE_URL)("phase 14 service-role functions", () => {
   it("exist and are executable by the service role only", async () => {
     const c = await connect();
@@ -397,6 +429,8 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
     await seedPhase16Rows(c, orgA, alice);
     // Phase 18 tables likewise.
     await seedPhase18Rows(c, orgA, alice);
+    // Phase 17 tables likewise.
+    await seedPhase17Rows(c, orgA, alice);
   });
   afterAll(async () => {
     await resetDb(c);
@@ -407,14 +441,14 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
     expect(orgTables.length).toBeGreaterThanOrEqual(25);
   });
 
-  it("sweeps every Phase 13, 14, 15, 16 and 18 table (a new table must be added to PHASE13_TABLES / PHASE14_TABLES / PHASE15_TABLES / PHASE16_TABLES / PHASE18_TABLES and seeded)", () => {
-    for (const t of [...PHASE18_TABLES, ...PHASE16_TABLES, ...PHASE15_TABLES, ...PHASE14_TABLES, ...PHASE13_TABLES])
+  it("sweeps every Phase 13, 14, 15, 16, 17 and 18 table (a new table must be added to PHASE13_TABLES / PHASE14_TABLES / PHASE15_TABLES / PHASE16_TABLES / PHASE17_TABLES / PHASE18_TABLES and seeded)", () => {
+    for (const t of [...PHASE18_TABLES, ...PHASE17_TABLES, ...PHASE16_TABLES, ...PHASE15_TABLES, ...PHASE14_TABLES, ...PHASE13_TABLES])
       expect(orgTables, `${t} is not in the org sweep`).toContain(t);
   });
 
-  it("really holds org A rows in the Phase 13, 14, 15, 16 and 18 tables, visible to org A's admin (control for the leak sweep)", async () => {
+  it("really holds org A rows in the Phase 13, 14, 15, 16, 17 and 18 tables, visible to org A's admin (control for the leak sweep)", async () => {
     await asUser(c, alice, async () => {
-      for (const t of [...PHASE18_TABLES, ...PHASE16_TABLES, ...PHASE15_TABLES, ...PHASE14_TABLES, ...PHASE13_TABLES]) {
+      for (const t of [...PHASE18_TABLES, ...PHASE17_TABLES, ...PHASE16_TABLES, ...PHASE15_TABLES, ...PHASE14_TABLES, ...PHASE13_TABLES]) {
         const { rows } = await c.query<{ n: string }>(
           `select count(*)::text as n from public.${t} where org_id = $1`,
           [orgA],

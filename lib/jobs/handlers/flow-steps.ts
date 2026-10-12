@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { readCopilotSettings, tagMayStartFlows } from "@/lib/ai/copilot/settings";
+import { readAiSettings } from "@/lib/ai/settings";
 import { createFlowDeps } from "@/lib/flow-engine/supabase-deps";
 import { advance, finishRun, resumeFromTimer } from "@/lib/flow-engine/run";
 import { handleTriggerEvent } from "@/lib/flow-engine/triggers";
@@ -43,10 +45,32 @@ registerHandler({
     const deps = createFlowDeps(ctx.admin);
 
     if ("type" in job && job.type === "trigger") {
+      let payload = job.payload;
+      if (job.event === "conversation.ai_tagged") {
+        // Defence in depth: an AI tag starts a flow only while the clinical lead's sign-off is in force (OQ-61), whatever queued this.
+        const { data: org } = await ctx.admin
+          .from("orgs")
+          .select("settings")
+          .eq("id", job.org_id)
+          .maybeSingle();
+        const ai = readAiSettings(org?.settings);
+        const copilot = readCopilotSettings(org?.settings);
+        const tags = (Array.isArray(job.payload.tags) ? job.payload.tags : []).filter(
+          (t): t is string => typeof t === "string" && tagMayStartFlows(ai, copilot, t),
+        );
+        if (tags.length === 0) {
+          ctx.log.info("flow.trigger skipped", {
+            event: job.event,
+            reason: "ai tags not signed off",
+          });
+          return;
+        }
+        payload = { ...job.payload, tags };
+      }
       const out = await handleTriggerEvent(deps, {
         orgId: job.org_id,
         name: job.event,
-        payload: job.payload,
+        payload,
       });
       ctx.log.info("flow.trigger", {
         event: job.event,

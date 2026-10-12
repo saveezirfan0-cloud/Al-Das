@@ -12,6 +12,7 @@ export const TRIGGER_LABELS: Record<string, string> = {
   appointment_created: "Appointment created",
   appointment_updated: "Appointment updated",
   appointment_status_changed: "Appointment status changed",
+  conversation_ai_tagged: "AI tag added to a conversation (needs clinical sign-off)",
 };
 
 export const RUN_STATUS_LABELS: Record<string, string> = {

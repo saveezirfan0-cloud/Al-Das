@@ -17,7 +17,7 @@ const optionSchema = z.object({
   title: z.string().min(1).max(24),
 });
 
-const messageSchema = z.object({
+export const messageSchema = z.object({
   text: z.string().min(1).max(4096),
 });
 
@@ -137,7 +137,7 @@ export const question: Executor = async (ctx) => {
   };
 };
 
-const quickReplySchema = z.object({
+export const quickReplySchema = z.object({
   text: z.string().min(1).max(1024),
   buttons: z.array(optionSchema).min(1).max(3),
 });
@@ -161,7 +161,7 @@ export const quick_reply: Executor = async (ctx) => {
   return { kind: "next", output: { message_id: sent.messageId } };
 };
 
-const templateSchema = z.object({
+export const templateSchema = z.object({
   template_id: z.string().uuid(),
   /** key (e.g. body.1) → text with {variables}; falls back to the template's own variable_map. */
   values: z.record(z.string(), z.string()).default({}),

@@ -99,7 +99,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: "Campaigns",
     icon: "campaigns",
     group: "Growth",
-    keywords: ["broadcast", "marketing"],
+    keywords: ["broadcast", "marketing", "copilot", "ai audience"],
     permission: "campaigns.view",
   },
   {
@@ -123,7 +123,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: "Flows",
     icon: "flows",
     group: "Growth",
-    keywords: ["bots", "automation"],
+    keywords: ["bots", "automation", "ai draft", "dry run", "copilot"],
     permission: "flows.manage",
   },
   {
@@ -147,7 +147,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: "Reports",
     icon: "reports",
     group: "Insight & back office",
-    keywords: ["analytics", "export"],
+    keywords: ["analytics", "export", "ai quality", "knowledge gaps"],
     permission: "reports.view",
   },
   {

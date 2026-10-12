@@ -45,6 +45,18 @@ export function unsupportedReferences(draft: string, sourceText: string): string
   return [...new Set(found)];
 }
 
+/** Dose, medication-instruction and diagnosis wording (English and Arabic). Shared by patient drafts and by the copilots' generated copy. */
+export function clinicalContentFlags(text: string): string[] {
+  const flags: string[] = [];
+  if (DOSE.test(text) || ARABIC_DOSE.test(text) || MED_INSTRUCTION.test(text)) {
+    flags.push("Mentions a dose or medication instruction. Remove it or have a clinician confirm.");
+  }
+  if (DIAGNOSIS.test(text)) {
+    flags.push("Sounds like a diagnosis. Staff must not diagnose.");
+  }
+  return flags;
+}
+
 export function checkDraft(raw: string, opts: { sourceText?: string } = {}): OutputCheck {
   let text = raw;
   const flags: string[] = [];
@@ -57,12 +69,7 @@ export function checkDraft(raw: string, opts: { sourceText?: string } = {}): Out
   }
   text = text.trim();
 
-  if (DOSE.test(text) || ARABIC_DOSE.test(text) || MED_INSTRUCTION.test(text)) {
-    flags.push("Mentions a dose or medication instruction. Remove it or have a clinician confirm.");
-  }
-  if (DIAGNOSIS.test(text)) {
-    flags.push("Sounds like a diagnosis. Staff must not diagnose.");
-  }
+  flags.push(...clinicalContentFlags(text));
   if (opts.sourceText !== undefined) {
     const extra = unsupportedReferences(text, opts.sourceText);
     if (extra.length) flags.push(`Contains ${extra.join(" and ")} that is not in the conversation or your knowledge base. Check it before sending.`);

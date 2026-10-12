@@ -12,6 +12,7 @@ export const QUEUES = [
   "kb_ingest",
   "notifications",
   "appointments",
+  "ai_insights",
 ] as const;
 
 export type QueueName = (typeof QUEUES)[number];

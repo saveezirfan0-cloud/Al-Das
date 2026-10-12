@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import {
@@ -11,6 +12,7 @@ import {
   MoreHorizontal,
   Plus,
   ScrollText,
+  Sparkles,
   Trash2,
   TriangleAlert,
 } from "lucide-react";
@@ -53,6 +55,10 @@ import { TRIGGER_TYPES } from "@/lib/flow-engine/types";
 
 import { createFlow, deleteFlow, duplicateFlow, setFlowStatus } from "./actions";
 
+const AiDraftDialog = dynamic(() => import("./ai-draft-dialog").then((m) => m.AiDraftDialog), {
+  ssr: false,
+});
+
 export type FlowRow = {
   id: string;
   name: string;
@@ -61,6 +67,7 @@ export type FlowRow = {
   channel: string;
   version: number;
   updated_at: string;
+  ai_review_required: boolean;
   ok: number;
   failed: number;
   waiting: number;
@@ -72,9 +79,10 @@ const STATUS_STYLE: Record<FlowRow["status"], string> = {
   paused: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300",
 };
 
-export function FlowsList({ rows }: { rows: FlowRow[] }) {
+export function FlowsList({ rows, canAi }: { rows: FlowRow[]; canAi: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
   const [name, setName] = useState("");
   const [trigger, setTrigger] = useState<string>("shortcut");
   const [starter, setStarter] = useState<string>("blank");
@@ -108,11 +116,17 @@ export function FlowsList({ rows }: { rows: FlowRow[] }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        {canAi && (
+          <Button variant="outline" onClick={() => setAiOpen(true)}>
+            <Sparkles /> Describe a bot
+          </Button>
+        )}
         <Button onClick={() => setOpen(true)}>
           <Plus /> New flow
         </Button>
       </div>
+      {canAi && aiOpen && <AiDraftDialog open={aiOpen} onOpenChange={setAiOpen} />}
       {rows.length === 0 ? (
         <p className="text-muted-foreground rounded-xl border border-dashed p-10 text-center text-sm">
           No flows yet. Create one to automate replies, reminders and hand-overs.
@@ -139,6 +153,11 @@ export function FlowsList({ rows }: { rows: FlowRow[] }) {
                   <div className="text-muted-foreground text-xs">
                     {f.version > 0 ? `v${f.version}` : "Never published"}
                   </div>
+                  {f.ai_review_required && (
+                    <div className="text-xs text-amber-700 dark:text-amber-400">
+                      AI draft: needs your review
+                    </div>
+                  )}
                 </TableCell>
                 <TableCell className="text-sm">
                   {TRIGGER_LABELS[f.trigger_type] ?? f.trigger_type}

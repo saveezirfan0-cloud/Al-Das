@@ -10,11 +10,11 @@ import {
 import type { Outcome } from "@/lib/flow-engine/types";
 
 /** Phone is the contact's identity (E.164 match key), so flows may not rewrite it. */
-const FIELD =
+export const CONTACT_FIELD_PATTERN =
   /^(first_name|last_name|email|gender|language|label|custom\.[A-Za-z][A-Za-z0-9_]{0,63})$/;
 
-const updateFieldSchema = z.object({
-  field: z.string().regex(FIELD, "unsupported field"),
+export const updateFieldSchema = z.object({
+  field: z.string().regex(CONTACT_FIELD_PATTERN, "unsupported field"),
   value: z.string().max(1000),
 });
 

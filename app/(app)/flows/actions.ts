@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { FLOW_TRIGGERABLE_TAGS } from "@/lib/ai/copilot/settings";
 import { recordAudit } from "@/lib/audit";
 import { requirePerm } from "@/lib/auth/session";
 import { isValidCron } from "@/lib/cron";
@@ -116,6 +117,10 @@ function cleanTriggerConfig(
     value.timezone = typeof raw.timezone === "string" ? raw.timezone : "Asia/Dubai";
     if (typeof raw.segment_id === "string" && raw.segment_id) value.segment_id = raw.segment_id;
   }
+  if (type === "conversation_ai_tagged") {
+    const tags = Array.isArray(raw.tags) ? raw.tags : [];
+    value.tags = FLOW_TRIGGERABLE_TAGS.filter((t) => tags.includes(t));
+  }
   if (type === "webhook" && typeof stored.webhook_token_hash === "string")
     value.webhook_token_hash = stored.webhook_token_hash;
   return { ok: true, value };
@@ -192,6 +197,12 @@ export async function publishFlow(id: string): Promise<ActionResult<{ version: n
     .eq("org_id", member.orgId)
     .maybeSingle();
   if (!flow) return { ok: false, error: "Flow not found" };
+  if (flow.ai_review_required)
+    return {
+      ok: false,
+      error:
+        "This flow was drafted by AI. Read every message in it and mark it as reviewed before publishing.",
+    };
   const check = validateGraph(flow.graph);
   if (!check.graph || hasErrors(check.issues))
     return {
@@ -248,11 +259,16 @@ export async function setFlowStatus(
   const admin = createAdminClient(member.userId);
   const { data: flow } = await admin
     .from("flows")
-    .select("id, version, published_graph")
+    .select("id, version, published_graph, ai_review_required")
     .eq("id", id)
     .eq("org_id", member.orgId)
     .maybeSingle();
   if (!flow) return { ok: false, error: "Flow not found" };
+  if (status === "active" && flow.ai_review_required)
+    return {
+      ok: false,
+      error: "This flow was drafted by AI and has not been marked as reviewed yet.",
+    };
   if (status === "active" && (!flow.published_graph || flow.version === 0))
     return { ok: false, error: "Publish the flow first." };
   await admin.from("flows").update({ status }).eq("id", id).eq("org_id", member.orgId);
@@ -297,6 +313,9 @@ export async function duplicateFlow(id: string): Promise<ActionResult<{ id: stri
       trigger_config: j(cfg),
       channel_id: f.channel_id,
       graph: f.graph,
+      // A copy of an unreviewed AI draft is still an unreviewed AI draft.
+      ai_review_required: f.ai_review_required,
+      ai_drafted_at: f.ai_drafted_at,
       created_by: member.userId,
     })
     .select("id")

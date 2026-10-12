@@ -10,7 +10,16 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Separator } from "@/components/ui/separator";
 import { TONES, type Language, type Tone } from "@/lib/ai/types";
 
-import { aiAsk, aiFeedback, aiRewrite, aiSuggestReply, aiSummarize, saveConversationSummary, type AiPayload } from "./ai-actions";
+import {
+  aiAsk,
+  aiFeedback,
+  aiRewrite,
+  aiSuggestReply,
+  aiSummarize,
+  recordSuggestionOutcome,
+  saveConversationSummary,
+  type AiPayload,
+} from "./ai-actions";
 
 type Kind = "suggest" | "rewrite" | "ask" | "summarize";
 
@@ -35,11 +44,14 @@ export function AiPanel({
   conversationId,
   text,
   onText,
+  onSuggestion,
   disabled,
 }: {
   conversationId: string;
   text: string;
   onText: (next: string) => void;
+  /** Told when a suggested reply is placed in the box (so the composer can report how it was used) or taken back out. */
+  onSuggestion?: (s: { usageId: string; text: string } | null) => void;
   disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -66,6 +78,7 @@ export function AiPanel({
       if (apply) {
         setPrevious(text);
         onText(r.data.text);
+        if (kind === "suggest" && r.data.usageId) onSuggestion?.({ usageId: r.data.usageId, text: r.data.text });
         if (r.data.needsReview) toast.warning("Read this draft carefully before sending.");
       }
     });
@@ -217,6 +230,11 @@ export function AiPanel({
                   onClick={() => {
                     onText(previous);
                     setPrevious(null);
+                    if (shown.kind === "suggest" && shown.usageId) {
+                      // Taking the suggestion back out counts as not used.
+                      onSuggestion?.(null);
+                      void recordSuggestionOutcome({ usage_id: shown.usageId, discarded: true });
+                    }
                   }}
                 >
                   <Undo2 /> Undo

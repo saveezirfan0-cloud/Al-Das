@@ -11,6 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { readAiSettings } from "@/lib/ai/settings";
 import { can } from "@/lib/auth/can";
 import { requirePerm } from "@/lib/auth/session";
 import {
@@ -92,6 +93,13 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
         <Button asChild variant="outline" size="sm">
           <Link href="/templates">Manage templates</Link>
         </Button>
+        {canCreate &&
+          can(member, "campaigns.ai") &&
+          readAiSettings(member.org.settings).enabled && (
+            <Button asChild variant="outline" size="sm">
+              <Link href="/campaigns/copilot">Campaign Copilot</Link>
+            </Button>
+          )}
         {canCreate && (
           <Button asChild size="sm">
             <Link href="/campaigns/new">

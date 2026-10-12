@@ -42,6 +42,7 @@ import {
   sendLibraryMedia,
   startConversation,
 } from "./actions";
+import { recordSuggestionOutcome } from "./ai-actions";
 import { AiPanel } from "./ai-panel";
 import { ShortcutMenu } from "./shortcut-menu";
 import { TemplatePicker } from "./template-picker";
@@ -128,6 +129,8 @@ export function Composer({
   const [attachment, setAttachment] = useState<NonNullable<QuickReply["media"]> | null>(null);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [recording, setRecording] = useState(false);
+  // The AI suggestion currently in the box, so sending can report whether it was used as written. Never stored client-side beyond this.
+  const suggestion = useRef<{ usageId: string; text: string } | null>(null);
   const recorder = useRef<MediaRecorder | null>(null);
   const chunks = useRef<Blob[]>([]);
   const textarea = useRef<HTMLTextAreaElement>(null);
@@ -139,6 +142,7 @@ export function Composer({
     setText("");
     setMode("chat");
     setAttachment(null);
+    suggestion.current = null;
   }, [selected.id]);
 
   const chatDisabled = mode === "chat" && !windowOpen;
@@ -211,6 +215,11 @@ export function Composer({
       if (!r.ok) {
         toast.error(r.error);
         return;
+      }
+      if (mode === "chat" && suggestion.current && !withFile) {
+        const used = suggestion.current;
+        suggestion.current = null;
+        void recordSuggestionOutcome({ usage_id: used.usageId, suggestion: used.text, sent: body });
       }
       setText("");
       setAttachment(null);
@@ -592,6 +601,7 @@ export function Composer({
                 conversationId={selected.id}
                 text={text}
                 onText={setText}
+                onSuggestion={(s) => (suggestion.current = s)}
                 disabled={chatDisabled || pending}
               />
             )}

@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-10-17-ai-copilots",
+    date: "2026-10-17",
+    title: "AI copilots for flows and campaigns",
+    body: "Describe a bot in words and get an unpublished draft flow to check, then try it with a dry run that sends nothing. In Campaigns, describe an audience to see how many patients it matches, and get English and Arabic template wording checked against WhatsApp's rules. Messages that sound urgent now alert the team straight away, and a weekly report shows how AI suggestions were used. Everything AI writes is a draft; it is off until an administrator turns AI on.",
+  },
+  {
     id: "2026-10-16-finance-upgrades",
     date: "2026-10-16",
     title: "Finance and insurance upgrades",

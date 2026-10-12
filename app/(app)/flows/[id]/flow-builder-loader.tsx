@@ -22,6 +22,10 @@ const FlowBuilder = dynamic(() => import("./flow-builder").then((m) => m.FlowBui
   ),
 });
 
-export function FlowBuilderLoader(props: { flow: BuilderFlow; lookups: BuilderLookups }) {
+export function FlowBuilderLoader(props: {
+  flow: BuilderFlow;
+  lookups: BuilderLookups;
+  canAi: boolean;
+}) {
   return <FlowBuilder {...props} />;
 }
