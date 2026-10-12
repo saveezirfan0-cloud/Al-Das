@@ -1,10 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { recordAudit } from "@/lib/audit";
 import { requireMember } from "@/lib/auth/session";
+import { recordAuthEvent } from "@/lib/security/auth-events";
+import { endSessionRows, type SessionScope } from "@/lib/security/sessions";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -69,12 +73,63 @@ export async function changePassword(_prev: FormState, formData: FormData): Prom
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
   if (error) return { error: error.message };
 
-  await recordAudit(createAdminClient(), {
+  const admin = createAdminClient();
+  await recordAudit(admin, {
     orgId: member.orgId,
     userId: member.userId,
     action: "password.changed",
     entity: "profile",
     entityId: member.userId,
   });
+  await recordAuthEvent(admin, {
+    type: "password_changed",
+    userId: member.userId,
+    orgId: member.orgId,
+    method: "password",
+    headers: await headers(),
+  });
   return { message: "Password updated." };
+}
+
+const SCOPES = { this_device: "local", others: "others", everywhere: "global" } as const;
+
+async function endSessions(scope: SessionScope): Promise<void> {
+  const member = await requireMember();
+  const supabase = await createClient();
+  const admin = createAdminClient();
+  // Mark our device rows first: after a global sign-out the session that identifies "this device" is gone.
+  await endSessionRows(admin, supabase, member, scope);
+  await recordAuthEvent(admin, {
+    type: scope === "everywhere" ? "sign_out_everywhere" : scope === "others" ? "session_revoked" : "sign_out",
+    userId: member.userId,
+    orgId: member.orgId,
+    headers: await headers(),
+  });
+  if (scope !== "this_device") {
+    await recordAudit(admin, {
+      orgId: member.orgId,
+      userId: member.userId,
+      action: scope === "everywhere" ? "session.signed_out_everywhere" : "session.signed_out_others",
+      entity: "profile",
+      entityId: member.userId,
+    });
+  }
+  await supabase.auth.signOut({ scope: SCOPES[scope] });
+  if (scope !== "others") redirect("/login");
+  revalidatePath("/settings/account");
+}
+
+/** Signs this browser out. Other devices stay signed in. */
+export async function signOutThisDevice(): Promise<void> {
+  await endSessions("this_device");
+}
+
+/** Signs out every other device and keeps this one. */
+export async function signOutOtherDevices(): Promise<void> {
+  await endSessions("others");
+}
+
+/** Signs out every device, including this one. */
+export async function signOutEverywhere(): Promise<void> {
+  await endSessions("everywhere");
 }

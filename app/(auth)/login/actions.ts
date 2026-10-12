@@ -7,6 +7,7 @@ import { z } from "zod";
 import { magicLinkErrorMessage } from "@/lib/auth/magic-link-error";
 import { serverEnv } from "@/lib/env";
 import { checkRateLimit, clientIp, RATE_RULES, waitText } from "@/lib/rate-limit";
+import { recordFailedSignIn, recordSignIn } from "@/lib/security/auth-events";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -44,11 +45,21 @@ export async function signInWithPassword(_prev: AuthState, formData: FormData): 
   if (blocked) return blocked;
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email: parsed.data.email,
     password: parsed.data.password,
   });
-  if (error) return { error: "Email or password is incorrect." };
+  const admin = createAdminClient();
+  if (error || !data.user) {
+    await recordFailedSignIn(admin, { email: parsed.data.email, headers: await headers() });
+    return { error: "Email or password is incorrect." };
+  }
+  await recordSignIn(admin, {
+    userId: data.user.id,
+    accessToken: data.session?.access_token ?? null,
+    method: "password",
+    headers: await headers(),
+  });
   redirect(safeNext(parsed.data.next));
 }
 

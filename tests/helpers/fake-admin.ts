@@ -131,6 +131,20 @@ export function createFakeAdmin(seed: Record<string, Row[]> = {}, options: FakeA
         filters.push((r) => (v === null ? r[c] === null || r[c] === undefined : r[c] === v));
         return builder;
       },
+      ilike(c: string, pattern: string) {
+        // Enough for the app's uses: LIKE-escaped exact matches and %-wildcards, case-insensitive.
+        let source = "";
+        for (let i = 0; i < pattern.length; i++) {
+          const ch = pattern[i];
+          if (ch === "\\" && i + 1 < pattern.length) source += pattern[++i].replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          else if (ch === "%") source += ".*";
+          else if (ch === "_") source += ".";
+          else source += ch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        }
+        const re = new RegExp(`^${source}$`, "i");
+        filters.push((r) => re.test(String(r[c] ?? "")));
+        return builder;
+      },
       in(c: string, vs: unknown[]) {
         filters.push((r) => vs.includes(r[c]));
         return builder;
