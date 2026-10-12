@@ -6,13 +6,23 @@ This is the single document to work from. Section 1 says where we are, 2 says wh
 
 ---
 
+## 0. Update, 12 Oct 2026 (read this first)
+
+**Merged.** `main` (`0ea2a27`) now contains Phase 12 (PR #20: new menu, quick search, mobile tabs, Activity log, loading and error pages, installable app manifest, CI) and Finance F7 (PR #21: monthly-summary redesign, setup checklist, data-freshness view, nav badge, paste-ready SQL in `deploy/supabase-paste/`). There are no open pull requests. Production on Vercel (project `al-das`, `al-das.vercel.app`) is deployed from that commit and is READY.
+
+**One warning before anyone pastes SQL.** The `deploy/supabase-paste/*.sql` files are meant for the **Pulse** Supabase project. The only Supabase project visible to the assistant's account is named **THC Portal**: a different, live product (230 staff records, bank details, 84,000 job runs, its own migrations). It has tables with the same names as Pulse's (`profiles`, `roles`, `audit_log`, `job_runs`, `push_subscriptions`, `settings`). **Do not run any Pulse SQL there.** Create a separate Pulse project, check the project name in the Supabase header before every paste, and keep the two apart. (Unrelated to Pulse, that project also reports one table without row-level security, `public.spatial_ref_sys`, a PostGIS system table; worth a look by whoever owns it.)
+
+**Still not confirmed:** I could not find a Pulse database from the assistant's accounts. If you have already created one elsewhere and set its keys in Vercel, the deployment may already work; if not, the deployed app cannot sign anyone in. Everything in sections 2 and 3 still applies.
+
+**Old session branches.** Seventeen `claude/*` branches remain on GitHub. Eleven carry nothing that main lacks (including this session's, which was squash-merged). Five others carry older versions of work that main already has in a different form (`magical-planck-nx16wi` is an early Phase 5 that would add about 16,000 duplicate lines; `brave-planck`, `sweet-planck`, `serene-gauss` are small, partly superseded). **One may hold real, unmerged work: `upbeat-brown-n1q8nq` ("Airtable import: write the clinical tables against the real Phase 6 schema", 19 files).** It needs a deliberate review and a test merge, not a blind merge. Delete the rest once you agree.
+
 ## 1. Where we are
 
 ### 1.1 The short version
 
 Phases 1 to 11 and Finance F0 to F6 are **built, tested and merged**. Pulse already contains everything the original spec asked for: WhatsApp inbox, patient CRM, enquiries and tasks, appointments with reminders, templates, campaigns, the flow builder, recall programmes (the Make replacements), the back-office portal (Airtable replacement), the clinical rules engine, AI assist, dashboards and reports, public API and webhooks, and the finance and insurance module.
 
-**What is not yet true:** nothing has run against the real world. There is no Supabase project, no Meta credentials, no Unite credentials and no real data. Every external call is tested against fakes. The UI has never been clicked through in a browser in a build environment (there was no auth stack). So the honest status is **"feature-complete in code, not yet proven live"**. Sections 2 and 3 are the path from here to proven.
+**What is not yet true:** nothing has run against the real world. There is no confirmed Pulse Supabase project (see section 0), no Meta credentials, no Unite credentials and no real data. Every external call is tested against fakes. The UI has never been clicked through in a browser in a build environment (there was no auth stack). So the honest status is **"feature-complete in code, not yet proven live"**. Sections 2 and 3 are the path from here to proven.
 
 ### 1.2 Numbers (measured this session)
 
