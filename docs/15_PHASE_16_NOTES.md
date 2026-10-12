@@ -51,11 +51,11 @@ Built on branch `claude/nifty-brown-y9l5ry` (from `main` at `a5ff28e`, Phases 13
 | Check | Result |
 |---|---|
 | `pnpm typecheck`, `pnpm lint` | clean |
-| `pnpm test` | FILL_UNIT |
-| `bash scripts/test-db.sh` then `pnpm exec vitest run tests/db` | FILL_DB |
-| `pnpm build` (placeholder Supabase env) and `pnpm bundle:check` | FILL_BUILD |
-| `pnpm audit:security` | FILL_AUDIT |
-| Paste file | `deploy/supabase-paste/16_phase_16_media_documents.sql` applied on a database built from the pre-Phase-16 migrations; resulting schema compared with a full build (see below) |
+| `pnpm test` | **147 files / 1,824 tests pass** (was 139 / 1,619). 43 database test files are skipped without `TEST_DATABASE_URL` |
+| `bash scripts/test-db.sh` then `pnpm exec vitest run tests/db` | **43 files, 613 tests pass** (was 41 / 570). New: `media-documents.test.ts` (24), `media-documents-service.test.ts` (18), additions to `security-guard.test.ts` and `jobs.test.ts`. `send-pacing` failed once in a full run and passed on its own (timing); `finance-diligence` has flaked in earlier phases |
+| `pnpm build` (placeholder Supabase env) and `pnpm bundle:check` | Build passes; `pnpm bundle:check` passes with **no budget raised**. `/media` is 181 kB, `/settings/documents` 162 kB (default budget 215). `/contacts` stayed at 312 kB and `/inbox` at 299 kB because the Documents tab, the photo editor and the picture viewer load through `next/dynamic` (without that `/contacts` was 388 kB and `/media` 254 kB, over budget) |
+| `pnpm audit:security` | `pnpm audit:security`: 355 entry points, 0 unguarded and unreviewed; the two `prepare*Upload` actions are listed with reasons in `lib/security/policy.ts` |
+| Paste file | `deploy/supabase-paste/16_phase_16_media_documents.sql` applied in one transaction on a database built from the pre-Phase-16 migrations; the resulting schema (pg_dump) equals a full build |
 
 What the new tests cover (new files: `tests/unit/media-*.test.ts*`, `documents-*.test.ts`, `tests/db/media-documents*.test.ts`, plus additions to six existing files):
 
