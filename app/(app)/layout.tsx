@@ -34,6 +34,28 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       keywords: ["alerts", "bell", "snooze", "unread"],
       hint: "Today",
     },
+    {
+      href: "/help/training",
+      label: "Training and help",
+      keywords: ["videos", "guides", "shortcuts", "what's new", "feedback", "onboarding", "?"],
+      hint: "Help",
+    },
+    ...(can(member, "frontdesk.use")
+      ? [
+          {
+            href: "/front-desk/end-of-day",
+            label: "End of day sheet",
+            keywords: ["handover", "print", "unconfirmed", "close up"],
+            hint: "Front desk",
+          },
+          {
+            href: "/front-desk/qr",
+            label: "Desk QR code",
+            keywords: ["poster", "register", "walk-in", "print"],
+            hint: "Front desk",
+          },
+        ]
+      : []),
     ...items.map((i) => ({ href: i.href, label: i.label, keywords: i.keywords, hint: i.group })),
     ...visibleSettingsPages(member).map((p) => ({
       href: p.href,

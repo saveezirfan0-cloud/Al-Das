@@ -865,6 +865,125 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)(
         expect(maybe).toBe("ignored");
       });
 
+      it("works through the real job handler and the inbound-message listener, not only the functions", async () => {
+        await import("@/lib/jobs/handlers/appointments"); // registers the queue handler and the message.received listener
+        const { getHandler } = await import("@/lib/jobs/registry");
+        const { toQueueMessage } = await import("@/lib/jobs/scheduler");
+        const { emit } = await import("@/lib/events/emit");
+        const handler = getHandler("appointments")!;
+        const ctx = {
+          queue: "appointments" as const,
+          msgId: 1,
+          readCt: 1,
+          enqueuedAt: new Date(),
+          admin,
+          log,
+        };
+        const clear = async () =>
+          asService(() =>
+            c.query(
+              "update public.waitlist_entries set status = 'waiting', booked_appointment_id = null where org_id = $1",
+              [org],
+            ),
+          );
+        await clear();
+        await setSettings(frontDesk({ offer_batch_size: 1 }));
+
+        // 1. A cancellation schedules the job; the handler (given the exact queue message) makes the offer.
+        const appt = await book(id.adult, at(20, "10:00"));
+        await changeAppointmentStatus(admin, {
+          orgId: org,
+          appointmentId: appt.id,
+          to: "cancelled",
+          actorId: user,
+        });
+        const { rows: jobs } = await c.query(
+          "select id, org_id, kind, payload, run_at, attempts, max_attempts, locked_at, locked_by, last_error, done_at from public.scheduled_jobs where kind = 'waitlist.freed' and payload->>'source_appointment_id' = $1",
+          [appt.id],
+        );
+        expect(jobs).toHaveLength(1);
+        const message = toQueueMessage({
+          ...jobs[0],
+          run_at: new Date(jobs[0].run_at).toISOString(),
+        });
+        await handler.handler(message, ctx);
+        const start = new Date(jobs[0].payload.starts_at).toISOString();
+        const offers = await offersOf(start);
+        expect(offers).toHaveLength(1);
+        expect(offers[0].status).toBe("pending");
+        const owner = (
+          await c.query("select contact_id from public.waitlist_entries where id = $1", [
+            offers[0].waitlist_entry_id,
+          ])
+        ).rows[0].contact_id as string;
+
+        // 2. The patient types YES; the inbound-message event books it (the listener reads the text from the message row).
+        const conv = await conversationOf(owner);
+        const inbound = await asService(() =>
+          q(
+            "insert into public.messages (org_id, conversation_id, direction, kind, body, status, wa_message_id) values ($1, $2, 'in', 'text', 'Yes please!', 'received', $3)",
+            [org, conv!.id, `wamid.listener-${Date.now()}`],
+          ),
+        );
+        await emit(org, "message.received", {
+          conversation_id: conv!.id,
+          message_id: inbound,
+          contact_id: owner,
+          kind: "text",
+          reply_to_wa_message_id: null,
+          interactive: null,
+        });
+        const after = await offersOf(start);
+        expect(after[0].status).toBe("accepted");
+        const { rows: booked } = await c.query(
+          "select contact_id, status from public.appointments where specialist_id = $1 and starts_at = $2 and status <> 'cancelled'",
+          [id.drA, start],
+        );
+        expect(booked).toEqual([{ contact_id: owner, status: "confirmed" }]);
+
+        // 3. Expiry through the handler: a new slot, the offer is overdue, the next person is asked.
+        await clear();
+        const appt2 = await book(id.adult, at(21, "10:00"));
+        await changeAppointmentStatus(admin, {
+          orgId: org,
+          appointmentId: appt2.id,
+          to: "cancelled",
+          actorId: user,
+        });
+        const { rows: jobs2 } = await c.query(
+          "select id, org_id, kind, payload, run_at, attempts, max_attempts, locked_at, locked_by, last_error, done_at from public.scheduled_jobs where kind = 'waitlist.freed' and payload->>'source_appointment_id' = $1",
+          [appt2.id],
+        );
+        await handler.handler(
+          toQueueMessage({ ...jobs2[0], run_at: new Date(jobs2[0].run_at).toISOString() }),
+          ctx,
+        );
+        const start2 = new Date(jobs2[0].payload.starts_at).toISOString();
+        const first = (await offersOf(start2))[0];
+        await asService(() =>
+          c.query(
+            "update public.slot_offers set expires_at = now() - interval '1 minute' where id = $1",
+            [first.id],
+          ),
+        );
+        const { rows: expireJobs } = await c.query(
+          "select id, org_id, kind, payload, run_at, attempts, max_attempts, locked_at, locked_by, last_error, done_at from public.scheduled_jobs where kind = 'waitlist.expire' and payload->>'offer_id' = $1",
+          [first.id],
+        );
+        expect(expireJobs).toHaveLength(1);
+        await handler.handler(
+          toQueueMessage({
+            ...expireJobs[0],
+            run_at: new Date(expireJobs[0].run_at).toISOString(),
+          }),
+          ctx,
+        );
+        const final = await offersOf(start2);
+        expect(final.map((o) => o.status)).toEqual(["expired", "pending"]);
+        expect(final[1].waitlist_entry_id).not.toBe(final[0].waitlist_entry_id);
+        await setSettings(frontDesk());
+      });
+
       it("keeps w3 (Dr Beta) and the entry statuses untouched by Dr Alpha's slots", async () => {
         const { rows } = await c.query("select status from public.waitlist_entries where id = $1", [
           w3,
