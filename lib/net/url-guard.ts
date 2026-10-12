@@ -84,6 +84,8 @@ export function parsePublicHttpsUrl(raw: string): URL {
   }
   if (url.protocol !== "https:") throw new UnsafeUrlError("Only https:// URLs are allowed.");
   if (url.username || url.password) throw new UnsafeUrlError("URLs with embedded credentials are not allowed.");
+  // Only the standard HTTPS port: a user-supplied URL must not be a way to probe other services on a public host.
+  if (url.port && url.port !== "443") throw new UnsafeUrlError("Only the standard HTTPS port (443) is allowed.");
   const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, "");
   if (!host) throw new UnsafeUrlError("Enter a valid URL.");
   if (host === "localhost" || INTERNAL_SUFFIXES.some((s) => host.endsWith(s))) {

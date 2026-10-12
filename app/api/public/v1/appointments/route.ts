@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { serializeAppointment } from "@/lib/public-api/appointments";
+import { auditApiRead } from "@/lib/public-api/audit-read";
 import { decodeCursor, encodeCursor } from "@/lib/public-api/cursor";
 import { apiError, json, validationError } from "@/lib/public-api/http";
 import { apiRoute } from "@/lib/public-api/route";
@@ -52,6 +53,7 @@ export const GET = apiRoute("appointments:read", async ({ request, admin, ctx })
   const rows = data ?? [];
   const page = rows.slice(0, q.limit);
   const last = page[page.length - 1];
+  await auditApiRead(admin, ctx, "appointments", page.length);
   return json({
     data: page.map(serializeAppointment),
     next_cursor: rows.length > q.limit && last ? encodeCursor({ t: last.created_at, id: last.id }) : null,

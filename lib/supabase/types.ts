@@ -8542,6 +8542,54 @@ export type Database = {
           },
         ];
       };
+      wa_pricing_daily: {
+        Row: {
+          category: string;
+          cost: number;
+          country: string;
+          currency: string;
+          day: string;
+          org_id: string;
+          pricing_type: string;
+          synced_at: string;
+          volume: number;
+          waba_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          category: string;
+          cost: number;
+          country: string;
+          currency: string;
+          day: string;
+          org_id: string;
+          pricing_type: string;
+          synced_at?: string;
+          volume: number;
+          waba_id: string;
+        };
+        Update: {
+          category?: string;
+          cost?: number;
+          country?: string;
+          currency?: string;
+          day?: string;
+          org_id?: string;
+          pricing_type?: string;
+          synced_at?: string;
+          volume?: number;
+          waba_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "wa_pricing_daily_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       wa_templates: {
         Row: {
           archived_at: string | null;
@@ -10240,6 +10288,51 @@ export type Database = {
           },
         ];
       };
+      v_wa_cost_daily: {
+        Row: {
+          category: string | null;
+          cost: number | null;
+          country: string | null;
+          currency: string | null;
+          day: string | null;
+          org_id: string | null;
+          pricing_type: string | null;
+          volume: number | null;
+          waba_id: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          category?: string | null;
+          cost?: number | null;
+          country?: string | null;
+          currency?: string | null;
+          day?: string | null;
+          org_id?: string | null;
+          pricing_type?: string | null;
+          volume?: number | null;
+          waba_id?: string | null;
+        };
+        Update: {
+          category?: string | null;
+          cost?: number | null;
+          country?: string | null;
+          currency?: string | null;
+          day?: string | null;
+          org_id?: string | null;
+          pricing_type?: string | null;
+          volume?: number | null;
+          waba_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "wa_pricing_daily_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Functions: {
       api_read_log_hit: {
@@ -10255,6 +10348,54 @@ export type Database = {
           p_wa_message_id: string;
         };
         Returns: boolean;
+      };
+      book_appointment: {
+        Args: {
+          p_contact_id: string;
+          p_created_by: string;
+          p_department_id: string;
+          p_ends_at: string;
+          p_enforce: boolean;
+          p_location_id: string;
+          p_notes: string;
+          p_notify_early: boolean;
+          p_org_id: string;
+          p_service_id: string;
+          p_source: string;
+          p_specialist_id: string;
+          p_starts_at: string;
+          p_status: string;
+        };
+        Returns: {
+          channel_id: string | null;
+          contact_id: string | null;
+          created_at: string;
+          created_by: string | null;
+          custom: NonNullable<Json>;
+          department_id: string | null;
+          ends_at: string;
+          external_id: string | null;
+          external_status: string | null;
+          id: string;
+          location_id: string | null;
+          notes: string | null;
+          notify_early: boolean;
+          number: number;
+          org_id: string;
+          service_id: string | null;
+          source: string;
+          specialist_id: string | null;
+          starts_at: string;
+          status: string;
+          unite_clinic_id: string | null;
+          updated_at: string;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "appointments";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
       };
       campaign_add_csv_rows: {
         Args: {
@@ -10567,6 +10708,48 @@ export type Database = {
           p_user_id?: string;
         };
         Returns: undefined;
+      };
+      move_appointment: {
+        Args: {
+          p_appointment_id: string;
+          p_ends_at: string;
+          p_enforce: boolean;
+          p_location_id: string;
+          p_org_id: string;
+          p_specialist_id: string;
+          p_starts_at: string;
+          p_status: string;
+        };
+        Returns: {
+          channel_id: string | null;
+          contact_id: string | null;
+          created_at: string;
+          created_by: string | null;
+          custom: NonNullable<Json>;
+          department_id: string | null;
+          ends_at: string;
+          external_id: string | null;
+          external_status: string | null;
+          id: string;
+          location_id: string | null;
+          notes: string | null;
+          notify_early: boolean;
+          number: number;
+          org_id: string;
+          service_id: string | null;
+          source: string;
+          specialist_id: string | null;
+          starts_at: string;
+          status: string;
+          unite_clinic_id: string | null;
+          updated_at: string;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "appointments";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
       };
       offboard_member: {
         Args: { p_actor: string; p_membership: string; p_org: string; p_reassign_to?: string };
@@ -10886,6 +11069,16 @@ export type Database = {
           category: string;
           messages: number;
           status: string;
+        }[];
+      };
+      report_wa_cost_by_day: {
+        Args: { p_from: string; p_org: string; p_to: string };
+        Returns: {
+          category: string;
+          cost: number;
+          currency: string;
+          day: string;
+          volume: number;
         }[];
       };
       reserve_send_slot: { Args: { p_cap: number; p_channel_id: string }; Returns: number };

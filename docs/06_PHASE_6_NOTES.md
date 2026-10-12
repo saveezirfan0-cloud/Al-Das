@@ -24,7 +24,8 @@ Delivered in three steps on one branch: **6a Appointments**, **6b Unite sync + S
 ### Behaviour worth knowing
 
 - **Working hours are wall-clock minutes in the location's timezone** (ISO weekday 1–7). The slot engine converts to instants with `date-fns-tz`, so 09:00 stays 09:00 across a DST change. The clinic's working week and closed dates are booking-rule settings (OQ-07 is still open), not hard-coded.
-- **Appointments from every source block slots**, and a specialist can't be in two places: the overlap check is across all of their locations. Unite rows block too, which is what stops double-booking against the EMR.
+- **Appointments from every source block slots**, and a specialist can't be in two places: the overlap check is across all of their locations.
+- **Booking and moving re-check the slot under a lock** (migration `20261012000100`): `book_appointment` / `move_appointment` take a per-specialist advisory lock, re-check overlap against the same busy sources as the slot engine, then write, in one transaction, so two staff clicking the same slot at the same instant get one booking and one "just taken". Working hours and lead time stay in TypeScript. The staff override skips the overlap check (but still serialises). Unite rows block too, which is what stops double-booking against the EMR.
 - **Staff can book into the lead-time window** (lead time is for patient self-booking) but not into the past. "Book outside available hours" is an explicit override in the drawer.
 - **Reminders** are rows in `appointment_reminders` (unique per appointment + slot 1–3) plus one `scheduled_jobs` entry keyed `reminder:<appointment>:<slot>`. Defaults mirror today's Make run: only the 24 h reminder is on (slot 2). A reminder whose time has already passed when the appointment is booked is skipped, never sent late.
   - A reminder is re-planned when the appointment moves; cancelled/no-show/completed appointments cancel theirs.

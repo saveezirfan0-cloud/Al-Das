@@ -82,8 +82,15 @@ async function prepare(
   if (!conversation) return { error: "Conversation not found." };
 
   const admin = createAdminClient();
-  const limit = await checkRateLimit(admin, member.orgId, member.userId, settings.rate_limit_per_minute);
-  if (!limit.allowed) return { error: "You're using AI assist very quickly. Wait a few seconds and try again." };
+  const limit = await checkRateLimit(admin, member.orgId, member.userId, settings.rate_limit_per_minute, settings.daily_cap);
+  if (!limit.allowed) {
+    return {
+      error:
+        limit.reason === "daily"
+          ? "Your workspace has reached its daily AI limit. It resets tomorrow; an admin can raise it in Settings → AI & knowledge base."
+          : "You're using AI assist very quickly. Wait a few seconds and try again.",
+    };
+  }
 
   let llm: Llm;
   try {

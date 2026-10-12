@@ -160,10 +160,20 @@ export async function agentsReport(ctx: ReportContext): Promise<ReportResult> {
 export async function whatsappUsageReport(ctx: ReportContext): Promise<ReportResult> {
   const { admin, filters } = ctx;
   const args = { ...base(ctx), p_channels: arr(filters.channel_ids) };
-  const [byDay, totals] = await Promise.all([
+  const [byDay, totals, cost] = await Promise.all([
     rpc(admin.rpc("report_usage_by_day", args), "usage by day"),
     rpc(admin.rpc("report_usage_totals", args), "usage totals"),
+    rpc(admin.rpc("report_wa_cost_by_day", base(ctx)), "WhatsApp cost"),
   ]);
+  // Cost comes from Meta pricing analytics (nightly sync). One currency per WABA; mixed currencies are not summed.
+  const currencies = [...new Set(cost.map((c) => c.currency))];
+  const costTotal = currencies.length === 1 ? cost.reduce((sum, c) => sum + Number(c.cost), 0) : null;
+  const costByCategory = new Map<string, number>();
+  for (const c of cost) costByCategory.set(c.category, (costByCategory.get(c.category) ?? 0) + Number(c.cost));
+  const costByDay = new Map<string, number>();
+  for (const c of cost) costByDay.set(c.day, (costByDay.get(c.day) ?? 0) + Number(c.cost));
+  const unit = currencies.length === 1 ? currencies[0] : "";
+  const label = (t: string) => (unit ? `${t} (${unit})` : t);
   const sum = (f: (t: (typeof totals)[number]) => boolean) => totals.filter(f).reduce((s, t) => s + t.messages, 0);
   const all = sum(() => true);
   const failed = sum((t) => t.status === "failed");
@@ -175,6 +185,7 @@ export async function whatsappUsageReport(ctx: ReportContext): Promise<ReportRes
       { key: "template", label: "Template messages", value: sum((t) => t.category === "template"), format: "number" },
       { key: "free", label: "Free-form replies", value: sum((t) => t.category === "free_form"), format: "number", hint: "inside the 24-hour window" },
       { key: "failed", label: "Failed", value: failed, format: "number", hint: all > 0 ? `${Math.round((failed / all) * 1000) / 10}% of messages` : undefined },
+      { key: "cost", label: label("Cost"), value: costTotal, format: "number", hint: cost.length === 0 ? "no pricing data synced for this period" : currencies.length > 1 ? "several currencies, not summed" : "as billed by Meta" },
     ],
     charts: [
       {
@@ -188,6 +199,9 @@ export async function whatsappUsageReport(ctx: ReportContext): Promise<ReportRes
         ],
         data: byDay.map((d) => ({ day: d.day, template: d.template, free_form: d.free_form })),
       },
+      ...(costByCategory.size > 0 && currencies.length === 1
+        ? [{ kind: "hbars" as const, title: label("Cost by message category"), items: [...costByCategory.entries()].sort((a, b) => b[1] - a[1]).map(([name, value]) => ({ label: name[0] + name.slice(1).toLowerCase(), value })) }]
+        : []),
       { kind: "hbars", title: "By delivery status", items: [...byStatus.entries()].sort((a, b) => b[1] - a[1]).map(([label, value]) => ({ label: label[0].toUpperCase() + label.slice(1), value })) },
     ],
     table: {
@@ -196,10 +210,13 @@ export async function whatsappUsageReport(ctx: ReportContext): Promise<ReportRes
         { key: "template", label: "Template", format: "number" },
         { key: "free_form", label: "Free-form", format: "number" },
         { key: "failed", label: "Failed", format: "number" },
+        { key: "cost", label: label("Cost"), format: "number" },
       ],
-      rows: byDay.map((d) => ({ day: d.day, template: d.template, free_form: d.free_form, failed: d.failed })),
+      rows: byDay.map((d) => ({ day: d.day, template: d.template, free_form: d.free_form, failed: d.failed, cost: costByDay.has(String(d.day)) ? (costByDay.get(String(d.day)) ?? null) : null })),
     },
-    notes: ["Cost is not shown yet: it needs Meta pricing analytics, which is not ingested. Counts are by message type."],
+    notes: [
+      "Message counts come from Pulse. Cost comes from Meta's pricing analytics, synced nightly for the last week (Meta adjusts recent usage), per WhatsApp business account; the number filter does not apply to cost. Cost days are Meta's UTC days.",
+    ],
   };
 }
 

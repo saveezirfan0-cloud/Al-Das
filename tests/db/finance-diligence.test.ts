@@ -31,6 +31,11 @@ import {
 async function xlsx(rows: Array<Record<string, unknown>>, drop: string[] = []): Promise<Buffer> {
   const ExcelJS = (await import("exceljs")).default;
   const wb = new ExcelJS.Workbook();
+  // ExcelJS stamps the creation time into the file. Identical rows must give identical bytes (the import
+  // de-duplicates by SHA-256), or two builds that straddle a clock tick look like different files.
+  const fixed = new Date(Date.UTC(2026, 0, 1));
+  wb.created = fixed;
+  wb.modified = fixed;
   const ws = wb.addWorksheet("DataSheet");
   table(rows, drop).forEach((r) => ws.addRow(r));
   return Buffer.from(await wb.xlsx.writeBuffer());

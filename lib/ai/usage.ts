@@ -1,4 +1,5 @@
 import type { AiFeature, AiResult, AiStatus } from "@/lib/ai/types";
+import { checkRateLimit as checkLimit } from "@/lib/rate-limit";
 import type { AdminClient } from "@/lib/supabase/admin";
 
 /** ai_usage holds tokens, latency and outcome only. Never prompt or completion text. */
@@ -37,21 +38,24 @@ export async function recordUsage(
   return data.id;
 }
 
-/** Sliding one-minute limit per user, counted from ai_usage. */
+/**
+ * Per-user limit per minute plus a workspace-wide daily cap. Both use the atomic Postgres counter from
+ * lib/rate-limit.ts, which increments in the same statement it checks, so parallel requests cannot all
+ * slip under the limit the way a count-then-call check allowed. A counter failure fails open: it must
+ * not lock staff out of the inbox.
+ */
 export async function checkRateLimit(
   admin: AdminClient,
   orgId: string,
   userId: string,
   perMinute: number,
-  now = Date.now(),
-): Promise<{ allowed: boolean }> {
-  const since = new Date(now - 60_000).toISOString();
-  const { count, error } = await admin
-    .from("ai_usage")
-    .select("id", { count: "exact", head: true })
-    .eq("org_id", orgId)
-    .eq("user_id", userId)
-    .gte("created_at", since);
-  if (error) return { allowed: true }; // a counting failure must not lock staff out of the inbox
-  return { allowed: (count ?? 0) < perMinute };
+  dailyCap = 0,
+): Promise<{ allowed: boolean; reason?: "minute" | "daily" }> {
+  const minute = await checkLimit(admin, "ai-user", `${orgId}:${userId}`, { limit: perMinute, windowSec: 60, failOpen: true });
+  if (!minute.allowed) return { allowed: false, reason: "minute" };
+  if (dailyCap > 0) {
+    const day = await checkLimit(admin, "ai-org-day", orgId, { limit: dailyCap, windowSec: 86_400, failOpen: true });
+    if (!day.allowed) return { allowed: false, reason: "daily" };
+  }
+  return { allowed: true };
 }

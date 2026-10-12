@@ -34,6 +34,7 @@ export function AiSettingsCard({
 }) {
   const [enabled, setEnabled] = useState(settings.enabled);
   const [rate, setRate] = useState(String(settings.rate_limit_per_minute));
+  const [daily, setDaily] = useState(String(settings.daily_cap));
   const [groupIds, setGroupIds] = useState(settings.kb_group_ids);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -41,7 +42,7 @@ export function AiSettingsCard({
   function save() {
     setError(null);
     startTransition(async () => {
-      const r = await saveAiSettings({ enabled, rate_limit_per_minute: Number(rate), kb_group_ids: groupIds });
+      const r = await saveAiSettings({ enabled, rate_limit_per_minute: Number(rate), daily_cap: Number(daily), kb_group_ids: groupIds });
       if (r.ok) toast.success(r.message);
       else setError(r.error);
     });
@@ -95,6 +96,12 @@ export function AiSettingsCard({
         <div className="grid gap-2 md:max-w-xs">
           <Label htmlFor="ai-rate">Requests per person per minute</Label>
           <Input id="ai-rate" type="number" min={1} max={60} value={rate} onChange={(e) => setRate(e.target.value)} disabled={!canEdit} />
+        </div>
+
+        <div className="grid gap-2 md:max-w-xs">
+          <Label htmlFor="ai-daily">Daily limit for the whole workspace</Label>
+          <Input id="ai-daily" type="number" min={0} max={100000} value={daily} onChange={(e) => setDaily(e.target.value)} disabled={!canEdit} />
+          <p className="text-muted-foreground text-xs">A cost backstop across all staff. 0 turns the cap off.</p>
         </div>
 
         <div className="grid gap-2 md:max-w-md">

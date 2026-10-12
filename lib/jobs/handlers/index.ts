@@ -11,6 +11,7 @@ import "@/lib/jobs/handlers/inbox-housekeeping";
 import "@/lib/jobs/handlers/campaign-fanout";
 import "@/lib/jobs/handlers/campaign-tick";
 import "@/lib/jobs/handlers/templates-sync";
+import "@/lib/jobs/handlers/wa-pricing";
 import "@/lib/jobs/handlers/kb-ingest";
 import "@/lib/jobs/handlers/metrics-refresh";
 import "@/lib/jobs/handlers/security-maintenance";

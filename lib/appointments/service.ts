@@ -362,26 +362,28 @@ export async function createAppointment(
 
   const { settings } = await loadOrgSettings(admin, input.orgId);
   const endsAt = new Date(input.startsAt.getTime() + service.duration_min * 60_000);
-  const { data: appointment, error } = await admin
-    .from("appointments")
-    .insert({
-      org_id: input.orgId,
-      contact_id: input.contactId,
-      location_id: input.locationId,
-      specialist_id: input.specialistId,
-      service_id: input.serviceId,
-      department_id: service.department_id ?? specialist.department_id,
-      starts_at: input.startsAt.toISOString(),
-      ends_at: endsAt.toISOString(),
-      status: settings.auto_confirm ? "confirmed" : "awaiting",
-      notes: input.notes ?? null,
-      notify_early: input.notifyEarly ?? false,
-      source: input.source ?? "portal",
-      created_by: input.actorId,
-    })
-    .select("*")
-    .single();
-  if (error) return { ok: false, error: `Could not book: ${error.message}` };
+  // One transaction under a per-specialist lock: re-checks the slot and inserts, so two staff booking
+  // the same time at the same instant cannot both succeed (the TypeScript check above is only a fast path).
+  const { data: appointment, error } = await admin.rpc("book_appointment", {
+    p_org_id: input.orgId,
+    p_contact_id: input.contactId,
+    p_location_id: input.locationId,
+    p_specialist_id: input.specialistId,
+    p_service_id: input.serviceId,
+    p_department_id: (service.department_id ?? specialist.department_id) as string,
+    p_starts_at: input.startsAt.toISOString(),
+    p_ends_at: endsAt.toISOString(),
+    p_status: settings.auto_confirm ? "confirmed" : "awaiting",
+    p_notes: (input.notes ?? null) as string,
+    p_notify_early: input.notifyEarly ?? false,
+    p_source: input.source ?? "portal",
+    p_created_by: input.actorId as string,
+    p_enforce: !input.override,
+  });
+  if (error?.message === "slot_taken")
+    return { ok: false, error: "That time was just taken. Pick another slot." };
+  if (error || !appointment)
+    return { ok: false, error: `Could not book: ${error?.message ?? "unknown error"}` };
 
   await syncAppointmentReminders(admin, appointment, { settings });
   await addTimelineEvent(admin, {
@@ -528,20 +530,21 @@ export async function rescheduleAppointment(
     if (!ok) return { ok: false, error: "That time is not available for this specialist." };
   }
 
-  const { data: appointment, error } = await admin
-    .from("appointments")
-    .update({
-      starts_at: input.startsAt.toISOString(),
-      ends_at: new Date(input.startsAt.getTime() + durationMin * 60_000).toISOString(),
-      specialist_id: specialistId,
-      location_id: locationId,
-      // A moved appointment needs the patient's confirmation again.
-      status: current.status === "confirmed" ? "awaiting" : current.status,
-    })
-    .eq("id", current.id)
-    .select("*")
-    .single();
-  if (error) return { ok: false, error: error.message };
+  const { data: appointment, error } = await admin.rpc("move_appointment", {
+    p_org_id: input.orgId,
+    p_appointment_id: current.id,
+    p_location_id: locationId,
+    p_specialist_id: specialistId,
+    p_starts_at: input.startsAt.toISOString(),
+    p_ends_at: new Date(input.startsAt.getTime() + durationMin * 60_000).toISOString(),
+    // A moved appointment needs the patient's confirmation again.
+    p_status: current.status === "confirmed" ? "awaiting" : current.status,
+    p_enforce: !input.override,
+  });
+  if (error?.message === "slot_taken")
+    return { ok: false, error: "That time was just taken. Pick another slot." };
+  if (error || !appointment)
+    return { ok: false, error: error?.message ?? "Could not move the appointment." };
 
   await syncAppointmentReminders(admin, appointment);
   if (current.contact_id) {

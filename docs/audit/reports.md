@@ -137,6 +137,10 @@ Sources are `security_invoker` views revoked from API roles (`v_enquiry_facts`, 
 - **Conversion to appointments** (migration `20261010001100`, `report_enquiry_booking_conversion`): of the enquiries created in the period, the share whose contact has a non-cancelled appointment starting after the enquiry was created. Appointments carry no enquiry link, so the contact is the link; enquiries with no linked contact never count as booked; a no-show still counts as a booking. The team and staff filters do not apply to it.
 - Still awaiting: WhatsApp *cost*.
 
+### 5.1c WhatsApp cost (live once the nightly sync has run)
+
+`wa_pricing_daily` (migration `20261012000200`) holds Meta's daily pricing analytics per WABA, pricing category, pricing type and country, with the WABA currency. The `wa_pricing_sync` task (pg_cron 03:50 UTC) re-reads the last 8 days for every active WABA, one call per account, and upserts, because Meta adjusts recent usage. `report_wa_cost_by_day` feeds the WhatsApp usage report: a Cost KPI, cost by message category, and a cost column per day. Cost is per WABA, so the number filter does not apply to it; days are Meta's UTC days; mixed currencies are never summed. With no synced data the KPI shows "—" and says so, not zero. The parser fails closed on an unexpected shape (OQ-62: not yet verified live).
+
 ### 5.2 Data contract for the awaiting reports
 
 A report goes live when its source view exists with these columns and a `run` function is added to `lib/reports/registry.ts`. Days are org-timezone dates; every view carries `org_id`; materialized views follow the same access rules as the Phase 10 ones (revoked from API roles, read through a service-role function).

@@ -3,6 +3,7 @@ import "server-only";
 import { z } from "zod";
 
 import { emit } from "@/lib/events/emit";
+import { addTimelineEvent } from "@/lib/contacts/timeline";
 import { toE164 } from "@/lib/whatsapp/phone";
 import type { AdminClient } from "@/lib/supabase/admin";
 import type { Tables, TablesUpdate } from "@/lib/supabase/types";
@@ -34,6 +35,27 @@ const fields = {
   stop_marketing: z.literal(true, { error: "stop_marketing can only be set to true through the API." }),
 };
 
+/**
+ * Evidence for a marketing opt-in. The API refuses promotions_opt_in = true without it, so every opt-in
+ * that arrives by integration can be traced to where and when the patient agreed. It is written to the
+ * contact timeline (never to the contact row).
+ */
+const consent = z
+  .object({
+    source: z.string().trim().min(1).max(100),
+    obtained_at: z.string().datetime({ offset: true }),
+  })
+  .strict();
+
+const requireConsentWithOptIn = (v: { promotions_opt_in?: boolean; consent?: unknown }, ctx: z.RefinementCtx) => {
+  if (v.promotions_opt_in === true && !v.consent) {
+    ctx.addIssue({ code: "custom", path: ["consent"], message: "Send consent { source, obtained_at } when setting promotions_opt_in to true." });
+  }
+  if (v.consent && v.promotions_opt_in !== true) {
+    ctx.addIssue({ code: "custom", path: ["consent"], message: "consent is only accepted together with promotions_opt_in: true." });
+  }
+};
+
 export const createContactSchema = z
   .object({ phone: fields.phone })
   .extend({
@@ -48,8 +70,10 @@ export const createContactSchema = z
     external_id: fields.external_id.optional(),
     promotions_opt_in: fields.promotions_opt_in.optional(),
     stop_marketing: fields.stop_marketing.optional(),
+    consent: consent.optional(),
   })
-  .strict();
+  .strict()
+  .superRefine(requireConsentWithOptIn);
 export type CreateContactInput = z.infer<typeof createContactSchema>;
 
 export const updateContactSchema = z
@@ -66,10 +90,12 @@ export const updateContactSchema = z
     external_id: fields.external_id,
     promotions_opt_in: fields.promotions_opt_in,
     stop_marketing: fields.stop_marketing,
+    consent,
   })
   .partial()
   .strict()
-  .refine((v) => Object.keys(v).length > 0, "Send at least one field to update.");
+  .refine((v) => Object.keys(v).length > 0, "Send at least one field to update.")
+  .superRefine(requireConsentWithOptIn);
 export type UpdateContactInput = z.infer<typeof updateContactSchema>;
 
 type ContactRow = Tables<"contacts">;
@@ -143,7 +169,18 @@ export async function findContactsByPhone(admin: AdminClient, orgId: string, pho
   return found;
 }
 
-async function afterWrite(orgId: string, before: ContactRow | null, after: ContactRow) {
+type Consent = z.infer<typeof consent>;
+
+async function afterWrite(admin: AdminClient, orgId: string, before: ContactRow | null, after: ContactRow, evidence?: Consent) {
+  if (evidence && after.promotions_opt_in) {
+    await addTimelineEvent(admin, {
+      orgId,
+      contactId: after.id,
+      type: "consent.marketing_recorded",
+      actorType: "system",
+      payload: { channel: "api", source: evidence.source, obtained_at: evidence.obtained_at },
+    });
+  }
   if (!before) await emit(orgId, "contact.created", { contact_id: after.id, source: "api" });
   if (after.stop_marketing && !before?.stop_marketing) await emit(orgId, "contact.stop_marketing", { contact_id: after.id, source: "api" });
 }
@@ -160,7 +197,7 @@ export async function upsertContact(admin: AdminClient, orgId: string, input: Cr
       if (Object.keys(patch).length === 0) return { ok: true, contact: existing, created: false };
       const { data, error } = await admin.from("contacts").update(patch).eq("id", existing.id).eq("org_id", orgId).select("*").single();
       if (error) return error.code === "23505" ? conflict() : { ok: false, status: 500, code: "internal_error", message: "Could not update the contact." };
-      await afterWrite(orgId, existing, data);
+      await afterWrite(admin, orgId, existing, data, input.consent);
       return { ok: true, contact: data, created: false };
     }
     const { data, error } = await admin
@@ -169,7 +206,7 @@ export async function upsertContact(admin: AdminClient, orgId: string, input: Cr
       .select("*")
       .single();
     if (!error) {
-      await afterWrite(orgId, null, data);
+      await afterWrite(admin, orgId, null, data, input.consent);
       return { ok: true, contact: data, created: true };
     }
     if (error.code !== "23505") return { ok: false, status: 500, code: "internal_error", message: "Could not create the contact." };
@@ -192,6 +229,6 @@ export async function updateContact(admin: AdminClient, orgId: string, id: strin
   }
   const { data, error } = await admin.from("contacts").update(patch).eq("id", id).eq("org_id", orgId).select("*").single();
   if (error) return error.code === "23505" ? conflict() : { ok: false, status: 500, code: "internal_error", message: "Could not update the contact." };
-  await afterWrite(orgId, existing, data);
+  await afterWrite(admin, orgId, existing, data, input.consent);
   return { ok: true, contact: data, created: false };
 }

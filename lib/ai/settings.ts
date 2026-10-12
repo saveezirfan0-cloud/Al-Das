@@ -10,6 +10,8 @@ export const aiSettingsSchema = z.object({
   kb_group_ids: z.array(z.string().uuid()).max(50).default([]),
   /** Calls per user per minute, across all AI features. */
   rate_limit_per_minute: z.number().int().min(1).max(60).default(10),
+  /** Calls per day for the whole workspace, a cost backstop (0 = no cap). */
+  daily_cap: z.number().int().min(0).max(100_000).default(2000),
 });
 
 export type AiSettings = z.infer<typeof aiSettingsSchema>;
