@@ -390,16 +390,21 @@ export type Database = {
       };
       appointments: {
         Row: {
+          arrived_at: string | null;
           channel_id: string | null;
+          checked_out_at: string | null;
+          checkin_status: string | null;
           contact_id: string | null;
           created_at: string;
           created_by: string | null;
           custom: NonNullable<Json>;
           department_id: string | null;
+          done_at: string | null;
           ends_at: string;
           external_id: string | null;
           external_status: string | null;
           id: string;
+          is_walk_in: boolean;
           location_id: string | null;
           notes: string | null;
           notify_early: boolean;
@@ -412,19 +417,25 @@ export type Database = {
           status: string;
           unite_clinic_id: string | null;
           updated_at: string;
+          with_doctor_at: string | null;
         };
         ComputedFields: never;
         Insert: {
+          arrived_at?: string | null;
           channel_id?: string | null;
+          checked_out_at?: string | null;
+          checkin_status?: string | null;
           contact_id?: string | null;
           created_at?: string;
           created_by?: string | null;
           custom?: NonNullable<Json>;
           department_id?: string | null;
+          done_at?: string | null;
           ends_at: string;
           external_id?: string | null;
           external_status?: string | null;
           id?: string;
+          is_walk_in?: boolean;
           location_id?: string | null;
           notes?: string | null;
           notify_early?: boolean;
@@ -437,18 +448,24 @@ export type Database = {
           status?: string;
           unite_clinic_id?: string | null;
           updated_at?: string;
+          with_doctor_at?: string | null;
         };
         Update: {
+          arrived_at?: string | null;
           channel_id?: string | null;
+          checked_out_at?: string | null;
+          checkin_status?: string | null;
           contact_id?: string | null;
           created_at?: string;
           created_by?: string | null;
           custom?: NonNullable<Json>;
           department_id?: string | null;
+          done_at?: string | null;
           ends_at?: string;
           external_id?: string | null;
           external_status?: string | null;
           id?: string;
+          is_walk_in?: boolean;
           location_id?: string | null;
           notes?: string | null;
           notify_early?: boolean;
@@ -461,6 +478,7 @@ export type Database = {
           status?: string;
           unite_clinic_id?: string | null;
           updated_at?: string;
+          with_doctor_at?: string | null;
         };
         Relationships: [
           {
@@ -4138,6 +4156,187 @@ export type Database = {
           },
         ];
       };
+      handover_notes: {
+        Row: {
+          body: string;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          location_id: string | null;
+          org_id: string;
+          pinned: boolean;
+          resolved_at: string | null;
+          resolved_by: string | null;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          body: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          location_id?: string | null;
+          org_id: string;
+          pinned?: boolean;
+          resolved_at?: string | null;
+          resolved_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          body?: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          location_id?: string | null;
+          org_id?: string;
+          pinned?: boolean;
+          resolved_at?: string | null;
+          resolved_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "handover_notes_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "handover_notes_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "handover_notes_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "handover_notes_resolved_by_fkey";
+            columns: ["resolved_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      help_feedback: {
+        Row: {
+          created_at: string;
+          id: string;
+          kind: string;
+          message: string;
+          org_id: string;
+          page: string;
+          status: string;
+          user_id: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          id?: string;
+          kind?: string;
+          message: string;
+          org_id: string;
+          page: string;
+          status?: string;
+          user_id?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          kind?: string;
+          message?: string;
+          org_id?: string;
+          page?: string;
+          status?: string;
+          user_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "help_feedback_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "help_feedback_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      household_links: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          dependant_contact_id: string;
+          guardian_contact_id: string;
+          id: string;
+          org_id: string;
+          relationship: string;
+          reminders_to_guardian: boolean;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          dependant_contact_id: string;
+          guardian_contact_id: string;
+          id?: string;
+          org_id: string;
+          relationship?: string;
+          reminders_to_guardian?: boolean;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          dependant_contact_id?: string;
+          guardian_contact_id?: string;
+          id?: string;
+          org_id?: string;
+          relationship?: string;
+          reminders_to_guardian?: boolean;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "household_links_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "household_links_dependant_contact_id_fkey";
+            columns: ["dependant_contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "household_links_guardian_contact_id_fkey";
+            columns: ["guardian_contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "household_links_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       inbox_views: {
         Row: {
           created_at: string;
@@ -4925,6 +5124,9 @@ export type Database = {
           created_at: string;
           external_id: string | null;
           id: string;
+          latitude: number | null;
+          longitude: number | null;
+          maps_url: string | null;
           name: string;
           org_id: string;
           photo_path: string | null;
@@ -4938,6 +5140,9 @@ export type Database = {
           created_at?: string;
           external_id?: string | null;
           id?: string;
+          latitude?: number | null;
+          longitude?: number | null;
+          maps_url?: string | null;
           name: string;
           org_id: string;
           photo_path?: string | null;
@@ -4950,6 +5155,9 @@ export type Database = {
           created_at?: string;
           external_id?: string | null;
           id?: string;
+          latitude?: number | null;
+          longitude?: number | null;
+          maps_url?: string | null;
           name?: string;
           org_id?: string;
           photo_path?: string | null;
@@ -5549,6 +5757,7 @@ export type Database = {
         Row: {
           created_at: string;
           id: string;
+          is_training: boolean;
           name: string;
           settings: NonNullable<Json>;
           slug: string;
@@ -5559,6 +5768,7 @@ export type Database = {
         Insert: {
           created_at?: string;
           id?: string;
+          is_training?: boolean;
           name: string;
           settings?: NonNullable<Json>;
           slug: string;
@@ -5568,6 +5778,7 @@ export type Database = {
         Update: {
           created_at?: string;
           id?: string;
+          is_training?: boolean;
           name?: string;
           settings?: NonNullable<Json>;
           slug?: string;
@@ -6316,9 +6527,11 @@ export type Database = {
           created_at: string;
           created_by: string | null;
           id: string;
+          label: string | null;
           org_id: string;
           shortcut: string;
           text: string;
+          text_ar: string | null;
           updated_at: string;
         };
         ComputedFields: never;
@@ -6326,18 +6539,22 @@ export type Database = {
           created_at?: string;
           created_by?: string | null;
           id?: string;
+          label?: string | null;
           org_id: string;
           shortcut: string;
           text: string;
+          text_ar?: string | null;
           updated_at?: string;
         };
         Update: {
           created_at?: string;
           created_by?: string | null;
           id?: string;
+          label?: string | null;
           org_id?: string;
           shortcut?: string;
           text?: string;
+          text_ar?: string | null;
           updated_at?: string;
         };
         Relationships: [
@@ -7508,6 +7725,127 @@ export type Database = {
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      slot_offers: {
+        Row: {
+          appointment_id: string | null;
+          created_at: string;
+          ends_at: string;
+          expires_at: string;
+          failure_reason: string | null;
+          id: string;
+          location_id: string;
+          message_id: string | null;
+          org_id: string;
+          responded_at: string | null;
+          sent_as: string | null;
+          service_id: string;
+          source_appointment_id: string | null;
+          specialist_id: string;
+          starts_at: string;
+          status: string;
+          updated_at: string;
+          waitlist_entry_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          appointment_id?: string | null;
+          created_at?: string;
+          ends_at: string;
+          expires_at: string;
+          failure_reason?: string | null;
+          id?: string;
+          location_id: string;
+          message_id?: string | null;
+          org_id: string;
+          responded_at?: string | null;
+          sent_as?: string | null;
+          service_id: string;
+          source_appointment_id?: string | null;
+          specialist_id: string;
+          starts_at: string;
+          status?: string;
+          updated_at?: string;
+          waitlist_entry_id: string;
+        };
+        Update: {
+          appointment_id?: string | null;
+          created_at?: string;
+          ends_at?: string;
+          expires_at?: string;
+          failure_reason?: string | null;
+          id?: string;
+          location_id?: string;
+          message_id?: string | null;
+          org_id?: string;
+          responded_at?: string | null;
+          sent_as?: string | null;
+          service_id?: string;
+          source_appointment_id?: string | null;
+          specialist_id?: string;
+          starts_at?: string;
+          status?: string;
+          updated_at?: string;
+          waitlist_entry_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "slot_offers_appointment_id_fkey";
+            columns: ["appointment_id"];
+            isOneToOne: false;
+            referencedRelation: "appointments";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "slot_offers_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "slot_offers_message_id_fkey";
+            columns: ["message_id"];
+            isOneToOne: false;
+            referencedRelation: "messages";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "slot_offers_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "slot_offers_service_id_fkey";
+            columns: ["service_id"];
+            isOneToOne: false;
+            referencedRelation: "services";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "slot_offers_source_appointment_id_fkey";
+            columns: ["source_appointment_id"];
+            isOneToOne: false;
+            referencedRelation: "appointments";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "slot_offers_specialist_id_fkey";
+            columns: ["specialist_id"];
+            isOneToOne: false;
+            referencedRelation: "specialists";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "slot_offers_waitlist_entry_id_fkey";
+            columns: ["waitlist_entry_id"];
+            isOneToOne: false;
+            referencedRelation: "waitlist_entries";
             referencedColumns: ["id"];
           },
         ];
@@ -8859,6 +9197,105 @@ export type Database = {
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      waitlist_entries: {
+        Row: {
+          booked_appointment_id: string | null;
+          contact_id: string;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          location_id: string | null;
+          not_after: string | null;
+          notes: string | null;
+          org_id: string;
+          service_id: string | null;
+          specialist_id: string | null;
+          status: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          booked_appointment_id?: string | null;
+          contact_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          location_id?: string | null;
+          not_after?: string | null;
+          notes?: string | null;
+          org_id: string;
+          service_id?: string | null;
+          specialist_id?: string | null;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          booked_appointment_id?: string | null;
+          contact_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          location_id?: string | null;
+          not_after?: string | null;
+          notes?: string | null;
+          org_id?: string;
+          service_id?: string | null;
+          specialist_id?: string | null;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "waitlist_entries_booked_appointment_id_fkey";
+            columns: ["booked_appointment_id"];
+            isOneToOne: false;
+            referencedRelation: "appointments";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "waitlist_entries_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "waitlist_entries_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "waitlist_entries_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "waitlist_entries_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "waitlist_entries_service_id_fkey";
+            columns: ["service_id"];
+            isOneToOne: false;
+            referencedRelation: "services";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "waitlist_entries_specialist_id_fkey";
+            columns: ["specialist_id"];
+            isOneToOne: false;
+            referencedRelation: "specialists";
             referencedColumns: ["id"];
           },
         ];
@@ -10501,6 +10938,10 @@ export type Database = {
       };
     };
     Functions: {
+      accept_slot_offer: {
+        Args: { p_now?: string; p_offer_id: string; p_org_id: string };
+        Returns: Json;
+      };
       api_read_log_hit: {
         Args: { p_key: string; p_org: string; p_resource: string; p_rows: number };
         Returns: number;
@@ -10533,16 +10974,21 @@ export type Database = {
           p_status: string;
         };
         Returns: {
+          arrived_at: string | null;
           channel_id: string | null;
+          checked_out_at: string | null;
+          checkin_status: string | null;
           contact_id: string | null;
           created_at: string;
           created_by: string | null;
           custom: NonNullable<Json>;
           department_id: string | null;
+          done_at: string | null;
           ends_at: string;
           external_id: string | null;
           external_status: string | null;
           id: string;
+          is_walk_in: boolean;
           location_id: string | null;
           notes: string | null;
           notify_early: boolean;
@@ -10555,6 +11001,7 @@ export type Database = {
           status: string;
           unite_clinic_id: string | null;
           updated_at: string;
+          with_doctor_at: string | null;
         };
         SetofOptions: {
           from: "*";
@@ -10897,16 +11344,21 @@ export type Database = {
           p_status: string;
         };
         Returns: {
+          arrived_at: string | null;
           channel_id: string | null;
+          checked_out_at: string | null;
+          checkin_status: string | null;
           contact_id: string | null;
           created_at: string;
           created_by: string | null;
           custom: NonNullable<Json>;
           department_id: string | null;
+          done_at: string | null;
           ends_at: string;
           external_id: string | null;
           external_status: string | null;
           id: string;
+          is_walk_in: boolean;
           location_id: string | null;
           notes: string | null;
           notify_early: boolean;
@@ -10919,6 +11371,7 @@ export type Database = {
           status: string;
           unite_clinic_id: string | null;
           updated_at: string;
+          with_doctor_at: string | null;
         };
         SetofOptions: {
           from: "*";

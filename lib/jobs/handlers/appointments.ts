@@ -7,6 +7,10 @@ import {
   syncAppointmentReminders,
 } from "@/lib/appointments/service";
 import { applyReminderReply } from "@/lib/appointments/replies";
+import { expireOffer, handleOfferReply, offerFreedSlot } from "@/lib/front-desk/offers";
+import { classifyOfferButton, classifyOfferReply } from "@/lib/front-desk/waitlist";
+import { resolveRecipient, type HouseholdContact } from "@/lib/household/addressing";
+import { loadHouseholdLink } from "@/lib/household/server";
 import { emit, on } from "@/lib/events/emit";
 import { registerHandler } from "@/lib/jobs/registry";
 import { registerTask } from "@/lib/jobs/tasks";
@@ -26,6 +30,23 @@ import type { TablesUpdate } from "@/lib/supabase/types";
 const job = z.object({
   org_id: z.string().uuid(),
   payload: z.object({ reminder_id: z.string().uuid() }),
+});
+
+/** Phase 14: the waiting list rides the same queue (kinds 'waitlist.freed' and 'waitlist.expire'). */
+const freedJob = z.object({
+  org_id: z.string().uuid(),
+  payload: z.object({
+    source_appointment_id: z.string().uuid().nullable(),
+    specialist_id: z.string().uuid(),
+    location_id: z.string().uuid(),
+    service_id: z.string().uuid().nullable(),
+    starts_at: z.string().datetime({ offset: true }),
+    ends_at: z.string().datetime({ offset: true }),
+  }),
+});
+const expireJob = z.object({
+  org_id: z.string().uuid(),
+  payload: z.object({ offer_id: z.string().uuid() }),
 });
 
 const STALE_SLACK_MS = 60_000;
@@ -70,7 +91,7 @@ export async function processReminder(
   const [{ data: contact }, { data: specialist }, { settings }] = await Promise.all([
     admin
       .from("contacts")
-      .select("full_name, phone_e164")
+      .select("id, full_name, first_name, last_name, phone_e164, wa_bsuid")
       .eq("id", appt.contact_id)
       .eq("org_id", orgId)
       .maybeSingle(),
@@ -89,9 +110,17 @@ export async function processReminder(
     await finish({ status: "excluded", exclusion_reason: "exclusion_list" });
     return "excluded";
   }
+  // Test mode checks the number the message would actually go to (a dependant's goes to the guardian's).
+  const target = contact
+    ? resolveRecipient(
+        contact as HouseholdContact,
+        await loadHouseholdLink(admin, orgId, contact.id),
+      )
+    : null;
+  const sendsTo = target?.recipient.phone_e164 ?? contact?.phone_e164 ?? null;
   if (
     settings.reminder_test_mode &&
-    !(contact?.phone_e164 && settings.reminder_test_numbers.includes(contact.phone_e164))
+    !(sendsTo && settings.reminder_test_numbers.includes(sendsTo))
   ) {
     await finish({ status: "excluded", exclusion_reason: "test_mode" });
     return "excluded";
@@ -214,6 +243,23 @@ registerHandler({
   maxReads: 5,
   concurrency: "serial",
   async handler(raw, ctx) {
+    const kind = (raw as { kind?: unknown } | null)?.kind;
+    if (kind === "waitlist.freed") {
+      const p = freedJob.safeParse(raw);
+      if (!p.success)
+        throw new PermanentJobError(`invalid waitlist job: ${p.error.issues[0]?.message}`);
+      const res = await offerFreedSlot(ctx.admin, { orgId: p.data.org_id, slot: p.data.payload });
+      ctx.log.info("freed slot processed", { ...res });
+      return;
+    }
+    if (kind === "waitlist.expire") {
+      const p = expireJob.safeParse(raw);
+      if (!p.success)
+        throw new PermanentJobError(`invalid waitlist job: ${p.error.issues[0]?.message}`);
+      const res = await expireOffer(ctx.admin, p.data.org_id, p.data.payload.offer_id);
+      ctx.log.info("offer expiry processed", { result: res });
+      return;
+    }
     const parsed = job.safeParse(raw);
     if (!parsed.success)
       throw new PermanentJobError(`invalid appointment job: ${parsed.error.issues[0]?.message}`);
@@ -235,6 +281,36 @@ on("message.received", async (event) => {
       type?: string | null;
       id?: string | null;
       title?: string | null;
+    },
+  });
+});
+
+// A patient answering a waiting-list offer: a tap on the offer template's buttons, or a typed YES / NO.
+// First YES wins inside accept_slot_offer(); this listener only reads the answer.
+on("message.received", async (event) => {
+  const p = event.payload;
+  if (typeof p.contact_id !== "string" || typeof p.conversation_id !== "string") return;
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
+  const interactive = p.interactive as { id?: string | null; title?: string | null } | null;
+  const messageId = typeof p.message_id === "string" ? p.message_id : null;
+  await handleOfferReply(admin, {
+    orgId: event.orgId,
+    contactId: p.contact_id,
+    conversationId: p.conversation_id,
+    viaButton: !!interactive,
+    replyToWaMessageId:
+      typeof p.reply_to_wa_message_id === "string" ? p.reply_to_wa_message_id : null,
+    intent: async () => {
+      if (interactive) return classifyOfferButton(interactive);
+      if (p.kind !== "text" || !messageId) return "unknown";
+      const { data } = await admin
+        .from("messages")
+        .select("body")
+        .eq("id", messageId)
+        .eq("org_id", event.orgId)
+        .maybeSingle();
+      return classifyOfferReply(data?.body);
     },
   });
 });

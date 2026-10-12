@@ -17,9 +17,11 @@ import {
   createAuthUser,
   createOrg,
   PHASE13_TABLES,
+  PHASE14_TABLES,
   PHASE15_TABLES,
   resetDb,
   seedPhase13Rows,
+  seedPhase14Rows,
   seedSecurityRows,
   TEST_DATABASE_URL,
 } from "./helpers";
@@ -228,6 +230,8 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
     await seedSecurityRows(c, orgA, alice);
     // Phase 13 tables likewise.
     await seedPhase13Rows(c, orgA, alice);
+    // Phase 14 tables likewise.
+    await seedPhase14Rows(c, orgA, alice);
   });
   afterAll(async () => {
     await resetDb(c);
@@ -238,13 +242,13 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
     expect(orgTables.length).toBeGreaterThanOrEqual(25);
   });
 
-  it("sweeps every Phase 13 and Phase 15 table (a new table must be added to PHASE13_TABLES / PHASE15_TABLES and seeded)", () => {
-    for (const t of [...PHASE15_TABLES, ...PHASE13_TABLES]) expect(orgTables, `${t} is not in the org sweep`).toContain(t);
+  it("sweeps every Phase 13, 14 and 15 table (a new table must be added to PHASE13_TABLES / PHASE14_TABLES / PHASE15_TABLES and seeded)", () => {
+    for (const t of [...PHASE15_TABLES, ...PHASE14_TABLES, ...PHASE13_TABLES]) expect(orgTables, `${t} is not in the org sweep`).toContain(t);
   });
 
-  it("really holds org A rows in the Phase 13 and 15 tables, visible to org A's admin (control for the leak sweep)", async () => {
+  it("really holds org A rows in the Phase 13, 14 and 15 tables, visible to org A's admin (control for the leak sweep)", async () => {
     await asUser(c, alice, async () => {
-      for (const t of [...PHASE15_TABLES, ...PHASE13_TABLES]) {
+      for (const t of [...PHASE15_TABLES, ...PHASE14_TABLES, ...PHASE13_TABLES]) {
         const { rows } = await c.query<{ n: string }>(`select count(*)::text as n from public.${t} where org_id = $1`, [orgA]);
         expect(Number(rows[0].n), t).toBeGreaterThan(0);
       }

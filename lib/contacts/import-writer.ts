@@ -9,6 +9,7 @@
  */
 import { coerceCustomObject, type CustomFieldDef } from "@/lib/contacts/custom-values";
 import type { PreparedContact } from "@/lib/contacts/import";
+import { decidePhoneMatch, type PhoneCandidate } from "@/lib/household/shared-phone";
 import type { AdminClient } from "@/lib/supabase/admin";
 import type { Json, TablesUpdate } from "@/lib/supabase/types";
 
@@ -198,7 +199,7 @@ export type MatchResult =
       kind: "match";
       id: string;
       custom: Record<string, unknown>;
-      on: "external_id" | "phone" | "name_dob";
+      on: "external_id" | "phone" | "household_phone" | "name_dob";
     }
   | { kind: "ambiguous"; candidates: Array<{ contact_id: string; matched_on: string }> };
 
@@ -262,6 +263,54 @@ export async function matchContact(
         .is("deleted_at", null);
       for (const c of altContacts ?? []) ids.set(c.id, custom(c));
     }
+
+    // Families share numbers. When the incoming record says who it is (PIN, name, date of birth), compare it
+    // with whoever holds the number AND with that person's dependants: a child arriving on the mother's
+    // number is the child, or a shared phone for a human to sort out, never silently the mother.
+    const evidence = !!(m.externalId || m.fullName || m.dob);
+    if (ids.size > 0 && evidence) {
+      const holders = [...ids.keys()];
+      const { data: links } = await admin
+        .from("household_links")
+        .select("dependant_contact_id")
+        .eq("org_id", orgId)
+        .in("guardian_contact_id", holders);
+      const dependantIds = (links ?? []).map((l) => l.dependant_contact_id);
+      const { data: rows } = await admin
+        .from("contacts")
+        .select("id, full_name, dob, external_id, custom")
+        .eq("org_id", orgId)
+        .is("deleted_at", null)
+        .in("id", [...holders, ...dependantIds]);
+      const customById = new Map((rows ?? []).map((r) => [r.id, custom(r)]));
+      const candidates: PhoneCandidate[] = (rows ?? []).map((r) => ({
+        id: r.id,
+        fullName: r.full_name,
+        dob: r.dob,
+        externalId: r.external_id,
+        dependant: dependantIds.includes(r.id) && !holders.includes(r.id),
+      }));
+      const decision = decidePhoneMatch(
+        { externalId: m.externalId, fullName: m.fullName, dob: m.dob },
+        candidates,
+      );
+      if (decision?.kind === "match")
+        return {
+          kind: "match",
+          id: decision.id,
+          custom: customById.get(decision.id) ?? {},
+          on: decision.dependant ? "household_phone" : "phone",
+        };
+      if (decision?.kind === "ambiguous")
+        return {
+          kind: "ambiguous",
+          candidates: decision.ids.map((contact_id) => ({
+            contact_id,
+            matched_on: decision.reason === "shared_phone" ? "shared_phone" : "phone",
+          })),
+        };
+    }
+
     if (ids.size === 1) {
       const [id, cu] = [...ids.entries()][0];
       return { kind: "match", id, custom: cu, on: "phone" };

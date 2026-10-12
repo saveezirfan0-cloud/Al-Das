@@ -40,6 +40,7 @@ registerKind("inbox.escalate", "notifications");
 registerKind("campaign.*", "campaign_fanout");
 registerKind("webhook.retry", "webhooks_out");
 registerKind("appointment.reminder", "appointments");
+registerKind("waitlist.*", "appointments");
 registerKind("flow.*", "flow_steps");
 
 export {};

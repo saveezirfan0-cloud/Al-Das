@@ -11,7 +11,11 @@ import type { AdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/types";
 
 export type ReviewAction =
-  { kind: "link"; contactId: string } | { kind: "create" } | { kind: "dismiss" };
+  | { kind: "link"; contactId: string }
+  | { kind: "create" }
+  /** Phase 14: the patient shares the guardian's phone. Create them without the number and link them under it. */
+  | { kind: "create_dependant"; guardianId: string }
+  | { kind: "dismiss" };
 
 export type ReviewResult =
   { ok: true; contactId: string | null; linkedAppointments: number } | { ok: false; error: string };
@@ -81,11 +85,26 @@ export async function resolveSyncReview(
   } else {
     if (!incoming.name && !incoming.phone)
       return { ok: false, error: "Unite sent no name or phone to create a patient from." };
+    let guardianId: string | null = null;
+    if (o.action.kind === "create_dependant") {
+      if (!incoming.name)
+        return { ok: false, error: "Unite sent no name to create a dependant from." };
+      const { data: guardian } = await admin
+        .from("contacts")
+        .select("id")
+        .eq("id", o.action.guardianId)
+        .eq("org_id", o.orgId)
+        .is("deleted_at", null)
+        .maybeSingle();
+      if (!guardian) return { ok: false, error: "That guardian was not found." };
+      guardianId = guardian.id;
+    }
     const parts = incoming.name.split(/\s+/).filter(Boolean);
     const contact: PreparedContact = {
       first_name: parts[0] ?? "",
       last_name: parts.slice(1).join(" "),
-      phone_e164: incoming.phone,
+      // A dependant has no number of their own: the shared one stays with the guardian.
+      phone_e164: guardianId ? null : incoming.phone,
       alternate_phones: [],
       email: null,
       gender: null,
@@ -115,6 +134,17 @@ export async function resolveSyncReview(
     if (!res.ok)
       return { ok: false, error: `${res.error} Link the item to the existing patient instead.` };
     contactId = res.id;
+    if (guardianId) {
+      const { error: linkError } = await admin.from("household_links").insert({
+        org_id: o.orgId,
+        guardian_contact_id: guardianId,
+        dependant_contact_id: contactId,
+        relationship: "child",
+        created_by: o.userId,
+      });
+      if (linkError)
+        return { ok: false, error: "The patient was created but could not be linked to the guardian." };
+    }
   }
 
   if (incoming.pin)

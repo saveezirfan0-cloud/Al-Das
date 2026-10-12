@@ -13,6 +13,11 @@ export type ActionResult = { ok: true; message?: string } | { ok: false; error: 
 const schema = z.discriminatedUnion("action", [
   z.object({ id: z.string().uuid(), action: z.literal("link"), contactId: z.string().uuid() }),
   z.object({ id: z.string().uuid(), action: z.literal("create") }),
+  z.object({
+    id: z.string().uuid(),
+    action: z.literal("create_dependant"),
+    guardianId: z.string().uuid(),
+  }),
   z.object({ id: z.string().uuid(), action: z.literal("dismiss") }),
 ]);
 
@@ -31,7 +36,9 @@ export async function resolveReview(input: z.input<typeof schema>): Promise<Acti
         ? { kind: "link", contactId: d.contactId }
         : d.action === "create"
           ? { kind: "create" }
-          : { kind: "dismiss" },
+          : d.action === "create_dependant"
+            ? { kind: "create_dependant", guardianId: d.guardianId }
+            : { kind: "dismiss" },
   });
   if (!res.ok) return { ok: false, error: res.error };
   await recordAudit(admin, {

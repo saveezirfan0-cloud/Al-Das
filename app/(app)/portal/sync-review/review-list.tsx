@@ -33,6 +33,8 @@ export type ReviewItem = {
 
 const REASONS: Record<string, string> = {
   no_match: "No patient in Pulse matches",
+  shared_phone:
+    "This phone number belongs to someone else in Pulse (probably a family member). Link as a dependant or create a separate patient",
   multiple_phone_matches: "More than one patient has this phone number",
   multiple_external_id_matches: "More than one patient has this Unite PIN",
   multiple_name_dob_matches: "More than one patient has this name and date of birth",
@@ -122,14 +124,31 @@ function ReviewCard({ item, canResolve }: { item: ReviewItem; canResolve: boolea
                   </span>
                 </span>
                 {open && canResolve && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={pending}
-                    onClick={() => run({ id: item.id, action: "link", contactId: c.id })}
-                  >
-                    Link to this patient
-                  </Button>
+                  <span className="flex flex-wrap justify-end gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={pending}
+                      onClick={() => run({ id: item.id, action: "link", contactId: c.id })}
+                    >
+                      Link to this patient
+                    </Button>
+                    {item.reason === "shared_phone" && item.incoming.name && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={pending}
+                        onClick={() =>
+                          run(
+                            { id: item.id, action: "create_dependant", guardianId: c.id },
+                            `Create ${item.incoming.name} as a dependant of ${c.name}? Reminders will go to ${c.name}'s number.`,
+                          )
+                        }
+                      >
+                        Create as their dependant
+                      </Button>
+                    )}
+                  </span>
                 )}
               </li>
             ))}

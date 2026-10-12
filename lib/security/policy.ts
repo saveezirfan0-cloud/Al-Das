@@ -139,6 +139,12 @@ export const AUDIT_EXEMPT: Record<string, string> = {
     "Caller's own notification preferences.",
   "app/(app)/settings/notifications/actions.ts::removePushDevice":
     "Caller's own device registration; the push_subscriptions row itself is the record.",
+  "app/(app)/front-desk/actions.ts::setCheckin":
+    "High-volume desk work (four taps per patient). appointments is a history-tracked table, so record_history names the person, the field and the time of every change (the action writes through createAdminClient(userId)).",
+  "app/(app)/front-desk/actions.ts::addHandoverNote":
+    "The note is itself the attributed record (created_by, created_at); it carries no audit-worthy configuration.",
+  "app/(app)/front-desk/actions.ts::resolveHandoverNote":
+    "The note records who resolved it and when (resolved_by, resolved_at).",
 };
 
 /** Modules allowed to read channel_secrets (they decrypt or store the Meta token). */

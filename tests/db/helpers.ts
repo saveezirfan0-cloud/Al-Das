@@ -156,3 +156,31 @@ export function userJwt(userId: string): string {
   const sig = createHmac("sha256", "pulse-test-jwt-secret-pulse-test-jwt-secret").update(`${head}.${body}`).digest("base64url");
   return `${head}.${body}.${sig}`;
 }
+
+/**
+ * One row in every Phase 14 table (handover notes, feedback, household links, waiting list, slot offers) for an
+ * org, so the cross-org sweeps are not vacuous for them. Synthetic names and reserved test numbers only.
+ */
+export async function seedPhase14Rows(c: Client, orgId: string, userId: string) {
+  const ids: Record<string, string> = {};
+  await asServiceRole(c, async () => {
+    const one = async (sql: string, params: unknown[]) => (await c.query<{ id: string }>(sql + " returning id::text", params)).rows[0].id;
+    ids.location = await one("insert into public.locations (org_id, name) values ($1, 'Seed clinic 14')", [orgId]);
+    ids.specialist = await one("insert into public.specialists (org_id, name) values ($1, 'Dr Seed 14')", [orgId]);
+    ids.service = await one("insert into public.services (org_id, name, duration_min) values ($1, 'Seed consult 14', 30)", [orgId]);
+    ids.guardian = await one("insert into public.contacts (org_id, first_name, last_name, phone_e164) values ($1, 'Guardian', 'Seed', '+971500000141')", [orgId]);
+    ids.dependant = await one("insert into public.contacts (org_id, first_name, last_name) values ($1, 'Dependant', 'Seed')", [orgId]);
+    ids.link = await one("insert into public.household_links (org_id, guardian_contact_id, dependant_contact_id, created_by) values ($1, $2, $3, $4)", [orgId, ids.guardian, ids.dependant, userId]);
+    ids.entry = await one("insert into public.waitlist_entries (org_id, contact_id, specialist_id, service_id, created_by) values ($1, $2, $3, $4, $5)", [orgId, ids.guardian, ids.specialist, ids.service, userId]);
+    ids.offer = await one(
+      "insert into public.slot_offers (org_id, waitlist_entry_id, specialist_id, location_id, service_id, starts_at, ends_at, expires_at) values ($1, $2, $3, $4, $5, now() + interval '2 days', now() + interval '2 days 30 minutes', now() + interval '1 day')",
+      [orgId, ids.entry, ids.specialist, ids.location, ids.service],
+    );
+    ids.note = await one("insert into public.handover_notes (org_id, body, created_by) values ($1, 'Seed handover note', $2)", [orgId, userId]);
+    ids.feedback = await one("insert into public.help_feedback (org_id, user_id, page, kind, message) values ($1, $2, '/front-desk', 'idea', 'Seed feedback')", [orgId, userId]);
+  });
+  return ids;
+}
+
+/** The tables Phase 14 added, for catalogue assertions. */
+export const PHASE14_TABLES = ["handover_notes", "help_feedback", "household_links", "slot_offers", "waitlist_entries"] as const;

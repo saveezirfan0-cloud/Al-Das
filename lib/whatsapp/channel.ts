@@ -4,6 +4,7 @@ import { decryptSecret, encryptSecret } from "@/lib/crypto";
 import { serverEnv } from "@/lib/env";
 import type { AdminClient } from "@/lib/supabase/admin";
 import type { Tables } from "@/lib/supabase/types";
+import { assertNotTraining } from "@/lib/training/mode";
 import { WhatsAppClient } from "@/lib/whatsapp/client";
 
 export type ChannelRow = Tables<"channels">;
@@ -67,6 +68,13 @@ export async function clientForChannel(
   channel: Pick<ChannelRow, "id" | "phone_number_id" | "waba_id">,
   fetchImpl?: typeof fetch,
 ): Promise<WhatsAppClient> {
+  // Second line of defence behind the outbound handler: a training workspace never builds a Meta client.
+  const { data: owner } = await admin
+    .from("channels")
+    .select("org_id")
+    .eq("id", channel.id)
+    .maybeSingle();
+  if (owner) await assertNotTraining(admin, owner.org_id);
   const token = await channelAccessToken(admin, channel.id);
   return new WhatsAppClient({
     accessToken: token,

@@ -11,6 +11,7 @@ import {
   CheckSquare,
   ChevronsLeft,
   ChevronsRight,
+  ConciergeBell,
   Contact,
   Landmark,
   FileText,
@@ -32,6 +33,7 @@ import { useBadgedItems } from "./shell-data";
 
 const ICONS: Record<NavIcon, React.ComponentType<{ className?: string }>> = {
   dashboard: LayoutDashboard,
+  frontdesk: ConciergeBell,
   inbox: Inbox,
   contacts: Contact,
   enquiries: KanbanSquare,
