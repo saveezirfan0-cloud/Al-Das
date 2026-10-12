@@ -1,5 +1,7 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
+
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -8,7 +10,11 @@ import { requirePerm } from "@/lib/auth/session";
 import { sendEmail } from "@/lib/email";
 import { serverEnv } from "@/lib/env";
 import { generateInviteToken, inviteExpiry, inviteUrl } from "@/lib/invites/token";
+import { createNotification } from "@/lib/notifications";
+import { raiseAlert } from "@/lib/security/alerts";
+import { roleChangeAlert } from "@/lib/security/anomaly";
 import { createAdminClient } from "@/lib/supabase/admin";
+import type { Json } from "@/lib/supabase/types";
 
 export type ActionResult =
   { ok: true; message?: string; link?: string } | { ok: false; error: string };
@@ -279,6 +285,18 @@ export async function changeMemberRole(
     entityId: membershipId,
     diff: { from: target.role_id, to: roleId, user_id: target.user_id },
   });
+  await raiseAlert(
+    admin,
+    member.orgId,
+    roleChangeAlert({
+      actorId: member.userId,
+      kind: "member_role_changed",
+      targetId: target.user_id,
+      roleName: role.name,
+      grantsFullAccess: willBeAdmin,
+      eventId: randomUUID(),
+    }),
+  );
   revalidatePath("/settings/users");
   return { ok: true, message: `Role changed to ${role.name}.` };
 }
@@ -357,4 +375,119 @@ export async function removeMember(membershipId: string): Promise<ActionResult> 
   });
   revalidatePath("/settings/users");
   return { ok: true, message: "Member removed." };
+}
+
+// ---------------------------------------------------------------------------
+// Off-boarding
+// ---------------------------------------------------------------------------
+
+export type OffboardPreview = {
+  name: string;
+  openConversations: number;
+  openTasks: number;
+  apiKeys: number;
+  teams: number;
+  candidates: Array<{ userId: string; name: string }>;
+};
+
+/** What off-boarding would touch, shown in the confirmation step. Counts only. */
+export async function previewOffboarding(membershipId: string): Promise<
+  { ok: true; data: OffboardPreview } | { ok: false; error: string }
+> {
+  const member = await requirePerm("settings.manage");
+  if (!z.string().uuid().safeParse(membershipId).success) return { ok: false, error: "Invalid input" };
+  const admin = createAdminClient();
+  const { data: target } = await admin
+    .from("memberships")
+    .select("id, user_id, status, profiles:profiles!memberships_user_id_fkey(first_name, last_name, email)")
+    .eq("id", membershipId)
+    .eq("org_id", member.orgId)
+    .maybeSingle();
+  if (!target) return { ok: false, error: "Member not found." };
+  const uid = target.user_id;
+  const count = (q: PromiseLike<{ count: number | null }>) => q.then((r) => r.count ?? 0);
+  const [openConversations, openTasks, apiKeys, teams, { data: others }] = await Promise.all([
+    count(
+      admin
+        .from("conversations")
+        .select("id", { count: "exact", head: true })
+        .eq("org_id", member.orgId)
+        .eq("assignee_user_id", uid)
+        .neq("status", "closed"),
+    ),
+    count(
+      admin.from("tasks").select("id", { count: "exact", head: true }).eq("org_id", member.orgId).eq("assignee_id", uid).eq("done", false),
+    ),
+    count(
+      admin.from("api_keys").select("id", { count: "exact", head: true }).eq("org_id", member.orgId).eq("created_by", uid).is("revoked_at", null),
+    ),
+    count(admin.from("team_members").select("user_id", { count: "exact", head: true }).eq("org_id", member.orgId).eq("user_id", uid)),
+    admin
+      .from("memberships")
+      .select("user_id, profiles:profiles!memberships_user_id_fkey(first_name, last_name, email)")
+      .eq("org_id", member.orgId)
+      .eq("status", "active")
+      .neq("user_id", uid),
+  ]);
+  const label = (p: { first_name: string; last_name: string; email: string | null } | null) =>
+    `${p?.first_name ?? ""} ${p?.last_name ?? ""}`.trim() || p?.email || "Unknown user";
+  return {
+    ok: true,
+    data: {
+      name: label(target.profiles),
+      openConversations,
+      openTasks,
+      apiKeys,
+      teams,
+      candidates: (others ?? []).map((o) => ({ userId: o.user_id, name: label(o.profiles) })).sort((a, b) => a.name.localeCompare(b.name)),
+    },
+  };
+}
+
+/**
+ * Off-boards a member in one step (a single database transaction): suspends the account, revokes the API
+ * keys they created, hands their open conversations and tasks to someone else (or unassigns them), takes
+ * them out of every team and marks their sessions revoked. The audit entry is written in the same transaction.
+ */
+export async function offboardMember(membershipId: string, reassignToUserId: string | null): Promise<ActionResult> {
+  const member = await requirePerm("settings.manage");
+  const parsed = z
+    .object({ membershipId: z.string().uuid(), reassignTo: z.string().uuid().nullable() })
+    .safeParse({ membershipId, reassignTo: reassignToUserId });
+  if (!parsed.success) return { ok: false, error: "Invalid input" };
+  const admin = createAdminClient(member.userId);
+  const { data, error } = await admin.rpc("offboard_member", {
+    p_org: member.orgId,
+    p_membership: parsed.data.membershipId,
+    p_actor: member.userId,
+    p_reassign_to: parsed.data.reassignTo ?? undefined,
+  });
+  if (error) {
+    const known = /last administrator|yourself|already suspended|not found|hand-over/i.test(error.message);
+    return { ok: false, error: known ? error.message : "Could not off-board the member." };
+  }
+  const result = (data ?? {}) as Record<string, Json>;
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "membership.offboarded",
+    entity: "membership",
+    entityId: parsed.data.membershipId,
+    diff: result,
+  });
+  const moved = Number(result.conversations_reassigned ?? 0) + Number(result.tasks_reassigned ?? 0);
+  if (parsed.data.reassignTo && moved > 0) {
+    await createNotification(admin, {
+      orgId: member.orgId,
+      userId: parsed.data.reassignTo,
+      type: "system",
+      title: "Work handed over to you",
+      body: `${result.conversations_reassigned ?? 0} conversation(s) and ${result.tasks_reassigned ?? 0} task(s) were reassigned to you.`,
+    });
+  }
+  revalidatePath("/settings/users");
+  return {
+    ok: true,
+    message: `Off-boarded: ${result.api_keys_revoked ?? 0} API key(s) revoked, ${result.conversations_reassigned ?? 0} conversation(s) and ${result.tasks_reassigned ?? 0} task(s) ${parsed.data.reassignTo ? "reassigned" : "unassigned"}.`,
+  };
 }

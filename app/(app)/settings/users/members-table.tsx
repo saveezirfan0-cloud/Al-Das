@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 
@@ -31,6 +31,7 @@ import {
 import { initials, PresenceDot } from "@/components/shell/user-menu";
 
 import { changeMemberRole, removeMember, setMemberStatus } from "./actions";
+import { OffboardDialog } from "./offboard-dialog";
 
 export type MemberRow = {
   id: string;
@@ -54,6 +55,7 @@ export function MembersTable({
   roles: Array<{ id: string; name: string }>;
 }) {
   const [pending, startTransition] = useTransition();
+  const [offboarding, setOffboarding] = useState<MemberRow | null>(null);
 
   function run(fn: () => Promise<{ ok: boolean; message?: string; error?: string }>) {
     startTransition(async () => {
@@ -146,11 +148,16 @@ export function MembersTable({
                     <>
                       <DropdownMenuSeparator />
                       {r.status === "active" ? (
-                        <DropdownMenuItem
-                          onSelect={() => run(() => setMemberStatus(r.id, "suspended"))}
-                        >
-                          Suspend access
-                        </DropdownMenuItem>
+                        <>
+                          <DropdownMenuItem
+                            onSelect={() => run(() => setMemberStatus(r.id, "suspended"))}
+                          >
+                            Suspend access
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => setOffboarding(r)}>
+                            Off-board…
+                          </DropdownMenuItem>
+                        </>
                       ) : (
                         <DropdownMenuItem
                           onSelect={() => run(() => setMemberStatus(r.id, "active"))}
@@ -175,6 +182,14 @@ export function MembersTable({
           </TableRow>
         ))}
       </TableBody>
+      {offboarding && (
+        <OffboardDialog
+          membershipId={offboarding.id}
+          displayName={offboarding.name || offboarding.email}
+          open
+          onOpenChange={(o) => !o && setOffboarding(null)}
+        />
+      )}
     </Table>
   );
 }
