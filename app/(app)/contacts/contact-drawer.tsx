@@ -4,6 +4,13 @@ import * as React from "react";
 import { ContactAppointments } from "./contact-appointments";
 import { ContactConversations } from "./contact-conversations";
 import { ContactEnquiries } from "./contact-enquiries";
+import dynamic from "next/dynamic";
+
+// The Documents tab brings the uploader and the photo editor; load them only when someone opens the tab.
+const ContactDocuments = dynamic(
+  () => import("./documents/documents-tab").then((m) => m.ContactDocuments),
+  { ssr: false, loading: () => <Loader2 className="text-muted-foreground size-4 animate-spin" /> },
+);
 import { Loader2, MessageSquare, Phone, Plus, Save, Star, Trash2, GitMerge } from "lucide-react";
 import { toast } from "sonner";
 
@@ -365,6 +372,9 @@ export function ContactDrawer({
                   <TabsTrigger value="enquiries">Enquiries</TabsTrigger>
                   <TabsTrigger value="appointments">Appointments</TabsTrigger>
                   <TabsTrigger value="campaigns">Campaigns</TabsTrigger>
+                  {bootstrap.can.documentsView && (
+                    <TabsTrigger value="documents">Documents</TabsTrigger>
+                  )}
                 </TabsList>
                 <TabsContent value="timeline" className="flex min-h-0 flex-1 flex-col gap-3 pt-3">
                   {canManage && (
@@ -440,6 +450,15 @@ export function ContactDrawer({
                     <Placeholder text="Campaigns this contact was part of appear here." />
                   )}
                 </TabsContent>
+                {bootstrap.can.documentsView && (
+                  <TabsContent value="documents" className="pt-3">
+                    <ContactDocuments
+                      contactId={contact.id}
+                      canView={bootstrap.can.documentsView}
+                      timezone={bootstrap.timezone}
+                    />
+                  </TabsContent>
+                )}
               </Tabs>
             </div>
 

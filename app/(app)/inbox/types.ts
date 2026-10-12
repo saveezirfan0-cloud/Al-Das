@@ -23,6 +23,8 @@ export type QuickReply = {
   /** Arabic wording; used for Arabic-speaking patients. */
   text_ar: string | null;
   label: string | null;
+  /** A Media Library file sent with the text (image, video or document). */
+  media: { id: string; name: string; kind: "image" | "video" | "document" } | null;
 };
 export type ViewInfo = {
   id: string;
@@ -89,6 +91,8 @@ export type InboxProps = {
     settings: boolean;
     enquiriesManage: boolean;
     appointmentsManage: boolean;
+    /** May pick files from the Media Library (media.view or media.manage). */
+    media: boolean;
   };
   /** AI assist is usable here: the member has ai.use AND the workspace switched it on. */
   ai: { available: boolean };

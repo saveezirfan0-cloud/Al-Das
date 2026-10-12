@@ -66,6 +66,7 @@ export const EXPORT_SECTIONS = [
   "prescriptions",
   "followups",
   "feedback",
+  "documents",
 ] as const;
 export type ExportSection = (typeof EXPORT_SECTIONS)[number];
 

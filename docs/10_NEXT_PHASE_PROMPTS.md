@@ -36,6 +36,8 @@ Typecheck, lint, unit and DB tests pass. New tables have RLS and an `org_id` pol
 
 ## Phase 16: Media Library and patient documents (1.5 weeks) · needs the residency answer
 
+> **Status:** built on branch `claude/nifty-brown-y9l5ry`; patient documents stay OFF until the residency answer (OQ-68). What exists, what was verified and what was not: `docs/15_PHASE_16_NOTES.md`.
+
 > **Prompt 16:** "Media. Build an org-wide Media Library (folders, tags, search) for images, PDFs and videos, used by the template builder (header media), campaigns and quick replies; validate against WhatsApp limits (image 5 MB, video 16 MB, document 100 MB, allowed types), compress images on upload, show where each file is used, and block deleting a file that an active template or campaign uses. Build a Documents tab on the contact drawer: categories (referral, lab report, insurance card, consent, other), expiry date with a task/notification before insurance cards expire, uploader, and a view/download log (feeds Phase 15's record access log). Access via a new permission `documents.view` / `documents.manage`, not inherited from contacts.view. Private bucket, signed URLs with short expiry, strict path parsing as in `lib/inbox/media-path.ts`, org checks, malware scan hook (provider behind an interface; a no-op implementation that marks files 'unscanned' until one is configured), storage usage dashboard, retention policy per category. Mobile: camera capture, crop/rotate. Thumbnails and a lightbox in conversations. RLS on every new table, tests for cross-org and permission gating, and no file names or contents in logs."
 
 ## Phase 17: AI copilots for flows and campaigns (2 weeks) · needs OQ-57

@@ -31,6 +31,7 @@ export default async function ContactsPage() {
       export: can(member, "contacts.export"),
       enquiriesView: can(member, "enquiries.view"),
       enquiriesManage: can(member, "enquiries.manage"),
+      documentsView: can(member, "documents.view"),
     },
     customFields: ctx.customFields,
     fields: ctx.registry

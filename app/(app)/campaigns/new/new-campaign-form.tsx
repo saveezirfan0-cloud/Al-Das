@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, Send, TriangleAlert, Upload } from "lucide-react";
 import { toast } from "sonner";
 
+import { MediaPicker } from "@/components/media/media-picker";
 import { PhonePreview } from "@/components/phone-preview/phone-preview";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,6 +27,8 @@ import {
   resolveVariables,
   unmappedVariables,
 } from "@/lib/campaigns/variables";
+import { TEMPLATE_HEADER_TYPES } from "@/lib/media/limits";
+import { mediaSource } from "@/lib/media/paths";
 import { renderTemplatePreview, templateVariables } from "@/lib/whatsapp/templates";
 import type { MetaTemplateComponent } from "@/lib/whatsapp/types";
 
@@ -77,12 +80,15 @@ export function NewCampaignForm({
   segments,
   customFields,
   timezone,
+  canMedia = false,
 }: {
   channels: FormChannel[];
   templates: FormTemplate[];
   segments: FormSegment[];
   customFields: Array<{ key: string; label: string }>;
   timezone: string;
+  /** May this person pick from the Media Library (media.view)? */
+  canMedia?: boolean;
 }) {
   const router = useRouter();
   const [name, setName] = useState("");
@@ -102,6 +108,7 @@ export function NewCampaignForm({
   const [maxFailure, setMaxFailure] = useState(DEFAULT_GUARDRAILS.max_failure_pct);
   const [pauseOnQuality, setPauseOnQuality] = useState(true);
   const [testPhone, setTestPhone] = useState("");
+  const [pickerFor, setPickerFor] = useState<string | null>(null);
 
   const [preview, setPreview] = useState<AudiencePreviewResult | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
@@ -203,6 +210,7 @@ export function NewCampaignForm({
   const badMedia = vars.some((v) => {
     if (v.kind !== "image" && v.kind !== "video" && v.kind !== "document") return false;
     const src = parseSource(map[v.key] ?? template?.variableMap[v.key]);
+    if (src?.kind === "media") return false;
     const url = src?.kind === "text" ? src.value : fallbacks[v.key];
     return !url || !/^https:\/\//i.test(url);
   });
@@ -220,7 +228,8 @@ export function NewCampaignForm({
     problems.push(`The audience is larger than ${MAX_RECIPIENTS.toLocaleString()}.`);
   else if (eligible === 0) problems.push("Nobody in the audience can receive this message.");
   if (unmapped.length) problems.push(`Map ${unmapped.map((v) => v.key).join(", ")}.`);
-  if (badMedia) problems.push("The header media needs a public https:// link.");
+  if (badMedia)
+    problems.push("The header media needs a Media Library file or a public https:// link.");
   if (mode === "later" && !atLocal) problems.push("Pick a send time.");
 
   function onFile(file: File | undefined) {
@@ -532,13 +541,58 @@ export function NewCampaignForm({
                     </div>
                     <div className="flex flex-col gap-2">
                       {isMedia ? (
-                        <Input
-                          value={current?.startsWith("text:") ? current.slice(5) : ""}
-                          onChange={(e) =>
-                            setMap((p) => ({ ...p, [v.key]: `text:${e.target.value}` }))
-                          }
-                          placeholder={`https://… public ${v.kind} link`}
-                        />
+                        <>
+                          {current?.startsWith("media:") ? (
+                            <div className="flex flex-wrap items-center gap-2 text-sm">
+                              <span>A Media Library file will be sent with every message.</span>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  setMap((p) => {
+                                    const next = { ...p };
+                                    delete next[v.key];
+                                    return next;
+                                  })
+                                }
+                              >
+                                Use a link instead
+                              </Button>
+                            </div>
+                          ) : (
+                            <Input
+                              value={current?.startsWith("text:") ? current.slice(5) : ""}
+                              onChange={(e) =>
+                                setMap((p) => ({ ...p, [v.key]: `text:${e.target.value}` }))
+                              }
+                              placeholder={`https://… public ${v.kind} link`}
+                            />
+                          )}
+                          {canMedia && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="w-fit"
+                              onClick={() => setPickerFor(v.key)}
+                            >
+                              Choose from the Media Library
+                            </Button>
+                          )}
+                          {pickerFor === v.key && (
+                            <MediaPicker
+                              open
+                              onOpenChange={(o) => !o && setPickerFor(null)}
+                              kind={v.kind as "image" | "video" | "document"}
+                              mimes={
+                                TEMPLATE_HEADER_TYPES[v.kind as "image" | "video" | "document"]
+                              }
+                              title="Choose the header file"
+                              onPick={(a) => setMap((p) => ({ ...p, [v.key]: mediaSource(a.id) }))}
+                            />
+                          )}
+                        </>
                       ) : (
                         <>
                           <Select value={kind} onValueChange={(val) => setSource(v.key, val)}>

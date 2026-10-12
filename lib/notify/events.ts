@@ -84,6 +84,16 @@ export const NOTIFICATION_EVENTS = [
     permission: "frontdesk.use",
   },
   {
+    key: "document.expiring",
+    group: "Work",
+    label: "A patient's insurance card is about to expire",
+    description:
+      "An insurance card in a patient's documents reaches its reminder date (set under Settings, Documents). Push and e-mail say only that a card is expiring; open Pulse to see whose.",
+    channels: ALL,
+    defaults: { in_app: true, email: false, push: true },
+    permission: "documents.manage",
+  },
+  {
     key: "task.due",
     group: "Work",
     label: "A task is due",
@@ -158,6 +168,7 @@ export function categoryForType(type: string): NotificationCategory {
     type.startsWith("task.") ||
     type.startsWith("enquiry.") ||
     type.startsWith("appointment.") ||
+    type.startsWith("document.") ||
     type === "reminder.failed"
   )
     return "work";
@@ -176,7 +187,10 @@ export function typeFilterForCategory(category: NotificationCategory): {
     case "escalation":
       return { exact: ["escalation"], prefixes: [] };
     case "work":
-      return { exact: ["reminder.failed"], prefixes: ["task.", "enquiry.", "appointment."] };
+      return {
+        exact: ["reminder.failed"],
+        prefixes: ["task.", "enquiry.", "appointment.", "document."],
+      };
     case "security":
       return { exact: [], prefixes: ["security.", "alert."] };
     case "system":

@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { recordAudit } from "@/lib/audit";
 import { unknownVariables } from "@/lib/inbox/quick-reply";
+import { canAny } from "@/lib/auth/can";
 import { requirePerm } from "@/lib/auth/session";
 import { inboxSettingsSchema, writeInboxSettings, type InboxSettings } from "@/lib/inbox/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -112,17 +113,33 @@ const quickReplySchema = z.object({
     .regex(/^[a-z0-9_-]{1,40}$/, "Shortcut: letters, numbers, - and _ only"),
   text: z.string().trim().min(1).max(4096),
   text_ar: z.string().trim().max(4096).optional(),
+  /** A Media Library file sent together with the text. */
+  media_asset_id: z.string().uuid().nullish(),
 });
 
 export async function saveQuickReply(
   id: string | null,
-  input: { shortcut: string; text: string; text_ar?: string },
+  input: { shortcut: string; text: string; text_ar?: string; media_asset_id?: string | null },
 ): Promise<ActionResult> {
   const member = await requirePerm("settings.manage");
   const parsed = quickReplySchema.safeParse(input);
   if (!parsed.success)
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   const admin = createAdminClient();
+  if (parsed.data.media_asset_id) {
+    if (!canAny(member, ["media.view", "media.manage"]))
+      return { ok: false, error: "You don't have access to the Media Library." };
+    const { data: asset } = await admin
+      .from("media_assets")
+      .select("id, kind, status, scan_status")
+      .eq("id", parsed.data.media_asset_id)
+      .eq("org_id", member.orgId)
+      .maybeSingle();
+    if (!asset || asset.status !== "ready")
+      return { ok: false, error: "That library file no longer exists." };
+    if (asset.scan_status === "infected")
+      return { ok: false, error: "The malware scan blocked that file." };
+  }
   // A variable name nobody supports is almost always a typo ({{docter}}): say so instead of sending it to patients.
   const unknown = [
     ...unknownVariables(parsed.data.text),
@@ -138,12 +155,18 @@ export async function saveQuickReply(
     shortcut: parsed.data.shortcut,
     text: parsed.data.text,
     text_ar: parsed.data.text_ar || null,
+    media_asset_id: parsed.data.media_asset_id ?? null,
     created_by: member.userId,
   };
   const { error } = id
     ? await admin
         .from("quick_replies")
-        .update({ shortcut: row.shortcut, text: row.text, text_ar: row.text_ar })
+        .update({
+          shortcut: row.shortcut,
+          text: row.text,
+          text_ar: row.text_ar,
+          media_asset_id: row.media_asset_id,
+        })
         .eq("id", id)
         .eq("org_id", member.orgId)
     : await admin.from("quick_replies").insert(row);
@@ -158,7 +181,7 @@ export async function saveQuickReply(
     action: "quick_reply.saved",
     entity: "quick_reply",
     entityId: id,
-    diff: { shortcut: parsed.data.shortcut },
+    diff: { shortcut: parsed.data.shortcut, with_file: !!row.media_asset_id },
   });
   revalidate();
   return { ok: true, message: "Quick reply saved." };

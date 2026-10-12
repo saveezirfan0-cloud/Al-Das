@@ -15,6 +15,8 @@ export type ContactsBootstrap = {
     export: boolean;
     enquiriesView: boolean;
     enquiriesManage: boolean;
+    /** documents.view: the Documents tab (not inherited from contacts.view). */
+    documentsView: boolean;
   };
   customFields: CustomFieldDef[];
   fields: ClientField[];

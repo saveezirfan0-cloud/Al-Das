@@ -71,7 +71,9 @@ describe("catalogue", () => {
     for (const key of ["ai.use", "kb.manage", "reports.export"]) {
       expect(PERMISSION_KEYS).toContain(key);
     }
-    expect(perms("Manager")).toEqual(expect.arrayContaining(["ai.use", "kb.manage", "reports.export"]));
+    expect(perms("Manager")).toEqual(
+      expect.arrayContaining(["ai.use", "kb.manage", "reports.export"]),
+    );
     expect(perms("Agent")).toContain("ai.use");
     expect(perms("Receptionist")).toContain("ai.use");
     // Agents can use AI but never manage the knowledge base or export reports.
@@ -120,5 +122,62 @@ describe("Phase 15 permissions", () => {
     expect(permissionMatches("*", "security.manage")).toBe(true);
     expect(permissionMatches("settings.manage", "security.manage")).toBe(false);
     expect(permissionMatches("settings.manage", "privacy.manage")).toBe(false);
+  });
+});
+
+describe("Phase 16 permissions", () => {
+  const perms = (name: string) => SYSTEM_ROLES.find((r) => r.name === name)!.permissions;
+
+  it("catalogues the four keys in their own group", () => {
+    for (const key of ["media.view", "media.manage", "documents.view", "documents.manage"]) {
+      const entry = PERMISSIONS.find((p) => p.key === key);
+      expect(entry, key).toBeDefined();
+      expect(entry?.group).toBe("Media & documents");
+    }
+  });
+
+  it("does not let contacts.* or inbox rights open patient documents", () => {
+    for (const granted of [
+      "contacts.view",
+      "contacts.manage",
+      "contacts.export",
+      "inbox.view_all",
+      "inbox.send",
+      "portal.*",
+      "settings.manage",
+    ]) {
+      expect(permissionMatches(granted, "documents.view"), granted).toBe(false);
+      expect(permissionMatches(granted, "documents.manage"), granted).toBe(false);
+    }
+    expect(permissionMatches("*", "documents.view")).toBe(true);
+  });
+
+  it("gives patient documents to the front desk and care team, never to Agent, Marketing or the finance roles", () => {
+    for (const name of ["Manager", "Receptionist", "Care coordinator"]) {
+      expect(perms(name), name).toEqual(
+        expect.arrayContaining(["documents.view", "documents.manage"]),
+      );
+    }
+    for (const name of [
+      "Agent",
+      "Marketing",
+      "Finance",
+      "Billing",
+      "Insurance",
+      "CEO",
+      "Medical Director",
+    ]) {
+      expect(perms(name), name).not.toContain("documents.view");
+      expect(perms(name), name).not.toContain("documents.manage");
+    }
+  });
+
+  it("lets Marketing and Manager manage the library; Agent and Receptionist only pick from it", () => {
+    expect(perms("Marketing")).toEqual(expect.arrayContaining(["media.view", "media.manage"]));
+    expect(perms("Manager")).toEqual(expect.arrayContaining(["media.view", "media.manage"]));
+    for (const name of ["Agent", "Receptionist", "Care coordinator"]) {
+      expect(perms(name)).toContain("media.view");
+      expect(perms(name)).not.toContain("media.manage");
+    }
   });
 });

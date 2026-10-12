@@ -17,5 +17,8 @@ export function notificationHref(type: string, payload: unknown): string | null 
   if (enquiry) return `/enquiries?enquiry=${enquiry}`;
   if (id(p, "task_id") || type === "task.due" || type === "reminder.failed") return "/tasks";
   if (id(p, "appointment_id")) return "/appointments";
+  // A patient-document reminder opens the patient (ids only; the drawer shows the Documents tab).
+  const contact = id(p, "contact_id");
+  if (contact && type.startsWith("document.")) return `/contacts?contact=${contact}`;
   return null;
 }

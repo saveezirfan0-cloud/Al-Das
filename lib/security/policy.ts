@@ -149,6 +149,10 @@ export const AUDIT_EXEMPT: Record<string, string> = {
     "The note is itself the attributed record (created_by, created_at); it carries no audit-worthy configuration.",
   "app/(app)/front-desk/actions.ts::resolveHandoverNote":
     "The note records who resolved it and when (resolved_by, resolved_at).",
+  "app/(app)/media/actions.ts::prepareLibraryUpload":
+    "Only creates a 'pending' row that nobody can see or use. finalizeLibraryUpload audits the upload (media.uploaded), a rejected check audits media.upload_rejected, an abandoned one media.upload_cancelled, and the nightly task removes the rest.",
+  "app/(app)/contacts/documents/actions.ts::prepareDocumentUpload":
+    "Only creates a 'pending' row that nobody can see or open. finalizeDocumentUpload audits the upload (document.uploaded), a rejected check audits document.upload_rejected, an abandoned one document.upload_cancelled, and the nightly task removes the rest.",
 };
 
 /** Modules allowed to read channel_secrets (they decrypt or store the Meta token). */

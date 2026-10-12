@@ -78,7 +78,9 @@ export default async function InboxPage({
       .order("name"),
     supabase
       .from("quick_replies")
-      .select("id, shortcut, text, text_ar, label")
+      .select(
+        "id, shortcut, text, text_ar, label, media_asset_id, media_assets(id, name, kind, scan_status, status)",
+      )
       .eq("org_id", member.orgId)
       .order("shortcut"),
     supabase
@@ -310,6 +312,7 @@ export default async function InboxPage({
       appointmentsManage: can(member, "appointments.manage"),
       settings: can(member, "settings.manage"),
       enquiriesManage: can(member, "enquiries.manage"),
+      media: can(member, "media.view") || can(member, "media.manage"),
     },
     ai: { available: can(member, "ai.use") && readAiSettings(org?.settings).enabled },
     query,
@@ -319,7 +322,23 @@ export default async function InboxPage({
     labels: labels ?? [],
     categories: categories ?? [],
     views: (views ?? []).map((v) => ({ ...v, shared_team_ids: v.shared_team_ids ?? [] })),
-    quickReplies: quickReplies ?? [],
+    quickReplies: (quickReplies ?? []).map((q) => ({
+      id: q.id,
+      shortcut: q.shortcut,
+      text: q.text,
+      text_ar: q.text_ar,
+      label: q.label,
+      // A file that is still uploading, or was blocked by the scan, is not offered with the reply.
+      media:
+        q.media_assets &&
+        q.media_assets.status === "ready" &&
+        q.media_assets.scan_status !== "infected" &&
+        (q.media_assets.kind === "image" ||
+          q.media_assets.kind === "video" ||
+          q.media_assets.kind === "document")
+          ? { id: q.media_assets.id, name: q.media_assets.name, kind: q.media_assets.kind }
+          : null,
+    })),
     quickReplyContext,
     templates: (templates ?? []).map((t) => ({
       ...t,

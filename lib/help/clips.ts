@@ -101,6 +101,24 @@ export const CLIPS: readonly Clip[] = [
     pages: ["/contacts"],
   },
   {
+    id: "media-library",
+    title: "The Media Library",
+    summary:
+      "Uploading, tagging and finding files, and using them in templates, campaigns and chats.",
+    minutes: 4,
+    roles: ["Marketing", "Manager", "Agent", "Receptionist"],
+    pages: ["/media"],
+  },
+  {
+    id: "patient-documents",
+    title: "Patient documents and expiring insurance cards",
+    summary:
+      "Adding a referral, lab report or insurance card, setting an expiry date and who can see it.",
+    minutes: 4,
+    roles: ["Receptionist", "Care coordinator", "Manager"],
+    pages: ["/settings/documents"],
+  },
+  {
     id: "tasks",
     title: "Tasks and call lists",
     summary: "Creating, assigning and closing tasks, and call tasks created for you.",

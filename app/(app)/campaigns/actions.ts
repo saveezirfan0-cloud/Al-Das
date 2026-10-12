@@ -33,6 +33,7 @@ import {
   startCampaign,
 } from "@/lib/campaigns/engine";
 import { isMarketingCategory } from "@/lib/campaigns/recipients";
+import { checkMediaReferences } from "@/lib/media/resolve";
 import { parseSource, resolveVariables, unmappedVariables } from "@/lib/campaigns/variables";
 import { enqueue, scheduleJob } from "@/lib/jobs/enqueue";
 import { queueOutbound } from "@/lib/inbox/send";
@@ -154,9 +155,10 @@ function mappingError(
   for (const v of templateVariables(components)) {
     if (v.kind === "image" || v.kind === "video" || v.kind === "document") {
       const src = parseSource(map[v.key] ?? templateMap[v.key]);
+      if (src?.kind === "media") continue; // a Media Library file; checked against the library before the campaign starts
       const url = src?.kind === "text" ? src.value : fallbacks[v.key];
       if (!url || !/^https:\/\//i.test(url))
-        return `Header ${v.kind} needs a public https:// link.`;
+        return `Header ${v.kind} needs a Media Library file or a public https:// link.`;
     }
   }
   return null;
@@ -267,6 +269,14 @@ export async function createCampaign(
     v.fallbacks,
   );
   if (problem) return fail(problem);
+  const mediaProblem = await checkMediaReferences(
+    admin,
+    member.orgId,
+    components,
+    v.variable_map,
+    stringMap(template.variable_map),
+  );
+  if (mediaProblem) return fail(mediaProblem);
   const marketing = isMarketingCategory(template.category);
 
   let scheduledAt: Date | null = null;
@@ -456,6 +466,14 @@ export async function sendTestMessage(input: z.input<typeof testSchema>): Promis
     },
     csv: v.csv_sample,
   });
+  const mediaProblem = await checkMediaReferences(
+    admin,
+    member.orgId,
+    components,
+    v.variable_map,
+    stringMap(template.variable_map),
+  );
+  if (mediaProblem) return fail(mediaProblem);
   // A test may fill gaps with the template's own examples; a real send never does.
   const values = { ...resolved.values };
   for (const key of resolved.missing) {

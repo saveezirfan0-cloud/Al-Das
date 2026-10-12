@@ -22,6 +22,8 @@ This is the single document to work from. Section 1 says where we are, 2 says wh
 
 **Open work from other sessions.** The Airtable clinical importer from `claude/upbeat-brown-n1q8nq` was merged as PR #22 on 12 Oct, and a follow-up (PR #28: Appointment Messages, Birthday, Chronic Recall and the `FU_` templates are still to come) is open from another session. Do not merge or reset that branch from here. Of the other `claude/*` branches, eleven carry nothing main lacks and five are older versions of work main already has in another form (`magical-planck-nx16wi` is an early Phase 5 that would add about 16,000 duplicate lines). Delete the stale ones once you agree; none should be merged.
 
+**Phase 16 (Media Library and patient documents) is built** on branch `claude/nifty-brown-y9l5ry` (on top of Phases 13, 14 and 15) and waits for review and merge: an org-wide Media Library (folders, tags, search, WhatsApp limit checks, in-browser compression, camera capture, rotate and trim) used as template header media, in campaigns, quick replies and conversations, with "where is it used" and a delete block; a Documents tab on each patient (categories, expiry date, reminders before insurance cards expire, who opened or downloaded each file) behind new `documents.view` / `documents.manage` permissions; a malware-scan hook (no provider yet, files are flagged "not scanned"), retention policy per category, a storage usage dashboard, a picture viewer in the inbox, and erasure and export that cover documents. **Patient documents stay OFF until an administrator confirms where the files may be stored (OQ-68).** What was verified and what was not (no browser, no real Supabase Storage, no scanner) is in `docs/15_PHASE_16_NOTES.md`. The four new migrations (`20261015000100` to `…400`) are in `deploy/supabase-paste/16_phase_16_media_documents.sql`.
+
 ## 1. Where we are
 
 ### 1.1 The short version
@@ -46,6 +48,7 @@ Phases 1 to 11 and Finance F0 to F6 are **built, tested and merged**. Pulse alre
 | After Phase 15 (branch `claude/nifty-brown-y9l5ry`) | 48 migrations, 134 tables in `public`, 64 app pages, **119 test files / 1,395 tests in `pnpm test`** and **35 database test files / 476 tests**, all passing |
 | After Phase 13 (branch `claude/nifty-brown-y9l5ry`) | 53 migrations, 138 tables in `public`, 66 app pages, **129 test files / 1,497 tests in `pnpm test`** and **38 database test files / 511 tests**, all passing |
 | After Phase 14 (branch `claude/nifty-brown-y9l5ry`) | 57 migrations, 143 tables in `public`, 73 app pages, **139 test files / 1,619 tests in `pnpm test`** and **41 database test files / 570 tests**, all passing |
+| After Phase 16 (branch `claude/nifty-brown-y9l5ry`) | 61 migrations, 147 tables in `public`, 75 app pages, **147 test files / 1,824 tests in `pnpm test`** and **43 database test files / 613 tests**, all passing |
 | Browser (Playwright) specs | 6 |
 | `pnpm typecheck`, `pnpm lint`, `pnpm test` | **all clean** on a fresh install |
 
@@ -69,6 +72,7 @@ Not run: the browser tests and any click-through (no Supabase auth stack in the 
 | 11 | Hardening, load tests, reconciliation, cut-over tooling | Yes | Load tests only run against a mock Graph; live rehearsal not done |
 | 15 | Security and audit: MFA by role, login history, session list, record access log, anomaly alerts, access review, off-boarding, History tabs, Activity log CSV, patient data export and erasure, API read counter | Yes | Never clicked in a browser or run against Supabase Auth (see `docs/12_PHASE_15_NOTES.md`); clinical records are kept on erasure pending OQ-63; enrolment and sign-out scopes need a real-stack check |
 | 13 | Mobile, notifications and speed: installable app (service worker, offline page, update prompt), phone inbox, card grids, agenda, notification preferences, Web Push, escalation ladder, digests, notification centre, query and bundle cuts, budgets in CI | Yes | Never seen in a browser or on a phone; no real push service or Supabase Auth was available (see `docs/13_PHASE_13_NOTES.md`); push needs `pnpm push:keys` and an installed app on iOS; the speed-up from local token checks needs asymmetric JWT signing keys; no Lighthouse or Speed Insights numbers yet |
+| 16 | Media Library and patient documents: library with folders, tags, usage and delete guard; header media in templates, campaigns, quick replies, conversations; Documents tab with expiry reminders and a view/download log; `documents.*` permissions; scan hook; retention; usage dashboard; picture viewer | Yes | Never seen in a browser or on a phone; no real Supabase Storage or malware scanner was available (`docs/15_PHASE_16_NOTES.md`); documents OFF until OQ-68 (storage region) is answered; appointment reminders and flows do not use library headers yet |
 | F0-F6 | Finance and insurance: Unite capture, Diligence upload and matching, exceptions E01-E10, summary | Yes | Unite capture is OFF by design; closed-month review with Saeed is a human step |
 
 ### 1.4 Changes made in this session
@@ -305,7 +309,9 @@ Proposed, in order of value:
 
 ### 4.7 Media, files and data
 
-Today: WhatsApp media goes to a private `wa-media` bucket with signed URLs; portal records can hold files.
+**Built in Phase 16 (waiting for review, merge and a real-device check):** Media Library, Patient documents tab with the view/download log, camera capture, rotate and trim, thumbnails and viewer in the conversation, malware-scan hook (no provider yet), retention policy per category, storage usage dashboard. Still open: a real scanner (OQ-70), PDF preview inside the app (files open in a new tab), tested backup and restore, nested folders.
+
+Original plan, kept for reference. Today (before Phase 16): WhatsApp media goes to a private `wa-media` bucket with signed URLs; portal records can hold files.
 
 Add a proper **Media Library** and **Patient documents**:
 
@@ -397,7 +403,7 @@ Each phase starts in Plan Mode and uses the prompt of the same number in `docs/1
 | **13** | Mobile, notifications and speed: service worker, web push, preference matrix, escalation ladder, digests, layout/dashboard query cuts, dynamic imports, performance budget. **Built; waiting for review, merge and a real-device check** (`docs/13_PHASE_13_NOTES.md`) | VAPID keys (`pnpm push:keys`) | done in code |
 | **14** | Front desk mode, waitlist, walk-in registration, household linking, quick replies, in-app help and training mode, `pnpm demo:reset`. **Built; waiting for review, merge, a real-device check, Meta approval of the offer templates and the training videos** (`docs/14_PHASE_14_NOTES.md`) | clinic input (offer wording), recorded videos | done in code |
 | **15** | Security and audit: MFA, login history, sessions, record access log, access review, anomaly alerts, History tabs. **Built; waiting for review, merge and a real-stack check** (`docs/12_PHASE_15_NOTES.md`) | none | done in code |
-| **16** | Media Library and patient documents | residency answer | 1.5 weeks |
+| **16** | Media Library and patient documents. **Built; waiting for review, merge, a real-device check and the residency answer (OQ-68) before documents are switched on** (`docs/15_PHASE_16_NOTES.md`) | residency answer | done in code |
 | **17** | AI: Flow Copilot, Campaign Copilot, intent routing, reply-quality loop | OQ-57, OQ-61 | 2 weeks |
 | **18** | Finance and insurance upgrades: pre-auth, denials, remittance, scorecards, month-end pack | Diligence export, thresholds | 2.5 weeks |
 | **19** | Integrations: calendar feed, payments, SMS, reviews, ads attribution | the accounts in 4.8 | per integration |

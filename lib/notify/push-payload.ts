@@ -34,6 +34,10 @@ const GENERIC: Record<string, { title: string; body: string }> = {
     body: "Call the patient to confirm the appointment.",
   },
   "task.due": { title: "Task due", body: "A task assigned to you is due." },
+  "document.expiring": {
+    title: "Insurance card expiring",
+    body: "A patient's insurance card is about to expire. Open Pulse to see whose.",
+  },
   "waitlist.booked": {
     title: "Waiting list",
     body: "A waiting-list patient took an offered slot.",
@@ -64,6 +68,8 @@ export function pushUrl(event: string, ids: PushIds): string {
     case "reminder.failed":
     case "task.due":
       return "/tasks";
+    case "document.expiring":
+      return cleanId(ids.task_id) ? "/tasks" : "/notifications";
     case "waitlist.booked":
       return "/front-desk";
     case "test":

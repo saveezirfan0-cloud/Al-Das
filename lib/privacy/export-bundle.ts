@@ -5,8 +5,8 @@ import { exportCounts, type ExportSection } from "@/lib/security/privacy";
 
 /**
  * Subject-access export: everything Pulse holds about one patient, as one JSON document. Explicit column
- * lists (no `select *`), so a new column never leaks into an export without a decision. Media files are
- * listed by name only; the files themselves are not included.
+ * lists (no `select *`), so a new column never leaks into an export without a decision. Media files and
+ * patient documents are listed by name only; the files themselves are not included.
  */
 
 const MESSAGE_CAP = 20_000;
@@ -59,6 +59,7 @@ export async function buildPatientExport(
     prescriptions,
     followups,
     feedback,
+    documents,
     messages,
   ] = await Promise.all([
     admin
@@ -124,6 +125,14 @@ export async function buildPatientExport(
       .eq("org_id", orgId)
       .eq("contact_id", contactId)
       .limit(ROW_CAP),
+    admin
+      .from("patient_documents")
+      .select("title, category, mime_type, size_bytes, expires_on, scan_status, created_at")
+      .eq("org_id", orgId)
+      .eq("contact_id", contactId)
+      .eq("status", "ready")
+      .order("created_at")
+      .limit(ROW_CAP),
     conversationIds.length
       ? admin
           .from("messages")
@@ -152,6 +161,8 @@ export async function buildPatientExport(
     prescriptions: cap("prescriptions", prescriptions.data, ROW_CAP),
     followups: cap("followups", followups.data, ROW_CAP),
     feedback: cap("feedback", feedback.data, ROW_CAP),
+    // The files themselves are not part of the bundle; each is listed with its title, category, size and dates.
+    documents: cap("documents", documents.data, ROW_CAP),
     truncated,
   };
 }

@@ -3,6 +3,18 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-10-15-media-library",
+    date: "2026-10-15",
+    title: "Media Library",
+    body: "One shared library of images, PDFs and videos with folders, tags and search. Use a library file as a template header, in a campaign, with a quick reply or straight from a conversation. Pictures are made smaller on upload to fit WhatsApp's limits, and you can see where each file is used before deleting it. Pictures in a conversation now open in a viewer you can swipe through.",
+  },
+  {
+    id: "2026-10-15-patient-documents",
+    date: "2026-10-15",
+    title: "Patient documents",
+    body: "A Documents tab on each patient for referral letters, lab reports, insurance cards and consent forms, with an expiry date and a reminder before an insurance card runs out. Who opened or downloaded a document is recorded. Off until an administrator switches it on in Settings, Patient documents.",
+  },
+  {
     id: "2026-10-14-front-desk",
     date: "2026-10-14",
     title: "Front desk workspace",

@@ -101,3 +101,37 @@ describe("notification links in the centre", () => {
     expect(notificationHref("mention", null)).toBeNull();
   });
 });
+
+describe("insurance card expiry notifications (Phase 16)", () => {
+  it("is a catalogued event, offered only to people who manage documents", async () => {
+    const { getEvent, eventsFor, categoryForType, typeFilterForCategory } =
+      await import("@/lib/notify/events");
+    const e = getEvent("document.expiring")!;
+    expect(e.permission).toBe("documents.manage");
+    expect(e.defaults).toEqual({ in_app: true, email: false, push: true });
+    expect(eventsFor(() => false).some((x) => x.key === "document.expiring")).toBe(false);
+    expect(
+      eventsFor((p) => p === "documents.manage").some((x) => x.key === "document.expiring"),
+    ).toBe(true);
+    expect(categoryForType("document.expiring")).toBe("work");
+    expect(typeFilterForCategory("work").prefixes).toContain("document.");
+  });
+
+  it("pushes a fixed sentence with no name, and opens Tasks when a task exists", () => {
+    const p = buildPushPayload("document.expiring", { task_id: UUID })!;
+    expect(p.url).toBe("/tasks");
+    expect(`${p.title} ${p.body}`).not.toMatch(/[0-9@+]/);
+    expect(JSON.stringify(p)).not.toMatch(/Sara|\+971|chest/);
+    expect(pushUrl("document.expiring", {})).toBe("/notifications");
+    expect(genericEmail("document.expiring")?.subject).toBe("Insurance card expiring");
+  });
+
+  it("opens the patient from the in-app notification, only for document events and valid ids", () => {
+    expect(notificationHref("document.expiring", { contact_id: UUID, document_id: UUID })).toBe(
+      `/contacts?contact=${UUID}`,
+    );
+    expect(notificationHref("document.expiring", { contact_id: "Sara Example" })).toBeNull();
+    expect(notificationHref("document.expiring", { count: 3 })).toBeNull();
+    expect(notificationHref("mention", { contact_id: UUID })).toBeNull();
+  });
+});

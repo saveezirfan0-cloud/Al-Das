@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import dynamic from "next/dynamic";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -37,6 +38,7 @@ import {
   autoAssignConversation,
   retryFailedMessage,
   setBotActive,
+  signedMediaUrl,
   setConversationStatus,
   toggleConversationLabel,
   type ActionResult,
@@ -45,6 +47,11 @@ import { CloseDialog } from "./close-dialog";
 import { Composer } from "./composer";
 import { MediaBubble } from "./media-bubble";
 import type { ConversationDetail, InboxProps } from "./types";
+
+// The picture viewer is only needed once someone taps a picture.
+const Lightbox = dynamic(() => import("@/components/media/lightbox").then((m) => m.Lightbox), {
+  ssr: false,
+});
 
 function Ticks({ status }: { status: string }) {
   switch (status) {
@@ -84,6 +91,7 @@ export function Thread(props: InboxProps & { selected: ConversationDetail; onBac
   const [pending, startTransition] = useTransition();
   const [closeOpen, setCloseOpen] = useState(false);
   const [replyTo, setReplyTo] = useState<MessageRow | null>(null);
+  const [viewer, setViewer] = useState<number | null>(null);
   const bottom = useRef<HTMLDivElement>(null);
   const contactName = contactDisplayName(selected.contact);
   const window_ = serviceWindow({
@@ -121,6 +129,11 @@ export function Thread(props: InboxProps & { selected: ConversationDetail; onBac
     : null;
   const activeLabelIds = new Set(selected.conversation_labels.map((l) => l.tag_id));
   const byWaId = new Map(messages.filter((m) => m.wa_message_id).map((m) => [m.wa_message_id!, m]));
+
+  // Every picture in this conversation, in order, for the viewer (previous / next, swipe).
+  const pictures = messages
+    .filter((m) => m.kind === "image" && m.media_path)
+    .map((m) => ({ id: m.media_path as string, label: m.media_filename }));
 
   let lastDay = "";
 
@@ -447,6 +460,10 @@ export function Thread(props: InboxProps & { selected: ConversationDetail; onBac
                         path={m.media_path}
                         mime={m.media_mime}
                         filename={m.media_filename}
+                        onOpen={() => {
+                          const i = pictures.findIndex((p) => p.id === m.media_path);
+                          if (i >= 0) setViewer(i);
+                        }}
                         pending={
                           m.direction === "in" &&
                           !m.media_path &&
@@ -454,19 +471,27 @@ export function Thread(props: InboxProps & { selected: ConversationDetail; onBac
                           !m.error_message
                         }
                       />
-                      {m.body && <p className="whitespace-pre-wrap" dir="auto">{m.body}</p>}
+                      {m.body && (
+                        <p className="whitespace-pre-wrap" dir="auto">
+                          {m.body}
+                        </p>
+                      )}
                     </div>
                   ) : m.kind === "template" ? (
                     <div>
                       <div className="mb-0.5 text-[10px] uppercase opacity-70">Template</div>
-                      <p className="whitespace-pre-wrap" dir="auto">{m.body}</p>
+                      <p className="whitespace-pre-wrap" dir="auto">
+                        {m.body}
+                      </p>
                     </div>
                   ) : m.kind === "unsupported" ? (
                     <p className="text-xs italic opacity-80">
                       Unsupported message type (not shown).
                     </p>
                   ) : (
-                    <p className="break-words whitespace-pre-wrap" dir="auto">{m.body}</p>
+                    <p className="break-words whitespace-pre-wrap" dir="auto">
+                      {m.body}
+                    </p>
                   )}
                   <div
                     className={cn(
@@ -512,6 +537,17 @@ export function Thread(props: InboxProps & { selected: ConversationDetail; onBac
         })}
         <div ref={bottom} />
       </div>
+
+      <Lightbox
+        items={pictures}
+        index={viewer}
+        onIndexChange={setViewer}
+        onClose={() => setViewer(null)}
+        loadUrl={async (path) => {
+          const r = await signedMediaUrl(path);
+          return r.ok ? r.data.url : null;
+        }}
+      />
 
       {perms.send ? (
         <Composer
