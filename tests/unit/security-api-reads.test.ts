@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { generateApiKey } from "@/lib/public-api/keys";
 import { countRows } from "@/lib/public-api/route";
-import type { AdminClient } from "@/lib/supabase/admin";
 import { createFakeAdmin, type FakeAdmin } from "../helpers/fake-admin";
 
 let admin: FakeAdmin;
