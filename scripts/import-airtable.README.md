@@ -12,7 +12,7 @@
 8. **Skip:** formula / lookup / rollup / count fields. Recompute them as SQL views or generated columns.
 9. **Test records:** keep `Is Test Record` as a boolean column. Exclude these from reports.
 10. **Modes:**
-    - `--dry-run` writes nothing (an overlay records what would be created and linked) and prints counts per table plus a mapping-coverage report (unmapped field IDs). Tables whose target arrives in Phase 6 are read and validated in a dry run, skipped in a real run.
+    - `--dry-run` writes nothing (an overlay records what would be created and linked) and prints counts per table plus a mapping-coverage report (unmapped field IDs). Tables marked `pending` (recall, appointment messages — see `--list` for the reason) are read and validated in a dry run, skipped in a real run. The clinical tables (visits, prescriptions, follow-ups, feedback, message log, call scripts, doctors) are written for real: imported visits are `source=airtable` and never evaluated by the clinical engine; prescriptions/follow-ups/feedback/message log are create-only; medication class comes from `ref_medication_classes`; Airtable approvals are never imported. PTF and CFU prototype tables are skipped by design.
     - `--only=<key|baseId.tableId>[,…]` imports the named tables (`--list` shows the keys).
     - `--list` prints every table with its status.
     - `--since=<ISO>` does a delta import for the final pre-cut-over sync.
