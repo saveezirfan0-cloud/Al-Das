@@ -45,7 +45,7 @@ Not run: the browser tests and any click-through (no Supabase auth stack in the 
 | 6 | Appointments, slot engine, reminders, button replies; read-only Unite sync; clinical rules engine; Follow-Up Queue; Clinical settings | Yes | No DB lock against simultaneous double-booking; clinical messaging deliberately OFF until sign-off; Unite sync OFF until credentials |
 | 7 | Campaigns: audience snapshots, fan-out, throttling, funnel, retries | Yes | No recurring campaigns, A/B variants, per-recipient media headers |
 | 8 | Flows (21 node types), recall programmes, parallel-run tooling | Yes | Live path untested; recall in Test mode only; Token and MRD-sync parallel runs need Make exports |
-| 9 | Back-office portal and complete Airtable importer | Yes | Phase 6 importer mappers still `pending_phase6` (flip to ready); no portal bulk edit |
+| 9 | Back-office portal and complete Airtable importer | Yes | Clinical importer mappers now write the real Phase 6 tables (dry-run first, then a real run against a real base is still to do); no portal bulk edit |
 | 10 | AI assist and knowledge base, metrics, dashboards, reports, public API, webhooks | Yes | AI switch OFF until legal answer (OQ-57); WhatsApp cost report not built; no `ai_tags`; no scheduled digests |
 | 11 | Hardening, load tests, reconciliation, cut-over tooling | Yes | Load tests only run against a mock Graph; live rehearsal not done |
 | F0-F6 | Finance and insurance: Unite capture, Diligence upload and matching, exceptions E01-E10, summary | Yes | Unite capture is OFF by design; closed-month review with Saeed is a human step |
