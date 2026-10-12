@@ -104,3 +104,43 @@ describe("enquiry and campaign reports", () => {
     expect(k.replied).toBeCloseTo(0.25); // of delivered
   });
 });
+
+describe("WhatsApp usage report cost", () => {
+  const usage = {
+    report_usage_by_day: [{ day: "2026-10-05", template: 10, free_form: 4, failed: 1 }],
+    report_usage_totals: [{ category: "template", status: "sent", messages: 10 }],
+  };
+
+  it("shows cost per category and day when Meta pricing data was synced", async () => {
+    const { whatsappUsageReport } = await import("@/lib/reports/queries");
+    const r = await whatsappUsageReport(
+      ctx({
+        ...usage,
+        report_wa_cost_by_day: [
+          { day: "2026-10-05", category: "MARKETING", currency: "USD", volume: 10, cost: "1.5" },
+          { day: "2026-10-05", category: "UTILITY", currency: "USD", volume: 4, cost: "0.5" },
+        ],
+      }),
+    );
+    expect(r.kpis.find((k) => k.key === "cost")).toMatchObject({ label: "Cost (USD)", value: 2 });
+    expect(r.table.rows[0].cost).toBe(2);
+    expect(r.charts.some((c) => c.kind === "hbars" && c.title.startsWith("Cost by"))).toBe(true);
+  });
+
+  it("says there is no pricing data rather than showing zero, and never sums mixed currencies", async () => {
+    const { whatsappUsageReport } = await import("@/lib/reports/queries");
+    const none = await whatsappUsageReport(ctx(usage));
+    expect(none.kpis.find((k) => k.key === "cost")).toMatchObject({ value: null, hint: "no pricing data synced for this period" });
+    expect(none.table.rows[0].cost).toBeNull();
+    const mixed = await whatsappUsageReport(
+      ctx({
+        ...usage,
+        report_wa_cost_by_day: [
+          { day: "2026-10-05", category: "MARKETING", currency: "USD", volume: 1, cost: "1" },
+          { day: "2026-10-05", category: "MARKETING", currency: "AED", volume: 1, cost: "4" },
+        ],
+      }),
+    );
+    expect(mixed.kpis.find((k) => k.key === "cost")?.value).toBeNull();
+  });
+});

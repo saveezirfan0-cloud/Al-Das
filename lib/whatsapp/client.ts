@@ -4,6 +4,7 @@
  * Never log the token, recipient numbers or message bodies from here.
  */
 import { WhatsAppApiError, type GraphErrorBody } from "@/lib/whatsapp/errors";
+import { pricingFields } from "@/lib/whatsapp/pricing";
 import {
   BUSINESS_PROFILE_FIELDS,
   PHONE_NUMBER_FIELDS,
@@ -365,6 +366,11 @@ export class WhatsAppClient {
   // ---------------------------------------------------------------------------
   // Templates (WABA-level)
   // ---------------------------------------------------------------------------
+
+  /** Raw pricing analytics for a WABA (see lib/whatsapp/pricing.ts for the shape and the parser). */
+  getPricingAnalytics(wabaId: string | undefined, startSec: number, endSec: number): Promise<unknown> {
+    return this.request(this.wabaPath("", wabaId).replace(/\/$/, ""), { query: { fields: pricingFields(startSec, endSec) } });
+  }
 
   listTemplates(
     opts: { wabaId?: string; limit?: number; after?: string; status?: string; name?: string } = {},

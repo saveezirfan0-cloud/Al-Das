@@ -38,6 +38,19 @@ describe("contact schemas", () => {
     expect(updateContactSchema.safeParse({ stop_marketing: false }).success).toBe(false);
   });
 
+  it("refuses a marketing opt-in without consent evidence, and consent without an opt-in", () => {
+    const consent = { source: "web form 2026-10", obtained_at: "2026-10-01T09:30:00+04:00" };
+    expect(createContactSchema.safeParse({ phone: "1", promotions_opt_in: true }).success).toBe(false);
+    expect(createContactSchema.safeParse({ phone: "1", promotions_opt_in: true, consent }).success).toBe(true);
+    expect(createContactSchema.safeParse({ phone: "1", promotions_opt_in: false }).success).toBe(true); // opting out needs no evidence
+    expect(createContactSchema.safeParse({ phone: "1", consent }).success).toBe(false);
+    expect(createContactSchema.safeParse({ phone: "1", promotions_opt_in: true, consent: { source: "x" } }).success).toBe(false);
+    expect(createContactSchema.safeParse({ phone: "1", promotions_opt_in: true, consent: { ...consent, obtained_at: "yesterday" } }).success).toBe(false);
+    expect(updateContactSchema.safeParse({ promotions_opt_in: true }).success).toBe(false);
+    expect(updateContactSchema.safeParse({ promotions_opt_in: true, consent }).success).toBe(true);
+    expect(updateContactSchema.safeParse({ consent }).success).toBe(false);
+  });
+
   it("requires at least one field to update", () => {
     expect(updateContactSchema.safeParse({}).success).toBe(false);
     expect(updateContactSchema.safeParse({ first_name: "Amal" }).success).toBe(true);
@@ -140,6 +153,30 @@ describe("upsertContact", () => {
     await upsertContact(as, "org1", { phone: "+971501234567", stop_marketing: true });
     await upsertContact(as, "org1", { phone: "+971501234567", stop_marketing: true });
     expect(events.filter((e) => e[0] === "contact.stop_marketing")).toHaveLength(1);
+  });
+});
+
+describe("marketing consent evidence", () => {
+  it("writes where and when the patient agreed to the contact timeline, not to the contact row", async () => {
+    const { admin, as } = setup({ timeline_events: [] });
+    const input = createContactSchema.parse({
+      phone: "+971501234567",
+      promotions_opt_in: true,
+      consent: { source: "reception tablet", obtained_at: "2026-10-01T09:30:00+04:00" },
+    });
+    const r = await upsertContact(as, "org1", input);
+    expect(r.ok && r.contact.promotions_opt_in).toBe(true);
+    const events = admin._rows("timeline_events");
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({ type: "consent.marketing_recorded", contact_id: r.ok && r.contact.id });
+    expect(events[0].payload).toEqual({ channel: "api", source: "reception tablet", obtained_at: "2026-10-01T09:30:00+04:00" });
+    expect(JSON.stringify(r.ok && r.contact)).not.toContain("reception tablet");
+  });
+
+  it("records nothing when no opt-in is being set", async () => {
+    const { admin, as } = setup({ timeline_events: [] });
+    await upsertContact(as, "org1", createContactSchema.parse({ phone: "+971501234567", first_name: "Pat" }));
+    expect(admin._rows("timeline_events")).toHaveLength(0);
   });
 });
 

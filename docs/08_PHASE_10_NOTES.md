@@ -83,7 +83,7 @@ Request: `POST` JSON `{ id, type, created_at, org_id, data }` with headers `X-Pu
 
 ## Decisions and assumptions
 
-- **Awaiting, not faked.** WhatsApp **cost** and *conversion to appointments* are not built; cost needs Meta pricing analytics ingested, and the dashboard shows both as "awaiting" cards. A new report with no `run` function is listed as awaiting until its view and `run` are added (`lib/reports/registry.ts`).
+- **Awaiting, not faked.** Nothing is awaiting now: every registered report has an implementation, *conversion to appointments* arrived with Phase 5b and WhatsApp *cost* with the nightly Meta pricing sync (its response parser is unverified against a live account, OQ-62). A new report with no `run` function is listed as awaiting until its view and `run` are added (`lib/reports/registry.ts`).
 - **Metric definitions are working definitions** (OQ-44, the data requirements matrix, is missing): first response = first outbound message sent by a staff member (bots/flows excluded) at or after the first patient message; resolution = `closed_at − opened_at`; returning contact = had an earlier conversation; SLA breach = the patient wrote last and nobody replied within `orgs.settings.reports.sla_minutes` (default 15). Days are bucketed in the org timezone. Documented in `docs/audit/reports.md` §5.
 - **Embeddings:** Voyage `voyage-3` (1024-d, matching the planned `vector(1024)`), behind `lib/ai/embeddings.ts`. The similarity cutoff belongs to the embedder because scales differ by model (the fake embedder's is lower).
 - **Webhook fan-out is called from `emit()`**, not registered as an `on("*")` listener, because listeners only exist in the process that registered them and serverless processes differ. Skipped when no database is configured (tests, build).
@@ -113,10 +113,10 @@ No critical or high findings; key authentication, cross-org scoping, the SSRF co
 Known and deliberately left for later (decide before production):
 
 - **API rate limit is per key, fixed window** (120/min, fail-open if the limiter itself errors). A leaked read key can still page every contact at that rate; keep keys short-lived and scoped.
-- **Read access is not audited** per request (only writes and sends); add aggregate read logging with the limiter.
-- **AI rate limit can be exceeded by parallel requests** (usage is counted after the call). Add a reservation row or an org daily cap.
-- `promotions_opt_in` can be set to `true` by any `contacts:write` key without consent evidence, and marketing sends check `stop_marketing` only (as the inbox does), not `promotions_opt_in`. Decide whether marketing requires a recorded opt-in.
-- Webhook and KB URLs may use any HTTPS port (probing of non-443 services on public IPs); a crash between inserting a queued message and enqueueing it can leave an orphan message.
+- **API reads are audited, but sampled**: one `api.<resource>_read` row per key and resource per 15 minutes (with the number of records that first request returned), so a polling integration cannot bury the audit log. It answers "which key read patient data, and when did it start", not "which exact records".
+- **AI limits are atomic.** The per-user per-minute limit and a workspace daily cap (Settings → AI & knowledge base, default 2000, 0 = off) both use the Postgres counter behind `lib/rate-limit.ts`, which increments and checks in one statement, so parallel requests can no longer slip under the limit. A counter failure fails open.
+- **Marketing opt-in needs evidence through the API.** `promotions_opt_in: true` is refused unless the request also carries `consent: { source, obtained_at }`; it is written to the contact timeline as `consent.marketing_recorded` (never to the contact row). Still open: marketing sends check `stop_marketing` only (as the inbox does), not `promotions_opt_in`. Decide whether marketing requires a recorded opt-in.
+- Webhook and KB URLs are limited to the standard HTTPS port (443). A crash between inserting a queued message and enqueueing it can still leave an orphan message.
 
 ## Demo checklist
 

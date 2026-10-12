@@ -240,6 +240,7 @@ describe.skipIf(!TEST_DATABASE_URL)("jobs framework (db)", () => {
         "unite_housekeeping",
         "unite_nightly",
         "unite_sync",
+        "wa_pricing_sync",
         "webhooks_out",
       ]);
     });
