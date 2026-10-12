@@ -184,3 +184,31 @@ export async function seedPhase14Rows(c: Client, orgId: string, userId: string) 
 
 /** The tables Phase 14 added, for catalogue assertions. */
 export const PHASE14_TABLES = ["handover_notes", "help_feedback", "household_links", "slot_offers", "waitlist_entries"] as const;
+
+/**
+ * One row in every Phase 16 table (media folders and assets, patient documents, retention policies) for an org, so
+ * the cross-org sweeps are not vacuous for them. Synthetic names; the "files" are never uploaded anywhere.
+ */
+export async function seedPhase16Rows(c: Client, orgId: string, userId: string) {
+  const ids: Record<string, string> = {};
+  await asServiceRole(c, async () => {
+    const one = async (sql: string, params: unknown[]) => (await c.query<{ id: string }>(sql + " returning id::text", params)).rows[0].id;
+    ids.folder = await one("insert into public.media_folders (org_id, name, created_by) values ($1, 'Seed folder 16', $2)", [orgId, userId]);
+    ids.assetId = (await c.query<{ id: string }>("select gen_random_uuid()::text as id")).rows[0].id;
+    ids.asset = await one(
+      "insert into public.media_assets (id, org_id, folder_id, name, kind, mime_type, size_bytes, storage_path, status, uploaded_by) values ($2::uuid, $1, $3, 'Seed image 16', 'image', 'image/jpeg', 1234, $1::text || '/' || $2::text || '/original.jpg', 'ready', $4)",
+      [orgId, ids.assetId, ids.folder, userId],
+    );
+    ids.contact16 = await one("insert into public.contacts (org_id, first_name, last_name, phone_e164) values ($1, 'Docs', 'Seed', '+971500000161')", [orgId]);
+    ids.docId = (await c.query<{ id: string }>("select gen_random_uuid()::text as id")).rows[0].id;
+    ids.document = await one(
+      "insert into public.patient_documents (id, org_id, contact_id, category, title, mime_type, size_bytes, storage_path, status, uploaded_by) values ($3::uuid, $1, $2, 'insurance_card', 'Seed card 16', 'image/jpeg', 2345, $1::text || '/' || $2::text || '/' || $3::text || '.jpg', 'ready', $4)",
+      [orgId, ids.contact16, ids.docId, userId],
+    );
+    await c.query("insert into public.document_retention_policies (org_id, category, retain_days, auto_delete, updated_by) values ($1, 'referral', 365, false, $2)", [orgId, userId]);
+  });
+  return ids;
+}
+
+/** The tables Phase 16 added, for catalogue assertions. */
+export const PHASE16_TABLES = ["document_retention_policies", "media_assets", "media_folders", "patient_documents"] as const;

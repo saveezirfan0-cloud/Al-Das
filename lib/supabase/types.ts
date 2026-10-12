@@ -2467,6 +2467,49 @@ export type Database = {
           },
         ];
       };
+      document_retention_policies: {
+        Row: {
+          auto_delete: boolean;
+          category: string;
+          org_id: string;
+          retain_days: number | null;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          auto_delete?: boolean;
+          category: string;
+          org_id: string;
+          retain_days?: number | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          auto_delete?: boolean;
+          category?: string;
+          org_id?: string;
+          retain_days?: number | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "document_retention_policies_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "document_retention_policies_updated_by_fkey";
+            columns: ["updated_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       enquiries: {
         Row: {
           appt_date: string | null;
@@ -5174,6 +5217,138 @@ export type Database = {
           },
         ];
       };
+      media_assets: {
+        Row: {
+          created_at: string;
+          folder_id: string | null;
+          height: number | null;
+          id: string;
+          kind: string;
+          mime_type: string;
+          name: string;
+          org_id: string;
+          original_size_bytes: number | null;
+          scan_engine: string | null;
+          scan_status: string;
+          scanned_at: string | null;
+          size_bytes: number;
+          status: string;
+          storage_path: string;
+          tags: string[];
+          thumb_path: string | null;
+          updated_at: string;
+          uploaded_by: string | null;
+          width: number | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          folder_id?: string | null;
+          height?: number | null;
+          id?: string;
+          kind: string;
+          mime_type: string;
+          name: string;
+          org_id: string;
+          original_size_bytes?: number | null;
+          scan_engine?: string | null;
+          scan_status?: string;
+          scanned_at?: string | null;
+          size_bytes: number;
+          status?: string;
+          storage_path: string;
+          tags?: string[];
+          thumb_path?: string | null;
+          updated_at?: string;
+          uploaded_by?: string | null;
+          width?: number | null;
+        };
+        Update: {
+          created_at?: string;
+          folder_id?: string | null;
+          height?: number | null;
+          id?: string;
+          kind?: string;
+          mime_type?: string;
+          name?: string;
+          org_id?: string;
+          original_size_bytes?: number | null;
+          scan_engine?: string | null;
+          scan_status?: string;
+          scanned_at?: string | null;
+          size_bytes?: number;
+          status?: string;
+          storage_path?: string;
+          tags?: string[];
+          thumb_path?: string | null;
+          updated_at?: string;
+          uploaded_by?: string | null;
+          width?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "media_assets_folder_id_fkey";
+            columns: ["folder_id"];
+            isOneToOne: false;
+            referencedRelation: "media_folders";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "media_assets_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "media_assets_uploaded_by_fkey";
+            columns: ["uploaded_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      media_folders: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          name: string;
+          org_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          name: string;
+          org_id: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          name?: string;
+          org_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "media_folders_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "media_folders_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       memberships: {
         Row: {
           created_at: string;
@@ -5916,6 +6091,89 @@ export type Database = {
           },
         ];
       };
+      patient_documents: {
+        Row: {
+          category: string;
+          contact_id: string;
+          created_at: string;
+          expires_on: string | null;
+          expiry_notified_at: string | null;
+          id: string;
+          mime_type: string;
+          org_id: string;
+          scan_engine: string | null;
+          scan_status: string;
+          scanned_at: string | null;
+          size_bytes: number;
+          status: string;
+          storage_path: string;
+          title: string;
+          updated_at: string;
+          uploaded_by: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          category: string;
+          contact_id: string;
+          created_at?: string;
+          expires_on?: string | null;
+          expiry_notified_at?: string | null;
+          id?: string;
+          mime_type: string;
+          org_id: string;
+          scan_engine?: string | null;
+          scan_status?: string;
+          scanned_at?: string | null;
+          size_bytes: number;
+          status?: string;
+          storage_path: string;
+          title: string;
+          updated_at?: string;
+          uploaded_by?: string | null;
+        };
+        Update: {
+          category?: string;
+          contact_id?: string;
+          created_at?: string;
+          expires_on?: string | null;
+          expiry_notified_at?: string | null;
+          id?: string;
+          mime_type?: string;
+          org_id?: string;
+          scan_engine?: string | null;
+          scan_status?: string;
+          scanned_at?: string | null;
+          size_bytes?: number;
+          status?: string;
+          storage_path?: string;
+          title?: string;
+          updated_at?: string;
+          uploaded_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "patient_documents_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "patient_documents_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "patient_documents_uploaded_by_fkey";
+            columns: ["uploaded_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       pipelines: {
         Row: {
           archived_at: string | null;
@@ -6528,6 +6786,7 @@ export type Database = {
           created_by: string | null;
           id: string;
           label: string | null;
+          media_asset_id: string | null;
           org_id: string;
           shortcut: string;
           text: string;
@@ -6540,6 +6799,7 @@ export type Database = {
           created_by?: string | null;
           id?: string;
           label?: string | null;
+          media_asset_id?: string | null;
           org_id: string;
           shortcut: string;
           text: string;
@@ -6551,6 +6811,7 @@ export type Database = {
           created_by?: string | null;
           id?: string;
           label?: string | null;
+          media_asset_id?: string | null;
           org_id?: string;
           shortcut?: string;
           text?: string;
@@ -6558,6 +6819,13 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "quick_replies_media_asset_id_fkey";
+            columns: ["media_asset_id"];
+            isOneToOne: false;
+            referencedRelation: "media_assets";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "quick_replies_created_by_fkey";
             columns: ["created_by"];
@@ -11326,6 +11594,16 @@ export type Database = {
         Returns: number;
       };
       mark_all_notifications_read: { Args: { p_org_id: string }; Returns: number };
+      media_asset_usage: {
+        Args: { p_asset: string; p_org: string };
+        Returns: {
+          blocking: boolean;
+          kind: string;
+          ref_id: string;
+          ref_name: string;
+          ref_status: string;
+        }[];
+      };
       merge_contacts: {
         Args: {
           p_fields?: Json;
