@@ -172,6 +172,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
       "finance.forecast.view",
       "finance.recovery.manage",
       "finance.recovery.approve",
+      "finance.payment_links",
       "finance.close.view",
       "finance.close.manage",
       "finance.close.signoff.finance",
