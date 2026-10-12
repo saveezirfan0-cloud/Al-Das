@@ -38,6 +38,7 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { RecordHistoryButton } from "@/components/history/record-history";
 import { Input } from "@/components/ui/input";
 import {
   NODE_DEFS,
@@ -422,6 +423,7 @@ function Builder({ flow, lookups }: { flow: BuilderFlow; lookups: BuilderLookups
               <ScrollText /> Logs
             </Link>
           </Button>
+          <RecordHistoryButton table="flows" recordId={flow.id} />
           {flow.status === "active" && (
             <Button
               variant="outline"

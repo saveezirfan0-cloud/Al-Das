@@ -37,6 +37,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
+import { RecordHistoryButton } from "@/components/history/record-history";
 import {
   LIMITS,
   TEMPLATE_CATEGORIES,
@@ -409,6 +410,11 @@ export function TemplateBuilder({
               ? "Name and language are fixed once a template has been submitted. Saving changes sends it back to Meta for review."
               : "Build the message, preview it, then submit it to Meta for approval."}
           </SheetDescription>
+          {id && (
+            <div>
+              <RecordHistoryButton table="wa_templates" recordId={id} />
+            </div>
+          )}
         </SheetHeader>
 
         <div className="grid gap-6 px-4 pb-6 lg:grid-cols-[1fr_20rem]">

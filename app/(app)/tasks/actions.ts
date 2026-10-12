@@ -44,7 +44,7 @@ async function ctxFor(perm: "tasks.view" | "tasks.manage"): Promise<{
 }> {
   const member = await requirePerm(perm);
   return {
-    ctx: { admin: createAdminClient(), orgId: member.orgId, userId: member.userId },
+    ctx: { admin: createAdminClient(member.userId), orgId: member.orgId, userId: member.userId },
     timezone: member.org.timezone,
     canContacts: can(member, "contacts.view"),
     canEnquiries: can(member, "enquiries.view"),
