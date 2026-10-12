@@ -13075,6 +13075,14 @@ export type Database = {
       gen_random_uuid: { Args: Record<PropertyKey, never>; Returns: string };
       gen_salt: { Args: { "": string }; Returns: string };
       ins_apply_matches: { Args: { p_matches: Json; p_org_id: string }; Returns: number };
+      ins_claims_for_remittance: {
+        Args: {
+          p_invoice_keys: string[];
+          p_numbers: string[];
+          p_org_id: string;
+        };
+        Returns: Json;
+      };
       ins_commit_import: {
         Args: {
           p_events: Json;

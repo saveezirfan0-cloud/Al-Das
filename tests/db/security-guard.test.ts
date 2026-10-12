@@ -104,6 +104,7 @@ const PHASE18_SERVICE_FUNCTIONS = [
   "fin_revenue_breakdown",
   "fin_selfpay_balances",
   "fin_sync_denial_cases",
+  "ins_claims_for_remittance",
   "ins_commit_remittance",
 ];
 

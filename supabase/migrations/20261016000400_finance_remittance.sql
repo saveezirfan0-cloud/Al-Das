@@ -197,3 +197,26 @@ end;
 $$;
 revoke all on function public.ins_commit_remittance(uuid, uuid, uuid, jsonb, jsonb) from public, anon, authenticated;
 grant execute on function public.ins_commit_remittance(uuid, uuid, uuid, jsonb, jsonb) to service_role;
+
+-- ---------------------------------------------------------------------------
+-- ins_claims_for_remittance: the candidate claims for a batch of advice lines, found by claim number or by normalised
+-- invoice number (the same normalisation as fin_invoices.inv_key). Identifiers and amounts only.
+-- ---------------------------------------------------------------------------
+create or replace function public.ins_claims_for_remittance(p_org_id uuid, p_numbers text[], p_invoice_keys text[])
+returns jsonb
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'id', c.id, 'claim_activity_number', c.claim_activity_number, 'invoice_no', c.invoice_no, 'cpt_code', c.cpt_code,
+    'payer_id', c.payer_id, 'quantity', c.quantity, 'net', c.net, 'transaction_date', c.transaction_date,
+    'activity_start_date', c.activity_start_date)), '[]'::jsonb)
+  from public.ins_claim_activities c
+  where c.org_id = p_org_id
+    and (upper(btrim(c.claim_activity_number)) = any (select upper(btrim(x)) from unnest(coalesce(p_numbers, '{}')) as x)
+         or upper(regexp_replace(coalesce(c.invoice_no, ''), '\s+', '', 'g')) = any (coalesce(p_invoice_keys, '{}')));
+$$;
+revoke all on function public.ins_claims_for_remittance(uuid, text[], text[]) from public, anon, authenticated;
+grant execute on function public.ins_claims_for_remittance(uuid, text[], text[]) to service_role;

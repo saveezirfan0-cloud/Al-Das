@@ -46,6 +46,17 @@ export const REASON_LABELS: Record<ReadinessReason, string> = {
   preauth_missing: "A service needs a pre-authorisation and none covers the date",
 };
 
+/** Short labels for badges; REASON_LABELS has the full sentence. */
+export const REASON_SHORT: Record<ReadinessReason, string> = {
+  no_patient_pin: "No PIN",
+  no_eligibility: "No eligibility check",
+  eligibility_pending: "Check not finished",
+  eligibility_failed: "Check failed",
+  eligibility_expired: "Cover had ended",
+  no_card_on_file: "No card on file",
+  preauth_missing: "Pre-auth missing",
+};
+
 export type ReadinessInput = {
   invoiceDate: string;
   patientPin: string | null;

@@ -220,6 +220,7 @@ describe.skipIf(!TEST_DATABASE_URL)("jobs framework (db)", () => {
         "finance_capture",
         "finance_capture_tick",
         "finance_maintenance",
+        "finance_workflows",
         "flow_recurring",
         "flow_steps",
         "housekeeping",

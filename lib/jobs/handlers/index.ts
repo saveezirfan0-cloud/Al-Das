@@ -16,6 +16,7 @@ import "@/lib/jobs/handlers/kb-ingest";
 import "@/lib/jobs/handlers/metrics-refresh";
 import "@/lib/jobs/handlers/security-maintenance";
 import "@/lib/jobs/handlers/documents-maintenance";
+import "@/lib/jobs/handlers/finance-workflows";
 import "@/lib/jobs/handlers/notification-digests";
 import "@/lib/jobs/handlers/webhooks-out";
 import "@/lib/jobs/handlers/appointments";
