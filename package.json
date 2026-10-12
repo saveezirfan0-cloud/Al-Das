@@ -32,6 +32,7 @@
     "reconcile": "tsx scripts/reconcile.ts",
     "cutover:preflight": "tsx scripts/cutover-preflight.ts",
     "push:keys": "tsx scripts/push-keys.ts",
+    "demo:reset": "tsx scripts/demo-reset.ts",
     "bundle:check": "tsx scripts/check-bundle-budget.ts",
     "analyze": "ANALYZE=true next build"
   },

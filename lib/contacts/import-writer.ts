@@ -267,8 +267,9 @@ export async function matchContact(
     // Families share numbers. When the incoming record says who it is (PIN, name, date of birth), compare it
     // with whoever holds the number AND with that person's dependants: a child arriving on the mother's
     // number is the child, or a shared phone for a human to sort out, never silently the mother.
+    // Only when exactly one contact holds the number: two holders were already ambiguous and stay so.
     const evidence = !!(m.externalId || m.fullName || m.dob);
-    if (ids.size > 0 && evidence) {
+    if (ids.size === 1 && evidence) {
       const holders = [...ids.keys()];
       const { data: links } = await admin
         .from("household_links")

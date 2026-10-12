@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
@@ -21,13 +22,21 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
-import { PatientCardView } from "@/app/(app)/front-desk/patient-card";
-
 import { mergeContacts, updateContactFromInbox } from "./actions";
 import { MediaBubble } from "./media-bubble";
 import type { ConversationDetail, InboxProps } from "./types";
 
 const UNSET = "__unset__";
+
+// The patient card (dialogs, selects, time-zone formatting) is only needed by people with the Front desk
+// permission and only once a conversation is open, so it stays out of the inbox's first load.
+const PatientCardView = dynamic(
+  () => import("@/app/(app)/front-desk/patient-card").then((m) => m.PatientCardView),
+  {
+    ssr: false,
+    loading: () => <p className="text-muted-foreground text-xs">Loading the patient card…</p>,
+  },
+);
 
 export function Sidebar({
   selected,

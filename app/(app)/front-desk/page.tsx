@@ -50,7 +50,7 @@ export default async function FrontDeskPage({
     admin
       .from("waitlist_entries")
       .select(
-        "id, contact_id, not_after, notes, created_at, contacts(full_name), specialists(name), services(name), locations(name), slot_offers(status, starts_at, expires_at)",
+        "id, contact_id, not_after, notes, created_at, contacts(full_name), specialists(name), services(name), locations(name), slot_offers(status, starts_at, expires_at, failure_reason, created_at)",
       )
       .eq("org_id", member.orgId)
       .eq("status", "waiting")
@@ -86,12 +86,26 @@ export default async function FrontDeskPage({
       specialists: { name: string } | null;
       services: { name: string } | null;
       locations: { name: string } | null;
-      slot_offers: Array<{ status: string; starts_at: string; expires_at: string }>;
+      slot_offers: Array<{
+        status: string;
+        starts_at: string;
+        expires_at: string;
+        failure_reason: string | null;
+        created_at: string;
+      }>;
     }>
   ).map((w) => {
     const live = (w.slot_offers ?? []).find(
       (o) => o.status === "pending" && new Date(o.expires_at).getTime() > Date.now(),
     );
+    const newest = [...(w.slot_offers ?? [])].sort((a, b) =>
+      b.created_at.localeCompare(a.created_at),
+    )[0];
+    const recentFailure =
+      newest?.status === "failed" &&
+      Date.now() - new Date(newest.created_at).getTime() < 48 * 3600_000
+        ? (newest.failure_reason ?? "failed")
+        : null;
     return {
       id: w.id,
       contact_id: w.contact_id,
@@ -103,6 +117,7 @@ export default async function FrontDeskPage({
       notes: w.notes,
       created_at: w.created_at,
       offer: live ? { starts_at: live.starts_at, expires_at: live.expires_at } : null,
+      offerFailure: recentFailure,
     };
   });
 

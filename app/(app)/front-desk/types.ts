@@ -25,6 +25,8 @@ export type WaitlistRow = {
   created_at: string;
   /** An offer for a freed slot is out to this person right now. */
   offer: { starts_at: string; expires_at: string } | null;
+  /** The newest offer to this person could not be sent (reason code, e.g. window_closed_no_template). */
+  offerFailure: string | null;
 };
 
 export type NoteRow = {

@@ -75,6 +75,15 @@ export const NOTIFICATION_EVENTS = [
     permission: "appointments.view",
   },
   {
+    key: "waitlist.booked",
+    group: "Work",
+    label: "A waiting-list offer was accepted",
+    description: "A patient on the waiting list said YES and took a freed slot.",
+    channels: ALL,
+    defaults: { in_app: true, email: false, push: true },
+    permission: "frontdesk.use",
+  },
+  {
     key: "task.due",
     group: "Work",
     label: "A task is due",

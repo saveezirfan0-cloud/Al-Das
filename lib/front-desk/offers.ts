@@ -25,6 +25,7 @@ import { ensureConversation } from "@/lib/inbox/conversations";
 import { queueOutbound } from "@/lib/inbox/send";
 import { scheduleJob } from "@/lib/jobs/enqueue";
 import type { FreedSlotPayload } from "@/lib/front-desk/freed";
+import { memberIdsWithPermission, notify } from "@/lib/notify/dispatch-db";
 import { redactText } from "@/lib/redact";
 import type { AdminClient } from "@/lib/supabase/admin";
 import { renderTemplatePreview } from "@/lib/whatsapp/templates";
@@ -553,6 +554,17 @@ export async function handleOfferReply(admin: AdminClient, r: OfferReply): Promi
   switch (res.result) {
     case "booked":
       await say("booked");
+      // Tell the desk (ids and a fixed sentence only; the title never names the patient).
+      await notify(admin, {
+        orgId: r.orgId,
+        userIds: await memberIdsWithPermission(admin, r.orgId, "frontdesk.use"),
+        event: "waitlist.booked",
+        type: "appointment.waitlist_booked",
+        title: "Waiting-list slot booked",
+        body: "A patient on the waiting list took an offered slot.",
+        payload: { appointment_id: res.appointment_id },
+        ids: { appointment_id: res.appointment_id },
+      });
       return "booked";
     case "taken":
       await say("taken");

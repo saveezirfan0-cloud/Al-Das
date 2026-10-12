@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
@@ -53,9 +54,23 @@ import {
   resolveHandoverNote,
   setCheckin,
 } from "./actions";
-import { PatientCardView } from "./patient-card";
 import type { DeskCan, DeskData, DeskOptions } from "./types";
 import { WalkInDialog } from "./walk-in-dialog";
+
+const OFFER_FAILURE_HINT: Record<string, string> = {
+  window_closed_no_template:
+    "The 24-hour window is closed and no offer template is set (Settings, Front desk).",
+  no_whatsapp: "This patient has no WhatsApp number.",
+  no_channel: "No active WhatsApp number can send the template.",
+  template_variables_unmapped: "The offer template has variables that are not mapped.",
+  queue_failed: "The message could not be queued.",
+};
+
+// Loaded when a patient is picked, not with the board.
+const PatientCardView = dynamic(() => import("./patient-card").then((m) => m.PatientCardView), {
+  ssr: false,
+  loading: () => <p className="text-muted-foreground text-sm">Loading the patient card…</p>,
+});
 
 type Filter = "all" | "expected" | "in_clinic" | "finished" | "no_show";
 
@@ -711,6 +726,14 @@ function WaitlistPanel({
                     .join(" · ")}
                 </span>
               </button>
+              {!w.offer && w.offerFailure && (
+                <Badge
+                  variant="destructive"
+                  title={OFFER_FAILURE_HINT[w.offerFailure] ?? "The offer could not be sent"}
+                >
+                  Offer not sent
+                </Badge>
+              )}
               {w.offer && (
                 <Badge variant="warning" title="An offer is waiting for an answer">
                   Offer until {formatInTimeZone(new Date(w.offer.expires_at), tz, "h:mm a")}

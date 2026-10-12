@@ -11128,6 +11128,10 @@ export type Database = {
         Returns: Json;
       };
       dearmor: { Args: { "": string }; Returns: string };
+      demo_wipe_org: {
+        Args: { p_org_id: string };
+        Returns: Json;
+      };
       enquiries_count: {
         Args: { p_org_id: string; p_params: Json; p_q?: string; p_where: string };
         Returns: number;
