@@ -2171,6 +2171,7 @@ export type Database = {
           closed_by: string | null;
           contact_id: string;
           created_at: string;
+          escalation_level: number;
           flow_run_id: string | null;
           id: string;
           last_inbound_at: string | null;
@@ -2200,6 +2201,7 @@ export type Database = {
           closed_by?: string | null;
           contact_id: string;
           created_at?: string;
+          escalation_level?: number;
           flow_run_id?: string | null;
           id?: string;
           last_inbound_at?: string | null;
@@ -2228,6 +2230,7 @@ export type Database = {
           closed_by?: string | null;
           contact_id?: string;
           created_at?: string;
+          escalation_level?: number;
           flow_run_id?: string | null;
           id?: string;
           last_inbound_at?: string | null;
@@ -5256,6 +5259,104 @@ export type Database = {
           },
         ];
       };
+      notification_digest_log: {
+        Row: {
+          id: string;
+          kind: string;
+          org_id: string;
+          period_key: string;
+          sent_at: string;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          id?: string;
+          kind: string;
+          org_id: string;
+          period_key: string;
+          sent_at?: string;
+          user_id: string;
+        };
+        Update: {
+          id?: string;
+          kind?: string;
+          org_id?: string;
+          period_key?: string;
+          sent_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "notification_digest_log_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notification_digest_log_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      notification_preferences: {
+        Row: {
+          channel: string;
+          created_at: string;
+          enabled: boolean;
+          event: string;
+          id: string;
+          org_id: string;
+          quiet_end: string | null;
+          quiet_start: string | null;
+          updated_at: string;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          channel: string;
+          created_at?: string;
+          enabled?: boolean;
+          event: string;
+          id?: string;
+          org_id: string;
+          quiet_end?: string | null;
+          quiet_start?: string | null;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          channel?: string;
+          created_at?: string;
+          enabled?: boolean;
+          event?: string;
+          id?: string;
+          org_id?: string;
+          quiet_end?: string | null;
+          quiet_start?: string | null;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "notification_preferences_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notification_preferences_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       notifications: {
         Row: {
           body: string | null;
@@ -5264,6 +5365,7 @@ export type Database = {
           org_id: string;
           payload: NonNullable<Json>;
           read_at: string | null;
+          snoozed_until: string | null;
           title: string;
           type: string;
           user_id: string;
@@ -5276,6 +5378,7 @@ export type Database = {
           org_id: string;
           payload?: NonNullable<Json>;
           read_at?: string | null;
+          snoozed_until?: string | null;
           title: string;
           type: string;
           user_id: string;
@@ -5287,6 +5390,7 @@ export type Database = {
           org_id?: string;
           payload?: NonNullable<Json>;
           read_at?: string | null;
+          snoozed_until?: string | null;
           title?: string;
           type?: string;
           user_id?: string;
@@ -6154,6 +6258,58 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [];
+      };
+      push_subscriptions: {
+        Row: {
+          created_at: string;
+          endpoint_hash: string;
+          failure_count: number;
+          id: string;
+          last_used_at: string | null;
+          org_id: string;
+          subscription_enc: string;
+          ua_family: string | null;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          endpoint_hash: string;
+          failure_count?: number;
+          id?: string;
+          last_used_at?: string | null;
+          org_id: string;
+          subscription_enc: string;
+          ua_family?: string | null;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          endpoint_hash?: string;
+          failure_count?: number;
+          id?: string;
+          last_used_at?: string | null;
+          org_id?: string;
+          subscription_enc?: string;
+          ua_family?: string | null;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "push_subscriptions_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "push_subscriptions_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       quick_replies: {
         Row: {
@@ -7924,6 +8080,7 @@ export type Database = {
           created_at: string;
           description: string | null;
           id: string;
+          lead_user_id: string | null;
           name: string;
           org_id: string;
           round_robin: boolean;
@@ -7934,6 +8091,7 @@ export type Database = {
           created_at?: string;
           description?: string | null;
           id?: string;
+          lead_user_id?: string | null;
           name: string;
           org_id: string;
           round_robin?: boolean;
@@ -7943,12 +8101,20 @@ export type Database = {
           created_at?: string;
           description?: string | null;
           id?: string;
+          lead_user_id?: string | null;
           name?: string;
           org_id?: string;
           round_robin?: boolean;
           updated_at?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "teams_lead_user_id_fkey";
+            columns: ["lead_user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "teams_org_id_fkey";
             columns: ["org_id"];
@@ -10503,6 +10669,16 @@ export type Database = {
       create_org: {
         Args: { p_name: string; p_owner_id?: string; p_roles: Json; p_slug: string };
         Returns: string;
+      };
+      dashboard_overview: {
+        Args: {
+          p_include_enquiries?: boolean;
+          p_include_tasks?: boolean;
+          p_org: string;
+          p_today_start: string;
+          p_user: string;
+        };
+        Returns: Json;
       };
       dearmor: { Args: { "": string }; Returns: string };
       enquiries_count: {

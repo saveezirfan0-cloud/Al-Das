@@ -1,12 +1,18 @@
 "use client";
 
+import dynamic from "next/dynamic";
+
+import { Skeleton } from "@/components/ui/skeleton";
 import type { ChartSpec } from "@/lib/reports/types";
 
-import { BarsChart } from "./bars-chart";
 import { ChartCard } from "./chart-card";
 import { Heatmap } from "./heatmap";
 import { HBarList } from "./hbar-list";
-import { LineChart } from "./line-chart";
+
+// Recharts is the heaviest dependency on the dashboards: load it only when a bar or line chart is drawn.
+const chartPlaceholder = () => <Skeleton className="h-60 w-full" aria-label="Loading chart" />;
+const BarsChart = dynamic(() => import("./bars-chart").then((m) => m.BarsChart), { ssr: false, loading: chartPlaceholder });
+const LineChart = dynamic(() => import("./line-chart").then((m) => m.LineChart), { ssr: false, loading: chartPlaceholder });
 
 /** Maps a serializable ChartSpec (built on the server) to its component. */
 export function ChartRenderer({ spec }: { spec: ChartSpec }) {

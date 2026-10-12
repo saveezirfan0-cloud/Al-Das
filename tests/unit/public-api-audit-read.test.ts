@@ -26,7 +26,7 @@ describe("public API read audit", () => {
     await auditApiRead(admin, ctx, "contacts", 5, NOW);
     expect(insert).not.toHaveBeenCalled();
     expect(filters).toContainEqual(["eq:diff->>api_key_id", "k1"]);
-    expect(filters).toContainEqual(["gte:created_at", "2026-10-12T09:45:00.000Z"]);
+    expect(filters).toContainEqual(["gte:at", "2026-10-12T09:45:00.000Z"]);
     expect(filters).toContainEqual(["eq:action", "api.contacts_read"]);
   });
 

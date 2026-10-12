@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { requirePerm } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-import { FlowBuilder, type BuilderFlow, type BuilderLookups } from "./flow-builder";
+import type { BuilderFlow, BuilderLookups } from "./flow-builder";
+import { FlowBuilderLoader } from "./flow-builder-loader";
 
 export const metadata = { title: "Flow builder" };
 
@@ -84,5 +85,5 @@ export default async function FlowBuilderPage({ params }: { params: Promise<{ id
     graph: flow.graph as BuilderFlow["graph"],
     published_graph: (flow.published_graph as BuilderFlow["graph"] | null) ?? null,
   };
-  return <FlowBuilder flow={initial} lookups={lookups} />;
+  return <FlowBuilderLoader flow={initial} lookups={lookups} />;
 }

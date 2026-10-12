@@ -28,10 +28,15 @@ jobs:
       - run: pnpm lint
       - run: pnpm test
       - name: Build
-        run: pnpm build
+        shell: bash # bash with pipefail, so a failed build still fails the step although its output goes through tee
+        run: pnpm build 2>&1 | tee build.log
         env:
           # Dummy values: the build only needs the variables to exist, nothing connects to Supabase.
           NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder
           SUPABASE_SERVICE_ROLE_KEY: ci-placeholder
           NEXT_TELEMETRY_DISABLED: "1"
+      # Phase 13: fail the pull request when a route's first-load JavaScript grows past its budget
+      # (scripts/bundle-budget.json). Raise a number in the same commit when a bigger bundle is intended.
+      - name: Bundle budgets
+        run: pnpm bundle:check build.log

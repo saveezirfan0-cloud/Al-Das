@@ -229,6 +229,7 @@ describe.skipIf(!TEST_DATABASE_URL)("jobs framework (db)", () => {
         "media_fetch",
         "meta_events",
         "metrics_refresh",
+        "notification_digests",
         "notifications",
         "outbound",
         "outbound_priority",

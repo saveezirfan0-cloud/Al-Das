@@ -24,7 +24,7 @@ export async function auditApiRead(admin: AdminClient, ctx: ApiKeyContext, resou
       .eq("org_id", ctx.orgId)
       .eq("action", action)
       .eq("diff->>api_key_id", ctx.keyId)
-      .gte("created_at", since)
+      .gte("at", since)
       .limit(1);
     if (data && data.length > 0) return;
     await recordAudit(admin, { orgId: ctx.orgId, userId: null, action, entity: resource, diff: { api_key_id: ctx.keyId, records: count, sampled_window_minutes: READ_AUDIT_WINDOW_MS / 60_000 } });

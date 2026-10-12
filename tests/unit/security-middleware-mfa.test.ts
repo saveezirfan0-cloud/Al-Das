@@ -7,6 +7,8 @@ type FakeState = {
   memberships: Array<{ org_id: string; roles: { require_mfa: boolean } | null }>;
   membershipError: { message: string } | null;
   queries: number;
+  /** Which verification calls the middleware made, in order. */
+  authCalls: string[];
 };
 const state: FakeState = {
   user: null,
@@ -14,12 +16,20 @@ const state: FakeState = {
   memberships: [],
   membershipError: null,
   queries: 0,
+  authCalls: [],
 };
 
 vi.mock("@supabase/ssr", () => ({
   createServerClient: () => ({
     auth: {
-      getUser: async () => ({ data: { user: state.user } }),
+      getUser: async () => {
+        state.authCalls.push("getUser");
+        return { data: { user: state.user } };
+      },
+      getClaims: async () => {
+        state.authCalls.push("getClaims");
+        return { data: state.user ? { claims: { sub: state.user.id } } : null, error: null };
+      },
       mfa: { getAuthenticatorAssuranceLevel: async () => ({ data: state.aal }) },
     },
     from: () => {
@@ -39,8 +49,15 @@ vi.mock("@supabase/ssr", () => ({
 
 import { updateSession } from "@/lib/supabase/middleware";
 
-const req = (path: string, cookie?: string) =>
-  new NextRequest(`https://pulse.test${path}`, { headers: cookie ? { cookie } : undefined });
+const req = (
+  path: string,
+  cookie?: string,
+  init: { method?: string; headers?: Record<string, string> } = {},
+) =>
+  new NextRequest(`https://pulse.test${path}`, {
+    method: init.method,
+    headers: { ...(cookie ? { cookie } : {}), ...init.headers },
+  });
 const target = (res: Response) =>
   res.headers.get("location") ? new URL(res.headers.get("location")!).pathname : null;
 
@@ -52,6 +69,7 @@ beforeEach(() => {
   state.memberships = [{ org_id: "o1", roles: { require_mfa: false } }];
   state.membershipError = null;
   state.queries = 0;
+  state.authCalls = [];
 });
 
 describe("middleware two-step verification", () => {
@@ -123,5 +141,66 @@ describe("middleware two-step verification", () => {
     expect(target(await updateSession(req("/inbox")))).toBe("/login");
     expect(target(await updateSession(req("/mfa/enroll")))).toBe("/login");
     expect(target(await updateSession(req("/login")))).toBeNull();
+  });
+});
+
+describe("middleware token verification (Phase 13)", () => {
+  it("verifies page navigations locally (getClaims) and never calls Auth for them", async () => {
+    await updateSession(req("/inbox"));
+    expect(state.authCalls).toEqual(["getClaims"]);
+  });
+
+  it("keeps getUser for server actions, other mutating methods and API routes", async () => {
+    await updateSession(
+      req("/inbox", undefined, { method: "POST", headers: { "next-action": "abc123" } }),
+    );
+    await updateSession(req("/settings/users", undefined, { method: "POST" }));
+    await updateSession(req("/settings/users", undefined, { method: "DELETE" }));
+    await updateSession(req("/api/contacts/export"));
+    expect(state.authCalls).toEqual(["getUser", "getUser", "getUser", "getUser"]);
+  });
+
+  it("applies the two-step verification gate exactly the same on both paths", async () => {
+    state.memberships = [{ org_id: "o1", roles: { require_mfa: true } }];
+    expect(target(await updateSession(req("/finance/claims")))).toBe("/mfa/enroll");
+    expect(
+      target(
+        await updateSession(
+          req("/finance/claims", undefined, { method: "POST", headers: { "next-action": "x" } }),
+        ),
+      ),
+    ).toBe("/mfa/enroll");
+    state.aal = { currentLevel: "aal1", nextLevel: "aal2" };
+    expect(target(await updateSession(req("/settings/users")))).toBe("/mfa/verify");
+  });
+
+  it("redirects a visitor with no valid token to login on the claims path too", async () => {
+    state.user = null;
+    expect(target(await updateSession(req("/inbox")))).toBe("/login");
+    expect(state.authCalls).toEqual(["getClaims"]);
+  });
+
+  it("tells the page which mode was used, and overwrites a header the browser tried to set", async () => {
+    const page = await updateSession(
+      req("/inbox", undefined, { headers: { "x-pulse-auth": "strict" } }),
+    );
+    expect(page.headers.get("x-middleware-request-x-pulse-auth")).toBe("claims");
+    const action = await updateSession(
+      req("/inbox", undefined, {
+        method: "POST",
+        headers: { "next-action": "x", "x-pulse-auth": "claims" },
+      }),
+    );
+    expect(action.headers.get("x-middleware-request-x-pulse-auth")).toBe("strict");
+  });
+
+  it("can be switched back to always-strict with PULSE_VERIFY_JWT_LOCALLY=0", async () => {
+    process.env.PULSE_VERIFY_JWT_LOCALLY = "0";
+    try {
+      await updateSession(req("/inbox"));
+      expect(state.authCalls).toEqual(["getUser"]);
+    } finally {
+      delete process.env.PULSE_VERIFY_JWT_LOCALLY;
+    }
   });
 });

@@ -1,3 +1,4 @@
+import createBundleAnalyzer from "@next/bundle-analyzer";
 import type { NextConfig } from "next";
 
 const isDev = process.env.NODE_ENV !== "production";
@@ -19,6 +20,8 @@ const csp = [
   "base-uri 'self'",
   "form-action 'self'",
   "object-src 'none'",
+  "worker-src 'self'",
+  "manifest-src 'self'",
 ].join("; ");
 
 const securityHeaders = [
@@ -41,8 +44,24 @@ const nextConfig: NextConfig = {
     serverActions: { bodySizeLimit: "16mb" },
   },
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      // The service worker must always be re-checked, or an update could be held back for a day by the HTTP cache.
+      {
+        source: "/sw.js",
+        headers: [
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+          { key: "Service-Worker-Allowed", value: "/" },
+        ],
+      },
+    ];
   },
 };
 
-export default nextConfig;
+// `ANALYZE=true pnpm build` writes the bundle report to .next/analyze (see docs/13_PHASE_13_NOTES.md).
+const withBundleAnalyzer = createBundleAnalyzer({
+  enabled: process.env.ANALYZE === "true",
+  openAnalyzer: false,
+});
+
+export default withBundleAnalyzer(nextConfig);
