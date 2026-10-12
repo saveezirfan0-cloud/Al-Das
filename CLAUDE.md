@@ -44,6 +44,17 @@ Captures Unite invoices, matches them to Diligence claim files, and routes excep
 - Exception rules live in SQL (`fin_run_exception_rules`) and read thresholds from `fin_ref_exception_rules`; they are idempotent and guarded against start-up false alarms. Exceptions are only changed through the member's own client (RLS decides) and audited.
 - `pnpm finance:seed --org=<slug>` adds the Finance/Billing/Insurance/CEO/Medical Director roles and reference rows to an existing org.
 
+## Mobile, notifications and speed (Phase 13, docs/13_PHASE_13_NOTES.md)
+- **Telling people:** use `notify()` (`lib/notify/dispatch-db.ts`) for anything a person can configure. It applies `notification_preferences` (channel per event, master switches, quiet hours) and fans out to in-app, e-mail and Web Push. **Push and e-mail carry ids and a fixed generic sentence only, never a name, number or message text** (`lib/notify/push-payload.ts` takes ids, so it cannot leak). A new event goes in the catalogue `lib/notify/events.ts` first. Plain `createNotification` stays for alerts people cannot turn off (security, finance, integrations).
+- **Push:** the sender sits behind the `PushSender` interface (`lib/push/types.ts`); tests use a fake and nothing may call a real push service. Subscriptions are AES-256-GCM at rest and removed on 404/410; endpoints are checked against known push hosts (SSRF). VAPID keys come from `pnpm push:keys`.
+- **Service worker (`public/sw.js`):** caches build assets and an offline page only. It must never cache pages, API responses or server actions (patient data). Bump `VERSION` in the file when it changes; new versions wait for the user to accept the update prompt.
+- **Escalation:** unowned conversations walk team lead then on-call through `scheduled_jobs` (`inbox.escalate`); `conversations.escalation_level` is claimed atomically so a retry never notifies twice. Settings are under Settings, Notifications (`settings.manage`).
+- **Digests:** `loadManagementSummary()` (`lib/reports/management.ts`) feeds both the Management dashboard page and the digest e-mail; change KPIs there, never in one place only.
+- **Request authentication:** page navigations (GET/HEAD, not `/api`) verify the JWT locally (`getClaims`); server actions, other methods and API routes still call `getUser`. The middleware decides and passes `x-pulse-auth` to `lib/auth/session.ts`. `mfaGate` is unchanged and runs on both paths.
+- **Layout stays query-free:** the overdue-task badge, notification list and inbox unread count are fetched in the browser and kept fresh by Realtime (`components/shell/shell-data.tsx`). Do not add per-request queries to `app/(app)/layout.tsx`.
+- **Bundles:** heavy libraries (FullCalendar, React Flow, Recharts) load through `next/dynamic`. `scripts/bundle-budget.json` holds first-load budgets; a pull request that exceeds one fails CI. Raise the number in the same commit when a bigger bundle is intended and say why.
+- **Phones:** use `useIsPhone()` (`lib/hooks/use-media-query.ts`) for phone-only layouts; touch screens get 44 px tap targets from `app/globals.css` (do not shrink controls below that with `@media (pointer: coarse)` overrides). Gesture rules live in `lib/hooks/gestures.ts` with unit tests.
+
 ## Conventions
 - Business logic in `lib/*` as plain TS with unit tests. Route handlers and server actions stay thin and validate with Zod.
 - Phones are always E.164 (`libphonenumber-js`). Times are stored in UTC and displayed in location/org timezone (`date-fns-tz`).
@@ -81,6 +92,9 @@ pnpm load:webhook --yes-staging --rate 1000 --minutes 1   # webhook burst (stagi
 pnpm load:mock-graph & pnpm load:outbound --yes-staging --count 20000 --rate 20   # 20k send against a local Graph stub
 pnpm reconcile --org <slug> --live-airtable --freeze-at <iso>   # migration sign-off report
 pnpm cutover:preflight --org <slug> --stage pre-cutover   # read-only go/no-go before moving a number
+pnpm push:keys               # generate VAPID keys for Web Push (prints env lines, writes nothing)
+pnpm bundle:check build.log  # first-load JS budgets (scripts/bundle-budget.json); CI runs it after `pnpm build 2>&1 | tee build.log`
+pnpm analyze                 # next build with the bundle analyser (report under .next/analyze)
 ```
 
 ## Env
@@ -93,6 +107,8 @@ AIRTABLE_PAT, MAKE_API_TOKEN, MAKE_ZONE=us2, MAKE_TEAM_ID=1494412   # migration/
 ANTHROPIC_API_KEY, ANTHROPIC_MODEL, EMBEDDINGS_API_KEY
 RESEND_API_KEY, SENTRY_DSN
 META_GRAPH_BASE_URL   # load tests only; honoured only for http://localhost|127.0.0.1, never set in production
+VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT   # Web Push, from `pnpm push:keys`; without them push is simply off
+PULSE_VERIFY_JWT_LOCALLY=0   # optional: make page navigations call Supabase Auth again (default verifies the token locally)
 ```
 
 ## Definition of done per task

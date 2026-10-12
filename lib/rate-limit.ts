@@ -38,6 +38,10 @@ export const RATE_RULES = {
   /** Phase 15: Activity-log CSV and patient-data export downloads. */
   activityExportPerUser: { limit: 6, windowSec: 60, failOpen: false },
   privacyExportPerUser: { limit: 3, windowSec: 600, failOpen: false },
+  /** Phase 13: the "send me a test notification" button. */
+  pushTestPerUser: { limit: 5, windowSec: 60, failOpen: false },
+  /** Phase 13: registering a device for Web Push. */
+  pushRegisterPerUser: { limit: 20, windowSec: 600, failOpen: false },
   /** Phase 10 /api/public/v1, per API key. */
   publicApi: { limit: 120, windowSec: 60, failOpen: true },
 } as const satisfies Record<string, RateRule>;

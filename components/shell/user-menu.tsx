@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
-import { Building2, LogOut, Settings, UserRound } from "lucide-react";
+import { Bell, Building2, Download, LogOut, Settings, UserRound } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import {
 import { cn } from "@/lib/utils";
 
 import { setPresence, switchOrg } from "./actions";
+import { usePwaInstall } from "./pwa";
 
 export type Presence = "online" | "away" | "offline";
 
@@ -68,6 +69,7 @@ export function UserMenu({
 }: UserMenuProps) {
   const [presence, setLocalPresence] = useState<Presence>(initialPresence);
   const [, startTransition] = useTransition();
+  const { canInstall, install } = usePwaInstall();
 
   // Coming back to the app marks you online; leaving it does not (the user picks Away).
   useEffect(() => {
@@ -142,10 +144,20 @@ export function UserMenu({
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
+          <Link href="/settings/notifications">
+            <Bell /> Notification settings
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
           <Link href="/settings">
             <Settings /> Settings
           </Link>
         </DropdownMenuItem>
+        {canInstall && (
+          <DropdownMenuItem onSelect={() => void install()}>
+            <Download /> Install app
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
           <form action="/auth/signout" method="post" className="w-full">

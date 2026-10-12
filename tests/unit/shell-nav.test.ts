@@ -36,10 +36,10 @@ describe("navigation", () => {
     expect(new Set(SETTINGS_PAGES.map((p) => p.href)).size).toBe(SETTINGS_PAGES.length);
   });
 
-  it("shows admins everything and ordinary staff only their account", () => {
+  it("shows admins everything and ordinary staff only their own pages (account and notifications)", () => {
     expect(visibleSettingsPages(member(["*"])).length).toBe(SETTINGS_PAGES.length);
     const staff = visibleSettingsPages(member(["inbox.send"]));
-    expect(staff.map((p) => p.href)).toEqual(["/settings/account"]);
+    expect(staff.map((p) => p.href)).toEqual(["/settings/account", "/settings/notifications"]);
   });
 
   it("offers Tags to contact managers and the knowledge base to kb managers", () => {

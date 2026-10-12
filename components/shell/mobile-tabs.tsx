@@ -7,6 +7,7 @@ import { CalendarDays, CheckSquare, Contact, Inbox, LayoutDashboard, Menu } from
 import { cn } from "@/lib/utils";
 
 import type { NavIcon, NavItem } from "./nav";
+import { useBadgedItems } from "./shell-data";
 
 export const OPEN_NAV_EVENT = "pulse:open-nav";
 
@@ -22,8 +23,9 @@ const ICONS: Partial<Record<NavIcon, React.ComponentType<{ className?: string }>
 const PRIORITY: readonly NavIcon[] = ["inbox", "appointments", "tasks", "contacts", "dashboard"];
 
 /** Bottom tab bar for small screens. The desktop sidebar takes over from `md`. */
-export function MobileTabs({ items }: { items: readonly NavItem[] }) {
+export function MobileTabs({ items: rawItems }: { items: readonly NavItem[] }) {
   const pathname = usePathname();
+  const items = useBadgedItems(rawItems);
   const tabs = PRIORITY.map((icon) => items.find((i) => i.icon === icon))
     .filter((i): i is NavItem => !!i)
     .slice(0, 4);

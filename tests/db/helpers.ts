@@ -2,6 +2,8 @@
  * Helpers for tests that run against a real Postgres prepared by scripts/test-db.sh.
  * Skipped entirely when TEST_DATABASE_URL is not set.
  */
+import { createHmac } from "node:crypto";
+
 import { Client } from "pg";
 
 export const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL;
@@ -123,3 +125,34 @@ export const PHASE15_TABLES = [
   "security_alerts",
   "user_sessions",
 ] as const;
+
+/**
+ * One row in every Phase 13 table (notification preferences, push subscriptions, digest log) for an org, so
+ * the cross-org sweeps are not vacuous for them. Service role only: push_subscriptions and the digest log have
+ * no write policy, and notification_preferences is written here directly to keep the seed uniform.
+ */
+export async function seedPhase13Rows(c: Client, orgId: string, userId: string) {
+  const ids: Record<string, string> = {};
+  await asServiceRole(c, async () => {
+    const one = async (sql: string, params: unknown[]) => (await c.query<{ id: string }>(sql + " returning id::text", params)).rows[0].id;
+    ids.pref = await one("insert into public.notification_preferences (org_id, user_id, event, channel, enabled) values ($1, $2, 'inbox.message', 'push', false)", [orgId, userId]);
+    ids.push = await one(
+      "insert into public.push_subscriptions (org_id, user_id, endpoint_hash, subscription_enc, ua_family) values ($1, $2, repeat('a', 64), 'v1:seed:seed:seed', 'Chrome on Android')",
+      [orgId, userId],
+    );
+    ids.digest = await one("insert into public.notification_digest_log (org_id, user_id, kind, period_key) values ($1, $2, 'daily', '2026-10-12')", [orgId, userId]);
+  });
+  return ids;
+}
+
+/** The tables Phase 13 added, for catalogue assertions. */
+export const PHASE13_TABLES = ["notification_digest_log", "notification_preferences", "push_subscriptions"] as const;
+
+/** An HS256 JWT for an authenticated user, signed with the test PostgREST secret (see supabase/test/README.md). */
+export function userJwt(userId: string): string {
+  const b = (o: unknown) => Buffer.from(JSON.stringify(o)).toString("base64url");
+  const head = b({ alg: "HS256", typ: "JWT" });
+  const body = b({ sub: userId, role: "authenticated", exp: 4102444800 });
+  const sig = createHmac("sha256", "pulse-test-jwt-secret-pulse-test-jwt-secret").update(`${head}.${body}`).digest("base64url");
+  return `${head}.${body}.${sig}`;
+}

@@ -3,7 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
+  Camera,
   FileText,
+  Image as ImageIcon,
   LayoutTemplate,
   Loader2,
   Mic,
@@ -122,6 +124,8 @@ export function Composer({
   const chunks = useRef<Blob[]>([]);
   const textarea = useRef<HTMLTextAreaElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+  const cameraInput = useRef<HTMLInputElement>(null);
+  const galleryInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setText("");
@@ -221,6 +225,17 @@ export function Composer({
     }
   }
 
+  /** Camera and gallery files: HEIC/HEIF cannot go to WhatsApp, so say so instead of failing later. */
+  async function uploadPhoto(file: File) {
+    if (/hei[cf]/i.test(file.type) || /\.hei[cf]$/i.test(file.name)) {
+      toast.error(
+        "That photo is in HEIC format, which WhatsApp does not accept. Choose a JPEG or PNG, or set the camera to 'Most Compatible'.",
+      );
+      return;
+    }
+    await upload(file);
+  }
+
   async function toggleRecording() {
     if (recording) {
       recorder.current?.stop();
@@ -274,7 +289,10 @@ export function Composer({
   const active = channels.filter((c) => c.status === "active");
 
   return (
-    <div className="bg-background border-t">
+    <div
+      className="bg-background border-t"
+      style={{ paddingBottom: "var(--composer-safe-bottom, 0px)" }}
+    >
       {replyTo && (
         <div className="bg-muted/50 flex items-center gap-2 border-b px-3 py-1.5 text-xs">
           <span className="text-muted-foreground">Replying to:</span>
@@ -410,7 +428,7 @@ export function Composer({
                 : "Outside the 24h window: send a template"
           }
           className={cn(
-            "w-full resize-none rounded-md border px-3 py-2 text-sm outline-none focus-visible:ring-2",
+            "w-full resize-none rounded-md border px-3 py-2 text-base outline-none focus-visible:ring-2 md:text-sm",
             mode === "comment" && "border-amber-300 bg-amber-50/60 dark:bg-amber-950/20",
           )}
           aria-label={mode === "comment" ? "Internal note" : "Message"}
@@ -418,7 +436,7 @@ export function Composer({
         />
       </div>
 
-      <div className="flex items-center gap-1 px-3 pb-2">
+      <div className="flex flex-wrap items-center gap-1 px-3 pb-2">
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="ghost" size="icon-sm" aria-label="Emoji" disabled={chatDisabled}>
@@ -447,6 +465,50 @@ export function Composer({
               onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])}
               accept="image/jpeg,image/png,video/mp4,audio/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt"
             />
+            {/* Phones: take a photo, or pick from the gallery. image/jpeg and png only: iOS then converts HEIC for us. */}
+            <input
+              ref={cameraInput}
+              type="file"
+              className="hidden"
+              accept="image/*"
+              capture="environment"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                e.target.value = "";
+                if (f) void uploadPhoto(f);
+              }}
+            />
+            <input
+              ref={galleryInput}
+              type="file"
+              className="hidden"
+              accept="image/jpeg,image/png,video/mp4"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                e.target.value = "";
+                if (f) void uploadPhoto(f);
+              }}
+            />
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="pointer-fine:hidden"
+              aria-label="Take a photo"
+              disabled={chatDisabled || uploading}
+              onClick={() => cameraInput.current?.click()}
+            >
+              <Camera />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="pointer-fine:hidden"
+              aria-label="Choose a photo or video"
+              disabled={chatDisabled || uploading}
+              onClick={() => galleryInput.current?.click()}
+            >
+              <ImageIcon />
+            </Button>
             <Button
               variant="ghost"
               size="icon-sm"

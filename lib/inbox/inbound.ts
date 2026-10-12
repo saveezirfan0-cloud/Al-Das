@@ -4,6 +4,8 @@ import { addTimelineEvent } from "@/lib/contacts/timeline";
 import { emit } from "@/lib/events/emit";
 import { matchOrCreateContact, rotateBsuid } from "@/lib/inbox/contacts";
 import { readInboxSettings } from "@/lib/inbox/settings";
+import { notify } from "@/lib/notify/dispatch-db";
+import { scheduleFirstEscalation } from "@/lib/notify/escalation-job";
 import { enqueue } from "@/lib/jobs/enqueue";
 import type { JobLogger } from "@/lib/jobs/types";
 import type { AdminClient } from "@/lib/supabase/admin";
@@ -216,6 +218,32 @@ export async function processInbound(
       ? { type: event.interactive.type, id: event.interactive.id, title: event.interactive.title }
       : null,
   });
+
+  // Phase 13: tell the owner about the first unread message, or start the escalation ladder when nobody owns
+  // the conversation. Neither may fail the webhook job: both swallow their own errors.
+  if (!isReaction) {
+    const ownerId = campaignPatch.assignee_user_id ?? conversation.assignee_user_id;
+    if (ownerId) {
+      if (conversation.unread_count === 0) {
+        await notify(admin, {
+          orgId,
+          userIds: [ownerId],
+          event: "inbox.message",
+          type: "inbox.message",
+          title: "New message",
+          body: "A patient replied in a conversation assigned to you.",
+          payload: { conversation_id: conversation.id },
+          ids: { conversation_id: conversation.id },
+        });
+      }
+    } else {
+      await scheduleFirstEscalation(orgId, org?.settings, {
+        id: conversation.id,
+        assignee_user_id: null,
+        escalation_level: conversation.escalation_level,
+      });
+    }
+  }
 
   return { outcome: "stored", messageId: message.id, conversationId: conversation.id, opened };
 }

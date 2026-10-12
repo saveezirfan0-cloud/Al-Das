@@ -5,11 +5,15 @@ import { registerHandler } from "@/lib/jobs/registry";
 import { PermanentJobError } from "@/lib/jobs/types";
 import { handleScheduled, scheduledEnvelope } from "@/lib/jobs/handlers/reminders";
 import { createNotification } from "@/lib/notifications";
+import { decryptSubscription, dbPushStore } from "@/lib/push/store-db";
+import { deliverPush } from "@/lib/push/deliver";
+import { createWebPushSender, isPushConfigured } from "@/lib/push/web-push-sender";
 
 /**
  * `notifications` queue: transactional email and in-app notifications.
  *   { type: 'email', to, subject, text, html? }
  *   { type: 'in_app', org_id, user_id, kind, title, body?, payload? }
+ *   { type: 'push', org_id, user_id, event, ids }     Web Push to the person's devices (ids only, no content)
  *   { kind: 'task.due' | 'enquiry.sla', scheduled_job_id, … }  scheduled reminders (lib/jobs/handlers/reminders.ts)
  */
 const emailJob = z.object({
@@ -30,7 +34,22 @@ const inAppJob = z.object({
   payload: z.record(z.string(), z.unknown()).optional(),
 });
 
-export const notificationJob = z.discriminatedUnion("type", [emailJob, inAppJob]);
+const pushJob = z.object({
+  type: z.literal("push"),
+  org_id: z.string().uuid(),
+  user_id: z.string().uuid(),
+  event: z.string().min(1),
+  ids: z
+    .object({
+      conversation_id: z.string().nullish(),
+      task_id: z.string().nullish(),
+      enquiry_id: z.string().nullish(),
+      appointment_id: z.string().nullish(),
+    })
+    .default({}),
+});
+
+export const notificationJob = z.discriminatedUnion("type", [emailJob, inAppJob, pushJob]);
 export type NotificationJob = z.infer<typeof notificationJob>;
 
 registerHandler({
@@ -60,6 +79,22 @@ registerHandler({
       });
       if (!res.delivered && res.reason !== "email_not_configured")
         throw new Error(`email failed: ${res.reason}`);
+      return;
+    }
+    if (job.type === "push") {
+      if (!isPushConfigured()) {
+        ctx.log.info("push skipped: VAPID keys are not configured");
+        return;
+      }
+      const outcome = await deliverPush(
+        {
+          store: dbPushStore(ctx.admin),
+          sender: createWebPushSender(),
+          decrypt: decryptSubscription,
+        },
+        { org_id: job.org_id, user_id: job.user_id, event: job.event, ids: job.ids },
+      );
+      ctx.log.info("push delivered", outcome);
       return;
     }
     await createNotification(ctx.admin, {

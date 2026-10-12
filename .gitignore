@@ -52,3 +52,4 @@ playwright-report
 !.env.example
 supabase/test/ext-stubs/pgmq--*.sql
 docs/audit/import-report-*.md
+build.log

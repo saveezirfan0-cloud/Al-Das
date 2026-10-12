@@ -16,6 +16,8 @@ This is the single document to work from. Section 1 says where we are, 2 says wh
 
 **Phase 15 (security, audit and access) is built** on branch `claude/nifty-brown-y9l5ry` and waits for review and merge: two-step verification by role, login history, session list, record access log, access review, off-boarding, anomaly alerts, History tabs, Activity log export, patient data export and erasure, and the Phase 10 security gaps. What was and was not verified is in `docs/12_PHASE_15_NOTES.md`. The three new migrations (`20261011000100` to `…300`) are in `deploy/supabase-paste/12_phase_15_security.sql` for the same paste route as before.
 
+**Phase 13 (mobile, notifications and speed) is built** on branch `claude/nifty-brown-y9l5ry` (on top of Phase 15) and waits for review and merge: installable app with service worker, offline page and update prompt; phone inbox (full-screen thread above the keyboard, pull to refresh, swipe to take or close, camera and gallery upload), card grids and an agenda list on phones; notification preferences with quiet hours, Web Push, escalation ladder, daily and weekly digest e-mails and a notification centre with snooze; and the speed work (one-call dashboard tiles, query-free layout, local token checks for page navigations, lazy FullCalendar, React Flow and Recharts, bundle budgets in CI, four new indexes). Before and after bundle numbers, what was verified and what was not (no browser, no real push service, no Lighthouse) are in `docs/13_PHASE_13_NOTES.md`. The three new migrations (`20261013000100` to `…300`) are in `deploy/supabase-paste/13_phase_13_notifications_speed.sql`.
+
 **Open work from other sessions.** The Airtable clinical importer from `claude/upbeat-brown-n1q8nq` was merged as PR #22 on 12 Oct, and a follow-up (PR #28: Appointment Messages, Birthday, Chronic Recall and the `FU_` templates are still to come) is open from another session. Do not merge or reset that branch from here. Of the other `claude/*` branches, eleven carry nothing main lacks and five are older versions of work main already has in another form (`magical-planck-nx16wi` is an early Phase 5 that would add about 16,000 duplicate lines). Delete the stale ones once you agree; none should be merged.
 
 ## 1. Where we are
@@ -40,6 +42,7 @@ Phases 1 to 11 and Finance F0 to F6 are **built, tested and merged**. Pulse alre
 | Unit test files / tests | 107 files / **1,245 passing** (includes the 19 added this session) |
 | Database test files | 32 files, **423 tests passing** on Postgres 16 with pgvector and PostgREST (run 11 Oct 2026, see `docs/11_PHASE_12B_NOTES.md`) |
 | After Phase 15 (branch `claude/nifty-brown-y9l5ry`) | 48 migrations, 134 tables in `public`, 64 app pages, **119 test files / 1,395 tests in `pnpm test`** and **35 database test files / 476 tests**, all passing |
+| After Phase 13 (branch `claude/nifty-brown-y9l5ry`) | 53 migrations, 138 tables in `public`, 66 app pages, **129 test files / 1,497 tests in `pnpm test`** and **38 database test files / 511 tests**, all passing |
 | Browser (Playwright) specs | 6 |
 | `pnpm typecheck`, `pnpm lint`, `pnpm test` | **all clean** on a fresh install |
 
@@ -62,6 +65,7 @@ Not run: the browser tests and any click-through (no Supabase auth stack in the 
 | 10 | AI assist and knowledge base, metrics, dashboards, reports, public API, webhooks | Yes | AI switch OFF until legal answer (OQ-57); WhatsApp cost report built but never run against live Meta (OQ-62); no `ai_tags`; no scheduled digests |
 | 11 | Hardening, load tests, reconciliation, cut-over tooling | Yes | Load tests only run against a mock Graph; live rehearsal not done |
 | 15 | Security and audit: MFA by role, login history, session list, record access log, anomaly alerts, access review, off-boarding, History tabs, Activity log CSV, patient data export and erasure, API read counter | Yes | Never clicked in a browser or run against Supabase Auth (see `docs/12_PHASE_15_NOTES.md`); clinical records are kept on erasure pending OQ-63; enrolment and sign-out scopes need a real-stack check |
+| 13 | Mobile, notifications and speed: installable app (service worker, offline page, update prompt), phone inbox, card grids, agenda, notification preferences, Web Push, escalation ladder, digests, notification centre, query and bundle cuts, budgets in CI | Yes | Never seen in a browser or on a phone; no real push service or Supabase Auth was available (see `docs/13_PHASE_13_NOTES.md`); push needs `pnpm push:keys` and an installed app on iOS; the speed-up from local token checks needs asymmetric JWT signing keys; no Lighthouse or Speed Insights numbers yet |
 | F0-F6 | Finance and insurance: Unite capture, Diligence upload and matching, exceptions E01-E10, summary | Yes | Unite capture is OFF by design; closed-month review with Saeed is a human step |
 
 ### 1.4 Changes made in this session
@@ -232,7 +236,9 @@ I went through the product as a clinic owner, a receptionist and a security revi
 | Connections | Use the Supavisor transaction pooler URL for serverless functions |
 | Measurement | Vercel Speed Insights and Sentry performance; targets: inbox opens under 1 s, p95 server action under 500 ms, LCP under 2.5 s on 4G |
 
-Baseline from this session's production build (first-load JS): shared 102 kB; dashboard 232 kB; appointments 308 kB; inbox 286 kB; flow builder 273 kB. Phase 13 sets budgets from these numbers.
+**Phase 13 status.** Done: layout queries removed (browser fetch plus Realtime), dashboard tiles in one SQL function, local token verification for page navigations, `next/dynamic` for FullCalendar, React Flow and Recharts (Tiptap is not used anywhere), bundle analyser, budgets in CI (`pnpm bundle:check`), four indexes, Speed Insights installed. Still open: same-region Vercel and Supabase, the Supavisor pooler URL, real Speed Insights and Sentry numbers, and a look at the Supabase performance advisor on real data (it was not available in the build sandbox).
+
+First-load JS, before and after Phase 13 (production build, same machine): shared 102 to 103 kB; dashboard 232 to 119 kB; management dashboard 306 to 193 kB; appointments 309 to 235 kB; flow builder 278 to 113 kB; inbox 286 to 291 kB (up: gestures and the pull-to-refresh and swipe code). Full table in `docs/13_PHASE_13_NOTES.md`.
 
 Already good: virtualised grids, keyset-style pagination in the inbox, materialised metrics refreshed every 15 minutes, queue-based sends, debounced Realtime on boards.
 
@@ -241,12 +247,14 @@ Already good: virtualised grids, keyset-style pagination in the inbox, materiali
 Receptionists and doctors will use phones. Today: a drawer menu and responsive pages, but desktop-first tables and no installable app.
 
 - **(done)** Bottom tab bar, safe-area padding, installable manifest and icon.
-- Next: service worker (offline shell, push), pull-to-refresh, swipe actions in the inbox (assign, close), sticky composer that follows the keyboard, camera and gallery upload, voice-note recording, minimum 44 px tap targets, appointment day view defaulting to an agenda list on phones, and card layouts for the contacts and tasks grids.
+- **(built in Phase 13, not yet tried on a phone)** Service worker (offline page, update prompt, push), PNG and maskable icons, install button, pull-to-refresh, swipe actions in the inbox (take, close), composer that follows the on-screen keyboard, camera and gallery upload, 44 px tap targets on touch screens, agenda list on phones, card layouts for every grid. Voice-note recording already existed.
 - Passkey or PIN unlock for the installed app on shared devices.
 - Test matrix: iOS Safari (installed PWA, for push) and Android Chrome; Lighthouse PWA audit in CI.
 - Option later: a Capacitor wrapper if iOS push proves unreliable.
 
 ### 4.4 Notifications
+
+**Built in Phase 13** (details and limits in `docs/13_PHASE_13_NOTES.md`): per-user preferences with quiet hours, Web Push, sound and tab-title badge, escalation ladder, daily and weekly digests, notification centre with filters and snooze. Not built: Slack/Teams webhook channel, staff WhatsApp alerts. The table below is the original review.
 
 Today: in-app bell with Realtime, task-due and enquiry-SLA reminders, e-mail through Resend, finance alerts.
 
@@ -383,7 +391,7 @@ Each phase starts in Plan Mode and uses the prompt of the same number in `docs/1
 |---|---|---|---|
 | **12a** | UX foundation: grouped menu, quick search, mobile tabs, skeletons, error pages, PWA manifest, Activity log, CI. **Done in this session** | nothing | done |
 | **12b** | Make it real: bring up the Supabase and Vercel stack, seed demo org, click every page as three roles, fix what breaks, DB and e2e tests in CI, update stale docs | accounts 1, 2, 3 | 1 week |
-| **13** | Mobile, notifications and speed: service worker, web push, preference matrix, escalation ladder, digests, layout/dashboard query cuts, dynamic imports, performance budget | 12b | 1.5 weeks |
+| **13** | Mobile, notifications and speed: service worker, web push, preference matrix, escalation ladder, digests, layout/dashboard query cuts, dynamic imports, performance budget. **Built; waiting for review, merge and a real-device check** (`docs/13_PHASE_13_NOTES.md`) | VAPID keys (`pnpm push:keys`) | done in code |
 | **14** | Front desk mode, waitlist, walk-in registration, household linking, quick replies, in-app help and training mode | clinic input | 2 weeks |
 | **15** | Security and audit: MFA, login history, sessions, record access log, access review, anomaly alerts, History tabs. **Built; waiting for review, merge and a real-stack check** (`docs/12_PHASE_15_NOTES.md`) | none | done in code |
 | **16** | Media Library and patient documents | residency answer | 1.5 weeks |

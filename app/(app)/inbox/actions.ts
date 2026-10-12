@@ -19,7 +19,7 @@ import { addNote, queueOutbound, type SendSpec } from "@/lib/inbox/send";
 import { readInboxSettings } from "@/lib/inbox/settings";
 import { enqueue } from "@/lib/jobs/enqueue";
 import { MEDIA_BUCKET, extensionFor } from "@/lib/jobs/handlers/media-fetch";
-import { createNotification } from "@/lib/notifications";
+import { notify } from "@/lib/notify/dispatch-db";
 import { isMediaPathFor, parseMediaPath } from "@/lib/inbox/media-path";
 import { redactText } from "@/lib/redact";
 import { recordAccess } from "@/lib/security/access-log";
@@ -275,16 +275,17 @@ export async function addComment(
       const patient = conversation.contacts
         ? contactDisplayName(conversation.contacts)
         : "a patient";
-      for (const user_id of valid) {
-        await createNotification(admin, {
-          orgId: member.orgId,
-          userId: user_id,
-          type: "mention",
-          title: `${who} mentioned you`,
-          body: `In the conversation with ${patient}: ${text.slice(0, 120)}`,
-          payload: { conversation_id: conversation.id, message_id: note.id },
-        });
-      }
+      // In-app copy may name people (the bell is private to the recipient); push and e-mail stay generic.
+      await notify(admin, {
+        orgId: member.orgId,
+        userIds: valid,
+        event: "inbox.mention",
+        type: "mention",
+        title: `${who} mentioned you`,
+        body: `In the conversation with ${patient}: ${text.slice(0, 120)}`,
+        payload: { conversation_id: conversation.id, message_id: note.id },
+        ids: { conversation_id: conversation.id },
+      });
     }
   }
   refresh();
@@ -381,13 +382,15 @@ export async function assignConversation(
     return { ok: false, error: "Could not assign (is the user a member of this workspace?)." };
   await takeOverFromBot(admin, conversation.id);
   if (parsed.data.user_id && parsed.data.user_id !== member.userId) {
-    await createNotification(admin, {
+    await notify(admin, {
       orgId: member.orgId,
-      userId: parsed.data.user_id,
+      userIds: [parsed.data.user_id],
+      event: "inbox.assigned",
       type: "inbox.assigned",
       title: "Conversation assigned to you",
       body: conversation.contacts ? `With ${contactDisplayName(conversation.contacts)}` : null,
       payload: { conversation_id: conversation.id },
+      ids: { conversation_id: conversation.id },
     });
   }
   await emit(member.orgId, "conversation.assigned", {

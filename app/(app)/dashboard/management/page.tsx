@@ -7,8 +7,7 @@ import { AwaitingCard } from "@/components/shell/awaiting-card";
 import { PageHeader } from "@/components/shell/page-header";
 import { requirePerm } from "@/lib/auth/session";
 import { filtersFromSearchParams } from "@/lib/reports/filters";
-import { appointmentsReport, campaignsReport, conversationsReport, enquiryFunnelReport, responseReport, whatsappUsageReport } from "@/lib/reports/queries";
-import { REPORTS, reportStatus } from "@/lib/reports/registry";
+import { headlineKpis, loadManagementSummary, MANAGEMENT_KPIS } from "@/lib/reports/management";
 import type { ReportResult } from "@/lib/reports/types";
 import { availableSources, filterOptions, reportContext } from "@/lib/reports/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -52,26 +51,10 @@ export default async function ManagementDashboard({ searchParams }: { searchPara
   const member = await requirePerm("reports.view");
   const admin = createAdminClient();
   const available = await availableSources(admin);
-  const ready = ["conversations", "response", "whatsapp-usage"].every((k) => {
-    const def = REPORTS.find((r) => r.key === k)!;
-    return reportStatus(def, available) === "live";
-  });
-
-  const live = (key: string) => reportStatus(REPORTS.find((r) => r.key === key)!, available) === "live";
-  const appointmentsLive = live("appointments");
-  const enquiriesLive = live("enquiry-funnel");
-  const campaignsLive = live("campaigns");
-
   const { filters, error } = filtersFromSearchParams(await searchParams);
   const ctx = reportContext(member, filters);
-  const options = await filterOptions(admin, member.orgId);
-
-  const [body, appointments, enquiries, campaigns] = await Promise.all([
-    ready ? Promise.all([conversationsReport(ctx), responseReport(ctx), whatsappUsageReport(ctx)]) : null,
-    appointmentsLive ? appointmentsReport(ctx) : null,
-    enquiriesLive ? enquiryFunnelReport(ctx) : null,
-    campaignsLive ? campaignsReport(ctx) : null,
-  ]);
+  const [summary, options] = await Promise.all([loadManagementSummary(ctx, available), filterOptions(admin, member.orgId)]);
+  const { messaging, enquiries, appointments, campaigns } = summary;
 
   return (
     <div className="flex flex-col gap-6">
@@ -83,14 +66,13 @@ export default async function ManagementDashboard({ searchParams }: { searchPara
         </p>
       )}
 
-      {body ? (
+      {messaging ? (
         (() => {
-          const [conv, resp, usage] = body;
-          const pick = (r: typeof conv, keys: string[]) => r.kpis.filter((k) => keys.includes(k.key));
+          const { conversations: conv, response: resp, usage } = messaging;
           return (
             <>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                {[...pick(conv, ["conversations", "unique", "returning"]), ...pick(resp, ["median", "answered"]), ...pick(usage, ["total", "failed"])].map((k) => (
+                {headlineKpis(messaging).map((k) => (
                   <KpiTile key={k.key} label={k.label} value={k.value} format={k.format} hint={k.hint} />
                 ))}
               </div>
@@ -113,13 +95,13 @@ export default async function ManagementDashboard({ searchParams }: { searchPara
       )}
 
       {enquiries && (
-        <ReportSection id="enq" title="Enquiries" result={enquiries} kpis={["created", "won", "lost", "conversion", "booked", "open"]} charts={[0, 1]} href="/reports/enquiry-funnel" linkLabel="Open the enquiry funnel" />
+        <ReportSection id="enq" title="Enquiries" result={enquiries} kpis={[...MANAGEMENT_KPIS.enquiries]} charts={[0, 1]} href="/reports/enquiry-funnel" linkLabel="Open the enquiry funnel" />
       )}
       {appointments && (
-        <ReportSection id="appts" title="Appointments" result={appointments} kpis={["total", "completed", "no_show", "rate"]} charts={[0, 1]} href="/reports/appointments" linkLabel="Open the appointments report" />
+        <ReportSection id="appts" title="Appointments" result={appointments} kpis={[...MANAGEMENT_KPIS.appointments]} charts={[0, 1]} href="/reports/appointments" linkLabel="Open the appointments report" />
       )}
       {campaigns && (
-        <ReportSection id="camps" title="Campaigns" result={campaigns} kpis={["campaigns", "sent", "delivered", "read", "replied"]} charts={[0]} href="/reports/campaigns" linkLabel="Open the campaign report" />
+        <ReportSection id="camps" title="Campaigns" result={campaigns} kpis={[...MANAGEMENT_KPIS.campaigns]} charts={[0]} href="/reports/campaigns" linkLabel="Open the campaign report" />
       )}
 
       <section aria-labelledby="coming" className="flex flex-col gap-3">

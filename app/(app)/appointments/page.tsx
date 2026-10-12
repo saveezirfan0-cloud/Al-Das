@@ -127,7 +127,8 @@ export default async function AppointmentsPage({
     <AppointmentsWorkspace
       bootstrap={bootstrap}
       initial={{
-        view: view === "calendar" || view === "table" ? view : "day",
+        view: view === "calendar" || view === "table" || view === "agenda" ? view : "day",
+        viewExplicit: !!view,
         date: DATE.test(one("date") ?? "") ? (one("date") as string) : today,
         newContact,
       }}

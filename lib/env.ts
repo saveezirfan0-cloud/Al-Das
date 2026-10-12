@@ -45,6 +45,24 @@ const aiSchema = z.object({
   EMBEDDINGS_MODEL: z.string().default("voyage-3"),
 });
 
+/**
+ * Phase 13: Web Push. Generate the pair with `pnpm push:keys`. Optional: without it push is simply
+ * unavailable and the settings page says so (in-app and e-mail notifications still work).
+ */
+const vapidSchema = z.object({
+  VAPID_PUBLIC_KEY: z.string().optional(),
+  VAPID_PRIVATE_KEY: z.string().optional(),
+  VAPID_SUBJECT: z.string().default("mailto:no-reply@example.com"),
+});
+
+export function vapidEnv() {
+  return vapidSchema.parse({
+    VAPID_PUBLIC_KEY: process.env.VAPID_PUBLIC_KEY || undefined,
+    VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY || undefined,
+    VAPID_SUBJECT: process.env.VAPID_SUBJECT || undefined,
+  });
+}
+
 export function publicEnv() {
   return publicSchema.parse({
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,

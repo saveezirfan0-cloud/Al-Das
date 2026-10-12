@@ -34,6 +34,22 @@ export const SETTINGS_PAGES: readonly SettingsPage[] = [
     keywords: ["profile", "password"],
     allow: everyone,
   },
+  {
+    href: "/settings/notifications",
+    label: "Notifications",
+    section: "Personal",
+    keywords: [
+      "push",
+      "alerts",
+      "quiet hours",
+      "digest",
+      "escalation",
+      "on call",
+      "sound",
+      "e-mail",
+    ],
+    allow: everyone,
+  },
 
   {
     href: "/settings/users",

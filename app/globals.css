@@ -146,3 +146,39 @@
     cursor: pointer;
   }
 }
+
+/*
+ * Phase 13: tap targets of at least 44 x 44 px on touch screens (Apple HIG, WCAG 2.5.5 target size). Only
+ * coarse pointers are affected, so the dense desktop layout is unchanged. Checkboxes and switches keep their
+ * look and gain an invisible hit area instead of growing.
+ */
+@media (pointer: coarse) {
+  [data-slot="button"],
+  [data-slot="select-trigger"],
+  [data-slot="tabs-trigger"],
+  [data-slot="input"],
+  [role="menuitem"],
+  [role="menuitemradio"],
+  [role="menuitemcheckbox"],
+  [role="option"],
+  nav a[href],
+  aside a[href] {
+    min-height: 44px;
+  }
+  [data-slot="button"] {
+    min-width: 44px;
+  }
+  [data-slot="tabs-list"] {
+    min-height: 44px;
+  }
+  [data-slot="checkbox"],
+  [data-slot="switch"] {
+    position: relative;
+  }
+  [data-slot="checkbox"]::after,
+  [data-slot="switch"]::after {
+    content: "";
+    position: absolute;
+    inset: -14px -10px;
+  }
+}

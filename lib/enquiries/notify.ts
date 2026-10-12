@@ -6,6 +6,7 @@ import { readEnquirySettings } from "@/lib/enquiries/settings";
 import { on, type DomainEvent, type DomainEventName } from "@/lib/events/emit";
 import { enqueue } from "@/lib/jobs/enqueue";
 import { createNotification } from "@/lib/notifications";
+import { notify } from "@/lib/notify/dispatch-db";
 import { serverEnv } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -63,6 +64,20 @@ export async function notifyForEvent(event: DomainEvent): Promise<number> {
   const title = HEADLINES[notifyEvent](number);
   const body = str(event.payload.title);
   const link = `${serverEnv().APP_URL.replace(/\/$/, "")}/enquiries?enquiry=${enquiryId ?? ""}`;
+
+  // Push is added on top of the org's own in-app / e-mail rules for SLA breaches (people choose it under
+  // Settings > Notifications); the rules keep deciding who gets the in-app and e-mail messages.
+  if (notifyEvent === "sla_breached") {
+    await notify(admin, {
+      orgId: event.orgId,
+      userIds: recipients.map((r) => r.userId),
+      event: "sla.breach",
+      type: "enquiry.sla_breached",
+      title,
+      ids: { enquiry_id: enquiryId },
+      only: ["push"],
+    });
+  }
 
   for (const r of recipients) {
     if (r.inApp) {

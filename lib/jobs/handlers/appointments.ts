@@ -11,7 +11,7 @@ import { emit, on } from "@/lib/events/emit";
 import { registerHandler } from "@/lib/jobs/registry";
 import { registerTask } from "@/lib/jobs/tasks";
 import { PermanentJobError, type JobLogger } from "@/lib/jobs/types";
-import { notifyMembersWithPermission } from "@/lib/notifications";
+import { memberIdsWithPermission, notify } from "@/lib/notify/dispatch-db";
 import { createTask } from "@/lib/tasks/service";
 import type { AdminClient } from "@/lib/supabase/admin";
 import type { TablesUpdate } from "@/lib/supabase/types";
@@ -136,11 +136,15 @@ export async function reportReminderFailure(
 ): Promise<void> {
   await emit(orgId, "appointment.reminder_failed", { appointment_id: appointmentId, reason });
   await createCallTask(admin, orgId, appointmentId, number);
-  await notifyMembersWithPermission(admin, orgId, "appointments.manage", {
-    type: "appointment.reminder_failed",
+  await notify(admin, {
+    orgId,
+    userIds: await memberIdsWithPermission(admin, orgId, "appointments.manage"),
+    event: "reminder.failed",
+    type: "reminder.failed",
     title: "Appointment reminder not delivered",
     body: `Appointment #${number}: call the patient to remind them.`,
     payload: { appointment_id: appointmentId },
+    ids: { appointment_id: appointmentId },
   });
 }
 

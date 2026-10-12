@@ -9,7 +9,7 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 
 import { OPEN_PALETTE_EVENT } from "./command-palette";
 import { OPEN_NAV_EVENT } from "./mobile-tabs";
-import { NotificationsMenu, type NotificationItem } from "./notifications-menu";
+import { NotificationsMenu } from "./notifications-menu";
 import type { NavItem } from "./nav";
 import { Sidebar } from "./sidebar";
 import { UserMenu, type UserMenuProps } from "./user-menu";
@@ -17,12 +17,10 @@ import { UserMenu, type UserMenuProps } from "./user-menu";
 export function Topbar({
   items,
   orgName,
-  notifications,
   user,
 }: {
   items: readonly NavItem[];
   orgName: string;
-  notifications: NotificationItem[];
   user: UserMenuProps;
 }) {
   const pathname = usePathname();
@@ -83,7 +81,7 @@ export function Topbar({
         >
           <Search />
         </Button>
-        <NotificationsMenu initial={notifications} orgId={user.orgId} userId={user.userId} />
+        <NotificationsMenu />
         <UserMenu {...user} />
       </div>
     </header>

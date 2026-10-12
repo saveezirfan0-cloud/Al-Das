@@ -35,6 +35,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useIsPhone } from "@/lib/hooks/use-media-query";
 import { cn } from "@/lib/utils";
 
 export type DataGridColumn<T> = ColumnDef<T, unknown> & {
@@ -162,6 +163,7 @@ export function DataGrid<T extends { id: string }>(props: DataGridProps<T>) {
     defaultColumn: { minSize: 60, size: 160, maxSize: 900 },
   });
 
+  const phone = useIsPhone();
   const parentRef = React.useRef<HTMLDivElement>(null);
   const rows = table.getRowModel().rows;
   const virtualizer = useVirtualizer({
@@ -183,123 +185,192 @@ export function DataGrid<T extends { id: string }>(props: DataGridProps<T>) {
 
   return (
     <div className={cn("flex min-h-0 flex-1 flex-col rounded-xl border", className)}>
-      <div ref={parentRef} className="relative min-h-0 flex-1 overflow-auto">
-        <table className="text-sm" style={{ width: tableWidth, minWidth: "100%" }}>
-          <thead className="bg-background sticky top-0 z-10 border-b">
-            {table.getHeaderGroups().map((hg) => (
-              <tr key={hg.id}>
-                {hg.headers.map((header) => {
-                  const col = header.column.columnDef as DataGridColumn<T>;
-                  const sortable = !!col.sortKey;
-                  const sorted = sorting.find((s) => s.id === header.column.id);
-                  return (
-                    <th
-                      key={header.id}
-                      style={{ width: header.getSize() }}
-                      className="text-muted-foreground group relative h-9 px-2 text-left text-xs font-medium whitespace-nowrap select-none"
-                    >
-                      {header.isPlaceholder ? null : !sortable ? (
-                        // Not sortable: a plain cell, so a checkbox header (select all) is never nested in a button.
-                        <div className="flex w-full items-center gap-1 truncate">
-                          <span className="truncate">
-                            {flexRender(header.column.columnDef.header, header.getContext())}
-                          </span>
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            onSortingChange(
-                              sorted
-                                ? sorted.desc
-                                  ? []
-                                  : [{ id: header.column.id, desc: true }]
-                                : [{ id: header.column.id, desc: false }],
-                            );
-                          }}
-                          className="hover:text-foreground flex w-full cursor-pointer items-center gap-1 truncate"
-                        >
-                          <span className="truncate">
-                            {flexRender(header.column.columnDef.header, header.getContext())}
-                          </span>
-                          {sorted &&
-                            (sorted.desc ? (
-                              <ArrowDown className="size-3" />
-                            ) : (
-                              <ArrowUp className="size-3" />
-                            ))}
-                        </button>
-                      )}
-                      {header.column.getCanResize() && (
-                        <div
-                          role="separator"
-                          aria-orientation="vertical"
-                          onMouseDown={header.getResizeHandler()}
-                          onTouchStart={header.getResizeHandler()}
-                          onDoubleClick={() => header.column.resetSize()}
-                          className={cn(
-                            "absolute top-0 right-0 h-full w-1.5 cursor-col-resize touch-none select-none",
-                            "hover:bg-primary/40 group-hover:bg-border",
-                            header.column.getIsResizing() && "bg-primary",
-                          )}
-                        />
-                      )}
-                    </th>
-                  );
-                })}
-              </tr>
-            ))}
-          </thead>
-          <tbody>
-            {paddingTop > 0 && (
-              <tr>
-                <td style={{ height: paddingTop }} />
-              </tr>
-            )}
-            {virtualRows.map((vr) => {
-              const row = rows[vr.index];
+      {phone ? (
+        // Phones: one card per row instead of a wide table (the first column is the title, the next few are fields).
+        <div className="relative min-h-0 flex-1 overflow-auto">
+          <ul className="flex flex-col gap-2 p-2" aria-label="Records">
+            {rows.map((row) => {
+              const cells = row.getVisibleCells().filter((c) => c.column.id !== "__select");
+              const [title, ...rest] = cells;
+              if (!title) return null;
               return (
-                <tr
-                  key={row.id}
-                  data-index={vr.index}
-                  ref={virtualizer.measureElement}
-                  onClick={() => onRowClick?.(row.original)}
-                  className={cn(
-                    "hover:bg-muted/50 border-b",
-                    onRowClick && "cursor-pointer",
-                    row.getIsSelected() && "bg-primary/5",
-                  )}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <td
-                      key={cell.id}
-                      style={{ width: cell.column.getSize() }}
-                      className="h-10 truncate px-2 align-middle whitespace-nowrap"
-                    >
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
-                </tr>
+                <li key={row.id}>
+                  <div
+                    role={onRowClick ? "button" : undefined}
+                    tabIndex={onRowClick ? 0 : undefined}
+                    onClick={() => onRowClick?.(row.original)}
+                    onKeyDown={(e) =>
+                      onRowClick &&
+                      (e.key === "Enter" || e.key === " ") &&
+                      (e.preventDefault(), onRowClick(row.original))
+                    }
+                    className={cn(
+                      "bg-background rounded-lg border p-3",
+                      onRowClick && "active:bg-muted/60",
+                      row.getIsSelected() && "border-primary/50 bg-primary/5",
+                    )}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          aria-label="Select row"
+                          checked={row.getIsSelected()}
+                          onCheckedChange={(v) => row.toggleSelected(!!v)}
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1 text-sm font-medium break-words">
+                        {flexRender(title.column.columnDef.cell, title.getContext())}
+                      </div>
+                    </div>
+                    {rest.length > 0 && (
+                      <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 pl-7 text-xs">
+                        {rest.slice(0, 6).map((cell) => (
+                          <div key={cell.id} className="min-w-0">
+                            <dt className="text-muted-foreground truncate">
+                              {(cell.column.columnDef as DataGridColumn<T>).label ?? cell.column.id}
+                            </dt>
+                            <dd className="truncate">
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </dd>
+                          </div>
+                        ))}
+                      </dl>
+                    )}
+                  </div>
+                </li>
               );
             })}
-            {paddingBottom > 0 && (
-              <tr>
-                <td style={{ height: paddingBottom }} />
-              </tr>
-            )}
-          </tbody>
-        </table>
-        {rows.length === 0 && !loading && (
-          <div className="text-muted-foreground absolute inset-0 top-9 flex items-center justify-center text-sm">
-            {emptyText}
-          </div>
-        )}
-        {loading && (
-          <div className="bg-background/60 absolute inset-0 top-9 flex items-center justify-center">
-            <Loader2 className="text-muted-foreground size-5 animate-spin" />
-          </div>
-        )}
-      </div>
+          </ul>
+          {rows.length === 0 && !loading && (
+            <div className="text-muted-foreground flex items-center justify-center p-10 text-sm">
+              {emptyText}
+            </div>
+          )}
+          {loading && (
+            <div className="bg-background/60 absolute inset-0 flex items-center justify-center">
+              <Loader2 className="text-muted-foreground size-5 animate-spin" />
+            </div>
+          )}
+        </div>
+      ) : (
+        <div ref={parentRef} className="relative min-h-0 flex-1 overflow-auto">
+          <table className="text-sm" style={{ width: tableWidth, minWidth: "100%" }}>
+            <thead className="bg-background sticky top-0 z-10 border-b">
+              {table.getHeaderGroups().map((hg) => (
+                <tr key={hg.id}>
+                  {hg.headers.map((header) => {
+                    const col = header.column.columnDef as DataGridColumn<T>;
+                    const sortable = !!col.sortKey;
+                    const sorted = sorting.find((s) => s.id === header.column.id);
+                    return (
+                      <th
+                        key={header.id}
+                        style={{ width: header.getSize() }}
+                        className="text-muted-foreground group relative h-9 px-2 text-left text-xs font-medium whitespace-nowrap select-none"
+                      >
+                        {header.isPlaceholder ? null : !sortable ? (
+                          // Not sortable: a plain cell, so a checkbox header (select all) is never nested in a button.
+                          <div className="flex w-full items-center gap-1 truncate">
+                            <span className="truncate">
+                              {flexRender(header.column.columnDef.header, header.getContext())}
+                            </span>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onSortingChange(
+                                sorted
+                                  ? sorted.desc
+                                    ? []
+                                    : [{ id: header.column.id, desc: true }]
+                                  : [{ id: header.column.id, desc: false }],
+                              );
+                            }}
+                            className="hover:text-foreground flex w-full cursor-pointer items-center gap-1 truncate"
+                          >
+                            <span className="truncate">
+                              {flexRender(header.column.columnDef.header, header.getContext())}
+                            </span>
+                            {sorted &&
+                              (sorted.desc ? (
+                                <ArrowDown className="size-3" />
+                              ) : (
+                                <ArrowUp className="size-3" />
+                              ))}
+                          </button>
+                        )}
+                        {header.column.getCanResize() && (
+                          <div
+                            role="separator"
+                            aria-orientation="vertical"
+                            onMouseDown={header.getResizeHandler()}
+                            onTouchStart={header.getResizeHandler()}
+                            onDoubleClick={() => header.column.resetSize()}
+                            className={cn(
+                              "absolute top-0 right-0 h-full w-1.5 cursor-col-resize touch-none select-none",
+                              "hover:bg-primary/40 group-hover:bg-border",
+                              header.column.getIsResizing() && "bg-primary",
+                            )}
+                          />
+                        )}
+                      </th>
+                    );
+                  })}
+                </tr>
+              ))}
+            </thead>
+            <tbody>
+              {paddingTop > 0 && (
+                <tr>
+                  <td style={{ height: paddingTop }} />
+                </tr>
+              )}
+              {virtualRows.map((vr) => {
+                const row = rows[vr.index];
+                return (
+                  <tr
+                    key={row.id}
+                    data-index={vr.index}
+                    ref={virtualizer.measureElement}
+                    onClick={() => onRowClick?.(row.original)}
+                    className={cn(
+                      "hover:bg-muted/50 border-b",
+                      onRowClick && "cursor-pointer",
+                      row.getIsSelected() && "bg-primary/5",
+                    )}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <td
+                        key={cell.id}
+                        style={{ width: cell.column.getSize() }}
+                        className="h-10 truncate px-2 align-middle whitespace-nowrap"
+                      >
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })}
+              {paddingBottom > 0 && (
+                <tr>
+                  <td style={{ height: paddingBottom }} />
+                </tr>
+              )}
+            </tbody>
+          </table>
+          {rows.length === 0 && !loading && (
+            <div className="text-muted-foreground absolute inset-0 top-9 flex items-center justify-center text-sm">
+              {emptyText}
+            </div>
+          )}
+          {loading && (
+            <div className="bg-background/60 absolute inset-0 top-9 flex items-center justify-center">
+              <Loader2 className="text-muted-foreground size-5 animate-spin" />
+            </div>
+          )}
+        </div>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-2 border-t px-2 py-1.5 text-xs">
         <div className="flex items-center gap-2">
           {footerStart}

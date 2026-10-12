@@ -1,0 +1,176 @@
+/**
+ * Notification events a person can choose how to receive. Keys are stable: they are stored in
+ * notification_preferences.event. Keep this file framework-free (shared by server, client and tests).
+ *
+ * Channels: in_app (the bell and the notification centre), email, push (Web Push to a registered device).
+ * Defaults apply until the person saves a choice: everything in-app, urgent work also pushed, e-mail off.
+ */
+
+export const NOTIFICATION_CHANNELS = ["in_app", "email", "push"] as const;
+export type NotificationChannel = (typeof NOTIFICATION_CHANNELS)[number];
+
+export const CHANNEL_LABELS: Record<NotificationChannel, string> = {
+  in_app: "In the app",
+  email: "E-mail",
+  push: "Push to my devices",
+};
+
+export type NotificationEventDef = {
+  key: string;
+  group: "Inbox" | "Work" | "Escalation" | "Digests";
+  label: string;
+  description: string;
+  /** Channels that make sense for this event. */
+  channels: readonly NotificationChannel[];
+  /** What is on before the person chooses anything. */
+  defaults: Readonly<Record<NotificationChannel, boolean>>;
+  /** Urgent events ignore quiet hours (nobody has picked the conversation up). */
+  urgent?: boolean;
+  /** The member needs this permission to be offered the event at all. */
+  permission?: string;
+};
+
+const ALL: readonly NotificationChannel[] = ["in_app", "email", "push"];
+
+export const NOTIFICATION_EVENTS = [
+  {
+    key: "inbox.message",
+    group: "Inbox",
+    label: "New message on my conversation",
+    description: "A patient writes in a conversation assigned to you (first unread message only).",
+    channels: ALL,
+    defaults: { in_app: true, email: false, push: true },
+  },
+  {
+    key: "inbox.assigned",
+    group: "Inbox",
+    label: "A conversation is assigned to me",
+    description: "A colleague, the auto-assignment or a flow hands you a conversation.",
+    channels: ALL,
+    defaults: { in_app: true, email: false, push: true },
+  },
+  {
+    key: "inbox.mention",
+    group: "Inbox",
+    label: "Someone mentions me",
+    description: "A colleague @mentions you in an internal note.",
+    channels: ALL,
+    defaults: { in_app: true, email: false, push: true },
+  },
+  {
+    key: "sla.breach",
+    group: "Work",
+    label: "An enquiry SLA is breached",
+    description: "An open enquiry was not touched within its first-response time.",
+    channels: ALL,
+    defaults: { in_app: true, email: false, push: true },
+  },
+  {
+    key: "reminder.failed",
+    group: "Work",
+    label: "An appointment reminder failed",
+    description: "A reminder could not be delivered, so someone should call the patient.",
+    channels: ALL,
+    defaults: { in_app: true, email: false, push: true },
+    permission: "appointments.view",
+  },
+  {
+    key: "task.due",
+    group: "Work",
+    label: "A task is due",
+    description: "A task assigned to you has reached its due time.",
+    channels: ALL,
+    defaults: { in_app: true, email: false, push: true },
+  },
+  {
+    key: "escalation",
+    group: "Escalation",
+    label: "A conversation was not picked up",
+    description:
+      "You are the team lead or on call, and a conversation has had no owner for too long.",
+    channels: ALL,
+    defaults: { in_app: true, email: false, push: true },
+    urgent: true,
+  },
+  {
+    key: "digest.daily",
+    group: "Digests",
+    label: "Daily management digest",
+    description: "The Management dashboard numbers for yesterday, by e-mail each morning.",
+    channels: ["email"],
+    defaults: { in_app: false, email: false, push: false },
+    permission: "reports.view",
+  },
+  {
+    key: "digest.weekly",
+    group: "Digests",
+    label: "Weekly management digest",
+    description: "The Management dashboard numbers for last week, by e-mail on Monday morning.",
+    channels: ["email"],
+    defaults: { in_app: false, email: false, push: false },
+    permission: "reports.view",
+  },
+] as const satisfies readonly NotificationEventDef[];
+
+export type NotificationEventKey = (typeof NOTIFICATION_EVENTS)[number]["key"];
+
+export const EVENT_KEYS: readonly string[] = NOTIFICATION_EVENTS.map((e) => e.key);
+
+export function getEvent(key: string): NotificationEventDef | undefined {
+  return (NOTIFICATION_EVENTS as readonly NotificationEventDef[]).find((e) => e.key === key);
+}
+
+export function isEventKey(key: string): key is NotificationEventKey {
+  return EVENT_KEYS.includes(key);
+}
+
+/** The events this member may be offered (permission-gated ones are hidden without it). */
+export function eventsFor(canDo: (permission: string) => boolean): NotificationEventDef[] {
+  return (NOTIFICATION_EVENTS as readonly NotificationEventDef[]).filter(
+    (e) => !e.permission || canDo(e.permission),
+  );
+}
+
+/** notifications.type values written by the app → the filter group shown in the notification centre. */
+export type NotificationCategory = "inbox" | "work" | "escalation" | "security" | "system";
+
+export const CATEGORY_LABELS: Record<NotificationCategory, string> = {
+  inbox: "Inbox",
+  work: "Tasks & enquiries",
+  escalation: "Escalations",
+  security: "Security",
+  system: "System",
+};
+
+export function categoryForType(type: string): NotificationCategory {
+  if (type.startsWith("inbox.") || type === "mention") return "inbox";
+  if (type === "escalation") return "escalation";
+  if (
+    type.startsWith("task.") ||
+    type.startsWith("enquiry.") ||
+    type.startsWith("appointment.") ||
+    type === "reminder.failed"
+  )
+    return "work";
+  if (type.startsWith("security.") || type.startsWith("alert.")) return "security";
+  return "system";
+}
+
+/** The inverse, for SQL filters: a list of exact types and prefixes ("inbox.") that belong to a category. */
+export function typeFilterForCategory(category: NotificationCategory): {
+  exact: string[];
+  prefixes: string[];
+} {
+  switch (category) {
+    case "inbox":
+      return { exact: ["mention"], prefixes: ["inbox."] };
+    case "escalation":
+      return { exact: ["escalation"], prefixes: [] };
+    case "work":
+      return { exact: ["reminder.failed"], prefixes: ["task.", "enquiry.", "appointment."] };
+    case "security":
+      return { exact: [], prefixes: ["security.", "alert."] };
+    case "system":
+      return { exact: [], prefixes: [] };
+  }
+}
