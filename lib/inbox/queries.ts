@@ -14,7 +14,7 @@ type UserClient = SupabaseClient<Database>;
 export const CONVERSATION_LIST_SELECT = `
   id, org_id, channel_id, contact_id, status, assignee_user_id, assignee_team_id, bot_active,
   last_inbound_at, last_outbound_at, last_message_at, last_message_preview, last_message_direction,
-  unread_count, category_id, summary, ad_referral, opened_at, closed_at,
+  unread_count, category_id, summary, ai_tags, ad_referral, opened_at, closed_at,
   contacts!inner(id, first_name, last_name, wa_profile_name, phone_e164, wa_bsuid, stop_marketing),
   channels(id, name, display_phone),
   conversation_labels(tag_id, tags(id, name, color))
@@ -37,6 +37,8 @@ export type ConversationListRow = {
   unread_count: number;
   category_id: string | null;
   summary: string | null;
+  /** Labels the AI put on the conversation (booking, price, complaint, report_request, emergency). */
+  ai_tags: string[];
   ad_referral: unknown;
   opened_at: string;
   closed_at: string | null;

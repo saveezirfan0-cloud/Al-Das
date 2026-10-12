@@ -1,6 +1,7 @@
 import "server-only";
 
 import { addTimelineEvent } from "@/lib/contacts/timeline";
+import { screenInboundMessage } from "@/lib/ai/intent/server";
 import { emit } from "@/lib/events/emit";
 import { matchOrCreateContact, rotateBsuid } from "@/lib/inbox/contacts";
 import { readInboxSettings } from "@/lib/inbox/settings";
@@ -218,6 +219,18 @@ export async function processInbound(
       ? { type: event.interactive.type, id: event.interactive.id, title: event.interactive.title }
       : null,
   });
+
+  // Phase 17: emergency wording is checked on the spot (pure, no model, works with AI off) and an AI label is queued when it
+  // is switched on. Never throws and never calls the model here, so inbound handling stays fast.
+  if (!isReaction) {
+    await screenInboundMessage(admin, {
+      orgId,
+      orgSettings: org?.settings,
+      conversationId: conversation.id,
+      messageId: message.id,
+      body: event.body,
+    });
+  }
 
   // Phase 13: tell the owner about the first unread message, or start the escalation ladder when nobody owns
   // the conversation. Neither may fail the webhook job: both swallow their own errors.

@@ -18,7 +18,12 @@ import {
   type FilterNode,
   type Group,
 } from "@/lib/filters/ast";
-import { OPERATORS_BY_TYPE, type FieldDef, type FieldRegistry } from "@/lib/filters/field-registry";
+import {
+  OPERATOR_LABELS,
+  OPERATORS_BY_TYPE,
+  type FieldDef,
+  type FieldRegistry,
+} from "@/lib/filters/field-registry";
 import { compileFilter, ParamBag } from "@/lib/filters/to-sql";
 
 /** Fields the model may filter on. Everything else is invisible to it and refused if it asks anyway. */
@@ -264,4 +269,39 @@ export function withMarketingEligibility(filter: Filter): Filter {
     include: { type: "group", logic: "and", children: [filter.include, optIn] },
     exclude: filter.exclude ?? null,
   };
+}
+
+/** Plain-English lines for a filter, so a person can read what the audience means without reading JSON. Ids become names. */
+export function describeAudience(
+  filter: Filter,
+  registry: FieldRegistry,
+  sets: OptionSets,
+): string[] {
+  const nameOf = (field: FieldDef | undefined, v: string): string => {
+    const source = field?.optionsSource as AiOptionSource | undefined;
+    if (source) return sets[source]?.find((o) => o.id === v)?.name ?? v;
+    return field?.options?.find((o) => o.value === v)?.label ?? v;
+  };
+  const line = (c: Condition): string => {
+    const f = registry.get(c.field);
+    const label = f?.label ?? c.field;
+    const op = OPERATOR_LABELS[c.op] ?? c.op;
+    const v = c.value;
+    let value = "";
+    if (v === undefined || v === null) value = "";
+    else if (Array.isArray(v)) value = v.map((x) => nameOf(f, String(x))).join(", ");
+    else if (typeof v === "object") value = `${v.from ?? "…"} to ${v.to ?? "…"}`;
+    else value = nameOf(f, String(v));
+    return `${label} ${op}${value ? ` ${value}` : ""}`;
+  };
+  const group = (g: Group, depth: number): string[] =>
+    g.children.flatMap((n, i) => {
+      const prefix = i === 0 ? "" : `${g.logic === "and" ? "and" : "or"} `;
+      if (n.type === "condition") return [`${"  ".repeat(depth)}${prefix}${line(n)}`];
+      return [`${"  ".repeat(depth)}${prefix}(`, ...group(n, depth + 1), `${"  ".repeat(depth)})`];
+    });
+  const out = ["Include:", ...group(filter.include, 1)];
+  if (filter.exclude && countConditions(filter.exclude) > 0)
+    out.push("Leave out:", ...group(filter.exclude, 1));
+  return out;
 }
