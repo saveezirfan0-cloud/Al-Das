@@ -1,0 +1,229 @@
+{
+  "_comment": "Synthetic. Shared by tests/unit/finance/bill-readiness.test.ts and tests/db/finance-preauth-eligibility.test.ts (the SQL view must give the same answers). Dates are fixed offsets from 'today'; the DB test shifts them.",
+  "today": "2026-10-20",
+  "settings": { "readyStartDate": "2026-09-01", "readyGraceDays": 1 },
+  "cases": [
+    {
+      "name": "covered, card on file, no pre-auth needed",
+      "invoiceDate": "2026-10-05",
+      "pin": "PIN-T1",
+      "needsPreauth": false,
+      "checks": [
+        {
+          "status": "verified",
+          "validFrom": "2026-01-01",
+          "validTo": "2026-12-31",
+          "checkedOn": "2026-10-01",
+          "hasDocument": true
+        }
+      ],
+      "preauths": [],
+      "expected": { "evaluated": true, "reasons": [] }
+    },
+    {
+      "name": "no PIN on the invoice",
+      "invoiceDate": "2026-10-05",
+      "pin": null,
+      "needsPreauth": false,
+      "checks": [],
+      "preauths": [],
+      "expected": { "evaluated": true, "reasons": ["no_patient_pin"] }
+    },
+    {
+      "name": "no check at all",
+      "invoiceDate": "2026-10-05",
+      "pin": "PIN-T2",
+      "needsPreauth": false,
+      "checks": [],
+      "preauths": [],
+      "expected": { "evaluated": true, "reasons": ["no_eligibility"] }
+    },
+    {
+      "name": "latest check pending",
+      "invoiceDate": "2026-10-05",
+      "pin": "PIN-T3",
+      "needsPreauth": false,
+      "checks": [
+        {
+          "status": "pending",
+          "validFrom": null,
+          "validTo": null,
+          "checkedOn": "2026-10-02",
+          "hasDocument": true
+        }
+      ],
+      "preauths": [],
+      "expected": { "evaluated": true, "reasons": ["eligibility_pending"] }
+    },
+    {
+      "name": "latest check failed",
+      "invoiceDate": "2026-10-05",
+      "pin": "PIN-T4",
+      "needsPreauth": false,
+      "checks": [
+        {
+          "status": "verified",
+          "validFrom": null,
+          "validTo": "2026-10-01",
+          "checkedOn": "2026-09-01",
+          "hasDocument": true
+        },
+        {
+          "status": "failed",
+          "validFrom": null,
+          "validTo": null,
+          "checkedOn": "2026-10-03",
+          "hasDocument": false
+        }
+      ],
+      "preauths": [],
+      "expected": { "evaluated": true, "reasons": ["eligibility_failed"] }
+    },
+    {
+      "name": "cover ended before the service date",
+      "invoiceDate": "2026-10-05",
+      "pin": "PIN-T5",
+      "needsPreauth": false,
+      "checks": [
+        {
+          "status": "verified",
+          "validFrom": "2025-01-01",
+          "validTo": "2026-09-30",
+          "checkedOn": "2026-09-20",
+          "hasDocument": true
+        }
+      ],
+      "preauths": [],
+      "expected": { "evaluated": true, "reasons": ["eligibility_expired"] }
+    },
+    {
+      "name": "cover has not started yet on the service date",
+      "invoiceDate": "2026-10-05",
+      "pin": "PIN-T6",
+      "needsPreauth": false,
+      "checks": [
+        {
+          "status": "verified",
+          "validFrom": "2026-10-10",
+          "validTo": "2027-10-09",
+          "checkedOn": "2026-10-04",
+          "hasDocument": true
+        }
+      ],
+      "preauths": [],
+      "expected": { "evaluated": true, "reasons": ["eligibility_expired"] }
+    },
+    {
+      "name": "covering check without a card document",
+      "invoiceDate": "2026-10-05",
+      "pin": "PIN-T7",
+      "needsPreauth": false,
+      "checks": [
+        {
+          "status": "verified",
+          "validFrom": null,
+          "validTo": "2026-12-31",
+          "checkedOn": "2026-10-01",
+          "hasDocument": false
+        }
+      ],
+      "preauths": [],
+      "expected": { "evaluated": true, "reasons": ["no_card_on_file"] }
+    },
+    {
+      "name": "needs a pre-auth and has none",
+      "invoiceDate": "2026-10-05",
+      "pin": "PIN-T8",
+      "needsPreauth": true,
+      "checks": [
+        {
+          "status": "verified",
+          "validFrom": null,
+          "validTo": "2026-12-31",
+          "checkedOn": "2026-10-01",
+          "hasDocument": true
+        }
+      ],
+      "preauths": [],
+      "expected": { "evaluated": true, "reasons": ["preauth_missing"] }
+    },
+    {
+      "name": "needs a pre-auth, an approved one covers the date",
+      "invoiceDate": "2026-10-05",
+      "pin": "PIN-T9",
+      "needsPreauth": true,
+      "checks": [
+        {
+          "status": "verified",
+          "validFrom": null,
+          "validTo": "2026-12-31",
+          "checkedOn": "2026-10-01",
+          "hasDocument": true
+        }
+      ],
+      "preauths": [{ "status": "approved", "validFrom": "2026-10-01", "expiresOn": "2026-10-31" }],
+      "expected": { "evaluated": true, "reasons": [] }
+    },
+    {
+      "name": "needs a pre-auth, the approved one expired before the service",
+      "invoiceDate": "2026-10-05",
+      "pin": "PIN-T10",
+      "needsPreauth": true,
+      "checks": [
+        {
+          "status": "verified",
+          "validFrom": null,
+          "validTo": "2026-12-31",
+          "checkedOn": "2026-10-01",
+          "hasDocument": true
+        }
+      ],
+      "preauths": [{ "status": "approved", "validFrom": null, "expiresOn": "2026-10-04" }],
+      "expected": { "evaluated": true, "reasons": ["preauth_missing"] }
+    },
+    {
+      "name": "needs a pre-auth, only a requested one exists",
+      "invoiceDate": "2026-10-05",
+      "pin": "PIN-T11",
+      "needsPreauth": true,
+      "checks": [
+        {
+          "status": "verified",
+          "validFrom": null,
+          "validTo": "2026-12-31",
+          "checkedOn": "2026-10-01",
+          "hasDocument": true
+        }
+      ],
+      "preauths": [{ "status": "requested", "validFrom": null, "expiresOn": null }],
+      "expected": { "evaluated": true, "reasons": ["preauth_missing"] }
+    },
+    {
+      "name": "several problems at once",
+      "invoiceDate": "2026-10-05",
+      "pin": "PIN-T12",
+      "needsPreauth": true,
+      "checks": [],
+      "preauths": [],
+      "expected": { "evaluated": true, "reasons": ["no_eligibility", "preauth_missing"] }
+    },
+    {
+      "name": "inside the grace period (today's invoice) is not evaluated",
+      "invoiceDate": "2026-10-20",
+      "pin": "PIN-T13",
+      "needsPreauth": false,
+      "checks": [],
+      "preauths": [],
+      "expected": { "evaluated": false, "reasons": [] }
+    },
+    {
+      "name": "before the start date is not evaluated",
+      "invoiceDate": "2026-08-15",
+      "pin": "PIN-T14",
+      "needsPreauth": false,
+      "checks": [],
+      "preauths": [],
+      "expected": { "evaluated": false, "reasons": [] }
+    }
+  ]
+}

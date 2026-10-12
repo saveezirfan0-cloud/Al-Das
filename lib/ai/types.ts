@@ -1,4 +1,4 @@
-export const AI_FEATURES = ["summarize", "ask", "suggest_reply", "rewrite"] as const;
+export const AI_FEATURES = ["summarize", "ask", "suggest_reply", "rewrite", "appeal_draft"] as const;
 export type AiFeature = (typeof AI_FEATURES)[number];
 
 /** Outcome of one AI call, mirrored in ai_usage.status. */

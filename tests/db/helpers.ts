@@ -212,3 +212,115 @@ export async function seedPhase16Rows(c: Client, orgId: string, userId: string) 
 
 /** The tables Phase 16 added, for catalogue assertions. */
 export const PHASE16_TABLES = ["document_retention_policies", "media_assets", "media_folders", "patient_documents"] as const;
+
+/**
+ * One row in every Phase 18 table that has a browser policy, for an org, so the cross-org sweeps are not vacuous for
+ * them (synthetic ids and amounts only). The two raw/uploaded-payload tables (service-role only) get a row as well.
+ * Service role only: none of these tables has a write policy.
+ */
+export async function seedPhase18Rows(c: Client, orgId: string, userId: string) {
+  const ids: Record<string, string> = {};
+  await asServiceRole(c, async () => {
+    const one = async (sql: string, params: unknown[]) =>
+      (await c.query<{ id: string }>(sql + " returning id::text", params)).rows[0].id;
+    await c.query(
+      "insert into public.fin_ref_payer_prices (org_id, payer_id, cpt_code, agreed_price) values ($1, 'PAYER-SEED', '99213', 150)",
+      [orgId],
+    );
+    await c.query(
+      "insert into public.fin_ref_account_map (org_id, kind, key, account_code, account_name) values ($1, 'receivable', 'insurance', '1200', 'Seed receivable')",
+      [orgId],
+    );
+    ids.preauth = await one(
+      "insert into public.fin_pre_authorisations (org_id, patient_pin, payer_id, auth_number, status, expires_on, created_by) values ($1, 'PIN-SEED-18', 'PAYER-SEED', 'AUTH-SEED-1', 'approved', '2027-01-31', $2)",
+      [orgId, userId],
+    );
+    ids.eligibility = await one(
+      "insert into public.fin_eligibility_checks (org_id, patient_pin, payer_id, status, valid_to, checked_on, created_by) values ($1, 'PIN-SEED-18', 'PAYER-SEED', 'verified', '2027-01-31', '2026-10-01', $2)",
+      [orgId, userId],
+    );
+    ids.claim = await one(
+      "insert into public.ins_claim_activities (org_id, claim_activity_number, invoice_no, cpt_code, payer_id, transaction_date, net, remitted, rejected, last_denial_code, first_remittance_date) values ($1, 'CA-SEED-18', 'ADMC/C/18001', '99213', 'PAYER-SEED', '2026-09-01', 100, 60, 40, 'AUTH-001', '2026-09-20')",
+      [orgId],
+    );
+    ids.denialCase = await one(
+      "insert into public.ins_denial_cases (org_id, claim_activity_id, claim_number, payer_id, rejected_amount, reason_code, category, denied_on, deadline_on) values ($1, $2, 'CA-SEED-18', 'PAYER-SEED', 40, 'AUTH-001', 'authorization', '2026-09-20', '2026-10-20')",
+      [orgId, ids.claim],
+    );
+    ids.denialNote = await one(
+      "insert into public.ins_denial_notes (org_id, case_id, user_id, note) values ($1, $2, $3, 'Seed note')",
+      [orgId, ids.denialCase, userId],
+    );
+    ids.appeal = await one(
+      "insert into public.ins_appeal_drafts (org_id, case_id, kind, body, created_by) values ($1, $2, 'template', 'DRAFT seed letter', $3)",
+      [orgId, ids.denialCase, userId],
+    );
+    ids.remitFile = await one(
+      "insert into public.fin_raw_remittance_files (org_id, file_sha256, status, uploaded_by) values ($1, 'seed-sha-' || gen_random_uuid()::text, 'validated', $2)",
+      [orgId, userId],
+    );
+    await c.query(
+      "insert into public.fin_staged_remittance_lines (org_id, file_id, row_no, data) values ($1, $2, 2, '{}'::jsonb)",
+      [orgId, ids.remitFile],
+    );
+    ids.remitBatch = await one(
+      "insert into public.ins_remittance_batches (org_id, file_id, remittance_ref, payer_id, created_by) values ($1, $2, 'RM-SEED', 'PAYER-SEED', $3)",
+      [orgId, ids.remitFile, userId],
+    );
+    ids.remitLine = await one(
+      "insert into public.ins_remittance_lines (org_id, batch_id, row_no, line_key, claim_activity_number, paid_amount, claim_activity_id, match_status) values ($1, $2, 2, 'seed|' || gen_random_uuid()::text, 'CA-SEED-18', 60, $3, 'matched')",
+      [orgId, ids.remitBatch, ids.claim],
+    );
+    ids.close = await one(
+      "insert into public.fin_period_closes (org_id, month) values ($1, '2026-01-01')",
+      [orgId],
+    );
+    ids.cashup = await one(
+      "insert into public.fin_cashups (org_id, branch_code, business_date, prepared_by) values ($1, 'P', '2026-10-01', $2)",
+      [orgId, userId],
+    );
+    await c.query(
+      "insert into public.fin_cashup_lines (org_id, cashup_id, payment_mode, expected_amount, counted_amount) values ($1, $2, 'CASH', 100, 100)",
+      [orgId, ids.cashup],
+    );
+    ids.invoice = await one(
+      "insert into public.fin_invoices (org_id, inv_display_number, transaction_date, patient_pin, branch_code, inv_type, gross, net, total, record_hash) values ($1, 'ADMC/C/18001', '2026-09-01', 'PIN-SEED-18', 'P', 'SELF PAID', 100, 100, 100, 'h')",
+      [orgId],
+    );
+    ids.reminder = await one(
+      "insert into public.fin_recovery_reminders (org_id, invoice_id, patient_pin, sequence_no, status) values ($1, $2, 'PIN-SEED-18', 1, 'queued')",
+      [orgId, ids.invoice],
+    );
+    ids.export = await one(
+      "insert into public.fin_accounting_exports (org_id, period_from, period_to, status, row_count, debit_total, credit_total, checksum, exported_by) values ($1, '2026-09-01', '2026-09-30', 'provisional', 4, 10, 10, 'abc', $2)",
+      [orgId, userId],
+    );
+  });
+  return ids;
+}
+
+/** Phase 18 tables with a browser (select) policy. fin_ref_finance_settings and fin_ref_denial_codes are seeded for every org. */
+export const PHASE18_TABLES = [
+  "fin_accounting_exports",
+  "fin_cashup_lines",
+  "fin_cashups",
+  "fin_eligibility_checks",
+  "fin_period_closes",
+  "fin_pre_authorisations",
+  "fin_recovery_reminders",
+  "fin_ref_account_map",
+  "fin_ref_denial_codes",
+  "fin_ref_finance_settings",
+  "fin_ref_payer_prices",
+  "ins_appeal_drafts",
+  "ins_denial_cases",
+  "ins_denial_notes",
+  "ins_remittance_batches",
+  "ins_remittance_lines",
+] as const;
+
+/** Phase 18 tables that hold uploaded payloads: RLS on, no policy, service role only. */
+export const PHASE18_SERVICE_ONLY_TABLES = [
+  "fin_raw_remittance_files",
+  "fin_staged_remittance_lines",
+] as const;

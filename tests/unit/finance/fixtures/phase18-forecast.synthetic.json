@@ -1,0 +1,35 @@
+{
+  "_comment": "Synthetic receivables and payer history. today is a Wednesday; its week starts Monday 2026-10-19.",
+  "today": "2026-10-21",
+  "settings": {
+    "horizonWeeks": 13,
+    "defaultLagDays": 60,
+    "defaultCollectionRate": 0.9,
+    "minHistory": 30,
+    "tailWeeks": 4
+  },
+  "outstanding": [
+    { "payer_id": "PAYER-NEW", "week_start": "2026-10-19", "claims": 5, "outstanding": 1000 }
+  ],
+  "history": [],
+  "expectedWeeks": { "2": 225, "6": 225, "11": 225 },
+  "expectedBeyondHorizon": 225,
+  "expectedTotal": 900,
+  "known": {
+    "outstanding": [
+      { "payer_id": "PAYER-OLD", "week_start": "2026-10-19", "claims": 4, "outstanding": 2000 }
+    ],
+    "history": [
+      {
+        "payer_id": "PAYER-OLD",
+        "paid_claims": 120,
+        "p25": 7,
+        "p50": 14,
+        "p75": 21,
+        "p90": 28,
+        "mature_claims": 200,
+        "collection_rate": 0.5
+      }
+    ]
+  }
+}
