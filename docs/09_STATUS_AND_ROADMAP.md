@@ -14,6 +14,8 @@ This is the single document to work from. Section 1 says where we are, 2 says wh
 
 **Still not confirmed:** I could not find a Pulse database from the assistant's accounts. If you have already created one elsewhere and set its keys in Vercel, the deployment may already work; if not, the deployed app cannot sign anyone in. Everything in sections 2 and 3 still applies.
 
+**Phase 15 (security, audit and access) is built** on branch `claude/nifty-brown-y9l5ry` and waits for review and merge: two-step verification by role, login history, session list, record access log, access review, off-boarding, anomaly alerts, History tabs, Activity log export, patient data export and erasure, and the Phase 10 security gaps. What was and was not verified is in `docs/12_PHASE_15_NOTES.md`. The three new migrations (`20261011000100` to `…300`) are in `deploy/supabase-paste/12_phase_15_security.sql` for the same paste route as before.
+
 **Open work from other sessions.** The Airtable clinical importer from `claude/upbeat-brown-n1q8nq` was merged as PR #22 on 12 Oct, and a follow-up (PR #28: Appointment Messages, Birthday, Chronic Recall and the `FU_` templates are still to come) is open from another session. Do not merge or reset that branch from here. Of the other `claude/*` branches, eleven carry nothing main lacks and five are older versions of work main already has in another form (`magical-planck-nx16wi` is an early Phase 5 that would add about 16,000 duplicate lines). Delete the stale ones once you agree; none should be merged.
 
 ## 1. Where we are
@@ -34,9 +36,10 @@ Phases 1 to 11 and Finance F0 to F6 are **built, tested and merged**. Pulse alre
 | HTTP routes (public API, webhooks, exports, jobs) | 18 |
 | Background job handlers | 20 |
 | TypeScript | about 108,000 lines |
-| Permission keys | 40 (plus wildcards) |
+| Permission keys | 42 (plus wildcards); Phase 15 added `security.manage` and `privacy.manage` |
 | Unit test files / tests | 107 files / **1,245 passing** (includes the 19 added this session) |
 | Database test files | 32 files, **423 tests passing** on Postgres 16 with pgvector and PostgREST (run 11 Oct 2026, see `docs/11_PHASE_12B_NOTES.md`) |
+| After Phase 15 (branch `claude/nifty-brown-y9l5ry`) | 48 migrations, 134 tables in `public`, 64 app pages, **119 test files / 1,395 tests in `pnpm test`** and **35 database test files / 476 tests**, all passing |
 | Browser (Playwright) specs | 6 |
 | `pnpm typecheck`, `pnpm lint`, `pnpm test` | **all clean** on a fresh install |
 
@@ -46,7 +49,7 @@ Not run: the browser tests and any click-through (no Supabase auth stack in the 
 
 | # | Module | Built | Not proven / missing |
 |---|---|---|---|
-| 1 | Foundation: auth, orgs, RLS, roles, teams, invites, jobs framework | Yes | Presence inactivity timeout; MFA not enforced |
+| 1 | Foundation: auth, orgs, RLS, roles, teams, invites, jobs framework | Yes | Presence inactivity timeout. MFA is enforced per role since Phase 15 but the enrolment flow has not been run against a real Supabase Auth |
 | 2 | Patient CRM: grid, views, segments, filters, import/export, merge, custom fields, tags | Yes | Sanoflow export header names are guessed (`--map` overrides); real export needed |
 | 3 | WhatsApp ingress and shared inbox | Yes | Never tested with real Meta traffic; BSUID (username) contract unverified; coexistence events only logged |
 | 4 | Templates: builder, Meta submit and sync, 26 starter templates (13 in English and Arabic) | Yes | Needs `META_APP_ID` and a real WABA; no OTP, catalogue or flow-button templates |
@@ -58,6 +61,7 @@ Not run: the browser tests and any click-through (no Supabase auth stack in the 
 | 9 | Back-office portal and complete Airtable importer | Yes | Clinical importer mappers now write the real Phase 6 tables (dry-run first, then a real run against a real base is still to do); no portal bulk edit |
 | 10 | AI assist and knowledge base, metrics, dashboards, reports, public API, webhooks | Yes | AI switch OFF until legal answer (OQ-57); WhatsApp cost report not built; no `ai_tags`; no scheduled digests |
 | 11 | Hardening, load tests, reconciliation, cut-over tooling | Yes | Load tests only run against a mock Graph; live rehearsal not done |
+| 15 | Security and audit: MFA by role, login history, session list, record access log, anomaly alerts, access review, off-boarding, History tabs, Activity log CSV, patient data export and erasure, Phase 10 gap fixes | Yes (branch, not merged) | Never clicked in a browser or run against Supabase Auth (see `docs/12_PHASE_15_NOTES.md`); clinical records are kept on erasure pending OQ-63; enrolment and sign-out scopes need a real-stack check |
 | F0-F6 | Finance and insurance: Unite capture, Diligence upload and matching, exceptions E01-E10, summary | Yes | Unite capture is OFF by design; closed-month review with Saeed is a human step |
 
 ### 1.4 Changes made in this session
@@ -113,10 +117,10 @@ These are the most valuable things to do before any client sees the product, bec
 | Templates | Positional variables only in the builder; no OTP or catalogue templates |
 | Portal | No bulk edit; no per-object custom fields or tags |
 | Reports | WhatsApp cost report (needs Meta `pricing_analytics`), scheduled email digests, AI tags |
-| Public API | Rate limit is per key and fixed-window; reads are not audited; `promotions_opt_in` can be set without consent evidence; webhook and KB URLs allow any HTTPS port |
-| AI | Rate limit can be exceeded by parallel calls; add an org daily cap |
+| Public API | Rate limit is per key and fixed-window. **Closed in Phase 15:** reads are audited in aggregate, `promotions_opt_in: true` needs consent evidence, webhook and KB URLs must use port 443 |
+| AI | **Closed in Phase 15:** workspace daily cap (atomic). The per-user per-minute limit can still be exceeded by parallel calls |
 | Finance | Several thresholds are placeholders until Sharaf agrees them; Unite IP allow-listing may need a fixed-IP relay (Vercel has no fixed outbound IPs) |
-| Security | No MFA enforcement, no session list, no login history, no read-access log for patient records (see 4.11) |
+| Security | **Built in Phase 15, unproven live:** MFA by role, session list, login history, record access log (see 4.11). Still open: a written backup and restore drill, working-hours or IP restriction for finance, soft-delete with a restore window, the Supabase Auth dashboard settings (password policy, leaked-password protection, TOTP switched on) |
 
 ### 2.4 Housekeeping
 
@@ -358,15 +362,15 @@ Rule that stays: Unite is the system of record, Pulse mirrors and flags. The del
 
 | Have today | Gap and fix |
 |---|---|
-| `audit_log` (security and configuration events, append-only) | **(done) Activity log screen.** Next: CSV export with its own audit entry, saved filters |
-| Contact timeline with field-level changes | A **History tab in every drawer** (appointments, enquiries, tasks, templates, flows, portal records) |
+| `audit_log` (security and configuration events, append-only) | **(done) Activity log screen, now with Sign-ins, Record access, Alerts and API reads tabs and an audited CSV export (Phase 15).** Next: saved filters |
+| Contact timeline with field-level changes | **(done, Phase 15)** History tab in the appointment, enquiry, task, template, flow and portal-record drawers (one `record_history` table, one component). Contacts keep their timeline; finance reference data still to do |
 | Clinical settings history with signer | Same pattern for finance reference data and message templates |
-| Roles with 40 permission keys, teams, invites, presence | **Login history** (time, IP, device, success/failure), **session list with revoke**, **MFA required** for admin, finance and clinical roles (Supabase TOTP) |
-| Read access to patient records is not logged | **Record access log**: who opened which patient chart, every export, every file view. Health-information systems are normally expected to keep this |
-| No periodic review | **Access review**: a page listing every user, role, last active, dormant accounts (30 days), API-key owners; quarterly attest-and-sign workflow |
-| Anyone with the role keeps access until removed | Off-boarding checklist (suspend, revoke keys, reassign conversations and tasks); optional working-hours or IP restriction for finance |
-| Alerts on job failures | **Anomaly alerts**: bulk export, off-hours access, many failed logins, role changes |
-| Delete and merge exist | Soft-delete with restore window; patient data export and erasure request tooling |
+| Roles with 42 permission keys, teams, invites, presence | **(done, Phase 15)** Login history, session list (sign out this device, others, everywhere), MFA switch per role (Supabase TOTP). Not done: revoking one specific other device (Supabase Auth has no API for it) |
+| Read access to patient records is not logged | **(done, Phase 15)** Record access log: single opens and exports always, list views sampled, retention setting, viewer with filters |
+| No periodic review | **(done, Phase 15)** Access review page with dormant detection, API-key owners and a signed quarterly attestation |
+| Anyone with the role keeps access until removed | **(done, Phase 15)** One-step off-boarding. Not done: working-hours or IP restriction for finance |
+| Alerts on job failures | **(done, Phase 15)** Anomaly alerts: bulk export, off-hours access, five failed sign-ins, role changes, bulk API reads |
+| Delete and merge exist | **(done, Phase 15)** Patient data export and erasure with a two-person rule. Not done: soft-delete with a restore window |
 | Backups are the host's | Written backup and restore drill, PITR on, annual test |
 
 ---
@@ -381,7 +385,7 @@ Each phase starts in Plan Mode and uses the prompt of the same number in `docs/1
 | **12b** | Make it real: bring up the Supabase and Vercel stack, seed demo org, click every page as three roles, fix what breaks, DB and e2e tests in CI, update stale docs | accounts 1, 2, 3 | 1 week |
 | **13** | Mobile, notifications and speed: service worker, web push, preference matrix, escalation ladder, digests, layout/dashboard query cuts, dynamic imports, performance budget | 12b | 1.5 weeks |
 | **14** | Front desk mode, waitlist, walk-in registration, household linking, quick replies, in-app help and training mode | clinic input | 2 weeks |
-| **15** | Security and audit: MFA, login history, sessions, record access log, access review, anomaly alerts, History tabs | none | 1.5 weeks |
+| **15** | Security and audit: MFA, login history, sessions, record access log, access review, anomaly alerts, History tabs. **Built; waiting for review, merge and a real-stack check** (`docs/12_PHASE_15_NOTES.md`) | none | done in code |
 | **16** | Media Library and patient documents | residency answer | 1.5 weeks |
 | **17** | AI: Flow Copilot, Campaign Copilot, intent routing, reply-quality loop | OQ-57, OQ-61 | 2 weeks |
 | **18** | Finance and insurance upgrades: pre-auth, denials, remittance, scorecards, month-end pack | Diligence export, thresholds | 2.5 weeks |

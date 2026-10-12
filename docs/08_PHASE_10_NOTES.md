@@ -110,13 +110,13 @@ No critical or high findings; key authentication, cross-org scoping, the SSRF co
 - **Hostile-input hardening:** the KB HTML extractor was quadratic on unclosed tags (a 1.6 MB page stalled it for seconds); it is now a linear scan with a size cap. `safeRequest` has an absolute deadline and stops reading in truncate mode; webhook deliveries use a 20 s deadline. More reserved IP ranges are blocked (6to4, Teredo, site-local, IPv4-compatible).
 - **Prompt hardening:** closing tags are neutralised case-insensitively; `[[STAFF]]` is stripped wherever it appears; links, bank accounts and phone numbers in a patient-facing draft that are not in the conversation or knowledge are flagged.
 
-Known and deliberately left for later (decide before production):
+Known and deliberately left for later (decide before production). **Update, Phase 15:** the four items marked CLOSED below were fixed in Phase 15 (`docs/12_PHASE_15_NOTES.md`).
 
 - **API rate limit is per key, fixed window** (120/min, fail-open if the limiter itself errors). A leaked read key can still page every contact at that rate; keep keys short-lived and scoped.
-- **Read access is not audited** per request (only writes and sends); add aggregate read logging with the limiter.
-- **AI rate limit can be exceeded by parallel requests** (usage is counted after the call). Add a reservation row or an org daily cap.
-- `promotions_opt_in` can be set to `true` by any `contacts:write` key without consent evidence, and marketing sends check `stop_marketing` only (as the inbox does), not `promotions_opt_in`. Decide whether marketing requires a recorded opt-in.
-- Webhook and KB URLs may use any HTTPS port (probing of non-443 services on public IPs); a crash between inserting a queued message and enqueueing it can leave an orphan message.
+- **CLOSED (Phase 15): API reads are now audited in aggregate** (`api_read_log`: per key, resource and hour, with a bulk-read alert); individual records are not listed.
+- **CLOSED (Phase 15): the AI workspace daily cap** (`ai.daily_cap`, default 500) is counted atomically before the call, so parallel requests cannot overshoot it. The per-user per-minute limit is still counted after the call and can be exceeded by a burst of parallel requests.
+- **CLOSED (Phase 15, first half): `promotions_opt_in: true` through the API now needs `promotions_consent` (source and timestamp), stored on the contact.** Still open: marketing sends from the inbox check `stop_marketing` only, not `promotions_opt_in` (campaigns, flows and recall already require the opt-in). Decide whether the inbox should too.
+- **CLOSED (Phase 15): webhook and KB URLs must use port 443.** Still open: a crash between inserting a queued message and enqueueing it can leave an orphan message.
 
 ## Demo checklist
 
