@@ -12,6 +12,8 @@ import { classifyOfferButton, classifyOfferReply } from "@/lib/front-desk/waitli
 import { resolveRecipient, type HouseholdContact } from "@/lib/household/addressing";
 import { loadHouseholdLink } from "@/lib/household/server";
 import { emit, on } from "@/lib/events/emit";
+import { queueSmsFallback } from "@/lib/integrations/sms/fallback";
+import { redactText } from "@/lib/redact";
 import { registerHandler } from "@/lib/jobs/registry";
 import { registerTask } from "@/lib/jobs/tasks";
 import { PermanentJobError, type JobLogger } from "@/lib/jobs/types";
@@ -134,7 +136,9 @@ export async function processReminder(
   });
   if (!result.ok) {
     await finish({ status: "failed", error: result.error.slice(0, 300) });
-    await reportReminderFailure(admin, orgId, appt.id, appt.number, result.error);
+    await reportReminderFailure(admin, orgId, appt.id, appt.number, result.error, {
+      reminderId: reminder.id,
+    });
     log.warn("reminder not sent", { reminderId: reminder.id, reason: result.error });
     return "failed";
   }
@@ -162,9 +166,29 @@ export async function reportReminderFailure(
   appointmentId: string,
   number: number,
   reason: string,
+  sms: {
+    reminderId: string | null;
+    sourceMessageId?: string | null;
+    whatsappErrorCode?: number | null;
+  } = {
+    reminderId: null,
+  },
 ): Promise<void> {
   await emit(orgId, "appointment.reminder_failed", { appointment_id: appointmentId, reason });
   await createCallTask(admin, orgId, appointmentId, number);
+  // Phase 19: when the SMS fallback is switched on, the patient also gets a short, generic text (consent, opt-out and training
+  // rules are applied inside). The call task above stays: it is the human safety net if the SMS does not arrive either.
+  try {
+    await queueSmsFallback(admin, {
+      orgId,
+      appointmentId,
+      reminderId: sms.reminderId,
+      sourceMessageId: sms.sourceMessageId ?? null,
+      whatsappErrorCode: sms.whatsappErrorCode ?? null,
+    });
+  } catch (err) {
+    console.error("[sms-fallback] could not queue", { error: redactText(err, 120) });
+  }
   await notify(admin, {
     orgId,
     userIds: await memberIdsWithPermission(admin, orgId, "appointments.manage"),
@@ -330,7 +354,8 @@ on("message.failed", async (event) => {
     .eq("message_id", messageId)
     .eq("org_id", event.orgId)
     .eq("status", "sent")
-    .select("appointment_id, appointments(number)");
+    .select("id, appointment_id, appointments(number)");
+  const code = Number(event.payload.code);
   for (const r of failed ?? []) {
     await reportReminderFailure(
       admin,
@@ -338,6 +363,11 @@ on("message.failed", async (event) => {
       r.appointment_id,
       r.appointments?.number ?? 0,
       "delivery failed",
+      {
+        reminderId: r.id,
+        sourceMessageId: messageId,
+        whatsappErrorCode: Number.isFinite(code) ? code : null,
+      },
     );
   }
 });
