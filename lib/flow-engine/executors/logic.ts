@@ -5,7 +5,7 @@ import { fail, parseConfig, type Executor } from "@/lib/flow-engine/executors/co
 import { isWithinOfficeHours, officeHoursSchema } from "@/lib/flow-engine/office-hours";
 import { MAX_FLOW_DEPTH } from "@/lib/flow-engine/types";
 
-const branchSchema = z.object({
+export const branchSchema = z.object({
   logic: z.enum(["and", "or"]).default("and"),
   conditions: z
     .array(
@@ -24,7 +24,7 @@ export const branch: Executor = async (ctx) => {
 const UNIT_MS = { seconds: 1000, minutes: 60_000, hours: 3_600_000, days: 86_400_000 } as const;
 const MAX_WAIT_MS = 30 * 86_400_000;
 
-const waitSchema = z.object({
+export const waitSchema = z.object({
   amount: z.number().positive(),
   unit: z.enum(["seconds", "minutes", "hours", "days"]),
 });
@@ -56,7 +56,7 @@ export const office_hours: Executor = async (ctx) => {
   return { kind: "next", handle: inside ? "inside" : "outside", output: { inside } };
 };
 
-const runFlowSchema = z.object({ flow_id: z.string().uuid() });
+export const runFlowSchema = z.object({ flow_id: z.string().uuid() });
 
 export const run_flow: Executor = async (ctx) => {
   const cfg = parseConfig(ctx, runFlowSchema);

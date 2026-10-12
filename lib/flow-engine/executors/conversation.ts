@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { fail, parseConfig, text, type Executor } from "@/lib/flow-engine/executors/common";
 
-const assignSchema = z.discriminatedUnion("type", [
+export const assignSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("user"), id: z.string().uuid() }),
   z.object({ type: z.literal("team"), id: z.string().uuid() }),
   z.object({ type: z.literal("bot") }),

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { fail, parseConfig, text, type Executor } from "@/lib/flow-engine/executors/common";
 import { checkOutboundUrl } from "@/lib/flow-engine/ssrf";
 
-const apiSchema = z.object({
+export const apiSchema = z.object({
   method: z.enum(["GET", "POST", "PUT", "PATCH", "DELETE"]).default("POST"),
   url: z.string().min(1).max(2000),
   headers: z.record(z.string(), z.string()).default({}),
@@ -37,7 +37,7 @@ export const api_action: Executor = async (ctx) => {
   return ok ? { kind: "next", output } : { kind: "fail", error: `HTTP ${res.status}`, output };
 };
 
-const notifySchema = z.object({
+export const notifySchema = z.object({
   target: z.discriminatedUnion("type", [
     z.object({ type: z.literal("user"), id: z.string().uuid() }),
     z.object({ type: z.literal("team"), id: z.string().uuid() }),
