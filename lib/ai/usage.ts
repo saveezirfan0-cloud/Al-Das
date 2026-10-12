@@ -1,7 +1,4 @@
-import { formatInTimeZone } from "date-fns-tz";
-
 import type { AiFeature, AiResult, AiStatus } from "@/lib/ai/types";
-import { checkRateLimit as checkWindow } from "@/lib/rate-limit";
 import type { AdminClient } from "@/lib/supabase/admin";
 
 /** ai_usage holds tokens, latency and outcome only. Never prompt or completion text. */
@@ -57,34 +54,4 @@ export async function checkRateLimit(
     .gte("created_at", since);
   if (error) return { allowed: true }; // a counting failure must not lock staff out of the inbox
   return { allowed: (count ?? 0) < perMinute };
-}
-
-/** Calendar day in the workspace timezone, "2026-10-12": the key the daily counter is stored under. */
-export function aiDayKey(now: Date, timeZone: string): string {
-  try {
-    return formatInTimeZone(now, timeZone, "yyyy-MM-dd");
-  } catch {
-    return formatInTimeZone(now, "UTC", "yyyy-MM-dd");
-  }
-}
-
-/**
- * Workspace-wide daily cap on AI calls. Uses the same atomic Postgres counter as the other rate limits
- * (public.rate_limit_hit), reserving a call BEFORE it is made, so two requests in flight cannot both slip
- * under the cap. Attempts that later fail still count: the cap bounds spend, not successes. If the counter
- * itself is unavailable the call is allowed (a counting failure must not lock staff out of the inbox).
- */
-export async function checkDailyCap(
-  admin: AdminClient,
-  orgId: string,
-  cap: number,
-  timeZone: string,
-  now = new Date(),
-): Promise<{ allowed: boolean }> {
-  const r = await checkWindow(admin, "ai-daily", `${orgId}:${aiDayKey(now, timeZone)}`, {
-    limit: cap,
-    windowSec: 86_400,
-    failOpen: true,
-  });
-  return { allowed: r.allowed };
 }

@@ -55,11 +55,7 @@ export async function saveAiSettings(input: z.input<typeof aiSettingsSchema>): P
     action: "ai.settings_updated",
     entity: "org",
     entityId: member.orgId,
-    diff: {
-      enabled: [before.enabled, parsed.data.enabled],
-      rate_limit_per_minute: parsed.data.rate_limit_per_minute,
-      daily_cap: [before.daily_cap, parsed.data.daily_cap],
-    },
+    diff: { enabled: [before.enabled, parsed.data.enabled], rate_limit_per_minute: parsed.data.rate_limit_per_minute },
   });
   revalidatePath(PATH);
   revalidatePath("/inbox");
