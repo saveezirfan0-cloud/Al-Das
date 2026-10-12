@@ -9,6 +9,7 @@ import { portalRowsToCsv } from "@/lib/portal/export";
 import { fetchPortalRows, matchingPortalIds, MAX_EXPORT } from "@/lib/portal/query";
 import { loadPortalRegistry, resolveEnabledObject } from "@/lib/portal/server";
 import { resolveLinks } from "@/lib/portal/service";
+import { recordExport } from "@/lib/security/access-log";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const bodySchema = z.object({
@@ -68,6 +69,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ object: string
     entity: def.key,
     diff: { scope: body.scope, rows: rows.length },
   });
+  await recordExport(admin, member, { dataset: `portal:${def.key}`, rows: rows.length });
 
   return new NextResponse(csv, {
     status: 200,

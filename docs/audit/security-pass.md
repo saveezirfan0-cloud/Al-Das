@@ -57,3 +57,4 @@ A production build also caught one mistake of mine: a Next.js route file may not
 | 8 Flows | Executor unit tests; advisory lock; 200-step cap; webhook-in endpoints signed |
 | 9 Portal | Generic object routes respect `portal_objects` permissions; CSV export audited |
 | 10 Public API / AI | API keys hashed; per-key limits from `RATE_RULES.publicApi`; outbound webhooks HMAC-signed with retries; AI drafts only, no PHI beyond the feature itself |
+| 15 Security and audit | Done: `docs/12_PHASE_15_NOTES.md`. New tables are in `PHASE15_TABLES` (`tests/db/helpers.ts`) and swept by `tests/db/security-guard.test.ts`; the MFA gate has a middleware test; the service-only functions (`erase_contact`, `offboard_member`, `security_maintenance`, `api_read_log_hit`) are asserted not callable by signed-in users. Still to do at cut-over: confirm TOTP is enabled in the Supabase Auth settings, and click the MFA, session and History flows on the real stack |

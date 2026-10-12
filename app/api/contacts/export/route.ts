@@ -10,6 +10,7 @@ import { loadContactContext } from "@/lib/contacts/server";
 import { combineFilters, isContactViewKey, viewFilter } from "@/lib/contacts/views";
 import { filterSchema, type Filter } from "@/lib/filters/ast";
 import { checkRateLimit, RATE_RULES, tooManyRequests } from "@/lib/rate-limit";
+import { recordExport } from "@/lib/security/access-log";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const bodySchema = z.object({
@@ -113,6 +114,7 @@ export async function POST(req: Request) {
     entity: "contact",
     diff: { scope: body.scope, count: rows.length },
   });
+  await recordExport(admin, member, { dataset: "contacts", rows: rows.length });
 
   const csv = contactsToCsv(rows, ctx.customFields);
   return new NextResponse(csv, {

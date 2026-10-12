@@ -25,6 +25,7 @@ import { filterSchema, type Filter } from "@/lib/filters/ast";
 import { FilterCompileError, InvalidOperatorError } from "@/lib/filters";
 import { UnknownFieldError } from "@/lib/filters/field-registry";
 import { normalizePhone } from "@/lib/phone";
+import { recordAccess } from "@/lib/security/access-log";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json, Tables, TablesUpdate } from "@/lib/supabase/types";
 
@@ -124,6 +125,11 @@ export async function listContacts(
       page: parsed.data.page,
       pageSize: parsed.data.pageSize,
       timezone: member.org.timezone,
+    });
+    await recordAccess(admin, member, {
+      entity: "contact",
+      action: parsed.data.search ? "search" : "list",
+      detail: { rows: page.rows.length },
     });
     return { ok: true, data: page };
   } catch (e) {
@@ -237,6 +243,7 @@ export async function getContact(id: string): Promise<ActionResult<ContactDetail
   ]);
   const contact = rows[0];
   if (!contact || contact.deleted_at) return fail("Contact not found");
+  await recordAccess(admin, member, { entity: "contact", entityId: id, action: "view" });
   const actorIds = [
     ...new Set((events ?? []).map((e) => e.actor_id).filter((x): x is string => !!x)),
   ];

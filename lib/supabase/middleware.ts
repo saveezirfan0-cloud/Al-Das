@@ -1,6 +1,9 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+import { isMfaExemptPath, mfaGate } from "@/lib/security/mfa";
+import type { Database } from "@/lib/supabase/types";
+
 const PUBLIC_PREFIXES = [
   "/login",
   "/invite",
@@ -30,7 +33,7 @@ export async function updateSession(request: NextRequest) {
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !anon) return response;
 
-  const supabase = createServerClient(url, anon, {
+  const supabase = createServerClient<Database>(url, anon, {
     cookies: {
       getAll() {
         return request.cookies.getAll();
@@ -58,6 +61,43 @@ export async function updateSession(request: NextRequest) {
     redirect.pathname = "/login";
     redirect.searchParams.set("next", pathname);
     return NextResponse.redirect(redirect);
+  }
+
+  // Two-step verification. A session already at aal2 costs nothing; only an aal1 session without a
+  // verified factor needs one query to learn whether its role requires MFA.
+  if (user && !isPublicPath(pathname) && !isMfaExemptPath(pathname)) {
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    const base = {
+      pathname,
+      currentLevel: aal?.currentLevel,
+      hasVerifiedFactor: aal?.nextLevel === "aal2",
+    };
+    let decision = mfaGate({ ...base, required: false });
+    if (decision === "allow" && aal?.currentLevel !== "aal2") {
+      const preferred = request.cookies.get("pulse_org")?.value;
+      const { data: memberships, error: roleError } = await supabase
+        .from("memberships")
+        .select("org_id, roles(require_mfa)")
+        .eq("user_id", user.id)
+        .eq("status", "active")
+        .order("created_at");
+      if (roleError) {
+        // Fail closed: if we cannot tell whether this role needs a second step, do not assume it does not.
+        return NextResponse.json(
+          { error: "temporarily unavailable" },
+          { status: 503, headers: { "Retry-After": "5" } },
+        );
+      }
+      const active = memberships?.find((m) => m.org_id === preferred) ?? memberships?.[0];
+      decision = mfaGate({ ...base, required: active?.roles?.require_mfa === true });
+    }
+    if (decision !== "allow") {
+      const redirect = request.nextUrl.clone();
+      redirect.pathname = decision === "enroll" ? "/mfa/enroll" : "/mfa/verify";
+      redirect.search = "";
+      redirect.searchParams.set("next", pathname);
+      return NextResponse.redirect(redirect);
+    }
   }
 
   if (user && pathname === "/login") {

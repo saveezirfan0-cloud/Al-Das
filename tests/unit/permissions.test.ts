@@ -102,3 +102,23 @@ describe("catalogue", () => {
     expect(perms("Finance")).toContain("finance.reference.manage");
   });
 });
+
+describe("Phase 15 permissions", () => {
+  it("catalogues security.manage and privacy.manage in their own group", () => {
+    for (const key of ["security.manage", "privacy.manage"]) {
+      const entry = PERMISSIONS.find((p) => p.key === key);
+      expect(entry, key).toBeDefined();
+      expect(entry?.group).toBe("Security & privacy");
+    }
+  });
+  it("gives them to Admin only: every preset role stays without them, and '*' covers them", () => {
+    for (const role of SYSTEM_ROLES) {
+      if (role.permissions.includes("*")) continue;
+      expect(role.permissions, role.name).not.toContain("security.manage");
+      expect(role.permissions, role.name).not.toContain("privacy.manage");
+    }
+    expect(permissionMatches("*", "security.manage")).toBe(true);
+    expect(permissionMatches("settings.manage", "security.manage")).toBe(false);
+    expect(permissionMatches("settings.manage", "privacy.manage")).toBe(false);
+  });
+});

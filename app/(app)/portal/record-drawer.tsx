@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { RecordHistory } from "@/components/history/record-history";
 import { Download, ExternalLink, Loader2, Paperclip, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -234,6 +235,7 @@ export function RecordDrawer({
                   <TabsTrigger value="timeline">Timeline</TabsTrigger>
                   <TabsTrigger value="comments">Comments ({detail.comments.length})</TabsTrigger>
                   <TabsTrigger value="files">Files ({detail.attachments.length})</TabsTrigger>
+                  <TabsTrigger value="history">History</TabsTrigger>
                 </TabsList>
                 <TabsContent value="timeline" className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
                   <Timeline
@@ -260,6 +262,9 @@ export function RecordDrawer({
                     userName={userName}
                     onChanged={() => setReloadKey((k) => k + 1)}
                   />
+                </TabsContent>
+                <TabsContent value="history" className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
+                  <RecordHistory table={def.table} recordId={detail.row.id as string} />
                 </TabsContent>
               </Tabs>
             </div>

@@ -42,7 +42,7 @@ export async function createFlow(
   const parsed = createSchema.safeParse(input);
   if (!parsed.success)
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
-  const admin = createAdminClient();
+  const admin = createAdminClient(member.userId);
   const starter = parsed.data.starter ? starterFlow(parsed.data.starter) : undefined;
   if (parsed.data.starter && !starter)
     return { ok: false, error: "That starter flow does not exist." };
@@ -130,7 +130,7 @@ export async function saveFlowDraft(
   const parsed = draftSchema.safeParse(input);
   if (!parsed.success)
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid flow" };
-  const admin = createAdminClient();
+  const admin = createAdminClient(member.userId);
   const { data: flow } = await admin
     .from("flows")
     .select("id, trigger_config")
@@ -184,7 +184,7 @@ export async function saveFlowDraft(
 
 export async function publishFlow(id: string): Promise<ActionResult<{ version: number }>> {
   const member = await requirePerm("flows.manage");
-  const admin = createAdminClient();
+  const admin = createAdminClient(member.userId);
   const { data: flow } = await admin
     .from("flows")
     .select("*")
@@ -245,7 +245,7 @@ export async function setFlowStatus(
   status: "active" | "paused",
 ): Promise<ActionResult> {
   const member = await requirePerm("flows.manage");
-  const admin = createAdminClient();
+  const admin = createAdminClient(member.userId);
   const { data: flow } = await admin
     .from("flows")
     .select("id, version, published_graph")
@@ -276,7 +276,7 @@ export async function setFlowStatus(
 
 export async function duplicateFlow(id: string): Promise<ActionResult<{ id: string }>> {
   const member = await requirePerm("flows.manage");
-  const admin = createAdminClient();
+  const admin = createAdminClient(member.userId);
   const { data: f } = await admin
     .from("flows")
     .select("*")
@@ -316,7 +316,7 @@ export async function duplicateFlow(id: string): Promise<ActionResult<{ id: stri
 
 export async function deleteFlow(id: string): Promise<ActionResult> {
   const member = await requirePerm("flows.manage");
-  const admin = createAdminClient();
+  const admin = createAdminClient(member.userId);
   const { data: live } = await admin
     .from("flow_runs")
     .select("id")
@@ -353,7 +353,7 @@ export async function regenerateWebhookToken(
   id: string,
 ): Promise<ActionResult<{ token: string; url_path: string }>> {
   const member = await requirePerm("flows.manage");
-  const admin = createAdminClient();
+  const admin = createAdminClient(member.userId);
   const { data: f } = await admin
     .from("flows")
     .select("id, trigger_type, trigger_config")
@@ -412,7 +412,7 @@ export async function saveVariable(
   const parsed = variableSchema.safeParse(input);
   if (!parsed.success)
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid variable" };
-  const admin = createAdminClient();
+  const admin = createAdminClient(member.userId);
   const { error } = id
     ? await admin.from("flow_variables").update(parsed.data).eq("id", id).eq("org_id", member.orgId)
     : await admin.from("flow_variables").insert({ org_id: member.orgId, ...parsed.data });
@@ -439,7 +439,7 @@ export async function saveVariable(
 
 export async function deleteVariable(id: string): Promise<ActionResult> {
   const member = await requirePerm("flows.manage");
-  const admin = createAdminClient();
+  const admin = createAdminClient(member.userId);
   const { error } = await admin
     .from("flow_variables")
     .delete()

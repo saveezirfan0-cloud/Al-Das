@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { RecordHistorySection } from "@/components/history/record-history";
 import { Loader2, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -239,6 +240,7 @@ export function TaskDrawer({
               />{" "}
               Mark as done
             </label>
+            {editing && <RecordHistorySection table="tasks" recordId={editing.id} />}
           </div>
           {canManage && (
             <div className="flex items-center gap-2 border-t p-4">

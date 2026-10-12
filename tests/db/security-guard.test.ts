@@ -16,7 +16,9 @@ import {
   connect,
   createAuthUser,
   createOrg,
+  PHASE15_TABLES,
   resetDb,
+  seedSecurityRows,
   TEST_DATABASE_URL,
 } from "./helpers";
 
@@ -51,6 +53,13 @@ const SERVICE_ONLY = new Set([
 
 /** SECURITY DEFINER functions in `public` that signed-in users may call directly (each uses auth.uid() inside). */
 const AUTHENTICATED_RPCS = new Set(["mark_all_notifications_read", "set_presence"]);
+
+/**
+ * Phase 15 SECURITY DEFINER functions that are service-role only (they act across a whole org after the
+ * app has run can()). The generic RPC test above already fails if any of them is callable by a signed-in
+ * user; this list makes the intent explicit and fails if one disappears.
+ */
+const PHASE15_SERVICE_FUNCTIONS = ["api_read_log_hit", "erase_contact", "offboard_member", "security_maintenance"];
 
 /**
  * Tables whose BEFORE-INSERT triggers (cross-org consistency checks, system-role protection)
@@ -155,6 +164,27 @@ describe.skipIf(!TEST_DATABASE_URL)("security guard (catalog)", () => {
   });
 });
 
+describe.skipIf(!TEST_DATABASE_URL)("phase 15 service-role functions", () => {
+  it("exist and are executable by the service role only", async () => {
+    const c = await connect();
+    try {
+      const { rows } = await c.query<{ name: string; anon: boolean; auth: boolean; svc: boolean }>(
+        `select p.proname as name,
+                has_function_privilege('anon', p.oid, 'execute') as anon,
+                has_function_privilege('authenticated', p.oid, 'execute') as auth,
+                has_function_privilege('service_role', p.oid, 'execute') as svc
+         from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+         where n.nspname = 'public' and p.proname = any ($1)`,
+        [PHASE15_SERVICE_FUNCTIONS],
+      );
+      expect(rows.map((r) => r.name).sort()).toEqual([...PHASE15_SERVICE_FUNCTIONS].sort());
+      for (const r of rows) expect({ name: r.name, anon: r.anon, auth: r.auth, svc: r.svc }).toEqual({ name: r.name, anon: false, auth: false, svc: true });
+    } finally {
+      await c.end();
+    }
+  });
+});
+
 describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table", () => {
   let c: Client;
   let alice: string; // admin of org A
@@ -192,6 +222,8 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
       await c.query("insert into public.notifications (org_id, user_id, type, title) values ($1, $2, 'system', 'hello')", [orgA, alice]);
       await c.query("insert into public.audit_log (org_id, user_id, action, entity) values ($1, $2, 'sweep.test', 'org')", [orgA, alice]);
     });
+    // Phase 15 tables: one row each in org A, so the cross-org sweeps below are not vacuous for them.
+    await seedSecurityRows(c, orgA, alice);
   });
   afterAll(async () => {
     await resetDb(c);
@@ -200,6 +232,19 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
 
   it("covers a meaningful number of tables", () => {
     expect(orgTables.length).toBeGreaterThanOrEqual(25);
+  });
+
+  it("sweeps every Phase 15 table (a new table must be added to PHASE15_TABLES and seeded in seedSecurityRows)", () => {
+    for (const t of PHASE15_TABLES) expect(orgTables, `${t} is not in the org sweep`).toContain(t);
+  });
+
+  it("really holds org A rows in the Phase 15 tables, visible to org A's admin (control for the leak sweep)", async () => {
+    await asUser(c, alice, async () => {
+      for (const t of PHASE15_TABLES) {
+        const { rows } = await c.query<{ n: string }>(`select count(*)::text as n from public.${t} where org_id = $1`, [orgA]);
+        expect(Number(rows[0].n), t).toBeGreaterThan(0);
+      }
+    });
   });
 
   it("hides org A rows from org B's admin in every org-scoped table", async () => {

@@ -5,6 +5,7 @@ import { can } from "@/lib/auth/can";
 import { getCurrentMember } from "@/lib/auth/session";
 import { toCsv } from "@/lib/csv";
 import { SUMMARY_COLUMNS, currentMonth, monthParam, monthsAgo } from "@/lib/finance/summary";
+import { recordExport } from "@/lib/security/access-log";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -42,6 +43,10 @@ export async function GET(req: Request) {
     action: "finance.summary.exported",
     entity: "v_fin_monthly_summary",
     diff: { from, to, branch: branch || null, rows: data?.length ?? 0 },
+  });
+  await recordExport(createAdminClient(), member, {
+    dataset: "finance:summary",
+    rows: data?.length ?? 0,
   });
 
   const csv = toCsv(

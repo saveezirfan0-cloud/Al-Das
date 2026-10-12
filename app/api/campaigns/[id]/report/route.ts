@@ -5,6 +5,7 @@ import { can } from "@/lib/auth/can";
 import { getCurrentMember } from "@/lib/auth/session";
 import { reportCsv, type ReportRow } from "@/lib/campaigns/funnel";
 import { reportRecipients } from "@/lib/campaigns/queries";
+import { recordExport } from "@/lib/security/access-log";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -57,6 +58,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     entityId: id,
     diff: { rows: rows.length },
   });
+  await recordExport(createAdminClient(), member, { dataset: `campaign:${id}`, rows: rows.length });
 
   const safe =
     campaign.name

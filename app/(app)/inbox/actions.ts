@@ -22,6 +22,7 @@ import { MEDIA_BUCKET, extensionFor } from "@/lib/jobs/handlers/media-fetch";
 import { createNotification } from "@/lib/notifications";
 import { isMediaPathFor, parseMediaPath } from "@/lib/inbox/media-path";
 import { redactText } from "@/lib/redact";
+import { recordAccess } from "@/lib/security/access-log";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/supabase/types";
@@ -879,6 +880,8 @@ export async function signedMediaUrl(path: string): Promise<ActionResult<{ url: 
   const admin = createAdminClient();
   const { data, error } = await admin.storage.from(MEDIA_BUCKET).createSignedUrl(path, 3600);
   if (error || !data) return { ok: false, error: "Could not load the file." };
+  // Media is logged as a sampled document view: a single thread can show dozens of images.
+  await recordAccess(admin, member, { entity: "document", entityId: parts.conversationId, action: "list", detail: { source: "inbox_media" } });
   return { ok: true, data: { url: data.signedUrl } };
 }
 

@@ -41,6 +41,7 @@ import { buildEnquiryFilter, isScope, type EnquiryScope } from "@/lib/enquiries/
 import { FilterCompileError, InvalidOperatorError } from "@/lib/filters";
 import { filterSchema } from "@/lib/filters/ast";
 import { UnknownFieldError } from "@/lib/filters/field-registry";
+import { recordAccess } from "@/lib/security/access-log";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json, Tables } from "@/lib/supabase/types";
 
@@ -94,7 +95,7 @@ export async function listEnquiries(
   const member = await requirePerm("enquiries.view");
   const parsed = listSchema.safeParse(raw);
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid query");
-  const admin = createAdminClient();
+  const admin = createAdminClient(member.userId);
   try {
     const ctx = await loadEnquiryContext(admin, member.orgId);
     const page = await queryEnquiries(admin, {
@@ -106,6 +107,11 @@ export async function listEnquiries(
       page: parsed.data.page,
       pageSize: parsed.data.pageSize,
       timezone: member.org.timezone,
+    });
+    await recordAccess(admin, member, {
+      entity: "enquiry",
+      action: parsed.data.search ? "search" : "list",
+      detail: { rows: page.rows.length },
     });
     return { ok: true, data: page };
   } catch (e) {
@@ -128,7 +134,7 @@ export async function getBoard(raw: BoardInput): Promise<ActionResult<{ columns:
   const member = await requirePerm("enquiries.view");
   const parsed = boardSchema.safeParse(raw);
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid query");
-  const admin = createAdminClient();
+  const admin = createAdminClient(member.userId);
   try {
     const ctx = await loadEnquiryContext(admin, member.orgId);
     const pipeline = ctx.pipelines.find((p) => p.id === parsed.data.pipelineId);
@@ -169,7 +175,7 @@ export async function getBoardColumnPage(
     .extend({ stageId: uuid, page: z.number().int().min(2).max(1000) })
     .safeParse(raw);
   if (!parsed.success) return fail("Invalid query");
-  const admin = createAdminClient();
+  const admin = createAdminClient(member.userId);
   try {
     const ctx = await loadEnquiryContext(admin, member.orgId);
     const page = await queryEnquiries(admin, {
@@ -194,7 +200,7 @@ export async function listMatchingEnquiryIds(
   const member = await requirePerm("enquiries.view");
   const parsed = listSchema.safeParse(raw);
   if (!parsed.success) return fail("Invalid query");
-  const admin = createAdminClient();
+  const admin = createAdminClient(member.userId);
   try {
     const ctx = await loadEnquiryContext(admin, member.orgId);
     const ids = await matchingEnquiryIds(
@@ -223,7 +229,7 @@ export async function previewEnquiryFilterCount(
   const member = await requirePerm("enquiries.view");
   const parsed = filterSchema.safeParse(filter);
   if (!parsed.success || !isScope(scope)) return fail("Invalid filter");
-  const admin = createAdminClient();
+  const admin = createAdminClient(member.userId);
   try {
     const ctx = await loadEnquiryContext(admin, member.orgId);
     const count = await countEnquiries(admin, {
@@ -260,7 +266,8 @@ export type EnquiryDetail = {
 export async function getEnquiry(id: string): Promise<ActionResult<EnquiryDetail>> {
   const member = await requirePerm("enquiries.view");
   if (!uuid.safeParse(id).success) return fail("Invalid enquiry id");
-  const admin = createAdminClient();
+  const admin = createAdminClient(member.userId);
+  await recordAccess(admin, member, { entity: "enquiry", entityId: id, action: "view" });
   const [rows, { data: events }, tasks] = await Promise.all([
     fetchEnquiriesByIds(admin, member.orgId, [id]),
     admin
@@ -326,7 +333,7 @@ export async function createNewEnquiry(
   const parsed = newEnquirySchema.safeParse(input);
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid input");
   const d = parsed.data;
-  const admin = createAdminClient();
+  const admin = createAdminClient(member.userId);
   try {
     const ctx = await loadEnquiryContext(admin, member.orgId);
     const custom = mergeEnquiryCustom(ctx.customFields, {}, d.custom ?? {});
@@ -364,7 +371,7 @@ export async function updateEnquiryDetails(id: string, input: unknown): Promise<
   const parsed = enquiryDetailsSchema.partial().safeParse(input);
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid input");
   const d = parsed.data;
-  const admin = createAdminClient();
+  const admin = createAdminClient(member.userId);
   try {
     let custom: Record<string, unknown> | undefined;
     if (d.custom) {
@@ -412,7 +419,7 @@ export async function changeStage(id: string, stageId: string): Promise<ActionRe
   if (!uuid.safeParse(id).success || !uuid.safeParse(stageId).success) return fail("Invalid id");
   try {
     await moveStage(
-      { admin: createAdminClient(), orgId: member.orgId, userId: member.userId },
+      { admin: createAdminClient(member.userId), orgId: member.orgId, userId: member.userId },
       id,
       stageId,
     );
@@ -430,7 +437,7 @@ export async function changeStatus(id: string, input: unknown): Promise<ActionRe
     return fail(parsed.success ? "Invalid id" : "Invalid status");
   try {
     await setStatus(
-      { admin: createAdminClient(), orgId: member.orgId, userId: member.userId },
+      { admin: createAdminClient(member.userId), orgId: member.orgId, userId: member.userId },
       id,
       parsed.data.status,
       parsed.data.reason,
@@ -451,7 +458,7 @@ export async function changePipeline(
   if (!uuid.safeParse(id).success || !uuid.safeParse(pipelineId).success) return fail("Invalid id");
   try {
     await movePipeline(
-      { admin: createAdminClient(), orgId: member.orgId, userId: member.userId },
+      { admin: createAdminClient(member.userId), orgId: member.orgId, userId: member.userId },
       id,
       pipelineId,
       stageId ?? null,
@@ -468,7 +475,7 @@ export async function addEnquiryNote(id: string, text: string): Promise<ActionRe
   const note = text.trim();
   if (!uuid.safeParse(id).success || !note || note.length > 4000)
     return fail("Write a note first.");
-  const admin = createAdminClient();
+  const admin = createAdminClient(member.userId);
   const { data: e } = await admin
     .from("enquiries")
     .select("id, contact_id")
@@ -538,7 +545,7 @@ export async function bulkEnquiries(
       break;
     }
   }
-  const admin = createAdminClient();
+  const admin = createAdminClient(member.userId);
   try {
     const res = await bulkApply(
       { admin, orgId: member.orgId, userId: member.userId },
@@ -565,7 +572,7 @@ export async function removeEnquiries(ids: string[]): Promise<ActionResult> {
   if (!parsed.success) return fail("Select at least one enquiry.");
   try {
     const n = await deleteEnquiries(
-      { admin: createAdminClient(), orgId: member.orgId, userId: member.userId },
+      { admin: createAdminClient(member.userId), orgId: member.orgId, userId: member.userId },
       parsed.data,
     );
     refresh();
@@ -586,7 +593,7 @@ export async function searchContactsForEnquiry(
 ): Promise<ActionResult<{ rows: ContactOption[] }>> {
   const member = await requirePerm("enquiries.manage");
   if (!can(member, "contacts.view")) return fail("You do not have access to contacts.");
-  const rows = await searchContactOptions(createAdminClient(), member.orgId, q);
+  const rows = await searchContactOptions(createAdminClient(member.userId), member.orgId, q);
   return rows ? { ok: true, data: { rows } } : fail("Search failed.");
 }
 
@@ -605,7 +612,7 @@ export async function saveEnquiryView(
   if (!filter.success) return fail("Invalid filter");
   const shared = parsed.data.shared_all || parsed.data.shared_team_ids.length > 0;
   if (shared && !can(member, "enquiries.manage")) return fail("You cannot share views.");
-  const admin = createAdminClient();
+  const admin = createAdminClient(member.userId);
   const row = {
     org_id: member.orgId,
     owner_id: member.userId,
@@ -644,7 +651,7 @@ export async function saveEnquiryView(
 export async function deleteEnquiryView(id: string): Promise<ActionResult> {
   const member = await requirePerm("enquiries.view");
   if (!uuid.safeParse(id).success) return fail("Invalid id");
-  const admin = createAdminClient();
+  const admin = createAdminClient(member.userId);
   const { data } = await admin
     .from("enquiry_views")
     .delete()
@@ -674,7 +681,7 @@ export async function getPipelineCounts(
 ): Promise<ActionResult<{ counts: Record<string, number> }>> {
   const member = await requirePerm("enquiries.view");
   if (!isScope(scope)) return fail("Invalid scope");
-  const admin = createAdminClient();
+  const admin = createAdminClient(member.userId);
   const { data: pipelines } = await admin.from("pipelines").select("id").eq("org_id", member.orgId);
   const entries = await Promise.all(
     (pipelines ?? []).map(async (p) => {
@@ -704,7 +711,7 @@ export async function savePipelineCardFields(
     .max(CARD_FIELD_KEYS.length)
     .safeParse(fields);
   if (!uuid.safeParse(pipelineId).success || !parsed.success) return fail("Invalid input");
-  const admin = createAdminClient();
+  const admin = createAdminClient(member.userId);
   const { data, error } = await admin
     .from("pipelines")
     .update({ card_fields: [...new Set(parsed.data)] })
@@ -732,7 +739,7 @@ export async function getContactOption(
   const member = await requirePerm("enquiries.manage");
   if (!can(member, "contacts.view")) return fail("You do not have access to contacts.");
   if (!uuid.safeParse(id).success) return fail("Invalid contact id");
-  const { data } = await createAdminClient()
+  const { data } = await createAdminClient(member.userId)
     .from("contacts")
     .select("id, full_name, phone_e164")
     .eq("org_id", member.orgId)
@@ -767,7 +774,7 @@ export async function listContactEnquiries(
 ): Promise<ActionResult<{ rows: ContactEnquiry[] }>> {
   const member = await requirePerm("enquiries.view");
   if (!uuid.safeParse(contactId).success) return fail("Invalid contact id");
-  const admin = createAdminClient();
+  const admin = createAdminClient(member.userId);
   const [{ data }, { data: stages }, { data: pipelines }] = await Promise.all([
     admin
       .from("enquiries")

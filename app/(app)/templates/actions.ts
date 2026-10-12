@@ -95,7 +95,7 @@ export async function saveTemplateDraft(
   const { id, channel_id, draft, gallery_key } = parsed.data;
   if (!draft.name || !/^[a-z0-9_]+$/.test(draft.name))
     return fail("Give the template a name with lowercase letters, numbers and underscores.");
-  const admin = createAdminClient();
+  const admin = createAdminClient(member.userId);
   const ch = await activeChannel(admin, member.orgId, channel_id);
   if (!ch.ok) return fail(ch.error);
 
@@ -159,7 +159,7 @@ export async function submitTemplate(
   const { id, channel_id, draft, gallery_key } = parsed.data;
   const { errors } = validateDraft(draft);
   if (errors.length) return fail(errors[0].message);
-  const admin = createAdminClient();
+  const admin = createAdminClient(member.userId);
   const ch = await activeChannel(admin, member.orgId, channel_id);
   if (!ch.ok) return fail(ch.error);
 
@@ -468,7 +468,7 @@ export async function syncTemplatesAction(
   channelId?: string,
 ): Promise<ActionResult<{ synced: number }>> {
   const member = await requirePerm("templates.manage");
-  const admin = createAdminClient();
+  const admin = createAdminClient(member.userId);
   let q = admin
     .from("channels")
     .select("id, org_id, phone_number_id, waba_id")
@@ -532,7 +532,7 @@ export async function uploadHeaderSample(
   const format = SAMPLE_TYPES[file.type];
   if (!format) return fail("Use a JPEG or PNG image, an MP4 video or a PDF.");
   if (file.size > MAX_SAMPLE_BYTES) return fail("Samples are limited to 16 MB.");
-  const admin = createAdminClient();
+  const admin = createAdminClient(member.userId);
   const ch = await activeChannel(admin, member.orgId, channelId);
   if (!ch.ok) return fail(ch.error);
   try {

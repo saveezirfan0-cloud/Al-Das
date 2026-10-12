@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { RecordHistory } from "@/components/history/record-history";
 import { ArrowRightLeft, Loader2, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -415,6 +416,7 @@ export function EnquiryDrawer({
                     {tasksTab && bootstrap.can.tasks && (
                       <TabsTrigger value="tasks">Tasks</TabsTrigger>
                     )}
+                    <TabsTrigger value="history">History</TabsTrigger>
                   </TabsList>
                   <TabsContent value="timeline" className="flex min-h-0 flex-1 flex-col gap-3 pt-3">
                     {canManage && (
@@ -465,6 +467,9 @@ export function EnquiryDrawer({
                       {tasksTab(detail, load)}
                     </TabsContent>
                   )}
+                  <TabsContent value="history" className="min-h-0 flex-1 overflow-y-auto pt-3">
+                    <RecordHistory table="enquiries" recordId={e.id} />
+                  </TabsContent>
                 </Tabs>
               </div>
             </div>

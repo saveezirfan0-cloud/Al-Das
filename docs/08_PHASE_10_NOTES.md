@@ -110,7 +110,7 @@ No critical or high findings; key authentication, cross-org scoping, the SSRF co
 - **Hostile-input hardening:** the KB HTML extractor was quadratic on unclosed tags (a 1.6 MB page stalled it for seconds); it is now a linear scan with a size cap. `safeRequest` has an absolute deadline and stops reading in truncate mode; webhook deliveries use a 20 s deadline. More reserved IP ranges are blocked (6to4, Teredo, site-local, IPv4-compatible).
 - **Prompt hardening:** closing tags are neutralised case-insensitively; `[[STAFF]]` is stripped wherever it appears; links, bank accounts and phone numbers in a patient-facing draft that are not in the conversation or knowledge are flagged.
 
-Known and deliberately left for later (decide before production):
+Known and deliberately left for later (decide before production). **Update, Phase 15:** the four items marked CLOSED below were fixed in Phase 15 (`docs/12_PHASE_15_NOTES.md`).
 
 - **API rate limit is per key, fixed window** (120/min, fail-open if the limiter itself errors). A leaked read key can still page every contact at that rate; keep keys short-lived and scoped.
 - **API reads are audited, but sampled**: one `api.<resource>_read` row per key and resource per 15 minutes (with the number of records that first request returned), so a polling integration cannot bury the audit log. It answers "which key read patient data, and when did it start", not "which exact records".

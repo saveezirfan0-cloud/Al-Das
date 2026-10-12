@@ -53,6 +53,14 @@ Captures Unite invoices, matches them to Diligence claim files, and routes excep
 - Navigation: sidebar entries live in `components/shell/nav.ts` (with `group` and search `keywords`); Settings pages live in `components/shell/settings-pages.ts`, which feeds both the Settings menu and Ctrl+K quick search. A new page is added there, gated by its permission. Status, gaps and roadmap: `docs/09_STATUS_AND_ROADMAP.md`.
 - Back-office objects: core entities merge into core tables; everything else becomes a real table registered in `portal_objects`.
 
+## Security & access (Phase 15, docs/12_PHASE_15_NOTES.md)
+- **Permissions:** `security.manage` (MFA by role, access review, retention and alert settings) and `privacy.manage` (patient export and erasure, always two people). Admin (`*`) only by default.
+- **MFA:** `roles.require_mfa` is enforced in `lib/supabase/middleware.ts` through the pure `mfaGate()`. Anyone who has enrolled an authenticator is challenged once per session whatever their role says. The MFA pages must stay exempt (`isMfaExemptPath`).
+- **Who opened what:** call `recordAccess(admin, member, {...})` when a server action or page shows ONE patient record, conversation, claim or file (always logged, repeats within 5 minutes merge) and for list screens (sampled); call `recordExport(...)` next to the `recordAudit` of every export. Ids only, never names, numbers or message text.
+- **Who changed it:** server actions that write `appointments`, `enquiries`, `tasks`, `wa_templates`, `flows` or a portal table use `createAdminClient(member.userId)` so `record_history` names the person. Attach the trigger to a new table with `select app.enable_record_history('<table>')`, add it to `HISTORY_TABLES` in `lib/security/history.ts` and to `can_view_record_history()`.
+- **Alerts:** raise them with `raiseAlert()` (idempotent on `dedupe_key`; counts only in the summary). Rules are pure functions in `lib/security/anomaly.ts`.
+- **Seeds for the sweeps:** a new Phase-15-style table goes in `PHASE15_TABLES` and `seedSecurityRows()` (`tests/db/helpers.ts`) so the cross-org tests are not vacuous for it.
+
 ## Commands
 ```
 pnpm dev                     # next dev

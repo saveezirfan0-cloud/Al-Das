@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { RecordHistorySection } from "@/components/history/record-history";
 import { ExternalLink, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -418,6 +419,11 @@ export function AppointmentDrawer({
                   ))}
                 </ul>
               )}
+            </section>
+
+            <section className="flex flex-col gap-2">
+              <Label>Field changes</Label>
+              <RecordHistorySection table="appointments" recordId={a.id} />
             </section>
           </div>
         )}

@@ -26,6 +26,7 @@ import {
 } from "@/lib/portal/service";
 import { loadPortalRegistry, resolveEnabledObject } from "@/lib/portal/server";
 import type { PortalObjectDef, PortalRow } from "@/lib/portal/types";
+import { recordAccess } from "@/lib/security/access-log";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export type ActionResult<T = undefined> =
@@ -44,7 +45,7 @@ function canWrite(member: Parameters<typeof can>[0], def: PortalObjectDef): bool
 /** Resolves the object, enforcing org enablement and the read permission. */
 async function readable(key: string) {
   const member = await requireMember();
-  const admin = createAdminClient();
+  const admin = createAdminClient(member.userId);
   const k = objectKey.safeParse(key);
   const def = k.success ? await resolveEnabledObject(admin, member.orgId, k.data) : null;
   if (!def || !can(member, def.readPerm)) return { member, admin, def: null as null };
@@ -97,6 +98,11 @@ export async function listRecords(
       registry,
     );
     const links = await resolveLinks(admin, member.orgId, def, page.rows);
+    await recordAccess(admin, member, {
+      entity: "portal_record",
+      action: parsed.data.search ? "search" : "list",
+      detail: { object: def.key, rows: page.rows.length },
+    });
     return { ok: true, data: { rows: page.rows, total: page.total, links } };
   } catch (err) {
     // Unknown field / operator errors from the filter compiler are user-fixable.
@@ -166,6 +172,12 @@ export async function getRecordDetail(
   if (!uuid.safeParse(id).success) return fail("Invalid record.");
   const rec = await getRecord(admin, member, def, id);
   if (!rec.ok) return fail(rec.error);
+  await recordAccess(admin, member, {
+    entity: "portal_record",
+    entityId: id,
+    action: "view",
+    detail: { object: def.key },
+  });
   const l = loose(admin);
   const [links, events, comments, attachments] = await Promise.all([
     resolveLinks(admin, member.orgId, def, [rec.data]),
@@ -232,7 +244,7 @@ export async function getRecordDetail(
 
 async function writableContext(key: string) {
   const member = await requireMember();
-  const admin = createAdminClient();
+  const admin = createAdminClient(member.userId);
   const k = objectKey.safeParse(key);
   const def = k.success ? await resolveEnabledObject(admin, member.orgId, k.data) : null;
   return { member, admin, def };
@@ -388,6 +400,12 @@ export async function portalAttachmentUrl(
     .from(PORTAL_BUCKET)
     .createSignedUrl(data.path as string, 300, { download: data.file_name as string });
   if (error || !signed) return fail("Could not open the attachment.");
+  await recordAccess(admin, member, {
+    entity: "document",
+    entityId: attachmentId,
+    action: "download",
+    detail: { object: def.key },
+  });
   return { ok: true, data: { url: signed.signedUrl } };
 }
 
