@@ -54,7 +54,7 @@ Phases 1 to 11 and Finance F0 to F6 are **built, tested and merged**. Pulse alre
 | After Phase 14 (branch `claude/nifty-brown-y9l5ry`) | 57 migrations, 143 tables in `public`, 73 app pages, **139 test files / 1,619 tests in `pnpm test`** and **41 database test files / 570 tests**, all passing |
 | After Phase 16 (branch `claude/nifty-brown-y9l5ry`) | 61 migrations, 147 tables in `public`, 75 app pages, **147 test files / 1,824 tests in `pnpm test`** and **43 database test files / 613 tests**, all passing |
 | After Phase 18 (branch `claude/nifty-brown-y9l5ry`) | 68 migrations, 165 tables in `public`, 90 app pages, **161 test files / 2,087 tests in `pnpm test`** and **50 database test files / 708 tests**, all passing |
-| After Phase 17 (branch `claude/nifty-brown-y9l5ry`) | 71 migrations, 168 tables in `public`, 93 app pages, **__UNIT_FILES__ test files / __UNIT_TESTS__ tests in `pnpm test`** and **__DB_FILES__ database test files / __DB_TESTS__ tests**, all passing |
+| After Phase 17 (branch `claude/nifty-brown-y9l5ry`) | 71 migrations, 168 tables in `public`, 93 app pages, **172 test files / 2,274 tests in `pnpm test`** and **51 database test files / 736 tests**, all passing |
 | Browser (Playwright) specs | 6 |
 | `pnpm typecheck`, `pnpm lint`, `pnpm test` | **all clean** on a fresh install |
 

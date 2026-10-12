@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { PageHeader } from "@/components/shell/page-header";
 import { Button } from "@/components/ui/button";
+import { readAiSettings } from "@/lib/ai/settings";
 import { can } from "@/lib/auth/can";
 import { requirePerm } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -51,7 +52,10 @@ export default async function FlowsPage() {
           <Link href="/flows/variables">Variables</Link>
         </Button>
       </PageHeader>
-      <FlowsList rows={rows} canAi={can(member, "flows.ai")} />
+      <FlowsList
+        rows={rows}
+        canAi={can(member, "flows.ai") && readAiSettings(member.org.settings).enabled}
+      />
     </div>
   );
 }

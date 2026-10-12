@@ -26,7 +26,7 @@ Built on branch `claude/nifty-brown-y9l5ry` (from `main` at `2efbbf6`, Phases 13
 - **Minimum data.** Flow and campaign prompts carry no patient data at all (the clinic name, field names, and the clinic's tag / place / service ids). Intent detection sends one masked message at a time. Reply-quality data is counts and ids.
 - **Every call logged without content.** `ai_usage` rows (tokens, latency, outcome, new features `flow_copilot`, `campaign_audience`, `campaign_copy`, `intent`); the repair call is its own row and counts toward the daily cap. Background work has no person, so only the workspace daily cap applies to it. Errors go through the class name only.
 - **Model from `ANTHROPIC_MODEL`** via the existing `createAnthropicLlm`; the master switch, per-user minute limit and workspace daily cap apply through the same helpers as the inbox.
-- **Degrades gracefully.** AI off or no key: the copilots answer with a plain sentence, intent detection does nothing, the emergency wording check still runs, the dry run still works, the weekly job skips the organisation.
+- **Degrades gracefully.** AI off: the "Describe a bot", "AI draft" and "Campaign Copilot" buttons are hidden and the Campaign Copilot page says AI is off. No key or a provider error: the copilots answer with a plain sentence, intent detection does nothing, the emergency wording check still runs, the dry run still works, the weekly job skips the organisation.
 
 ## OQ-57 and OQ-61
 
@@ -54,10 +54,10 @@ Every new table has RLS and a policy scoped to the org; none has a write policy 
 | Check | Result |
 |---|---|
 | `pnpm typecheck`, `pnpm lint` | clean |
-| `pnpm test` | **__UNIT_FILES__ files / __UNIT_TESTS__ tests pass** (was 161 / 2,087); 51 database test files are skipped without `TEST_DATABASE_URL`. New: `tests/unit/ai/*` (flow validator with adversarial output, generation and repair, dry run, audience validator, policy lint, emergency wording, intent parsing, outcome and report maths, settings, wiring and render tests) |
-| `bash scripts/test-db.sh` then `pnpm exec vitest run tests/db` with PostgREST | **__DB_FILES__ files / __DB_TESTS__ tests pass** (was 50 / 708). New `tests/db/ai-copilots.test.ts` (27 tests), plus additions to `security-guard` (sweeps and the service-only function) and `jobs` (cron list) |
-| `pnpm build` (placeholder Supabase env), `pnpm bundle:check` | __BUILD__ |
-| `pnpm audit:security` | __AUDIT__ |
+| `pnpm test` | **172 files / 2,274 tests pass** (was 161 / 2,087); 51 database test files (736 tests) are skipped without `TEST_DATABASE_URL`. New: `tests/unit/ai/*` (flow validator with adversarial output, generation and repair, dry run, audience validator, policy lint, emergency wording, intent parsing, outcome and report maths, settings, wiring and render tests) |
+| `bash scripts/test-db.sh` then `pnpm exec vitest run tests/db` with PostgREST | **51 files / 736 tests pass** (was 50 / 708). New `tests/db/ai-copilots.test.ts` (27 tests), plus additions to `security-guard` (sweeps and the service-only function) and `jobs` (cron list) |
+| `pnpm build` (placeholder Supabase env), `pnpm bundle:check` | Build passes; budgets OK with **no budget raised** (`/flows/[id]` 114 kB of 125, `/inbox` 299 kB of 315). The copilot dialogs load on demand. New routes: `/campaigns/copilot` 166 kB, `/settings/ai-copilots` 158 kB, `/reports/ai-quality` 107 kB first load (default budget 215) |
+| `pnpm audit:security` | 410 entry points (was 398), 0 unguarded and unreviewed. One reviewed exemption was added: `recordSuggestionOutcome` writes a verdict row that is itself the attributed record (`lib/security/policy.ts`) |
 | Paste file | `17_phase_17_ai_copilots.sql` applied with `--single-transaction` on a database built from the 68 earlier migrations; its `pg_dump` schema equals the full build's (only the random `\restrict` token differs) |
 
 Adversarial cases covered by tests (all against a fake model): extra nodes (41, and 250 against the engine's 200-step limit), loops and self-loops, an endless wait-and-send cycle, unknown node types, dangling edges, two triggers and none, duplicate and unsafe ids (including `__proto__`), oversized and non-JSON replies, smuggled keys, `api_action` to an arbitrary, internal or `file:` address (stripped, and the flow keeps working), webhook and recurring triggers, dose and diagnosis wording, SQL in an audience value or field name, fields outside the allowlist, ids from another organisation, a patient message that tries to steer the labeller, a model that returns an emergency alongside another tag (the emergency goes to people and never into the flow event).
