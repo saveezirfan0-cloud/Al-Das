@@ -1,24 +1,15 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import Link from "next/link";
 import { Bell, Check } from "lucide-react";
-import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { createClient } from "@/lib/supabase/client";
 
-import { markAllNotificationsRead, markNotificationRead } from "./actions";
+import { useShellData } from "./shell-data";
 
-export type NotificationItem = {
-  id: string;
-  type: string;
-  title: string;
-  body: string | null;
-  read_at: string | null;
-  created_at: string;
-};
+export type { NotificationItem } from "./shell-data";
 
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -30,63 +21,8 @@ function timeAgo(iso: string) {
   return `${Math.floor(h / 24)}d ago`;
 }
 
-export function NotificationsMenu({
-  initial,
-  orgId,
-  userId,
-}: {
-  initial: NotificationItem[];
-  orgId: string;
-  userId: string;
-}) {
-  const [items, setItems] = useState(initial);
-  const [pending, startTransition] = useTransition();
-  const unread = items.filter((n) => !n.read_at).length;
-
-  // Realtime: new notifications for this user appear without a refresh.
-  useEffect(() => {
-    const supabase = createClient();
-    const channel = supabase
-      .channel(`notifications:${userId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "notifications",
-          filter: `user_id=eq.${userId}`,
-        },
-        (payload) => {
-          const n = payload.new as NotificationItem & { org_id: string };
-          if (n.org_id !== orgId) return;
-          setItems((prev) => [n, ...prev].slice(0, 30));
-          toast(n.title, { description: n.body ?? undefined });
-        },
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [orgId, userId]);
-
-  function readAll() {
-    startTransition(async () => {
-      await markAllNotificationsRead();
-      const now = new Date().toISOString();
-      setItems((prev) => prev.map((n) => ({ ...n, read_at: n.read_at ?? now })));
-    });
-  }
-
-  function readOne(id: string) {
-    startTransition(async () => {
-      await markNotificationRead(id);
-      setItems((prev) =>
-        prev.map((n) =>
-          n.id === id ? { ...n, read_at: n.read_at ?? new Date().toISOString() } : n,
-        ),
-      );
-    });
-  }
+export function NotificationsMenu() {
+  const { notifications: items, unread, readAll, readOne } = useShellData();
 
   return (
     <Popover>
@@ -108,7 +44,7 @@ export function NotificationsMenu({
       <PopoverContent align="end" className="w-80 p-0">
         <div className="flex items-center justify-between border-b px-3 py-2">
           <span className="text-sm font-semibold">Notifications</span>
-          <Button variant="ghost" size="sm" onClick={readAll} disabled={pending || unread === 0}>
+          <Button variant="ghost" size="sm" onClick={() => void readAll()} disabled={unread === 0}>
             <Check /> Mark all read
           </Button>
         </div>
@@ -123,7 +59,7 @@ export function NotificationsMenu({
                 <li key={n.id}>
                   <button
                     type="button"
-                    onClick={() => !n.read_at && readOne(n.id)}
+                    onClick={() => !n.read_at && void readOne(n.id)}
                     className="hover:bg-accent flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left"
                   >
                     <span className="flex w-full items-center gap-2">
@@ -147,6 +83,11 @@ export function NotificationsMenu({
             </ul>
           )}
         </ScrollArea>
+        <div className="border-t px-3 py-2 text-right">
+          <Link href="/notifications" className="text-primary text-xs underline">
+            Open the notification centre
+          </Link>
+        </div>
       </PopoverContent>
     </Popover>
   );

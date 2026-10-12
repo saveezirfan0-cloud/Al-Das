@@ -6,7 +6,8 @@ import { registerEnquiryListeners } from "@/lib/enquiries/notify";
 import { shouldRaiseBreach } from "@/lib/enquiries/sla";
 import { emit } from "@/lib/events/emit";
 import { PermanentJobError } from "@/lib/jobs/types";
-import { createNotification } from "@/lib/notifications";
+import { handleEscalation } from "@/lib/notify/escalation-job";
+import { notify } from "@/lib/notify/dispatch-db";
 import type { AdminClient } from "@/lib/supabase/admin";
 import { reminderStillValid } from "@/lib/tasks/due";
 
@@ -18,7 +19,8 @@ registerEnquiryListeners();
  * `notifications` queue:
  *   task.due     → in-app reminder for the assignee (skipped if done or moved)
  *   enquiry.sla  → raise an SLA breach once, if the enquiry is still open and untouched
- * Both re-check state at fire time, so stale or duplicate jobs are no-ops.
+ *   inbox.escalate → escalation ladder for a conversation nobody owns (lib/notify/escalation-job.ts)
+ * All re-check state at fire time, so stale or duplicate jobs are no-ops.
  */
 export const scheduledEnvelope = z.object({
   kind: z.string().min(1),
@@ -44,6 +46,8 @@ export async function handleScheduled(env: ScheduledEnvelope, admin: AdminClient
       if (!p.success) throw new PermanentJobError("invalid enquiry.sla payload");
       return handleEnquirySla(admin, env.org_id, p.data.enquiry_id);
     }
+    case "inbox.escalate":
+      return handleEscalation(admin, env.org_id, env.payload);
     default:
       throw new PermanentJobError(`unknown scheduled kind ${env.kind}`);
   }
@@ -65,13 +69,15 @@ async function handleTaskDue(
     return "already_notified";
   const userId = task.assignee_id ?? task.created_by;
   if (!userId) return "no_recipient";
-  await createNotification(admin, {
+  await notify(admin, {
     orgId,
-    userId,
+    userIds: [userId],
+    event: "task.due",
     type: "task.due",
     title: "Task due",
     body: task.subject,
     payload: { task_id: task.id, enquiry_id: task.enquiry_id },
+    ids: { task_id: task.id, enquiry_id: task.enquiry_id },
   });
   await admin.from("tasks").update({ due_notified_for: task.due_at }).eq("id", task.id).eq("org_id", orgId);
   await emit(orgId, "task.due", {

@@ -28,6 +28,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { cn } from "@/lib/utils";
 
 import { NAV_GROUPS, SIDEBAR_COOKIE, type NavIcon, type NavItem } from "./nav";
+import { useBadgedItems } from "./shell-data";
 
 const ICONS: Record<NavIcon, React.ComponentType<{ className?: string }>> = {
   dashboard: LayoutDashboard,
@@ -47,7 +48,7 @@ const ICONS: Record<NavIcon, React.ComponentType<{ className?: string }>> = {
 };
 
 export function Sidebar({
-  items,
+  items: rawItems,
   orgName,
   defaultCollapsed,
   className,
@@ -60,6 +61,7 @@ export function Sidebar({
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
+  const items = useBadgedItems(rawItems);
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
 
   function toggle() {

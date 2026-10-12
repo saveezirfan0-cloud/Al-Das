@@ -65,6 +65,19 @@ export const AUTHN_ONLY_OK: Record<string, string> = {
   "components/shell/actions.ts::markNotificationRead": "Caller's own notifications.",
   "components/shell/actions.ts::switchOrg":
     "Cookie switch; membership is verified on every request.",
+  "app/(app)/notifications/actions.ts::snoozeNotification":
+    "Caller's own notification (RLS: user_id = auth.uid()); the preset is validated and the time computed on the server.",
+  "app/(app)/notifications/actions.ts::unsnoozeNotification": "Caller's own notification (RLS).",
+  "app/(app)/notifications/actions.ts::setNotificationRead": "Caller's own notification (RLS).",
+  "app/(app)/notifications/actions.ts::dismissNotification": "Caller's own notification (RLS).",
+  "app/(app)/settings/notifications/actions.ts::registerPushSubscription":
+    "Caller's own browser. The endpoint must belong to a known push service (SSRF allowlist), the subscription is encrypted at rest, devices per person are capped and the call is rate-limited.",
+  "app/(app)/settings/notifications/actions.ts::unregisterPushSubscription":
+    "Removes only the caller's own device (org, user and endpoint hash must all match).",
+  "app/(app)/settings/notifications/actions.ts::removePushDevice":
+    "Removes only the caller's own device (org and user must match the row).",
+  "app/(app)/settings/notifications/actions.ts::sendTestPush":
+    "Sends a fixed generic message to the caller's own devices only; rate-limited.",
 };
 
 /**
@@ -114,6 +127,18 @@ export const AUDIT_EXEMPT: Record<string, string> = {
   "components/shell/actions.ts::setPresence": "Caller's own presence.",
   "components/shell/actions.ts::markAllNotificationsRead": "Caller's own notifications.",
   "components/shell/actions.ts::markNotificationRead": "Caller's own notifications.",
+  "app/(app)/notifications/actions.ts::snoozeNotification":
+    "Caller's own notification state (snooze).",
+  "app/(app)/notifications/actions.ts::unsnoozeNotification":
+    "Caller's own notification state (snooze).",
+  "app/(app)/notifications/actions.ts::setNotificationRead":
+    "Caller's own notification state (read marker).",
+  "app/(app)/notifications/actions.ts::dismissNotification":
+    "Caller's own notification; high volume, no content in audit_log.",
+  "app/(app)/settings/notifications/actions.ts::savePreferences":
+    "Caller's own notification preferences.",
+  "app/(app)/settings/notifications/actions.ts::removePushDevice":
+    "Caller's own device registration; the push_subscriptions row itself is the record.",
 };
 
 /** Modules allowed to read channel_secrets (they decrypt or store the Meta token). */

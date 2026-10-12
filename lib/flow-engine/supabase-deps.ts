@@ -28,6 +28,7 @@ import { resolveChannelId } from "@/lib/inbox/default-channel";
 import { addNote, queueOutbound, type SendSpec } from "@/lib/inbox/send";
 import { enqueue, scheduleJob } from "@/lib/jobs/enqueue";
 import { createNotification } from "@/lib/notifications";
+import { notify } from "@/lib/notify/dispatch-db";
 import type { AdminClient } from "@/lib/supabase/admin";
 import type { Json, Tables } from "@/lib/supabase/types";
 import { renderTemplatePreview } from "@/lib/whatsapp/templates";
@@ -395,12 +396,14 @@ export function supabaseActions(admin: AdminClient): FlowActions {
         .eq("org_id", run.org_id);
       if (error) throw new Error(`assign failed: ${error.message}`);
       if (target.type === "user" && target.id) {
-        await createNotification(admin, {
+        await notify(admin, {
           orgId: run.org_id,
-          userId: target.id,
+          userIds: [target.id],
+          event: "inbox.assigned",
           type: "inbox.assigned",
           title: "Conversation assigned to you",
           payload: { conversation_id: run.conversation_id, by: "flow" },
+          ids: { conversation_id: run.conversation_id },
         });
       }
       if (target.type === "user" || target.type === "team") {
