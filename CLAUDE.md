@@ -55,6 +55,16 @@ Captures Unite invoices, matches them to Diligence claim files, and routes excep
 - **Bundles:** heavy libraries (FullCalendar, React Flow, Recharts) load through `next/dynamic`. `scripts/bundle-budget.json` holds first-load budgets; a pull request that exceeds one fails CI. Raise the number in the same commit when a bigger bundle is intended and say why.
 - **Phones:** use `useIsPhone()` (`lib/hooks/use-media-query.ts`) for phone-only layouts; touch screens get 44 px tap targets from `app/globals.css` (do not shrink controls below that with `@media (pointer: coarse)` overrides). Gesture rules live in `lib/hooks/gestures.ts` with unit tests.
 
+## Front desk, help and training (Phase 14, docs/14_PHASE_14_NOTES.md)
+- **Front desk (`/front-desk`)** needs `frontdesk.use` (Receptionist and Manager presets; the Receptionist role lands here via `lib/front-desk/landing.ts`). Each action also needs the permission of what it does (`appointments.manage`, `contacts.manage`, `tasks.manage`, `inbox.send`). Check-in (Arrived / With doctor / Done / Checked out) lives on `appointments` in Pulse only; nothing here ever writes to Unite, and the Unite sync never touches those columns.
+- **Waiting list:** a cancelled or moved appointment calls `scheduleSlotFreed()` (`lib/front-desk/freed.ts`), a durable `scheduled_jobs` row (`waitlist.freed`); offers and their expiry (`waitlist.expire`) ride the `appointments` queue. Offers go out only through `queueOutbound` (free text inside the 24 h window, the mapped template outside it, otherwise the offer is marked failed, never sent), and stay OFF until `front_desk.offers_enabled`. **First YES wins inside `public.accept_slot_offer()`**, which takes the same per-specialist advisory lock as `book_appointment` / `move_appointment`; never book a slot for a waiting-list patient any other way.
+- **Households:** a dependant has no phone (`contacts.phone_e164` is unique per org); `household_links` ties them to a guardian. Any message about an appointment must pick its recipient with `resolveRecipient()` (`lib/household/addressing.ts`) so it reaches the guardian and names the patient; a guardian's Confirm tap counts for the dependant. `matchContact` treats a shared number as a family (`lib/household/shared-phone.ts`) and `merge_contacts` / `contact_duplicate_candidates` know about links.
+- **Training mode (`orgs.is_training`):** the outbound handler marks messages sent on screen with a `training:` id and `clientForChannel` refuses to build a Meta client for a training org. New code that talks to Meta must go through one of those two; never construct `WhatsAppClient` for a stored channel any other way. Turn it on under Settings, Training mode (typed confirmation, audited).
+- **Demo data:** `DEMO_RESET_OK=1 pnpm demo:reset --owner-email=<you>` empties and re-seeds a demo workspace (guard in `lib/demo/guard.ts`: local database or a demo project; `public.demo_wipe_org` also needs `is_training` AND the script's own flag). All demo content is synthetic: names like `Layla Demo-07`, numbers only in the reserved range `+44 7700 900000` to `900999`. Never point it at a real project, never put real people in `lib/demo/`.
+- **Quick replies** are bilingual (`text`, `text_ar`) with `{{first_name}}`-style variables (`lib/inbox/quick-reply.ts`); add a variable there and in the composer context in `app/(app)/inbox/page.tsx`.
+- **Help:** a new page gets a guide in `lib/help/guides.ts` and, when a video is planned, a clip in `lib/help/clips.ts` (recorded links are pasted under Settings, Training mode; no deploy needed). New keyboard shortcuts go in `lib/help/shortcuts.ts`, and bare-key handlers must skip typing targets (`isTypingTarget`). New release notes go at the top of `lib/help/whats-new.ts`.
+- **Printing:** printable pages hide the shell with Tailwind's `print:hidden` (see `app/(app)/layout.tsx`); do the same for any new printable screen.
+
 ## Conventions
 - Business logic in `lib/*` as plain TS with unit tests. Route handlers and server actions stay thin and validate with Zod.
 - Phones are always E.164 (`libphonenumber-js`). Times are stored in UTC and displayed in location/org timezone (`date-fns-tz`).
@@ -92,6 +102,7 @@ pnpm load:webhook --yes-staging --rate 1000 --minutes 1   # webhook burst (stagi
 pnpm load:mock-graph & pnpm load:outbound --yes-staging --count 20000 --rate 20   # 20k send against a local Graph stub
 pnpm reconcile --org <slug> --live-airtable --freeze-at <iso>   # migration sign-off report
 pnpm cutover:preflight --org <slug> --stage pre-cutover   # read-only go/no-go before moving a number
+DEMO_RESET_OK=1 pnpm demo:reset --owner-email=<you>   # wipe + re-seed the DEMO workspace with synthetic data (local or demo project only; --check, --users, --slug)
 pnpm push:keys               # generate VAPID keys for Web Push (prints env lines, writes nothing)
 pnpm bundle:check build.log  # first-load JS budgets (scripts/bundle-budget.json); CI runs it after `pnpm build 2>&1 | tee build.log`
 pnpm analyze                 # next build with the bundle analyser (report under .next/analyze)
@@ -109,6 +120,7 @@ RESEND_API_KEY, SENTRY_DSN
 META_GRAPH_BASE_URL   # load tests only; honoured only for http://localhost|127.0.0.1, never set in production
 VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT   # Web Push, from `pnpm push:keys`; without them push is simply off
 PULSE_VERIFY_JWT_LOCALLY=0   # optional: make page navigations call Supabase Auth again (default verifies the token locally)
+DEMO_RESET_OK=1   # only for `pnpm demo:reset`; never set in production. SUPABASE_PROJECT_NAME / DEMO_PROJECT_NAME (must contain "demo") lets it run against a hosted demo project
 ```
 
 ## Definition of done per task
