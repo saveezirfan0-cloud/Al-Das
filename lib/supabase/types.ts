@@ -3,6 +3,60 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type Database = {
   public: {
     Tables: {
+      access_reviews: {
+        Row: {
+          attestation_name: string | null;
+          attestation_note: string | null;
+          attested_at: string | null;
+          attested_by: string | null;
+          id: string;
+          opened_at: string;
+          opened_by: string | null;
+          org_id: string;
+          period: string;
+          signature: string | null;
+          snapshot: NonNullable<Json>;
+          status: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          attestation_name?: string | null;
+          attestation_note?: string | null;
+          attested_at?: string | null;
+          attested_by?: string | null;
+          id?: string;
+          opened_at?: string;
+          opened_by?: string | null;
+          org_id: string;
+          period: string;
+          signature?: string | null;
+          snapshot: NonNullable<Json>;
+          status?: string;
+        };
+        Update: {
+          attestation_name?: string | null;
+          attestation_note?: string | null;
+          attested_at?: string | null;
+          attested_by?: string | null;
+          id?: string;
+          opened_at?: string;
+          opened_by?: string | null;
+          org_id?: string;
+          period?: string;
+          signature?: string | null;
+          snapshot?: NonNullable<Json>;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "access_reviews_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       ai_usage: {
         Row: {
           conversation_id: string | null;
@@ -182,6 +236,49 @@ export type Database = {
           },
           {
             foreignKeyName: "api_keys_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      api_read_log: {
+        Row: {
+          api_key_id: string;
+          bucket: string;
+          org_id: string;
+          request_count: number;
+          resource: string;
+          row_count: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          api_key_id: string;
+          bucket: string;
+          org_id: string;
+          request_count?: number;
+          resource: string;
+          row_count?: number;
+        };
+        Update: {
+          api_key_id?: string;
+          bucket?: string;
+          org_id?: string;
+          request_count?: number;
+          resource?: string;
+          row_count?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "api_read_log_api_key_id_fkey";
+            columns: ["api_key_id"];
+            isOneToOne: false;
+            referencedRelation: "api_keys";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "api_read_log_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
@@ -473,6 +570,57 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "audit_log_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      auth_events: {
+        Row: {
+          at: string;
+          detail: NonNullable<Json>;
+          email_hash: string | null;
+          event_type: string;
+          id: number;
+          ip_address: string | null;
+          ip_hash: string | null;
+          method: string | null;
+          org_id: string | null;
+          ua_family: string | null;
+          user_id: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          at?: string;
+          detail?: NonNullable<Json>;
+          email_hash?: string | null;
+          event_type: string;
+          id?: never;
+          ip_address?: string | null;
+          ip_hash?: string | null;
+          method?: string | null;
+          org_id?: string | null;
+          ua_family?: string | null;
+          user_id?: string | null;
+        };
+        Update: {
+          at?: string;
+          detail?: NonNullable<Json>;
+          email_hash?: string | null;
+          event_type?: string;
+          id?: never;
+          ip_address?: string | null;
+          ip_hash?: string | null;
+          method?: string | null;
+          org_id?: string | null;
+          ua_family?: string | null;
+          user_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "auth_events_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
@@ -1763,6 +1911,7 @@ export type Database = {
           deleted_at: string | null;
           dob: string | null;
           email: string | null;
+          erased_at: string | null;
           external_id: string | null;
           first_name: string;
           full_name: string | null;
@@ -1778,6 +1927,7 @@ export type Database = {
           org_id: string;
           owner_id: string | null;
           phone_e164: string | null;
+          promotions_consent: Json | null;
           promotions_opt_in: boolean;
           source: string;
           stop_marketing: boolean;
@@ -1796,6 +1946,7 @@ export type Database = {
           deleted_at?: string | null;
           dob?: string | null;
           email?: string | null;
+          erased_at?: string | null;
           external_id?: string | null;
           first_name?: string;
           full_name?: never;
@@ -1811,6 +1962,7 @@ export type Database = {
           org_id: string;
           owner_id?: string | null;
           phone_e164?: string | null;
+          promotions_consent?: Json | null;
           promotions_opt_in?: boolean;
           source?: string;
           stop_marketing?: boolean;
@@ -1828,6 +1980,7 @@ export type Database = {
           deleted_at?: string | null;
           dob?: string | null;
           email?: string | null;
+          erased_at?: string | null;
           external_id?: string | null;
           first_name?: string;
           full_name?: never;
@@ -1843,6 +1996,7 @@ export type Database = {
           org_id?: string;
           owner_id?: string | null;
           phone_e164?: string | null;
+          promotions_consent?: Json | null;
           promotions_opt_in?: boolean;
           source?: string;
           stop_marketing?: boolean;
@@ -5897,6 +6051,70 @@ export type Database = {
           },
         ];
       };
+      privacy_requests: {
+        Row: {
+          completed_at: string | null;
+          contact_id: string;
+          decided_at: string | null;
+          decided_by: string | null;
+          decision_note: string | null;
+          id: string;
+          kind: string;
+          org_id: string;
+          reason: string;
+          requested_at: string;
+          requested_by: string | null;
+          result: NonNullable<Json>;
+          status: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          completed_at?: string | null;
+          contact_id: string;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          decision_note?: string | null;
+          id?: string;
+          kind: string;
+          org_id: string;
+          reason: string;
+          requested_at?: string;
+          requested_by?: string | null;
+          result?: NonNullable<Json>;
+          status?: string;
+        };
+        Update: {
+          completed_at?: string | null;
+          contact_id?: string;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          decision_note?: string | null;
+          id?: string;
+          kind?: string;
+          org_id?: string;
+          reason?: string;
+          requested_at?: string;
+          requested_by?: string | null;
+          result?: NonNullable<Json>;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "privacy_requests_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "privacy_requests_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       profiles: {
         Row: {
           avatar_path: string | null;
@@ -6305,6 +6523,93 @@ export type Database = {
           },
         ];
       };
+      record_access_log: {
+        Row: {
+          action: string;
+          at: string;
+          detail: NonNullable<Json>;
+          entity: string;
+          entity_id: string | null;
+          id: number;
+          org_id: string;
+          sampled: boolean;
+          user_id: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          action: string;
+          at?: string;
+          detail?: NonNullable<Json>;
+          entity: string;
+          entity_id?: string | null;
+          id?: never;
+          org_id: string;
+          sampled?: boolean;
+          user_id?: string | null;
+        };
+        Update: {
+          action?: string;
+          at?: string;
+          detail?: NonNullable<Json>;
+          entity?: string;
+          entity_id?: string | null;
+          id?: never;
+          org_id?: string;
+          sampled?: boolean;
+          user_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "record_access_log_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      record_history: {
+        Row: {
+          actor_id: string | null;
+          at: string;
+          changes: NonNullable<Json>;
+          id: number;
+          op: string;
+          org_id: string;
+          record_id: string;
+          table_name: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          actor_id?: string | null;
+          at?: string;
+          changes?: NonNullable<Json>;
+          id?: never;
+          op: string;
+          org_id: string;
+          record_id: string;
+          table_name: string;
+        };
+        Update: {
+          actor_id?: string | null;
+          at?: string;
+          changes?: NonNullable<Json>;
+          id?: never;
+          op?: string;
+          org_id?: string;
+          record_id?: string;
+          table_name?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "record_history_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       ref_condition_groups: {
         Row: {
           created_at: string;
@@ -6654,6 +6959,7 @@ export type Database = {
           name: string;
           org_id: string;
           permissions: NonNullable<Json>;
+          require_mfa: boolean;
           updated_at: string;
         };
         ComputedFields: never;
@@ -6665,6 +6971,7 @@ export type Database = {
           name: string;
           org_id: string;
           permissions?: NonNullable<Json>;
+          require_mfa?: boolean;
           updated_at?: string;
         };
         Update: {
@@ -6675,6 +6982,7 @@ export type Database = {
           name?: string;
           org_id?: string;
           permissions?: NonNullable<Json>;
+          require_mfa?: boolean;
           updated_at?: string;
         };
         Relationships: [
@@ -6801,6 +7109,54 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "scheduled_jobs_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      security_alerts: {
+        Row: {
+          acknowledged_at: string | null;
+          acknowledged_by: string | null;
+          created_at: string;
+          dedupe_key: string;
+          detail: NonNullable<Json>;
+          id: string;
+          kind: string;
+          org_id: string;
+          summary: string;
+          user_id: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          acknowledged_at?: string | null;
+          acknowledged_by?: string | null;
+          created_at?: string;
+          dedupe_key: string;
+          detail?: NonNullable<Json>;
+          id?: string;
+          kind: string;
+          org_id: string;
+          summary: string;
+          user_id?: string | null;
+        };
+        Update: {
+          acknowledged_at?: string | null;
+          acknowledged_by?: string | null;
+          created_at?: string;
+          dedupe_key?: string;
+          detail?: NonNullable<Json>;
+          id?: string;
+          kind?: string;
+          org_id?: string;
+          summary?: string;
+          user_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "security_alerts_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
@@ -7869,6 +8225,54 @@ export type Database = {
             columns: ["user_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      user_sessions: {
+        Row: {
+          created_at: string;
+          id: string;
+          ip_hash: string | null;
+          last_seen_at: string;
+          org_id: string;
+          revoked_at: string | null;
+          revoked_reason: string | null;
+          session_id: string;
+          ua_family: string | null;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          id?: string;
+          ip_hash?: string | null;
+          last_seen_at?: string;
+          org_id: string;
+          revoked_at?: string | null;
+          revoked_reason?: string | null;
+          session_id: string;
+          ua_family?: string | null;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          ip_hash?: string | null;
+          last_seen_at?: string;
+          org_id?: string;
+          revoked_at?: string | null;
+          revoked_reason?: string | null;
+          session_id?: string;
+          ua_family?: string | null;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "user_sessions_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
             referencedColumns: ["id"];
           },
         ];
@@ -9838,6 +10242,10 @@ export type Database = {
       };
     };
     Functions: {
+      api_read_log_hit: {
+        Args: { p_key: string; p_org: string; p_resource: string; p_rows: number };
+        Returns: number;
+      };
       apply_message_status: {
         Args: {
           p_at: string;
@@ -9986,6 +10394,10 @@ export type Database = {
           stage_id: string;
           total: number;
         }[];
+      };
+      erase_contact: {
+        Args: { p_actor?: string; p_contact: string; p_org: string };
+        Returns: Json;
       };
       fail_scheduled_job: {
         Args: { p_error: string; p_id: string; p_retry_in?: string };
@@ -10155,6 +10567,10 @@ export type Database = {
           p_user_id?: string;
         };
         Returns: undefined;
+      };
+      offboard_member: {
+        Args: { p_actor: string; p_membership: string; p_org: string; p_reassign_to?: string };
+        Returns: Json;
       };
       pgp_armor_headers: { Args: { "": string }; Returns: Record<string, unknown>[] };
       pick_round_robin_assignee: { Args: { p_org_id: string; p_team_id: string }; Returns: string };
@@ -10473,6 +10889,7 @@ export type Database = {
         }[];
       };
       reserve_send_slot: { Args: { p_cap: number; p_channel_id: string }; Returns: number };
+      security_maintenance: { Args: { p_now?: string }; Returns: Json };
       seed_clinical_settings: { Args: { p_org: string }; Returns: undefined };
       seed_condition_groups: { Args: { p_org: string }; Returns: undefined };
       seed_finance_reference: { Args: { p_org_id: string }; Returns: undefined };
