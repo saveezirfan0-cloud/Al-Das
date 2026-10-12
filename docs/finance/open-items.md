@@ -63,3 +63,15 @@
 30. **Alert thresholds are constants** in `lib/finance/alerts.ts` (silent capture 3 h / 6 h, no upload 8 days, overdue above 20, reminder every 24 h). Tell us if they should change.
 31. **Alert recipients** are members whose role holds `finance.capture.manage` (Admin by default). E-mail goes through the existing notifications queue, so `RESEND_API_KEY` must be set for e-mail to leave the system; in-app notices work without it.
 32. **Human step left from the brief:** review the monthly summary with Saeed against one closed month before relying on the numbers.
+
+## Added in Phase 18 (see `docs/16_PHASE_18_NOTES.md`)
+
+33. **Every Phase 18 threshold is a placeholder** and lives in `fin_ref_finance_settings` (Finance, Workflow settings): pre-authorisation lead 7 days, ready-to-bill grace 1 day, denial resubmission 30 days (warn 7), short-payment tolerance 1.00 and 1 %, scorecard minimum 20 claims and denial rate 10 % / 20 %, days to pay 60 / 90, forecast defaults (60 days, 90 %), cash-up variance 5.00, reminders (50.00, 14 days overdue, 14-day gap, 3 reminders). "Not ready to bill" and denial cases do nothing until a start date is set.
+34. **Denial reason codes and payer price lists are placeholders** (OQ-72, OQ-73). Short-payment flags and the scorecard "top reasons" are only as good as these tables.
+35. **Remittance column names are guesses** (OQ-74): `lib/finance/remittance-mapping.ts`. The first real file will probably need an alias added; the upload screen lists the headers it did not recognise.
+36. **The closed-month lock does not block the Unite or Diligence mirrors**: a late amended invoice is stored, the signed pack stays frozen, and the close page shows the drift (OQ-77). Decide whether a drift should notify someone.
+37. **Self-pay reminders** require `promotions_opt_in`, an approved template and a finance tone approval, and stay OFF until an administrator switches them on (OQ-76). Whether Meta classes the template as Utility or Marketing is unchecked.
+38. **The accounting export mapping starts empty** (OQ-75): account codes for receivables, revenue by category, VAT, rounding, write-offs, credit notes and each payment mode must be filled in before the CSV is useful.
+39. **Not built from the roadmap wording in `docs/09`**: payment links, instalment tracking and the patient estimate generator (not part of Prompt 18).
+40. **Still not exercised**: nothing in Phase 18 was driven in a browser, against Unite, a payer's real file, a real WhatsApp number or an accounting package.
+
