@@ -258,7 +258,14 @@ async function syncFollowUp(
   return "created";
 }
 
-/** Evaluate recent visits for one org. Cheap when nothing changed (inputs hash), so it also picks up newly signed settings. */
+/**
+ * Evaluate recent visits for one org. Cheap when nothing changed (inputs hash), so it also picks up
+ * newly signed settings.
+ *
+ * Only visits delivered by the Unite sync (`source = 'unite'`) are evaluated. History imported from
+ * Airtable (`source = 'airtable'`) was already evaluated and worked there; re-evaluating a recent
+ * imported visit would raise a NEW open follow-up even when its Airtable follow-up is closed.
+ */
 export async function evaluateRecentVisits(
   admin: AdminClient,
   orgId: string,
@@ -271,6 +278,7 @@ export async function evaluateRecentVisits(
     .from("visits")
     .select("id")
     .eq("org_id", orgId)
+    .eq("source", "unite")
     .gte("visit_date", since)
     .order("visit_date", { ascending: false })
     .limit(opts.limit ?? 500);
