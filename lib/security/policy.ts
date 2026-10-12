@@ -120,6 +120,8 @@ export const AUDIT_EXEMPT: Record<string, string> = {
   "app/(app)/inbox/actions.ts::deleteInboxView": "Caller's own saved view.",
   "app/(app)/inbox/ai-actions.ts::aiFeedback":
     "The kb_feedback row is itself the attributed record (user, conversation, rating; no draft text).",
+  "app/(app)/inbox/ai-actions.ts::recordSuggestionOutcome":
+    "The ai_suggestion_outcomes row is itself the attributed record (user, suggestion, verdict, similarity; no text from either side).",
   "app/(app)/inbox/ai-actions.ts::saveConversationSummary":
     "Conversation lifecycle is recorded on the contact timeline; the summary text is health data and stays out of audit_log.",
   "app/api/webhooks/meta/route.ts::POST":

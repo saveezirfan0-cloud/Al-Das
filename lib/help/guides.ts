@@ -113,10 +113,12 @@ export const GUIDES: readonly Guide[] = [
       "Choose or build the audience and look at the count before you go on.",
       "Pick an approved template and use the phone preview to check it.",
       "Send now or schedule. Watch delivery and replies on the campaign page.",
+      "Stuck? The Campaign Copilot turns a sentence into an audience with its size, and suggests English and Arabic wording. In Flows, Describe a bot drafts a flow and Dry run tries it with sample messages.",
     ],
     watchOut: [
       "Patients who opted out of marketing are always left out.",
       "Send a small test to your own number first.",
+      "AI drafts are never published or sent for you. An AI flow needs your review before it can be published.",
     ],
   },
   {
@@ -145,6 +147,7 @@ export const GUIDES: readonly Guide[] = [
     steps: [
       "The Overview shows today's numbers. Management shows trends.",
       "Change the period at the top. Export needs a separate permission.",
+      "AI reply quality (if you have access) shows each Monday how AI suggestions were used and which patient questions the knowledge base could not answer.",
     ],
     watchOut: ["Numbers use the clinic's time zone, not yours."],
   },

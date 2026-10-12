@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { INTENT_LABELS, type Intent } from "@/lib/ai/intent/labels";
 import { contactDisplayName } from "@/lib/inbox/contact-name";
 import { FOLDERS, type InboxQuery } from "@/lib/inbox/folders";
 import { labelClass } from "@/lib/inbox/labels";
@@ -354,6 +355,18 @@ export function ConversationList({
                             )}
                           </div>
                           <div className="mt-1 flex flex-wrap items-center gap-1">
+                            {(c.ai_tags ?? []).includes("emergency") && (
+                              <span className="rounded bg-red-100 px-1 text-[10px] font-semibold text-red-800">
+                                Possible emergency
+                              </span>
+                            )}
+                            {(c.ai_tags ?? [])
+                              .filter((t) => t !== "emergency" && t in INTENT_LABELS)
+                              .map((t) => (
+                                <span key={t} className="bg-muted rounded px-1 text-[10px]">
+                                  {INTENT_LABELS[t as Intent]}
+                                </span>
+                              ))}
                             {c.status === "waiting" && (
                               <span className="rounded bg-amber-100 px-1 text-[10px] text-amber-800">
                                 waiting

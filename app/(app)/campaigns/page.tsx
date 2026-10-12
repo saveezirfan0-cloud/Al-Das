@@ -92,6 +92,11 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
         <Button asChild variant="outline" size="sm">
           <Link href="/templates">Manage templates</Link>
         </Button>
+        {canCreate && can(member, "campaigns.ai") && (
+          <Button asChild variant="outline" size="sm">
+            <Link href="/campaigns/copilot">Campaign Copilot</Link>
+          </Button>
+        )}
         {canCreate && (
           <Button asChild size="sm">
             <Link href="/campaigns/new">

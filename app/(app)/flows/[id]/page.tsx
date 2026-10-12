@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 
+import { can } from "@/lib/auth/can";
 import { requirePerm } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -84,6 +85,7 @@ export default async function FlowBuilderPage({ params }: { params: Promise<{ id
     channel_id: flow.channel_id,
     graph: flow.graph as BuilderFlow["graph"],
     published_graph: (flow.published_graph as BuilderFlow["graph"] | null) ?? null,
+    ai_review_required: flow.ai_review_required,
   };
-  return <FlowBuilderLoader flow={initial} lookups={lookups} />;
+  return <FlowBuilderLoader flow={initial} lookups={lookups} canAi={can(member, "flows.ai")} />;
 }

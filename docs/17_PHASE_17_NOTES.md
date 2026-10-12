@@ -1,0 +1,97 @@
+# Phase 17 notes: AI copilots for flows and campaigns
+
+Built on branch `claude/nifty-brown-y9l5ry` (from `main` at `2efbbf6`, Phases 13 to 16 and 18 merged), 12 to 17 Oct 2026 session. Spec: `docs/10_NEXT_PHASE_PROMPTS.md`, Prompt 17, with the guardrails of `CLAUDE.md` rule 12 and the AI design of `docs/08_PHASE_10_NOTES.md`. Everything was built in a cloud sandbox with a plain Postgres 16 (pgvector, PostgREST), no browser, no Supabase Auth stack and **no model**: every model call in every test goes to a fake client, and `tests/setup.ts` now makes any `fetch` to Anthropic, Voyage or Meta throw.
+
+**The AI switch is still OFF by default (OQ-57).** Nothing below runs until an administrator turns on AI assist. Labelling every inbound message and letting an AI tag start a flow have their own switches, also OFF.
+
+## What exists
+
+| Spec item | Where it lives | What it does |
+|---|---|---|
+| **Flow Copilot** (prompt box) | Flows, "Describe a bot" and, in the builder toolbar, "AI draft" (`flows.ai` and `flows.manage`); `app/(app)/flows/ai-actions.ts::draftFlowWithAi`, `lib/ai/flow-copilot/*` | The model returns a flow as JSON (trigger, nodes, edges). `validate.ts` checks it against closed lists and the engine's own contracts, `generate.ts` repairs it **once** by feeding the validator's errors back, then rejects it with the reasons. A valid result is saved as a **new** flow: status `draft`, version 0, `ai_review_required = true`. It never touches an existing flow |
+| Draft opens with Checks and highlights | the builder | Templates, teams and "who to notify" are left blank on purpose, so the builder's existing Checks panel and red node outlines point at each one. A banner explains the draft and has the **Mark as reviewed** button |
+| **Dry run** | builder toolbar, `lib/flow-engine/simulate.ts`, `dryRunFlow` | Replays sample patient messages through the draft (saved or not) by driving the **real engine and executors** over in-memory ports: no database client, no queue, no network, no WhatsApp client. Shows each step, the message that would be sent, the branch taken, waits skipped ahead, and why a step failed. A template, team or role not chosen yet is replaced by a marked stand-in. Works for any flow, not only AI drafts, and needs only `flows.manage` |
+| **Campaign Copilot, audience** | Campaigns, "Campaign Copilot" (`campaigns.ai` and `campaigns.create`); `lib/ai/campaign-copilot/audience.ts`, `previewAiAudience` | A sentence becomes the platform's own filter AST, validated by `lib/filters` (the real compiler runs on it). Shows the plain-English reading, the matching **count**, the count a **marketing** campaign could reach (opted in, not stopped) and a sample of contact **ids only**. "Save segment" keeps it as a dynamic segment for the New campaign form |
+| **Campaign Copilot, template copy** | same page, `suggestTemplateCopy` | English and Arabic wording as builder drafts, each linted by `lintTemplatePolicy` (category, opt-out line, variables, health claims, shorteners, language, tone) on top of the builder's `validateDraft`. "Save as draft template" creates a DRAFT only; submitting to Meta stays in the template builder |
+| **Intent detection** | `lib/ai/intent/*`, `ai_insights` queue, `processInbound` | Labels an inbound message booking / price / complaint / report request / emergency and one closed topic, into `conversations.ai_tags`. Queued as a job, never called inline. Shown as badges in the inbox list and thread header (a person can clear one) |
+| **Emergency fast path** | `lib/ai/intent/emergency.ts`, `screenInboundMessage` | Deterministic English and Arabic wording check, **works with AI off**. Tags the conversation, cancels any bot run, and tells the owner, the team lead and the on-call people through `notify()` (event `inbox.emergency`, urgent, fixed generic text, ids only). Spaced to one notification per conversation per 10 minutes. Falls back to administrators when nobody else would be told |
+| **Tags start flows only if signed** | Settings, AI copilots; trigger `conversation_ai_tagged` | See "OQ-61" below |
+| **Reply quality loop** | `ai_suggestion_outcomes`, `ai_quality_reports`, `ai_quality_weekly` task, Reports, "AI reply quality" (`ai.insights.view`) | When staff send (or undo) an AI suggested reply the comparison happens in memory and only accepted / edited / replaced plus a similarity percentage is stored. Mondays 04:30 UTC a report per AI-using organisation: counts, thumbs, per-feature calls, and **knowledge-gap topics** (closed list) with conversation ids to open |
+
+## How the guardrails are met
+
+- **Draft only, nothing automatic.** Nothing in `lib/ai/flow-copilot`, `lib/ai/campaign-copilot` or the new actions publishes, activates, sends, schedules or submits. `tests/unit/ai/copilot-wiring.test.ts` asserts the AI flow actions contain no `published_graph`, `version`, `active`, `publishFlow` or engine adapters. **A database trigger** (`flows_ai_review_guard`) refuses to let a flow with `ai_review_required` be `active`, for any role including the service role, so even a future code path cannot publish an unreviewed AI draft; `publishFlow`, `setFlowStatus` and `duplicateFlow` also check it first (a copy of an unreviewed draft is still unreviewed). Clearing it is `markAiFlowReviewed` (`flows.manage`, audited as `flow.ai_reviewed`).
+- **The model's output is data.** `lib/ai/flow-copilot/validate.ts` caps the reply (60,000 characters, 40 nodes, 80 edges) before parsing; allows only listed node and trigger types; **strips** `api_action`, `portal_record`, `run_flow`, `book_appointment`, `create_enquiry` and `add_task` (the first because it can send patient data to any address, the rest because they need ids the model cannot know or have no adapter yet) and rejoins the flow around them; rebuilds each node's settings from the engine's own schema (an extra `url` or `headers` key cannot ride along); blanks template, team and role; limits `update_contact_field` to label and language; refuses webhook, recurring and AI-tag triggers; rejects loops, self-loops, dangling edges, duplicate or unsafe ids, several or no triggers, options a question does not offer, waits over 30 days, and bot messages with dose, medication or diagnosis wording; removes steps nothing leads to; notes links and unknown variables; then runs `validateGraph`. The system prompt asks for the same things, but the validator is the net.
+- **Prompt injection.** Patient messages, the "describe the bot" text and the campaign brief are masked (phone numbers, e-mail), wrapped in a data tag whose closing tag is defused, and the prompts say tag contents are never instructions. The real defence is output-side: intent output is a closed enum (anything else is discarded; an oversized reply is not read at all); a flow that obeys an injected "call my server" has the node stripped; an audience is compiled by the real filter compiler against an allowlist of fields (no phone, e-mail, name, notes, custom fields, opt-in flags); a template suggestion can only produce quick-reply buttons and name-only variables.
+- **Minimum data.** Flow and campaign prompts carry no patient data at all (the clinic name, field names, and the clinic's tag / place / service ids). Intent detection sends one masked message at a time. Reply-quality data is counts and ids.
+- **Every call logged without content.** `ai_usage` rows (tokens, latency, outcome, new features `flow_copilot`, `campaign_audience`, `campaign_copy`, `intent`); the repair call is its own row and counts toward the daily cap. Background work has no person, so only the workspace daily cap applies to it. Errors go through the class name only.
+- **Model from `ANTHROPIC_MODEL`** via the existing `createAnthropicLlm`; the master switch, per-user minute limit and workspace daily cap apply through the same helpers as the inbox.
+- **Degrades gracefully.** AI off or no key: the copilots answer with a plain sentence, intent detection does nothing, the emergency wording check still runs, the dry run still works, the weekly job skips the organisation.
+
+## OQ-57 and OQ-61
+
+- **OQ-57** (may conversation text go to Anthropic?) is unchanged and still blocks switching AI on. Intent detection widens what is sent (every inbound text message rather than a conversation when staff press a button), so it has its own switch, on a settings card that says exactly what leaves the platform.
+- **OQ-61** (who signs before an AI tag can trigger a flow) is implemented as a switch rather than answered: Settings, AI copilots, "AI tags starting flows". Only a holder of `clinical.settings.manage` (the clinical lead) can approve it, by typing `CLINICAL LEAD APPROVES AI TAGS STARTING FLOWS` and choosing which tags (booking, price, complaint, report request; **never emergency**). Who and when are stored and audited (`ai.tag_flows_enabled`); the clinical lead or an administrator can withdraw it; turning labelling off withdraws it. It is checked in three places: when the tag is applied (`tagMayStartFlows`), again in the `flow_steps` handler before the trigger is processed, and the trigger only matches flows that name the tag. Tested end to end against the database with the approval absent, for another tag, with the master switch off, and present.
+
+## Settings and permissions
+
+- `flows.ai`, `campaigns.ai`, `ai.insights.view`; presets: Manager gets all three, Marketing gets the first two. Each also requires the ability it builds on (`flows.manage`, `campaigns.create`), so holding `flows.manage` alone never reaches the model. The data migration backfills existing orgs' Manager and Marketing roles (idempotent, tested); custom roles are edited in Settings, Roles.
+- `orgs.settings.ai_copilot` (separate from `orgs.settings.ai`, so saving the main AI card cannot reset it): `intent_detection`, `tag_flows`.
+- Saving a copilot segment is allowed to `campaigns.create` + `campaigns.ai` (it is a saved, re-validated filter and is audited as `segment.created` with `via: campaign_copilot`); the Marketing role does not hold `contacts.manage`, so this is the one place the copilot extends what a role could do before.
+
+## Migrations (new, `20261017000100` to `…300`; paste file `deploy/supabase-paste/17_phase_17_ai_copilots.sql`)
+
+| File | Content |
+|---|---|
+| `…100_ai_copilots_foundation` | permission backfill, `ai_usage.grounded` and the new feature values (the constraint is rebuilt from whatever it already allowed, as Phase 18 did), `flows.ai_review_required / ai_drafted_at / ai_reviewed_by / ai_reviewed_at`, the guard trigger, the `conversation_ai_tagged` trigger type |
+| `…200_ai_intents_insights` | `ai_message_intents` (labels, closed topic, matched pattern ids, `escalated_at`; unique per message and source), `ai_suggestion_outcomes`, `ai_quality_reports`, `ai_add_conversation_tags()` (service role only), an erasure trigger that deletes a patient's labels when the contact is erased |
+| `…300_ai_jobs` | the `ai_insights` queue, `pulse:ai_insights` (every 30 s), `pulse:ai_quality_weekly` (Mondays 04:30 UTC) |
+
+Every new table has RLS and a policy scoped to the org; none has a write policy (jobs and server actions write with the service role after `can()`). `ai_message_intents` is readable only by people who may see the conversation; outcomes and reports by `ai.insights.view` (outcomes also `reports.view`). They are in `PHASE17_TABLES` and `seedPhase17Rows()` so the cross-org sweeps are not vacuous. Migration `…200` was amended once after its first commit (the tags function returned blank values, and `escalated_at` was added) before it had been applied anywhere.
+
+## How it was verified
+
+| Check | Result |
+|---|---|
+| `pnpm typecheck`, `pnpm lint` | clean |
+| `pnpm test` | **__UNIT_FILES__ files / __UNIT_TESTS__ tests pass** (was 161 / 2,087); 51 database test files are skipped without `TEST_DATABASE_URL`. New: `tests/unit/ai/*` (flow validator with adversarial output, generation and repair, dry run, audience validator, policy lint, emergency wording, intent parsing, outcome and report maths, settings, wiring and render tests) |
+| `bash scripts/test-db.sh` then `pnpm exec vitest run tests/db` with PostgREST | **__DB_FILES__ files / __DB_TESTS__ tests pass** (was 50 / 708). New `tests/db/ai-copilots.test.ts` (27 tests), plus additions to `security-guard` (sweeps and the service-only function) and `jobs` (cron list) |
+| `pnpm build` (placeholder Supabase env), `pnpm bundle:check` | __BUILD__ |
+| `pnpm audit:security` | __AUDIT__ |
+| Paste file | `17_phase_17_ai_copilots.sql` applied with `--single-transaction` on a database built from the 68 earlier migrations; its `pg_dump` schema equals the full build's (only the random `\restrict` token differs) |
+
+Adversarial cases covered by tests (all against a fake model): extra nodes (41, and 250 against the engine's 200-step limit), loops and self-loops, an endless wait-and-send cycle, unknown node types, dangling edges, two triggers and none, duplicate and unsafe ids (including `__proto__`), oversized and non-JSON replies, smuggled keys, `api_action` to an arbitrary, internal or `file:` address (stripped, and the flow keeps working), webhook and recurring triggers, dose and diagnosis wording, SQL in an audience value or field name, fields outside the allowlist, ids from another organisation, a patient message that tries to steer the labeller, a model that returns an emergency alongside another tag (the emergency goes to people and never into the flow event).
+
+## NOT verified
+
+- **Real model behaviour and quality.** No test or check ever called a model. Whether the Flow Copilot writes useful flows, whether Arabic reads naturally, whether the audience reading matches what a person meant, and whether the labeller is accurate are unknown. The prompts and validators are the safety net, and the preview (count, plain-English reading, dry run, lint) is what lets a person catch a poor result; none of it substitutes for trying it on real wording from the clinic. Expect the repair step to be used often with a weaker model.
+- **Nothing was seen in a browser.** Six new or changed screens (flow list and builder additions, Campaign Copilot, AI copilots settings, AI reply quality, inbox badges, the suggestion-outcome reporting from the composer) were typechecked, linted, built and a few rendered to markup. Dialogs render in a portal and were not rendered at all. Please click through each as Admin, Manager and Marketing.
+- **The emergency word lists** are a starting point written by an engineer, not reviewed by a clinician (OQ-78). They are broad on purpose and ignore negation. They do not cover dialect spellings, Arabic written in Latin letters, misspellings, voice notes or images, so they are a prompt to look, never a substitute for watching the inbox.
+- **Meta's review.** The policy lint is a checklist (the builder's rules plus a reading of Meta's published template guidance and the clinic's own opt-out rule). It cannot predict Meta's decision, particularly Utility versus Marketing for reminders and recall messages.
+- **pg_cron** for the two new schedules (the harness has a stub), push and e-mail delivery of the two new events, and `notify()` quiet-hours behaviour for the urgent event on a real device.
+- **Volume.** Intent detection makes one model call per inbound text message when switched on. Cost and latency at the clinic's real message rate are untested; the daily cap is the backstop and a capped message is simply not labelled.
+- **Outcome thresholds** (92 and 45 on the similarity score) are starting values to tune with real use (OQ-80).
+- **Types** were generated from the test database with the Supabase CLI and formatted with prettier, but the committed `lib/supabase/types.ts` differs from fresh output in relationship ordering from earlier phases, so only the Phase 17 hunks were merged. Run the drift check on a real stack.
+
+## Decisions and deviations worth knowing
+
+1. **The copilot creates a new flow; it never edits an existing one.** Applying AI output onto a flow someone is editing would lose the provenance that the review gate depends on.
+2. **AI-generated flows cannot contain CRM nodes, API actions, nested flows or appointment booking.** The CRM nodes have no adapter registered in this codebase yet (they fail closed at run time), and the rest are a person's decision. A person can add any of them in the builder after the draft opens.
+3. **An emergency never starts a flow and the system sends the patient nothing.** An automatic "call the emergency number" reply to a patient is a clinical decision that was not made (OQ-78); today a person is told at once and the bot stops.
+4. **Audiences are limited to a fixed list of fields.** No custom fields (they may hold clinical detail), no free text, no phone, e-mail or names. If a request needs one, the model is told to say what it could not use.
+5. **Labels persist** on the conversation and in `ai_message_intents` until the conversation is erased or the tag is cleared by staff. No automatic expiry (OQ-79).
+6. **Single reviewer.** `markAiFlowReviewed` needs `flows.manage`; the person who generated the draft may review it. A second reviewer is a policy choice (OQ-82).
+7. **Dry run uses the real engine, so it shows real failures**: a message after a wait longer than 24 hours fails on the closed window, a message in a flow that starts from an enquiry or appointment event has no conversation. That is the point.
+8. **The weekly job needs a Monday after the week.** The first report appears on the first Monday after AI suggestions were used; it skips weeks with no AI use.
+
+## Open questions
+
+OQ-78 to OQ-82 in `docs/audit/open-questions.md`; OQ-57 and OQ-61 are updated there. The ones that change behaviour: **who signs the emergency word lists and whether the patient gets an automatic reply (OQ-78)**, **whether labelling every inbound message is acceptable and who the clinical lead is (OQ-57, OQ-79)**, and **whether one reviewer is enough for AI flows (OQ-82)**.
+
+## Before first use on the real stack
+
+1. Apply `deploy/supabase-paste/17_phase_17_ai_copilots.sql` to the **Pulse** project only (check the project name first), or `supabase db push`. Run it after the Phase 18 file. Deploy the app before or with it: the paste file adds a queue and schedules the app now drains.
+2. Check Settings, Roles: Manager and Marketing now hold the new keys; custom roles need them added by hand. Decide who holds `clinical.settings.manage` before anyone can approve AI tags starting flows.
+3. Have the clinical lead read and sign off `lib/ai/intent/emergency.ts` (the English and Arabic lists). Set the on-call people under Settings, Notifications so emergencies reach someone out of hours.
+4. Only after OQ-57 is answered: Settings, AI & knowledge base, turn AI on; then Settings, AI copilots for labelling. Leave "AI tags starting flows" off until the clinical lead decides.
+5. Try the Flow Copilot and the Campaign Copilot on the clinic's real wording with a manager reading every result. Try a dry run on each existing flow too.

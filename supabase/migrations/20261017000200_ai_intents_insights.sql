@@ -113,7 +113,10 @@ begin
   if v_after is distinct from v_before then
     update public.conversations set ai_tags = v_after where id = p_conversation and org_id = p_org;
   end if;
-  return array(select unnest(coalesce(p_tags, '{}')) except select unnest(v_before));
+  return array(
+    select t from unnest(coalesce(p_tags, '{}')) as t where t is not null and t <> ''
+    except select unnest(v_before)
+  );
 end;
 $$;
 revoke all on function public.ai_add_conversation_tags(uuid, uuid, text[]) from public, anon, authenticated;

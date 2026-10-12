@@ -13,6 +13,8 @@ import {
   formFromCron,
   type ScheduleForm,
 } from "@/lib/flow-engine/schedule";
+import { FLOW_TRIGGERABLE_TAGS } from "@/lib/ai/copilot/settings";
+import { INTENT_LABELS } from "@/lib/ai/intent/labels";
 import {
   CONDITION_CATEGORIES,
   CONDITION_OPS,
@@ -272,6 +274,35 @@ export function TriggerForm({
             >
               <KeyRound /> {hasToken || token ? "Rotate token" : "Create token"}
             </Button>
+          </div>
+        </Field>
+      )}
+
+      {type === "conversation_ai_tagged" && (
+        <Field label="Starts when the AI adds any of these tags">
+          <div className="flex flex-col gap-1.5">
+            {FLOW_TRIGGERABLE_TAGS.map((tag) => {
+              const chosen = Array.isArray(cfg.tags) ? (cfg.tags as string[]) : [];
+              return (
+                <label key={tag} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={chosen.includes(tag)}
+                    onChange={(e) =>
+                      setCfg({
+                        tags: e.target.checked ? [...chosen, tag] : chosen.filter((t) => t !== tag),
+                      })
+                    }
+                  />
+                  {INTENT_LABELS[tag]}
+                </label>
+              );
+            })}
+            <p className="text-muted-foreground text-xs">
+              This only ever starts a flow after the clinical lead has approved it under Settings,
+              AI copilots, and only for the tags they approved. A possible emergency always goes to
+              a person and never starts a flow.
+            </p>
           </div>
         </Field>
       )}

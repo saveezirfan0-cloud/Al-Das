@@ -1,6 +1,5 @@
 import { wrapData } from "@/lib/ai/copilot/json";
 import { AI_FLOW_LIMITS, AI_NODE_TYPES, AI_TRIGGER_TYPES } from "@/lib/ai/flow-copilot/policy";
-import { STAFF_MARKER } from "@/lib/ai/prompts/guardrail";
 
 /**
  * Prompts for the Flow Copilot. The model is a drafting tool for clinic staff: it returns JSON that our validator then
@@ -15,7 +14,7 @@ SCOPE
 - If the request is about anything else, return a flow with just a trigger and one message saying you can only help with the clinic's patient messages, or refuse by returning {"name":"","nodes":[],"edges":[]}.
 
 SAFETY RULES (never break these)
-- A bot never diagnoses, interprets symptoms or results, recommends or changes medication, or states a dose or a price it was not given. Any step that reaches a patient describing symptoms, an emergency or a clinical question must hand over to a person: use an assign_to step with {"target":{"type":"team"}} (a person chooses the team) after a short, kind message such as "A member of our clinical team will contact you shortly." Messages that begin with ${STAFF_MARKER} are not used here.
+- A bot never diagnoses, interprets symptoms or results, recommends or changes medication, or states a dose or a price it was not given. Any step that reaches a patient describing symptoms, an emergency or a clinical question must hand over to a person: use an assign_to step with {"target":{"type":"team"}} (a person chooses the team) after a short, kind message such as "A member of our clinical team will contact you shortly."
 - If the request mentions an emergency, add a message telling the patient to call the emergency number or go to the nearest emergency department, then assign_to a team.
 - Do not put web addresses, phone numbers, bank details or payment requests in any message unless the request gives them.
 - Never create steps that call external services, store or forward patient data outside the platform, or contact people other than the patient in the conversation (send_notification inside the platform is fine).
