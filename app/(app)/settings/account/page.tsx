@@ -4,7 +4,14 @@ import Link from "next/link";
 import { PageHeader } from "@/components/shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { requireMember } from "@/lib/auth/session";
 import { describeAuthEvent } from "@/lib/security/auth-events-view";
@@ -34,27 +41,32 @@ export default async function AccountPage() {
   });
   const currentId = await currentSessionId(supabase);
 
-  const [{ data: factors }, { data: aal }, { data: role }, { data: sessions }, { data: events }] = await Promise.all([
-    supabase.auth.mfa.listFactors(),
-    supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
-    supabase.from("roles").select("require_mfa").eq("id", member.roleId).maybeSingle(),
-    supabase
-      .from("user_sessions")
-      .select("id, session_id, ua_family, created_at, last_seen_at")
-      .eq("user_id", member.userId)
-      .is("revoked_at", null)
-      .order("last_seen_at", { ascending: false })
-      .limit(20),
-    supabase
-      .from("auth_events")
-      .select("id, event_type, method, at, ua_family, ip_address, ip_hash")
-      .eq("user_id", member.userId)
-      .order("at", { ascending: false })
-      .limit(50),
-  ]);
+  const [{ data: factors }, { data: aal }, { data: role }, { data: sessions }, { data: events }] =
+    await Promise.all([
+      supabase.auth.mfa.listFactors(),
+      supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
+      supabase.from("roles").select("require_mfa").eq("id", member.roleId).maybeSingle(),
+      supabase
+        .from("user_sessions")
+        .select("id, session_id, ua_family, created_at, last_seen_at")
+        .eq("user_id", member.userId)
+        .is("revoked_at", null)
+        .order("last_seen_at", { ascending: false })
+        .limit(20),
+      supabase
+        .from("auth_events")
+        .select("id, event_type, method, at, ua_family, ip_address, ip_hash")
+        .eq("user_id", member.userId)
+        .order("at", { ascending: false })
+        .limit(50),
+    ]);
 
   const when = (iso: string) =>
-    new Date(iso).toLocaleString("en-GB", { timeZone: tz, dateStyle: "medium", timeStyle: "short" });
+    new Date(iso).toLocaleString("en-GB", {
+      timeZone: tz,
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
 
   return (
     <div className="flex flex-col gap-6">
@@ -73,7 +85,9 @@ export default async function AccountPage() {
           <Card>
             <CardHeader>
               <CardTitle>Profile</CardTitle>
-              <CardDescription>Shown to colleagues in the inbox and on assignments.</CardDescription>
+              <CardDescription>
+                Shown to colleagues in the inbox and on assignments.
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <ProfileForm
@@ -103,7 +117,11 @@ export default async function AccountPage() {
 
         <TabsContent value="security" className="flex flex-col gap-6">
           <MfaCard
-            factors={(factors?.totp ?? []).map((f) => ({ id: f.id, name: f.friendly_name ?? "Authenticator app", createdAt: f.created_at }))}
+            factors={(factors?.totp ?? []).map((f) => ({
+              id: f.id,
+              name: f.friendly_name ?? "Authenticator app",
+              createdAt: f.created_at,
+            }))}
             required={role?.require_mfa === true}
             verifiedThisSession={aal?.currentLevel === "aal2"}
           />
@@ -123,9 +141,10 @@ export default async function AccountPage() {
             <CardHeader>
               <CardTitle>Login history</CardTitle>
               <CardDescription>
-                Your last 50 sign-ins and security changes. If you see something you do not recognise, sign out
-                everywhere and change your password. Your administrator can see this list too. Full IP addresses
-                are kept for 30 days; after that only an anonymous fingerprint remains.
+                Your last 50 sign-ins and security changes. If you see something you do not
+                recognise, sign out everywhere and change your password. Your administrator can see
+                this list too. Full IP addresses are kept for 30 days; after that only an anonymous
+                fingerprint remains.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0">
@@ -150,13 +169,18 @@ export default async function AccountPage() {
                     const d = describeAuthEvent(e.event_type, e.method);
                     return (
                       <TableRow key={e.id}>
-                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">{when(e.at)}</TableCell>
+                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                          {when(e.at)}
+                        </TableCell>
                         <TableCell>
                           <Badge variant={d.tone}>{d.label}</Badge>
                         </TableCell>
-                        <TableCell className="hidden text-sm sm:table-cell">{e.ua_family ?? "Unknown device"}</TableCell>
+                        <TableCell className="hidden text-sm sm:table-cell">
+                          {e.ua_family ?? "Unknown device"}
+                        </TableCell>
                         <TableCell className="text-muted-foreground hidden font-mono text-xs md:table-cell">
-                          {e.ip_address ?? (e.ip_hash ? `anonymised · ${e.ip_hash.slice(0, 6)}` : "not recorded")}
+                          {e.ip_address ??
+                            (e.ip_hash ? `anonymised · ${e.ip_hash.slice(0, 6)}` : "not recorded")}
                         </TableCell>
                       </TableRow>
                     );

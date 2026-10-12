@@ -123,7 +123,11 @@ export default async function InboxPage({
   ]);
 
   // The conversation list is a patient list too: sampled, like the other list screens.
-  await recordAccess(admin, member, { entity: "conversation", action: "list", detail: { rows: conversations.length } });
+  await recordAccess(admin, member, {
+    entity: "conversation",
+    action: "list",
+    detail: { rows: conversations.length },
+  });
 
   let selected: InboxProps["selected"] = null;
   let messages: InboxProps["messages"] = [];

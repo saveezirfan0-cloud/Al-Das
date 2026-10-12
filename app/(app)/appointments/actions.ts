@@ -248,7 +248,11 @@ export async function listAppointments(
   const build = await listBuilder(admin, member.orgId, parsed.data);
   const { data, count, error } = await build().range((page - 1) * pageSize, page * pageSize - 1);
   if (error) return fail("Could not load appointments.");
-  await recordAccess(admin, member, { entity: "appointment", action: "list", detail: { rows: data?.length ?? 0 } });
+  await recordAccess(admin, member, {
+    entity: "appointment",
+    action: "list",
+    detail: { rows: data?.length ?? 0 },
+  });
   return {
     ok: true,
     data: { rows: ((data ?? []) as unknown as JoinedAppointment[]).map(toRow), total: count ?? 0 },

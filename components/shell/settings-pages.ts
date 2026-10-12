@@ -125,7 +125,15 @@ export const SETTINGS_PAGES: readonly SettingsPage[] = [
     href: "/settings/activity",
     label: "Activity log",
     section: "Security & audit",
-    keywords: ["audit", "history", "who changed", "login history", "sign-ins", "record access", "who opened"],
+    keywords: [
+      "audit",
+      "history",
+      "who changed",
+      "login history",
+      "sign-ins",
+      "record access",
+      "who opened",
+    ],
     allow: admin,
   },
   {
@@ -146,7 +154,14 @@ export const SETTINGS_PAGES: readonly SettingsPage[] = [
     href: "/settings/privacy",
     label: "Patient data requests",
     section: "Security & audit",
-    keywords: ["export", "erasure", "delete patient", "gdpr", "subject access", "right to be forgotten"],
+    keywords: [
+      "export",
+      "erasure",
+      "delete patient",
+      "gdpr",
+      "subject access",
+      "right to be forgotten",
+    ],
     allow: (m) => can(m, "privacy.manage"),
   },
   {

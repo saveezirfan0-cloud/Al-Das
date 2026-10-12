@@ -61,6 +61,10 @@ function seed(extra: Record<string, Record<string, unknown>[]> = {}) {
         security_alerts: [["org_id", "dedupe_key"]],
         user_sessions: [["user_id", "session_id"]],
       },
+      defaults: {
+        record_access_log: () => ({ at: new Date().toISOString() }),
+        auth_events: () => ({ at: new Date().toISOString() }),
+      },
     },
   );
 }
@@ -126,6 +130,34 @@ describe("recordAccess", () => {
         sampled: false,
       }),
     ]);
+  });
+
+  it("counts the same person re-opening the same record within five minutes as one open", async () => {
+    const admin = seed();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-10-12T07:00:00Z"));
+    const open = (id: string, who = dubai) =>
+      recordAccess(asAdmin(admin), who, { entity: "conversation", entityId: id, action: "view" });
+    await open("c1");
+    await open("c1"); // a realtime refresh
+    await open("c2"); // a different record
+    await open("c1", { ...dubai, userId: "admin-2" }); // a different person
+    expect(admin._rows("record_access_log")).toHaveLength(3);
+    vi.setSystemTime(new Date("2026-10-12T07:06:00Z"));
+    await open("c1"); // opened again later
+    expect(admin._rows("record_access_log")).toHaveLength(4);
+    // downloads are never merged
+    await recordAccess(asAdmin(admin), dubai, {
+      entity: "document",
+      entityId: "d1",
+      action: "download",
+    });
+    await recordAccess(asAdmin(admin), dubai, {
+      entity: "document",
+      entityId: "d1",
+      action: "download",
+    });
+    expect(admin._rows("record_access_log").filter((r) => r.action === "download")).toHaveLength(2);
   });
 
   it("samples list views at the configured rate", async () => {

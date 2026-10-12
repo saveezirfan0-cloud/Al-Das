@@ -75,12 +75,19 @@ export async function updateSession(request: NextRequest) {
     let decision = mfaGate({ ...base, required: false });
     if (decision === "allow" && aal?.currentLevel !== "aal2") {
       const preferred = request.cookies.get("pulse_org")?.value;
-      const { data: memberships } = await supabase
+      const { data: memberships, error: roleError } = await supabase
         .from("memberships")
         .select("org_id, roles(require_mfa)")
         .eq("user_id", user.id)
         .eq("status", "active")
         .order("created_at");
+      if (roleError) {
+        // Fail closed: if we cannot tell whether this role needs a second step, do not assume it does not.
+        return NextResponse.json(
+          { error: "temporarily unavailable" },
+          { status: 503, headers: { "Retry-After": "5" } },
+        );
+      }
       const active = memberships?.find((m) => m.org_id === preferred) ?? memberships?.[0];
       decision = mfaGate({ ...base, required: active?.roles?.require_mfa === true });
     }

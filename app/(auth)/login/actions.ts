@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { z } from "zod";
 
 import { magicLinkErrorMessage } from "@/lib/auth/magic-link-error";
@@ -51,7 +52,9 @@ export async function signInWithPassword(_prev: AuthState, formData: FormData): 
   });
   const admin = createAdminClient();
   if (error || !data.user) {
-    await recordFailedSignIn(admin, { email: parsed.data.email, headers: await headers() });
+    // After the response, so the extra lookups for a real e-mail cannot be timed to tell it from an unknown one.
+    const requestHeaders = await headers();
+    after(() => recordFailedSignIn(admin, { email: parsed.data.email, headers: requestHeaders }));
     return { error: "Email or password is incorrect." };
   }
   await recordSignIn(admin, {

@@ -391,15 +391,18 @@ export type OffboardPreview = {
 };
 
 /** What off-boarding would touch, shown in the confirmation step. Counts only. */
-export async function previewOffboarding(membershipId: string): Promise<
-  { ok: true; data: OffboardPreview } | { ok: false; error: string }
-> {
+export async function previewOffboarding(
+  membershipId: string,
+): Promise<{ ok: true; data: OffboardPreview } | { ok: false; error: string }> {
   const member = await requirePerm("settings.manage");
-  if (!z.string().uuid().safeParse(membershipId).success) return { ok: false, error: "Invalid input" };
+  if (!z.string().uuid().safeParse(membershipId).success)
+    return { ok: false, error: "Invalid input" };
   const admin = createAdminClient();
   const { data: target } = await admin
     .from("memberships")
-    .select("id, user_id, status, profiles:profiles!memberships_user_id_fkey(first_name, last_name, email)")
+    .select(
+      "id, user_id, status, profiles:profiles!memberships_user_id_fkey(first_name, last_name, email)",
+    )
     .eq("id", membershipId)
     .eq("org_id", member.orgId)
     .maybeSingle();
@@ -416,12 +419,28 @@ export async function previewOffboarding(membershipId: string): Promise<
         .neq("status", "closed"),
     ),
     count(
-      admin.from("tasks").select("id", { count: "exact", head: true }).eq("org_id", member.orgId).eq("assignee_id", uid).eq("done", false),
+      admin
+        .from("tasks")
+        .select("id", { count: "exact", head: true })
+        .eq("org_id", member.orgId)
+        .eq("assignee_id", uid)
+        .eq("done", false),
     ),
     count(
-      admin.from("api_keys").select("id", { count: "exact", head: true }).eq("org_id", member.orgId).eq("created_by", uid).is("revoked_at", null),
+      admin
+        .from("api_keys")
+        .select("id", { count: "exact", head: true })
+        .eq("org_id", member.orgId)
+        .eq("created_by", uid)
+        .is("revoked_at", null),
     ),
-    count(admin.from("team_members").select("user_id", { count: "exact", head: true }).eq("org_id", member.orgId).eq("user_id", uid)),
+    count(
+      admin
+        .from("team_members")
+        .select("user_id", { count: "exact", head: true })
+        .eq("org_id", member.orgId)
+        .eq("user_id", uid),
+    ),
     admin
       .from("memberships")
       .select("user_id, profiles:profiles!memberships_user_id_fkey(first_name, last_name, email)")
@@ -439,7 +458,9 @@ export async function previewOffboarding(membershipId: string): Promise<
       openTasks,
       apiKeys,
       teams,
-      candidates: (others ?? []).map((o) => ({ userId: o.user_id, name: label(o.profiles) })).sort((a, b) => a.name.localeCompare(b.name)),
+      candidates: (others ?? [])
+        .map((o) => ({ userId: o.user_id, name: label(o.profiles) }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
     },
   };
 }
@@ -449,7 +470,10 @@ export async function previewOffboarding(membershipId: string): Promise<
  * keys they created, hands their open conversations and tasks to someone else (or unassigns them), takes
  * them out of every team and marks their sessions revoked. The audit entry is written in the same transaction.
  */
-export async function offboardMember(membershipId: string, reassignToUserId: string | null): Promise<ActionResult> {
+export async function offboardMember(
+  membershipId: string,
+  reassignToUserId: string | null,
+): Promise<ActionResult> {
   const member = await requirePerm("settings.manage");
   const parsed = z
     .object({ membershipId: z.string().uuid(), reassignTo: z.string().uuid().nullable() })
@@ -463,7 +487,9 @@ export async function offboardMember(membershipId: string, reassignToUserId: str
     p_reassign_to: parsed.data.reassignTo ?? undefined,
   });
   if (error) {
-    const known = /last administrator|yourself|already suspended|not found|hand-over/i.test(error.message);
+    const known = /last administrator|yourself|already suspended|not found|hand-over/i.test(
+      error.message,
+    );
     return { ok: false, error: known ? error.message : "Could not off-board the member." };
   }
   const result = (data ?? {}) as Record<string, Json>;

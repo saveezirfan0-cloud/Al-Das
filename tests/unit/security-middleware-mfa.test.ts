@@ -5,9 +5,16 @@ type FakeState = {
   user: { id: string } | null;
   aal: { currentLevel: string | null; nextLevel: string | null } | null;
   memberships: Array<{ org_id: string; roles: { require_mfa: boolean } | null }>;
+  membershipError: { message: string } | null;
   queries: number;
 };
-const state: FakeState = { user: null, aal: null, memberships: [], queries: 0 };
+const state: FakeState = {
+  user: null,
+  aal: null,
+  memberships: [],
+  membershipError: null,
+  queries: 0,
+};
 
 vi.mock("@supabase/ssr", () => ({
   createServerClient: () => ({
@@ -20,7 +27,10 @@ vi.mock("@supabase/ssr", () => ({
       const chain = {
         select: () => chain,
         eq: () => chain,
-        order: async () => ({ data: state.memberships }),
+        order: async () => ({
+          data: state.membershipError ? null : state.memberships,
+          error: state.membershipError,
+        }),
       };
       return chain;
     },
@@ -40,6 +50,7 @@ beforeEach(() => {
   state.user = { id: "u1" };
   state.aal = { currentLevel: "aal1", nextLevel: "aal1" };
   state.memberships = [{ org_id: "o1", roles: { require_mfa: false } }];
+  state.membershipError = null;
   state.queries = 0;
 });
 
@@ -79,6 +90,15 @@ describe("middleware two-step verification", () => {
     ];
     expect(target(await updateSession(req("/inbox")))).toBeNull();
     expect(target(await updateSession(req("/inbox", "pulse_org=o2")))).toBe("/mfa/enroll");
+  });
+
+  it("fails closed when the role cannot be read, instead of assuming MFA is not needed", async () => {
+    state.membershipError = { message: "db down" };
+    const res = await updateSession(req("/finance/claims"));
+    expect(res.status).toBe(503);
+    // a verified session never needs the lookup, so it is unaffected
+    state.aal = { currentLevel: "aal2", nextLevel: "aal2" };
+    expect((await updateSession(req("/finance/claims"))).status).toBe(200);
   });
 
   it("keeps the MFA pages, sign-out and the public routes reachable", async () => {

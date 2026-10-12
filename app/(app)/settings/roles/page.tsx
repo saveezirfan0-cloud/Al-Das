@@ -15,7 +15,7 @@ export default async function RolesPage() {
   const [{ data: roles }, { data: memberships }] = await Promise.all([
     admin
       .from("roles")
-      .select("id, name, description, permissions, is_system")
+      .select("id, name, description, permissions, is_system, require_mfa")
       .eq("org_id", member.orgId)
       .order("is_system", { ascending: false })
       .order("name"),
@@ -42,6 +42,7 @@ export default async function RolesPage() {
                 <CardTitle className="flex items-center gap-2">
                   {r.name}
                   {r.is_system && <Badge variant="outline">System</Badge>}
+                  {r.require_mfa && <Badge variant="outline">Two-step required</Badge>}
                 </CardTitle>
                 <CardDescription>{r.description || "No description"}</CardDescription>
                 <div className="col-start-2 row-span-2 row-start-1 self-start justify-self-end">

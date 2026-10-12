@@ -92,7 +92,11 @@ export default async function ClaimDetail({ params }: { params: Promise<{ id: st
     .eq("id", id)
     .maybeSingle();
   if (!claim) notFound();
-  await recordAccess(createAdminClient(), member, { entity: "finance_claim", entityId: id, action: "view" });
+  await recordAccess(createAdminClient(), member, {
+    entity: "finance_claim",
+    entityId: id,
+    action: "view",
+  });
   const { data: events } = await supabase
     .from("ins_claim_activity_events")
     .select("id, observed_at, changed_fields")

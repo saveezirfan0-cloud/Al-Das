@@ -12,7 +12,12 @@ export async function POST(request: NextRequest) {
   if (member) {
     await supabase.rpc("set_presence", { p_org_id: member.orgId, p_presence: "offline" });
     const admin = createAdminClient();
-    await recordAuthEvent(admin, { type: "sign_out", userId: member.userId, orgId: member.orgId, headers: request.headers });
+    await recordAuthEvent(admin, {
+      type: "sign_out",
+      userId: member.userId,
+      orgId: member.orgId,
+      headers: request.headers,
+    });
     await endSessionRows(admin, supabase, member, "this_device");
   }
   await supabase.auth.signOut();

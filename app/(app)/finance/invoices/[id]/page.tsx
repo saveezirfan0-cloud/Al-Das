@@ -32,7 +32,11 @@ export default async function InvoiceDetail({ params }: { params: Promise<{ id: 
   const supabase = await createClient(); // RLS applies to every query below
   const { data: inv } = await supabase.from("fin_invoices").select("*").eq("id", id).maybeSingle();
   if (!inv) notFound();
-  await recordAccess(createAdminClient(), member, { entity: "finance_invoice", entityId: id, action: "view" });
+  await recordAccess(createAdminClient(), member, {
+    entity: "finance_invoice",
+    entityId: id,
+    action: "view",
+  });
 
   const canClaims = can(member, "finance.claims.view");
   const [

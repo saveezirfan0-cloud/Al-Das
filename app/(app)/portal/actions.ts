@@ -172,7 +172,12 @@ export async function getRecordDetail(
   if (!uuid.safeParse(id).success) return fail("Invalid record.");
   const rec = await getRecord(admin, member, def, id);
   if (!rec.ok) return fail(rec.error);
-  await recordAccess(admin, member, { entity: "portal_record", entityId: id, action: "view", detail: { object: def.key } });
+  await recordAccess(admin, member, {
+    entity: "portal_record",
+    entityId: id,
+    action: "view",
+    detail: { object: def.key },
+  });
   const l = loose(admin);
   const [links, events, comments, attachments] = await Promise.all([
     resolveLinks(admin, member.orgId, def, [rec.data]),
@@ -395,7 +400,12 @@ export async function portalAttachmentUrl(
     .from(PORTAL_BUCKET)
     .createSignedUrl(data.path as string, 300, { download: data.file_name as string });
   if (error || !signed) return fail("Could not open the attachment.");
-  await recordAccess(admin, member, { entity: "document", entityId: attachmentId, action: "download", detail: { object: def.key } });
+  await recordAccess(admin, member, {
+    entity: "document",
+    entityId: attachmentId,
+    action: "download",
+    detail: { object: def.key },
+  });
   return { ok: true, data: { url: signed.signedUrl } };
 }
 

@@ -3,7 +3,7 @@ import "server-only";
 import type { CurrentMember } from "@/lib/auth/session";
 import { bulkExportAlert, offHoursAlert } from "@/lib/security/anomaly";
 import { raiseAlert } from "@/lib/security/alerts";
-import { shouldLogAccess, type AccessAction } from "@/lib/security/sampling";
+import { shouldLogAccess, VIEW_DEDUPE_MINUTES, type AccessAction } from "@/lib/security/sampling";
 import { readSecuritySettings } from "@/lib/security/settings";
 import type { AdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/types";
@@ -44,6 +44,20 @@ export async function recordAccess(
   try {
     const settings = readSecuritySettings(who.org.settings);
     if (!shouldLogAccess(input.action, settings.list_sample_rate, random)) return;
+    if (input.action === "view" && input.entityId) {
+      const since = new Date(Date.now() - VIEW_DEDUPE_MINUTES * 60_000).toISOString();
+      const { data: recent } = await admin
+        .from("record_access_log")
+        .select("id")
+        .eq("org_id", who.orgId)
+        .eq("user_id", who.userId)
+        .eq("entity", input.entity)
+        .eq("entity_id", input.entityId)
+        .eq("action", "view")
+        .gte("at", since)
+        .limit(1);
+      if (recent?.length) return; // the same open, seen again (a refresh, a re-render)
+    }
     const { error } = await admin.from("record_access_log").insert({
       org_id: who.orgId,
       user_id: who.userId,

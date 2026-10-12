@@ -44,7 +44,10 @@ export async function GET(req: Request) {
     entity: "v_fin_monthly_summary",
     diff: { from, to, branch: branch || null, rows: data?.length ?? 0 },
   });
-  await recordExport(createAdminClient(), member, { dataset: "finance:summary", rows: data?.length ?? 0 });
+  await recordExport(createAdminClient(), member, {
+    dataset: "finance:summary",
+    rows: data?.length ?? 0,
+  });
 
   const csv = toCsv(
     ["Month", "Branch", ...SUMMARY_COLUMNS],

@@ -846,6 +846,10 @@ describe.skipIf(!TEST_DATABASE_URL)(
           [orgA, contact],
         );
         await c.query(
+          "insert into public.sync_reviews (org_id, source, entity, external_id, reason, status, resolved_contact_id, incoming) values ($1, 'unite', 'patient', 'PIN-9', 'ambiguous', 'resolved', $2, '{\"name\": \"Layla Haddad\"}')",
+          [orgA, contact],
+        );
+        await c.query(
           "insert into public.visits (org_id, contact_id, external_id, source, visit_date, doctor_notes) values ($1, $2, 'V-1', 'unite', current_date, 'clinical note')",
           [orgA, contact],
         );
@@ -1031,6 +1035,13 @@ describe.skipIf(!TEST_DATABASE_URL)(
           enquiry,
         ]);
         expect(e).toEqual({ title: "Erased enquiry", lost_reason: null, custom: {} });
+        const {
+          rows: [review],
+        } = await c.query(
+          "select incoming, candidates from public.sync_reviews where resolved_contact_id = $1",
+          [contact],
+        );
+        expect(review).toEqual({ incoming: {}, candidates: [] });
         // The field history of the patient's records repeated the notes: gone.
         expect(
           await count(

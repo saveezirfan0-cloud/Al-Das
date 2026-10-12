@@ -100,7 +100,12 @@ async function endSessions(scope: SessionScope): Promise<void> {
   // Mark our device rows first: after a global sign-out the session that identifies "this device" is gone.
   await endSessionRows(admin, supabase, member, scope);
   await recordAuthEvent(admin, {
-    type: scope === "everywhere" ? "sign_out_everywhere" : scope === "others" ? "session_revoked" : "sign_out",
+    type:
+      scope === "everywhere"
+        ? "sign_out_everywhere"
+        : scope === "others"
+          ? "session_revoked"
+          : "sign_out",
     userId: member.userId,
     orgId: member.orgId,
     headers: await headers(),
@@ -109,7 +114,8 @@ async function endSessions(scope: SessionScope): Promise<void> {
     await recordAudit(admin, {
       orgId: member.orgId,
       userId: member.userId,
-      action: scope === "everywhere" ? "session.signed_out_everywhere" : "session.signed_out_others",
+      action:
+        scope === "everywhere" ? "session.signed_out_everywhere" : "session.signed_out_others",
       entity: "profile",
       entityId: member.userId,
     });

@@ -116,7 +116,8 @@ export async function updateRole(
     diff: { before: existing.permissions, after: parsed.data.permissions },
   });
   const sameSet =
-    JSON.stringify([...(existing.permissions as string[])].sort()) === JSON.stringify([...parsed.data.permissions].sort());
+    JSON.stringify([...(existing.permissions as string[])].sort()) ===
+    JSON.stringify([...parsed.data.permissions].sort());
   if (!sameSet) {
     await raiseAlert(
       admin,
@@ -177,7 +178,13 @@ export async function deleteRole(roleId: string): Promise<ActionResult> {
   await raiseAlert(
     admin,
     member.orgId,
-    roleChangeAlert({ actorId: member.userId, kind: "role_deleted", targetId: roleId, roleName: existing.name, eventId: randomUUID() }),
+    roleChangeAlert({
+      actorId: member.userId,
+      kind: "role_deleted",
+      targetId: roleId,
+      roleName: existing.name,
+      eventId: randomUUID(),
+    }),
   );
   revalidatePath("/settings/roles");
   return { ok: true, message: "Role deleted." };

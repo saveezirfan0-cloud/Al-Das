@@ -103,6 +103,9 @@ begin
   update public.campaign_recipients set vars = '{}'::jsonb, csv_data = '{}'::jsonb, error_message = null
    where org_id = p_org and contact_id = p_contact;
   update public.recall_sends set notes = null, sent_to_phone_e164 = null where org_id = p_org and contact_id = p_contact;
+  -- Unite patients that were matched to this contact carry the patient's details in the review item.
+  update public.sync_reviews set incoming = '{}'::jsonb, candidates = '[]'::jsonb
+   where org_id = p_org and resolved_contact_id = p_contact;
 
   -- The field-level history of the patient's appointments, enquiries and tasks repeats those values.
   perform set_config('app.history_purge', 'on', true);
