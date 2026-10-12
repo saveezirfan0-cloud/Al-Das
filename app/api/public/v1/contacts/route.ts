@@ -75,7 +75,7 @@ export const POST = apiRoute("contacts:write", async ({ request, admin, ctx }) =
   const parsed = createContactSchema.safeParse(body);
   if (!parsed.success) return validationError(parsed.error.issues);
 
-  const result = await upsertContact(admin, ctx.orgId, parsed.data);
+  const result = await upsertContact(admin, ctx.orgId, parsed.data, ctx.keyId);
   if (!result.ok) return apiError(result.status, result.code, result.message);
   await recordAudit(admin, { orgId: ctx.orgId, userId: null, action: result.created ? "api.contact_created" : "api.contact_updated", entity: "contact", entityId: result.contact.id, diff: { api_key_id: ctx.keyId } });
   // A write-only key must not be able to read patient records back: without contacts:read it gets the id only.

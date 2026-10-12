@@ -63,6 +63,29 @@ describe("parsePublicHttpsUrl", () => {
   });
 });
 
+describe("ports (Phase 15: only 443)", () => {
+  it("accepts the default port, spelled out or not", () => {
+    expect(parsePublicHttpsUrl("https://clinic.example.com/x").port).toBe("");
+    expect(parsePublicHttpsUrl("https://clinic.example.com:443/x").hostname).toBe("clinic.example.com");
+  });
+  it.each(["https://clinic.example.com:8443/x", "https://clinic.example.com:22/", "https://clinic.example.com:80/", "https://203.0.113.5:6379/"])(
+    "rejects %s",
+    (raw) => {
+      expect(() => parsePublicHttpsUrl(raw)).toThrow(/port \(443\)/);
+    },
+  );
+  it("also refuses a non-443 port in assertPublicHttpsUrl before any DNS lookup", async () => {
+    let resolved = false;
+    await expect(
+      assertPublicHttpsUrl("https://clinic.example.com:9200/", async () => {
+        resolved = true;
+        return ["93.184.216.34"];
+      }),
+    ).rejects.toThrow(/443/);
+    expect(resolved).toBe(false);
+  });
+});
+
 describe("assertPublicHttpsUrl", () => {
   const resolveTo = (...addresses: string[]) => async () => addresses;
 

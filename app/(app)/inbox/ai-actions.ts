@@ -21,7 +21,7 @@ import {
   type RewriteMode,
   type TranscriptMessage,
 } from "@/lib/ai/types";
-import { checkRateLimit, recordUsage } from "@/lib/ai/usage";
+import { checkDailyCap, checkRateLimit, recordUsage } from "@/lib/ai/usage";
 import { listMessages } from "@/lib/inbox/queries";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -84,6 +84,10 @@ async function prepare(
   const admin = createAdminClient();
   const limit = await checkRateLimit(admin, member.orgId, member.userId, settings.rate_limit_per_minute);
   if (!limit.allowed) return { error: "You're using AI assist very quickly. Wait a few seconds and try again." };
+  const daily = await checkDailyCap(admin, member.orgId, settings.daily_cap, member.org.timezone || "UTC");
+  if (!daily.allowed) {
+    return { error: "Your workspace has used today's AI allowance. It resets at midnight; an administrator can raise it in Settings → AI & knowledge base." };
+  }
 
   let llm: Llm;
   try {

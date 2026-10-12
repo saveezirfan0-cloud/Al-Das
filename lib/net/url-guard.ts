@@ -4,7 +4,7 @@ import { BlockList, isIP } from "node:net";
  * SSRF protection for every server-side fetch of a URL a user (or a website) controls:
  * knowledge-base URL sources and outbound webhook endpoints.
  *
- * Rules: https only, no embedded credentials, no localhost/internal names, and every address the
+ * Rules: https only on the standard port 443, no embedded credentials, no localhost/internal names, and every address the
  * name resolves to must be public. The same check runs again on the address actually connected to
  * (see safe-request.ts), which defeats DNS rebinding and redirects to internal hosts.
  */
@@ -84,6 +84,9 @@ export function parsePublicHttpsUrl(raw: string): URL {
   }
   if (url.protocol !== "https:") throw new UnsafeUrlError("Only https:// URLs are allowed.");
   if (url.username || url.password) throw new UnsafeUrlError("URLs with embedded credentials are not allowed.");
+  // new URL() drops the default port, so any non-empty port is something other than 443. Allowing other
+  // ports would let a user probe non-web services on public hosts through the server.
+  if (url.port !== "") throw new UnsafeUrlError("Only the standard HTTPS port (443) is allowed.");
   const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, "");
   if (!host) throw new UnsafeUrlError("Enter a valid URL.");
   if (host === "localhost" || INTERNAL_SUFFIXES.some((s) => host.endsWith(s))) {

@@ -34,7 +34,7 @@ export const PATCH = apiRoute("contacts:write", async ({ request, admin, ctx, pa
   const parsed = updateContactSchema.safeParse(body);
   if (!parsed.success) return validationError(parsed.error.issues);
 
-  const result = await updateContact(admin, ctx.orgId, params.id, parsed.data);
+  const result = await updateContact(admin, ctx.orgId, params.id, parsed.data, ctx.keyId);
   if (!result.ok) return apiError(result.status, result.code, result.message);
   await recordAudit(admin, { orgId: ctx.orgId, userId: null, action: "api.contact_updated", entity: "contact", entityId: result.contact.id, diff: { api_key_id: ctx.keyId, fields: Object.keys(parsed.data) } });
   return json(hasScope(ctx.scopes, "contacts:read") ? serializeContact(result.contact) : { id: result.contact.id });

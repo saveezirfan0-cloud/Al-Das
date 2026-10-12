@@ -32,6 +32,43 @@ describe("contact schemas", () => {
     expect(createContactSchema.safeParse({ phone: "1", email: "nope" }).success).toBe(false);
   });
 
+  describe("marketing consent evidence (Phase 15)", () => {
+    const consent = { source: "website booking form", obtained_at: "2026-10-01T09:30:00+04:00" };
+
+    it("refuses promotions_opt_in: true without evidence", () => {
+      const r = createContactSchema.safeParse({ phone: "+971501234567", promotions_opt_in: true });
+      expect(r.success).toBe(false);
+      expect(!r.success && r.error.issues[0].path).toEqual(["promotions_consent"]);
+      expect(updateContactSchema.safeParse({ promotions_opt_in: true }).success).toBe(false);
+    });
+    it("accepts it with a source and a real timestamp", () => {
+      expect(createContactSchema.safeParse({ phone: "+971501234567", promotions_opt_in: true, promotions_consent: consent }).success).toBe(true);
+      expect(updateContactSchema.safeParse({ promotions_opt_in: true, promotions_consent: { ...consent, reference: "form-123" } }).success).toBe(true);
+    });
+    it("rejects thin or malformed evidence", () => {
+      for (const bad of [{ source: "x", obtained_at: consent.obtained_at }, { source: consent.source, obtained_at: "yesterday" }, { source: consent.source }, { ...consent, extra: 1 }]) {
+        expect(createContactSchema.safeParse({ phone: "+971501234567", promotions_opt_in: true, promotions_consent: bad }).success).toBe(false);
+      }
+    });
+    it("allows an opt-out without evidence, and refuses evidence without an opt-in", () => {
+      expect(createContactSchema.safeParse({ phone: "+971501234567", promotions_opt_in: false }).success).toBe(true);
+      expect(createContactSchema.safeParse({ phone: "+971501234567", promotions_consent: consent }).success).toBe(false);
+      expect(updateContactSchema.safeParse({ promotions_opt_in: false, promotions_consent: consent }).success).toBe(false);
+    });
+    it("stores the evidence with the key that supplied it, and clears it on opt-out", async () => {
+      const { admin, as } = setup();
+      const created = await upsertContact(as, "org1", { phone: "+971501234567", promotions_opt_in: true, promotions_consent: consent }, "key-1");
+      expect(created.ok && created.contact.promotions_opt_in).toBe(true);
+      const stored = admin._rows("contacts")[0].promotions_consent as Record<string, unknown>;
+      expect(stored).toMatchObject({ source: "website booking form", obtained_at: consent.obtained_at, recorded_via: "api", api_key_id: "key-1" });
+      expect(typeof stored.recorded_at).toBe("string");
+
+      await upsertContact(as, "org1", { phone: "+971501234567", promotions_opt_in: false }, "key-1");
+      expect(admin._rows("contacts")[0].promotions_opt_in).toBe(false);
+      expect(admin._rows("contacts")[0].promotions_consent).toBeNull();
+    });
+  });
+
   it("lets the API record an opt-out but never lift one", () => {
     expect(createContactSchema.safeParse({ phone: "1", stop_marketing: true }).success).toBe(true);
     expect(createContactSchema.safeParse({ phone: "1", stop_marketing: false }).success).toBe(false);

@@ -30,9 +30,38 @@ const fields = {
   dob: isoDate,
   external_id: text(100).min(1),
   promotions_opt_in: z.boolean(),
+  /**
+   * Evidence that the patient agreed to promotions. Required whenever a request sets promotions_opt_in to
+   * true: where and when the consent was given, and optionally a reference (form id, message id).
+   */
+  promotions_consent: z
+    .object({
+      source: text(100).min(3, "Say where the consent was given, e.g. 'website booking form'."),
+      obtained_at: z.string().datetime({ offset: true, message: "Use an ISO date-time, e.g. 2026-10-01T09:30:00+04:00" }),
+      reference: text(200).optional(),
+    })
+    .strict(),
   /** The API can record an opt-out but never lift one: re-opt-in needs evidence staff must record. */
   stop_marketing: z.literal(true, { error: "stop_marketing can only be set to true through the API." }),
 };
+
+/** Marketing opt-in is only accepted with evidence of consent (Phase 15, closing the Phase 10 gap). */
+function requireConsentEvidence(v: { promotions_opt_in?: boolean; promotions_consent?: unknown }, ctx: z.RefinementCtx) {
+  if (v.promotions_opt_in === true && !v.promotions_consent) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["promotions_consent"],
+      message: "promotions_opt_in: true needs promotions_consent { source, obtained_at } as evidence that the patient agreed.",
+    });
+  }
+  if (v.promotions_consent && v.promotions_opt_in !== true) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["promotions_consent"],
+      message: "promotions_consent is only accepted together with promotions_opt_in: true.",
+    });
+  }
+}
 
 export const createContactSchema = z
   .object({ phone: fields.phone })
@@ -47,9 +76,11 @@ export const createContactSchema = z
     dob: fields.dob.optional(),
     external_id: fields.external_id.optional(),
     promotions_opt_in: fields.promotions_opt_in.optional(),
+    promotions_consent: fields.promotions_consent.optional(),
     stop_marketing: fields.stop_marketing.optional(),
   })
-  .strict();
+  .strict()
+  .superRefine(requireConsentEvidence);
 export type CreateContactInput = z.infer<typeof createContactSchema>;
 
 export const updateContactSchema = z
@@ -65,11 +96,13 @@ export const updateContactSchema = z
     dob: fields.dob,
     external_id: fields.external_id,
     promotions_opt_in: fields.promotions_opt_in,
+    promotions_consent: fields.promotions_consent,
     stop_marketing: fields.stop_marketing,
   })
   .partial()
   .strict()
-  .refine((v) => Object.keys(v).length > 0, "Send at least one field to update.");
+  .refine((v) => Object.keys(v).length > 0, "Send at least one field to update.")
+  .superRefine(requireConsentEvidence);
 export type UpdateContactInput = z.infer<typeof updateContactSchema>;
 
 type ContactRow = Tables<"contacts">;
@@ -103,10 +136,16 @@ const invalidPhone = { ok: false, status: 422, code: "invalid_phone", message: "
 // Deliberately does not say which value clashed, so a write-only key cannot probe for existing external ids.
 const conflict = (): ContactResult => ({ ok: false, status: 409, code: "conflict", message: "That value conflicts with an existing contact." });
 
-function updateFromInput(input: Partial<CreateContactInput & UpdateContactInput>): TablesUpdate<"contacts"> {
+function updateFromInput(input: Partial<CreateContactInput & UpdateContactInput>, apiKeyId?: string): TablesUpdate<"contacts"> {
   const patch: TablesUpdate<"contacts"> = {};
   for (const k of ["first_name", "last_name", "email", "gender", "nationality", "country", "language", "dob", "external_id", "promotions_opt_in", "stop_marketing"] as const) {
     if (input[k] !== undefined) (patch as Record<string, unknown>)[k] = input[k];
+  }
+  // Consent evidence travels with the opt-in; withdrawing the opt-in clears it.
+  if (input.promotions_opt_in === true && input.promotions_consent) {
+    patch.promotions_consent = { ...input.promotions_consent, recorded_via: "api", recorded_at: new Date().toISOString(), api_key_id: apiKeyId ?? null };
+  } else if (input.promotions_opt_in === false) {
+    patch.promotions_consent = null;
   }
   return patch;
 }
@@ -149,10 +188,10 @@ async function afterWrite(orgId: string, before: ContactRow | null, after: Conta
 }
 
 /** Create, or update the contact that already owns this phone. */
-export async function upsertContact(admin: AdminClient, orgId: string, input: CreateContactInput): Promise<ContactResult> {
+export async function upsertContact(admin: AdminClient, orgId: string, input: CreateContactInput, apiKeyId?: string): Promise<ContactResult> {
   const phone = toE164(input.phone);
   if (!phone) return invalidPhone;
-  const patch = updateFromInput(input);
+  const patch = updateFromInput(input, apiKeyId);
 
   for (let attempt = 0; attempt < 2; attempt++) {
     const existing = (await findContactsByPhone(admin, orgId, phone))[0];
@@ -180,11 +219,11 @@ export async function upsertContact(admin: AdminClient, orgId: string, input: Cr
   return { ok: false, status: 409, code: "conflict", message: "The contact was changed by another request. Retry." };
 }
 
-export async function updateContact(admin: AdminClient, orgId: string, id: string, input: UpdateContactInput): Promise<ContactResult> {
+export async function updateContact(admin: AdminClient, orgId: string, id: string, input: UpdateContactInput, apiKeyId?: string): Promise<ContactResult> {
   const { data: existing } = await admin.from("contacts").select("*").eq("id", id).eq("org_id", orgId).is("deleted_at", null).maybeSingle();
   if (!existing) return { ok: false, status: 404, code: "not_found", message: "Contact not found." };
 
-  const patch = updateFromInput(input);
+  const patch = updateFromInput(input, apiKeyId);
   if (input.phone !== undefined) {
     const phone = toE164(input.phone);
     if (!phone) return invalidPhone;
