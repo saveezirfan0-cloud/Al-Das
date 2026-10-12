@@ -12,6 +12,8 @@ const PUBLIC_PREFIXES = [
   "/api/jobs",
   "/api/webhooks",
   "/api/public",
+  "/api/calendar", // Phase 19: the doctor calendar feed (secret token in the path, rate limited)
+  "/pay/done", // Phase 19: the plain page a patient lands on after paying
   "/_next",
   "/favicon",
   "/manifest.webmanifest",

@@ -20,7 +20,7 @@ export async function resetDb(c: Client) {
   await c.query("truncate public.orgs cascade");
   await c.query("truncate public.scheduled_jobs, public.job_runs, public.dead_letters, public.flow_locks");
   await c.query("delete from auth.users");
-  for (const q of ["outbound", "outbound_priority", "flow_steps", "notifications", "meta_events", "webhooks_out", "kb_ingest", "ai_insights"]) {
+  for (const q of ["outbound", "outbound_priority", "flow_steps", "notifications", "meta_events", "webhooks_out", "kb_ingest", "ai_insights", "sms_outbound"]) {
     await c.query(`delete from pgmq.q_${q}`);
     await c.query(`delete from pgmq.a_${q}`);
   }
@@ -372,3 +372,68 @@ export async function seedPhase17Rows(c: Client, orgId: string, userId: string) 
 
 /** Phase 17 tables with a browser (select) policy. */
 export const PHASE17_TABLES = ["ai_message_intents", "ai_quality_reports", "ai_suggestion_outcomes"] as const;
+
+/**
+ * One row in every Phase 19 table, for an org, so the cross-org sweeps are not vacuous for them (synthetic ids only; no phone,
+ * name, message text, link or token anywhere). Service role only: none of them has a write policy.
+ */
+export async function seedPhase19Rows(c: Client, orgId: string, userId: string) {
+  const ids: Record<string, string> = {};
+  await asServiceRole(c, async () => {
+    const one = async (sql: string, params: unknown[]) =>
+      (await c.query<{ id: string }>(sql + " returning id::text", params)).rows[0].id;
+    ids.account = await one(
+      "insert into public.integration_accounts (org_id, kind, config_enc, status, enabled) values ($1, 'sms', 'v1:seed:seed:seed', 'disabled', false) on conflict (org_id, kind) do update set kind = excluded.kind",
+      [orgId],
+    );
+    await c.query(
+      "insert into public.integration_calls (org_id, provider, operation, outcome, http_status, duration_ms) values ($1, 'twilio', 'sms.send', 'ok', 201, 120)",
+      [orgId],
+    );
+    await c.query(
+      "insert into public.integration_webhook_events (org_id, provider, event_key, outcome) values ($1, 'twilio', 'SMseed:delivered', 'applied_delivered')",
+      [orgId],
+    );
+    await c.query(
+      "insert into public.integration_usage_daily (org_id, provider, day, metric, value) values ($1, 'sms', current_date, 'sent', 1)",
+      [orgId],
+    );
+    ids.specialist = await one(
+      "insert into public.specialists (org_id, name) values ($1, 'Dr Seed 19')",
+      [orgId],
+    );
+    ids.feed = await one(
+      "insert into public.calendar_feeds (org_id, kind, specialist_id, label, token_hash, created_by) values ($1, 'specialist', $2, 'Seed feed', encode(sha256(gen_random_uuid()::text::bytea), 'hex'), $3)",
+      [orgId, ids.specialist, userId],
+    );
+    ids.contact = await one(
+      "insert into public.contacts (org_id, first_name, last_name, phone_e164) values ($1, 'Sms', 'Seed', '+971500000191')",
+      [orgId],
+    );
+    ids.sms = await one(
+      "insert into public.sms_messages (org_id, contact_id, provider, dedupe_key, status) values ($1, $2, 'twilio', 'seed:' || gen_random_uuid()::text, 'sent')",
+      [orgId, ids.contact],
+    );
+    ids.invoice = await one(
+      "insert into public.fin_invoices (org_id, inv_display_number, patient_pin, total, record_hash) values ($1, 'INV-SEED-19', 'PIN-SEED-19', 150, 'seed-hash-19')",
+      [orgId],
+    );
+    ids.payment = await one(
+      "insert into public.fin_payment_requests (org_id, invoice_id, invoice_number, patient_pin, provider, amount_minor, currency, status, created_by) values ($1, $2, 'INV-SEED-19', 'PIN-SEED-19', 'stripe', 15000, 'AED', 'sent', $3)",
+      [orgId, ids.invoice, userId],
+    );
+  });
+  return ids;
+}
+
+/** Phase 19 tables with a browser (select) policy. */
+export const PHASE19_TABLES = [
+  "calendar_feeds",
+  "fin_payment_requests",
+  "integration_calls",
+  "integration_usage_daily",
+  "sms_messages",
+] as const;
+
+/** Phase 19 tables that hold secrets or idempotency keys: RLS on, no policy, service role only. */
+export const PHASE19_SERVICE_ONLY_TABLES = ["integration_accounts", "integration_webhook_events"] as const;
