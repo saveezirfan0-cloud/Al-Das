@@ -14,7 +14,7 @@ This is the single document to work from. Section 1 says where we are, 2 says wh
 
 **Still not confirmed:** I could not find a Pulse database from the assistant's accounts. If you have already created one elsewhere and set its keys in Vercel, the deployment may already work; if not, the deployed app cannot sign anyone in. Everything in sections 2 and 3 still applies.
 
-**Old session branches.** Seventeen `claude/*` branches remain on GitHub. Eleven carry nothing that main lacks (including this session's, which was squash-merged). Five others carry older versions of work that main already has in a different form (`magical-planck-nx16wi` is an early Phase 5 that would add about 16,000 duplicate lines; `brave-planck`, `sweet-planck`, `serene-gauss` are small, partly superseded). **One may hold real, unmerged work: `upbeat-brown-n1q8nq` ("Airtable import: write the clinical tables against the real Phase 6 schema", 19 files).** It needs a deliberate review and a test merge, not a blind merge. Delete the rest once you agree.
+**Open work from other sessions.** The Airtable clinical importer from `claude/upbeat-brown-n1q8nq` was merged as PR #22 on 12 Oct, and a follow-up (PR #28: Appointment Messages, Birthday, Chronic Recall and the `FU_` templates are still to come) is open from another session. Do not merge or reset that branch from here. Of the other `claude/*` branches, eleven carry nothing main lacks and five are older versions of work main already has in another form (`magical-planck-nx16wi` is an early Phase 5 that would add about 16,000 duplicate lines). Delete the stale ones once you agree; none should be merged.
 
 ## 1. Where we are
 
