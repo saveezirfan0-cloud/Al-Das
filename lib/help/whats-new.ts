@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-10-18-integrations",
+    date: "2026-10-18",
+    title: "Integrations: calendar feeds, SMS fallback and payment links",
+    body: "A new Integrations page in Settings. Doctors can subscribe to a private read-only calendar that shows appointment times and the clinic, never patient details. When a WhatsApp reminder cannot be delivered, Pulse can send a short generic text message instead. Finance can send a patient a payment link on WhatsApp and see what the payment gateway reports. All three are off until an administrator switches them on, and System health shows how each is doing.",
+  },
+  {
     id: "2026-10-17-ai-copilots",
     date: "2026-10-17",
     title: "AI copilots for flows and campaigns",
