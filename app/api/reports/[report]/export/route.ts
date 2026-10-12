@@ -7,6 +7,7 @@ import { reportToCsv, reportFilename } from "@/lib/reports/export";
 import { reportFiltersSchema } from "@/lib/reports/filters";
 import { getReport, reportStatus } from "@/lib/reports/registry";
 import { availableSources, reportContext } from "@/lib/reports/server";
+import { recordExport } from "@/lib/security/access-log";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -48,6 +49,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ rep
     entityId: null,
     diff: { report: def.key, from: ctx.range.fromDay, to: ctx.range.toDay, rows: result.table.rows.length },
   });
+  await recordExport(admin, member, { dataset: `report:${def.key}`, rows: result.table.rows.length });
 
   return new NextResponse(reportToCsv(result), {
     status: 200,

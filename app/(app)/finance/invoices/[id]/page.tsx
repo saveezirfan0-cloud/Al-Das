@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/table";
 import { can } from "@/lib/auth/can";
 import { requirePerm } from "@/lib/auth/session";
+import { recordAccess } from "@/lib/security/access-log";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { money } from "@/lib/finance/format";
 import { createClient } from "@/lib/supabase/server";
 
@@ -30,6 +32,7 @@ export default async function InvoiceDetail({ params }: { params: Promise<{ id: 
   const supabase = await createClient(); // RLS applies to every query below
   const { data: inv } = await supabase.from("fin_invoices").select("*").eq("id", id).maybeSingle();
   if (!inv) notFound();
+  await recordAccess(createAdminClient(), member, { entity: "finance_invoice", entityId: id, action: "view" });
 
   const canClaims = can(member, "finance.claims.view");
   const [

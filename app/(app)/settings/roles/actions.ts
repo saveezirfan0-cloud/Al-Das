@@ -1,11 +1,15 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
+
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { recordAudit } from "@/lib/audit";
 import { isAssignablePermission } from "@/lib/auth/permissions";
 import { requirePerm } from "@/lib/auth/session";
+import { raiseAlert } from "@/lib/security/alerts";
+import { roleChangeAlert } from "@/lib/security/anomaly";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export type ActionResult = { ok: true; message?: string } | { ok: false; error: string };
@@ -50,6 +54,18 @@ export async function createRole(input: z.input<typeof roleSchema>): Promise<Act
     entityId: data.id,
     diff: { name: parsed.data.name, permissions: parsed.data.permissions },
   });
+  await raiseAlert(
+    admin,
+    member.orgId,
+    roleChangeAlert({
+      actorId: member.userId,
+      kind: "role_created",
+      targetId: data.id,
+      roleName: parsed.data.name,
+      grantsFullAccess: parsed.data.permissions.includes("*"),
+      eventId: randomUUID(),
+    }),
+  );
   revalidatePath("/settings/roles");
   return { ok: true, message: "Role created." };
 }
@@ -99,6 +115,22 @@ export async function updateRole(
     entityId: roleId,
     diff: { before: existing.permissions, after: parsed.data.permissions },
   });
+  const sameSet =
+    JSON.stringify([...(existing.permissions as string[])].sort()) === JSON.stringify([...parsed.data.permissions].sort());
+  if (!sameSet) {
+    await raiseAlert(
+      admin,
+      member.orgId,
+      roleChangeAlert({
+        actorId: member.userId,
+        kind: "role_permissions_changed",
+        targetId: roleId,
+        roleName: existing.name,
+        grantsFullAccess: parsed.data.permissions.includes("*"),
+        eventId: randomUUID(),
+      }),
+    );
+  }
   revalidatePath("/settings/roles");
   revalidatePath("/", "layout");
   return { ok: true, message: "Role saved." };
@@ -142,6 +174,11 @@ export async function deleteRole(roleId: string): Promise<ActionResult> {
     entityId: roleId,
     diff: { name: existing.name },
   });
+  await raiseAlert(
+    admin,
+    member.orgId,
+    roleChangeAlert({ actorId: member.userId, kind: "role_deleted", targetId: roleId, roleName: existing.name, eventId: randomUUID() }),
+  );
   revalidatePath("/settings/roles");
   return { ok: true, message: "Role deleted." };
 }

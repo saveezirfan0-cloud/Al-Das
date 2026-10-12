@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requirePerm } from "@/lib/auth/session";
+import { recordAccess } from "@/lib/security/access-log";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Claim" };
@@ -80,7 +82,7 @@ const GROUPS: Array<[string, Array<[string, string]>]> = [
 ];
 
 export default async function ClaimDetail({ params }: { params: Promise<{ id: string }> }) {
-  await requirePerm("finance.claims.view");
+  const member = await requirePerm("finance.claims.view");
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const supabase = await createClient();
@@ -90,6 +92,7 @@ export default async function ClaimDetail({ params }: { params: Promise<{ id: st
     .eq("id", id)
     .maybeSingle();
   if (!claim) notFound();
+  await recordAccess(createAdminClient(), member, { entity: "finance_claim", entityId: id, action: "view" });
   const { data: events } = await supabase
     .from("ins_claim_activity_events")
     .select("id, observed_at, changed_fields")

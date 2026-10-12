@@ -13,6 +13,7 @@ import "@/lib/jobs/handlers/campaign-tick";
 import "@/lib/jobs/handlers/templates-sync";
 import "@/lib/jobs/handlers/kb-ingest";
 import "@/lib/jobs/handlers/metrics-refresh";
+import "@/lib/jobs/handlers/security-maintenance";
 import "@/lib/jobs/handlers/webhooks-out";
 import "@/lib/jobs/handlers/appointments";
 import "@/lib/jobs/handlers/unite-sync";

@@ -10,6 +10,7 @@ import { fetchEnquiriesByIds, matchingEnquiryIds } from "@/lib/enquiries/query";
 import { loadEnquiryContext } from "@/lib/enquiries/server";
 import { buildEnquiryFilter } from "@/lib/enquiries/views";
 import { filterSchema } from "@/lib/filters/ast";
+import { recordExport } from "@/lib/security/access-log";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const bodySchema = z.object({
@@ -109,6 +110,7 @@ export async function POST(req: Request) {
     entity: "enquiry",
     diff: { count: rows.length },
   });
+  await recordExport(admin, member, { dataset: "enquiries", rows: rows.length });
 
   return new NextResponse(enquiriesToCsv(rows, ctx.customFields), {
     headers: {

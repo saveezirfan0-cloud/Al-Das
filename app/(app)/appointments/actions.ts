@@ -18,6 +18,7 @@ import { can } from "@/lib/auth/can";
 import { requirePerm } from "@/lib/auth/session";
 import { toCsv } from "@/lib/csv";
 import { formatPhone } from "@/lib/phone";
+import { recordAccess, recordExport } from "@/lib/security/access-log";
 import { createAdminClient, type AdminClient } from "@/lib/supabase/admin";
 import type { Tables } from "@/lib/supabase/types";
 
@@ -125,7 +126,7 @@ export async function listRange(input: {
     })
     .safeParse(input);
   if (!p.success) return fail("Invalid range.");
-  const admin = createAdminClient();
+  const admin = createAdminClient(member.userId);
   let tz = await orgTimezone(admin, member.orgId);
   const tzLocation = p.data.tzLocationId ?? p.data.locationId;
   if (tzLocation) {
@@ -241,12 +242,13 @@ export async function listAppointments(
   const member = await requirePerm("appointments.view");
   const parsed = listSchema.safeParse(input);
   if (!parsed.success) return fail("Invalid filters.");
-  const admin = createAdminClient();
+  const admin = createAdminClient(member.userId);
   const pageSize = parsed.data.pageSize ?? 100;
   const page = parsed.data.page ?? 1;
   const build = await listBuilder(admin, member.orgId, parsed.data);
   const { data, count, error } = await build().range((page - 1) * pageSize, page * pageSize - 1);
   if (error) return fail("Could not load appointments.");
+  await recordAccess(admin, member, { entity: "appointment", action: "list", detail: { rows: data?.length ?? 0 } });
   return {
     ok: true,
     data: { rows: ((data ?? []) as unknown as JoinedAppointment[]).map(toRow), total: count ?? 0 },
@@ -262,7 +264,7 @@ export async function exportAppointments(
   await requirePerm("appointments.view");
   const parsed = listSchema.safeParse(scope === "all" ? {} : input);
   if (!parsed.success) return fail("Invalid filters.");
-  const admin = createAdminClient();
+  const admin = createAdminClient(member.userId);
   const build = await listBuilder(admin, member.orgId, parsed.data);
   const [{ data, error }, { data: locs }, { data: specs }, { data: svcs }, tz] = await Promise.all([
     build().limit(5000),
@@ -324,6 +326,7 @@ export async function exportAppointments(
     entity: "appointments",
     diff: { rows: rows.length, scope },
   });
+  await recordExport(admin, member, { dataset: "appointments", rows: rows.length });
   return { ok: true, data: { csv, rows: rows.length } };
 }
 
@@ -345,7 +348,7 @@ export async function getFreeSlots(input: {
     })
     .safeParse(input);
   if (!p.success) return fail("Choose a location, specialist, service and date.");
-  const admin = createAdminClient();
+  const admin = createAdminClient(member.userId);
   const { data: service } = await admin
     .from("services")
     .select("duration_min")
@@ -371,7 +374,7 @@ export async function getFreeSlots(input: {
 export async function getAppointmentDetail(id: string): Promise<ActionResult<ApptDetail>> {
   const member = await requirePerm("appointments.view");
   if (!uuid.safeParse(id).success) return fail("Invalid appointment.");
-  const admin = createAdminClient();
+  const admin = createAdminClient(member.userId);
   const { data: a } = await admin
     .from("appointments")
     .select(APPT_SELECT)
@@ -379,6 +382,7 @@ export async function getAppointmentDetail(id: string): Promise<ActionResult<App
     .eq("org_id", member.orgId)
     .maybeSingle();
   if (!a) return fail("Appointment not found.");
+  await recordAccess(admin, member, { entity: "appointment", entityId: id, action: "view" });
   const [{ data: reminders }, { data: history }] = await Promise.all([
     admin
       .from("appointment_reminders")
@@ -435,7 +439,7 @@ export async function bookAppointment(
   const member = await requirePerm("appointments.manage");
   const p = bookSchema.safeParse(input);
   if (!p.success) return fail(p.error.issues[0]?.message ?? "Check the appointment details.");
-  const admin = createAdminClient();
+  const admin = createAdminClient(member.userId);
   const res = await createAppointment(admin, {
     orgId: member.orgId,
     actorId: member.userId,
@@ -484,7 +488,7 @@ export async function blockTime(input: z.input<typeof blockSchema>): Promise<Act
   const member = await requirePerm("appointments.manage");
   const p = blockSchema.safeParse(input);
   if (!p.success) return fail("Check the block details.");
-  const res = await createTimeBlock(createAdminClient(), {
+  const res = await createTimeBlock(createAdminClient(member.userId), {
     orgId: member.orgId,
     actorId: member.userId,
     specialistId: p.data.specialistId,
@@ -501,7 +505,7 @@ export async function blockTime(input: z.input<typeof blockSchema>): Promise<Act
 export async function deleteBlock(id: string): Promise<ActionResult> {
   const member = await requirePerm("appointments.manage");
   if (!uuid.safeParse(id).success) return fail("Invalid block.");
-  const admin = createAdminClient();
+  const admin = createAdminClient(member.userId);
   await admin.from("time_blocks").delete().eq("id", id).eq("org_id", member.orgId);
   await recordAudit(admin, {
     orgId: member.orgId,
@@ -522,7 +526,7 @@ export async function setStatus(input: {
   const member = await requirePerm("appointments.manage");
   if (!uuid.safeParse(input.id).success || !isAppointmentStatus(input.to))
     return fail("Invalid status change.");
-  const admin = createAdminClient();
+  const admin = createAdminClient(member.userId);
   const res = await changeAppointmentStatus(admin, {
     orgId: member.orgId,
     appointmentId: input.id,
@@ -563,7 +567,7 @@ export async function moveAppointment(
   const member = await requirePerm("appointments.manage");
   const p = moveSchema.safeParse(input);
   if (!p.success) return fail("Check the new time.");
-  const admin = createAdminClient();
+  const admin = createAdminClient(member.userId);
   const res = await rescheduleAppointment(admin, {
     orgId: member.orgId,
     appointmentId: p.data.id,
@@ -594,7 +598,7 @@ export async function updateAppointmentNotes(input: {
     .object({ id: uuid, notes: z.string().trim().max(2000), notifyEarly: z.boolean() })
     .safeParse(input);
   if (!p.success) return fail("Invalid notes.");
-  const admin = createAdminClient();
+  const admin = createAdminClient(member.userId);
   const { error } = await admin
     .from("appointments")
     .update({ notes: p.data.notes || null, notify_early: p.data.notifyEarly })
@@ -617,7 +621,7 @@ export async function updateAppointmentNotes(input: {
 export async function sendReminderNow(id: string): Promise<ActionResult> {
   const member = await requirePerm("appointments.manage");
   if (!uuid.safeParse(id).success) return fail("Invalid appointment.");
-  const res = await sendAppointmentTemplate(createAdminClient(), {
+  const res = await sendAppointmentTemplate(createAdminClient(member.userId), {
     orgId: member.orgId,
     appointmentId: id,
     key: "reminder",
@@ -634,7 +638,7 @@ export async function listContactAppointments(
 ): Promise<ActionResult<{ rows: ApptRow[]; timezone: string; canBook: boolean }>> {
   const member = await requirePerm("appointments.view");
   if (!uuid.safeParse(contactId).success) return fail("Invalid patient.");
-  const admin = createAdminClient();
+  const admin = createAdminClient(member.userId);
   const [{ data, error }, timezone] = await Promise.all([
     admin
       .from("appointments")

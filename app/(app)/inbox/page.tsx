@@ -10,6 +10,7 @@ import {
   type ConversationListRow,
 } from "@/lib/inbox/queries";
 import { readInboxSettings } from "@/lib/inbox/settings";
+import { recordAccess } from "@/lib/security/access-log";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { MetaTemplateComponent } from "@/lib/whatsapp/types";
@@ -121,6 +122,9 @@ export default async function InboxPage({
       : Promise.resolve({ data: null }),
   ]);
 
+  // The conversation list is a patient list too: sampled, like the other list screens.
+  await recordAccess(admin, member, { entity: "conversation", action: "list", detail: { rows: conversations.length } });
+
   let selected: InboxProps["selected"] = null;
   let messages: InboxProps["messages"] = [];
   let sidebar: SidebarData | null = null;
@@ -146,6 +150,8 @@ export default async function InboxPage({
       created_at: c.created_at,
     };
     selected = { ...(sel as unknown as ConversationListRow), contact };
+    // Opening a conversation shows the patient's messages: always logged (id only).
+    await recordAccess(admin, member, { entity: "conversation", entityId: sel.id, action: "view" });
     const [msgs, media, sameName, others] = await Promise.all([
       listMessages(supabase, sel.id),
       supabase
