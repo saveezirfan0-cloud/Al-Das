@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import * as React from "react";
 import { CalendarPlus, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
@@ -14,28 +15,55 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { localDate } from "@/lib/appointments/slots";
+import { useIsPhone } from "@/lib/hooks/use-media-query";
 
 import { deleteBlock, listRange } from "./actions";
+import { AgendaList } from "./agenda-list";
 import { AppointmentDrawer } from "./appointment-drawer";
 import { AppointmentsTable } from "./appointments-table";
 import { dayLabel, shiftDate } from "./format";
 import { NewAppointmentDrawer, type NewAppointmentDefaults } from "./new-appointment-drawer";
 import { ResourceGrid } from "./resource-grid";
-import { SpecialistCalendar } from "./specialist-calendar";
 import type { AppointmentsBootstrap, ApptRow, BlockRow } from "./types";
 
-type View = "day" | "calendar" | "table";
+// FullCalendar (about 100 kB) is only needed on the Specialist calendar tab.
+const SpecialistCalendar = dynamic(
+  () => import("./specialist-calendar").then((m) => m.SpecialistCalendar),
+  {
+    ssr: false,
+    loading: () => (
+      <Skeleton className="h-[34rem] w-full rounded-xl" aria-label="Loading calendar" />
+    ),
+  },
+);
+
+type View = "day" | "calendar" | "table" | "agenda";
 
 export function AppointmentsWorkspace({
   bootstrap,
   initial,
 }: {
   bootstrap: AppointmentsBootstrap;
-  initial: { view: View; date: string; newContact: NewAppointmentDefaults["contact"] | null };
+  initial: {
+    view: View;
+    viewExplicit: boolean;
+    date: string;
+    newContact: NewAppointmentDefaults["contact"] | null;
+  };
 }) {
   const [view, setView] = React.useState<View>(initial.view);
+  // Phones open on the agenda list (a week grid is unreadable there) unless a view was asked for in the URL.
+  const phone = useIsPhone();
+  const appliedPhoneDefault = React.useRef(false);
+  React.useEffect(() => {
+    if (phone && !initial.viewExplicit && !appliedPhoneDefault.current) {
+      appliedPhoneDefault.current = true;
+      setView("agenda");
+    }
+  }, [phone, initial.viewExplicit]);
   const [date, setDate] = React.useState(initial.date);
   const [locationId, setLocationId] = React.useState(bootstrap.locations[0]?.id ?? "");
   const [calendarSpecialistId, setCalendarSpecialistId] = React.useState("");
@@ -97,11 +125,16 @@ export function AppointmentsWorkspace({
       </PageHeader>
 
       <div className="flex flex-wrap items-center gap-3">
-        <Tabs value={view} onValueChange={(v) => setView(v as View)}>
+        <Tabs
+          value={view}
+          onValueChange={(v) => setView(v as View)}
+          className="max-w-full overflow-x-auto"
+        >
           <TabsList>
             <TabsTrigger value="day">Resource day</TabsTrigger>
             <TabsTrigger value="calendar">Specialist calendar</TabsTrigger>
             <TabsTrigger value="table">Table</TabsTrigger>
+            <TabsTrigger value="agenda">Agenda</TabsTrigger>
           </TabsList>
         </Tabs>
 
@@ -201,6 +234,17 @@ export function AppointmentsWorkspace({
             }}
           />
         </div>
+      ) : view === "agenda" ? (
+        <AgendaList
+          timezone={tz}
+          locationId={locationId}
+          specialists={bootstrap.specialists}
+          date={date}
+          today={today}
+          reloadKey={reloadKey}
+          onDateChange={setDate}
+          onAppointmentClick={setOpenAppt}
+        />
       ) : view === "calendar" ? (
         calendarSpecialist ? (
           <SpecialistCalendar

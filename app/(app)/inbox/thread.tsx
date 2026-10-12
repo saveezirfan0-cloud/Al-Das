@@ -95,6 +95,15 @@ export function Thread(props: InboxProps & { selected: ConversationDetail; onBac
     bottom.current?.scrollIntoView({ block: "end" });
   }, [messages.length, selected.id]);
 
+  // The on-screen keyboard changes the visible height: keep the latest message in view above the composer.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const onResize = () => bottom.current?.scrollIntoView({ block: "end" });
+    vv.addEventListener("resize", onResize);
+    return () => vv.removeEventListener("resize", onResize);
+  }, []);
+
   function run(fn: () => Promise<ActionResult<unknown>>) {
     startTransition(async () => {
       const r = await fn();
@@ -399,7 +408,7 @@ export function Thread(props: InboxProps & { selected: ConversationDetail; onBac
               <div className={cn("mb-1.5 flex", out || note ? "justify-end" : "justify-start")}>
                 <div
                   className={cn(
-                    "group relative max-w-[75%] rounded-lg px-3 py-1.5 text-sm shadow-xs",
+                    "group relative max-w-[88%] rounded-lg md:max-w-[75%] px-3 py-1.5 text-sm shadow-xs",
                     note
                       ? "border border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-50"
                       : out
@@ -490,7 +499,7 @@ export function Thread(props: InboxProps & { selected: ConversationDetail; onBac
                   {!note && m.wa_message_id && perms.send && (
                     <button
                       type="button"
-                      className="text-muted-foreground absolute -top-2 right-1 hidden rounded bg-white/90 px-1 text-[10px] shadow group-hover:block dark:bg-black/60"
+                      className="text-muted-foreground absolute -top-2 right-1 hidden rounded bg-white/90 px-1 text-[10px] shadow group-hover:block pointer-coarse:block dark:bg-black/60"
                       onClick={() => setReplyTo(m)}
                     >
                       reply

@@ -1,9 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { ArrowDownUp, Bookmark, Bot, Filter, Search, X } from "lucide-react";
+import { useEffect, useState, useTransition } from "react";
+import { ArrowDownUp, Bookmark, Bot, Filter, Search, Volume2, VolumeX, X } from "lucide-react";
+import { toast } from "sonner";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { PullToRefresh } from "@/components/shell/pull-to-refresh";
+import { readSoundPref, SOUND_EVENT, writeSoundPref } from "@/components/shell/shell-data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -20,7 +23,9 @@ import { FOLDERS, type InboxQuery } from "@/lib/inbox/folders";
 import { labelClass } from "@/lib/inbox/labels";
 import { cn } from "@/lib/utils";
 
+import { assignConversation, closeConversation } from "./actions";
 import { SaveViewDialog } from "./save-view-dialog";
+import { SwipeRow } from "./swipe-row";
 import type { InboxProps } from "./types";
 
 const ANY = "__any__";
@@ -54,6 +59,8 @@ export function ConversationList({
   people,
   teams,
   perms,
+  me,
+  settings,
   className,
   onSelect,
   onNavigate,
@@ -64,7 +71,43 @@ export function ConversationList({
 }) {
   const [search, setSearch] = useState(query.q);
   const [saveOpen, setSaveOpen] = useState(false);
+  const [, startTransition] = useTransition();
+  const [sound, setSound] = useState(false);
   useEffect(() => setSearch(query.q), [query.q]);
+  useEffect(() => {
+    const sync = () => setSound(readSoundPref());
+    sync();
+    window.addEventListener(SOUND_EVENT, sync);
+    return () => window.removeEventListener(SOUND_EVENT, sync);
+  }, []);
+
+  function takeIt(c: InboxProps["conversations"][number]) {
+    if (c.assignee_user_id === me.userId)
+      return void toast.info("That conversation is already yours.");
+    startTransition(async () => {
+      const r = await assignConversation({
+        conversation_id: c.id,
+        user_id: me.userId,
+        team_id: c.assignee_team_id,
+      });
+      if (r.ok) toast.success("Assigned to you.");
+      else toast.error(r.error);
+    });
+  }
+  function closeIt(c: InboxProps["conversations"][number]) {
+    if (c.status === "closed") return void toast.info("Already closed.");
+    // Workspaces that demand a category or summary need the close dialog, which lives in the conversation.
+    if (settings.require_category_on_close || settings.require_summary_on_close) {
+      toast.info("Choose a category before closing.");
+      onSelect(c.id);
+      return;
+    }
+    startTransition(async () => {
+      const r = await closeConversation({ conversation_id: c.id, category_id: null, summary: "" });
+      if (r.ok) toast.success("Conversation closed.");
+      else toast.error(r.error);
+    });
+  }
 
   const title = query.team
     ? (teams.find((t) => t.id === query.team)?.name ?? "Team")
@@ -83,6 +126,16 @@ export function ConversationList({
         <h2 className="truncate text-sm font-semibold">{title}</h2>
         <span className="text-muted-foreground text-xs">{conversations.length}</span>
         <div className="ml-auto flex items-center">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={sound ? "Turn message sound off" : "Turn message sound on"}
+            aria-pressed={sound}
+            title="Play a chime when a new message arrives on this device"
+            onClick={() => writeSoundPref(!sound)}
+          >
+            {sound ? <Volume2 /> : <VolumeX />}
+          </Button>
           <Button
             variant="ghost"
             size="icon-sm"
@@ -223,114 +276,122 @@ export function ConversationList({
           </button>
         )}
       </form>
-      <ScrollArea className="flex-1">
-        {conversations.length === 0 ? (
-          <p className="text-muted-foreground p-6 text-center text-sm">No conversations here.</p>
-        ) : (
-          <ul className="divide-y">
-            {conversations.map((c) => {
-              const name = c.contacts ? contactDisplayName(c.contacts) : "Unknown";
-              const active = selected?.id === c.id;
-              const assignee = c.assignee_user_id ? peopleById.get(c.assignee_user_id) : null;
-              return (
-                <li key={c.id}>
-                  <button
-                    type="button"
-                    onClick={() => onSelect(c.id)}
-                    aria-current={active ? "true" : undefined}
-                    className={cn(
-                      "hover:bg-accent/60 flex w-full items-start gap-3 px-3 py-2.5 text-left",
-                      active && "bg-accent",
-                    )}
-                  >
-                    <div className="relative shrink-0">
-                      <Avatar className="size-9">
-                        <AvatarFallback>{initials(name)}</AvatarFallback>
-                      </Avatar>
-                      <span
-                        className="bg-background absolute -right-1 -bottom-1 rounded-full p-px"
-                        title={c.channels?.name ?? "WhatsApp"}
+      <PullToRefresh className="flex-1" scrollerSelector="[data-radix-scroll-area-viewport]">
+        <ScrollArea className="min-h-0 flex-1">
+          {conversations.length === 0 ? (
+            <p className="text-muted-foreground p-6 text-center text-sm">No conversations here.</p>
+          ) : (
+            <ul className="divide-y">
+              {conversations.map((c) => {
+                const name = c.contacts ? contactDisplayName(c.contacts) : "Unknown";
+                const active = selected?.id === c.id;
+                const assignee = c.assignee_user_id ? peopleById.get(c.assignee_user_id) : null;
+                return (
+                  <li key={c.id}>
+                    <SwipeRow
+                      disabled={!perms.send}
+                      onSwipeRight={() => takeIt(c)}
+                      onSwipeLeft={() => closeIt(c)}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => onSelect(c.id)}
+                        aria-current={active ? "true" : undefined}
+                        className={cn(
+                          "hover:bg-accent/60 flex w-full items-start gap-3 px-3 py-2.5 text-left",
+                          active && "bg-accent",
+                        )}
                       >
-                        <span className="flex size-4 items-center justify-center rounded-full bg-emerald-500 text-[9px] font-bold text-white">
-                          W
-                        </span>
-                      </span>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-baseline gap-2">
-                        <span
-                          className={cn(
-                            "truncate text-sm",
-                            c.unread_count > 0 ? "font-semibold" : "font-medium",
-                          )}
-                        >
-                          {name}
-                        </span>
-                        <span className="text-muted-foreground ml-auto shrink-0 text-[11px]">
-                          {timeLabel(c.last_message_at)}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <p
-                          className={cn(
-                            "text-muted-foreground min-w-0 flex-1 truncate text-xs",
-                            c.unread_count > 0 && "text-foreground",
-                          )}
-                        >
-                          {c.last_message_direction === "out" && (
-                            <span className="opacity-60">You: </span>
-                          )}
-                          {c.last_message_preview ?? "No messages yet"}
-                        </p>
-                        {c.bot_active && (
-                          <Bot
-                            className="text-muted-foreground size-3.5 shrink-0"
-                            aria-label="Bot active"
-                          />
-                        )}
-                        {c.unread_count > 0 && (
-                          <span className="bg-primary text-primary-foreground shrink-0 rounded-full px-1.5 text-[10px] font-semibold">
-                            {c.unread_count}
+                        <div className="relative shrink-0">
+                          <Avatar className="size-9">
+                            <AvatarFallback>{initials(name)}</AvatarFallback>
+                          </Avatar>
+                          <span
+                            className="bg-background absolute -right-1 -bottom-1 rounded-full p-px"
+                            title={c.channels?.name ?? "WhatsApp"}
+                          >
+                            <span className="flex size-4 items-center justify-center rounded-full bg-emerald-500 text-[9px] font-bold text-white">
+                              W
+                            </span>
                           </span>
-                        )}
-                      </div>
-                      <div className="mt-1 flex flex-wrap items-center gap-1">
-                        {c.status === "waiting" && (
-                          <span className="rounded bg-amber-100 px-1 text-[10px] text-amber-800">
-                            waiting
-                          </span>
-                        )}
-                        {c.status === "closed" && (
-                          <span className="bg-muted rounded px-1 text-[10px]">closed</span>
-                        )}
-                        {c.conversation_labels.map(
-                          (l) =>
-                            l.tags && (
-                              <span
-                                key={l.tag_id}
-                                className={cn(
-                                  "rounded px-1 text-[10px] font-medium",
-                                  labelClass(l.tags.color),
-                                )}
-                              >
-                                {l.tags.name}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-baseline gap-2">
+                            <span
+                              className={cn(
+                                "truncate text-sm",
+                                c.unread_count > 0 ? "font-semibold" : "font-medium",
+                              )}
+                            >
+                              {name}
+                            </span>
+                            <span className="text-muted-foreground ml-auto shrink-0 text-[11px]">
+                              {timeLabel(c.last_message_at)}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <p
+                              className={cn(
+                                "text-muted-foreground min-w-0 flex-1 truncate text-xs",
+                                c.unread_count > 0 && "text-foreground",
+                              )}
+                            >
+                              {c.last_message_direction === "out" && (
+                                <span className="opacity-60">You: </span>
+                              )}
+                              {c.last_message_preview ?? "No messages yet"}
+                            </p>
+                            {c.bot_active && (
+                              <Bot
+                                className="text-muted-foreground size-3.5 shrink-0"
+                                aria-label="Bot active"
+                              />
+                            )}
+                            {c.unread_count > 0 && (
+                              <span className="bg-primary text-primary-foreground shrink-0 rounded-full px-1.5 text-[10px] font-semibold">
+                                {c.unread_count}
                               </span>
-                            ),
-                        )}
-                        {assignee && (
-                          <span className="text-muted-foreground ml-auto text-[10px]">
-                            {assignee.name.split(" ")[0]}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </ScrollArea>
+                            )}
+                          </div>
+                          <div className="mt-1 flex flex-wrap items-center gap-1">
+                            {c.status === "waiting" && (
+                              <span className="rounded bg-amber-100 px-1 text-[10px] text-amber-800">
+                                waiting
+                              </span>
+                            )}
+                            {c.status === "closed" && (
+                              <span className="bg-muted rounded px-1 text-[10px]">closed</span>
+                            )}
+                            {c.conversation_labels.map(
+                              (l) =>
+                                l.tags && (
+                                  <span
+                                    key={l.tag_id}
+                                    className={cn(
+                                      "rounded px-1 text-[10px] font-medium",
+                                      labelClass(l.tags.color),
+                                    )}
+                                  >
+                                    {l.tags.name}
+                                  </span>
+                                ),
+                            )}
+                            {assignee && (
+                              <span className="text-muted-foreground ml-auto text-[10px]">
+                                {assignee.name.split(" ")[0]}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                    </SwipeRow>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </ScrollArea>
+      </PullToRefresh>
       <SaveViewDialog open={saveOpen} onOpenChange={setSaveOpen} query={query} teams={teams} />
     </section>
   );

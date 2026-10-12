@@ -5,6 +5,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { PanelRightClose, PanelRightOpen } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { useIsPhone } from "@/lib/hooks/use-media-query";
+import { useVisualViewport } from "@/lib/hooks/use-visual-viewport";
 import { toSearchParams } from "@/lib/inbox/folders";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -20,6 +22,11 @@ export function InboxShell(props: InboxProps) {
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const selectedId = props.selected?.id ?? null;
+  // On a phone an open conversation takes the whole screen like a native chat app, sized to the VISIBLE
+  // viewport so the composer stays above the on-screen keyboard (iOS and Android).
+  const phone = useIsPhone();
+  const fullScreen = phone && !!selectedId;
+  const viewport = useVisualViewport(fullScreen);
 
   // Realtime: any change to this org's conversations / the open thread / my mentions → refresh server data.
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -94,7 +101,24 @@ export function InboxShell(props: InboxProps) {
         onNavigate={(q) => navigate(q, null)}
         className={cn("w-full md:w-80 lg:w-96", selectedId && "hidden md:flex")}
       />
-      <div className={cn("relative flex min-w-0 flex-1", !selectedId && "hidden md:flex")}>
+      <div
+        className={cn(
+          "relative flex min-w-0 flex-1",
+          !selectedId && "hidden md:flex",
+          fullScreen && "bg-background fixed inset-x-0 z-40",
+        )}
+        style={
+          fullScreen
+            ? {
+                top: viewport?.offsetTop ?? 0,
+                height: viewport ? viewport.height : "100svh",
+                ["--composer-safe-bottom" as string]: viewport?.keyboardOpen
+                  ? "0px"
+                  : "env(safe-area-inset-bottom)",
+              }
+            : undefined
+        }
+      >
         {props.selected ? (
           <>
             <Thread {...props} selected={props.selected} onBack={() => navigate({}, null)} />
