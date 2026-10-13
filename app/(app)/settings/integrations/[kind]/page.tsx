@@ -21,6 +21,7 @@ import { readReviewConfig, REVIEW_VALUE_SOURCES } from "@/lib/integrations/revie
 import { loadReviewStats, loadReviewTemplate } from "@/lib/integrations/reviews/server";
 import { esignWebhookBase } from "@/lib/integrations/esign/config";
 import { readCapiConfig } from "@/lib/integrations/capi/config";
+import { mailboxWebhookUrl } from "@/lib/finance/mailbox";
 import { CONSENT_BASIS_PHRASE } from "@/lib/integrations/capi/consent";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { templateVariables } from "@/lib/whatsapp/templates";
@@ -196,7 +197,12 @@ export default async function IntegrationPage({ params }: { params: Promise<{ ki
               app,
               row.view.exists ? await accountId(admin, member.orgId, kind) : "<account id>",
             )
-          : null;
+          : kind === "finance_mailbox"
+            ? mailboxWebhookUrl(
+                app,
+                row.view.exists ? await accountId(admin, member.orgId, kind) : "<account id>",
+              )
+            : null;
 
   return (
     <div className="flex flex-col gap-6">

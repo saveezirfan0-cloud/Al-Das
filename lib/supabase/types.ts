@@ -4625,12 +4625,15 @@ export type Database = {
         Row: {
           created_at: string;
           id: string;
+          inbox_at: string | null;
           kind: string;
           mime_type: string;
           org_id: string;
+          routed_at: string | null;
           scan_engine: string | null;
           scan_status: string;
           scanned_at: string | null;
+          sender_domain: string | null;
           sha256: string | null;
           size_bytes: number;
           source: string;
@@ -4643,12 +4646,15 @@ export type Database = {
         Insert: {
           created_at?: string;
           id?: string;
+          inbox_at?: string | null;
           kind: string;
           mime_type: string;
           org_id: string;
+          routed_at?: string | null;
           scan_engine?: string | null;
           scan_status?: string;
           scanned_at?: string | null;
+          sender_domain?: string | null;
           sha256?: string | null;
           size_bytes: number;
           source?: string;
@@ -4660,12 +4666,15 @@ export type Database = {
         Update: {
           created_at?: string;
           id?: string;
+          inbox_at?: string | null;
           kind?: string;
           mime_type?: string;
           org_id?: string;
+          routed_at?: string | null;
           scan_engine?: string | null;
           scan_status?: string;
           scanned_at?: string | null;
+          sender_domain?: string | null;
           sha256?: string | null;
           size_bytes?: number;
           source?: string;

@@ -72,6 +72,6 @@ export function sniffMatches(
   if (d === "image/heif") return sniffed === "image/heic";
   if (d === "video/3gpp") return sniffed === "video/3gpp" || sniffed === "video/mp4";
   if (d === "video/mp4") return sniffed === "video/mp4" || sniffed === "video/3gpp";
-  if (d === "text/plain") return sniffed === "text/plain";
+  if (d === "text/plain" || d === "text/csv") return sniffed === "text/plain";
   return d === sniffed;
 }

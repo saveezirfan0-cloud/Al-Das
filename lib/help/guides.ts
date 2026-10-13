@@ -269,6 +269,24 @@ export const GUIDES: readonly Guide[] = [
     ],
   },
   {
+    id: "finance-inbox",
+    title: "Finance inbox",
+    pages: ["/finance/inbox"],
+    purpose:
+      "One place for the finance paperwork that arrives: attachments e-mailed to the accounts mailbox by the allowed senders, and files dropped here, such as a photo of a paper invoice that came with goods to a branch.",
+    steps: [
+      "Drop files on the page or press Choose files: PDF, photos, Excel or CSV. Several at once is fine.",
+      "Open a file to read it, then give it a label: supplier invoice, bank statement, processor report or other.",
+      "For a supplier invoice press Make a supplier invoice: the invoice form opens with the file already attached. Once saved, the file leaves the inbox and travels with the invoice to its voucher.",
+      "Discard anything that is not finance paperwork (a newsletter, a duplicate scan). It is deleted for good.",
+    ],
+    watchOut: [
+      "Never put patient reports here: Diligence files, remittance advice and lab reports with names go on their own upload pages, which delete the original at once.",
+      "A file that is already in Pulse is not added twice.",
+      "Mail from a sender who is not on the allowed list is dropped; an administrator adds senders under Settings, Integrations, Finance mailbox.",
+    ],
+  },
+  {
     id: "finance-vouchers",
     title: "Payment vouchers and supplier invoices",
     pages: [
