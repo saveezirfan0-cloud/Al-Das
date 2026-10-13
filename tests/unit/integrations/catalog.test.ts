@@ -36,9 +36,9 @@ describe("catalogue", () => {
     expect(isIntegrationKind("unite")).toBe(false);
   });
 
-  it("requires typed confirmation for everything that messages patients or takes money, and nothing else", () => {
+  it("requires typed confirmation for everything that messages patients, takes money or shares patient data, and nothing else", () => {
     for (const i of INTEGRATIONS) {
-      const expected = i.contactsPatients || i.movesMoney;
+      const expected = i.contactsPatients || i.movesMoney || i.sharesData;
       expect(needsConfirmation(i.kind), i.kind).toBe(expected);
       expect(i.confirmWord !== null, i.kind).toBe(expected);
     }

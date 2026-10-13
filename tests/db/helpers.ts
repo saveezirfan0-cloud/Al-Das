@@ -422,6 +422,15 @@ export async function seedPhase19Rows(c: Client, orgId: string, userId: string) 
       "insert into public.fin_payment_requests (org_id, invoice_id, invoice_number, patient_pin, provider, amount_minor, currency, status, created_by) values ($1, $2, 'INV-SEED-19', 'PIN-SEED-19', 'stripe', 15000, 'AED', 'sent', $3)",
       [orgId, ids.invoice, userId],
     );
+    // Phase 19b: Google review requests (ids only).
+    ids.appointment19b = await one(
+      "insert into public.appointments (org_id, contact_id, starts_at, ends_at, status) values ($1, $2, now() - interval '1 day', now() - interval '23 hours', 'completed')",
+      [orgId, ids.contact],
+    );
+    ids.reviewRequest = await one(
+      "insert into public.review_requests (org_id, appointment_id, contact_id, recipient_contact_id, status, reason, run_at) values ($1, $2, $3, $3, 'skipped', 'no_opt_in', now())",
+      [orgId, ids.appointment19b, ids.contact],
+    );
   });
   return ids;
 }
@@ -432,6 +441,7 @@ export const PHASE19_TABLES = [
   "fin_payment_requests",
   "integration_calls",
   "integration_usage_daily",
+  "review_requests",
   "sms_messages",
 ] as const;
 

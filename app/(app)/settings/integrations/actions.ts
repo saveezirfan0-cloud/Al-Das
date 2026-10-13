@@ -21,11 +21,12 @@ import {
   providerDef,
   validateFields,
 } from "@/lib/integrations/catalog";
-import { PAYMENT_VALUE_SOURCES, readPaymentsConfig } from "@/lib/integrations/payments/config";
+import { PAYMENT_VALUE_SOURCES } from "@/lib/integrations/payments/config";
 import { PROBE_CONTEXT, paymentValues } from "@/lib/integrations/payments/message";
 import { buildPaymentProvider } from "@/lib/integrations/payments/provider";
-import { loadPaymentTemplate, templateReadiness } from "@/lib/integrations/payments/request-server";
+import { loadPaymentTemplate } from "@/lib/integrations/payments/request-server";
 import { confirmationMatches, readinessProblems } from "@/lib/integrations/readiness";
+import { loadReadinessInput } from "@/lib/integrations/readiness-server";
 import { buildSmsProvider } from "@/lib/integrations/sms/provider";
 import { checkRateLimit, RATE_RULES, waitText } from "@/lib/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -107,21 +108,7 @@ export async function setIntegrationEnabled(
 
   if (enabled) {
     const view = await loadView(admin, member.orgId, kind);
-    let template = null;
-    if (kind === "payments") {
-      const cfg = readPaymentsConfig(view.config);
-      template = templateReadiness(
-        await loadPaymentTemplate(admin, member.orgId, cfg.templateId),
-        cfg,
-      );
-    }
-    const problems = readinessProblems({
-      kind,
-      provider: view.provider,
-      config: view.config,
-      secretsStored: view.secretsStored,
-      template,
-    });
+    const problems = readinessProblems(await loadReadinessInput(admin, member.orgId, kind, view));
     if (problems.length > 0) return { ok: false, error: problems[0] };
     if (!confirmationMatches(kind, p.data.confirm))
       return { ok: false, error: "Type the confirmation words exactly to switch this on." };

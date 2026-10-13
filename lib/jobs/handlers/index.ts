@@ -8,6 +8,7 @@ import "@/lib/jobs/handlers/meta-events";
 import "@/lib/jobs/handlers/media-fetch";
 import "@/lib/jobs/handlers/outbound";
 import "@/lib/jobs/handlers/sms-outbound";
+import "@/lib/jobs/handlers/integration-sweeps";
 import "@/lib/jobs/handlers/inbox-housekeeping";
 import "@/lib/jobs/handlers/campaign-fanout";
 import "@/lib/jobs/handlers/campaign-tick";
@@ -46,6 +47,7 @@ registerKind("campaign.*", "campaign_fanout");
 registerKind("webhook.retry", "webhooks_out");
 registerKind("appointment.reminder", "appointments");
 registerKind("waitlist.*", "appointments");
+registerKind("review.*", "appointments");
 registerKind("flow.*", "flow_steps");
 
 export {};

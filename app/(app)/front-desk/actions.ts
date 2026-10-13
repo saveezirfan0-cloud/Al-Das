@@ -13,6 +13,7 @@ import { emit } from "@/lib/events/emit";
 import { checkinPatch, isCheckinState, CHECKIN_STATES } from "@/lib/front-desk/checkin";
 import { logDeskCall, sendDeskMessage } from "@/lib/front-desk/desk-send";
 import { isLateChoice } from "@/lib/front-desk/messages";
+import { scheduleReviewRequestSafely } from "@/lib/integrations/reviews/server";
 import { loadPatientCard, type PatientCardData } from "@/lib/front-desk/server";
 import {
   splitName,
@@ -89,6 +90,9 @@ export async function setCheckin(input: z.input<typeof checkinSchema>): Promise<
       actorId: member.userId,
     });
   }
+  // Phase 19b: a patient checked out has finished the visit; a Google review request may follow (switch, consent and cap apply).
+  if (p.data.to === "checked_out")
+    await scheduleReviewRequestSafely(admin, { orgId: member.orgId, appointmentId: a.id });
   refresh();
   return { ok: true };
 }

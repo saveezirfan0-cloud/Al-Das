@@ -77,6 +77,7 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 19a: integrations, access and constra
     fin_payment_requests: ["pay"],
     integration_calls: ["mgr"],
     integration_usage_daily: ["mgr"],
+    review_requests: ["mgr"],
     sms_messages: ["mgr"],
   };
 

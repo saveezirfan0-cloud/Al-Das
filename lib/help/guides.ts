@@ -202,10 +202,12 @@ export const GUIDES: readonly Guide[] = [
       "To switch on SMS fallback or payment links, type the confirmation words shown on the page. Both can contact patients.",
       "Calendar feeds: create a feed for a doctor, copy the link at once (it is shown only once) and add it to Outlook, Google or Apple Calendar.",
       "If a link is shared by mistake, Rotate it. The old link stops working immediately.",
+      "Google review requests: choose the approved WhatsApp template, map its variables, paste each location's Google review link, save, then switch on with the typed words. Staff can mark a patient 'Do not ask' on the patient's card.",
       "System health shows whether each integration is working.",
     ],
     watchOut: [
       "A calendar feed shows appointment times and the clinic location only, never patient details, but anyone with the link can see them.",
+      "Review requests go only to patients who opted in to messages, at most once per person in the period you set, and never depend on how the visit went. Pulse does not contact Google.",
       "SMS is only a fallback for appointment reminders that WhatsApp could not deliver, and each message costs money.",
       "Nothing here ever writes to Unite.",
     ],

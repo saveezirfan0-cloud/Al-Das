@@ -447,6 +447,46 @@ export async function updateContact(id: string, input: unknown): Promise<ActionR
   return { ok: true, message: "Contact saved." };
 }
 
+/**
+ * Staff switch: never ask this person for a Google review (a patient who has passed away, a placeholder record, someone who asked
+ * not to be asked). It is the only per-person filter on review requests besides marketing consent.
+ */
+export async function setNoReviewRequests(
+  id: string,
+  blocked: boolean,
+): Promise<ActionResult> {
+  const member = await requirePerm("contacts.manage");
+  if (!uuid.safeParse(id).success) return fail("Invalid contact id");
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("contacts")
+    .update({ no_review_requests_at: blocked ? new Date().toISOString() : null })
+    .eq("id", id)
+    .eq("org_id", member.orgId)
+    .is("deleted_at", null)
+    .select("id");
+  if (error || !data?.length) return fail("Could not save the change.");
+  await addTimelineEvent(admin, {
+    orgId: member.orgId,
+    contactId: id,
+    type: "contact.review_requests",
+    actorId: member.userId,
+    payload: { blocked } as Json,
+  });
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: blocked ? "contact.review_requests_blocked" : "contact.review_requests_allowed",
+    entity: "contact",
+    entityId: id,
+  });
+  revalidatePath("/contacts");
+  return {
+    ok: true,
+    message: blocked ? "This person will not be asked for a review." : "Review requests allowed again.",
+  };
+}
+
 export async function deleteContacts(ids: string[]): Promise<ActionResult> {
   const member = await requirePerm("contacts.manage");
   const parsed = uuids.safeParse(ids);

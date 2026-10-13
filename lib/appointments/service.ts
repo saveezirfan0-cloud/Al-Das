@@ -22,6 +22,7 @@ import { loadHouseholdLink } from "@/lib/household/server";
 import { freedSlotFromRow, scheduleSlotFreed } from "@/lib/front-desk/freed";
 import { emit } from "@/lib/events/emit";
 import { ensureConversation } from "@/lib/inbox/conversations";
+import { scheduleReviewRequestSafely } from "@/lib/integrations/reviews/server";
 import { queueOutbound } from "@/lib/inbox/send";
 import { scheduleJob } from "@/lib/jobs/enqueue";
 import type { AdminClient } from "@/lib/supabase/admin";
@@ -483,6 +484,10 @@ export async function changeAppointmentStatus(
     to: input.to,
     via: input.via ?? "portal",
   });
+
+  // Phase 19b: a completed visit may be asked for a Google review (own switch, consent and cap; failures never reach the caller).
+  if (input.to === "completed")
+    await scheduleReviewRequestSafely(admin, { orgId: input.orgId, appointmentId: current.id });
 
   const key = notificationKeyFor(input.to);
   const notification =

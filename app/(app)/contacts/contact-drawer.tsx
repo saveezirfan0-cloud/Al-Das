@@ -15,6 +15,7 @@ import { Loader2, MessageSquare, Phone, Plus, Save, Star, Trash2, GitMerge } fro
 import { toast } from "sonner";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +43,7 @@ import {
   makePhonePrimary,
   removeContactPhone,
   setContactTags,
+  setNoReviewRequests,
   updateContact,
   type ContactDetail,
 } from "./actions";
@@ -274,6 +276,27 @@ export function ContactDrawer({
                       idPrefix={`c-${contact.id.slice(0, 8)}`}
                     />
                   </fieldset>
+                </section>
+
+                <section className="flex flex-col gap-2">
+                  <h3 className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+                    Review requests
+                  </h3>
+                  <label className="flex items-start gap-2 text-sm">
+                    <Checkbox
+                      className="mt-0.5"
+                      checked={!!contact.no_review_requests_at}
+                      disabled={!canManage || pending}
+                      onCheckedChange={(v) => run(() => setNoReviewRequests(contact.id, !!v))}
+                    />
+                    <span>
+                      Do not ask for a Google review
+                      <span className="text-muted-foreground block text-xs">
+                        Use this for a patient who has passed away, a placeholder record, or someone
+                        who asked not to be asked.
+                      </span>
+                    </span>
+                  </label>
                 </section>
 
                 <section className="flex flex-col gap-2">

@@ -7,7 +7,7 @@
  * browser; every other field lives in integration_accounts.config and is shown as typed.
  */
 
-export const INTEGRATION_KINDS = ["calendar_ics", "sms", "payments"] as const;
+export const INTEGRATION_KINDS = ["calendar_ics", "sms", "payments", "google_reviews"] as const;
 export type IntegrationKind = (typeof INTEGRATION_KINDS)[number];
 
 export function isIntegrationKind(value: string): value is IntegrationKind {
@@ -28,6 +28,9 @@ export type FieldDef = {
   min?: number;
   /** Value used when the field is left empty. */
   default?: string | number;
+  /** A regular expression (source, without slashes) a text value must match, and the sentence shown when it does not. */
+  pattern?: string;
+  patternHint?: string;
 };
 
 export type ProviderDef = {
@@ -46,7 +49,9 @@ export type IntegrationDef = {
   contactsPatients: boolean;
   /** True when switching it on lets Pulse ask a patient for money. */
   movesMoney: boolean;
-  /** Typed in full to switch it on (only for integrations that contact patients or take money). */
+  /** True when switching it on sends patient-derived data to a third party (hashed ad identifiers, a signer's name and e-mail). */
+  sharesData: boolean;
+  /** Typed in full to switch it on (only for integrations that contact patients, take money or share patient data). */
   confirmWord: string | null;
   /** Permission to open its page and work with it (feeds, test, counters). Switching it on or off always needs integrations.manage. */
   viewPermission: "integrations.manage" | "integrations.calendar";
@@ -68,6 +73,7 @@ export const INTEGRATIONS: readonly IntegrationDef[] = [
       "A private calendar link per doctor to add to Outlook, Google or Apple Calendar. Read-only: it shows when a doctor is booked and where, never who with.",
     contactsPatients: false,
     movesMoney: false,
+    sharesData: false,
     confirmWord: null,
     viewPermission: "integrations.calendar",
     providers: [{ id: "ics", label: "iCalendar (ICS) feed", fields: [] }],
@@ -83,6 +89,7 @@ export const INTEGRATIONS: readonly IntegrationDef[] = [
       "When a WhatsApp reminder cannot be delivered, send a short, generic SMS (clinic name, date, time and a phone number) from your registered sender. Never used for marketing.",
     contactsPatients: true,
     movesMoney: false,
+    sharesData: false,
     confirmWord: "ENABLE SMS",
     viewPermission: "integrations.manage",
     providers: [
@@ -168,6 +175,7 @@ export const INTEGRATIONS: readonly IntegrationDef[] = [
       "From a finance invoice, send the patient a payment link in a WhatsApp template message. Pulse records what the gateway reports; it never marks an invoice as paid in Unite.",
     contactsPatients: true,
     movesMoney: true,
+    sharesData: false,
     confirmWord: "ENABLE PAYMENTS",
     viewPermission: "integrations.manage",
     providers: [
@@ -254,6 +262,60 @@ export const INTEGRATIONS: readonly IntegrationDef[] = [
     consequence:
       "Finance staff can send patients a link to pay an invoice by card. Money moves through your payment gateway account.",
   },
+  {
+    kind: "google_reviews",
+    outbound: false,
+    title: "Google review requests",
+    description:
+      "After a completed visit, send ONE approved WhatsApp message with your clinic's Google review link. No Google account is connected and no Google service is called: it is only a link inside a template. Only patients who opted in to messages are asked, and nobody is left out because of how their visit went.",
+    contactsPatients: true,
+    movesMoney: false,
+    sharesData: false,
+    confirmWord: "ENABLE REVIEW REQUESTS",
+    viewPermission: "integrations.manage",
+    providers: [{ id: "link", label: "Review link in a WhatsApp template", fields: [] }],
+    commonFields: [
+      {
+        key: "delay_minutes",
+        label: "Wait after the visit (minutes)",
+        type: "number",
+        min: 15,
+        max: 4320,
+        default: 120,
+        help: "The request goes out this long after the visit ended, but only inside the sending hours below.",
+      },
+      {
+        key: "send_from",
+        label: "Earliest time of day to send",
+        type: "text",
+        max: 5,
+        default: "09:00",
+        pattern: "^([01]\\d|2[0-3]):[0-5]\\d$",
+        patternHint: "Use 24-hour time such as 09:00.",
+        help: "In the clinic's time zone.",
+      },
+      {
+        key: "send_to",
+        label: "Latest time of day to send",
+        type: "text",
+        max: 5,
+        default: "20:00",
+        pattern: "^([01]\\d|2[0-3]):[0-5]\\d$",
+        patternHint: "Use 24-hour time such as 20:00.",
+      },
+      {
+        key: "cap_days",
+        label: "Ask the same person at most once every (days)",
+        type: "number",
+        min: 7,
+        max: 730,
+        default: 90,
+        help: "A parent with several children counts as one person.",
+      },
+    ],
+    consequence:
+      "Patients who opted in to messages will receive one WhatsApp message with your Google review link after a completed visit (at most once per person in the period you set). Staff can mark a patient 'do not ask'.",
+  },
 ];
 
 export function integrationDef(kind: IntegrationKind): IntegrationDef {
@@ -282,7 +344,7 @@ export function allFields(
 /** Does this integration need the typed confirmation to be switched on? */
 export function needsConfirmation(kind: IntegrationKind): boolean {
   const d = integrationDef(kind);
-  return d.contactsPatients || d.movesMoney;
+  return d.contactsPatients || d.movesMoney || d.sharesData;
 }
 
 export type FieldValues = Record<string, string | number>;
@@ -342,6 +404,8 @@ export function validateFields(
       if (u.protocol !== "https:" || u.username || u.password)
         return { ok: false, error: `${f.label} must be an https address.` };
     }
+    if (f.pattern && !new RegExp(f.pattern).test(text))
+      return { ok: false, error: f.patternHint ?? `${f.label} is not valid.` };
     if (f.type === "select" && !f.options?.some((o) => o.value === text))
       return { ok: false, error: `${f.label} has an unknown value.` };
     if (/[\u0000-\u001f]/.test(text))

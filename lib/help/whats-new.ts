@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-10-19-review-requests",
+    date: "2026-10-19",
+    title: "Google review requests",
+    body: "After a completed visit, Pulse can send one WhatsApp message with your clinic's Google review link, a couple of hours later and only during the hours you choose. Only patients who opted in to messages are asked, at most once in the period you set, and nobody is left out because of how their visit went. Staff can mark a patient 'Do not ask' on the patient's card. Off until an administrator switches it on in Settings, Integrations.",
+  },
+  {
     id: "2026-10-18-integrations",
     date: "2026-10-18",
     title: "Integrations: calendar feeds, SMS fallback and payment links",

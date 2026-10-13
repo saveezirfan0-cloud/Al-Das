@@ -2212,6 +2212,7 @@ export type Database = {
           last_name: string;
           merged_into_id: string | null;
           nationality: string | null;
+          no_review_requests_at: string | null;
           org_id: string;
           owner_id: string | null;
           phone_e164: string | null;
@@ -2248,6 +2249,7 @@ export type Database = {
           last_name?: string;
           merged_into_id?: string | null;
           nationality?: string | null;
+          no_review_requests_at?: string | null;
           org_id: string;
           owner_id?: string | null;
           phone_e164?: string | null;
@@ -2283,6 +2285,7 @@ export type Database = {
           last_name?: string;
           merged_into_id?: string | null;
           nationality?: string | null;
+          no_review_requests_at?: string | null;
           org_id?: string;
           owner_id?: string | null;
           phone_e164?: string | null;
@@ -7186,6 +7189,7 @@ export type Database = {
           name: string;
           org_id: string;
           photo_path: string | null;
+          review_url: string | null;
           timezone: string;
           updated_at: string;
         };
@@ -7202,6 +7206,7 @@ export type Database = {
           name: string;
           org_id: string;
           photo_path?: string | null;
+          review_url?: string | null;
           timezone?: string;
           updated_at?: string;
         };
@@ -7217,6 +7222,7 @@ export type Database = {
           name?: string;
           org_id?: string;
           photo_path?: string | null;
+          review_url?: string | null;
           timezone?: string;
           updated_at?: string;
         };
@@ -9601,6 +9607,139 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "orgs";
             referencedColumns: ["id"];
+          },
+        ];
+      };
+      review_requests: {
+        Row: {
+          appointment_id: string;
+          claimed_at: string | null;
+          contact_id: string | null;
+          created_at: string;
+          decided_at: string | null;
+          id: string;
+          location_id: string | null;
+          message_id: string | null;
+          org_id: string;
+          reason: string | null;
+          recipient_contact_id: string | null;
+          run_at: string;
+          status: string;
+          updated_at: string;
+          visit_ended_at: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          appointment_id: string;
+          claimed_at?: string | null;
+          contact_id?: string | null;
+          created_at?: string;
+          decided_at?: string | null;
+          id?: string;
+          location_id?: string | null;
+          message_id?: string | null;
+          org_id: string;
+          reason?: string | null;
+          recipient_contact_id?: string | null;
+          run_at: string;
+          status?: string;
+          updated_at?: string;
+          visit_ended_at?: string | null;
+        };
+        Update: {
+          appointment_id?: string;
+          claimed_at?: string | null;
+          contact_id?: string | null;
+          created_at?: string;
+          decided_at?: string | null;
+          id?: string;
+          location_id?: string | null;
+          message_id?: string | null;
+          org_id?: string;
+          reason?: string | null;
+          recipient_contact_id?: string | null;
+          run_at?: string;
+          status?: string;
+          updated_at?: string;
+          visit_ended_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "review_requests_appointment_id_fkey";
+            columns: ["appointment_id"];
+            isOneToOne: false;
+            referencedRelation: "appointments";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "review_requests_appointment_id_fkey";
+            columns: ["appointment_id"];
+            isOneToOne: false;
+            referencedRelation: "v_appointment_facts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "review_requests_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "review_requests_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_birthday_today";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "review_requests_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_chronic_recall_eligibility";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "review_requests_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "review_requests_message_id_fkey";
+            columns: ["message_id"];
+            isOneToOne: false;
+            referencedRelation: "messages";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "review_requests_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "review_requests_recipient_contact_id_fkey";
+            columns: ["recipient_contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "review_requests_recipient_contact_id_fkey";
+            columns: ["recipient_contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_birthday_today";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "review_requests_recipient_contact_id_fkey";
+            columns: ["recipient_contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_chronic_recall_eligibility";
+            referencedColumns: ["contact_id"];
           },
         ];
       };
@@ -13484,6 +13623,10 @@ export type Database = {
         Args: { p_key: string; p_owner: string; p_ttl_seconds?: number };
         Returns: boolean;
       };
+      claim_review_request: {
+        Args: { p_cap_days: number; p_org: string; p_request: string };
+        Returns: string;
+      };
       claim_scheduled_jobs: {
         Args: { p_limit?: number; p_lock_ttl?: string; p_worker?: string };
         Returns: {
@@ -14296,6 +14439,7 @@ export type Database = {
         }[];
       };
       reserve_send_slot: { Args: { p_cap: number; p_channel_id: string }; Returns: number };
+      review_request_stats: { Args: { p_org: string; p_since: string }; Returns: Json };
       security_maintenance: { Args: { p_now?: string }; Returns: Json };
       seed_clinical_settings: { Args: { p_org: string }; Returns: undefined };
       seed_condition_groups: { Args: { p_org: string }; Returns: undefined };

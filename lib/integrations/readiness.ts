@@ -28,6 +28,8 @@ export type ReadinessInput = {
   secretsStored: Readonly<Record<string, boolean>>;
   /** Payments only: the WhatsApp template chosen for the payment message (null = none chosen). */
   template?: TemplateReadiness | null;
+  /** Google review requests only. */
+  reviews?: { template: TemplateReadiness | null; locationsWithLink: number };
 };
 
 export function readinessProblems(input: ReadinessInput): string[] {
@@ -61,6 +63,23 @@ export function readinessProblems(input: ReadinessInput): string[] {
       if (!t.hasLinkVariable)
         problems.push("Map one variable of the payment template to the payment link.");
     }
+  }
+  if (input.kind === "google_reviews") {
+    const r = input.reviews;
+    const t = r?.template ?? null;
+    if (!t) problems.push("Choose the WhatsApp template used for the review request.");
+    else {
+      if (t.status !== "APPROVED") problems.push("The review template is not approved by Meta.");
+      if (t.unsupported)
+        problems.push(
+          "The review template has a media header or a button variable, which cannot be filled.",
+        );
+      if (!t.mappedAll) problems.push("Map every variable of the review template.");
+      if (!t.hasLinkVariable)
+        problems.push("Map one variable of the review template to the review link.");
+    }
+    if (!r || r.locationsWithLink < 1)
+      problems.push("Add the Google review link of at least one location.");
   }
   return problems;
 }
