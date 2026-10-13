@@ -75,8 +75,16 @@ export type BuilderLookups = {
   teams: Array<{ id: string; name: string }>;
   people: Array<{ id: string; name: string }>;
   flows: Array<{ id: string; name: string; published: boolean }>;
-  segments: Array<{ id: string; name: string }>;
+  segments: Array<{ id: string; name: string; drip_flow_id?: string | null }>;
   variables: string[];
+  /** Phase 20b: what the CRM / conversation nodes can point at. */
+  pipelines?: Array<{ id: string; name: string; stages: Array<{ id: string; name: string }> }>;
+  labels?: Array<{ id: string; name: string }>;
+  lostReasons?: string[];
+  enquiryFields?: Array<{ key: string; label: string }>;
+  services?: Array<{ id: string; name: string }>;
+  specialists?: Array<{ id: string; name: string }>;
+  locations?: Array<{ id: string; name: string }>;
 };
 
 export type BuilderFlow = {

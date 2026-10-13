@@ -8,6 +8,7 @@ import {
   type ExecCtx,
   type Executor,
 } from "@/lib/flow-engine/executors/common";
+import { ANSWER_TYPES, patternProblem } from "@/lib/flow-engine/node-options";
 import type { Outcome } from "@/lib/flow-engine/types";
 import { isTemplateSendable } from "@/lib/whatsapp/templates";
 import type { InteractiveObject } from "@/lib/whatsapp/types";
@@ -32,6 +33,13 @@ export const message: Executor = async (ctx) => {
   return { kind: "next", output: { message_id: sent.messageId } };
 };
 
+/**
+ * Contact fields a question may save its answer to. The phone number is the patient's identity and gender has a fixed list,
+ * so neither is offered; the e-mail field only takes an answer checked as an e-mail.
+ */
+export const QUESTION_SAVE_FIELD =
+  /^(first_name|last_name|email|language|label|custom\.[A-Za-z][A-Za-z0-9_]{0,63})$/;
+
 export const questionSchema = z
   .object({
     text: z.string().min(1).max(1024),
@@ -48,8 +56,32 @@ export const questionSchema = z
       .min(30)
       .max(60 * 60 * 24 * 30)
       .optional(),
+    /** Free-text questions: what counts as a valid answer (lib/flow-engine/answers.ts). Choice questions match an option. */
+    answer_type: z.enum(ANSWER_TYPES).default("text"),
+    min: z.number().finite().optional(),
+    max: z.number().finite().optional(),
+    pattern: z.string().max(200).optional(),
+    /** How many times to ask again after an answer that does not fit, before the fallback output. 0 = straight to fallback. */
+    reask_max: z.number().int().min(0).max(5).default(0),
+    reask_text: z.string().max(1024).optional(),
+    /** Also save the accepted answer to this contact field. */
+    save_to: z.string().regex(QUESTION_SAVE_FIELD, "unsupported field").optional(),
   })
   .superRefine((v, c) => {
+    if (v.style === "text" && v.answer_type === "regex") {
+      const problem = patternProblem(v.pattern ?? "");
+      if (problem) c.addIssue({ code: "custom", path: ["pattern"], message: problem });
+    }
+    if (v.min !== undefined && v.max !== undefined && v.min > v.max) {
+      c.addIssue({ code: "custom", path: ["min"], message: "minimum is above the maximum" });
+    }
+    if (v.save_to === "email" && !(v.style === "text" && v.answer_type === "email")) {
+      c.addIssue({
+        code: "custom",
+        path: ["save_to"],
+        message: "only an e-mail answer can be saved to the e-mail field",
+      });
+    }
     if (v.style === "buttons" && (v.options.length < 1 || v.options.length > 3)) {
       c.addIssue({ code: "custom", path: ["options"], message: "buttons need 1–3 options" });
     }
@@ -95,7 +127,10 @@ export const question: Executor = async (ctx) => {
   const c = cfg.data;
   const blocked = freeFormBlocked(ctx);
   if (blocked) return fail(blocked);
-  const body = text(ctx, c.text).trim();
+  // After an answer it could not accept the run comes back here (one step per re-ask); the re-ask wording replaces the question.
+  const asked = ctx.run.context.asks?.[ctx.node.id] ?? 0;
+  const wording = asked > 0 && c.reask_text?.trim() ? c.reask_text : c.text;
+  const body = text(ctx, wording).trim();
   if (!body) return fail("Question is empty after filling in variables");
 
   const options = c.style === "text" ? [] : c.options;
@@ -125,7 +160,7 @@ export const question: Executor = async (ctx) => {
   }
   return {
     kind: "wait",
-    output: { message_id: sent.messageId },
+    output: { message_id: sent.messageId, ...(asked > 0 ? { reask: asked } : {}) },
     waiting: {
       kind: "reply",
       token,

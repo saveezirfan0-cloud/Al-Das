@@ -145,6 +145,18 @@ export interface FlowStore {
   getInboundMessage(messageId: string): Promise<InboundMessageView | null>;
   /** Text of the first inbound message of a conversation (the "keyword" trigger fact). */
   getFirstInboundText(conversationId: string): Promise<string | null>;
+  /** True when a run of this flow started for this conversation at or after `since` (the message_received debounce). */
+  hasRunSince(flowId: string, conversationId: string, since: Date): Promise<boolean>;
+  /** Drip check for a segment join: the segment's drip flow and kind, and whether the contact is (still) a live member. */
+  getSegmentDrip(
+    segmentId: string,
+    contactId: string,
+  ): Promise<{
+    org_id: string;
+    kind: string;
+    drip_flow_id: string | null;
+    member: boolean;
+  } | null>;
 }
 
 export type InboundMessageView = {
@@ -157,6 +169,12 @@ export type InboundMessageView = {
   reply_id: string | null;
   /** template the patient tapped a button on, when it can be resolved */
   template_id: string | null;
+  /** When the message was received (ISO). */
+  at?: string | null;
+  /** WhatsApp Flow (nfm_reply) answers, already flattened and size-capped (lib/flow-engine/wa-flow.ts). */
+  form?: Record<string, string> | null;
+  /** The flow_token the form was sent with, when present. */
+  form_token?: string | null;
 };
 
 export type SendResult = { messageId: string };
@@ -186,12 +204,45 @@ export interface FlowActions {
   }): Promise<{ status: number; body: unknown }>;
 }
 
-/** CRM modules that arrive with Phases 5–7. Absent adapter = the node fails with a clear message. */
+/** What a module adapter answers. `created: false` = an existing record was updated instead. */
+export type CrmResult = { id: string; created?: boolean };
+
+/** What the payment-link adapter reports: ids only, never the link, amount or a name. */
+export type PaymentLinkResult = { ok: true; requestId: string } | { ok: false; error: string };
+
+/** The Conversions API adapter's answer (lib/integrations/capi/server.ts queueCapiEvent, plus "no_ad_click"). */
+export type MetaEventResult = { status: string };
+
+/**
+ * Modules outside the engine: CRM (enquiries, tasks, portal, appointments, labels), integrations (payment links, Conversions
+ * API) and the intent labels. Production wiring: lib/flow-engine/crm-adapters.ts (built with the admin client in
+ * supabase-deps.ts, so nothing depends on import order). Tests and the dry run pass their own. An absent method = the node
+ * fails closed with a clear message.
+ */
 export interface CrmPort {
-  createEnquiry?(run: RunRecord, input: Record<string, unknown>): Promise<{ id: string }>;
-  addTask?(run: RunRecord, input: Record<string, unknown>): Promise<{ id: string }>;
-  upsertPortalRecord?(run: RunRecord, input: Record<string, unknown>): Promise<{ id: string }>;
-  bookAppointment?(run: RunRecord, input: Record<string, unknown>): Promise<{ id: string }>;
+  createEnquiry?(run: RunRecord, input: Record<string, unknown>): Promise<CrmResult>;
+  /** One change per call (stage, status, pipeline or field); the enquiry service emits its domain event once. */
+  updateEnquiry?(run: RunRecord, input: Record<string, unknown>): Promise<CrmResult>;
+  addTask?(run: RunRecord, input: Record<string, unknown>): Promise<CrmResult>;
+  upsertPortalRecord?(run: RunRecord, input: Record<string, unknown>): Promise<CrmResult>;
+  bookAppointment?(run: RunRecord, input: Record<string, unknown>): Promise<CrmResult>;
+  /** Adds or removes a conversation label (tags with scope 'conversation'). */
+  setConversationLabel?(
+    run: RunRecord,
+    input: { tag_id: string; on: boolean },
+  ): Promise<{ changed: boolean }>;
+  createPaymentLink?(
+    run: RunRecord,
+    input: { invoice_number: string; amount: string },
+  ): Promise<PaymentLinkResult>;
+  sendMetaEvent?(run: RunRecord, input: { event_name: string }): Promise<MetaEventResult>;
+  /** The newest inbound message of the run's conversation (its text stays in memory; it is never stored by the router). */
+  lastInbound?(run: RunRecord): Promise<{ messageId: string; body: string | null } | null>;
+  /**
+   * Intent labels for one message from the existing closed-enum pipeline (lib/ai/intent). null = not available (AI off,
+   * no provider, daily cap, error): the router then takes its Else output.
+   */
+  intentsFor?(run: RunRecord, messageId: string): Promise<string[] | null>;
 }
 
 export interface FlowJobs {
@@ -203,6 +254,14 @@ export interface FlowJobs {
     runId: string;
     token: string;
     runAt: Date;
+  }): Promise<void>;
+  /** Schedule a later trigger check (scheduled_jobs, one pending job per dedupe key), e.g. the window-closing trigger. */
+  scheduleTrigger(input: {
+    orgId: string;
+    kind: string;
+    payload: Record<string, string>;
+    runAt: Date;
+    dedupeKey: string;
   }): Promise<void>;
 }
 

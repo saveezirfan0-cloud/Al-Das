@@ -5,8 +5,10 @@ import type { NodeType, TriggerType } from "@/lib/flow-engine/types";
  *
  *  - api_action   would let a prompt (or a prompt injected into it) send patient data to an arbitrary URL. The SSRF guard
  *                 only protects OUR network; it cannot know a destination is hostile. Never generated, always stripped.
- *  - portal_record, run_flow, book_appointment, create_enquiry, add_task   need ids or modules the model cannot know, and
- *                 several have no adapter wired yet (they fail closed at run time). A person adds them by hand.
+ *  - portal_record, run_flow, book_appointment, create_enquiry, update_enquiry, add_task, set_label   need ids (pipelines,
+ *                 stages, labels, services, objects) the model cannot know. A person adds them by hand.
+ *  - payment_link, meta_event   take money or send data to Meta: always a person's decision.
+ *  - ai_router    a person decides which labels a flow acts on (the router itself never writes model text).
  *
  * Triggers that start without a person present (an incoming webhook, a recurring schedule) are also left to people.
  */
@@ -35,6 +37,11 @@ export const STRIPPED_NODE_TYPES: readonly NodeType[] = [
   "book_appointment",
   "create_enquiry",
   "add_task",
+  "update_enquiry",
+  "set_label",
+  "payment_link",
+  "meta_event",
+  "ai_router",
 ];
 
 export const AI_TRIGGER_TYPES: readonly TriggerType[] = [

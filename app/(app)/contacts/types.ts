@@ -17,7 +17,11 @@ export type ContactsBootstrap = {
     enquiriesManage: boolean;
     /** documents.view: the Documents tab (not inherited from contacts.view). */
     documentsView: boolean;
+    /** flows.manage as well as contacts.manage: may choose a segment's drip flow (Phase 20b). */
+    drip: boolean;
   };
+  /** Flows with the "Contact added to a segment (drip)" trigger, for the segment dialog. Empty without `can.drip`. */
+  dripFlows: Array<{ id: string; name: string; active: boolean }>;
   customFields: CustomFieldDef[];
   fields: ClientField[];
   tags: TagOption[];

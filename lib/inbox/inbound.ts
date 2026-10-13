@@ -241,6 +241,8 @@ export async function processInbound(
     message_id: message.id,
     contact_id: contact.id,
     kind: event.type,
+    // This message opened (or re-opened) the conversation: the conversation_opened flows own it, not message_received.
+    opened,
     // Lets listeners react to template button replies (appointment Confirm / Reschedule / Cancel).
     reply_to_wa_message_id: event.replyToWaMessageId,
     interactive: event.interactive

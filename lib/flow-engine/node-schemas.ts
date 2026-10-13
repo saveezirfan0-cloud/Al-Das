@@ -1,12 +1,26 @@
 /**
  * The settings schema each node type is executed with. One map so the engine, the builder checks and the Flow Copilot's
- * validator all read the SAME contract. Types whose settings are free-form ports (CRM nodes) accept any object.
+ * validator all read the SAME contract.
  */
 import { z } from "zod";
 
+import { aiRouterSchema } from "@/lib/flow-engine/executors/ai";
 import { assignSchema } from "@/lib/flow-engine/executors/conversation";
-import { updateFieldSchema } from "@/lib/flow-engine/executors/crm";
-import { apiSchema, notifySchema } from "@/lib/flow-engine/executors/integrations";
+import {
+  addTaskSchema,
+  bookAppointmentSchema,
+  createEnquirySchema,
+  portalRecordSchema,
+  setLabelSchema,
+  updateEnquirySchema,
+  updateFieldSchema,
+} from "@/lib/flow-engine/executors/crm";
+import {
+  apiSchema,
+  metaEventSchema,
+  notifySchema,
+  paymentLinkSchema,
+} from "@/lib/flow-engine/executors/integrations";
 import { branchSchema, runFlowSchema, waitSchema } from "@/lib/flow-engine/executors/logic";
 import {
   messageSchema,
@@ -17,7 +31,6 @@ import {
 import { officeHoursSchema } from "@/lib/flow-engine/office-hours";
 import type { NodeType } from "@/lib/flow-engine/types";
 
-const loose = z.record(z.string(), z.unknown());
 const empty = z.object({});
 
 export const NODE_DATA_SCHEMAS: Record<NodeType, z.ZodTypeAny> = {
@@ -35,10 +48,15 @@ export const NODE_DATA_SCHEMAS: Record<NodeType, z.ZodTypeAny> = {
   close_conversation: empty,
   add_comment: z.object({ text: z.string().min(1).max(4000) }),
   update_contact_field: updateFieldSchema,
-  create_enquiry: loose,
-  add_task: loose,
-  portal_record: loose,
-  book_appointment: loose,
+  create_enquiry: createEnquirySchema,
+  add_task: addTaskSchema,
+  portal_record: portalRecordSchema,
+  book_appointment: bookAppointmentSchema,
+  update_enquiry: updateEnquirySchema,
+  set_label: setLabelSchema,
   api_action: apiSchema,
   send_notification: notifySchema,
+  payment_link: paymentLinkSchema,
+  meta_event: metaEventSchema,
+  ai_router: aiRouterSchema,
 };
