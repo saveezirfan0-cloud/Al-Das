@@ -428,6 +428,7 @@ export function EnquiriesWorkspace({ bootstrap }: { bootstrap: EnquiriesBootstra
         p.stages.map((s) => ({ value: s.id, label: `${p.name} · ${s.name}` })),
       ),
       sources: bootstrap.sources.map((s) => ({ value: s, label: s })),
+      tags: bootstrap.enquiryTags.map((t) => ({ value: t.id, label: t.name })),
     }),
     [bootstrap, pipelines],
   );

@@ -30,7 +30,8 @@ export type RelationKey =
   | "enquiries"
   | "appointments"
   | "campaign_recipients"
-  | "tasks";
+  | "tasks"
+  | "enquiry_tags";
 
 export type RelationDef = {
   key: RelationKey;
@@ -272,6 +273,14 @@ export const CONTACT_RELATIONS: Record<RelationKey, RelationDef> = {
       notify_early: "boolean",
       notes: "text",
     },
+  },
+  // Enquiry-only (Phase 20a): the enquiry registry joins it on enquiry_id. No contact field uses it and it
+  // is not in AVAILABLE_RELATIONS, so it can never reach a contact query.
+  enquiry_tags: {
+    key: "enquiry_tags",
+    table: "public.enquiry_tags",
+    contactColumn: "enquiry_id",
+    columns: { tag_id: "uuid" },
   },
   campaign_recipients: {
     key: "campaign_recipients",

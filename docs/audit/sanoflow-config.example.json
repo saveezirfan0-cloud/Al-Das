@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "pipelines": [
+    {
+      "name": "New patients",
+      "sanoflow_name": "Leads",
+      "is_default": true,
+      "stages": [
+        { "name": "New", "color": "blue" },
+        { "name": "Contacted", "sanoflow_name": "In conversation" },
+        { "name": "Appointment requested" },
+        { "name": "Booked", "color": "green" }
+      ]
+    },
+    {
+      "name": "Recall",
+      "stages": [
+        { "name": "Due" },
+        { "name": "Reminded" },
+        { "name": "Rebooked", "color": "green" }
+      ]
+    }
+  ],
+  "statuses": {
+    "Qualified": "open",
+    "Appointment booked": "won",
+    "Not interested": "lost",
+    "Wrong number": "disqualified"
+  },
+  "lost_reasons": {
+    "price": "Price too high",
+    "no response": "No response after follow-up"
+  },
+  "default_lost_reason": "Not recorded in Sanoflow",
+  "enquiry_custom_fields": [
+    { "key": "utm_source", "label": "UTM source", "type": "text" },
+    { "key": "utm_medium", "label": "UTM medium", "type": "text" },
+    { "key": "utm_campaign", "label": "UTM campaign", "type": "text" },
+    { "key": "utm_content", "label": "UTM content", "type": "text" },
+    { "key": "utm_term", "label": "UTM term", "type": "text" }
+  ],
+  "sources": ["Click-to-WhatsApp ad", "Booking page"],
+  "date_order": "dmy"
+}

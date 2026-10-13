@@ -474,11 +474,49 @@ export type DataFacts = {
   loadTestContacts: number;
   adminMembers: number;
   outboundFailed24h: number;
+  /** external_refs per entity with source 'sanoflow' (reconcile_snapshot), when known. */
+  sanoflowRefs?: Record<string, number>;
+  /** Refs to missing enquiries, appointments, segments … (reconcile_snapshot, Phase 20a). */
+  orphanRefsOther?: number;
 };
+
+/** Sanoflow coverage: once contacts came over, enquiries and future appointments must follow (Phase 20a). */
+function sanoflowChecks(d: DataFacts, c: ReturnType<typeof mk>): Check[] {
+  const refs = d.sanoflowRefs ?? {};
+  if (!refs.contact) return [];
+  return [
+    c(
+      "data:sanoflow-enquiries",
+      "Sanoflow enquiries have been imported (pnpm import:sanoflow:all)",
+      (refs.enquiry ?? 0) > 0,
+      "warning",
+      `${refs.enquiry ?? 0} enquiries, ${refs.enquiry_activity ?? 0} activity entries linked`,
+    ),
+    c(
+      "data:sanoflow-appointments",
+      "future Sanoflow appointments have been imported (--with-appointments, after Sanoflow reminders are off)",
+      (refs.appointment ?? 0) > 0,
+      "warning",
+      `${refs.appointment ?? 0} appointments linked`,
+    ),
+  ];
+}
 
 export function evaluateData(d: DataFacts): Check[] {
   const c = mk("Data");
   return [
+    ...sanoflowChecks(d, c),
+    ...(d.orphanRefsOther
+      ? [
+          c(
+            "data:orphan-refs",
+            "import links point at existing records",
+            false,
+            "warning",
+            `${d.orphanRefsOther} external_refs point at a deleted enquiry, appointment, segment or timeline entry`,
+          ),
+        ]
+      : []),
     c(
       "data:contacts",
       "contacts have been imported",

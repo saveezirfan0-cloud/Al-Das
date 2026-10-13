@@ -27,7 +27,13 @@ import { deleteTag, saveTag } from "./actions";
 
 type Row = { id: string; name: string; color: string; count: number };
 
-export function TagsManager({ tags }: { tags: Row[] }) {
+export function TagsManager({
+  tags,
+  scope = "contact",
+}: {
+  tags: Row[];
+  scope?: "contact" | "enquiry";
+}) {
   const [name, setName] = React.useState("");
   const [color, setColor] = React.useState<string>("gray");
   const [pending, startTransition] = React.useTransition();
@@ -52,7 +58,7 @@ export function TagsManager({ tags }: { tags: Row[] }) {
         onSubmit={(e) => {
           e.preventDefault();
           run(
-            () => saveTag(null, { name, color: color as (typeof TAG_COLORS)[number] }),
+            () => saveTag(null, { name, color: color as (typeof TAG_COLORS)[number] }, scope),
             () => setName(""),
           );
         }}

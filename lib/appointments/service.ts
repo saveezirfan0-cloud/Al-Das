@@ -4,6 +4,7 @@ import { loadSlotInput } from "@/lib/appointments/availability";
 import {
   buildAppointmentTemplateValues,
   computeReminders,
+  remindersAllowed,
   planReminders,
   reminderDedupeKey,
 } from "@/lib/appointments/reminders";
@@ -95,20 +96,23 @@ export async function cancelAppointmentReminders(
  */
 export async function syncAppointmentReminders(
   admin: AdminClient,
-  appt: Pick<Appointment, "id" | "org_id" | "contact_id" | "starts_at" | "status">,
+  appt: Pick<Appointment, "id" | "org_id" | "contact_id" | "starts_at" | "status"> &
+    Partial<Pick<Appointment, "source">>,
   opts: { settings?: AppointmentSettings; now?: Date } = {},
 ): Promise<{ scheduled: number; cancelled: number }> {
   const settings = opts.settings ?? (await loadOrgSettings(admin, appt.org_id)).settings;
   const status = isAppointmentStatus(appt.status) ? appt.status : "awaiting";
-  // Without a contact (unmatched Unite patient) there is nobody to message.
-  const desired = appt.contact_id
-    ? computeReminders({
-        startsAt: new Date(appt.starts_at),
-        now: opts.now ?? new Date(),
-        status,
-        rules: settings.reminders,
-      })
-    : [];
+  // Without a contact (unmatched Unite patient) there is nobody to message; imported bookings wait
+  // for the administrator's switch (remindersAllowed). A held reminder is cancelled, not deleted.
+  const desired =
+    appt.contact_id && remindersAllowed(appt.source, settings)
+      ? computeReminders({
+          startsAt: new Date(appt.starts_at),
+          now: opts.now ?? new Date(),
+          status,
+          rules: settings.reminders,
+        })
+      : [];
 
   const { data: existing } = await admin
     .from("appointment_reminders")

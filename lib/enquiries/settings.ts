@@ -60,6 +60,11 @@ export const enquirySettingsSchema = z.object({
         email: false,
       },
     ]),
+  /**
+   * Reasons offered when an enquiry is marked lost or disqualified. Staff pick one or type their own
+   * (free text stays allowed); the Sanoflow import fills it from `lost_reasons` in its config.
+   */
+  lost_reasons: z.array(z.string().trim().min(1).max(200)).max(100).default([]),
   /** Values offered for an enquiry's source. */
   sources: z.array(z.string().min(1).max(60)).max(50).default([...DEFAULT_SOURCES]),
   /** Remind assignees this many minutes before a task is due (0 = at the due time). */

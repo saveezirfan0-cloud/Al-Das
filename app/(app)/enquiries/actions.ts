@@ -250,6 +250,8 @@ export async function previewEnquiryFilterCount(
 
 export type EnquiryDetail = {
   enquiry: EnquiryRow;
+  /** Enquiry tags (tags with scope 'enquiry'). */
+  tagIds: string[];
   timeline: Array<
     Pick<
       Tables<"timeline_events">,
@@ -268,7 +270,7 @@ export async function getEnquiry(id: string): Promise<ActionResult<EnquiryDetail
   if (!uuid.safeParse(id).success) return fail("Invalid enquiry id");
   const admin = createAdminClient(member.userId);
   await recordAccess(admin, member, { entity: "enquiry", entityId: id, action: "view" });
-  const [rows, { data: events }, tasks] = await Promise.all([
+  const [rows, { data: events }, tasks, { data: tagRows }] = await Promise.all([
     fetchEnquiriesByIds(admin, member.orgId, [id]),
     admin
       .from("timeline_events")
@@ -287,6 +289,7 @@ export async function getEnquiry(id: string): Promise<ActionResult<EnquiryDetail
           .order("due_at")
           .limit(100)
       : Promise.resolve({ data: [] }),
+    admin.from("enquiry_tags").select("tag_id").eq("org_id", member.orgId).eq("enquiry_id", id),
   ]);
   const enquiry = rows[0];
   if (!enquiry || enquiry.deleted_at) return fail("Enquiry not found");
@@ -313,6 +316,7 @@ export async function getEnquiry(id: string): Promise<ActionResult<EnquiryDetail
     ok: true,
     data: {
       enquiry,
+      tagIds: (tagRows ?? []).map((t) => t.tag_id),
       timeline: (events ?? []).map((e) => ({
         ...e,
         actor_name: e.actor_id ? (nameOf.get(e.actor_id) ?? null) : null,
@@ -803,4 +807,110 @@ export async function listContactEnquiries(
       })),
     },
   };
+}
+
+// ---------------------------------------------------------------------------
+// Tags (scope 'enquiry', Phase 20a)
+// ---------------------------------------------------------------------------
+
+const enquiryTagSchema = z.object({ name: z.string().trim().min(1).max(40) });
+
+export async function createEnquiryTag(input: {
+  name: string;
+}): Promise<ActionResult<{ id: string; name: string; color: string }>> {
+  const member = await requirePerm("enquiries.manage");
+  const parsed = enquiryTagSchema.safeParse(input);
+  if (!parsed.success) return fail("Enter a tag name");
+  const admin = createAdminClient(member.userId);
+  const { data, error } = await admin
+    .from("tags")
+    .insert({ org_id: member.orgId, scope: "enquiry", name: parsed.data.name })
+    .select("id, name, color")
+    .single();
+  if (error || !data)
+    return fail(error?.code === "23505" ? "That tag already exists." : "Could not create the tag.");
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "tag.created",
+    entity: "tag",
+    entityId: data.id,
+    diff: { scope: "enquiry" },
+  });
+  return { ok: true, data };
+}
+
+/** Replaces an enquiry's tags. Only enquiry tags of this organisation are accepted. */
+export async function setEnquiryTags(enquiryId: string, tagIds: string[]): Promise<ActionResult> {
+  const member = await requirePerm("enquiries.manage");
+  const parsed = z.object({ id: uuid, tags: z.array(uuid).max(100) }).safeParse({
+    id: enquiryId,
+    tags: tagIds,
+  });
+  if (!parsed.success) return fail("Invalid tags");
+  const admin = createAdminClient(member.userId);
+  const { data: enquiry } = await admin
+    .from("enquiries")
+    .select("id, contact_id")
+    .eq("id", parsed.data.id)
+    .eq("org_id", member.orgId)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (!enquiry) return fail("Enquiry not found");
+  const want = [...new Set(parsed.data.tags)];
+  if (want.length) {
+    const { count } = await admin
+      .from("tags")
+      .select("id", { count: "exact", head: true })
+      .eq("org_id", member.orgId)
+      .eq("scope", "enquiry")
+      .in("id", want);
+    if ((count ?? 0) !== want.length) return fail("Unknown tag");
+  }
+  const { data: current } = await admin
+    .from("enquiry_tags")
+    .select("tag_id")
+    .eq("org_id", member.orgId)
+    .eq("enquiry_id", enquiry.id);
+  const have = new Set((current ?? []).map((t) => t.tag_id));
+  const add = want.filter((t) => !have.has(t));
+  const remove = [...have].filter((t) => !want.includes(t));
+  if (add.length) {
+    const { error } = await admin.from("enquiry_tags").insert(
+      add.map((tag_id) => ({
+        org_id: member.orgId,
+        enquiry_id: enquiry.id,
+        tag_id,
+        added_by: member.userId,
+      })),
+    );
+    if (error) return fail("Could not add the tags.");
+  }
+  if (remove.length)
+    await admin
+      .from("enquiry_tags")
+      .delete()
+      .eq("org_id", member.orgId)
+      .eq("enquiry_id", enquiry.id)
+      .in("tag_id", remove);
+  if (add.length || remove.length) {
+    await addTimelineEvent(admin, {
+      orgId: member.orgId,
+      contactId: enquiry.contact_id,
+      enquiryId: enquiry.id,
+      type: "tags.changed",
+      actorId: member.userId,
+      payload: { added: add, removed: remove },
+    });
+    await recordAudit(admin, {
+      orgId: member.orgId,
+      userId: member.userId,
+      action: "enquiry.tags_changed",
+      entity: "enquiry",
+      entityId: enquiry.id,
+      diff: { added: add.length, removed: remove.length },
+    });
+  }
+  revalidatePath("/enquiries");
+  return { ok: true };
 }

@@ -29,6 +29,12 @@ const ENQUIRY_RELATIONS: Record<RelationKey, RelationDef> = {
     columns: { due_at: "timestamptz", done: "boolean", type: "text" },
     extraWhere: "r.done = false",
   },
+  enquiry_tags: {
+    key: "enquiry_tags",
+    table: "public.enquiry_tags",
+    contactColumn: "enquiry_id",
+    columns: { tag_id: "uuid" },
+  },
 };
 
 const col = (column: string, sqlType: SqlType): FieldSource => ({ kind: "column", column, sqlType });
@@ -53,6 +59,7 @@ const BASE: Def[] = [
   { key: "assignee", label: "Assigned to", group: "Enquiry", type: "user", source: col("assignee_id", "uuid"), optionsSource: "users" },
   { key: "created_by", label: "Created by", group: "Enquiry", type: "user", source: col("created_by", "uuid"), optionsSource: "users" },
   { key: "source", label: "Source", group: "Enquiry", type: "select", source: col("source", "text"), optionsSource: "sources" },
+  { key: "tags", label: "Tags", group: "Enquiry", type: "set", source: { kind: "relation", relation: "enquiry_tags", column: "tag_id" }, optionsSource: "tags" },
   { key: "channel", label: "Channel", group: "Enquiry", type: "select", source: col("channel_id", "uuid"), optionsSource: "channels" },
   { key: "est_value", label: "Estimated value", group: "Enquiry", type: "number", source: col("est_value", "numeric"), sortable: true },
   { key: "location", label: "Location", group: "Clinic", type: "select", source: col("location_id", "uuid"), optionsSource: "locations" },

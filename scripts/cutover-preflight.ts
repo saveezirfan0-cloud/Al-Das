@@ -165,7 +165,17 @@ async function main() {
     throw new Error(
       `reconcile_snapshot failed (is migration 20261009000800 applied?): ${snapErr?.message ?? "no data"}`,
     );
-  const s = snap as unknown as { contacts_live: number; reviews_open: Record<string, number> };
+  const s = snap as unknown as {
+    contacts_live: number;
+    reviews_open: Record<string, number>;
+    refs?: Record<string, number>;
+    orphan_refs_other?: number;
+  };
+  const sanoflowRefs = Object.fromEntries(
+    Object.entries(s.refs ?? {})
+      .filter(([k]) => k.startsWith("sanoflow/"))
+      .map(([k, v]) => [k.slice("sanoflow/".length), Number(v)]),
+  );
   const [{ count: loadTest }, { count: admins }, { count: failed24 }] = await Promise.all([
     // synthetic recipients: source 'load-test', or any number in the reserved fake block +971 50 09xx xxx
     admin
@@ -194,6 +204,8 @@ async function main() {
       loadTestContacts: loadTest ?? 0,
       adminMembers: admins ?? 0,
       outboundFailed24h: failed24 ?? 0,
+      sanoflowRefs,
+      orphanRefsOther: Number(s.orphan_refs_other ?? 0),
     }),
   );
 

@@ -28,6 +28,7 @@ const EVENT_LABELS: Record<string, string> = {
   "enquiry.status_changed": "Status changed",
   "enquiry.pipeline_changed": "Moved to another pipeline",
   "enquiry.sla_breached": "SLA breached",
+  "import.sanoflow_activity": "Sanoflow history",
 };
 
 function fmt(v: unknown): string {
@@ -54,6 +55,14 @@ function TimelinePayload({ type, payload }: { type: string; payload: unknown }) 
       </ul>
     );
   }
+  if (type === "import.sanoflow_activity")
+    return (
+      <p className="text-muted-foreground mt-1 text-xs whitespace-pre-wrap">
+        {[str(p.kind), str(p.text), str(p.by) ? `by ${str(p.by)}` : null]
+          .filter(Boolean)
+          .join(" · ")}
+      </p>
+    );
   if (type === "enquiry.stage_changed")
     return (
       <p className="text-muted-foreground mt-1 text-xs">

@@ -1,7 +1,7 @@
 /**
- * Sanoflow contact CSV export → contacts. Idempotent: rows are matched by the
- * Sanoflow contact id (external_refs source='sanoflow'), then by E.164 phone,
- * then by external id (Unite PIN).
+ * Sanoflow contact CSV export → contacts. Idempotent: rows are matched by the Sanoflow contact id
+ * (external_refs source='sanoflow'), then by E.164 phone, then by external id (Unite PIN).
+ * For everything else in the export folder use `pnpm import:sanoflow:all` (it runs this step too).
  *
  *   pnpm import:sanoflow --file=exports/contacts.csv --org=al-das --dry-run
  *   pnpm import:sanoflow --file=exports/contacts.csv --org=al-das
@@ -12,29 +12,21 @@
  * line numbers only — never names or phones.
  */
 import fs from "node:fs";
+import path from "node:path";
 import "dotenv/config";
 
-import { prepareImport } from "@/lib/contacts/import";
-import {
-  findExternalRef,
-  matchContact,
-  queueSyncReview,
-  upsertExternalRef,
-  writePreparedContact,
-} from "@/lib/contacts/import-writer";
 import { parseCsv } from "@/lib/csv";
 
 import {
   adminFromEnv,
-  counters,
   mdTable,
   parseArgs,
   resolveOrg,
   writeReport,
   writeSummary,
 } from "./import/common";
-import { findSanoflowIdHeader, sanoflowMapping } from "./import/mappers/sanoflow.contacts";
 import { loadCustomFieldsForScript } from "./import/custom-fields";
+import { runSanoflowContacts } from "./import/sanoflow/contacts";
 
 async function main() {
   const { flags, opts } = parseArgs(process.argv.slice(2));
@@ -51,13 +43,20 @@ async function main() {
   const org = await resolveOrg(admin, opts.org);
   const customFields = await loadCustomFieldsForScript(admin, org.id);
   const csv = parseCsv(fs.readFileSync(opts.file, "utf8"));
-  const mapping = opts.map
+  const map = opts.map
     ? (JSON.parse(fs.readFileSync(opts.map, "utf8")) as Record<string, string | null>)
-    : sanoflowMapping(csv.headers, customFields);
-  const idHeader = findSanoflowIdHeader(csv.headers);
-  const idIndex = idHeader ? csv.headers.indexOf(idHeader) : -1;
+    : undefined;
 
   console.log(`org=${org.slug} rows=${csv.rows.length} dryRun=${dryRun} mode=${mode}`);
+  const { run, mapping, idHeader } = await runSanoflowContacts(admin, org.id, csv, {
+    file: path.basename(opts.file),
+    dryRun,
+    mode,
+    customFields,
+    map,
+    onProgress: (n) => console.log(`… ${n} written`),
+  });
+  const c = run.counters;
   console.log(
     "mapping:",
     mapping,
@@ -66,121 +65,7 @@ async function main() {
       : "(no sanoflow id column: matching by phone only)",
   );
 
-  const { rows, summary } = prepareImport(csv.headers, csv.rows, {
-    mapping,
-    customFields,
-    requirePhone: true,
-  });
-  const c = counters();
-  c.read = rows.length;
-  c.invalid = summary.invalid;
-  c.duplicates = summary.duplicates;
-  const problems: Array<[number, string]> = [];
-  const failures: Array<[number, string]> = [];
-  const batch = `sanoflow-${Date.now().toString(36)}`;
-  const tagIds = new Map<string, string>();
-  {
-    const { data: tags } = await admin
-      .from("tags")
-      .select("id, name")
-      .eq("org_id", org.id)
-      .eq("scope", "contact");
-    for (const t of tags ?? []) tagIds.set(t.name.toLowerCase(), t.id);
-  }
-
-  for (const row of rows) {
-    if (row.status !== "ok") {
-      problems.push([
-        row.line,
-        row.status === "duplicate" ? `duplicate of line ${row.duplicateOf}` : row.errors.join("; "),
-      ]);
-      continue;
-    }
-    const sanoId = idIndex >= 0 ? (csv.rows[row.line - 1]?.[idIndex] ?? "").trim() : "";
-    row.contact.source = "import_sanoflow";
-
-    let existingId: string | null = null;
-    let existingCustom: Record<string, unknown> | null = null;
-    const ref = sanoId
-      ? await findExternalRef(admin, {
-          orgId: org.id,
-          source: "sanoflow",
-          entity: "contact",
-          externalId: sanoId,
-        })
-      : null;
-    if (ref) {
-      const { data } = await admin
-        .from("contacts")
-        .select("id, custom")
-        .eq("id", ref.localId)
-        .is("deleted_at", null)
-        .maybeSingle();
-      if (data) {
-        existingId = data.id;
-        existingCustom = (data.custom as Record<string, unknown>) ?? {};
-      }
-    }
-    if (!existingId) {
-      const m = await matchContact(admin, org.id, {
-        externalId: row.contact.external_id,
-        phone: row.contact.phone_e164,
-      });
-      if (m.kind === "ambiguous") {
-        c.review++;
-        if (!dryRun && sanoId)
-          await queueSyncReview(admin, {
-            orgId: org.id,
-            source: "sanoflow",
-            entity: "contact",
-            externalId: sanoId,
-            reason: "multiple_matches",
-            candidates: m.candidates,
-          });
-        problems.push([row.line, "ambiguous match → review queue"]);
-        continue;
-      }
-      if (m.kind === "match") {
-        existingId = m.id;
-        existingCustom = m.custom;
-      }
-    }
-    if (existingId && mode === "skip") {
-      c.skipped++;
-      continue;
-    }
-    const res = await writePreparedContact(admin, {
-      orgId: org.id,
-      existingId,
-      existingCustom,
-      contact: row.contact,
-      defaultSource: "import_sanoflow",
-      customFields,
-      tagIds,
-      actorId: null,
-      batch,
-      dryRun,
-    });
-    if (!res.ok) {
-      c.failed++;
-      failures.push([row.line, res.error]);
-      continue;
-    }
-    if (res.created) c.created++;
-    else c.updated++;
-    if (!dryRun && sanoId)
-      await upsertExternalRef(admin, {
-        orgId: org.id,
-        source: "sanoflow",
-        entity: "contact",
-        externalId: sanoId,
-        localTable: "contacts",
-        localId: res.id,
-      });
-    if (c.created + c.updated > 0 && (c.created + c.updated) % 500 === 0)
-      console.log(`… ${c.created + c.updated} written`);
-  }
-
+  const problems = run.problems;
   const report = [
     `# Sanoflow contact import — ${new Date().toISOString()}`,
     ``,
@@ -210,9 +95,6 @@ async function main() {
     `## Problem rows (line numbers only)`,
     problems.length ? mdTable(["Line", "Problem"], problems.slice(0, 500)) : "_none_",
     ``,
-    `## Failed writes`,
-    failures.length ? mdTable(["Line", "Error"], failures.slice(0, 500)) : "_none_",
-    ``,
   ].join("\n");
 
   const file = writeReport("sanoflow", report);
@@ -225,7 +107,16 @@ async function main() {
       dryRun,
       since: null,
       includeTestRecords: true,
-      counters: c,
+      counters: {
+        read: c.read,
+        created: c.created,
+        updated: c.updated,
+        skipped: c.skipped,
+        invalid: c.invalid,
+        duplicates: c.duplicates,
+        review: c.review,
+        failed: c.failed,
+      },
     },
   ]);
   console.log(report);

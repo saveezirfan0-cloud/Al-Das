@@ -20,6 +20,7 @@
     "wa:simulate": "tsx scripts/wa-simulate.ts",
     "import:airtable": "tsx scripts/import-airtable.ts",
     "import:sanoflow": "tsx scripts/import-sanoflow.ts",
+    "import:sanoflow:all": "tsx scripts/import-sanoflow-all.ts",
     "jobs:run": "tsx scripts/run-job.ts",
     "parallel:ingest": "tsx scripts/parallel-run-ingest.ts",
     "finance:seed": "tsx scripts/seed-finance.ts",

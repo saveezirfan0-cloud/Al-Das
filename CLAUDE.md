@@ -114,6 +114,14 @@ Captures Unite invoices, matches them to Diligence claim files, and routes excep
 - Every schema change is a new migration. Never edit applied migrations. Regenerate types after migrating.
 - Navigation: sidebar entries live in `components/shell/nav.ts` (with `group` and search `keywords`); Settings pages live in `components/shell/settings-pages.ts`, which feeds both the Settings menu and Ctrl+K quick search. A new page is added there, gated by its permission. Status, gaps and roadmap: `docs/09_STATUS_AND_ROADMAP.md`.
 - Back-office objects: core entities merge into core tables; everything else becomes a real table registered in `portal_objects`.
+- Sanoflow parity work follows docs/20 and docs/21; docs/audit/sanoflow-surface.json is behaviour evidence only (rule 14).
+
+## Sanoflow migration (Phase 20a, docs/22_PHASE_20A_NOTES.md)
+- `pnpm import:sanoflow:all` imports a folder of Sanoflow exports; Sanoflow column names live ONLY in `scripts/import/sanoflow/mapping.ts` (contacts: `mappers/sanoflow.contacts.ts`), unknown columns are never read, reports are counts only and pass `findPii`. Idempotent via `external_refs` (source `sanoflow`); nothing is deleted.
+- Imported appointments are booked through `book_appointment` with `source = 'import'` and get **no reminders until `appointments.import_reminders_enabled`** (Settings, Appointments; `remindersAllowed()`). Real appointment writes need `--with-appointments`.
+- Sanoflow campaign history lives in the read-only `campaign_archive` / `campaign_archive_recipients` (statuses and times only), never in `campaigns`. Erasure and merges follow the patient by triggers on `contacts`.
+- Enquiry tags are `tags.scope = 'enquiry'` joined through `enquiry_tags` (a trigger refuses other scopes); Settings, Tags manages each scope with its own permission. Lost / disqualified reasons are a pick-list in Settings, Enquiries (`lost_reasons`), free text still allowed.
+- Sanoflow `sync_reviews` hold no patient details; Portal, Sync review links (contacts) or dismisses them, and a dismissed one is never reopened by the importer.
 
 ## Security & access (Phase 15, docs/12_PHASE_15_NOTES.md)
 - **Permissions:** `security.manage` (MFA by role, access review, retention and alert settings) and `privacy.manage` (patient export and erasure, always two people). Admin (`*`) only by default.
@@ -135,6 +143,7 @@ pnpm jobs:run <queue>        # drain a queue through /api/jobs like pg_cron does
 pnpm wa:simulate <fixture>   # post a sample Meta webhook locally
 pnpm import:airtable --dry-run
 pnpm import:sanoflow --dry-run
+pnpm import:sanoflow:all --dir=exports/ --org=<slug> --dry-run   # every Sanoflow export (docs/22); --with-appointments only on cut-over day
 pnpm parallel:ingest --org <slug> --scenario birthday --date YYYY-MM-DD --file ids.txt   # one day of Make output for the parallel-run report (ids are hashed)
 pnpm tsx scripts/export-airtable-schema.ts --counts
 pnpm tsx scripts/export-make.ts --all
