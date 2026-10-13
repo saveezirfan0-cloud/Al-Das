@@ -494,6 +494,19 @@ describe.skipIf(!TEST_DATABASE_URL)("Doctor revenue share (slice 20F)", () => {
     it("the approval must come from a different person, on the same hash", async () => {
       const r = await run(orgA);
       await rejects(runStep(orgA, r.id, "approve", u.fm, r.snapshot_hash), /two different people/);
+      // maker, checker, approver are three people: whoever built the run never approves it either
+      await rejects(
+        runStep(orgA, r.id, "approve", u.fin, r.snapshot_hash),
+        /built this run cannot approve it/,
+      );
+      expect(
+        (
+          await fails(
+            "update public.fin_revshare_runs set status = 'approved', approved_by = built_by, approved_at = now() where id = $1",
+            [r.id],
+          )
+        )?.code,
+      ).toBe("23514");
       await rejects(
         runStep(orgA, r.id, "approve", u.ceo, "f".repeat(64)),
         /changed since you opened it/,
@@ -684,7 +697,10 @@ describe.skipIf(!TEST_DATABASE_URL)("Doctor revenue share (slice 20F)", () => {
         /already has a version in preparation/,
       );
       await rejects(schemeStep(orgA, id, "approve", u.ceo), /only a verified version/);
-      await rejects(schemeStep(orgA, id, "verify", u.fin), /prepared this version cannot verify it/);
+      await rejects(
+        schemeStep(orgA, id, "verify", u.fin),
+        /prepared this version cannot verify it/,
+      );
       await schemeStep(orgA, id, "verify", u.fm);
       await rejects(schemeStep(orgA, id, "approve", u.fm), /two different people/);
       await rejects(
@@ -736,6 +752,82 @@ describe.skipIf(!TEST_DATABASE_URL)("Doctor revenue share (slice 20F)", () => {
           )
         ).n,
       ).toBe(0);
+    });
+
+    it("the person who drafted (or last edited) a version never approves it", async () => {
+      const rule = { basis: "net_revenue", default_rate: 0.3, deductions: { lab: 1 } };
+      const id = await schemeSave(orgA, "SYN-0010", "2026-11-01", rule, u.fin);
+      await schemeStep(orgA, id, "verify", u.fm);
+      await rejects(
+        schemeStep(orgA, id, "approve", u.fin),
+        /prepared this version cannot approve it/,
+      );
+      expect(
+        (
+          await fails(
+            "update public.fin_revshare_schemes set status = 'approved', approved_by = created_by, approved_at = now() where id = $1",
+            [id],
+          )
+        )?.code,
+      ).toBe("23514");
+      // an edit makes the editor the preparer: they cannot approve the re-verified version
+      await schemeSave(orgA, "SYN-0010", "2026-11-01", { ...rule, default_rate: 0.31 }, u.ceo, id);
+      await schemeStep(orgA, id, "verify", u.fm);
+      await rejects(
+        schemeStep(orgA, id, "approve", u.ceo),
+        /prepared this version cannot approve it/,
+      );
+      await schemeStep(orgA, id, "approve", u.fin);
+      expect(
+        (
+          await one<{ status: string }>(
+            "select status from public.fin_revshare_schemes where id = $1",
+            [id],
+          )
+        ).status,
+      ).toBe("approved");
+    });
+
+    it("the fingerprint covers the doctor and the start month, not only the rule", async () => {
+      const rule = { basis: "net_revenue", default_rate: 0.3, deductions: { lab: 1 } };
+      const id = await schemeSave(orgA, "SYN-0011", "2026-11-01", rule, u.fin);
+      const before = await one<{ rule_hash: string; ok: boolean }>(
+        `select rule_hash, rule_hash = app.fin_jsonb_sha256(jsonb_build_object(
+           'doctor_dha_id', doctor_dha_id, 'effective_from', effective_from, 'rule', rule)) as ok
+         from public.fin_revshare_schemes where id = $1`,
+        [id],
+      );
+      expect(before.ok).toBe(true);
+      // the start month moves while the verifier still has the old page open: the old hash no longer verifies
+      await schemeSave(orgA, "SYN-0011", "2027-01-01", rule, u.fin2, id);
+      const after = await one<{ rule_hash: string }>(
+        "select rule_hash from public.fin_revshare_schemes where id = $1",
+        [id],
+      );
+      expect(after.rule_hash).not.toBe(before.rule_hash);
+      await rejects(
+        svc(() =>
+          q("select public.fin_revshare_scheme_step($1, $2, 'verify', $3, $4)", [
+            orgA,
+            id,
+            u.fm,
+            before.rule_hash,
+          ]),
+        ),
+        /changed since you opened it/,
+      );
+      // the same rule for another doctor or another month has another fingerprint
+      const other = await schemeSave(orgA, "SYN-0012", "2027-01-01", rule, u.fin);
+      expect(
+        (
+          await one<{ rule_hash: string }>(
+            "select rule_hash from public.fin_revshare_schemes where id = $1",
+            [other],
+          )
+        ).rule_hash,
+      ).not.toBe(after.rule_hash);
+      await schemeStep(orgA, id, "delete", u.fin);
+      await schemeStep(orgA, other, "delete", u.fin);
     });
 
     it("the SQL rule check agrees with the Zod rule schema", async () => {
@@ -902,7 +994,15 @@ describe.skipIf(!TEST_DATABASE_URL)("Doctor revenue share (slice 20F)", () => {
     const block = /do \$\$\ndeclare\n  g record;[\s\S]*?end \$\$;/.exec(sql)?.[0];
     expect(block, "the grant block was not found").toBeTruthy();
     const orgC = await createOrg(c, "Org C", "org-c", u.alice);
-    const names = ["Finance", "Finance Manager", "CEO", "Medical Director", "Billing", "Insurance", "Cost / Payroll"];
+    const names = [
+      "Finance",
+      "Finance Manager",
+      "CEO",
+      "Medical Director",
+      "Billing",
+      "Insurance",
+      "Cost / Payroll",
+    ];
     await svc(async () => {
       for (const name of names)
         await q(

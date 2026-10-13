@@ -12,7 +12,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createFakeAdmin, type FakeAdmin } from "../../helpers/fake-admin";
 
-import { postmarkMessage, SAMPLE, type PostmarkAttachment } from "./mailbox-fixtures";
+import {
+  postmarkMessage,
+  receivedSpf,
+  SAMPLE,
+  spamTests,
+  type PostmarkAttachment,
+} from "./mailbox-fixtures";
 
 const state = vi.hoisted(() => ({ admin: null as unknown }));
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => state.admin }));
@@ -280,6 +286,39 @@ describe("finance mailbox webhook: what is kept", () => {
     );
     expect(docs()).toHaveLength(1);
     expect(docs()[0].sender_domain).toBe("supplier-two.example");
+  });
+
+  it("drops an allowed address that fails SPF and DKIM for its domain (a forged From), counted like an unknown sender", async () => {
+    const forged = await post(
+      postmarkMessage({
+        id: "m-forged",
+        attachments: [pdf],
+        headers: [
+          receivedSpf("Fail", "x@attacker.example"),
+          spamTests("SPF_FAIL,DKIM_SIGNED,DKIM_VALID"),
+        ],
+      }),
+    );
+    expect(forged.status).toBe(200);
+    await post(postmarkMessage({ id: "m-noauth", attachments: [pdf], headers: [] }));
+    expect(docs()).toEqual([]);
+    expect(admin._rows("integration_webhook_events").map((e) => e.outcome)).toEqual([
+      "dropped_sender",
+      "dropped_sender",
+    ]);
+    expect(usage()).toEqual({ dropped_sender: 2 });
+    // DKIM of the From domain alone is enough
+    await post(
+      postmarkMessage({
+        id: "m-dkim",
+        attachments: [pdf],
+        headers: [
+          receivedSpf("SoftFail", "x@bulk-sender.example"),
+          spamTests("DKIM_VALID,DKIM_VALID_AU"),
+        ],
+      }),
+    );
+    expect(docs()).toHaveLength(1);
   });
 
   it("refuses types it does not take whatever they claim, oversized and empty files, and skips signature pictures", async () => {

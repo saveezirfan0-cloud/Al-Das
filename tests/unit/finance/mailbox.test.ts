@@ -13,13 +13,20 @@ import {
   MAILBOX_MAX_REQUEST_BYTES,
   parseAllowList,
   parsePostmarkInbound,
+  senderAuthenticated,
   senderAddress,
   senderAllowed,
   type InboundAttachment,
 } from "@/lib/finance/mailbox";
 import { FINANCE_DOCUMENT_MAX_BYTES } from "@/lib/media/limits";
 
-import { postmarkMessage, SAMPLE } from "./mailbox-fixtures";
+import {
+  postmarkMessage,
+  receivedSpf,
+  SAMPLE,
+  spamTests,
+  type PostmarkHeader,
+} from "./mailbox-fixtures";
 
 const b64 = (bytes: Uint8Array | string) => Buffer.from(bytes).toString("base64");
 const att = (
@@ -65,6 +72,7 @@ describe("parsePostmarkInbound", () => {
     expect(parsePostmarkInbound(raw)).toEqual({
       messageId: "m-2",
       senderEmail: "accounts@supplier-one.example",
+      senderAuthenticated: false, // no authentication headers at all
       attachments: [],
     });
   });
@@ -82,6 +90,71 @@ describe("parsePostmarkInbound", () => {
     expect(senderAddress("", "Sam Sender")).toBeNull();
     expect(senderAddress("not an address", "<also not>")).toBeNull();
     expect(senderAddress("", "a@b.example")).toBe("a@b.example");
+  });
+});
+
+describe("sender authentication (SPF or DKIM aligned with the From domain)", () => {
+  const from = "accounts@supplier-one.example";
+  const auth = (headers: PostmarkHeader[], sender = from) =>
+    parsePostmarkInbound(postmarkMessage({ from: sender, headers })).senderAuthenticated;
+
+  it("accepts SPF pass for the sender's domain (or a subdomain of it, such as a bounce domain)", () => {
+    expect(auth([receivedSpf("Pass", from)])).toBe(true);
+    expect(auth([receivedSpf("pass", "bounce+x@mail.supplier-one.example")])).toBe(true);
+    expect(senderAuthenticated(from, [receivedSpf("Pass", from)])).toBe(true);
+  });
+
+  it("accepts a valid DKIM signature of the author's domain (DKIM_VALID_AU)", () => {
+    expect(
+      auth([receivedSpf("SoftFail", from), spamTests("DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU")]),
+    ).toBe(true);
+    expect(auth([spamTests(" DKIM_SIGNED, DKIM_VALID, DKIM_VALID_AU, SPF_NONE ")])).toBe(true);
+  });
+
+  it("drops SPF fail, softfail, neutral, none, temperror and permerror", () => {
+    for (const r of ["Fail", "SoftFail", "Neutral", "None", "TempError", "PermError"])
+      expect(auth([receivedSpf(r, from), spamTests("SPF_FAIL")]), r).toBe(false);
+  });
+
+  it("drops a message without authentication headers", () => {
+    expect(auth([])).toBe(false);
+    expect(senderAuthenticated(from, undefined)).toBe(false);
+    expect(senderAuthenticated(null, [receivedSpf("Pass", from)])).toBe(false);
+  });
+
+  it("drops SPF or DKIM that pass for ANOTHER domain (a forged From address)", () => {
+    expect(auth([receivedSpf("Pass", "anyone@attacker.example")])).toBe(false);
+    expect(auth([receivedSpf("Pass", "anyone@supplier-one.example.attacker.example")])).toBe(false);
+    expect(auth([receivedSpf("Pass", "anyone@notsupplier-one.example")])).toBe(false);
+    // signed and valid, but not by the From domain: misaligned DKIM
+    expect(
+      auth([receivedSpf("Fail", "x@attacker.example"), spamTests("DKIM_SIGNED,DKIM_VALID")]),
+    ).toBe(false);
+    // an SPF pass without the envelope sender cannot be tied to the From domain
+    expect(
+      auth([{ Name: "Received-SPF", Value: "Pass (sender SPF authorized) identity=helo; helo=x" }]),
+    ).toBe(false);
+  });
+
+  it("trusts only the receiving server's (topmost) header: a pass the sender wrote lower down does not count", () => {
+    expect(
+      auth([
+        receivedSpf("Fail", "x@attacker.example"),
+        spamTests("SPF_FAIL"),
+        receivedSpf("Pass", from),
+        spamTests("DKIM_VALID_AU"),
+      ]),
+    ).toBe(false);
+    // a sender-written Authentication-Results header is never trusted
+    expect(
+      auth([
+        receivedSpf("Fail", "x@attacker.example"),
+        {
+          Name: "Authentication-Results",
+          Value: "mx.example; dkim=pass header.d=supplier-one.example; spf=pass",
+        },
+      ]),
+    ).toBe(false);
   });
 });
 

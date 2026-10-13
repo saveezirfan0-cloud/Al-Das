@@ -228,7 +228,7 @@ export default async function BankPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Imported</TableHead>
-                <TableHead>File</TableHead>
+                <TableHead>File type</TableHead>
                 <TableHead>For</TableHead>
                 <TableHead className="text-right">Rows</TableHead>
                 <TableHead>Dates</TableHead>
@@ -246,7 +246,7 @@ export default async function BankPage() {
                 (imports ?? []).map((i) => (
                   <TableRow key={i.id}>
                     <TableCell className="tabular-nums">{i.imported_at.slice(0, 10)}</TableCell>
-                    <TableCell className="max-w-56 truncate">{i.file_name}</TableCell>
+                    <TableCell className="uppercase">{i.file_name ?? "-"}</TableCell>
                     <TableCell>
                       {i.kind === "bank_statement"
                         ? (accountName.get(i.account_id ?? "") ?? "")

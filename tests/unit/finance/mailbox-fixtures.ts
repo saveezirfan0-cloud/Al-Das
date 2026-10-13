@@ -41,11 +41,35 @@ export type PostmarkAttachment = {
   ContentID?: string;
 };
 
-/** A Postmark inbound message with everything Pulse must NOT keep filled with recognisable synthetic text. */
+export type PostmarkHeader = { Name: string; Value: string };
+
+/** The Received-SPF header as Postmark's inbound documentation shows it (synthetic IP from the documentation range). */
+export function receivedSpf(result: string, envelopeFrom: string): PostmarkHeader {
+  return {
+    Name: "Received-SPF",
+    Value: `${result} (sender SPF authorized) identity=mailfrom; client-ip=192.0.2.10; helo=mail.sender.example; envelope-from=${envelopeFrom}; receiver=synthetic@inbound.postmarkapp.com`,
+  };
+}
+
+/** SpamAssassin's test list, as in Postmark's inbound documentation (DKIM_VALID_AU = valid signature of the From domain). */
+export function spamTests(tests: string): PostmarkHeader {
+  return { Name: "X-Spam-Tests", Value: tests };
+}
+
+/**
+ * A Postmark inbound message with everything Pulse must NOT keep filled with recognisable synthetic text. By default the
+ * sender passes SPF for its own domain; `headers` replaces the authentication headers (the synthetic one stays).
+ */
 export function postmarkMessage(
-  o: { id?: string; from?: string; attachments?: PostmarkAttachment[] } = {},
+  o: {
+    id?: string;
+    from?: string;
+    attachments?: PostmarkAttachment[];
+    headers?: PostmarkHeader[];
+  } = {},
 ): string {
   const from = o.from ?? "accounts@supplier-one.example";
+  const auth = o.headers ?? [receivedSpf("Pass", from), spamTests("SPF_PASS")];
   return JSON.stringify({
     MessageID: o.id ?? "00000000-0000-4000-8000-0000000000m1",
     From: `"Sam Sender" <${from}>`,
@@ -56,7 +80,7 @@ export function postmarkMessage(
     TextBody: "Synthetic body text for invoice 0042",
     HtmlBody: "<p>Synthetic html body</p>",
     StrippedTextReply: "Synthetic body text",
-    Headers: [{ Name: "X-Synthetic-Header", Value: "Sam Sender" }],
+    Headers: [...auth, { Name: "X-Synthetic-Header", Value: "Sam Sender" }],
     Attachments: (o.attachments ?? []).map((a) => ({ ContentLength: 0, ContentID: "", ...a })),
   });
 }

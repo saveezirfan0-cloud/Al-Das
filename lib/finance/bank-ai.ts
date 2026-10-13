@@ -60,12 +60,27 @@ const isReason = (v: unknown): v is AiReasonCode =>
 const isConfidence = (v: unknown): v is AiConfidence =>
   typeof v === "string" && (AI_CONFIDENCE as readonly string[]).includes(v);
 
-/** The parts of a reference that contain a digit (RA-55501, TBY-7781), upper-cased; words (which could be names) are dropped. */
+/**
+ * Whether a reference token holds something shaped like a phone number: digits (ignoring - and /) that form a UAE number
+ * with 971 / 00971, or a local number with the trunk 0 (9 to 11 digits). Invoice and transfer references (RA-55501,
+ * INV-2026-0042, FT2628312345) do not.
+ */
+export function looksLikePhone(token: string): boolean {
+  const compact = token.replace(/[-/]/g, "");
+  return (compact.match(/\d+/g) ?? []).some(
+    (run) => /^(?:00)?971\d{8,9}$/.test(run) || /^0\d{8,10}$/.test(run),
+  );
+}
+
+/**
+ * The parts of a reference that contain a digit (RA-55501, TBY-7781), upper-cased; words (which could be names) and
+ * anything that looks like a phone number are dropped.
+ */
 export function referenceTokens(ref: string | null | undefined): string[] {
   const out = new Set<string>();
   for (const t of (ref ?? "").toUpperCase().split(/[^A-Z0-9/-]+/)) {
     const tok = t.replace(/^[-/]+|[-/]+$/g, "");
-    if (tok.length >= 3 && tok.length <= 24 && /\d/.test(tok)) out.add(tok);
+    if (tok.length >= 3 && tok.length <= 24 && /\d/.test(tok) && !looksLikePhone(tok)) out.add(tok);
     if (out.size >= 5) break;
   }
   return [...out];

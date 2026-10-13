@@ -28,7 +28,8 @@ import { isTrainingOrg } from "@/lib/training/mode";
  * /api/webhooks/integrations/finance_mailbox/<account id> with HTTP basic auth; receiveIntegrationWebhook() does the 404 for an
  * unknown or switched-off account, the size cap, the per-IP and per-account limits and the once-per-MessageID claim.
  *
- * Here: a training workspace stores nothing; a sender who is not on the allow-list is acknowledged and dropped (counted);
+ * Here: a training workspace stores nothing; a sender who is not on the allow-list, or whose domain neither SPF nor DKIM
+ * vouches for (a forged From), is acknowledged and dropped (counted);
  * each attachment is checked by its bytes and stored as an unlabelled finance document in the inbox (sender DOMAIN only).
  * Nothing of the message is logged or stored: no body, subject, address, name or file name. A storage failure throws, so
  * the claim is released and the provider retries; files already stored are then recognised by their sha256.
@@ -121,7 +122,8 @@ export async function handleMailboxMessage(
     return "training";
   }
   const { entries } = parseAllowList(allowedSenders);
-  if (!senderAllowed(msg.senderEmail, entries)) {
+  // an allow-listed From address counts only when SPF or DKIM vouches for its domain (anyone can write a From line)
+  if (!msg.senderAuthenticated || !senderAllowed(msg.senderEmail, entries)) {
     await count("dropped_sender");
     return "dropped_sender";
   }

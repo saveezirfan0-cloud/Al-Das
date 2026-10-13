@@ -131,6 +131,36 @@ describe("redaction of statement text", () => {
     expect(redactStatementText("  ")).toBeNull();
     expect(redactStatementText("x".repeat(300), 200)).toHaveLength(200);
   });
+
+  it("masks local UAE phone numbers (no +): mobiles, landlines and the 971 / 00971 forms", () => {
+    // synthetic numbers in the style of the reserved demo range (900 block); none is a real line
+    for (const [text, kept] of [
+      ["MOB 0509000001 PAYMENT", /9000001|0509/],
+      ["MOB0509000001", /9000001/],
+      ["TEL 050 900 0002 REF RA-55501", /900 0002|0002/],
+      ["CALL 050-900-0003", /900-0003/],
+      ["LANDLINE 04 900 0004", /900 0004/],
+      ["TEL 049000005 DXB", /9000005/],
+      ["971509000006 TRANSFER", /9000006/],
+      ["9714 900 0007", /900 0007/],
+      ["00971509000008", /9000008/],
+      ["MOB 971 50 900 0009", /900 0009/],
+    ] as const) {
+      const out = redactStatementText(text) ?? "";
+      expect(out, text).not.toMatch(kept);
+      expect(out, text).toContain("•");
+    }
+    // the reference next to the number survives
+    expect(redactStatementText("TEL 050 900 0002 REF RA-55501")).toContain("RA-55501");
+    // references with letters and digits, dates and short or non-zero-leading numbers are kept
+    for (const text of [
+      "DAMAN RA-55501 FT2628312345 TBY-7781",
+      "INV-2026-0042 05/10/2026",
+      "BATCH 0012345 AMT 1500.00",
+      "REMIT 123456789",
+    ])
+      expect(redactStatementText(text), text).toBe(text);
+  });
 });
 
 describe("bank statements", () => {
