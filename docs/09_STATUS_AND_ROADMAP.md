@@ -6,6 +6,26 @@ This is the single document to work from. Section 1 says where we are, 2 says wh
 
 ---
 
+## 0a. Update, 13 Oct 2026: Phase 20 (finance control) and Phase 21 part 1
+
+Branch `claude/funny-clarke-6t7gee` (not merged to `main`, no pull request yet). Built from the finance meeting transcripts, the deck "The next stage of financial & management control" and the CEO's zero-paper directive; the plan, the files still needed from the clinic (D1 to D14) and the slice table are in `docs/20_FINANCE_CONTROL_PLAN.md`; each slice has its notes file (`docs/20_PHASE_20*_NOTES.md`, `docs/21_PHASE_21A_NOTES.md`).
+
+| Slice | What it gives the clinic |
+|---|---|
+| 20A | Daily flash: daily financial summary, month to date, daily sales grid against the same days last month, targets and reporting lines (Chiro and the leased unit separate), Excel in the old layout |
+| 20B | Finance inbox: accounts mailbox (Postmark inbound, allow-listed senders, attachments only) and a drop zone; documents become supplier invoices |
+| 20C | Bank and settlement reconciliation: generic statement import with per-bank column mapping, settlement rules (card / EPG T+2, Tabby T+6 working days), scored matching, reasons for unmatched items, two-person sign-off |
+| 20D | Zero-paper payables: suppliers, supplier invoices with documents, payment vouchers with the delegation-of-authority tiers, maker / checker / approver, approval certificate PDF, TallyPrime XML export |
+| 20F | Doctor revenue share: closed rule vocabulary per contract version, doctor charges, monthly run with the nine-step trail, Finance Manager verifies, CEO approves |
+| 20G | Close timetable by working day (WD5 / 7 / 8 / 10) with owners, backups, dependencies, reminders and the close measures |
+| 20H | AI reviewer for bank reconciliation (suggestions from the matcher's shortlist only; a person accepts each) |
+| 20I | Insurance follow-up at 60 / 90 / 120 days, submission sequence per claim, receivables by payer and age (candidate ARP report) |
+| 20J | Unite invoice-change register (discounts, cancellations, credit notes, refunds) with Operations approval and the "unapproved changes" measure |
+| 20K | Doctor billing mix and seasonality against last year |
+| 21 part 1 | Chronic recall can select patients (visit diagnoses and chronic conditions, rule awaiting sign-off), antibiotic sequences scheduled (messages stay off), data-quality and unclassified-medication screens, reminder and recall reports on the management dashboard |
+
+Still building at the time of writing: 20E (lab and external-referral reconciliation) and the Board pack control summary (20G part 2). Every merge was checked with typecheck, lint, the unit suite, the database suite on Postgres 16 and `pnpm audit:security`. Nothing has been clicked in a browser or run against Unite, Postmark, Tally or a model; the new migrations are paste files `deploy/supabase-paste/22_` to `36_`, applied in number order (24 is unused). Open questions OQ-90 to OQ-104 and OQ-115 are in `docs/audit/open-questions.md`; the decisions most worth making first are OQ-90 (approve vouchers in Pulse or Tally), OQ-91 (is the approval certificate enough without a DSC), OQ-94 (switch Unite capture on with the January backfill) and OQ-101 (new branch codes from 10 Nov).
+
 ## 0. Update, 12 Oct 2026 (read this first)
 
 **Merged.** `main` (`0ea2a27`) now contains Phase 12 (PR #20: new menu, quick search, mobile tabs, Activity log, loading and error pages, installable app manifest, CI) and Finance F7 (PR #21: monthly-summary redesign, setup checklist, data-freshness view, nav badge, paste-ready SQL in `deploy/supabase-paste/`). There are no open pull requests. Production on Vercel (project `al-das`, `al-das.vercel.app`) is deployed from that commit and is READY.
