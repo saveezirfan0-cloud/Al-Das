@@ -15,7 +15,7 @@ export function ComingSoon({
     <div className="flex flex-col gap-6">
       <PageHeader title={title} description={description} />
       <div className="text-muted-foreground flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed py-20 text-center">
-        <Construction className="size-8" />
+        <Construction className="size-8" aria-hidden />
         <p className="text-sm">This module arrives in {phase}.</p>
       </div>
     </div>

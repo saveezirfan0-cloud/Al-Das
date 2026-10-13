@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-11-07-look-and-feel",
+    date: "2026-11-07",
+    title: "A fresher look, dark mode and easier navigation",
+    body: "Pulse has calmer colours and clearer focus outlines for keyboard users. Choose Light, Dark or Match system under your name in the top right; the choice is kept on this device. The menu now marks the page you are on more clearly and the top bar shows which section it belongs to. Quick search (Ctrl K, or ⌘K on a Mac) lists the pages you opened recently first. The dashboard tiles open the matching inbox folder, task list or enquiries.",
+  },
+  {
     id: "2026-11-06-board-pack-controls",
     date: "2026-11-06",
     title: "Board pack: controls and matters needing attention",

@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { ChartRenderer } from "@/components/charts/chart-renderer";
 import { KpiTile } from "@/components/charts/kpi-tile";
 import { PageHeader } from "@/components/shell/page-header";
@@ -61,22 +59,48 @@ export default async function DashboardPage() {
         title={`Welcome back${member.profile.first_name ? `, ${member.profile.first_name}` : ""}`}
         description="Your conversations, tasks and enquiries right now."
       />
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiTile label="My open conversations" value={mine.count ?? 0} hint="assigned to you" />
-        <KpiTile label="Unread (mine)" value={unread.count ?? 0} hint="need your reply" />
-        <KpiTile label="Unassigned" value={unassigned.count ?? 0} hint="open, nobody owns them" />
-        <KpiTile
-          label="Waiting"
-          value={waiting.count ?? 0}
-          hint="you replied; waiting on the patient"
-        />
-      </div>
-      <p className="text-muted-foreground text-sm">
-        <Link href="/inbox" className="text-primary underline">
-          Open the inbox
-        </Link>{" "}
-        · {online ?? 0} of {members ?? 0} team members online
-      </p>
+      <section aria-labelledby="dash-conversations" className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <h3 id="dash-conversations" className="text-sm font-semibold">
+            Conversations
+          </h3>
+          <p className="text-muted-foreground flex items-center gap-2 text-sm">
+            <span
+              className={`size-2 shrink-0 rounded-full ${online ? "bg-emerald-500" : "bg-muted-foreground/40"}`}
+              aria-hidden
+            />
+            <span className="tabular-nums">
+              {online ?? 0} of {members ?? 0} team members online
+            </span>
+          </p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <KpiTile
+            label="My open conversations"
+            value={mine.count ?? 0}
+            hint="assigned to you"
+            href="/inbox?folder=assigned_me"
+          />
+          <KpiTile
+            label="Unread (mine)"
+            value={unread.count ?? 0}
+            hint="need your reply"
+            href="/inbox?folder=assigned_me"
+          />
+          <KpiTile
+            label="Unassigned"
+            value={unassigned.count ?? 0}
+            hint="open, nobody owns them"
+            href="/inbox?folder=unassigned"
+          />
+          <KpiTile
+            label="Waiting"
+            value={waiting.count ?? 0}
+            hint="you replied; waiting on the patient"
+            href="/inbox?folder=waiting"
+          />
+        </div>
+      </section>
 
       {trend && (
         <ChartRenderer
@@ -94,32 +118,45 @@ export default async function DashboardPage() {
       )}
 
       {(canTasks || canEnquiries) && (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {myTasks && (
-            <KpiTile label="My open tasks" value={myTasks.count ?? 0} hint="assigned to you" />
-          )}
-          {overdueTasks && (
-            <KpiTile
-              label="My overdue tasks"
-              value={overdueTasks.count ?? 0}
-              hint="past their due time"
-            />
-          )}
-          {openEnquiries && (
-            <KpiTile
-              label="Open enquiries"
-              value={openEnquiries.count ?? 0}
-              hint="across all pipelines"
-            />
-          )}
-          {newToday && (
-            <KpiTile
-              label="New enquiries today"
-              value={newToday.count ?? 0}
-              hint="created since midnight"
-            />
-          )}
-        </div>
+        <section aria-labelledby="dash-work" className="flex flex-col gap-3">
+          <h3 id="dash-work" className="text-sm font-semibold">
+            Work
+          </h3>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {myTasks && (
+              <KpiTile
+                label="My open tasks"
+                value={myTasks.count ?? 0}
+                hint="assigned to you"
+                href="/tasks"
+              />
+            )}
+            {overdueTasks && (
+              <KpiTile
+                label="My overdue tasks"
+                value={overdueTasks.count ?? 0}
+                hint="past their due time"
+                href="/tasks?state=overdue"
+              />
+            )}
+            {openEnquiries && (
+              <KpiTile
+                label="Open enquiries"
+                value={openEnquiries.count ?? 0}
+                hint="across all pipelines"
+                href="/enquiries?pipeline=all"
+              />
+            )}
+            {newToday && (
+              <KpiTile
+                label="New enquiries today"
+                value={newToday.count ?? 0}
+                hint="created since midnight"
+                href="/enquiries"
+              />
+            )}
+          </div>
+        </section>
       )}
     </div>
   );

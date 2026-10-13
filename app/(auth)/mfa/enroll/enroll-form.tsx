@@ -80,7 +80,7 @@ export function EnrollForm({ next }: { next?: string }) {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <ShieldCheck className="size-5" /> Set up two-step verification
+          <ShieldCheck className="size-5" aria-hidden /> Set up two-step verification
         </CardTitle>
         <CardDescription>
           Your role needs a second step at sign-in. Scan the code with an authenticator app (Google
@@ -121,15 +121,20 @@ export function EnrollForm({ next }: { next?: string }) {
                   onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
                 />
               </div>
-              {error && <p className="text-destructive text-sm">{error}</p>}
+              {error && (
+                <p className="text-destructive text-sm" role="alert">
+                  {error}
+                </p>
+              )}
               <Button type="submit" disabled={busy || code.length !== 6}>
-                {busy && <Loader2 className="animate-spin" />} Turn on two-step verification
+                {busy && <Loader2 className="animate-spin" aria-hidden />} Turn on two-step
+                verification
               </Button>
             </form>
           </>
         ) : (
-          <div className="text-muted-foreground flex items-center gap-2 text-sm">
-            {busy ? <Loader2 className="size-4 animate-spin" /> : null}
+          <div className="text-muted-foreground flex items-center gap-2 text-sm" role="status">
+            {busy ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
             {error ?? "Preparing your code…"}
           </div>
         )}

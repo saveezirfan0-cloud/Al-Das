@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, Check } from "lucide-react";
+import { Bell, Check, CheckCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -35,7 +35,7 @@ export function NotificationsMenu() {
         >
           <Bell />
           {unread > 0 && (
-            <span className="bg-primary text-primary-foreground absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold">
+            <span className="bg-primary text-primary-foreground ring-background absolute top-0.5 right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] leading-none font-semibold tabular-nums ring-2">
               {unread > 9 ? "9+" : unread}
             </span>
           )}
@@ -50,9 +50,10 @@ export function NotificationsMenu() {
         </div>
         <ScrollArea className="max-h-96">
           {items.length === 0 ? (
-            <p className="text-muted-foreground px-3 py-8 text-center text-sm">
-              You&apos;re all caught up.
-            </p>
+            <div className="text-muted-foreground flex flex-col items-center gap-2 px-3 py-8 text-center text-sm">
+              <CheckCheck className="size-6 opacity-60" aria-hidden />
+              <p>You&apos;re all caught up.</p>
+            </div>
           ) : (
             <ul className="divide-y">
               {items.map((n) => (
@@ -60,16 +61,16 @@ export function NotificationsMenu() {
                   <button
                     type="button"
                     onClick={() => !n.read_at && void readOne(n.id)}
-                    className="hover:bg-accent flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left"
+                    className="hover:bg-accent focus-visible:bg-accent focus-visible:ring-ring flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset"
                   >
                     <span className="flex w-full items-center gap-2">
                       {!n.read_at && (
-                        <span
-                          className="bg-primary size-1.5 shrink-0 rounded-full"
-                          aria-label="unread"
-                        />
+                        <span className="bg-primary size-1.5 shrink-0 rounded-full" aria-hidden />
                       )}
-                      <span className="truncate text-sm font-medium">{n.title}</span>
+                      <span className="truncate text-sm font-medium">
+                        {!n.read_at && <span className="sr-only">Unread: </span>}
+                        {n.title}
+                      </span>
                       <span className="text-muted-foreground ml-auto shrink-0 text-xs">
                         {timeAgo(n.created_at)}
                       </span>
