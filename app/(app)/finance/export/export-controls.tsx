@@ -82,7 +82,7 @@ export function ExportPanel({
                 {res.rows} journal line(s), debits {money(res.debit)} = credits {money(res.credit)}.
               </span>
             ) : (
-              <span className="text-amber-600">Not ready: map the accounts marked below.</span>
+              <span className="text-amber-600 dark:text-amber-400">Not ready: map the accounts marked below.</span>
             )}
           </div>
           {res.openMonths.length > 0 && (
@@ -95,7 +95,7 @@ export function ExportPanel({
             {res.needed.map((n) => (
               <li
                 key={`${n.kind}:${n.key}`}
-                className={n.mapped ? "text-muted-foreground" : "text-amber-600"}
+                className={n.mapped ? "text-muted-foreground" : "text-amber-600 dark:text-amber-400"}
               >
                 {n.mapped ? "✓" : "✗"} {n.kind.replaceAll("_", " ")}
                 {n.key !== "*" ? `: ${n.key}` : ""}

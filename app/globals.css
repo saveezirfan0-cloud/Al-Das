@@ -1,7 +1,14 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
+/* Dark applies on screen only: a page printed while dark mode is on still prints dark-on-white. */
+@custom-variant dark {
+  @media screen {
+    &:is(.dark *) {
+      @slot;
+    }
+  }
+}
 
 :root {
   /* Neutrals carry a faint cool tint (hue 250). Contrast (WCAG): muted-foreground 5.5:1 on background,
@@ -58,47 +65,50 @@
   --sidebar-ring: oklch(0.55 0.16 250);
 }
 
-.dark {
-  /* muted-foreground 7.3:1 on background, 5.6:1 on muted; ring 7.3:1 on background. */
-  color-scheme: dark;
-  --background: oklch(0.16 0.012 250);
-  --foreground: oklch(0.97 0.004 250);
-  --card: oklch(0.205 0.013 250);
-  --card-foreground: oklch(0.97 0.004 250);
-  --popover: oklch(0.205 0.013 250);
-  --popover-foreground: oklch(0.97 0.004 250);
-  --primary: oklch(0.72 0.14 250);
-  --primary-foreground: oklch(0.16 0.012 250);
-  --secondary: oklch(0.27 0.014 250);
-  --secondary-foreground: oklch(0.97 0.004 250);
-  --muted: oklch(0.27 0.014 250);
-  --muted-foreground: oklch(0.7 0.015 250);
-  --accent: oklch(0.27 0.014 250);
-  --accent-foreground: oklch(0.97 0.004 250);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.7 0.14 250);
-  --sidebar: oklch(0.19 0.012 250);
-  --sidebar-foreground: oklch(0.97 0.004 250);
-  --sidebar-primary: oklch(0.72 0.14 250);
-  --sidebar-primary-foreground: oklch(0.16 0.012 250);
-  --sidebar-accent: oklch(0.3 0.05 250);
-  --sidebar-accent-foreground: oklch(0.97 0.004 250);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.7 0.14 250);
+@media screen {
+  .dark {
+    /* muted-foreground 7.3:1 on background, 5.6:1 on muted; ring 7.3:1 on background. */
+    color-scheme: dark;
+    --background: oklch(0.16 0.012 250);
+    --foreground: oklch(0.97 0.004 250);
+    --card: oklch(0.205 0.013 250);
+    --card-foreground: oklch(0.97 0.004 250);
+    --popover: oklch(0.205 0.013 250);
+    --popover-foreground: oklch(0.97 0.004 250);
+    --primary: oklch(0.72 0.14 250);
+    --primary-foreground: oklch(0.16 0.012 250);
+    --secondary: oklch(0.27 0.014 250);
+    --secondary-foreground: oklch(0.97 0.004 250);
+    --muted: oklch(0.27 0.014 250);
+    --muted-foreground: oklch(0.7 0.015 250);
+    --accent: oklch(0.27 0.014 250);
+    --accent-foreground: oklch(0.97 0.004 250);
+    --destructive: oklch(0.704 0.191 22.216);
+    --border: oklch(1 0 0 / 10%);
+    --input: oklch(1 0 0 / 15%);
+    --ring: oklch(0.7 0.14 250);
+    --sidebar: oklch(0.19 0.012 250);
+    --sidebar-foreground: oklch(0.97 0.004 250);
+    --sidebar-primary: oklch(0.72 0.14 250);
+    --sidebar-primary-foreground: oklch(0.16 0.012 250);
+    --sidebar-accent: oklch(0.3 0.05 250);
+    --sidebar-accent-foreground: oklch(0.97 0.004 250);
+    --sidebar-border: oklch(1 0 0 / 10%);
+    --sidebar-ring: oklch(0.7 0.14 250);
 
-  --viz-1: #3987e5;
-  --viz-2: #d95926;
-  --viz-3: #199e70;
-  --viz-4: #c98500;
-  --viz-5: #d55181;
-  --viz-6: #008300;
-  --viz-7: #9085e9;
-  --viz-8: #e66767;
-  --viz-seq: #3987e5;
-  --viz-grid: oklch(1 0 0 / 9%);
+    --viz-1: #3987e5;
+    --viz-2: #d95926;
+    --viz-3: #199e70;
+    --viz-4: #c98500;
+    --viz-5: #d55181;
+    --viz-6: #008300;
+    --viz-7: #9085e9;
+    --viz-8: #e66767;
+    --viz-seq: #3987e5;
+    --viz-grid: oklch(1 0 0 / 9%);
+  }
 }
+
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);

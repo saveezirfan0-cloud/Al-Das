@@ -180,7 +180,7 @@ export function Thread(props: InboxProps & { selected: ConversationDetail; onBac
                 {perms.send && (
                   <button
                     type="button"
-                    className="ml-0.5 rounded px-0.5 hover:bg-black/10"
+                    className="ml-0.5 rounded px-0.5 hover:bg-black/10 dark:hover:bg-white/10"
                     aria-label={`Clear the tag ${INTENT_LABELS[tag]}`}
                     disabled={pending}
                     onClick={() => run(() => dismissAiTag({ conversation_id: selected.id, tag }))}
@@ -272,7 +272,7 @@ export function Thread(props: InboxProps & { selected: ConversationDetail; onBac
                               ? "bg-emerald-500"
                               : p.presence === "away"
                                 ? "bg-amber-400"
-                                : "bg-gray-300",
+                                : "bg-gray-300 dark:bg-gray-600",
                           )}
                         />
                         {p.name}

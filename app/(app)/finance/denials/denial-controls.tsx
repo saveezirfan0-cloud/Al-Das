@@ -129,7 +129,7 @@ export function AppealPanel({
   return (
     <div className="flex flex-col gap-3">
       {!appealable && (
-        <p className="text-sm text-amber-600">
+        <p className="text-sm text-amber-600 dark:text-amber-400">
           The taxonomy marks this denial code as normally not appealable (for example a duplicate or
           a late submission). A letter can still be drafted.
         </p>
@@ -193,7 +193,7 @@ export function DraftCard({ draft }: { draft: DraftView }) {
         </span>
       </div>
       {draft.flags.length > 0 && (
-        <ul className="list-disc pl-5 text-xs text-amber-600">
+        <ul className="list-disc pl-5 text-xs text-amber-600 dark:text-amber-400">
           {draft.flags.map((f) => (
             <li key={f}>{f}</li>
           ))}

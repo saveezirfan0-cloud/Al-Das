@@ -342,7 +342,7 @@ function SignOffDialog({
             />
           </div>
           {guarded && (
-            <div className="flex flex-col gap-1 rounded-md border border-red-300 p-3">
+            <div className="flex flex-col gap-1 rounded-md border border-red-300 dark:border-red-500/30 p-3">
               <p className="text-xs">
                 {item.key === "clinical_messaging_enabled"
                   ? "This lets approved clinical templates reach real patients."

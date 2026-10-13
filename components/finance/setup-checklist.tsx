@@ -41,7 +41,7 @@ export function SetupChecklist({
                 aria-hidden
                 className={
                   s.state === "done"
-                    ? "mt-0.5 w-4 shrink-0 text-center font-semibold text-emerald-600"
+                    ? "mt-0.5 w-4 shrink-0 text-center font-semibold text-emerald-600 dark:text-emerald-400"
                     : "text-muted-foreground mt-0.5 w-4 shrink-0 text-center"
                 }
               >

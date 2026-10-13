@@ -76,7 +76,7 @@ export default async function TallyExportPage() {
             {preview.ok ? `, AED ${money(preview.total)} in all.` : "."}
           </p>
           {!nothing && !preview.ok && (
-            <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+            <div className="rounded-md border border-amber-300 dark:border-amber-500/30 bg-amber-50 p-3 text-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
               <p className="font-medium">Map these to Tally first:</p>
               <ul className="list-disc pl-5">
                 {preview.missing.map((m) => (

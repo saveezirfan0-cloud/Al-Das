@@ -438,7 +438,7 @@ export function MediaLibrary({
               {j.state === "working" ? (
                 <Loader2 className="size-3.5 animate-spin" aria-hidden />
               ) : j.state === "done" ? (
-                <span className="text-emerald-600" aria-hidden>
+                <span className="text-emerald-600 dark:text-emerald-400" aria-hidden>
                   ✓
                 </span>
               ) : (
