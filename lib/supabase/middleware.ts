@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+import { redactText } from "@/lib/redact";
 import { isMfaExemptPath, mfaGate } from "@/lib/security/mfa";
 import { AUTH_MODE_HEADER, authModeFor } from "@/lib/supabase/auth-mode";
 import type { Database } from "@/lib/supabase/types";
@@ -18,6 +19,20 @@ const PUBLIC_PREFIXES = [
   "/favicon",
   "/manifest.webmanifest",
 ];
+
+const UNAVAILABLE_HTML = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pulse is temporarily unavailable</title></head><body style="font-family:system-ui,sans-serif;max-width:32rem;margin:15vh auto;padding:0 1rem;line-height:1.5"><h1 style="font-size:1.25rem">Pulse is temporarily unavailable</h1><p>We could not check your sign-in settings. Please try again in a moment. If this keeps happening, tell your administrator.</p><p><a href="">Try again</a></p></body></html>`;
+
+/** 503 with Retry-After: a plain page for browser navigations, JSON for everything else. */
+function unavailable(request: NextRequest) {
+  const headers = { "Retry-After": "5", "Cache-Control": "no-store" };
+  if (request.method === "GET" && (request.headers.get("accept") ?? "").includes("text/html")) {
+    return new NextResponse(UNAVAILABLE_HTML, {
+      status: 503,
+      headers: { ...headers, "Content-Type": "text/html; charset=utf-8" },
+    });
+  }
+  return NextResponse.json({ error: "temporarily unavailable" }, { status: 503, headers });
+}
 
 function isPublicPath(pathname: string) {
   return PUBLIC_PREFIXES.some(
@@ -113,10 +128,11 @@ export async function updateSession(request: NextRequest) {
         .order("created_at");
       if (roleError) {
         // Fail closed: if we cannot tell whether this role needs a second step, do not assume it does not.
-        return NextResponse.json(
-          { error: "temporarily unavailable" },
-          { status: 503, headers: { "Retry-After": "5" } },
+        // Log the database code so a missing migration (42703 / PGRST205) is visible in the runtime logs.
+        console.error(
+          `[middleware] role lookup failed: ${redactText(`${roleError.code ?? ""} ${roleError.message}`)}`,
         );
+        return unavailable(request);
       }
       const active = memberships?.find((m) => m.org_id === preferred) ?? memberships?.[0];
       decision = mfaGate({ ...base, required: active?.roles?.require_mfa === true });
