@@ -51,6 +51,7 @@ const toSupplier: TallyPayment = {
   narration: 'Gloves "and" masks',
   paymentReference: "BANKREF-0001",
   invoiceNumbers: ["INV-<77>"],
+  approvedInPulse: true,
 };
 
 const expense: TallyPayment = {
@@ -67,6 +68,7 @@ const expense: TallyPayment = {
   narration: "October bill",
   paymentReference: null,
   invoiceNumbers: [],
+  approvedInPulse: true,
 };
 
 const build = (over: Partial<Parameters<typeof buildTallyXml>[0]> = {}) =>
@@ -196,5 +198,21 @@ describe("TallyPrime import XML", () => {
     if (!r.ok) throw new Error("expected ok");
     expect(r.xml).not.toContain("SVCURRENTCOMPANY");
     expect(r.xml).not.toContain("Input VAT");
+  });
+
+  it("says Approved in Pulse only for vouchers Pulse approved; a Tally-route voucher is to be authorised in Tally", () => {
+    const tally: TallyPayment = {
+      ...expense,
+      id: "cccccccc-0000-4000-8000-000000000003",
+      voucherNo: "PV-2026-0003",
+      approvedInPulse: false,
+    };
+    const r = build({ payments: [toSupplier, tally] });
+    if (!r.ok) throw new Error("expected ok");
+    const narration = (no: string) =>
+      new RegExp(`<NARRATION>${no}:[^<]*</NARRATION>`).exec(r.xml)?.[0] ?? "";
+    expect(narration("PV-2026-0002")).toContain("Approved in Pulse.");
+    expect(narration("PV-2026-0003")).toContain("To be authorised in Tally.");
+    expect(narration("PV-2026-0003")).not.toContain("Approved in Pulse");
   });
 });

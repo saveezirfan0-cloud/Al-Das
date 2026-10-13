@@ -59,7 +59,7 @@ export default async function PayablesPage({
     admin
       .from("fin_supplier_invoices")
       .select(
-        "id, supplier_id, invoice_number, invoice_date, due_date, category, net, vat, total, branch_code, cost_centre, doctor_dha_id, document_id, status, tally_exported_at",
+        "id, supplier_id, invoice_number, invoice_date, due_date, category, net, vat, total, paid_amount, branch_code, cost_centre, doctor_dha_id, document_id, status, tally_exported_at",
       )
       .eq("org_id", member.orgId)
       .in("status", statuses)
@@ -175,6 +175,9 @@ export default async function PayablesPage({
                   };
                   const status = i.status as Status;
                   const overdue = status === "open" && i.due_date && i.due_date < today;
+                  // part payments: an invoice is open again with its balance until it is settled
+                  const paidSoFar = Number(i.paid_amount);
+                  const partPaid = status !== "paid" && paidSoFar > 0;
                   return (
                     <TableRow key={i.id}>
                       <TableCell>{supplierName.get(i.supplier_id) ?? "-"}</TableCell>
@@ -188,9 +191,18 @@ export default async function PayablesPage({
                         )}
                       </TableCell>
                       <TableCell>{i.category}</TableCell>
-                      <TableCell className="text-right tabular-nums">{money(i.total)}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {money(i.total)}
+                        {partPaid && (
+                          <div className="text-muted-foreground text-xs">
+                            balance {money(Number(i.total) - paidSoFar)}
+                          </div>
+                        )}
+                      </TableCell>
                       <TableCell>
-                        <Badge variant={STATUS[status].variant}>{STATUS[status].label}</Badge>
+                        <Badge variant={STATUS[status].variant}>
+                          {partPaid && status === "open" ? "Part paid" : STATUS[status].label}
+                        </Badge>
                         {i.tally_exported_at && (
                           <Badge variant="outline" className="ml-1">
                             in Tally
@@ -214,7 +226,7 @@ export default async function PayablesPage({
                             </Link>
                           </Button>
                         )}
-                        {manage && status === "open" && !i.tally_exported_at && (
+                        {manage && status === "open" && !partPaid && !i.tally_exported_at && (
                           <>
                             <InvoiceButton invoice={view} options={options} />
                             <VoidInvoiceButton id={i.id} />

@@ -1,14 +1,17 @@
 import "server-only";
 
+import { can, type MemberLike } from "@/lib/auth/can";
 import type { AdminClient } from "@/lib/supabase/admin";
 import type { CertificateEvent, VoucherCertificate } from "@/lib/finance/voucher-certificate";
-import type {
-  ApprovalTier,
-  PaymentMethod,
-  ReportSettings,
-  SpecialCategory,
-  VoucherReportRow,
-  VoucherStatus,
+import {
+  canReadVoucher,
+  voucherReadAccess,
+  type ApprovalTier,
+  type PaymentMethod,
+  type ReportSettings,
+  type SpecialCategory,
+  type VoucherReportRow,
+  type VoucherStatus,
 } from "@/lib/finance/vouchers";
 import type { TallyLedgerRow, TallyPayment, TallyPurchase } from "@/lib/finance/tally-xml";
 
@@ -84,6 +87,66 @@ export async function peopleNames(
 export const nameOf = (names: Map<string, string>, id: string | null | undefined) =>
   id ? (names.get(id) ?? "A former member") : "-";
 
+/**
+ * Which vouchers a member may read (the server-side mirror of row level security, app.fin_can_read_voucher; the rule is
+ * canReadVoucher in lib/finance/vouchers.ts). `special`: special-category vouchers too. `ids`: only these (a department
+ * head: Tier 2 vouchers waiting for a department head or that they decided); null = no list restriction. Null result:
+ * no voucher at all. Every voucher loader below takes the scope.
+ */
+export type VoucherScope = { special: boolean; ids: string[] | null };
+
+export async function loadVoucherScope(
+  admin: AdminClient,
+  member: MemberLike,
+): Promise<VoucherScope | null> {
+  const access = voucherReadAccess((p) => can(member, p));
+  if (access.full) return { special: access.special, ids: null };
+  if (!access.dept) return null;
+  const [candidates, decided] = await Promise.all([
+    admin
+      .from("fin_payment_vouchers")
+      .select("id, special_category, route, needs_dept, status")
+      .eq("org_id", member.orgId)
+      .eq("special_category", "none")
+      .eq("route", "pulse")
+      .eq("needs_dept", true)
+      .limit(5000),
+    admin
+      .from("fin_voucher_events")
+      .select("voucher_id")
+      .eq("org_id", member.orgId)
+      .eq("actor_id", member.userId)
+      .in("action", ["dept_approved", "rejected"])
+      .limit(5000),
+  ]);
+  const mine = new Set((decided.data ?? []).map((e) => e.voucher_id));
+  const ids = (candidates.data ?? [])
+    .filter((v) =>
+      canReadVoucher(
+        access,
+        {
+          special: v.special_category as SpecialCategory,
+          route: (v.route as "pulse" | "tally" | null) ?? null,
+          needsDept: !!v.needs_dept,
+          status: v.status as VoucherStatus,
+          deciders: mine.has(v.id) ? [member.userId] : [],
+        },
+        member.userId,
+      ),
+    )
+    .map((v) => v.id);
+  return { special: false, ids };
+}
+
+/** Does the scope include this voucher? */
+export function inVoucherScope(
+  scope: VoucherScope,
+  v: { id: string; special_category: string },
+): boolean {
+  if (!scope.special && v.special_category !== "none") return false;
+  return scope.ids === null || scope.ids.includes(v.id);
+}
+
 export type VoucherListRow = {
   id: string;
   voucher_no: string;
@@ -113,13 +176,17 @@ export async function loadVoucherList(
   admin: AdminClient,
   orgId: string,
   statuses: readonly VoucherStatus[],
+  scope: VoucherScope,
   limit = 200,
 ): Promise<VoucherListRow[]> {
-  const { data } = await admin
+  let query = admin
     .from("fin_payment_vouchers")
     .select(LIST_COLUMNS)
     .eq("org_id", orgId)
-    .in("status", statuses as VoucherStatus[])
+    .in("status", statuses as VoucherStatus[]);
+  if (!scope.special) query = query.eq("special_category", "none");
+  if (scope.ids) query = query.in("id", scope.ids);
+  const { data } = await query
     .order("voucher_date", { ascending: false })
     .order("voucher_no", { ascending: false })
     .limit(limit);
@@ -138,6 +205,7 @@ export async function loadVoucherList(
 export async function countVouchersByStatus(
   admin: AdminClient,
   orgId: string,
+  scope: VoucherScope,
 ): Promise<Partial<Record<VoucherStatus, number>>> {
   const out: Partial<Record<VoucherStatus, number>> = {};
   const statuses: VoucherStatus[] = [
@@ -150,11 +218,14 @@ export async function countVouchersByStatus(
   ];
   await Promise.all(
     statuses.map(async (s) => {
-      const { count } = await admin
+      let query = admin
         .from("fin_payment_vouchers")
         .select("id", { count: "exact", head: true })
         .eq("org_id", orgId)
         .eq("status", s);
+      if (!scope.special) query = query.eq("special_category", "none");
+      if (scope.ids) query = query.in("id", scope.ids);
+      const { count } = await query;
       out[s] = count ?? 0;
     }),
   );
@@ -240,6 +311,7 @@ export async function loadVoucherDetail(
   admin: AdminClient,
   orgId: string,
   id: string,
+  scope: VoucherScope,
 ): Promise<VoucherDetail | null> {
   const { data: v } = await admin
     .from("fin_payment_vouchers")
@@ -247,7 +319,7 @@ export async function loadVoucherDetail(
     .eq("org_id", orgId)
     .eq("id", id)
     .maybeSingle();
-  if (!v) return null;
+  if (!v || !inVoucherScope(scope, v)) return null;
   const [links, docLinks, events, hash, supplier, locked] = await Promise.all([
     admin
       .from("fin_voucher_invoices")
@@ -421,29 +493,38 @@ export async function loadReportRows(
   orgId: string,
   from: string,
   to: string,
+  scope: VoucherScope,
 ): Promise<VoucherReportRow[]> {
-  const { data } = await admin
+  let query = admin
     .from("fin_payment_vouchers")
     .select(
       "id, voucher_no, voucher_date, payee_name, supplier_id, amount, status, special_category, tier_code, submitted_at, approved_at, rejected_at, rejection_remarks",
     )
     .eq("org_id", orgId)
     .gte("voucher_date", from)
-    .lte("voucher_date", to)
-    .order("voucher_date")
-    .limit(2000);
+    .lte("voucher_date", to);
+  if (!scope.special) query = query.eq("special_category", "none");
+  if (scope.ids) query = query.in("id", scope.ids);
+  const { data } = await query.order("voucher_date").limit(2000);
   const rows = data ?? [];
   const totals = new Map<string, number>();
   const ids = rows.map((r) => r.id);
+  const paidVoucher = new Set(rows.filter((r) => r.status === "paid").map((r) => r.id));
   for (let i = 0; i < ids.length; i += 200) {
     const { data: links } = await admin
       .from("fin_voucher_invoices")
-      .select("voucher_id, fin_supplier_invoices(total)")
+      .select("voucher_id, paid_amount, fin_supplier_invoices(total, paid_amount)")
       .in("voucher_id", ids.slice(i, i + 200));
     for (const l of links ?? []) {
-      const t = Number(
-        (l.fin_supplier_invoices as unknown as { total: number } | null)?.total ?? 0,
-      );
+      const inv = l.fin_supplier_invoices as unknown as {
+        total: number;
+        paid_amount: number;
+      } | null;
+      // part payments: a paid voucher is compared with what it paid, any other with the balance still owed
+      const t =
+        paidVoucher.has(l.voucher_id) && l.paid_amount !== null
+          ? Number(l.paid_amount)
+          : Number(inv?.total ?? 0) - Number(inv?.paid_amount ?? 0);
       totals.set(l.voucher_id, Math.round(((totals.get(l.voucher_id) ?? 0) + t) * 100) / 100);
     }
   }
@@ -479,7 +560,7 @@ export async function loadTallyCandidates(
     admin
       .from("fin_payment_vouchers")
       .select(
-        "id, voucher_no, voucher_date, payment_date, payee_name, supplier_id, category, amount, branch_code, pay_from, payment_method, narration, payment_reference",
+        "id, voucher_no, voucher_date, payment_date, payee_name, supplier_id, category, amount, branch_code, pay_from, payment_method, narration, payment_reference, route",
       )
       .eq("org_id", orgId)
       .in("status", ["approved", "paid", "for_tally"])
@@ -524,6 +605,7 @@ export async function loadTallyCandidates(
       narration: v.narration,
       paymentReference: v.payment_reference,
       invoiceNumbers: numbers.get(v.id) ?? [],
+      approvedInPulse: v.route === "pulse",
     })),
     purchases: (invoices.data ?? []).map((i) => ({
       id: i.id,

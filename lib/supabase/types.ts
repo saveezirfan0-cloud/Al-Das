@@ -8282,6 +8282,7 @@ export type Database = {
           invoice_number: string;
           net: number;
           org_id: string;
+          paid_amount: number;
           status: string;
           supplier_id: string;
           tally_export_id: string | null;
@@ -8306,6 +8307,7 @@ export type Database = {
           invoice_number: string;
           net: number;
           org_id: string;
+          paid_amount?: number;
           status?: string;
           supplier_id: string;
           tally_export_id?: string | null;
@@ -8329,6 +8331,7 @@ export type Database = {
           invoice_number?: string;
           net?: number;
           org_id?: string;
+          paid_amount?: number;
           status?: string;
           supplier_id?: string;
           tally_export_id?: string | null;
@@ -8629,6 +8632,7 @@ export type Database = {
         Row: {
           created_at: string;
           org_id: string;
+          paid_amount: number | null;
           supplier_invoice_id: string;
           voucher_id: string;
         };
@@ -8636,12 +8640,14 @@ export type Database = {
         Insert: {
           created_at?: string;
           org_id: string;
+          paid_amount?: number | null;
           supplier_invoice_id: string;
           voucher_id: string;
         };
         Update: {
           created_at?: string;
           org_id?: string;
+          paid_amount?: number | null;
           supplier_invoice_id?: string;
           voucher_id?: string;
         };

@@ -568,10 +568,10 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance payables and vouchers (Phase 20D)",
         (r) => r.status ?? "?",
       ),
     ).toBe("wrong_status");
-    // the exported voucher can still be paid (the bank reference completes the trail)
+    // the exported voucher can still be paid (the bank reference completes the trail), by someone other than its maker
     expect(
       (
-        await act(orgA, v.id, users.maker, "pay", {
+        await act(orgA, v.id, users.fm, "pay", {
           payment: { date: "2026-10-10", reference: "BANKREF-0010" },
         })
       ).to,
@@ -628,8 +628,23 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance payables and vouchers (Phase 20D)",
             .n,
         ),
       );
-    for (const u of ["maker", "fm", "dept", "ceo"])
+    for (const u of ["maker", "fm", "ceo"])
       for (const t of tables) expect(await seen(u, t), `${u} ${t}`).toBeGreaterThan(0);
+    // a department head reads only the Tier 2 vouchers waiting for one or that they decided (the fixture's Tier 2
+    // scenarios), their trail and documents, and the tiers; not suppliers, other invoices or other vouchers
+    // (tests/db/finance-payables-fixes.test.ts covers the rule in detail)
+    for (const t of [
+      "fin_payment_vouchers",
+      "fin_voucher_events",
+      "fin_voucher_documents",
+      "fin_documents",
+      "fin_ref_approval_tiers",
+    ])
+      expect(await seen("dept", t), `dept ${t}`).toBeGreaterThan(0);
+    expect(await seen("dept", "fin_suppliers")).toBe(0);
+    expect(await seen("dept", "fin_payment_vouchers")).toBeLessThan(
+      await seen("fm", "fin_payment_vouchers"),
+    );
     for (const u of ["billing", "md", "cost", "bob"])
       for (const t of tables) expect(await seen(u, t), `${u} ${t}`).toBe(0);
     // Tally exports: only the exporter

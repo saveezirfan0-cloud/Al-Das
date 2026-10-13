@@ -217,7 +217,8 @@ export async function abandonFinanceDocument(
 
 /**
  * A 60-second link to one ready document. Every call is written to the access log (ids only). `inboxOnly` limits it to
- * documents that came in through the Finance inbox (for a caller who holds only finance.inbox.manage).
+ * documents waiting in the Finance inbox (came in through it, not yet routed to an invoice or voucher), for a caller who
+ * holds only finance.inbox.manage; once routed a document follows the payables read rule.
  */
 export async function signedFinanceDocumentUrl(
   admin: AdminClient,
@@ -228,13 +229,13 @@ export async function signedFinanceDocumentUrl(
 ): Promise<Result<{ url: string }>> {
   const { data: doc } = await admin
     .from("fin_documents")
-    .select("id, kind, status, scan_status, storage_path, inbox_at")
+    .select("id, kind, status, scan_status, storage_path, inbox_at, routed_at")
     .eq("id", id)
     .eq("org_id", member.orgId)
     .maybeSingle();
   if (
     !doc ||
-    (opts.inboxOnly && !doc.inbox_at) ||
+    (opts.inboxOnly && (!doc.inbox_at || doc.routed_at)) ||
     doc.status !== "ready" ||
     !isFinanceDocumentPathFor(doc.storage_path, member.orgId, doc.id)
   )

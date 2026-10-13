@@ -22,8 +22,11 @@ import { createClient } from "@/lib/supabase/server";
 
 /**
  * Finance workflow settings: thresholds, the denial reason-code taxonomy and the payers' agreed price lists. Needs
- * finance.reference.manage. Writes use the member's own client so row level security decides (the same model as the other
- * reference tables), and every change is audited.
+ * finance.reference.manage. The Phase 18 thresholds and the blueprint settings use the member's own client so row level
+ * security decides (the same model as the other reference tables); a database trigger lets such a write change ONLY
+ * those columns (app.fin_settings_user_columns(), kept equal to the two update lists below by a database test). The
+ * Phase 20 follow-up and change-review settings are written with the service role after the permission check, like
+ * every other Phase 20 setting. Every change is audited.
  */
 
 const PERM = "finance.reference.manage";
@@ -184,9 +187,8 @@ export async function saveFollowupSettings(raw: Record<string, string>): Promise
     return fail(
       "Follow-up stages: 1 to 6 whole days in increasing order, for example 60, 90, 120.",
     );
-  const { error } = await (
-    await createClient()
-  )
+  const admin = createAdminClient(member.userId); // service role AFTER the permission check
+  const { error } = await admin
     .from("fin_ref_finance_settings")
     .update({
       ageing_bucket_days: buckets,
@@ -198,7 +200,7 @@ export async function saveFollowupSettings(raw: Record<string, string>): Promise
     })
     .eq("org_id", member.orgId);
   if (error) return fail(dbMessage(error, "Could not save the settings."));
-  await recordAudit(createAdminClient(), {
+  await recordAudit(admin, {
     orgId: member.orgId,
     userId: member.userId,
     action: "finance.workflow.followup_saved",
@@ -228,9 +230,8 @@ export async function saveChangeReviewSettings(raw: Record<string, string>): Pro
   const p = changeReviewSchema.safeParse(raw);
   if (!p.success) return fail(firstIssue(p.error, "Check the values."));
   const d = p.data;
-  const { error } = await (
-    await createClient()
-  )
+  const admin = createAdminClient(member.userId); // service role AFTER the permission check
+  const { error } = await admin
     .from("fin_ref_finance_settings")
     .update({
       change_review_start_date: d.change_review_start_date,
@@ -239,7 +240,7 @@ export async function saveChangeReviewSettings(raw: Record<string, string>): Pro
     })
     .eq("org_id", member.orgId);
   if (error) return fail(dbMessage(error, "Could not save the settings."));
-  await recordAudit(createAdminClient(), {
+  await recordAudit(admin, {
     orgId: member.orgId,
     userId: member.userId,
     action: "finance.workflow.change_review_saved",
