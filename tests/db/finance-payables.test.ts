@@ -695,7 +695,7 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance payables and vouchers (Phase 20D)",
       ).rows[0].id as string;
       const before = (name: string) =>
         FINANCE_ROLES.find((r) => r.name === name)!.permissions.filter(
-          (p) => !/^finance\.(payables|vouchers|tally)\./.test(p),
+          (p) => !/^finance\.(payables|vouchers|tally)\./.test(p) && !p.startsWith("accounting."),
         );
       for (const name of ["Finance", "CEO"])
         await q(
@@ -724,7 +724,8 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance payables and vouchers (Phase 20D)",
       ).rows.map((r) => [r.name, [...(r.permissions as string[])].sort()]),
     );
     // keys a later migration grants to the Finance Manager directly are tested with that slice (20F: revenue-share verify)
-    const grantedLater = (p: string) => p === "finance.revshare.verify";
+    // (22A: the accounting keys, tested in accounting-core.test.ts)
+    const grantedLater = (p: string) => p === "finance.revshare.verify" || p.startsWith("accounting.");
     for (const name of ["Finance", "Finance Manager", "CEO", "Department head"])
       expect(roles[name], name).toEqual(
         FINANCE_ROLES.find((r) => r.name === name)!

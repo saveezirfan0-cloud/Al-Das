@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-11-08-accounting-ledger",
+    date: "2026-11-08",
+    title: "Accounting: the general ledger",
+    body: "Pulse now has an Accounting module, the first step in replacing Tally. It holds the chart of accounts (Tally's predefined groups plus the clinic's ledgers), journals that one person prepares and another posts, the day book, the general ledger with running balances, a trial balance you can download as Excel, and monthly periods that can be closed and locked. The fiscal year runs July to June. A posted journal never changes; it is corrected by a reversal. New roles: Accountant, Chief Accountant and Auditor (read-only); the Finance Manager can post journals and the CEO can read the reports.",
+  },
+  {
     id: "2026-11-06-board-pack-controls",
     date: "2026-11-06",
     title: "Board pack: controls and matters needing attention",

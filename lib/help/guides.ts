@@ -589,6 +589,90 @@ export const GUIDES: readonly Guide[] = [
     ],
     watchOut: ["Do not put patient details in feedback."],
   },
+  {
+    id: "accounting",
+    title: "Accounting",
+    pages: ["/accounting", "/accounting/dashboard"],
+    purpose:
+      "The general ledger that replaces Tally: every journal, typed in or posted from the finance sub-ledgers, in one double-entry book.",
+    steps: [
+      "The dashboard shows the current period, journals waiting to be posted and drafts.",
+      "Journals are prepared by one person and posted by another; open Journals to work them.",
+      "Reports (day book, general ledger, trial balance) read posted journals only.",
+    ],
+    watchOut: [
+      "A posted journal never changes. To correct one, reverse it and post a new one.",
+      "The fiscal year runs July to June unless the entity says otherwise.",
+    ],
+  },
+  {
+    id: "accounting-journals",
+    title: "Journals",
+    pages: ["/accounting/journals"],
+    purpose:
+      "Prepare, check and post manual journals (Journal, Contra, Debit and Credit notes, opening balances), and reverse posted ones.",
+    steps: [
+      "Press New journal, choose the type and date, write a narration and add a line per account with its debit or credit. More shows the branch, department, cost centre, tax code, doctor, payer and supplier.",
+      "Save the draft (it may be unbalanced), then Submit for posting once debits equal credits.",
+      "Someone else with the post permission opens it, checks it and presses Post, or Send back with a reason.",
+      "Posting gives it its number (for example JV/2026-27/00001). To undo a posted journal, press Reverse with a date and a reason.",
+      "For an accrual, set Reverse automatically on: the reversal is posted on that date.",
+    ],
+    watchOut: [
+      "Receivables, payables, bank, cash, VAT, clearing and retained earnings are control accounts: only the sub-ledgers post to them (and opening-balance journals).",
+      "A closed period takes postings only from people who manage periods; a locked period, or a month the CEO signed off, takes none.",
+      "Never put a patient's name in a narration; card, account and phone numbers are masked.",
+    ],
+  },
+  {
+    id: "accounting-chart",
+    title: "Chart of accounts, tax codes and cost centres",
+    pages: ["/accounting/accounts", "/accounting/tax-codes", "/accounting/cost-centres"],
+    purpose:
+      "The account tree (Tally's predefined groups and the clinic's ledgers), the UAE VAT codes and the free cost centres.",
+    steps: [
+      "Add a ledger under the right group: it takes the group's nature (asset, liability, equity, income or expense).",
+      "Mark a ledger as a control account when only a sub-ledger should post to it.",
+      "Rename freely; deactivate a ledger you no longer use (a ledger with postings is never deleted).",
+      "Tax codes: add or edit the VAT codes; the tax adviser decides which service gets which code.",
+    ],
+    watchOut: [
+      "Tally's 28 predefined groups (marked Tally) keep their code, place and nature so the Tally import lands in the right place.",
+    ],
+  },
+  {
+    id: "accounting-reports",
+    title: "Day book, general ledger and trial balance",
+    pages: ["/accounting/day-book", "/accounting/ledger", "/accounting/trial-balance"],
+    purpose:
+      "Read the books: every posting by day, one account with its running balance, and every balance together.",
+    steps: [
+      "Day book: choose the dates to see each journal with its lines (a year at most).",
+      "General ledger: choose an account or a whole group and the dates; open any number to see its journal.",
+      "Trial balance: choose the dates; download it as Excel. It must say Balanced.",
+    ],
+    watchOut: [
+      "Income and expense accounts start again each fiscal year; earlier years' profit shows on one line until the year-end close.",
+      "Reversed journals stay in the books next to their reversal, so both show.",
+    ],
+  },
+  {
+    id: "accounting-close",
+    title: "Periods, entities and fiscal years",
+    pages: ["/accounting/periods", "/accounting/entities"],
+    purpose:
+      "Close and lock months, and set up the legal entity, its branches and its fiscal year.",
+    steps: [
+      "A period is created by the first posting in its month; Add a period creates one ahead of time.",
+      "Close a month when its books are done; reopen it if something was missed.",
+      "Lock a closed month for good by typing LOCK. Nothing can be posted into it again, by anyone.",
+      "Entities: set the TRN, the fiscal year start month and each branch's emirate (for the VAT return).",
+    ],
+    watchOut: [
+      "The fiscal year start cannot change once a fiscal year exists.",
+      "Audit adjustments after the year end go into the year's adjustment period (people who manage periods only), so the last month stays closed.",
+    ],
+  },
 ];
 
 export const FALLBACK_GUIDE: Guide = {

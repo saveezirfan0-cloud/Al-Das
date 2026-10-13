@@ -341,7 +341,10 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 18: finance upgrades, access", () => 
       p.startsWith("finance.revshare.") ||
       p.startsWith("finance.labs.") ||
       p.startsWith("finance.costs.") ||
-      p.startsWith("finance.profit.");
+      p.startsWith("finance.profit.") ||
+      // the Finance Manager's and CEO's accounting keys arrived with Phase 22A (20261108000100, tested in
+      // accounting-core.test.ts)
+      p.startsWith("accounting.");
     for (const preset of FINANCE_ROLES.filter((r) => first[r.name]))
       expect([...first[preset.name]].sort(), preset.name).toEqual(
         preset.permissions.filter((p) => !later(p)).sort(),

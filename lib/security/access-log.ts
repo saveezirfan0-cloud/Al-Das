@@ -15,6 +15,7 @@ export type AccessEntity =
   | "finance_invoice"
   | "document"
   | "finance_document"
+  | "accounting_journal"
   | "enquiry"
   | "appointment"
   | "portal_record"

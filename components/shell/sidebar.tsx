@@ -7,6 +7,7 @@ import {
   Activity,
   BellRing,
   BarChart3,
+  BookOpenCheck,
   CalendarDays,
   CheckSquare,
   ChevronsLeft,
@@ -48,6 +49,7 @@ const ICONS: Record<NavIcon, React.ComponentType<{ className?: string }>> = {
   portal: LayoutGrid,
   reports: BarChart3,
   finance: Landmark,
+  accounting: BookOpenCheck,
   settings: Settings,
 };
 
