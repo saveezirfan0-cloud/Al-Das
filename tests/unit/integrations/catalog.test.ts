@@ -52,7 +52,8 @@ describe("catalogue", () => {
       i.providers.flatMap((p) => p.fields.filter((f) => f.secret).map((f) => f.key)),
     ).sort();
     expect(secretKeys).toEqual(
-      // api_key: Daily (video rooms) and Dropbox Sign (e-signature)
+      // api_key: Daily (video rooms) and Dropbox Sign (e-signature); Phase 20e: Instagram and Messenger (page token, app secret,
+      // verify token each) and the Google OAuth client secret
       [
         "access_token",
         "api_key",
@@ -61,6 +62,13 @@ describe("catalogue", () => {
         "secret_key",
         "server_key",
         "webhook_secret",
+        "page_access_token",
+        "page_access_token",
+        "app_secret",
+        "app_secret",
+        "verify_token",
+        "verify_token",
+        "client_secret",
       ].sort(),
     );
     for (const i of INTEGRATIONS)

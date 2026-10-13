@@ -45,7 +45,7 @@ export async function sendTemplateViaApi(admin: AdminClient, orgId: string, inpu
   if (!phone) return fail(422, "invalid_phone", "That phone number is not valid. Use international format, e.g. +971501234567.");
 
   // 1. Which WhatsApp number sends it
-  const { data: channels } = await admin.from("channels").select("id, waba_id, status").eq("org_id", orgId).eq("status", "active");
+  const { data: channels } = await admin.from("channels").select("id, waba_id, status").eq("org_id", orgId).eq("type", "whatsapp").eq("status", "active");
   let channel = (channels ?? [])[0];
   if (input.channel_id) {
     channel = (channels ?? []).find((c) => c.id === input.channel_id) as typeof channel;

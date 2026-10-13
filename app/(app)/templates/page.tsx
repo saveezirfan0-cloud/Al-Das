@@ -74,6 +74,7 @@ export default async function TemplatesPage({ searchParams }: { searchParams: Pr
       .from("channels")
       .select("id, name, waba_id, display_phone, status")
       .eq("org_id", member.orgId)
+      .eq("type", "whatsapp")
       .order("created_at"),
     listTemplates(supabase, member.orgId, { waba, status, q, archived, page }),
   ]);

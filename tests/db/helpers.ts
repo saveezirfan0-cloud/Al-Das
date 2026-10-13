@@ -526,3 +526,66 @@ export const PHASE20_TABLES = [
   "campaign_archive_recipients",
   "enquiry_tags",
 ] as const;
+
+/** Phase 20e tables with a browser (select) policy. */
+export const PHASE20E_TABLES = ["contact_channel_identities", "gcal_event_links"] as const;
+
+/** Phase 20e tables that only the service role may touch (visitor token hashes, Google tokens, OAuth states). */
+export const PHASE20E_SERVICE_ONLY_TABLES = [
+  "gcal_connections",
+  "gcal_oauth_states",
+  "web_chat_sessions",
+] as const;
+
+/** One synthetic row in each Phase 20e table of `orgId` (no real people, ids and hashes only). */
+export async function seedPhase20eRows(c: Client, orgId: string, userId: string) {
+  const ids: Record<string, string> = {};
+  await asServiceRole(c, async () => {
+    const one = async (sql: string, params: unknown[]) =>
+      (await c.query<{ id: string }>(sql + " returning id::text", params)).rows[0].id;
+    const contact = await one(
+      "insert into public.contacts (org_id, first_name, last_name, source) values ($1, 'Instagram', 'user', 'instagram')",
+      [orgId],
+    );
+    const ig = await one(
+      "insert into public.channels (org_id, type, name, waba_id, phone_number_id) values ($1, 'instagram', 'Instagram', '', 'instagram:' || replace(gen_random_uuid()::text, '-', ''))",
+      [orgId],
+    );
+    ids.identity = await one(
+      "insert into public.contact_channel_identities (org_id, channel_id, contact_id, platform, external_id) values ($1, $2, $3, 'instagram', '1780000000000001')",
+      [orgId, ig, contact],
+    );
+    const web = await one(
+      "insert into public.channels (org_id, type, name, waba_id, phone_number_id) values ($1, 'web', 'Website chat', '', $2)",
+      [orgId, `web:seed:${orgId}`],
+    );
+    await c.query(
+      "insert into public.web_chat_sessions (org_id, channel_id, contact_id, token_hash) values ($1, $2, $3, encode(sha256(gen_random_uuid()::text::bytea), 'hex'))",
+      [orgId, web, contact],
+    );
+    const specialist = await one(
+      "insert into public.specialists (org_id, name) values ($1, 'Dr Seed 20e')",
+      [orgId],
+    );
+    const conn = await one(
+      "insert into public.gcal_connections (org_id, specialist_id, refresh_enc, connected_by) values ($1, $2, 'v1:seed:seed:seed', $3)",
+      [orgId, specialist, userId],
+    );
+    await c.query(
+      "insert into public.gcal_oauth_states (state_hash, org_id, specialist_id, user_id, expires_at) values (encode(sha256(gen_random_uuid()::text::bytea), 'hex'), $1, $2, $3, now() + interval '10 minutes')",
+      [orgId, specialist, userId],
+    );
+    const appt = await one(
+      "insert into public.appointments (org_id, contact_id, specialist_id, starts_at, ends_at, status) values ($1, $2, $3, now() + interval '1 day', now() + interval '1 day 30 minutes', 'confirmed')",
+      [orgId, contact, specialist],
+    );
+    ids.link = await one(
+      "insert into public.gcal_event_links (org_id, connection_id, appointment_id, event_id, synced_hash) values ($1, $2, $3, $4, encode(sha256('seed'::bytea), 'hex'))",
+      [orgId, conn, appt, `pulse${"0a1b2c3d".repeat(6)}`],
+    );
+    ids.contact = contact;
+    ids.specialist = specialist;
+    ids.connection = conn;
+  });
+  return ids;
+}

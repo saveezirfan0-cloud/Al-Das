@@ -22,6 +22,7 @@ export default async function CampaignCopilotPage() {
     .from("channels")
     .select("id, name, display_phone")
     .eq("org_id", member.orgId)
+    .eq("type", "whatsapp")
     .eq("status", "active")
     .order("name");
 

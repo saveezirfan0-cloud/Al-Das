@@ -270,6 +270,7 @@ export async function runRecovery(
     .from("channels")
     .select("id, waba_id")
     .eq("org_id", orgId)
+    .eq("type", "whatsapp")
     .eq("status", "active");
   const channelIds = (channels ?? [])
     .filter((c) => !template.waba_id || c.waba_id === template.waba_id)

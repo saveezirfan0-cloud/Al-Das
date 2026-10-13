@@ -42,7 +42,12 @@ export default async function AppointmentSettingsPage() {
       .eq("org_id", org)
       .is("archived_at", null)
       .order("name"),
-    admin.from("channels").select("id, name, display_phone").eq("org_id", org).order("name"),
+    admin
+      .from("channels")
+      .select("id, name, display_phone")
+      .eq("org_id", org)
+      .eq("type", "whatsapp")
+      .order("name"),
     admin
       .from("reminder_exclusions")
       .select("id, kind, match_type, value, reason, active")

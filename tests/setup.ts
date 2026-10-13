@@ -19,5 +19,8 @@ globalThis.fetch = ((input: Parameters<typeof fetch>[0], init?: Parameters<typeo
   // Phase 19b: the video-room and e-signature providers are tested with fakes and recorded responses; no test may reach them.
   if (/^https?:\/\/([a-z0-9-]+\.)*(daily\.co|hellosign\.com|dropboxsign\.com)([/:?#]|$)/i.test(url))
     throw new Error("Tests must never call a video or e-signature provider: use a fake client");
+  // Phase 20e: Instagram / Messenger (graph.facebook.com is blocked above) and Google Calendar / OAuth are tested with fake fetches.
+  if (/^https?:\/\/([a-z0-9-]+\.)*(instagram\.com|facebook\.com|messenger\.com|googleapis\.com|google\.com)([/:?#]|$)/i.test(url))
+    throw new Error("Tests must never call Instagram, Messenger or Google: use a fake fetch");
   return realFetch(input, init);
 }) as typeof fetch;

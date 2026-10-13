@@ -16,6 +16,7 @@ import { PermanentJobError, type JobContext } from "@/lib/jobs/types";
 import type { QueueName } from "@/lib/jobs/queues";
 import type { AdminClient } from "@/lib/supabase/admin";
 import { guardCampaignMessage } from "@/lib/campaigns/engine";
+import { deliverChannelOutbound } from "@/lib/channels/outbound";
 import { MEDIA_BUCKET } from "@/lib/jobs/handlers/media-fetch";
 import { isTrainingOrg, simulateTrainingSend } from "@/lib/training/mode";
 import { clientForChannel } from "@/lib/whatsapp/channel";
@@ -50,7 +51,7 @@ export async function deliverOutbound(
   const { data: message } = await admin
     .from("messages")
     .select(
-      "id, org_id, conversation_id, at, status, wa_message_id, payload, body, sent_by_user_id, reply_to_wa_message_id, media_meta_id, media_filename, campaign_recipient_id, conversations(id, status, last_inbound_at, ad_referral, opened_at, channel_id, contact_id, contacts(id, phone_e164, wa_bsuid, stop_marketing), channels(id, org_id, status, phone_number_id, waba_id, send_rate_per_sec))",
+      "id, org_id, conversation_id, at, status, wa_message_id, payload, body, sent_by_user_id, reply_to_wa_message_id, media_meta_id, media_filename, campaign_recipient_id, conversations(id, status, last_inbound_at, ad_referral, opened_at, channel_id, contact_id, contacts(id, phone_e164, wa_bsuid, stop_marketing), channels(id, org_id, type, status, phone_number_id, waba_id, send_rate_per_sec))",
     )
     .eq("id", messageId)
     .maybeSingle();
@@ -74,6 +75,16 @@ export async function deliverOutbound(
   if (await isTrainingOrg(admin, message.org_id)) {
     await simulateTrainingSend(admin, message);
     log.info("training send simulated", { messageId: message.id });
+    return;
+  }
+
+  // Phase 20e: website chat, Instagram and Messenger have their own (text-only) delivery; WhatsApp continues below unchanged.
+  if (channel.type !== "whatsapp") {
+    await deliverChannelOutbound(
+      admin,
+      { message, conversation, contactId: contact.id, channel, spec },
+      ctx,
+    );
     return;
   }
 

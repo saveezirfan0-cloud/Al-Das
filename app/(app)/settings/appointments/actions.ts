@@ -400,6 +400,7 @@ export async function saveBookingRules(input: unknown): Promise<ActionResult> {
       .select("id")
       .eq("id", s.channel_id)
       .eq("org_id", member.orgId)
+      .eq("type", "whatsapp")
       .maybeSingle();
     if (!data) return { ok: false, error: "That WhatsApp number does not exist." };
   }

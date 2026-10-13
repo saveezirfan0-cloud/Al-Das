@@ -69,4 +69,9 @@ export const CALL_PROVIDERS: Record<IntegrationKind, readonly string[]> = {
   meta_capi: ["meta_capi"],
   telehealth: ["daily"],
   esign: ["dropbox_sign"],
+  // Phase 20e: the website chat calls nobody (the visitor's browser fetches replies).
+  web_chat: [],
+  instagram: ["instagram"],
+  messenger: ["messenger"],
+  google_calendar: ["google_calendar"],
 };

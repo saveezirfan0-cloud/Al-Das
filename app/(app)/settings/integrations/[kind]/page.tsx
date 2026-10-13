@@ -22,6 +22,10 @@ import { loadReviewStats, loadReviewTemplate } from "@/lib/integrations/reviews/
 import { esignWebhookBase } from "@/lib/integrations/esign/config";
 import { readCapiConfig } from "@/lib/integrations/capi/config";
 import { CONSENT_BASIS_PHRASE } from "@/lib/integrations/capi/consent";
+import { widgetSnippet } from "@/lib/channels/web/snippet";
+import { gcalRedirectUri } from "@/lib/integrations/gcal/config";
+import { listConnections } from "@/lib/integrations/gcal/server";
+import { messagingWebhookBase } from "@/lib/integrations/meta-messaging/config";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { templateVariables } from "@/lib/whatsapp/templates";
 import type { MetaTemplateComponent } from "@/lib/whatsapp/types";
@@ -29,6 +33,8 @@ import type { MetaTemplateComponent } from "@/lib/whatsapp/types";
 import { savePaymentTemplate } from "../actions";
 import { CalendarFeeds } from "../calendar-feeds";
 import { CapiPanel } from "../capi-panel";
+import { GcalPanel } from "../gcal-panel";
+import { WebChatEmbed } from "../web-chat-embed";
 import { IntegrationPanel } from "../integration-panel";
 import { saveReviewTemplate } from "../review-actions";
 import { ReviewLinks } from "../review-links";
@@ -42,8 +48,15 @@ export async function generateMetadata({ params }: { params: Promise<{ kind: str
   return { title: isIntegrationKind(kind) ? integrationDef(kind).title : "Integration" };
 }
 
-export default async function IntegrationPage({ params }: { params: Promise<{ kind: string }> }) {
+export default async function IntegrationPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ kind: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { kind: raw } = await params;
+  const query = await searchParams;
   if (!isIntegrationKind(raw)) notFound();
   const kind: IntegrationKind = raw;
   const def = integrationDef(kind);
@@ -176,6 +189,46 @@ export default async function IntegrationPage({ params }: { params: Promise<{ ki
     );
   }
 
+  // Phase 20e: the website chat's embed line, and the doctors' Google calendars.
+  let webChatPanel: React.ReactNode = null;
+  if (kind === "web_chat" && canManage) {
+    const id = view.exists ? await accountId(admin, member.orgId, kind) : null;
+    webChatPanel = (
+      <WebChatEmbed enabled={view.enabled} snippet={id ? widgetSnippet(app, id) : null} />
+    );
+  }
+  let gcalPanel: React.ReactNode = null;
+  if (kind === "google_calendar" && can(member, "integrations.calendar")) {
+    const [connections, { data: specialists }] = await Promise.all([
+      listConnections(admin, member.orgId),
+      admin
+        .from("specialists")
+        .select("id, name")
+        .eq("org_id", member.orgId)
+        .eq("active", true)
+        .order("name"),
+    ]);
+    const byId = new Map(connections.map((c) => [c.specialist_id, c]));
+    gcalPanel = (
+      <GcalPanel
+        enabled={view.enabled}
+        redirectUri={gcalRedirectUri(app)}
+        result={typeof query.gcal === "string" ? query.gcal : null}
+        rows={(specialists ?? []).map((s) => {
+          const c = byId.get(s.id);
+          return {
+            specialistId: s.id,
+            name: s.name,
+            status: c?.status ?? null,
+            lastPullAt: c?.last_pull_at ?? null,
+            lastPushAt: c?.last_push_at ?? null,
+            lastError: c?.last_error ?? null,
+          };
+        })}
+      />
+    );
+  }
+
   const problems = canManage
     ? readinessProblems(await loadReadinessInput(admin, member.orgId, kind, view))
     : [];
@@ -196,7 +249,13 @@ export default async function IntegrationPage({ params }: { params: Promise<{ ki
               app,
               row.view.exists ? await accountId(admin, member.orgId, kind) : "<account id>",
             )
-          : null;
+          : kind === "instagram" || kind === "messenger"
+            ? messagingWebhookBase(
+                app,
+                kind,
+                row.view.exists ? await accountId(admin, member.orgId, kind) : "<account id>",
+              )
+            : null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -228,6 +287,8 @@ export default async function IntegrationPage({ params }: { params: Promise<{ ki
       {reviewsPanel}
       {capiPanel}
       {calendarPanel}
+      {webChatPanel}
+      {gcalPanel}
     </div>
   );
 }

@@ -51,6 +51,7 @@ async function activeChannel(admin: Admin, orgId: string, channelId: string) {
     .select("id, org_id, phone_number_id, waba_id, status, name")
     .eq("org_id", orgId)
     .eq("id", channelId)
+    .eq("type", "whatsapp")
     .maybeSingle();
   if (!data) return { ok: false as const, error: "Choose a WhatsApp number." };
   if (data.status !== "active")
@@ -487,6 +488,7 @@ export async function syncTemplatesAction(
     .from("channels")
     .select("id, org_id, phone_number_id, waba_id")
     .eq("org_id", member.orgId)
+    .eq("type", "whatsapp")
     .eq("status", "active");
   if (channelId) {
     if (!uuid.safeParse(channelId).success) return fail("Invalid number.");
