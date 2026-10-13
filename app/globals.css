@@ -165,8 +165,13 @@
   aside a[href] {
     min-height: 44px;
   }
-  [data-slot="button"] {
+  [data-slot="button"],
+  [data-slot="nav-toggle"] {
     min-width: 44px;
+  }
+  /* sidebar tree chevrons, section and group headers (Phase 22B) */
+  [data-slot="nav-toggle"] {
+    min-height: 44px;
   }
   [data-slot="tabs-list"] {
     min-height: 44px;

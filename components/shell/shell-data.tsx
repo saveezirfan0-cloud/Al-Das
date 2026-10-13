@@ -58,7 +58,7 @@ export function useShellData(): ShellData {
 }
 
 /** The nav with the live overdue-task badge applied (replaces a per-request server query in the layout). */
-export function useBadgedItems(items: readonly NavItem[]): NavItem[] {
+export function useBadgedItems<T extends NavItem>(items: readonly T[]): T[] {
   const { overdueTasks } = useShellData();
   return useMemo(
     () =>

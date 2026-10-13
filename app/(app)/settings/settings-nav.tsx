@@ -10,9 +10,12 @@ export type SettingsNavItem = { href: string; label: string; section?: string; b
 export function SettingsNav({
   items,
   label = "Settings",
+  mobileOnly = false,
 }: {
   items: SettingsNavItem[];
   label?: string;
+  /** For a module registered in lib/nav/modules.ts: the sidebar tree shows these pages from md up, so only phones need it. */
+  mobileOnly?: boolean;
 }) {
   const pathname = usePathname();
 
@@ -25,7 +28,7 @@ export function SettingsNav({
   }
 
   return (
-    <nav aria-label={label} className="md:w-52 md:shrink-0">
+    <nav aria-label={label} className={cn("md:w-52 md:shrink-0", mobileOnly && "md:hidden")}>
       <div className="flex gap-4 overflow-x-auto md:flex-col md:gap-5">
         {sections.map((section, i) => (
           <div key={section.title ?? i} className="flex shrink-0 flex-col gap-1">

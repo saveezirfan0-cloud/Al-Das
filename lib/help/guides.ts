@@ -599,6 +599,7 @@ export const FALLBACK_GUIDE: Guide = {
   purpose: "A quick orientation for any page.",
   steps: [
     "Use the menu on the left (or the tabs at the bottom on a phone) to move around.",
+    "Finance and Settings open in the menu: press the arrow beside them, or point at the icon when the menu is narrow.",
     "Press Ctrl K to search for any page or setting.",
     "The bell shows what needs you. Press ? for keyboard shortcuts.",
   ],
