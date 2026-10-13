@@ -183,6 +183,24 @@ export const GUIDES: readonly Guide[] = [
     ],
   },
   {
+    id: "finance-bank",
+    title: "Bank reconciliation",
+    pages: ["/finance/bank", "/finance/bank/settings"],
+    purpose:
+      "Proves that every Unite collection reached the bank: card and EPG (T+2), Tabby (T+6 working days), cash deposits and insurers' bulk payments, net of the processors' fees, by bank account and month.",
+    steps: [
+      "Once, in Accounts and rules: add each bank account (last 4 digits only), a file layout per bank or processor (the header of each column in their export), and for each payment mode its lag in working days, fee % and bank account.",
+      "Import the bank statement (and, where you have it, the processor's settlement report) as .csv or .xlsx. The same file twice, or overlapping dates, are refused.",
+      "Open the month's reconciliation for an account. Save the automatic matches, then accept or reject each proposed match: the score and its reasons are shown.",
+      "Give a reason for every expected receipt that is late and for every bank credit nothing explains, then mark it reviewed. A second person signs it off.",
+    ],
+    watchOut: [
+      "A pair is matched automatically only when it is the only candidate on both sides and scores at least the threshold; Pulse never picks between two that fit.",
+      "A payment mode is not reconciled until its rule has a bank account, a lag and a fee % (0 when there is no fee).",
+      "A locked month cannot be changed, and a signed reconciliation is final.",
+    ],
+  },
+  {
     id: "finance-workflows",
     title: "Finance workflows",
     pages: [

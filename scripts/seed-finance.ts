@@ -31,6 +31,8 @@ async function main() {
 
   const ref = await admin.rpc("seed_finance_reference", { p_org_id: org.id });
   if (ref.error) throw new Error(ref.error.message);
+  const rules = await admin.rpc("fin_seed_settlement_rules", { p_org_id: org.id }); // Phase 20C starter rules
+  if (rules.error) throw new Error(rules.error.message);
   const roles = await admin.rpc("seed_finance_roles", {
     p_org_id: org.id,
     p_roles: FINANCE_ROLES.map((r) => ({

@@ -396,6 +396,26 @@ export const PERMISSIONS = [
       "Set the daily revenue, patient and ARPP targets and the reporting lines (branches, Chiro, leased units) used by the flash report. Audited.",
   },
   {
+    key: "finance.bank.view",
+    group: "Finance",
+    label: "Bank reconciliation",
+    description:
+      "See bank accounts, imported statements and the bank reconciliation of each account and month (expected receipts, matches, unmatched items and their ageing).",
+  },
+  {
+    key: "finance.bank.manage",
+    group: "Finance",
+    label: "Run bank reconciliation",
+    description:
+      "Import bank statements and settlement reports, set accounts, file layouts and settlement rules, accept or reject matches, give reasons and mark a reconciliation reviewed. Audited.",
+  },
+  {
+    key: "finance.bank.signoff",
+    group: "Finance",
+    label: "Sign off bank reconciliation",
+    description: "Sign a reviewed bank reconciliation. The signer must be a different person from the preparer. Audited.",
+  },
+  {
     key: "portal.recall_sends.write",
     group: "Portal",
     label: "Edit recall call-list entries",
@@ -486,6 +506,9 @@ export const FINANCE_ROLES: readonly RolePreset[] = [
       "finance.profit.approve",
       "finance.flash.view",
       "finance.targets.manage",
+      "finance.bank.view",
+      "finance.bank.manage",
+      "finance.bank.signoff",
     ],
   },
   {
@@ -532,6 +555,7 @@ export const FINANCE_ROLES: readonly RolePreset[] = [
       "finance.close.signoff.ceo",
       "finance.profit.view",
       "finance.flash.view",
+      "finance.bank.view",
     ],
   },
   {

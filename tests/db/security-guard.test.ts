@@ -121,6 +121,12 @@ const PHASE18_SERVICE_FUNCTIONS = [
 /** Phase 19 SECURITY DEFINER functions that only server code (service role) may run. */
 const PHASE19_SERVICE_FUNCTIONS = ["calendar_feed_touch", "integration_call_stats", "integration_usage_bump"];
 
+/**
+ * Phase 20C SECURITY DEFINER functions that only server code (service role, after can('finance.bank.*')) may run: the
+ * collections aggregate, the atomic statement import and the starter settlement rules.
+ */
+const PHASE20C_SERVICE_FUNCTIONS = ["fin_bank_collections", "fin_bank_import", "fin_seed_settlement_rules"];
+
 /** Phase 17 SECURITY DEFINER functions that only server code (service role) may run. */
 const PHASE17_SERVICE_FUNCTIONS = ["ai_add_conversation_tags"];
 
@@ -339,6 +345,33 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 19 service-role functions", () => {
         [PHASE19_SERVICE_FUNCTIONS],
       );
       expect(rows.map((r) => r.name).sort()).toEqual([...PHASE19_SERVICE_FUNCTIONS].sort());
+      for (const r of rows)
+        expect({ name: r.name, anon: r.anon, auth: r.auth, svc: r.svc }).toEqual({
+          name: r.name,
+          anon: false,
+          auth: false,
+          svc: true,
+        });
+    } finally {
+      await c.end();
+    }
+  });
+});
+
+describe.skipIf(!TEST_DATABASE_URL)("phase 20C service-role functions", () => {
+  it("exist and are executable by the service role only", async () => {
+    const c = await connect();
+    try {
+      const { rows } = await c.query<{ name: string; anon: boolean; auth: boolean; svc: boolean }>(
+        `select p.proname as name,
+                has_function_privilege('anon', p.oid, 'execute') as anon,
+                has_function_privilege('authenticated', p.oid, 'execute') as auth,
+                has_function_privilege('service_role', p.oid, 'execute') as svc
+         from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+         where n.nspname = 'public' and p.proname = any ($1)`,
+        [PHASE20C_SERVICE_FUNCTIONS],
+      );
+      expect(rows.map((r) => r.name).sort()).toEqual([...PHASE20C_SERVICE_FUNCTIONS].sort());
       for (const r of rows)
         expect({ name: r.name, anon: r.anon, auth: r.auth, svc: r.svc }).toEqual({
           name: r.name,

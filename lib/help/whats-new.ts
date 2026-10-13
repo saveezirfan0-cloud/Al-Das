@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-10-28-bank-reconciliation",
+    date: "2026-10-28",
+    title: "Bank reconciliation",
+    body: "Finance can now import bank statements and processor settlement reports and check every Unite collection against the bank: card and EPG after 2 working days, Tabby after 6, cash deposits and insurers' payments, net of the expected fees. Pulse proposes matches with a score and its reasons, matches automatically only when there is a single clear candidate, ages anything not received, and asks for a reason before the month's reconciliation is reviewed and signed by a second person.",
+  },
+  {
     id: "2026-10-23-daily-flash",
     date: "2026-10-23",
     title: "Daily flash report",

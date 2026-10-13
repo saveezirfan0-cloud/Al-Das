@@ -178,7 +178,8 @@ Send anonymised or synthetic copies where a file contains patient details; heade
 | Slice | Status |
 |---|---|
 | 20A | Built on `claude/funny-clarke-6t7gee` (see `docs/20_PHASE_20A_NOTES.md`): flash report, targets and lines, comparison with the same days of last month, Excel export |
-| 20B to 20J, 21 | Not started |
+| 20C | Built on `claude/funny-clarke-6t7gee` (see `docs/20_PHASE_20C_NOTES.md`): generic statement import (column mapping per file layout), bank accounts, settlement rules per payment mode (working-day lags, fees), expected-vs-received matching with scores, insurance receipts against remittance batches, ageing with reasons, review and two-person sign-off. Waiting for bank and processor samples (D3, D4) to map the layouts |
+| 20B, 20D to 20J, 21 | Not started |
 
 ## 8. Things noticed in the current reports
 
