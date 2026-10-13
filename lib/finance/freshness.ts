@@ -3,7 +3,17 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/types";
 import type { ReadinessInput } from "./readiness";
 
-export type Freshness = ReadinessInput & { openExceptions: number; lastCaptureAt: string | null };
+export type Freshness = ReadinessInput & {
+  openExceptions: number;
+  lastCaptureAt: string | null;
+  captureEnabledFlag: boolean;
+  lastRemittanceAt: string | null;
+  firstInvoiceDate: string | null;
+  lastInvoiceDate: string | null;
+  firstClaimDate: string | null;
+  lastClaimDate: string | null;
+  escalatedExceptions: number;
+};
 
 /** Reads v_fin_data_freshness through the member's own client (RLS / permission-gated). */
 export async function loadFreshness(supabase: SupabaseClient<Database>): Promise<Freshness | null> {
@@ -20,5 +30,12 @@ export async function loadFreshness(supabase: SupabaseClient<Database>): Promise
     lastImportAt: data.last_import_at ?? null,
     openExceptions: Number(data.open_exceptions ?? 0),
     lastCaptureAt: data.last_capture_at ?? null,
+    captureEnabledFlag: !!data.capture_enabled,
+    lastRemittanceAt: data.last_remittance_at ?? null,
+    firstInvoiceDate: data.first_invoice_date ?? null,
+    lastInvoiceDate: data.last_invoice_date ?? null,
+    firstClaimDate: data.first_claim_date ?? null,
+    lastClaimDate: data.last_claim_date ?? null,
+    escalatedExceptions: Number(data.escalated_exceptions ?? 0),
   };
 }

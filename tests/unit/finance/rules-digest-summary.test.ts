@@ -35,6 +35,10 @@ describe("rules helpers", () => {
       "E08",
       "E09",
       "E10",
+      "E11",
+      "E12",
+      "E13",
+      "E14",
     ]);
     for (const c of RULE_CODES) {
       expect(RULE_INFO[c].title.length).toBeGreaterThan(3);
@@ -137,6 +141,8 @@ describe("summary helpers", () => {
         branch_code: "P",
         generated: 100.1,
         claimed: 50,
+        accepted: 20.05,
+        paid_allocated: null,
         remitted: null,
         rejected: 0.2,
         outstanding: 49.8,
@@ -147,6 +153,8 @@ describe("summary helpers", () => {
         branch_code: "M",
         generated: 0.2,
         claimed: null,
+        accepted: 0.1,
+        paid_allocated: 7,
         remitted: 10,
         rejected: 0.1,
         outstanding: null,
@@ -156,6 +164,8 @@ describe("summary helpers", () => {
     expect(t).toEqual({
       generated: 100.3,
       claimed: 50,
+      accepted: 20.15,
+      paid_allocated: 7,
       remitted: 10,
       rejected: 0.3,
       outstanding: 49.8,

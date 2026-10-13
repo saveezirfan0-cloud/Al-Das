@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { GroupedBars, HorizontalBars } from "@/components/finance/bars";
 import { KpiCard } from "@/components/finance/kpi-card";
+import { ProvenanceStrip } from "@/components/finance/provenance-strip";
 import { SetupChecklist } from "@/components/finance/setup-checklist";
 import { PageHeader } from "@/components/shell/page-header";
 import { Button } from "@/components/ui/button";
@@ -18,7 +19,8 @@ import {
 import { can } from "@/lib/auth/can";
 import { requirePerm } from "@/lib/auth/session";
 import { loadFreshness } from "@/lib/finance/freshness";
-import { ago, money } from "@/lib/finance/format";
+import { money } from "@/lib/finance/format";
+import { buildProvenance } from "@/lib/finance/provenance";
 import { readinessSteps, isReady } from "@/lib/finance/readiness";
 import {
   RANGE_PRESETS,
@@ -70,6 +72,8 @@ const safe = (v: string | undefined) =>
 const HEAD: Record<(typeof SUMMARY_COLUMNS)[number], string> = {
   generated: "Generated",
   claimed: "Claimed",
+  accepted: "Accepted",
+  paid_allocated: "Paid (allocated)",
   remitted: "Remitted",
   rejected: "Rejected",
   outstanding: "Outstanding",
@@ -79,6 +83,8 @@ const HEAD: Record<(typeof SUMMARY_COLUMNS)[number], string> = {
 const GOOD_WHEN = {
   generated: "up",
   claimed: "up",
+  accepted: "up",
+  paid_allocated: "up",
   remitted: "up",
   rejected: "down",
   outstanding: "down",
@@ -110,9 +116,9 @@ export default async function SummaryPage({ searchParams }: { searchParams: Prom
   const supabase = await createClient();
 
   let sq = supabase
-    .from("v_fin_monthly_summary")
+    .from("v_fin_monthly_measures")
     .select(
-      "month, branch_code, generated, claimed, remitted, rejected, outstanding, self_pay_collected",
+      "month, branch_code, generated, claimed, accepted, paid_allocated, status_unknown_claims, remitted, rejected, outstanding, self_pay_collected",
     )
     .gte("month", `${prev.from}-01`)
     .lte("month", `${range.to}-01`)
@@ -194,6 +200,14 @@ export default async function SummaryPage({ searchParams }: { searchParams: Prom
     "finance.claims.import",
   ].filter((p) => can(member, p as Parameters<typeof can>[1]));
   const steps = freshness ? readinessSteps(freshness) : null;
+  const prov = freshness
+    ? buildProvenance(
+        { ...freshness, captureEnabled: freshness.captureEnabledFlag },
+        ["unite", "diligence", "remittance"],
+        { from: `${range.from}-01`, to: monthEnd(range.to) },
+      )
+    : null;
+  const unknownStatus = current.reduce((n, r) => n + Number(r.status_unknown_claims ?? 0), 0);
   const noData = (summary ?? []).length === 0;
 
   const qs = (extra: Record<string, string>) =>
@@ -218,31 +232,29 @@ export default async function SummaryPage({ searchParams }: { searchParams: Prom
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Monthly summary"
-        description="Generated, claimed, remitted, rejected and outstanding, by month and branch. One definition for every number, all amounts in AED."
+        description="Generated, claimed, accepted, paid, rejected and outstanding, by month and branch. Separate measures with one definition each, all amounts in AED."
       >
         <Button asChild variant="outline" size="sm">
           <Link href={`/api/finance/summary?${csv}`}>Download CSV</Link>
         </Button>
       </PageHeader>
 
-      {freshness && (
-        <p className="text-muted-foreground text-xs">
-          Data as of: Unite capture{" "}
-          {freshness.captureEnabled ? ago(freshness.lastCaptureAt) : "is off"} · Diligence import{" "}
-          {ago(freshness.lastImportAt)} · {freshness.invoiceCount.toLocaleString()} invoices,{" "}
-          {freshness.claimCount.toLocaleString()} claim activities
-          {freshness.openExceptions > 0 && (
-            <>
-              {" · "}
-              <Link href="/finance/exceptions" className="underline underline-offset-2">
-                {freshness.openExceptions.toLocaleString()} open exceptions
-              </Link>
-            </>
-          )}
-        </p>
+      {prov && (
+        <ProvenanceStrip
+          p={prov}
+          exceptionsHref={
+            can(member, "finance.exceptions.manage") ? "/finance/exceptions" : undefined
+          }
+        />
       )}
 
       {steps && !isReady(steps) && noData && <SetupChecklist steps={steps} allowed={allowed} />}
+      {unknownStatus > 0 && (
+        <p className="text-muted-foreground text-xs">
+          {unknownStatus.toLocaleString()} claim activities in this range have no status, payment or
+          rejection yet. They are not counted as accepted.
+        </p>
+      )}
 
       <div className="flex flex-wrap items-center gap-2" aria-label="Quick ranges">
         {RANGE_PRESETS.map((p) => {
@@ -339,7 +351,7 @@ export default async function SummaryPage({ searchParams }: { searchParams: Prom
         </Button>
       </form>
 
-      <section aria-label="Headline numbers" className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <section aria-label="Headline numbers" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {SUMMARY_COLUMNS.map((c) => (
           <KpiCard
             key={c}
@@ -380,7 +392,9 @@ export default async function SummaryPage({ searchParams }: { searchParams: Prom
           <CardTitle>By month and branch</CardTitle>
           <CardDescription>
             Generated = invoice net (not deleted). Claimed, remitted, rejected and outstanding come
-            from Diligence claims, by transaction month. Click a month to see its invoices.
+            from Diligence claims, by transaction month. Accepted counts only claims with evidence
+            (a remitted amount or a status listed in Workflow settings); Paid is what reconciled
+            remittance advices allocate to claims. Click a month to see its invoices.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -391,59 +405,61 @@ export default async function SummaryPage({ searchParams }: { searchParams: Prom
                 : "No figures in this range. Try a wider range or reset the filters."}
             </p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Month</TableHead>
-                  <TableHead>Branch</TableHead>
-                  {SUMMARY_COLUMNS.map((c) => (
-                    <TableHead key={c} className="text-right">
-                      {HEAD[c]}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {current.map((r) => {
-                  const ym = r.month.slice(0, 7);
-                  const drill = new URLSearchParams({
-                    from: `${ym}-01`,
-                    to: monthEnd(ym),
-                    ...(r.branch_code ? { branch: r.branch_code } : {}),
-                  }).toString();
-                  return (
-                    <TableRow key={`${r.month}-${r.branch_code}`}>
-                      <TableCell className="text-xs">
-                        <Link
-                          href={`/finance/invoices?${drill}`}
-                          className="underline-offset-2 hover:underline"
-                        >
-                          {ym}
-                        </Link>
-                      </TableCell>
-                      <TableCell className="text-xs">{r.branch_code ?? "unknown"}</TableCell>
-                      {SUMMARY_COLUMNS.map((c) => (
-                        <TableCell key={c} className="text-right tabular-nums">
-                          {money(r[c])}
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Month</TableHead>
+                    <TableHead>Branch</TableHead>
+                    {SUMMARY_COLUMNS.map((c) => (
+                      <TableHead key={c} className="text-right">
+                        {HEAD[c]}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {current.map((r) => {
+                    const ym = r.month.slice(0, 7);
+                    const drill = new URLSearchParams({
+                      from: `${ym}-01`,
+                      to: monthEnd(ym),
+                      ...(r.branch_code ? { branch: r.branch_code } : {}),
+                    }).toString();
+                    return (
+                      <TableRow key={`${r.month}-${r.branch_code}`}>
+                        <TableCell className="text-xs">
+                          <Link
+                            href={`/finance/invoices?${drill}`}
+                            className="underline-offset-2 hover:underline"
+                          >
+                            {ym}
+                          </Link>
                         </TableCell>
-                      ))}
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-              <TableFooter>
-                <TableRow>
-                  <TableCell colSpan={2} className="font-medium">
-                    Total
-                  </TableCell>
-                  {SUMMARY_COLUMNS.map((c) => (
-                    <TableCell key={c} className="text-right font-medium tabular-nums">
-                      {money(sum[c])}
+                        <TableCell className="text-xs">{r.branch_code ?? "unknown"}</TableCell>
+                        {SUMMARY_COLUMNS.map((c) => (
+                          <TableCell key={c} className="text-right tabular-nums">
+                            {money(r[c])}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+                <TableFooter>
+                  <TableRow>
+                    <TableCell colSpan={2} className="font-medium">
+                      Total
                     </TableCell>
-                  ))}
-                </TableRow>
-              </TableFooter>
-            </Table>
+                    {SUMMARY_COLUMNS.map((c) => (
+                      <TableCell key={c} className="text-right font-medium tabular-nums">
+                        {money(sum[c])}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                </TableFooter>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>

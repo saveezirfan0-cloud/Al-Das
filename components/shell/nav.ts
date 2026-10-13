@@ -180,6 +180,11 @@ export const NAV_ITEMS: readonly NavItem[] = [
       "finance.cashup.manage",
       "finance.revenue.view",
       "finance.export.run",
+      "finance.costs.manage",
+      "finance.costs.view",
+      "finance.costs.compensation",
+      "finance.profit.view",
+      "finance.profit.approve",
     ],
   },
   {

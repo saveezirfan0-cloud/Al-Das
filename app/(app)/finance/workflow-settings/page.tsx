@@ -11,11 +11,13 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { requirePerm } from "@/lib/auth/session";
+import { loadBlueprintSettings } from "@/lib/finance/blueprint-settings";
 import { money } from "@/lib/finance/format";
 import { loadFinanceSettings } from "@/lib/finance/settings-db";
 import { createClient } from "@/lib/supabase/server";
 
 import {
+  BlueprintSettingsForm,
   CodeForm,
   PriceImport,
   RemoveCode,
@@ -38,6 +40,7 @@ export default async function WorkflowSettingsPage({
   const sp = await searchParams;
   const supabase = await createClient();
   const settings = await loadFinanceSettings(supabase, member.orgId);
+  const blueprint = await loadBlueprintSettings(supabase, member.orgId);
   const payerFilter = (sp.payer ?? "").replace(/[^A-Za-z0-9._-]/g, "").slice(0, 60);
   let priceQuery = supabase
     .from("fin_ref_payer_prices")
@@ -74,6 +77,20 @@ export default async function WorkflowSettingsPage({
         </CardHeader>
         <CardContent>
           <ThresholdsForm s={settings} />
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">
+            Doctor basis, accepted claims, evidence checks and escalation
+          </CardTitle>
+          <CardDescription>
+            Decisions from the integration blueprint. Each one fails closed: nothing is flagged,
+            counted as accepted or attributed to a doctor until it is set here.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <BlueprintSettingsForm s={blueprint} />
         </CardContent>
       </Card>
       <Card>
