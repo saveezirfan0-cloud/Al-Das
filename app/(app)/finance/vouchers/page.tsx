@@ -25,6 +25,7 @@ import {
   loadVoucherScope,
   type VoucherDetail,
 } from "@/lib/finance/vouchers-server";
+import { isFinalVoucher, signingView, voucherSignatures } from "@/lib/finance/signed-pdfs-server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { AdminClient } from "@/lib/supabase/admin";
 
@@ -204,6 +205,18 @@ export default async function VouchersPage({
           }))
       : [];
   const settings = await loadPayablesSettings(admin, member.orgId);
+  // Phase 22C: the seal and personal signatures of the open voucher, verified now; and whether the viewer can sign.
+  const signing = detail
+    ? await signingView(admin, {
+        orgId: member.orgId,
+        userId: member.userId,
+        mayHaveCertificate: perms.check || perms.dept || perms.ceo,
+        signatures: await voucherSignatures(admin, member.orgId, detail),
+        kind: "voucher_certificate",
+        docId: detail.voucher.id,
+        bound: isFinalVoucher(detail.voucher) ? detail.voucher.content_sha256 : null,
+      })
+    : null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -306,8 +319,9 @@ export default async function VouchersPage({
         </ul>
       )}
 
-      {detail && (
+      {detail && signing && (
         <VoucherDrawer
+          signing={signing}
           detail={detail as VoucherDetail}
           perms={perms}
           userId={member.userId}

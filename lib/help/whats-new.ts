@@ -15,6 +15,12 @@ export const WHATS_NEW: readonly WhatsNewEntry[] = [
     body: "Pulse now has an Accounting module, the first step in replacing Tally. It holds the chart of accounts (Tally's predefined groups plus the clinic's ledgers), journals that one person prepares and another posts, the day book, the general ledger with running balances, a trial balance you can download as Excel, and monthly periods that can be closed and locked. The fiscal year runs July to June. A posted journal never changes; it is corrected by a reversal. New roles: Accountant, Chief Accountant and Auditor (read-only); the Finance Manager can post journals and the CEO can read the reports.",
   },
   {
+    id: "2026-11-08-digital-signatures",
+    date: "2026-11-08",
+    title: "Digital signatures on approval certificates and close packs",
+    body: "Once an administrator adds the organisation's certificate under Settings, Integrations, Organisation seal, the payment voucher approval certificate (when the voucher is fully approved) and the month-end close pack PDF (when the month is locked) carry a digital signature in the organisation's name: any PDF reader shows who sealed the file and that it has not changed since. People who verify or approve vouchers or sign the close can also add their own soft certificate (.p12 / .pfx) under Settings, Signing certificate and type its PIN when they approve; their signature is listed on the certificate. The voucher and close pages show whether each signature is valid. Without a certificate everything works as before.",
+  },
+  {
     id: "2026-11-07-menu-tree",
     date: "2026-11-07",
     title: "A menu that opens up like a tree",

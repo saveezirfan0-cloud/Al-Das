@@ -126,6 +126,7 @@ export type CloseRecord = {
   pack: ClosePack | null;
   hash: string | null;
   financeById: string | null;
+  ceoById: string | null;
   sign: SignOff;
 };
 
@@ -157,6 +158,7 @@ export async function loadCloseByMonth(
     pack: readClosePack(c.snapshot),
     hash: c.snapshot_hash,
     financeById: c.finance_signed_by,
+    ceoById: c.ceo_signed_by,
     sign: {
       financeBy: name(c.finance_signed_by),
       financeAt: c.finance_signed_at,

@@ -269,6 +269,10 @@ export type VoucherDetail = {
     checked_by: string | null;
     dept_approved_by: string | null;
     ceo_approved_by: string | null;
+    /** Step times (22C: a personal signature belongs to the step stored in the same transaction). */
+    checked_at: string | null;
+    dept_approved_at: string | null;
+    ceo_approved_at: string | null;
     rejection_remarks: string | null;
     payment_date: string | null;
     payment_reference: string | null;
@@ -414,6 +418,9 @@ export async function loadVoucherDetail(
       checked_by: v.checked_by,
       dept_approved_by: v.dept_approved_by,
       ceo_approved_by: v.ceo_approved_by,
+      checked_at: v.checked_at,
+      dept_approved_at: v.dept_approved_at,
+      ceo_approved_at: v.ceo_approved_at,
       rejection_remarks: v.rejection_remarks,
       payment_date: v.payment_date,
       payment_reference: v.payment_reference,

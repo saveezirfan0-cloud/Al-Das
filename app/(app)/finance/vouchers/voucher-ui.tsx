@@ -40,6 +40,8 @@ import {
   type VoucherStatus,
 } from "@/lib/finance/vouchers";
 import type { VoucherDetail } from "@/lib/finance/vouchers-server";
+import { SigningStatus } from "@/components/finance/signing-status";
+import type { DocumentSigningView } from "@/lib/signing/view-types";
 
 import { bulkCheckVouchers, saveVoucher, voucherStep } from "./actions";
 
@@ -495,17 +497,20 @@ export function VoucherDrawer({
   userId,
   options,
   closeHref,
+  signing,
 }: {
   detail: VoucherDetail;
   perms: VoucherPerms;
   userId: string;
   options: VoucherFormOptions | null;
   closeHref: string;
+  signing: DocumentSigningView;
 }) {
   const router = useRouter();
   const v = detail.voucher;
   const [editing, setEditing] = React.useState(false);
   const [remarks, setRemarks] = React.useState("");
+  const [pin, setPin] = React.useState("");
   const [payDate, setPayDate] = React.useState(options?.today ?? "");
   const [payRef, setPayRef] = React.useState("");
   const isMaker = detail.makers.includes(userId);
@@ -514,9 +519,15 @@ export function VoucherDrawer({
 
   const step = async (
     action: VoucherAction,
-    extra: { remarks?: string; payment_date?: string; payment_reference?: string } = {},
+    extra: {
+      remarks?: string;
+      payment_date?: string;
+      payment_reference?: string;
+      pin?: string;
+    } = {},
   ) => {
     const res = await voucherStep({ id: v.id, action, hash: v.content_sha256, ...extra });
+    setPin("");
     if (res.ok) {
       toast.success(res.message ?? "Done");
       setRemarks("");
@@ -699,6 +710,10 @@ export function VoucherDrawer({
                 {!intact && <span className="text-red-700">does not match what was approved</span>}
               </p>
 
+              {v.route !== "tally" && v.status !== "draft" && (
+                <SigningStatus view={signing} finalLabel="once the voucher is fully approved" />
+              )}
+
               {/* ---- actions ---- */}
               <div className="flex flex-col gap-3 rounded-md border p-3">
                 {next.step &&
@@ -735,16 +750,36 @@ export function VoucherDrawer({
                       rows={2}
                       maxLength={1000}
                     />
+                    {signing.myCertificate && (
+                      <Field
+                        label="Sign with my certificate (optional)"
+                        hint={
+                          signing.myCertificate.usable
+                            ? `Type the PIN of ${signing.myCertificate.label} to sign this approval. Leave blank to approve without a personal signature.`
+                            : "Your certificate is not valid now; replace it under Settings, Signing certificate."
+                        }
+                      >
+                        <Input
+                          type="password"
+                          autoComplete="off"
+                          placeholder="Certificate PIN"
+                          value={pin}
+                          disabled={!signing.myCertificate.usable}
+                          onChange={(e) => setPin(e.target.value)}
+                          maxLength={200}
+                        />
+                      </Field>
+                    )}
                     <div className="flex flex-wrap gap-2">
                       <StepButton
-                        label={
+                        label={`${
                           next.step === "check"
                             ? "Verify"
                             : next.step === "approve_dept"
                               ? "Approve"
                               : "Authorise"
-                        }
-                        run={() => step(next.step as VoucherAction, { remarks })}
+                        }${pin ? " and sign" : ""}`}
+                        run={() => step(next.step as VoucherAction, { remarks, pin })}
                         disabled={!intact}
                       />
                       <StepButton

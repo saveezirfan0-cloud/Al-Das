@@ -3,11 +3,14 @@ import { NextResponse } from "next/server";
 import { recordAudit } from "@/lib/audit";
 import { canAny } from "@/lib/auth/can";
 import { getCurrentMember } from "@/lib/auth/session";
-import { closePackPdf } from "@/lib/finance/close-pdf";
 import { closePackXlsx } from "@/lib/finance/close-xlsx";
 import { loadCloseByMonth, MONTH_RE } from "@/lib/finance/close-server";
+import { closePackPdfFile } from "@/lib/finance/signed-pdfs-server";
 import { recordExport } from "@/lib/security/access-log";
 import { createAdminClient } from "@/lib/supabase/admin";
+
+// pdf-lib, @signpdf and node-forge need Node (not the Edge runtime).
+export const runtime = "nodejs";
 
 /**
  * GET /api/finance/close/<yyyy-mm>/pack?format=xlsx|pdf. Needs one of the close permissions. Always rendered from the stored
@@ -33,10 +36,22 @@ export async function GET(req: Request, ctx: { params: Promise<{ month: string }
   const admin = createAdminClient();
   const close = await loadCloseByMonth(admin, member.orgId, month);
   if (!close?.pack) return NextResponse.json({ error: "no pack for that month" }, { status: 404 });
-  const body =
+  // Phase 22C: the PDF lists the personal signatures; a locked month's PDF is sealed (when the seal is on) and stored,
+  // so every download of it returns the same signed bytes.
+  const pdf =
     format === "pdf"
-      ? await closePackPdf(close.pack, close.sign)
-      : await closePackXlsx(close.pack, close.sign);
+      ? await closePackPdfFile(
+          admin,
+          {
+            orgId: member.orgId,
+            orgName: member.org.name,
+            timezone: member.org.timezone,
+            userId: member.userId,
+          },
+          close,
+        )
+      : null;
+  const body = pdf ? pdf.pdf : await closePackXlsx(close.pack, close.sign);
 
   await recordAudit(admin, {
     orgId: member.orgId,
@@ -44,7 +59,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ month: string }
     action: "finance.close.downloaded",
     entity: "fin_period_closes",
     entityId: close.id,
-    diff: { month, format, status: close.status },
+    diff: { month, format, status: close.status, sealed: pdf?.sealed ?? false },
   });
   await recordExport(admin, member, {
     dataset: "finance:close-pack",

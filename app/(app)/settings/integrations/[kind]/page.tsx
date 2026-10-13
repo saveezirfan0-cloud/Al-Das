@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 
 import { PageHeader } from "@/components/shell/page-header";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { sealCertificateSummary } from "@/lib/signing/seal-server";
 import { can, ForbiddenError } from "@/lib/auth/can";
 import { requireMember } from "@/lib/auth/session";
 import { serverEnv } from "@/lib/env";
@@ -177,6 +179,52 @@ export default async function IntegrationPage({ params }: { params: Promise<{ ki
     );
   }
 
+  // organisation seal: the stored certificate's public details (never the file or its password)
+  let sealPanel: React.ReactNode = null;
+  if (kind === "document_seal" && canManage) {
+    const s = await sealCertificateSummary(admin, member.orgId);
+    sealPanel = (
+      <Card>
+        <CardHeader>
+          <CardTitle>Seal certificate</CardTitle>
+          <CardDescription>
+            {s.info
+              ? `${s.sealed} document${s.sealed === 1 ? "" : "s"} sealed so far. Renew the certificate before it expires; documents sealed earlier stay valid.`
+              : "No certificate stored yet. Choose the .p12 / .pfx file and type its password under Settings."}
+          </CardDescription>
+        </CardHeader>
+        {s.info && (
+          <CardContent>
+            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+              <dt className="text-muted-foreground">Subject</dt>
+              <dd className="break-all">{s.info.subject}</dd>
+              <dt className="text-muted-foreground">Issued by</dt>
+              <dd className="break-all">
+                {s.info.issuer}
+                {s.info.selfSigned
+                  ? " (self-signed: readers will say the signer is not trusted)"
+                  : ""}
+              </dd>
+              <dt className="text-muted-foreground">Serial</dt>
+              <dd className="font-mono text-xs break-all">{s.info.serialHex}</dd>
+              <dt className="text-muted-foreground">Valid</dt>
+              <dd>
+                {s.info.validFrom.slice(0, 10)} to {s.info.validTo.slice(0, 10)}
+              </dd>
+              <dt className="text-muted-foreground">Fingerprint</dt>
+              <dd className="font-mono text-xs break-all">sha256 {s.info.fingerprint}</dd>
+              {s.problems.map((p) => (
+                <dd key={p} className="col-span-2 text-red-700">
+                  {p}
+                </dd>
+              ))}
+            </dl>
+          </CardContent>
+        )}
+      </Card>
+    );
+  }
+
   const problems = canManage
     ? readinessProblems(await loadReadinessInput(admin, member.orgId, kind, view))
     : [];
@@ -234,6 +282,7 @@ export default async function IntegrationPage({ params }: { params: Promise<{ ki
       {reviewsPanel}
       {capiPanel}
       {calendarPanel}
+      {sealPanel}
     </div>
   );
 }

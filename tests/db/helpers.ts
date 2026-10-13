@@ -834,6 +834,51 @@ export const PHASE20A_TABLES = [
   "enquiry_tags",
 ] as const;
 
+/**
+ * Phase 22C (digital signatures): one row in each signing table for an org, so the cross-org sweeps are not vacuous.
+ * The signature row is attached to a voucher of the org (made by seedPhase20DRows when there is none) and holds
+ * placeholder bytes (the database does not verify CMS; lib/signing/verify.ts does). Synthetic values only; service role.
+ */
+export async function seedPhase22CRows(c: Client, orgId: string, userId: string) {
+  const ids: Record<string, string> = {};
+  let voucher = (
+    await asServiceRole(c, () =>
+      c.query<{ id: string }>(
+        "select id from public.fin_payment_vouchers where org_id = $1 limit 1",
+        [orgId],
+      ),
+    )
+  ).rows[0]?.id;
+  if (!voucher) voucher = (await seedPhase20DRows(c, orgId, userId)).voucher;
+  await asServiceRole(c, async () => {
+    const one = async (sql: string, params: unknown[]) =>
+      (await c.query<{ id: string }>(sql + " returning id::text", params)).rows[0].id;
+    ids.certificate = await one(
+      "insert into public.fin_signing_certificates (org_id, user_id, p12_enc, subject, subject_cn, issuer, serial_hex, fingerprint_sha256, valid_from, valid_to) values ($1, $2, 'v1:seed:seed:seed', 'CN=Signer Seed', 'Signer Seed', 'CN=Seed CA', '0A', encode(sha256(gen_random_uuid()::text::bytea), 'hex'), now() - interval '1 day', now() + interval '1 year')",
+      [orgId, userId],
+    );
+    ids.signature = await one(
+      "insert into public.fin_approval_signatures (org_id, doc_kind, doc_id, step, user_id, certificate_id, statement, statement_sha256, bound_sha256, cms, cert_subject, cert_issuer, cert_serial, cert_fingerprint, cert_valid_from, cert_valid_to) values ($1, 'payment_voucher', $2, 'check', $3, $4, '{}', repeat('a', 64), repeat('b', 64), decode(repeat('30', 64), 'hex'), 'CN=Signer Seed', 'CN=Seed CA', '0A', repeat('c', 64), now() - interval '1 day', now() + interval '1 year')",
+      [orgId, voucher, userId, ids.certificate],
+    );
+    ids.sealed = await one(
+      "insert into public.fin_sealed_documents (org_id, doc_kind, doc_id, bound_sha256, pdf, seal_subject, seal_fingerprint, sealed_by) values ($1, 'voucher_certificate', $2, repeat('b', 64), convert_to('%PDF-1.7 seed ' || repeat('x', 200), 'UTF8'), 'CN=Seal Seed', repeat('d', 64), $3)",
+      [orgId, voucher, userId],
+    );
+  });
+  ids.voucher = voucher;
+  return ids;
+}
+
+/** Phase 22C tables with a browser (select) policy. */
+export const PHASE22C_TABLES = ["fin_approval_signatures"] as const;
+
+/** Phase 22C service-only tables: RLS on, no policy (personal certificates, sealed PDFs). */
+export const PHASE22C_SERVICE_ONLY_TABLES = [
+  "fin_sealed_documents",
+  "fin_signing_certificates",
+] as const;
+
 /** Phase 22A tables with a browser (select) policy; every one is seeded for an org by the trigger and seedPhase22Rows. */
 export const PHASE22_TABLES = [
   "acc_accounts",

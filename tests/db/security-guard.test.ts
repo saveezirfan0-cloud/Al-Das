@@ -31,6 +31,8 @@ import {
   PHASE20D_TABLES,
   PHASE21_TABLES,
   PHASE22_TABLES,
+  PHASE22C_SERVICE_ONLY_TABLES,
+  PHASE22C_TABLES,
   resetDb,
   seedPhase13Rows,
   seedPhase14Rows,
@@ -43,6 +45,7 @@ import {
   seedPhase20DRows,
   seedPhase21Rows,
   seedPhase22Rows,
+  seedPhase22CRows,
   seedSecurityRows,
   TEST_DATABASE_URL,
 } from "./helpers";
@@ -68,6 +71,10 @@ const SERVICE_ONLY = new Set([
   "ins_staged_activities",
   // Phase 20D: the per-org, per-year payment voucher number counter; only fin_voucher_save (security definer) touches it
   "fin_voucher_counters",
+  // Phase 22C: a person's own signing certificate (.p12, AES-256-GCM, PIN never stored), read and written only by
+  // server actions for that person; the sealed PDFs, served only by the download routes after the document read check
+  "fin_sealed_documents",
+  "fin_signing_certificates",
   // Phase 18: an uploaded payment advice (name, sha256, validation result) and its sanitised staged lines. They wait for
   // the confirm step and are deleted at commit; only server code (service role, after can('finance.remittance.manage')) reads them
   "fin_raw_remittance_files",
@@ -199,6 +206,8 @@ const PHASE22_SERVICE_FUNCTIONS = [
   "acc_set_period_status",
   "acc_trial_balance",
 ];
+/** Phase 22C: an approval step and its personal signature in one transaction (server actions after can()). */
+const PHASE22C_SERVICE_FUNCTIONS = ["fin_close_sign_signed", "fin_voucher_act_signed"];
 
 /** Phase 17 SECURITY DEFINER functions that only server code (service role) may run. */
 const PHASE17_SERVICE_FUNCTIONS = ["ai_add_conversation_tags"];
@@ -431,6 +440,39 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 19 service-role functions", () => {
   });
 });
 
+describe.skipIf(!TEST_DATABASE_URL)("phase 22C service-role functions", () => {
+  it("exist and are executable by the service role only; the signature store is internal", async () => {
+    const c = await connect();
+    try {
+      const { rows } = await c.query<{ name: string; anon: boolean; auth: boolean; svc: boolean }>(
+        `select p.proname as name,
+                has_function_privilege('anon', p.oid, 'execute') as anon,
+                has_function_privilege('authenticated', p.oid, 'execute') as auth,
+                has_function_privilege('service_role', p.oid, 'execute') as svc
+         from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+         where n.nspname = 'public' and p.proname = any ($1)`,
+        [PHASE22C_SERVICE_FUNCTIONS],
+      );
+      expect(rows.map((r) => r.name).sort()).toEqual([...PHASE22C_SERVICE_FUNCTIONS].sort());
+      for (const r of rows)
+        expect({ name: r.name, anon: r.anon, auth: r.auth, svc: r.svc }).toEqual({
+          name: r.name,
+          anon: false,
+          auth: false,
+          svc: true,
+        });
+      const inner = await c.query<{ auth: boolean }>(
+        `select has_function_privilege('authenticated', p.oid, 'execute') as auth
+         from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+         where n.nspname = 'app' and p.proname = 'fin_store_approval_signature'`,
+      );
+      expect(inner.rows).toEqual([{ auth: false }]);
+    } finally {
+      await c.end();
+    }
+  });
+});
+
 describe.skipIf(!TEST_DATABASE_URL)("phase 20 service-role functions", () => {
   it("exist and are executable by the service role only", async () => {
     const c = await connect();
@@ -614,6 +656,8 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
     await seedPhase20aRows(c, orgA);
     // Phase 22A (accounting) tables likewise.
     await seedPhase22Rows(c, orgA);
+    // Phase 22C (digital signatures) tables likewise.
+    await seedPhase22CRows(c, orgA, alice);
   });
   afterAll(async () => {
     await resetDb(c);
@@ -627,6 +671,7 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
   it("sweeps every Phase 13 to 22 table (a new table must be added to PHASE13_TABLES ... PHASE22_TABLES and seeded)", () => {
     for (const t of [
       ...PHASE22_TABLES,
+      ...PHASE22C_TABLES,
       ...PHASE21_TABLES,
       ...PHASE20_TABLES,
       ...PHASE20A_TABLES,
@@ -646,6 +691,7 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
     await asUser(c, alice, async () => {
       for (const t of [
         ...PHASE22_TABLES,
+        ...PHASE22C_TABLES,
         ...PHASE21_TABLES,
         ...PHASE20_TABLES,
         ...PHASE20A_TABLES,
@@ -719,6 +765,7 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
         ...PHASE18_SERVICE_ONLY_TABLES,
         ...PHASE19_SERVICE_ONLY_TABLES,
         ...PHASE20D_SERVICE_ONLY_TABLES,
+        ...PHASE22C_SERVICE_ONLY_TABLES,
       ]) {
         const { rows } = await c
           .query<{ n: string }>(`select count(*)::text as n from public.${t}`)

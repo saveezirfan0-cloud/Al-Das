@@ -4556,6 +4556,98 @@ export type Database = {
           },
         ];
       };
+      fin_approval_signatures: {
+        Row: {
+          bound_sha256: string;
+          cert_fingerprint: string;
+          cert_issuer: string;
+          cert_issuer_cn: string | null;
+          cert_serial: string;
+          cert_subject: string;
+          cert_subject_cn: string | null;
+          cert_valid_from: string;
+          cert_valid_to: string;
+          certificate_id: string | null;
+          cms: string;
+          doc_id: string;
+          doc_kind: string;
+          id: string;
+          org_id: string;
+          statement: string;
+          statement_sha256: string;
+          step: string;
+          step_at: string;
+          user_id: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          bound_sha256: string;
+          cert_fingerprint: string;
+          cert_issuer: string;
+          cert_issuer_cn?: string | null;
+          cert_serial: string;
+          cert_subject: string;
+          cert_subject_cn?: string | null;
+          cert_valid_from: string;
+          cert_valid_to: string;
+          certificate_id?: string | null;
+          cms: string;
+          doc_id: string;
+          doc_kind: string;
+          id?: string;
+          org_id: string;
+          statement: string;
+          statement_sha256: string;
+          step: string;
+          step_at?: string;
+          user_id?: string | null;
+        };
+        Update: {
+          bound_sha256?: string;
+          cert_fingerprint?: string;
+          cert_issuer?: string;
+          cert_issuer_cn?: string | null;
+          cert_serial?: string;
+          cert_subject?: string;
+          cert_subject_cn?: string | null;
+          cert_valid_from?: string;
+          cert_valid_to?: string;
+          certificate_id?: string | null;
+          cms?: string;
+          doc_id?: string;
+          doc_kind?: string;
+          id?: string;
+          org_id?: string;
+          statement?: string;
+          statement_sha256?: string;
+          step?: string;
+          step_at?: string;
+          user_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_approval_signatures_certificate_id_fkey";
+            columns: ["certificate_id"];
+            isOneToOne: false;
+            referencedRelation: "fin_signing_certificates";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_approval_signatures_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_approval_signatures_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       fin_bank_accounts: {
         Row: {
           active: boolean;
@@ -9152,6 +9244,64 @@ export type Database = {
           },
         ];
       };
+      fin_sealed_documents: {
+        Row: {
+          bound_sha256: string;
+          doc_id: string;
+          doc_kind: string;
+          id: string;
+          org_id: string;
+          pdf: string;
+          pdf_sha256: string | null;
+          seal_fingerprint: string;
+          seal_subject: string;
+          sealed_at: string;
+          sealed_by: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          bound_sha256: string;
+          doc_id: string;
+          doc_kind: string;
+          id?: string;
+          org_id: string;
+          pdf: string;
+          pdf_sha256?: never;
+          seal_fingerprint: string;
+          seal_subject: string;
+          sealed_at?: string;
+          sealed_by?: string | null;
+        };
+        Update: {
+          bound_sha256?: string;
+          doc_id?: string;
+          doc_kind?: string;
+          id?: string;
+          org_id?: string;
+          pdf?: string;
+          pdf_sha256?: never;
+          seal_fingerprint?: string;
+          seal_subject?: string;
+          sealed_at?: string;
+          sealed_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_sealed_documents_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_sealed_documents_sealed_by_fkey";
+            columns: ["sealed_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       fin_settlement_lines: {
         Row: {
           created_at: string;
@@ -9209,6 +9359,73 @@ export type Database = {
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      fin_signing_certificates: {
+        Row: {
+          created_at: string;
+          fingerprint_sha256: string;
+          id: string;
+          issuer: string;
+          issuer_cn: string | null;
+          org_id: string;
+          p12_enc: string | null;
+          revoked_at: string | null;
+          serial_hex: string;
+          subject: string;
+          subject_cn: string | null;
+          user_id: string;
+          valid_from: string;
+          valid_to: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          fingerprint_sha256: string;
+          id?: string;
+          issuer: string;
+          issuer_cn?: string | null;
+          org_id: string;
+          p12_enc?: string | null;
+          revoked_at?: string | null;
+          serial_hex: string;
+          subject: string;
+          subject_cn?: string | null;
+          user_id: string;
+          valid_from: string;
+          valid_to: string;
+        };
+        Update: {
+          created_at?: string;
+          fingerprint_sha256?: string;
+          id?: string;
+          issuer?: string;
+          issuer_cn?: string | null;
+          org_id?: string;
+          p12_enc?: string | null;
+          revoked_at?: string | null;
+          serial_hex?: string;
+          subject?: string;
+          subject_cn?: string | null;
+          user_id?: string;
+          valid_from?: string;
+          valid_to?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_signing_certificates_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_signing_certificates_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
             referencedColumns: ["id"];
           },
         ];
@@ -18881,6 +19098,18 @@ export type Database = {
         };
         Returns: undefined;
       };
+      fin_close_sign_signed: {
+        Args: {
+          p_close_id: string;
+          p_hash: string;
+          p_note: string;
+          p_org_id: string;
+          p_signature: Json;
+          p_step: string;
+          p_user_id: string;
+        };
+        Returns: string;
+      };
       fin_close_store_snapshot: {
         Args: { p_month: string; p_org_id: string; p_snapshot: Json; p_user_id: string };
         Returns: string;
@@ -19139,6 +19368,18 @@ export type Database = {
           p_org_id: string;
           p_payment: Json;
           p_remarks: string;
+          p_user_id: string;
+          p_voucher_id: string;
+        };
+        Returns: Json;
+      };
+      fin_voucher_act_signed: {
+        Args: {
+          p_action: string;
+          p_hash: string;
+          p_org_id: string;
+          p_remarks: string;
+          p_signature: Json;
           p_user_id: string;
           p_voucher_id: string;
         };
