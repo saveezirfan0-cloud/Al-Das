@@ -33,6 +33,7 @@ export type WidgetDeps = { admin?: AdminClient; now?: () => Date };
 
 const MAX_BODY_BYTES = 8_192;
 const POLL_LIMIT = 50;
+const POLL_OVERLAP_MS = 2 * 60_000;
 
 type Widget = { id: string; orgId: string; config: Record<string, unknown> };
 
@@ -125,71 +126,76 @@ export async function widgetPost(request: Request, key: string, deps: WidgetDeps
   if (ctx instanceof Response) return ctx;
   const { admin, ip, cors } = ctx;
   const widget = ctx.widget!;
-
-  const declared = Number(request.headers.get("content-length") ?? 0);
-  if (declared > MAX_BODY_BYTES) return json({ error: "too_large" }, 413, cors);
-  const raw = await request.text();
-  if (Buffer.byteLength(raw) > MAX_BODY_BYTES) return json({ error: "too_large" }, 413, cors);
-  let body: unknown;
+  // Anything unexpected (channel setup, rate-limit store) answers 503 with the CORS headers, never an opaque 500.
   try {
-    body = JSON.parse(raw);
-  } catch {
-    return json({ error: "invalid" }, 400, cors);
-  }
-  const parsed = parseVisitorMessage(body);
-  if (!parsed.ok) return json({ error: parsed.error }, 400, cors);
+    const declared = Number(request.headers.get("content-length") ?? 0);
+    if (declared > MAX_BODY_BYTES) return json({ error: "too_large" }, 413, cors);
+    const raw = await request.text();
+    if (Buffer.byteLength(raw) > MAX_BODY_BYTES) return json({ error: "too_large" }, 413, cors);
+    let body: unknown;
+    try {
+      body = JSON.parse(raw);
+    } catch {
+      return json({ error: "invalid" }, 400, cors);
+    }
+    const parsed = parseVisitorMessage(body);
+    if (!parsed.ok) return json({ error: parsed.error }, 400, cors);
 
-  const token = bearerToken(request.headers.get("authorization"));
-  const stopIp = await limited(admin, "widget-send-ip", ip, WIDGET_RATE_RULES.sendPerIp, cors);
-  if (stopIp) return stopIp;
-  const fresh = token ? null : newVisitorToken();
-  const hash = token ? hashVisitorToken(token) : fresh!.hash;
-  const stopVisitor = token
-    ? await limited(admin, "widget-send-session", hash, WIDGET_RATE_RULES.sendPerSession, cors)
-    : await limited(admin, "widget-new-session", ip, WIDGET_RATE_RULES.newSessionPerIp, cors);
-  if (stopVisitor) return stopVisitor;
+    const token = bearerToken(request.headers.get("authorization"));
+    const stopIp = await limited(admin, "widget-send-ip", ip, WIDGET_RATE_RULES.sendPerIp, cors);
+    if (stopIp) return stopIp;
+    const fresh = token ? null : newVisitorToken();
+    const hash = token ? hashVisitorToken(token) : fresh!.hash;
+    const stopVisitor = token
+      ? await limited(admin, "widget-send-session", hash, WIDGET_RATE_RULES.sendPerSession, cors)
+      : await limited(admin, "widget-new-session", ip, WIDGET_RATE_RULES.newSessionPerIp, cors);
+    if (stopVisitor) return stopVisitor;
 
-  const channel = await ensureChannel(admin, {
-    orgId: widget.orgId,
-    type: "web",
-    externalId: widget.orgId,
-  });
-  const at = (deps.now ?? (() => new Date()))().toISOString();
-  const { data, error } = await admin.rpc("web_chat_receive", {
-    p_org: widget.orgId,
-    p_channel: channel.id,
-    p_token_hash: hash,
-    p_create: !token,
-    p_name: parsed.value.name ?? "",
-    p_client_id: parsed.value.clientId,
-    p_body: parsed.value.text,
-    p_at: at,
-  });
-  if (error) {
-    console.error("[widget] receive failed", {
-      code: error.code,
-      error: redactText(error.message, 80),
+    const channel = await ensureChannel(admin, {
+      orgId: widget.orgId,
+      type: "web",
+      externalId: widget.orgId,
     });
+    const at = (deps.now ?? (() => new Date()))().toISOString();
+    const { data, error } = await admin.rpc("web_chat_receive", {
+      p_org: widget.orgId,
+      p_channel: channel.id,
+      p_token_hash: hash,
+      p_create: !token,
+      p_name: parsed.value.name ?? "",
+      p_client_id: parsed.value.clientId,
+      p_body: parsed.value.text,
+      p_at: at,
+    });
+    if (error) {
+      console.error("[widget] receive failed", {
+        code: error.code,
+        error: redactText(error.message, 80),
+      });
+      return json({ error: "unavailable" }, 503, cors);
+    }
+    const result = readReceiveResult(data);
+    if (result.error === "session") return json({ error: "session" }, 401, cors);
+    if (result.error) return json({ error: "unavailable" }, 503, cors);
+    await afterChannelInbound(admin, {
+      orgId: widget.orgId,
+      channelType: "web",
+      body: parsed.value.text,
+      result,
+    });
+    return json(
+      {
+        ok: true,
+        ...(fresh ? { token: fresh.token } : {}),
+        message: { id: result.message_id, at },
+      },
+      200,
+      cors,
+    );
+  } catch (err) {
+    console.error("[widget] post failed", { error: redactText(err) });
     return json({ error: "unavailable" }, 503, cors);
   }
-  const result = readReceiveResult(data);
-  if (result.error === "session") return json({ error: "session" }, 401, cors);
-  if (result.error) return json({ error: "unavailable" }, 503, cors);
-  await afterChannelInbound(admin, {
-    orgId: widget.orgId,
-    channelType: "web",
-    body: parsed.value.text,
-    result,
-  });
-  return json(
-    {
-      ok: true,
-      ...(fresh ? { token: fresh.token } : {}),
-      message: { id: result.message_id, at },
-    },
-    200,
-    cors,
-  );
 }
 
 export type WidgetMessage = { id: string; from: "visitor" | "clinic"; text: string; at: string };
@@ -224,9 +230,12 @@ export async function widgetPoll(request: Request, key: string, deps: WidgetDeps
 
   const now = (deps.now ?? (() => new Date()))();
   const after = parseAfter(new URL(request.url).searchParams.get("after"), now);
+  // Look back POLL_OVERLAP_MS: a reply queued before the visitor's last message turns "sent" later, and the widget
+  // skips ids it has already shown.
+  const since = after ? new Date(Date.parse(after) - POLL_OVERLAP_MS).toISOString() : null;
   const from =
-    after && Date.parse(after) > Date.parse(session.created_at)
-      ? after
+    since && Date.parse(since) > Date.parse(session.created_at)
+      ? since
       : new Date(session.created_at).toISOString();
   const { data: rows } = await admin
     .from("messages")

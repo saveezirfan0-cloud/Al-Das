@@ -320,6 +320,15 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)(
           ["clinic", "Yes, we open at 9."],
         ]);
         expect(JSON.stringify(msgs)).not.toMatch(/internal|VIP|alice/);
+        // A reply that turned "sent" after a later visitor message is still found (the poll looks back 2 minutes).
+        const later = (await (
+          await widgetPoll(
+            req(`/m?after=${encodeURIComponent(new Date().toISOString())}`, { token: a.token }),
+            widgetKey,
+            { admin },
+          )
+        ).json()) as { messages: Array<{ text: string }> };
+        expect(later.messages.map((m) => m.text)).toContain("Yes, we open at 9.");
         const { rows: d } = await svc(() =>
           q("select status from public.messages where id = $1", [reply.id]),
         );

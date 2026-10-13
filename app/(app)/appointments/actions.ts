@@ -548,7 +548,17 @@ export async function deleteBlock(id: string): Promise<ActionResult> {
   const member = await requirePerm("appointments.manage");
   if (!uuid.safeParse(id).success) return fail("Invalid block.");
   const admin = createAdminClient(member.userId);
-  await admin.from("time_blocks").delete().eq("id", id).eq("org_id", member.orgId);
+  const { data: removed, error } = await admin
+    .from("time_blocks")
+    .delete()
+    .eq("id", id)
+    .eq("org_id", member.orgId)
+    .select("id");
+  // A busy time mirrored from Google Calendar (Phase 20e) is removed only by the sync.
+  if (error || !removed?.length)
+    return fail(
+      "This block cannot be removed here (busy times from Google Calendar follow the calendar).",
+    );
   await recordAudit(admin, {
     orgId: member.orgId,
     userId: member.userId,

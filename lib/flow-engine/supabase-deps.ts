@@ -217,9 +217,14 @@ export function supabaseStore(admin: AdminClient): FlowStore {
       return view;
     },
     async getConversation(id) {
-      const { data } = await admin.from("conversations").select("*").eq("id", id).maybeSingle();
+      const { data } = await admin
+        .from("conversations")
+        .select("*, channels(type)")
+        .eq("id", id)
+        .maybeSingle();
       if (!data) return null;
       const view: ConversationView = {
+        channel_type: data.channels?.type ?? null,
         id: data.id,
         org_id: data.org_id,
         channel_id: data.channel_id,

@@ -122,6 +122,11 @@ export async function closeWithEnquiry(
   if (problem) return { ok: false, error: problem };
 
   const ctx = { admin, orgId: actor.orgId, userId: actor.userId };
+  // The enquiry's source is the conversation's channel (website chat, Instagram and Messenger since Phase 20e).
+  const { data: channel } = conversation.channel_id
+    ? await admin.from("channels").select("type").eq("id", conversation.channel_id).maybeSingle()
+    : { data: null };
+  const source = channel?.type === "web" ? "website" : (channel?.type ?? "whatsapp");
   let result;
   try {
     result = await applyCloseEnquiry(
@@ -133,7 +138,7 @@ export async function closeWithEnquiry(
             stageId: i.stageId,
             contactId: i.contactId,
             channelId: i.channelId,
-            source: "whatsapp",
+            source,
             apptDate: i.apptDate,
           }),
         moveStage: (id, stageId) => moveStage(ctx, id, stageId),

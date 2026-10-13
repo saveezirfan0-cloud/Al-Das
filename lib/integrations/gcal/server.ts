@@ -165,7 +165,8 @@ export async function finishConnect(
         "Google did not grant offline access. Remove Pulse from the Google account's third-party access and connect again.",
     };
   }
-  await revokeExisting(admin, a.orgId, row.specialist_id);
+  // A reconnect (perhaps to another Google account) first cleans up the old one: future events, grant, busy blocks.
+  await disconnect(admin, { orgId: a.orgId, specialistId: row.specialist_id }, deps);
   const { error } = await admin.from("gcal_connections").insert({
     org_id: a.orgId,
     specialist_id: row.specialist_id,
@@ -182,22 +183,6 @@ export async function finishConnect(
     return { ok: false, error: "Could not save the connection." };
   }
   return { ok: true, specialistId: row.specialist_id };
-}
-
-/** Marks any live connection of the specialist revoked and wipes its tokens (database only; used before a reconnect). */
-async function revokeExisting(admin: AdminClient, orgId: string, specialistId: string) {
-  await admin
-    .from("gcal_connections")
-    .update({
-      status: "revoked",
-      revoked_at: new Date().toISOString(),
-      refresh_enc: null,
-      access_enc: null,
-      access_expires_at: null,
-    })
-    .eq("org_id", orgId)
-    .eq("specialist_id", specialistId)
-    .neq("status", "revoked");
 }
 
 async function accessToken(

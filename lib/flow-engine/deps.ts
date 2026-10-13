@@ -40,6 +40,8 @@ export type ConversationView = {
   ad_referral: unknown | null;
   assignee_user_id: string | null;
   assignee_team_id: string | null;
+  /** channels.type; flows run on WhatsApp conversations only (Phase 20e). Absent = whatsapp. */
+  channel_type?: string | null;
 };
 
 export type TemplateView = {

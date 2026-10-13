@@ -117,7 +117,23 @@ export async function deliverChannelOutbound(
     await markFailed(admin, a.message.id, -1, "The integration settings are incomplete.");
     return;
   }
-  await admin.from("messages").update({ status: "sending" }).eq("id", a.message.id);
+  // Claim atomically: a message already "sending" was handed to Meta by a worker that died before recording the
+  // answer, so it is ambiguous and never posted again (a POST without an idempotency key).
+  const { data: claimed } = await admin
+    .from("messages")
+    .update({ status: "sending" })
+    .eq("id", a.message.id)
+    .eq("status", "queued")
+    .select("id");
+  if (!claimed?.length) {
+    await markFailed(
+      admin,
+      a.message.id,
+      -1,
+      "The send was interrupted and may have arrived; it was not sent again.",
+    );
+    return;
+  }
   const r = await client.sendText(identity.external_id, a.spec.body);
   if (r.ok) {
     await markSent(admin, a, `${type === "instagram" ? "ig" : "fb"}:${r.messageId}`);

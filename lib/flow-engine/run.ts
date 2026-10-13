@@ -57,7 +57,10 @@ export type StartInput = {
 
 export type StartResult =
   | { started: true; runId: string }
-  | { started: false; reason: "flow_inactive" | "no_graph" | "live_run_exists" };
+  | {
+      started: false;
+      reason: "flow_inactive" | "no_graph" | "live_run_exists" | "channel_not_supported";
+    };
 
 export async function startRun(deps: FlowDeps, input: StartInput): Promise<StartResult> {
   const flow = await deps.store.getFlow(input.flowId);
@@ -65,6 +68,11 @@ export async function startRun(deps: FlowDeps, input: StartInput): Promise<Start
     return { started: false, reason: "flow_inactive" };
   const trig = triggerNode(flow.published_graph);
   if (!trig) return { started: false, reason: "no_graph" };
+  // Flow steps send WhatsApp messages: never start on a website chat, Instagram or Messenger conversation.
+  if (input.conversationId) {
+    const type = (await deps.store.getConversation(input.conversationId))?.channel_type;
+    if (type && type !== "whatsapp") return { started: false, reason: "channel_not_supported" };
+  }
 
   const run = await deps.store.createRun({
     org_id: flow.org_id,
