@@ -50,6 +50,12 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
     permissions: ["finance.forecast.view"],
   },
   {
+    href: "/finance/insurance",
+    label: "Insurance overview",
+    section: "Overview",
+    permissions: ["finance.claims.view"],
+  },
+  {
     href: "/finance/branches",
     label: "Branches",
     section: "Overview",

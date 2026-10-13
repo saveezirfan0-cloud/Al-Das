@@ -374,3 +374,57 @@ describe("ordering and performing doctor mapping", () => {
     expect(JSON.stringify(withRoles.record)).not.toContain("ord-1");
   });
 });
+
+import { parseInsuranceOverview, rate } from "@/lib/finance/insurance-overview";
+
+describe("insurance overview parsing", () => {
+  it("always returns the four ageing buckets in order and zeroes for anything missing", () => {
+    const o = parseInsuranceOverview({
+      totals: {
+        submitted: "10",
+        accepted: 4,
+        rejected: 2,
+        pending: 4,
+        no_status: 1,
+        claimed: "1000.5",
+        avg_days_to_pay: null,
+      },
+      ageing: [
+        { bucket: "90+", claims: 2, outstanding: 50 },
+        { bucket: "0-30", claims: 1, outstanding: 10 },
+      ],
+      payers: [
+        { payer_id: "P1", payer_name: "Payer One", claims: 5, rejected: 1, outstanding: 30 },
+        { payer_id: null },
+      ],
+    });
+    expect(o.totals).toMatchObject({
+      submitted: 10,
+      accepted: 4,
+      claimed: 1000.5,
+      paidAllocated: 0,
+      avgDaysToPay: null,
+    });
+    expect(o.ageing.map((a) => [a.bucket, a.outstanding])).toEqual([
+      ["0-30", 10],
+      ["31-60", 0],
+      ["61-90", 0],
+      ["90+", 50],
+    ]);
+    expect(o.payers[0]).toMatchObject({ payerId: "P1", payerName: "Payer One", outstanding: 30 });
+    expect(o.payers[1]).toMatchObject({ payerId: "(no payer)", payerName: null, claims: 0 });
+  });
+  it("survives garbage and empty input", () => {
+    for (const bad of [null, undefined, 5, "x", [], { totals: 3, ageing: "no", payers: {} }]) {
+      const o = parseInsuranceOverview(bad);
+      expect(o.totals.submitted).toBe(0);
+      expect(o.ageing).toHaveLength(4);
+      expect(o.payers).toEqual([]);
+    }
+  });
+  it("rates avoid dividing by zero", () => {
+    expect(rate(1, 0)).toBeNull();
+    expect(rate(1, 3)).toBe(33.3);
+    expect(rate(3, 3)).toBe(100);
+  });
+});
