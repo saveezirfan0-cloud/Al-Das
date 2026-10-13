@@ -36,6 +36,7 @@ import {
   PHASE22C_TABLES,
   PHASE22E_TABLES,
   PHASE22F_TABLES,
+  PHASE22G_TABLES,
   resetDb,
   seedPhase13Rows,
   seedPhase14Rows,
@@ -47,6 +48,7 @@ import {
   seedPhase20aRows,
   seedPhase20DRows,
   seedPhase21Rows,
+  seedPhase22GRows,
   seedPhase22Rows,
   seedPhase22CRows,
   seedPhase22ERows,
@@ -263,6 +265,23 @@ const PHASE22F_SERVICE_FUNCTIONS = [
   "acc_petty_cash_count_sign",
   "acc_petty_cash_expense_create",
   "acc_petty_cash_float_save",
+];
+
+/**
+ * Phase 22G SECURITY DEFINER functions (statements, budgets, VAT return): reports and the budget workflow, service role
+ * only (the server runs can() first).
+ */
+const PHASE22G_SERVICE_FUNCTIONS = [
+  "acc_balance_sheet",
+  "acc_budget_act",
+  "acc_budget_hash",
+  "acc_budget_save",
+  "acc_budget_vs_actual",
+  "acc_cash_flow",
+  "acc_ct_bridge",
+  "acc_profit_and_loss",
+  "acc_statement_exceptions",
+  "acc_vat_return",
 ];
 
 /** Phase 17 SECURITY DEFINER functions that only server code (service role) may run. */
@@ -583,6 +602,33 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 22 service-role functions", () => {
   });
 });
 
+describe.skipIf(!TEST_DATABASE_URL)("phase 22G service-role functions", () => {
+  it("exist and are executable by the service role only", async () => {
+    const c = await connect();
+    try {
+      const { rows } = await c.query<{ name: string; anon: boolean; auth: boolean; svc: boolean }>(
+        `select p.proname as name,
+                has_function_privilege('anon', p.oid, 'execute') as anon,
+                has_function_privilege('authenticated', p.oid, 'execute') as auth,
+                has_function_privilege('service_role', p.oid, 'execute') as svc
+         from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+         where n.nspname = 'public' and p.proname = any ($1)`,
+        [PHASE22G_SERVICE_FUNCTIONS],
+      );
+      expect(rows.map((r) => r.name).sort()).toEqual([...PHASE22G_SERVICE_FUNCTIONS].sort());
+      for (const r of rows)
+        expect({ name: r.name, anon: r.anon, auth: r.auth, svc: r.svc }).toEqual({
+          name: r.name,
+          anon: false,
+          auth: false,
+          svc: true,
+        });
+    } finally {
+      await c.end();
+    }
+  });
+});
+
 describe.skipIf(!TEST_DATABASE_URL)("phase 17 service-role functions", () => {
   it("exist and are executable by the service role only", async () => {
     const c = await connect();
@@ -718,6 +764,8 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
     await seedPhase22ERows(c, orgA, alice);
     // Phase 22F (banking and cash) tables likewise.
     await seedPhase22FRows(c, orgA, alice);
+    // Phase 22G (statements: budgets) likewise.
+    await seedPhase22GRows(c, orgA, alice);
   });
   afterAll(async () => {
     await resetDb(c);
@@ -730,6 +778,7 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
 
   it("sweeps every Phase 13 to 22 table (a new table must be added to PHASE13_TABLES ... PHASE22_TABLES and seeded)", () => {
     for (const t of [
+      ...PHASE22G_TABLES,
       ...PHASE22_TABLES,
       ...PHASE22C_TABLES,
       ...PHASE22E_TABLES,
@@ -752,6 +801,7 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
   it("really holds org A rows in the Phase 13 to 21 tables, visible to org A's admin (control for the leak sweep)", async () => {
     await asUser(c, alice, async () => {
       for (const t of [
+        ...PHASE22G_TABLES,
         ...PHASE22_TABLES,
         ...PHASE22C_TABLES,
         ...PHASE22E_TABLES,

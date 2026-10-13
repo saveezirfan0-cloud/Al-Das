@@ -5,8 +5,14 @@ import { useRouter } from "next/navigation";
 import { ActionForm, Field, FormSheet, RunButton, selectClass } from "@/components/finance/forms";
 import { Input } from "@/components/ui/input";
 import { CONTROL_KINDS, CONTROL_LABELS } from "@/lib/accounting/accounts";
+import {
+  CASH_FLOW_CLASSES,
+  CASH_FLOW_LABELS,
+  type CashFlowClass,
+} from "@/lib/accounting/statements/cash-flow";
+import { CT_TREATMENT_LABELS, CT_TREATMENTS } from "@/lib/accounting/statements/corporate-tax";
 
-import { deleteAccount, saveAccount, setAccountActive } from "./actions";
+import { deleteAccount, saveAccount, saveAccountReporting, setAccountActive } from "./actions";
 
 export type AccountFormView = {
   id: string;
@@ -129,6 +135,111 @@ export function AccountButton({
           <Field label="Description">
             <Input name="description" defaultValue={account?.description ?? ""} maxLength={300} />
           </Field>
+        </ActionForm>
+      )}
+    </FormSheet>
+  );
+}
+
+/** Reporting (Phase 22G): cash flow class, corporate tax treatment, required branch / cost centre. */
+export function AccountReportingButton({
+  account,
+  effectiveClass,
+}: {
+  account: {
+    id: string;
+    code: string;
+    nature: string;
+    is_group: boolean;
+    cash_flow_class: string | null;
+    ct_treatment: string | null;
+    requires_branch: boolean;
+    requires_cost_centre: boolean;
+  };
+  effectiveClass: string | null;
+}) {
+  const router = useRouter();
+  const pl = account.nature === "income" || account.nature === "expense";
+  return (
+    <FormSheet
+      trigger="Reporting"
+      title={`Reporting: ${account.code}`}
+      description="How the account appears on the cash flow statement, the corporate tax bridge and the exception report. Posting is not affected."
+      variant="ghost"
+      size="sm"
+    >
+      {(close) => (
+        <ActionForm
+          action={saveAccountReporting}
+          onDone={() => {
+            close();
+            router.refresh();
+          }}
+        >
+          <input type="hidden" name="id" value={account.id} />
+          {!pl && (
+            <Field
+              label="Cash flow class"
+              hint={`Blank follows the group${effectiveClass ? ` (now: ${CASH_FLOW_LABELS[effectiveClass as CashFlowClass] ?? effectiveClass})` : ""}. Cash and bank control accounts are always cash.`}
+            >
+              <select
+                name="cash_flow_class"
+                className={selectClass}
+                defaultValue={account.cash_flow_class ?? ""}
+              >
+                <option value="">From the group</option>
+                {CASH_FLOW_CLASSES.map((k) => (
+                  <option key={k} value={k}>
+                    {CASH_FLOW_LABELS[k]}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          )}
+          {!account.is_group && account.nature === "expense" && (
+            <Field
+              label="Corporate tax treatment"
+              hint="For the corporate tax bridge (a working paper)."
+            >
+              <select
+                name="ct_treatment"
+                className={selectClass}
+                defaultValue={account.ct_treatment ?? ""}
+              >
+                <option value="">Deductible (no adjustment)</option>
+                {CT_TREATMENTS.map((k) => (
+                  <option key={k} value={k}>
+                    {CT_TREATMENT_LABELS[k]}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          )}
+          {!account.is_group && (
+            <>
+              <label className="flex min-h-11 items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  name="requires_branch"
+                  defaultChecked={account.requires_branch}
+                />
+                Lines should carry a branch (listed on the exception report when missing)
+              </label>
+              <label className="flex min-h-11 items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  name="requires_cost_centre"
+                  defaultChecked={account.requires_cost_centre}
+                />
+                Lines should carry a cost centre
+              </label>
+            </>
+          )}
+          {account.is_group && pl && (
+            <p className="text-muted-foreground text-sm">
+              Income and expense groups have nothing to set here.
+            </p>
+          )}
         </ActionForm>
       )}
     </FormSheet>

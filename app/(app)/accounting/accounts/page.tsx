@@ -11,11 +11,17 @@ import {
 } from "@/components/ui/table";
 import { loadAccounts } from "@/lib/accounting/accounting-server";
 import { CONTROL_LABELS, flattenTree, NATURE_LABELS } from "@/lib/accounting/accounts";
+import { CASH_FLOW_LABELS, effectiveCashFlowClasses } from "@/lib/accounting/statements/cash-flow";
 import { can, canAny, ForbiddenError } from "@/lib/auth/can";
 import { requireMember } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-import { AccountActiveButton, AccountButton, DeleteAccountButton } from "./forms";
+import {
+  AccountActiveButton,
+  AccountButton,
+  AccountReportingButton,
+  DeleteAccountButton,
+} from "./forms";
 
 export const metadata = { title: "Chart of accounts" };
 export const dynamic = "force-dynamic";
@@ -28,6 +34,7 @@ export default async function AccountsPage() {
   const admin = createAdminClient(); // service role AFTER the permission check
   const accounts = await loadAccounts(admin, member.orgId);
   const tree = flattenTree(accounts);
+  const cfClass = effectiveCashFlowClasses(accounts);
   const used = new Set<string>();
   if (manage) {
     // which ledgers already have lines (they are deactivated, never deleted)
@@ -61,6 +68,7 @@ export default async function AccountsPage() {
                 <TableHead>Nature</TableHead>
                 <TableHead>Control</TableHead>
                 <TableHead>Tally group</TableHead>
+                <TableHead>Cash flow</TableHead>
                 <TableHead />
               </TableRow>
             </TableHeader>
@@ -96,6 +104,14 @@ export default async function AccountsPage() {
                   <TableCell className="text-muted-foreground text-xs">
                     {a.tally_group ?? ""}
                   </TableCell>
+                  <TableCell className="text-muted-foreground text-xs">
+                    {(() => {
+                      const k = cfClass.get(a.id);
+                      return k
+                        ? `${CASH_FLOW_LABELS[k]}${a.cash_flow_class ? "" : " (group)"}`
+                        : "";
+                    })()}
+                  </TableCell>
                   <TableCell className="text-right whitespace-nowrap">
                     {manage && (
                       <>
@@ -114,6 +130,19 @@ export default async function AccountsPage() {
                             currency: a.currency,
                             description: a.description,
                           }}
+                        />
+                        <AccountReportingButton
+                          account={{
+                            id: a.id,
+                            code: a.code,
+                            nature: a.nature,
+                            is_group: a.is_group,
+                            cash_flow_class: a.cash_flow_class,
+                            ct_treatment: a.ct_treatment,
+                            requires_branch: a.requires_branch,
+                            requires_cost_centre: a.requires_cost_centre,
+                          }}
+                          effectiveClass={cfClass.get(a.id) ?? null}
                         />
                         {!a.is_system && <AccountActiveButton id={a.id} active={a.is_active} />}
                         {!a.is_system && !used.has(a.id) && !hasChildren.has(a.id) && (

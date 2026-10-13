@@ -146,6 +146,58 @@ export const ACCOUNTING_NAV: readonly AccountingNavEntry[] = [
     permissions: ["accounting.reports.view", "accounting.ledger.view"],
   },
   {
+    href: "/accounting/reports/profit-and-loss",
+    label: "Profit and loss",
+    section: "Reports",
+    permissions: ["accounting.reports.view"],
+  },
+  {
+    href: "/accounting/reports/balance-sheet",
+    label: "Balance sheet",
+    section: "Reports",
+    permissions: ["accounting.reports.view"],
+  },
+  {
+    href: "/accounting/reports/cash-flow",
+    label: "Cash flow",
+    section: "Reports",
+    permissions: ["accounting.reports.view"],
+  },
+  {
+    href: "/accounting/reports/budget-vs-actual",
+    label: "Budget against actual",
+    section: "Reports",
+    permissions: [
+      "accounting.reports.view",
+      "accounting.budgets.manage",
+      "accounting.journals.approve",
+    ],
+  },
+  {
+    href: "/accounting/reports/vat-return",
+    label: "VAT return",
+    section: "Reports",
+    permissions: ["accounting.reports.view", "accounting.tax.manage"],
+  },
+  {
+    href: "/accounting/reports/ratios",
+    label: "Ratios",
+    section: "Reports",
+    permissions: ["accounting.reports.view"],
+  },
+  {
+    href: "/accounting/reports/exceptions",
+    label: "Exceptions",
+    section: "Reports",
+    permissions: ["accounting.reports.view"],
+  },
+  {
+    href: "/accounting/reports/corporate-tax",
+    label: "Corporate tax bridge",
+    section: "Reports",
+    permissions: ["accounting.reports.view"],
+  },
+  {
     href: "/accounting/periods",
     label: "Periods",
     section: "Close",
@@ -180,6 +232,22 @@ export const ACCOUNTING_NAV: readonly AccountingNavEntry[] = [
     label: "Posting rules",
     section: "Setup",
     permissions: ["accounting.settings.manage", "accounting.view"],
+  },
+  {
+    href: "/accounting/budgets",
+    label: "Budgets",
+    section: "Setup",
+    permissions: [
+      "accounting.budgets.manage",
+      "accounting.journals.approve",
+      "accounting.reports.view",
+    ],
+  },
+  {
+    href: "/accounting/report-settings",
+    label: "Report settings",
+    section: "Setup",
+    permissions: ["accounting.settings.manage", "accounting.reports.view"],
   },
 ];
 

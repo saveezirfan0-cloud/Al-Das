@@ -21,6 +21,12 @@ export const WHATS_NEW: readonly WhatsNewEntry[] = [
     body: "Accounting has a Banking section. Each bank account is linked to its ledger (or gets a new one under Bank Accounts or Bank OD A/c), and the bank position compares the books with the balance on the bank statement, allowing for cheques not yet through the bank. Transfers between banks, cash deposits and petty cash top-ups post as Contra vouchers. Bank charges, interest and direct debits can be entered by hand or straight from a statement line nothing explains yet, which then shows as matched in the bank reconciliation. Each branch can keep a petty cash float with receipts and a monthly count signed by a second person. The cheque register holds cheques issued and received: post-dated cheques post on their date, and a bounced cheque reverses its posting and flags the party.",
   },
   {
+    id: "2026-11-09-accounting-statements",
+    date: "2026-11-09",
+    title: "Accounting: statements, budgets and the VAT return",
+    body: "Accounting now has its reports: the profit and loss in Tally's layout (gross and net profit, by month, branch, department or doctor, compared with the previous period or last year), the balance sheet, the cash flow statement reconciled to cash and bank, ratios, exception lists to check before closing a month, a VAT return working paper with the VAT 201 boxes and the lines behind each box, and a corporate tax bridge. Budgets can be typed in a monthly grid or imported from a CSV, are approved by a second person and compared with the actuals. Every report downloads as Excel or PDF and says Provisional until its months are closed. Nothing is filed with the FTA from Pulse.",
+  },
+  {
     id: "2026-11-08-chronic-recall-alignment",
     date: "2026-11-08",
     title: "Chronic recall: only chronic diagnoses count",
