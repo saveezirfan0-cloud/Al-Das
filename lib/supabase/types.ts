@@ -247,6 +247,9 @@ export type Database = {
       };
       acc_fiscal_years: {
         Row: {
+          closed_at: string | null;
+          closed_by: string | null;
+          closing_journal_id: string | null;
           created_at: string;
           end_date: string;
           entity_id: string;
@@ -258,6 +261,9 @@ export type Database = {
         };
         ComputedFields: never;
         Insert: {
+          closed_at?: string | null;
+          closed_by?: string | null;
+          closing_journal_id?: string | null;
           created_at?: string;
           end_date: string;
           entity_id: string;
@@ -268,6 +274,9 @@ export type Database = {
           status?: string;
         };
         Update: {
+          closed_at?: string | null;
+          closed_by?: string | null;
+          closing_journal_id?: string | null;
           created_at?: string;
           end_date?: string;
           entity_id?: string;
@@ -278,6 +287,20 @@ export type Database = {
           status?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "acc_fiscal_years_closed_by_fkey";
+            columns: ["closed_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_fiscal_years_closing_journal_id_fkey";
+            columns: ["closing_journal_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_journals";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "acc_fiscal_years_entity_id_fkey";
             columns: ["entity_id"];
@@ -730,6 +753,258 @@ export type Database = {
           },
           {
             foreignKeyName: "acc_periods_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      acc_tally_imports: {
+        Row: {
+          committed_at: string | null;
+          committed_by: string | null;
+          company: string | null;
+          created_at: string;
+          created_by: string | null;
+          entity_id: string;
+          file_bytes: number;
+          file_sha256: string[];
+          first_date: string | null;
+          forced: boolean;
+          id: string;
+          last_date: string | null;
+          opening_date: string | null;
+          org_id: string;
+          periods_locked_at: string | null;
+          reconciled_at: string | null;
+          reconciled_by: string | null;
+          report: NonNullable<Json>;
+          result: NonNullable<Json>;
+          status: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          committed_at?: string | null;
+          committed_by?: string | null;
+          company?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          entity_id: string;
+          file_bytes?: number;
+          file_sha256: string[];
+          first_date?: string | null;
+          forced?: boolean;
+          id?: string;
+          last_date?: string | null;
+          opening_date?: string | null;
+          org_id: string;
+          periods_locked_at?: string | null;
+          reconciled_at?: string | null;
+          reconciled_by?: string | null;
+          report?: NonNullable<Json>;
+          result?: NonNullable<Json>;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          committed_at?: string | null;
+          committed_by?: string | null;
+          company?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          entity_id?: string;
+          file_bytes?: number;
+          file_sha256?: string[];
+          first_date?: string | null;
+          forced?: boolean;
+          id?: string;
+          last_date?: string | null;
+          opening_date?: string | null;
+          org_id?: string;
+          periods_locked_at?: string | null;
+          reconciled_at?: string | null;
+          reconciled_by?: string | null;
+          report?: NonNullable<Json>;
+          result?: NonNullable<Json>;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "acc_tally_imports_committed_by_fkey";
+            columns: ["committed_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_tally_imports_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_tally_imports_entity_id_fkey";
+            columns: ["entity_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_entities";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_tally_imports_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_tally_imports_reconciled_by_fkey";
+            columns: ["reconciled_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      acc_tally_reconciliations: {
+        Row: {
+          as_at: string;
+          compared: number;
+          created_at: string;
+          created_by: string | null;
+          differences: number;
+          entity_id: string;
+          file_sha256: string;
+          id: string;
+          import_id: string | null;
+          org_id: string;
+          reconciled: boolean;
+          rows: NonNullable<Json>;
+          total_difference: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          as_at: string;
+          compared: number;
+          created_at?: string;
+          created_by?: string | null;
+          differences: number;
+          entity_id: string;
+          file_sha256: string;
+          id?: string;
+          import_id?: string | null;
+          org_id: string;
+          reconciled: boolean;
+          rows?: NonNullable<Json>;
+          total_difference?: number;
+        };
+        Update: {
+          as_at?: string;
+          compared?: number;
+          created_at?: string;
+          created_by?: string | null;
+          differences?: number;
+          entity_id?: string;
+          file_sha256?: string;
+          id?: string;
+          import_id?: string | null;
+          org_id?: string;
+          reconciled?: boolean;
+          rows?: NonNullable<Json>;
+          total_difference?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "acc_tally_reconciliations_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_tally_reconciliations_entity_id_fkey";
+            columns: ["entity_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_entities";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_tally_reconciliations_import_id_fkey";
+            columns: ["import_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_tally_imports";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_tally_reconciliations_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      acc_tally_staged: {
+        Row: {
+          alter_id: number | null;
+          guid: string | null;
+          id: number;
+          import_id: string;
+          journal_id: string | null;
+          kind: string;
+          org_id: string;
+          payload: NonNullable<Json>;
+          result_code: string | null;
+          seq: number;
+          status: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          alter_id?: number | null;
+          guid?: string | null;
+          id?: never;
+          import_id: string;
+          journal_id?: string | null;
+          kind: string;
+          org_id: string;
+          payload: NonNullable<Json>;
+          result_code?: string | null;
+          seq: number;
+          status?: string;
+        };
+        Update: {
+          alter_id?: number | null;
+          guid?: string | null;
+          id?: never;
+          import_id?: string;
+          journal_id?: string | null;
+          kind?: string;
+          org_id?: string;
+          payload?: NonNullable<Json>;
+          result_code?: string | null;
+          seq?: number;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "acc_tally_staged_import_id_fkey";
+            columns: ["import_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_tally_imports";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_tally_staged_journal_id_fkey";
+            columns: ["journal_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_journals";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_tally_staged_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
@@ -18495,8 +18770,53 @@ export type Database = {
         Args: { p_org_id: string; p_period_id: string; p_status: string; p_user_id: string };
         Returns: Json;
       };
+      acc_tally_apply_masters: {
+        Args: { p_import_id: string; p_org_id: string; p_user_id: string };
+        Returns: Json;
+      };
+      acc_tally_finish: {
+        Args: { p_import_id: string; p_org_id: string; p_user_id: string };
+        Returns: Json;
+      };
+      acc_tally_lock_periods: {
+        Args: { p_import_id: string; p_org_id: string; p_user_id: string };
+        Returns: Json;
+      };
+      acc_tally_post_opening: {
+        Args: { p_date: string; p_import_id: string; p_org_id: string; p_user_id: string };
+        Returns: Json;
+      };
+      acc_tally_post_vouchers: {
+        Args: { p_import_id: string; p_limit: number; p_org_id: string; p_user_id: string };
+        Returns: Json;
+      };
+      acc_tally_reconcile: {
+        Args: {
+          p_as_at: string;
+          p_entity_id: string;
+          p_file_sha256: string;
+          p_import_id: string;
+          p_org_id: string;
+          p_rows: Json;
+          p_user_id: string;
+        };
+        Returns: Json;
+      };
       acc_trial_balance: {
         Args: { p_entity_id: string; p_from: string; p_org_id: string; p_to: string };
+        Returns: Json;
+      };
+      acc_year_end_close: {
+        Args: { p_fiscal_year_id: string; p_org_id: string; p_user_id: string };
+        Returns: Json;
+      };
+      acc_year_end_close_months: {
+        Args: { p_fiscal_year_id: string; p_org_id: string; p_user_id: string };
+        Returns: Json;
+      };
+      acc_year_end_preview: { Args: { p_fiscal_year_id: string; p_org_id: string }; Returns: Json };
+      acc_year_end_reopen: {
+        Args: { p_fiscal_year_id: string; p_org_id: string; p_reason: string; p_user_id: string };
         Returns: Json;
       };
       accept_slot_offer: {

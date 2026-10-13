@@ -53,6 +53,23 @@ export const ACCOUNTING_ERRORS: Record<string, string> = {
   fy_in_use: "The fiscal year start cannot change once a fiscal year exists.",
   period_status: "That period change is not possible (close a period before locking it).",
   invalid: "Check the form and try again.",
+  // Phase 22I: Tally import, reconciliation, year-end close
+  name_clash: "A group and a ledger share a name (or the name is taken).",
+  parent_unknown: "The parent group was not found.",
+  link_changed: "An account to link changed since the dry run. Run the dry run again.",
+  ledger_unknown: "A ledger in a voucher is not in the chart of accounts.",
+  opening_unbalanced: "The opening balances do not net to zero.",
+  opening_ledger_unknown: "A ledger with an opening balance is not in the chart of accounts.",
+  import_pending: "Some vouchers are still waiting to be posted. Continue the commit.",
+  not_reconciled: "Reconcile the import with Tally's trial balance first.",
+  year_closed: "The fiscal year of this date is closed. Re-open the year to post into it.",
+  periods_open: "Close all twelve months of the year first.",
+  drafts_waiting: "Post or discard the draft journals dated in this year first.",
+  previous_year_open: "Close the earlier year first.",
+  no_retained_earnings: "There is no active retained earnings (control) account.",
+  adjustment_locked:
+    "The year's adjustment period is locked, so the closing journal cannot be posted.",
+  later_year_closed: "Re-open the later year first.",
 };
 
 export function accountingErrorMessage(code: string | null | undefined, fallback: string): string {

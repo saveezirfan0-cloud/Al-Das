@@ -674,6 +674,65 @@ export const GUIDES: readonly Guide[] = [
       "Audit adjustments after the year end go into the year's adjustment period (people who manage periods only), so the last month stays closed.",
     ],
   },
+  {
+    id: "accounting-tally-import",
+    title: "Tally import",
+    pages: ["/accounting/tally-import"],
+    purpose:
+      "Bring Tally's groups, ledgers, opening balances and the full voucher history into Pulse, matched on Tally's GUID so nothing is ever posted twice.",
+    steps: [
+      "In TallyPrime, export All Masters and the Day Book as XML (the steps are in the Phase 22I notes) and choose both files here together.",
+      "Read the dry run: groups mapped onto Pulse's, new ledgers, the opening trial balance (it must net to zero), vouchers per month and type, and anything refused with its reason.",
+      "Press Commit; long histories run in steps and the page keeps going until nothing is left. Importing again only posts what is new or altered in Tally.",
+      "Then reconcile the import with Tally's trial balance on the Tally reconciliation page.",
+    ],
+    watchOut: [
+      "Cancelled and optional vouchers are skipped; a voucher altered in Tally is reversed and posted again.",
+      "The uploaded files are deleted right after they are read; only their fingerprint is kept.",
+    ],
+  },
+  {
+    id: "accounting-opening",
+    title: "Opening balances",
+    pages: ["/accounting/opening-balances"],
+    purpose:
+      "Type each account's balance at the opening date when the balances do not come from the Tally import.",
+    steps: [
+      "Choose the opening date (the day before the first period you will post in).",
+      "Enter a debit or a credit for each account; the totals must balance.",
+      "Submit for posting. Someone else with the post permission opens the journal and posts it.",
+    ],
+    watchOut: [
+      "Control accounts take opening balances too. A second opening journal adds to the first.",
+    ],
+  },
+  {
+    id: "accounting-tally-reconciliation",
+    title: "Tally reconciliation",
+    pages: ["/accounting/tally-reconciliation"],
+    purpose:
+      "Prove the import: Pulse's trial balance against Tally's, ledger by ledger, at the import's last date.",
+    steps: [
+      "In Tally open the Trial Balance at the import's last date, show it detailed (ledgers, not only groups) and export it to Excel.",
+      "Choose the import, the same date and the file, and press Compare.",
+      "Every difference must be zero. Then lock the imported months if Tally stays the book of record for them.",
+    ],
+    watchOut: ["Locking is final: nothing can be posted into a locked month again."],
+  },
+  {
+    id: "accounting-year-end",
+    title: "Year-end close",
+    pages: ["/accounting/year-end"],
+    purpose: "Move the year's income and expenses to retained earnings and close the fiscal year.",
+    steps: [
+      "Choose the year. Close its twelve months (the button does it), post or discard any drafts and close earlier years first.",
+      "Press Close the year and type CLOSE: the closing journal goes into the year's adjustment period and the year refuses every posting afterwards.",
+      "To correct a closed year, press Re-open with a reason: the closing journal is reversed. Close it again when done.",
+    ],
+    watchOut: [
+      "After the close, the trial balance no longer shows earlier years' profit for that year: it is in retained earnings.",
+    ],
+  },
 ];
 
 export const FALLBACK_GUIDE: Guide = {

@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-11-09-tally-import-year-end",
+    date: "2026-11-09",
+    title: "Accounting: Tally import, opening balances and the year-end close",
+    body: "Accounting, Setup now has a Tally import: upload TallyPrime's All Masters and Day Book XML exports and Pulse shows a dry run first (groups mapped onto Pulse's, new ledgers, the opening trial balance, vouchers per month and anything it refuses, with the reason), then imports groups, ledgers, opening balances and every voucher. Importing again never posts anything twice, and a voucher altered in Tally is reversed and posted again. Tally reconciliation compares Pulse's trial balance with Tally's Excel trial balance ledger by ledger. Opening balances can also be typed in for checking and posting by someone else. Accounting, Close has the Year-end close: it moves the year's income and expenses to retained earnings and closes the year; re-opening reverses it.",
+  },
+  {
     id: "2026-11-08-chronic-recall-alignment",
     date: "2026-11-08",
     title: "Chronic recall: only chronic diagnoses count",
