@@ -54,6 +54,7 @@ export type Service = {
   duration_min: number;
   price: number | null;
   active: boolean;
+  default_visit_mode: string;
 };
 
 function Field({
@@ -425,6 +426,7 @@ export function Services({ items, departments }: { items: Service[]; departments
     duration_min: 30,
     price: null as number | null,
     active: true,
+    default_visit_mode: "in_person",
   };
   const [form, setForm] = useState<typeof blank | null>(null);
   const { pending, run } = useRun();
@@ -446,6 +448,7 @@ export function Services({ items, departments }: { items: Service[]; departments
               {!s.active && <Badge variant="outline">Inactive</Badge>}
               <span className="text-muted-foreground block text-xs">
                 {s.duration_min} min
+                {s.default_visit_mode === "video" ? " · Video" : ""}
                 {deptName(s.department_id) ? ` · ${deptName(s.department_id)}` : ""}
                 {s.price !== null ? ` · ${s.price}` : ""}
               </span>
@@ -525,6 +528,23 @@ export function Services({ items, departments }: { items: Service[]; departments
                 />
               </Field>
             </div>
+            <Field
+              label="Visit type"
+              hint="Video services get a private video link (Settings, Integrations, Video visits). A single booking can still be changed on the appointment."
+            >
+              <Select
+                value={form.default_visit_mode}
+                onValueChange={(v) => setForm({ ...form, default_visit_mode: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="in_person">In person</SelectItem>
+                  <SelectItem value="video">Video</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
             <label className="flex items-center gap-2 text-sm">
               <Switch
                 checked={form.active}

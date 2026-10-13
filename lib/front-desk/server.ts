@@ -2,6 +2,7 @@ import "server-only";
 
 import { addDays, format as formatDate, parseISO } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
+import { effectiveVisitMode, type VisitMode } from "@/lib/integrations/telehealth/policy";
 
 import { loadSlotInput } from "@/lib/appointments/availability";
 import { generateSlots, localDate, localMinutesToInstant } from "@/lib/appointments/slots";
@@ -48,6 +49,8 @@ export type BoardRow = BoardAppointment & {
   done_at: string | null;
   checked_out_at: string | null;
   notes_present: boolean;
+  /** Phase 19b: the visit's effective mode (the appointment's own, else its service's). */
+  visit_mode: VisitMode;
 };
 
 type JoinedBoard = {
@@ -70,7 +73,8 @@ type JoinedBoard = {
   custom: unknown;
   contacts: { full_name: string | null; phone_e164: string | null; language: string | null } | null;
   specialists: { name: string } | null;
-  services: { name: string } | null;
+  visit_mode: string | null;
+  services: { name: string; default_visit_mode: string | null } | null;
   locations: { name: string } | null;
   appointment_reminders: Array<{ status: string }>;
 };
@@ -93,7 +97,7 @@ export async function loadBoardRows(
   let q = admin
     .from("appointments")
     .select(
-      "id, number, starts_at, ends_at, status, checkin_status, arrived_at, with_doctor_at, done_at, checked_out_at, is_walk_in, source, contact_id, specialist_id, location_id, notes, custom, contacts(full_name, phone_e164, language), specialists(name), services(name), locations(name), appointment_reminders(status)",
+      "id, number, starts_at, ends_at, status, checkin_status, arrived_at, with_doctor_at, done_at, checked_out_at, is_walk_in, source, contact_id, specialist_id, location_id, notes, custom, contacts(full_name, phone_e164, language), specialists(name), services(name, default_visit_mode), locations(name), appointment_reminders(status), visit_mode",
     )
     .eq("org_id", orgId)
     .gte("starts_at", range.gte)
@@ -130,6 +134,7 @@ export async function loadBoardRows(
       service_name: a.services?.name ?? null,
       location_name: a.locations?.name ?? null,
       notes_present: !!a.notes,
+      visit_mode: effectiveVisitMode(a.visit_mode, a.services?.default_visit_mode),
     };
   });
 }

@@ -39,6 +39,12 @@ export const TEMPLATE_SOURCES = [
     sample: "Consultation",
   },
   { key: "appointment.number", label: "Appointment: number", group: "Appointment", sample: "1042" },
+  {
+    key: "appointment.video_link",
+    label: "Appointment: video visit link",
+    group: "Appointment",
+    sample: "https://meet.example.com/Ab3dE5…",
+  },
 ] as const;
 
 const KEYS: ReadonlySet<string> = new Set(TEMPLATE_SOURCES.map((s) => s.key));

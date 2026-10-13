@@ -63,6 +63,8 @@ const SERVICE_ONLY = new Set([
   "integration_accounts",
   // Phase 19: idempotency keys of inbound provider webhooks (provider event ids and a short outcome word); claimed by the webhook route, never read by a browser
   "integration_webhook_events",
+  // Phase 19b: the encrypted token of each video room (the link itself); staff get the link through a server action that checks appointments.view
+  "telehealth_rooms",
   "unite_api_calls",
   "job_runs",
   // Phase 8: salted hashes of Make's daily output for the parallel run, written by the importer script only

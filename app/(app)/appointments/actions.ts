@@ -17,6 +17,11 @@ import { recordAudit } from "@/lib/audit";
 import { can } from "@/lib/auth/can";
 import { requirePerm } from "@/lib/auth/session";
 import { toCsv } from "@/lib/csv";
+import {
+  ensureRoom,
+  revokeRoomsSafely,
+  ROOM_FAILURE_TEXT,
+} from "@/lib/integrations/telehealth/server";
 import { formatPhone } from "@/lib/phone";
 import { recordAccess, recordExport } from "@/lib/security/access-log";
 import { createAdminClient, type AdminClient } from "@/lib/supabase/admin";
@@ -86,6 +91,7 @@ function toRow(a: JoinedAppointment): ApptRow {
     notify_early: a.notify_early,
     created_at: a.created_at,
     reminder: summariseReminders(a.appointment_reminders ?? []),
+    visit_mode: a.visit_mode,
   };
 }
 
@@ -662,4 +668,88 @@ export async function listContactAppointments(
       canBook: can(member, "appointments.manage"),
     },
   };
+}
+
+// ---------------------------------------------------------------------------
+// Video visits (Phase 19b)
+// ---------------------------------------------------------------------------
+
+const visitModeSchema = z.object({ id: uuid, mode: z.enum(["in_person", "video"]).nullable() });
+
+/** Sets whether this booking is a video visit (null = follow the service). Pulse-only: the Unite sync never writes it. */
+export async function setVisitMode(input: z.input<typeof visitModeSchema>): Promise<ActionResult> {
+  const member = await requirePerm("appointments.manage");
+  const p = visitModeSchema.safeParse(input);
+  if (!p.success) return fail("Invalid request.");
+  const admin = createAdminClient(member.userId);
+  const { data: before } = await admin
+    .from("appointments")
+    .select("id, visit_mode")
+    .eq("id", p.data.id)
+    .eq("org_id", member.orgId)
+    .maybeSingle();
+  if (!before) return fail("Appointment not found.");
+  if ((before.visit_mode ?? null) === p.data.mode) return { ok: true };
+  const { error } = await admin
+    .from("appointments")
+    .update({ visit_mode: p.data.mode })
+    .eq("id", p.data.id)
+    .eq("org_id", member.orgId);
+  if (error) return fail("Could not save the visit type.");
+  // Not a video visit any more: the room stops working.
+  if (p.data.mode === "in_person")
+    await revokeRoomsSafely(admin, {
+      orgId: member.orgId,
+      appointmentId: p.data.id,
+      reason: "in_person",
+    });
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "appointment.visit_mode_changed",
+    entity: "appointment",
+    entityId: p.data.id,
+    diff: { to: p.data.mode },
+  });
+  refresh();
+  return { ok: true, message: "Visit type saved." };
+}
+
+const joinSchema = z.object({ id: uuid, renew: z.boolean().default(false) });
+
+/**
+ * The video address for staff to join (or copy). Creates the room the first time. `renew` replaces the room with a new one (the old
+ * address stops working) and needs the manage permission. No patient detail goes to the video provider.
+ */
+export async function getVideoJoinLink(
+  input: z.input<typeof joinSchema>,
+): Promise<ActionResult<{ url: string; expiresAt: string }>> {
+  const member = await requirePerm("appointments.view");
+  const p = joinSchema.safeParse(input);
+  if (!p.success) return fail("Invalid request.");
+  if (p.data.renew && !can(member, "appointments.manage"))
+    return fail("You do not have permission to make a new link.");
+  const admin = createAdminClient(member.userId);
+  const r = await ensureRoom(admin, {
+    orgId: member.orgId,
+    appointmentId: p.data.id,
+    actorId: member.userId,
+    forceNew: p.data.renew,
+  });
+  if (!r.ok) return fail(ROOM_FAILURE_TEXT[r.reason]);
+  await recordAccess(admin, member, {
+    entity: "appointment",
+    entityId: p.data.id,
+    action: "view",
+    detail: { video_link: true },
+  });
+  if (r.created)
+    await recordAudit(admin, {
+      orgId: member.orgId,
+      userId: member.userId,
+      action: p.data.renew ? "appointment.video_room_renewed" : "appointment.video_room_created",
+      entity: "appointment",
+      entityId: p.data.id,
+    });
+  return { ok: true, data: { url: r.url, expiresAt: r.expiresAt } };
 }

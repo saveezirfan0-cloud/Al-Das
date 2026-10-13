@@ -23,6 +23,7 @@ import { freedSlotFromRow, scheduleSlotFreed } from "@/lib/front-desk/freed";
 import { emit } from "@/lib/events/emit";
 import { ensureConversation } from "@/lib/inbox/conversations";
 import { scheduleReviewRequestSafely } from "@/lib/integrations/reviews/server";
+import { resolveVideoLink, revokeRoomsSafely } from "@/lib/integrations/telehealth/server";
 import { queueOutbound } from "@/lib/inbox/send";
 import { scheduleJob } from "@/lib/jobs/enqueue";
 import type { AdminClient } from "@/lib/supabase/admin";
@@ -239,6 +240,13 @@ export async function sendAppointmentTemplate(
   if (!channelId) return { ok: false, error: "No active WhatsApp number can send this template." };
 
   const components = tpl.components as unknown as MetaTemplateComponent[];
+  // Phase 19b: the video link is looked up (and the room created) only for a template that actually uses it.
+  const usesVideoLink = Object.values((tpl.variable_map ?? {}) as Record<string, unknown>).includes(
+    "appointment.video_link",
+  );
+  const video = usesVideoLink
+    ? await resolveVideoLink(admin, { orgId: input.orgId, appointmentId: appt.id })
+    : null;
   const values = buildAppointmentTemplateValues(
     components,
     tpl.variable_map as Record<string, string>,
@@ -251,6 +259,7 @@ export async function sendAppointmentTemplate(
       location: location.data?.name,
       service: service.data?.name,
       number: appt.number,
+      videoLinkText: video?.text ?? null,
     },
   );
   const preview = renderTemplatePreview(components, values);
@@ -485,6 +494,14 @@ export async function changeAppointmentStatus(
     via: input.via ?? "portal",
   });
 
+  // Phase 19b: a video room is only for a visit that is still going to happen.
+  if (input.to === "cancelled" || input.to === "no_show" || input.to === "completed")
+    await revokeRoomsSafely(admin, {
+      orgId: input.orgId,
+      appointmentId: current.id,
+      reason: input.to,
+    });
+
   // Phase 19b: a completed visit may be asked for a Google review (own switch, consent and cap; failures never reach the caller).
   if (input.to === "completed")
     await scheduleReviewRequestSafely(admin, { orgId: input.orgId, appointmentId: current.id });
@@ -566,6 +583,12 @@ export async function rescheduleAppointment(
     return { ok: false, error: error?.message ?? "Could not move the appointment." };
 
   await syncAppointmentReminders(admin, appointment);
+  // Phase 19b: the old video link stops working; a new room is made the next time one is needed (staff Join, or the message below).
+  await revokeRoomsSafely(admin, {
+    orgId: input.orgId,
+    appointmentId: current.id,
+    reason: "rescheduled",
+  });
   // The time the patient moved away from is free again.
   if (new Date(current.starts_at).getTime() !== new Date(appointment.starts_at).getTime() || current.specialist_id !== appointment.specialist_id) {
     const freed = freedSlotFromRow(current);

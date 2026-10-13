@@ -49,6 +49,7 @@ registerKind("webhook.retry", "webhooks_out");
 registerKind("appointment.reminder", "appointments");
 registerKind("waitlist.*", "appointments");
 registerKind("review.*", "appointments");
+registerKind("telehealth.*", "appointments");
 registerKind("flow.*", "flow_steps");
 
 export {};

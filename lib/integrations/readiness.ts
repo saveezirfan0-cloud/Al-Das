@@ -1,3 +1,4 @@
+import { validateRoomTemplate } from "@/lib/integrations/telehealth/url";
 import {
   allFields,
   integrationDef,
@@ -63,6 +64,10 @@ export function readinessProblems(input: ReadinessInput): string[] {
       if (!t.hasLinkVariable)
         problems.push("Map one variable of the payment template to the payment link.");
     }
+  }
+  if (input.kind === "telehealth" && input.provider === "static" && input.config.url_template) {
+    const t = validateRoomTemplate(input.config.url_template);
+    if (!t.ok) problems.push(`The meeting address is not valid: ${t.error}`);
   }
   if (input.kind === "meta_capi" && input.config.mode === "send_events") {
     if (!String(input.config.dataset_id ?? "").trim()) problems.push("Dataset ID is missing.");

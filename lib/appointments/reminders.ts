@@ -92,6 +92,11 @@ export type AppointmentTemplateContext = {
   number?: number | null;
   /** Front desk "running late" template: how many minutes behind the clinic is. */
   delayMinutes?: number | null;
+  /**
+   * What `appointment.video_link` should say (Phase 19b): the room address for a video visit, a plain sentence when the visit is
+   * video but has no link yet, "at the clinic" otherwise. Built by lib/integrations/telehealth (videoLinkValue); never empty.
+   */
+  videoLinkText?: string | null;
 };
 
 /** Values a variable_map entry may point at. */
@@ -116,6 +121,7 @@ export function appointmentValueMap(ctx: AppointmentTemplateContext): Record<str
     "appointment.service": ctx.service?.trim() || "your appointment",
     "appointment.number": ctx.number ? String(ctx.number) : "",
     "delay.minutes": ctx.delayMinutes ? String(ctx.delayMinutes) : "",
+    "appointment.video_link": ctx.videoLinkText?.trim() || "at the clinic",
   };
 }
 

@@ -14,6 +14,7 @@ import { loadHouseholdLink } from "@/lib/household/server";
 import { emit, on } from "@/lib/events/emit";
 import { queueSmsFallback } from "@/lib/integrations/sms/fallback";
 import { processReviewRequest } from "@/lib/integrations/reviews/server";
+import { cleanupRoom } from "@/lib/integrations/telehealth/server";
 import { redactText } from "@/lib/redact";
 import { registerHandler } from "@/lib/jobs/registry";
 import { registerTask } from "@/lib/jobs/tasks";
@@ -56,6 +57,12 @@ const expireJob = z.object({
 const reviewJob = z.object({
   org_id: z.string().uuid(),
   payload: z.object({ request_id: z.string().uuid() }),
+});
+
+/** Phase 19b: removing a revoked video room at the provider (kind 'telehealth.cleanup'). */
+const cleanupJob = z.object({
+  org_id: z.string().uuid(),
+  payload: z.object({ room_id: z.string().uuid() }),
 });
 
 const STALE_SLACK_MS = 60_000;
@@ -289,6 +296,17 @@ registerHandler({
         throw new PermanentJobError(`invalid waitlist job: ${p.error.issues[0]?.message}`);
       const res = await expireOffer(ctx.admin, p.data.org_id, p.data.payload.offer_id);
       ctx.log.info("offer expiry processed", { result: res });
+      return;
+    }
+    if (kind === "telehealth.cleanup") {
+      const p = cleanupJob.safeParse(raw);
+      if (!p.success)
+        throw new PermanentJobError(`invalid telehealth job: ${p.error.issues[0]?.message}`);
+      const outcome = await cleanupRoom(ctx.admin, {
+        orgId: p.data.org_id,
+        roomId: p.data.payload.room_id,
+      });
+      ctx.log.info("video room clean-up processed", { outcome });
       return;
     }
     if (kind === "review.send") {

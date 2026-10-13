@@ -13,6 +13,7 @@ export const INTEGRATION_KINDS = [
   "payments",
   "google_reviews",
   "meta_capi",
+  "telehealth",
 ] as const;
 export type IntegrationKind = (typeof INTEGRATION_KINDS)[number];
 
@@ -411,6 +412,83 @@ export const INTEGRATIONS: readonly IntegrationDef[] = [
     ],
     consequence:
       "Pulse will keep a record of which Meta ad each WhatsApp conversation came from. In 'send events' mode it also sends Meta the event name (Contact, Lead or Schedule), the ad click id and, if you choose, a hashed phone number, only for patients who opted in (or under the basis your administrator confirms). Meta's rules for health advertisers apply to you.",
+  },
+  {
+    kind: "telehealth",
+    outbound: true,
+    title: "Video visits",
+    description:
+      "Give video appointments a private video link. Staff see a Join button on the appointment and the front desk, and reminders can carry the link. Each appointment gets its own unguessable room that stops working after the visit; nothing is recorded and no patient detail is sent to the video service.",
+    contactsPatients: true,
+    movesMoney: false,
+    sharesData: false,
+    confirmWord: "ENABLE VIDEO VISITS",
+    viewPermission: "integrations.manage",
+    providers: [
+      {
+        id: "static",
+        label: "My own meeting service (address template)",
+        fields: [
+          {
+            key: "url_template",
+            label: "Meeting address",
+            type: "url",
+            required: true,
+            max: 300,
+            placeholder: "https://meet.example.com/{token}",
+            pattern: "\\{token\\}",
+            patternHint:
+              "The address must contain {token} once, for example https://meet.example.com/{token}.",
+            help: "{token} is replaced by a different long random value for every appointment. Pulse cannot end such a room: it only stops giving the address out after the visit.",
+          },
+        ],
+      },
+      {
+        id: "daily",
+        label: "Daily.co-style rooms (created through the API)",
+        fields: [
+          {
+            key: "api_key",
+            label: "API key",
+            type: "password",
+            secret: true,
+            required: true,
+            max: 200,
+          },
+          {
+            key: "domain",
+            label: "Domain name",
+            type: "text",
+            required: true,
+            max: 41,
+            pattern: "^[a-z0-9][a-z0-9-]{1,40}$",
+            patternHint: "Use the part before .daily.co, in lower case.",
+            placeholder: "myclinic",
+          },
+        ],
+      },
+    ],
+    commonFields: [
+      {
+        key: "grace_minutes",
+        label: "Keep the room open after the booked end (minutes)",
+        type: "number",
+        min: 0,
+        max: 240,
+        default: 30,
+      },
+      {
+        key: "early_minutes",
+        label: "Open the room before the start (minutes)",
+        type: "number",
+        min: 0,
+        max: 240,
+        default: 60,
+        help: "Only enforced by providers that can (the API option). A reminder sent earlier than this shows a link that is not open yet.",
+      },
+    ],
+    consequence:
+      "Video appointments will get a private video link that staff can open and that reminders can carry. Patients will receive these links in WhatsApp messages.",
   },
 ];
 

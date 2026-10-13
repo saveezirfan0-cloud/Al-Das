@@ -21,6 +21,7 @@ import {
   providerDef,
   validateFields,
 } from "@/lib/integrations/catalog";
+import { extraValidation } from "@/lib/integrations/extra-validate";
 import { PAYMENT_VALUE_SOURCES } from "@/lib/integrations/payments/config";
 import { PROBE_CONTEXT, paymentValues } from "@/lib/integrations/payments/message";
 import { buildPaymentProvider } from "@/lib/integrations/payments/provider";
@@ -29,6 +30,7 @@ import { confirmationMatches, readinessProblems } from "@/lib/integrations/readi
 import { loadReadinessInput } from "@/lib/integrations/readiness-server";
 import { buildCapiClientFor } from "@/lib/integrations/capi/server";
 import { buildSmsProvider } from "@/lib/integrations/sms/provider";
+import { buildTelehealthProvider } from "@/lib/integrations/telehealth/server";
 import { checkRateLimit, RATE_RULES, waitText } from "@/lib/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { MetaTemplateComponent } from "@/lib/whatsapp/types";
@@ -65,6 +67,8 @@ export async function saveIntegrationSettings(
     sameProvider ? view.secretsStored : {},
   );
   if (!checked.ok) return { ok: false, error: checked.error };
+  const extra = extraValidation(kind, providerId, checked.config);
+  if (extra) return { ok: false, error: extra };
   const saved = await saveSettings(admin, {
     orgId: member.orgId,
     kind,
@@ -167,6 +171,9 @@ export async function testIntegration(kindInput: string): Promise<ActionResult> 
       ok: false,
       code: "incomplete",
     };
+  } else if (kind === "telehealth") {
+    const provider = buildTelehealthProvider(admin, account);
+    result = provider?.verify ? await provider.verify() : { ok: false, code: "incomplete" };
   } else return { ok: false, error: "Nothing to test for this integration." };
 
   await recordAudit(admin, {

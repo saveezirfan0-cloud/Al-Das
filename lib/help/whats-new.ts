@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-10-19-video-visits",
+    date: "2026-10-19",
+    title: "Video visits",
+    body: "Mark a service (or a single booking) as a video visit and each appointment gets its own private video link. Staff press Join on the appointment or the Front desk board, and reminders and confirmations can carry the link through a new template variable. The link stops working after the visit and when the appointment is cancelled, missed or moved; nothing is recorded and no patient detail goes to the video service. Off until an administrator switches it on in Settings, Integrations.",
+  },
+  {
     id: "2026-10-19-ad-attribution",
     date: "2026-10-19",
     title: "Meta ad attribution",

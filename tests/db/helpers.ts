@@ -436,6 +436,11 @@ export async function seedPhase19Rows(c: Client, orgId: string, userId: string) 
       "insert into public.capi_events (org_id, attribution_id, event_name, event_id, event_time, status) values ($1, $2, 'Contact', 'seed-event-' || gen_random_uuid()::text, now(), 'skipped')",
       [orgId, ids.attribution],
     );
+    // Phase 19b: a video room (token hash and a placeholder ciphertext; no real token).
+    ids.room = await one(
+      "insert into public.telehealth_rooms (org_id, appointment_id, provider, token_hash, token_enc, status, for_starts_at, for_ends_at, expires_at) values ($1, $2, 'static', encode(sha256(gen_random_uuid()::text::bytea), 'hex'), 'v1:seed:seed:seed', 'revoked', now(), now() + interval '30 minutes', now() + interval '1 hour')",
+      [orgId, ids.appointment19b],
+    );
     ids.reviewRequest = await one(
       "insert into public.review_requests (org_id, appointment_id, contact_id, recipient_contact_id, status, reason, run_at) values ($1, $2, $3, $3, 'skipped', 'no_opt_in', now())",
       [orgId, ids.appointment19b, ids.contact],
@@ -457,4 +462,8 @@ export const PHASE19_TABLES = [
 ] as const;
 
 /** Phase 19 tables that hold secrets or idempotency keys: RLS on, no policy, service role only. */
-export const PHASE19_SERVICE_ONLY_TABLES = ["integration_accounts", "integration_webhook_events"] as const;
+export const PHASE19_SERVICE_ONLY_TABLES = [
+  "integration_accounts",
+  "integration_webhook_events",
+  "telehealth_rooms",
+] as const;

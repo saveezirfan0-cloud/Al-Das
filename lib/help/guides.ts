@@ -57,6 +57,7 @@ export const GUIDES: readonly Guide[] = [
       "Pick the patient, service, doctor and one of the free times shown.",
       "Open an appointment to confirm, move or cancel it. The patient is told if you tick Notify.",
       "Reminders go out on their own; a failed reminder creates a call task.",
+      "For a video appointment, open it and press Join video visit (also on the Front desk board). Copy link gives you the address; New link replaces it if it was shared by mistake.",
     ],
     watchOut: [
       "Appointments that come from Unite are read-only here. Change them in Unite.",
@@ -247,6 +248,24 @@ export const GUIDES: readonly Guide[] = [
       "Events carry only the event name, the ad click id and, if you choose, a hashed phone number: never a service, doctor, diagnosis or price.",
       "Patients who asked to stop marketing are never included.",
       "Check Meta's rules for health advertisers before sending events.",
+    ],
+  },
+  {
+    id: "video-visits-setup",
+    title: "Video visits",
+    pages: ["/settings/integrations/telehealth"],
+    purpose:
+      "Give video appointments a private video link that staff can join and reminders can carry.",
+    steps: [
+      "Choose a provider: your own meeting service (an address with {token} in it) or Daily.co-style rooms created through the API.",
+      "Enter the address or the API key and domain, set how long the room stays open after the visit, save and press Test connection.",
+      "Switch on with the typed words, then mark a service as Video under Settings, Appointments (or change a single booking on the appointment).",
+      "To put the link in a reminder or confirmation, map a template variable to 'Appointment: video visit link'.",
+    ],
+    watchOut: [
+      "Each appointment gets its own long random link. It stops being given out after the visit and when the appointment is cancelled, missed or moved.",
+      "With your own meeting service Pulse cannot end the room itself; with the API option the room expires on its own.",
+      "Nothing is recorded, and no patient name or detail is sent to the video service. Nothing is created in a training workspace.",
     ],
   },
   {

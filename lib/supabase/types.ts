@@ -712,6 +712,7 @@ export type Database = {
           status: string;
           unite_clinic_id: string | null;
           updated_at: string;
+          visit_mode: string | null;
           with_doctor_at: string | null;
         };
         ComputedFields: never;
@@ -743,6 +744,7 @@ export type Database = {
           status?: string;
           unite_clinic_id?: string | null;
           updated_at?: string;
+          visit_mode?: string | null;
           with_doctor_at?: string | null;
         };
         Update: {
@@ -773,6 +775,7 @@ export type Database = {
           status?: string;
           unite_clinic_id?: string | null;
           updated_at?: string;
+          visit_mode?: string | null;
           with_doctor_at?: string | null;
         };
         Relationships: [
@@ -10271,6 +10274,7 @@ export type Database = {
         Row: {
           active: boolean;
           created_at: string;
+          default_visit_mode: string;
           department_id: string | null;
           duration_min: number;
           id: string;
@@ -10283,6 +10287,7 @@ export type Database = {
         Insert: {
           active?: boolean;
           created_at?: string;
+          default_visit_mode?: string;
           department_id?: string | null;
           duration_min?: number;
           id?: string;
@@ -10294,6 +10299,7 @@ export type Database = {
         Update: {
           active?: boolean;
           created_at?: string;
+          default_visit_mode?: string;
           department_id?: string | null;
           duration_min?: number;
           id?: string;
@@ -11153,6 +11159,93 @@ export type Database = {
           },
           {
             foreignKeyName: "teams_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      telehealth_rooms: {
+        Row: {
+          appointment_id: string;
+          created_at: string;
+          created_by: string | null;
+          expires_at: string;
+          for_ends_at: string;
+          for_starts_at: string;
+          id: string;
+          org_id: string;
+          provider: string;
+          provider_deleted_at: string | null;
+          revoked_at: string | null;
+          revoked_reason: string | null;
+          room_ref: string | null;
+          status: string;
+          token_enc: string;
+          token_hash: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          appointment_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          expires_at: string;
+          for_ends_at: string;
+          for_starts_at: string;
+          id?: string;
+          org_id: string;
+          provider: string;
+          provider_deleted_at?: string | null;
+          revoked_at?: string | null;
+          revoked_reason?: string | null;
+          room_ref?: string | null;
+          status?: string;
+          token_enc: string;
+          token_hash: string;
+        };
+        Update: {
+          appointment_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          expires_at?: string;
+          for_ends_at?: string;
+          for_starts_at?: string;
+          id?: string;
+          org_id?: string;
+          provider?: string;
+          provider_deleted_at?: string | null;
+          revoked_at?: string | null;
+          revoked_reason?: string | null;
+          room_ref?: string | null;
+          status?: string;
+          token_enc?: string;
+          token_hash?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "telehealth_rooms_appointment_id_fkey";
+            columns: ["appointment_id"];
+            isOneToOne: false;
+            referencedRelation: "appointments";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "telehealth_rooms_appointment_id_fkey";
+            columns: ["appointment_id"];
+            isOneToOne: false;
+            referencedRelation: "v_appointment_facts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "telehealth_rooms_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "telehealth_rooms_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
@@ -13747,6 +13840,7 @@ export type Database = {
           status: string;
           unite_clinic_id: string | null;
           updated_at: string;
+          visit_mode: string | null;
           with_doctor_at: string | null;
         };
         SetofOptions: {
@@ -14273,6 +14367,7 @@ export type Database = {
           status: string;
           unite_clinic_id: string | null;
           updated_at: string;
+          visit_mode: string | null;
           with_doctor_at: string | null;
         };
         SetofOptions: {

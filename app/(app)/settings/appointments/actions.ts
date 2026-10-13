@@ -164,6 +164,10 @@ const serviceSchema = z.object({
   duration_min: z.number().int().min(5).max(480),
   price: z.number().min(0).max(1_000_000).nullish(),
   active: z.boolean().default(true),
+  default_visit_mode: z
+    .string()
+    .refine((v) => v === "in_person" || v === "video", "Choose in person or video")
+    .default("in_person"),
 });
 
 export async function saveService(input: z.input<typeof serviceSchema>): Promise<ActionResult> {

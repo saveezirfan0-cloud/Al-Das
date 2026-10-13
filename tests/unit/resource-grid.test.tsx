@@ -35,6 +35,7 @@ const appt: ApptRow = {
   notify_early: false,
   created_at: "2026-10-01T00:00:00.000Z",
   reminder: null,
+  visit_mode: null,
 };
 
 const base = {
