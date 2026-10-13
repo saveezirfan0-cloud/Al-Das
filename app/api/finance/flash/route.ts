@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { recordAudit } from "@/lib/audit";
 import { can } from "@/lib/auth/can";
 import { getCurrentMember } from "@/lib/auth/session";
+import { addDays } from "@/lib/documents/expiry";
 import { todayIn } from "@/lib/finance/action-support";
 import { monthOf } from "@/lib/finance/flash";
 import { loadFlashReport } from "@/lib/finance/flash-server";
@@ -11,7 +12,7 @@ import { recordExport } from "@/lib/security/access-log";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
- * GET /api/finance/flash?date=yyyy-mm-dd -> the flash report workbook (daily summary, month to date, doctors, daily
+ * GET /api/finance/flash?date=yyyy-mm-dd (default yesterday) -> the flash report workbook (daily summary, month to date, doctors, daily
  * sales). Requires finance.flash.view. Aggregates and doctor names only, no patient data. Written to the access log and
  * the audit trail.
  */
@@ -23,7 +24,7 @@ export async function GET(req: Request) {
 
   const raw = new URL(req.url).searchParams.get("date") ?? "";
   const today = todayIn(member.org.timezone);
-  const day = monthOf(raw) && raw <= today ? raw : today;
+  const day = monthOf(raw) && raw <= today ? raw : (addDays(today, -1) ?? today); // same default as the page
 
   const admin = createAdminClient(); // service role AFTER the permission check
   try {
