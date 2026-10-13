@@ -14,6 +14,7 @@ export const INTEGRATION_KINDS = [
   "google_reviews",
   "meta_capi",
   "telehealth",
+  "esign",
 ] as const;
 export type IntegrationKind = (typeof INTEGRATION_KINDS)[number];
 
@@ -489,6 +490,59 @@ export const INTEGRATIONS: readonly IntegrationDef[] = [
     ],
     consequence:
       "Video appointments will get a private video link that staff can open and that reminders can carry. Patients will receive these links in WhatsApp messages.",
+  },
+  {
+    kind: "esign",
+    outbound: true,
+    title: "E-signature for consent forms",
+    description:
+      "Send a patient's consent form (a PDF) to an e-signature service. The signer receives an e-mail from the service, signs, and the signed copy is stored on the patient as a new consent document. Needs patient documents to be switched on.",
+    contactsPatients: true,
+    movesMoney: false,
+    sharesData: true,
+    confirmWord: "SHARE SIGNER DETAILS AND FORMS",
+    viewPermission: "integrations.manage",
+    providers: [
+      {
+        id: "dropbox_sign",
+        label: "Dropbox Sign (HelloSign)",
+        fields: [
+          {
+            key: "api_key",
+            label: "API key",
+            type: "password",
+            secret: true,
+            required: true,
+            max: 200,
+            help: "Also used to check the provider's callbacks. Stored encrypted; never shown again.",
+          },
+        ],
+      },
+    ],
+    commonFields: [
+      {
+        key: "test_mode",
+        label: "Test mode",
+        type: "select",
+        required: true,
+        default: "yes",
+        options: [
+          { value: "yes", label: "Yes: free test requests that are not legally binding" },
+          { value: "no", label: "No: real, binding signature requests" },
+        ],
+        help: "Leave on until you have sent yourself a request and seen the signed copy arrive.",
+      },
+      {
+        key: "expiry_days",
+        label: "A request expires after (days)",
+        type: "number",
+        min: 1,
+        max: 30,
+        default: 7,
+      },
+    ],
+    consequence:
+      "This sends patient data to a third party. For every request the e-signature service receives the form itself and the signer's name and e-mail address, and it keeps its own copy of the signed document under its own terms and retention. Make sure your agreement with the service and its data location are approved. The title and message sent are fixed and generic.",
   },
 ];
 

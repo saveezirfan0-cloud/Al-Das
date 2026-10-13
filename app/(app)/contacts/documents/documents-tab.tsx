@@ -42,6 +42,7 @@ import { formatBytes, PATIENT_DOCUMENT_MAX_BYTES, validateMedia } from "@/lib/me
 import { DOCUMENT_BUCKET } from "@/lib/media/paths";
 import { cn } from "@/lib/utils";
 
+import { EsignPanel } from "./esign-panel";
 import {
   abandonDocumentUpload,
   deleteDocument,
@@ -288,6 +289,10 @@ export function ContactDocuments({
             </li>
           ))}
         </ul>
+      )}
+
+      {view.enabled && (
+        <EsignPanel contactId={contactId} timezone={timezone} onChanged={() => void load()} />
       )}
 
       <UploadDialog

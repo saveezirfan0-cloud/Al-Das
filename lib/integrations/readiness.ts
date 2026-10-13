@@ -29,6 +29,8 @@ export type ReadinessInput = {
   secretsStored: Readonly<Record<string, boolean>>;
   /** Payments only: the WhatsApp template chosen for the payment message (null = none chosen). */
   template?: TemplateReadiness | null;
+  /** E-signature only: patient documents are switched on (Settings, Patient documents). */
+  documentsEnabled?: boolean;
   /** Google review requests only. */
   reviews?: { template: TemplateReadiness | null; locationsWithLink: number };
 };
@@ -65,6 +67,8 @@ export function readinessProblems(input: ReadinessInput): string[] {
         problems.push("Map one variable of the payment template to the payment link.");
     }
   }
+  if (input.kind === "esign" && input.documentsEnabled !== true)
+    problems.push("Switch on patient documents first (Settings, Patient documents).");
   if (input.kind === "telehealth" && input.provider === "static" && input.config.url_template) {
     const t = validateRoomTemplate(input.config.url_template);
     if (!t.ok) problems.push(`The meeting address is not valid: ${t.error}`);

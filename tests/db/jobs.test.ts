@@ -229,6 +229,7 @@ describe.skipIf(!TEST_DATABASE_URL)("jobs framework (db)", () => {
         "flow_recurring",
         "flow_steps",
         "housekeeping",
+        "housekeeping_19b",
         "housekeeping_integrations",
         "housekeeping_phase3",
         "housekeeping_rate_limits",

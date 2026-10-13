@@ -56,6 +56,8 @@ export const RATE_RULES = {
   calendarFeedPerToken: { limit: 120, windowSec: 60, failOpen: true },
   /** Phase 19: creating, rotating or revoking calendar feeds. */
   calendarFeedManagePerUser: { limit: 20, windowSec: 60, failOpen: false },
+  /** Phase 19b: sending a consent form for e-signature (each one e-mails a patient). */
+  esignSendPerUser: { limit: 20, windowSec: 60, failOpen: false },
   /** Phase 19: "Test connection" on an integration. */
   integrationTestPerUser: { limit: 6, windowSec: 60, failOpen: false },
   /** Phase 19: sending payment links by staff. */

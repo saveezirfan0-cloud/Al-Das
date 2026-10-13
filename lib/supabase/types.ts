@@ -3285,6 +3285,130 @@ export type Database = {
           },
         ];
       };
+      esign_requests: {
+        Row: {
+          completed_at: string | null;
+          contact_id: string;
+          created_at: string;
+          error_code: string | null;
+          expires_at: string | null;
+          id: string;
+          org_id: string;
+          provider: string;
+          provider_request_id: string | null;
+          requested_by: string | null;
+          sent_at: string | null;
+          signed_document_id: string | null;
+          signer_hint: string | null;
+          source_asset_id: string | null;
+          source_document_id: string | null;
+          source_kind: string;
+          status: string;
+          test_mode: boolean;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          completed_at?: string | null;
+          contact_id: string;
+          created_at?: string;
+          error_code?: string | null;
+          expires_at?: string | null;
+          id?: string;
+          org_id: string;
+          provider?: string;
+          provider_request_id?: string | null;
+          requested_by?: string | null;
+          sent_at?: string | null;
+          signed_document_id?: string | null;
+          signer_hint?: string | null;
+          source_asset_id?: string | null;
+          source_document_id?: string | null;
+          source_kind: string;
+          status?: string;
+          test_mode?: boolean;
+          updated_at?: string;
+        };
+        Update: {
+          completed_at?: string | null;
+          contact_id?: string;
+          created_at?: string;
+          error_code?: string | null;
+          expires_at?: string | null;
+          id?: string;
+          org_id?: string;
+          provider?: string;
+          provider_request_id?: string | null;
+          requested_by?: string | null;
+          sent_at?: string | null;
+          signed_document_id?: string | null;
+          signer_hint?: string | null;
+          source_asset_id?: string | null;
+          source_document_id?: string | null;
+          source_kind?: string;
+          status?: string;
+          test_mode?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "esign_requests_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "esign_requests_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_birthday_today";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "esign_requests_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_chronic_recall_eligibility";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "esign_requests_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "esign_requests_requested_by_fkey";
+            columns: ["requested_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "esign_requests_signed_document_id_fkey";
+            columns: ["signed_document_id"];
+            isOneToOne: false;
+            referencedRelation: "patient_documents";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "esign_requests_source_asset_id_fkey";
+            columns: ["source_asset_id"];
+            isOneToOne: false;
+            referencedRelation: "media_assets";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "esign_requests_source_document_id_fkey";
+            columns: ["source_document_id"];
+            isOneToOne: false;
+            referencedRelation: "patient_documents";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       external_refs: {
         Row: {
           created_at: string;

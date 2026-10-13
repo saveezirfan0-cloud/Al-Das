@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-10-19-e-signature",
+    date: "2026-10-19",
+    title: "E-signature for consent forms",
+    body: "From a patient's Documents tab, send a consent form (a PDF) to an e-signature service. The signer gets an e-mail, signs, and the signed copy is stored on the patient as a new consent document; you are told when it is signed, declined or expired, and can cancel a request that is still waiting. The service receives the form and the signer's name and e-mail address, so it needs an administrator's typed confirmation in Settings, Integrations, and patient documents must be on.",
+  },
+  {
     id: "2026-10-19-video-visits",
     date: "2026-10-19",
     title: "Video visits",

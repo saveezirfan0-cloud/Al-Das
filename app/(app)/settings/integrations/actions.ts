@@ -30,6 +30,7 @@ import { confirmationMatches, readinessProblems } from "@/lib/integrations/readi
 import { loadReadinessInput } from "@/lib/integrations/readiness-server";
 import { buildCapiClientFor } from "@/lib/integrations/capi/server";
 import { buildSmsProvider } from "@/lib/integrations/sms/provider";
+import { buildEsignProvider } from "@/lib/integrations/esign/server";
 import { buildTelehealthProvider } from "@/lib/integrations/telehealth/server";
 import { checkRateLimit, RATE_RULES, waitText } from "@/lib/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -168,6 +169,11 @@ export async function testIntegration(kindInput: string): Promise<ActionResult> 
         : { ok: false, code: "unsupported" };
   } else if (kind === "meta_capi") {
     result = (await buildCapiClientFor(admin, account)?.verify()) ?? {
+      ok: false,
+      code: "incomplete",
+    };
+  } else if (kind === "esign") {
+    result = (await buildEsignProvider(admin, account)?.verify()) ?? {
       ok: false,
       code: "incomplete",
     };

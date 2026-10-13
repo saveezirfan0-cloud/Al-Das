@@ -1,5 +1,6 @@
 import "server-only";
 
+import { readDocumentSettings } from "@/lib/documents/settings";
 import type { AccountView } from "@/lib/integrations/accounts";
 import type { IntegrationKind } from "@/lib/integrations/catalog";
 import { readPaymentsConfig } from "@/lib/integrations/payments/config";
@@ -46,6 +47,10 @@ export async function loadReadinessInput(
       ...base,
       reviews: { template: reviewTemplateReadiness(template, cfg), locationsWithLink },
     };
+  }
+  if (kind === "esign") {
+    const { data } = await admin.from("orgs").select("settings").eq("id", orgId).maybeSingle();
+    return { ...base, documentsEnabled: readDocumentSettings(data?.settings).enabled };
   }
   return base;
 }

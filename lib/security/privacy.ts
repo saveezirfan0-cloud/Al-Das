@@ -67,6 +67,7 @@ export const EXPORT_SECTIONS = [
   "followups",
   "feedback",
   "documents",
+  "integrations",
 ] as const;
 export type ExportSection = (typeof EXPORT_SECTIONS)[number];
 

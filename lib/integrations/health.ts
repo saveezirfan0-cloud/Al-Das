@@ -68,4 +68,5 @@ export const CALL_PROVIDERS: Record<IntegrationKind, readonly string[]> = {
   google_reviews: [],
   meta_capi: ["meta_capi"],
   telehealth: ["daily"],
+  esign: ["dropbox_sign"],
 };

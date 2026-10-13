@@ -269,6 +269,25 @@ export const GUIDES: readonly Guide[] = [
     ],
   },
   {
+    id: "esign-setup",
+    title: "E-signature for consent forms",
+    pages: ["/settings/integrations/esign"],
+    purpose:
+      "Send a patient's consent form to an e-signature service and keep the signed copy on the patient.",
+    steps: [
+      "Switch on patient documents first (Settings, Patient documents).",
+      "Enter the provider's API key, leave Test mode on, save and press Test connection.",
+      "Give the provider the callback address shown on this page (in its API settings, Event callback).",
+      "Switch on with the typed words, send a request to yourself from a patient's Documents tab, sign it and check the signed copy appears.",
+      "Then turn Test mode off for real, binding requests.",
+    ],
+    watchOut: [
+      "This shares the form and the signer's name and e-mail address with the provider, which keeps its own copy under its own terms. Your agreement with it and its data location must be approved.",
+      "The form must carry the provider's signature tags, or the signer has nowhere to sign.",
+      "Nothing is sent from a training workspace. A request that is still waiting can be cancelled from the patient's Documents tab.",
+    ],
+  },
+  {
     id: "ad-report",
     title: "Ad attribution report",
     pages: ["/reports/ads"],

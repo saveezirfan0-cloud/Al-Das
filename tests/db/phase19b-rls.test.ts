@@ -135,6 +135,69 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 19b: permissions and constraints", ()
     });
   });
 
+  describe("e-signature requests", () => {
+    it("takes exactly one source, one status from the list, and refuses a contact from another org", async () => {
+      await svc(async () => {
+        const contact = (
+          await q(
+            "insert into public.contacts (org_id, first_name, last_name) values ($1, 'A', 'B') returning id",
+            [org],
+          )
+        ).rows[0].id;
+        const ins = (
+          kind: string,
+          status = "creating",
+          docId: string | null = null,
+          assetId: string | null = null,
+          contactId = contact,
+        ) =>
+          q(
+            "insert into public.esign_requests (org_id, contact_id, source_kind, source_document_id, source_asset_id, status) values ($1, $2, $3, $4, $5, $6)",
+            [org, contactId, kind, docId, assetId, status],
+          );
+        expect(await code(ins("patient_document", "sent"))).toBe("23514");
+        expect(await code(ins("something"))).toBe("23514");
+        expect(await code(ins("patient_document", "creating", null, crypto.randomUUID()))).toBe(
+          "23514",
+        ); // an asset id with a document source
+        expect(await code(ins("library_asset", "creating", crypto.randomUUID(), null))).toBe(
+          "23514",
+        );
+        expect(await code(ins("patient_document"))).toBeNull();
+        const foreign = (
+          await q("insert into public.orgs (name, slug) values ('Org F', 'org-f') returning id")
+        ).rows[0].id;
+        const foreignContact = (
+          await q(
+            "insert into public.contacts (org_id, first_name, last_name) values ($1, 'F', 'G') returning id",
+            [foreign],
+          )
+        ).rows[0].id;
+        expect(await code(ins("patient_document", "creating", null, null, foreignContact))).toBe(
+          "23514",
+        );
+      });
+    });
+
+    it("keeps one provider id per provider", async () => {
+      await svc(async () => {
+        const contact = (
+          await q(
+            "insert into public.contacts (org_id, first_name, last_name) values ($1, 'C', 'D') returning id",
+            [org],
+          )
+        ).rows[0].id;
+        const ins = () =>
+          q(
+            "insert into public.esign_requests (org_id, contact_id, source_kind, status, provider_request_id) values ($1, $2, 'patient_document', 'pending', 'sig-constraint-1')",
+            [org, contact],
+          );
+        expect(await code(ins())).toBeNull();
+        expect(await code(ins())).toBe("23505");
+      });
+    });
+  });
+
   describe("ad attribution", () => {
     it("allows only the three event names and a deterministic event id per workspace", async () => {
       await svc(async () => {

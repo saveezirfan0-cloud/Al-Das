@@ -19,6 +19,7 @@ import { readinessProblems } from "@/lib/integrations/readiness";
 import { loadReadinessInput } from "@/lib/integrations/readiness-server";
 import { readReviewConfig, REVIEW_VALUE_SOURCES } from "@/lib/integrations/reviews/config";
 import { loadReviewStats, loadReviewTemplate } from "@/lib/integrations/reviews/server";
+import { esignWebhookBase } from "@/lib/integrations/esign/config";
 import { readCapiConfig } from "@/lib/integrations/capi/config";
 import { CONSENT_BASIS_PHRASE } from "@/lib/integrations/capi/consent";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -190,7 +191,12 @@ export default async function IntegrationPage({ params }: { params: Promise<{ ki
             app,
             row.view.exists ? await accountId(admin, member.orgId, kind) : "<account id>",
           )
-        : null;
+        : kind === "esign"
+          ? esignWebhookBase(
+              app,
+              row.view.exists ? await accountId(admin, member.orgId, kind) : "<account id>",
+            )
+          : null;
 
   return (
     <div className="flex flex-col gap-6">

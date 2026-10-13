@@ -60,6 +60,9 @@ export async function buildPatientExport(
     followups,
     feedback,
     documents,
+    reviewRequests,
+    adClicks,
+    esignRequests,
     messages,
   ] = await Promise.all([
     admin
@@ -133,6 +136,28 @@ export async function buildPatientExport(
       .eq("status", "ready")
       .order("created_at")
       .limit(ROW_CAP),
+    // Phase 19b: when this patient was asked for a review, which ad brought them, and their e-signature requests (no links, no e-mail).
+    admin
+      .from("review_requests")
+      .select("status, reason, visit_ended_at, claimed_at, created_at")
+      .eq("org_id", orgId)
+      .eq("contact_id", contactId)
+      .order("created_at")
+      .limit(ROW_CAP),
+    admin
+      .from("ad_attributions")
+      .select("source_id, source_type, headline, clicked_at")
+      .eq("org_id", orgId)
+      .eq("contact_id", contactId)
+      .order("clicked_at")
+      .limit(ROW_CAP),
+    admin
+      .from("esign_requests")
+      .select("status, signer_hint, test_mode, created_at, completed_at")
+      .eq("org_id", orgId)
+      .eq("contact_id", contactId)
+      .order("created_at")
+      .limit(ROW_CAP),
     conversationIds.length
       ? admin
           .from("messages")
@@ -163,6 +188,11 @@ export async function buildPatientExport(
     feedback: cap("feedback", feedback.data, ROW_CAP),
     // The files themselves are not part of the bundle; each is listed with its title, category, size and dates.
     documents: cap("documents", documents.data, ROW_CAP),
+    integrations: {
+      review_requests: cap("review_requests", reviewRequests.data, ROW_CAP),
+      ad_clicks: cap("ad_clicks", adClicks.data, ROW_CAP),
+      esign_requests: cap("esign_requests", esignRequests.data, ROW_CAP),
+    },
     truncated,
   };
 }
