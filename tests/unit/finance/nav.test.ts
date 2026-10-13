@@ -123,6 +123,20 @@ describe("Finance navigation", () => {
     expect(role("Finance")).not.toContain("finance.vouchers.check");
   });
 
+  it("bank reconciliation is run by Finance and read by the CEO; nobody else sees it", () => {
+    expect(hrefs(member(role("Finance")))).toEqual(
+      expect.arrayContaining(["/finance/bank", "/finance/bank/settings"]),
+    );
+    expect(hrefs(member(role("CEO")))).toContain("/finance/bank");
+    expect(hrefs(member(role("CEO")))).not.toContain("/finance/bank/settings");
+    expect(role("Finance")).toEqual(
+      expect.arrayContaining(["finance.bank.view", "finance.bank.manage", "finance.bank.signoff"]),
+    );
+    expect(role("CEO")).not.toContain("finance.bank.signoff");
+    for (const r of ["Billing", "Insurance", "Medical Director", "Cost / Payroll"])
+      expect(hrefs(member(role(r))).filter((h) => h.startsWith("/finance/bank")), r).toEqual([]);
+  });
+
   it("the Medical Director sees revenue and scorecards only", () => {
     expect(hrefs(member(role("Medical Director"))).sort()).toEqual(
       [

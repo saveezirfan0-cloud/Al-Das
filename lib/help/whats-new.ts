@@ -15,6 +15,12 @@ export const WHATS_NEW: readonly WhatsNewEntry[] = [
     body: "Finance has a Close timetable for the month-end close by working day: inputs by WD5, revenue shares and Tally by WD7, draft accounts by WD8 and the final pack by WD10. Each step has an owner, a trained backup and its dependencies; owners mark their steps done or blocked and get a reminder when one is due. Close measures show inputs on time, whether each month closed by WD10, open reconciling items and steps without a backup.",
   },
   {
+    id: "2026-10-28-bank-reconciliation",
+    date: "2026-10-28",
+    title: "Bank reconciliation",
+    body: "Finance can now import bank statements and processor settlement reports and check every Unite collection against the bank: card and EPG after 2 working days, Tabby after 6, cash deposits and insurers' payments, net of the expected fees. Pulse proposes matches with a score and its reasons, matches automatically only when there is a single clear candidate, ages anything not received, and asks for a reason before the month's reconciliation is reviewed and signed by a second person.",
+  },
+  {
     id: "2026-10-27-clinical-data-quality",
     date: "2026-10-27",
     title: "Clinical data quality, medicines and reminder reports",

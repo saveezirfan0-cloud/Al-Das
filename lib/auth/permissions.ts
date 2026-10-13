@@ -472,6 +472,26 @@ export const PERMISSIONS = [
       "Map Pulse categories, suppliers, banks and branches to Tally ledgers, and export approved vouchers and supplier invoices as a TallyPrime import file. One-way, audited.",
   },
   {
+    key: "finance.bank.view",
+    group: "Finance",
+    label: "Bank reconciliation",
+    description:
+      "See bank accounts, imported statements and the bank reconciliation of each account and month (expected receipts, matches, unmatched items and their ageing).",
+  },
+  {
+    key: "finance.bank.manage",
+    group: "Finance",
+    label: "Run bank reconciliation",
+    description:
+      "Import bank statements and settlement reports, set accounts, file layouts and settlement rules, accept or reject matches, give reasons and mark a reconciliation reviewed. Audited.",
+  },
+  {
+    key: "finance.bank.signoff",
+    group: "Finance",
+    label: "Sign off bank reconciliation",
+    description: "Sign a reviewed bank reconciliation. The signer must be a different person from the preparer. Audited.",
+  },
+  {
     key: "portal.recall_sends.write",
     group: "Portal",
     label: "Edit recall call-list entries",
@@ -556,6 +576,9 @@ const FINANCE_PRESET: readonly string[] = [
   "finance.flash.view",
   "finance.targets.manage",
   "finance.followup.manage",
+  "finance.bank.view",
+  "finance.bank.manage",
+  "finance.bank.signoff",
   "finance.payables.view",
   "finance.payables.manage",
   "finance.vouchers.prepare",
@@ -629,6 +652,7 @@ export const FINANCE_ROLES: readonly RolePreset[] = [
       "finance.flash.view",
       "finance.payables.view",
       "finance.vouchers.approve_ceo",
+      "finance.bank.view",
     ],
   },
   {

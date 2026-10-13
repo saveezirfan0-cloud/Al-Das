@@ -208,6 +208,12 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
     permissions: ["finance.tally.export"],
   },
   {
+    href: "/finance/bank",
+    label: "Bank reconciliation",
+    section: "Money",
+    permissions: ["finance.bank.view"],
+  },
+  {
     href: "/finance/close",
     label: "Month-end close",
     section: "Money",
@@ -261,6 +267,12 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
     label: "Voucher settings",
     section: "Setup",
     permissions: ["finance.vouchers.settings", "finance.tally.export"],
+  },
+  {
+    href: "/finance/bank/settings",
+    label: "Bank accounts and rules",
+    section: "Setup",
+    permissions: ["finance.bank.manage"],
   },
 ];
 
