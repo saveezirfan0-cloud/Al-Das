@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { bankingErrorMessage } from "@/lib/accounting/banking";
 import { recordAudit } from "@/lib/audit";
 import { can } from "@/lib/auth/can";
 import { requireMember } from "@/lib/auth/session";
@@ -64,6 +65,8 @@ const accountSchema = z.object({
   ledger_name: z.string().trim().max(100).optional().default(""),
   receives_insurance: z.string().optional(),
   active: z.string().optional(),
+  create_ledger: z.enum(["", "bank", "od"]).optional().default(""),
+  ledger_code: z.string().trim().max(20).optional().default(""),
 });
 
 export async function saveAccount(values: Record<string, string>): Promise<ActionResult> {
@@ -72,6 +75,10 @@ export async function saveAccount(values: Record<string, string>): Promise<Actio
   const p = accountSchema.safeParse(values);
   if (!p.success) return fail(firstIssue(p.error));
   const v = p.data;
+  // a new account can get its ledger in Accounting at once (22F), for someone who also keeps the books
+  const ledger = !v.id && v.create_ledger && can(member, "accounting.banking.manage") ? v.create_ledger : null;
+  if (ledger && !/^[A-Z0-9][A-Z0-9._-]{0,19}$/.test(v.ledger_code.toUpperCase()))
+    return fail("Give the ledger a code (up to 20 letters or digits).");
   const admin = createAdminClient(member.userId); // service role AFTER the permission check
   const row = {
     name: v.name,
@@ -107,8 +114,34 @@ export async function saveAccount(values: Record<string, string>): Promise<Actio
     entityId: data[0].id,
     diff: { receives_insurance: row.receives_insurance, active: row.active },
   });
+  if (ledger) {
+    const { data: gl, error: glError } = await admin.rpc("acc_bank_create_ledger", {
+      p_org_id: member.orgId,
+      p_user_id: member.userId,
+      p_bank_account_id: data[0].id,
+      p_group: ledger,
+      p_code: v.ledger_code.toUpperCase(),
+      p_name: `Bank - ${v.name}`,
+    });
+    if (glError || !gl) {
+      refresh();
+      return {
+        ok: true,
+        message: `Account saved, but its ledger was not created: ${bankingErrorMessage(glError, "try again under Accounting, Banking.")}`,
+      };
+    }
+    await recordAudit(admin, {
+      orgId: member.orgId,
+      userId: member.userId,
+      action: "accounting.banking.ledger_created",
+      entity: "fin_bank_accounts",
+      entityId: data[0].id,
+      diff: { group: ledger, code: v.ledger_code.toUpperCase() },
+    });
+    revalidatePath("/accounting/banking");
+  }
   refresh();
-  return { ok: true, message: "Account saved." };
+  return { ok: true, message: ledger ? "Account saved and its ledger created." : "Account saved." };
 }
 
 const formatSchema = z.object({

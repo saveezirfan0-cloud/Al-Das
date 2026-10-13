@@ -28,6 +28,13 @@ export const RECEIVABLES_READ = [
   "accounting.journals.approve",
 ] as const;
 
+/** Banking pages (22F): kept by accounting.banking.manage, read by ledger readers and checkers. */
+const BANKING = [
+  "accounting.banking.manage",
+  "accounting.ledger.view",
+  "accounting.journals.approve",
+] as const;
+
 export const ACCOUNTING_NAV: readonly AccountingNavEntry[] = [
   {
     href: "/accounting/dashboard",
@@ -95,6 +102,36 @@ export const ACCOUNTING_NAV: readonly AccountingNavEntry[] = [
     label: "Statements",
     section: "Sales & receivables",
     permissions: RECEIVABLES_READ,
+  },
+  {
+    href: "/accounting/banking",
+    label: "Bank accounts",
+    section: "Banking",
+    permissions: BANKING,
+  },
+  {
+    href: "/accounting/banking/transfers",
+    label: "Transfers",
+    section: "Banking",
+    permissions: BANKING,
+  },
+  {
+    href: "/accounting/banking/entries",
+    label: "Bank entries",
+    section: "Banking",
+    permissions: BANKING,
+  },
+  {
+    href: "/accounting/banking/petty-cash",
+    label: "Petty cash",
+    section: "Banking",
+    permissions: BANKING,
+  },
+  {
+    href: "/accounting/banking/cheques",
+    label: "Cheques",
+    section: "Banking",
+    permissions: BANKING,
   },
   {
     href: "/accounting/trial-balance",

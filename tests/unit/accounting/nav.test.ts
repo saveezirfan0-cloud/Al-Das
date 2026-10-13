@@ -45,6 +45,7 @@ describe("Accounting navigation", () => {
       "Overview",
       "Ledger",
       "Sales & receivables",
+      "Banking",
       "Reports",
       "Close",
       "Setup",

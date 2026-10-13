@@ -15,6 +15,12 @@ export const WHATS_NEW: readonly WhatsNewEntry[] = [
     body: "Pulse now writes the journals itself: Unite invoices (revenue by service category, the insurer's and the patient's share, discounts and VAT), payments and refunds, insurance remittances, final denials, supplier bills, paid vouchers, the doctor revenue share and its payouts, lab statements, cash-up differences and card, Tabby and EPG settlements with their fees. Where each amount goes is set under Accounting, Posting rules, which also lists what is not mapped yet; a service category without a VAT code waits rather than guessing. Until the ledger start date (Entities and fiscal years) Tally stays the book of record: Pulse only previews what it would post, and Posting preview compares that with the Tally figures month by month. Anything that cannot post is listed under Waiting to post with the reason.",
   },
   {
+    id: "2026-11-09-accounting-banking",
+    date: "2026-11-09",
+    title: "Accounting: banking, petty cash and cheques",
+    body: "Accounting has a Banking section. Each bank account is linked to its ledger (or gets a new one under Bank Accounts or Bank OD A/c), and the bank position compares the books with the balance on the bank statement, allowing for cheques not yet through the bank. Transfers between banks, cash deposits and petty cash top-ups post as Contra vouchers. Bank charges, interest and direct debits can be entered by hand or straight from a statement line nothing explains yet, which then shows as matched in the bank reconciliation. Each branch can keep a petty cash float with receipts and a monthly count signed by a second person. The cheque register holds cheques issued and received: post-dated cheques post on their date, and a bounced cheque reverses its posting and flags the party.",
+  },
+  {
     id: "2026-11-08-chronic-recall-alignment",
     date: "2026-11-08",
     title: "Chronic recall: only chronic diagnoses count",

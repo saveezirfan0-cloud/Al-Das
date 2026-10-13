@@ -66,7 +66,17 @@ const Check = ({ name, label, checked }: { name: string; label: string; checked:
   </label>
 );
 
-export function AccountButton({ account }: { account?: AccountView }) {
+/**
+ * offerLedger: the person also keeps the books (accounting.banking.manage), so a new account can get its ledger in
+ * Accounting at once (under Bank Accounts or Bank OD A/c).
+ */
+export function AccountButton({
+  account,
+  offerLedger = false,
+}: {
+  account?: AccountView;
+  offerLedger?: boolean;
+}) {
   return (
     <FormSheet
       trigger={account ? "Edit" : "Add account"}
@@ -115,6 +125,20 @@ export function AccountButton({ account }: { account?: AccountView }) {
             checked={account?.receives_insurance ?? false}
           />
           <Check name="active" label="Active" checked={account?.active ?? true} />
+          {!account && offerLedger && (
+            <>
+              <Field label="Its ledger in Accounting">
+                <select name="create_ledger" className={selectClass} defaultValue="">
+                  <option value="">Not now (link it later under Accounting, Banking)</option>
+                  <option value="bank">Create it under Bank Accounts</option>
+                  <option value="od">Create it under Bank OD A/c (overdraft)</option>
+                </select>
+              </Field>
+              <Field label="Ledger code" hint="Needed when the ledger is created, for example 1151.">
+                <Input name="ledger_code" maxLength={20} />
+              </Field>
+            </>
+          )}
         </ActionForm>
       )}
     </FormSheet>

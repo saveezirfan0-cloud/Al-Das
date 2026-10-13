@@ -995,3 +995,124 @@ export const PHASE22_TABLES = [
 
 /** Phase 22D service-only tables: RLS on, no policy (the runner's cursors). */
 export const PHASE22_SERVICE_ONLY_TABLES = ["acc_posting_cursors"] as const;
+
+/**
+ * One row in every Phase 22F (banking and cash) table for an org, through the banking functions as `userId` (who must
+ * hold accounting.banking.manage, e.g. the org's admin). Synthetic amounts only.
+ */
+export async function seedPhase22FRows(c: Client, orgId: string, userId: string) {
+  await asServiceRole(c, async () => {
+    const one = async (sql: string, p: unknown[]) => (await c.query(sql, p)).rows[0];
+    const bank = (
+      await one(
+        "insert into public.fin_bank_accounts (org_id, name, bank_name, last4) values ($1, 'Seed 22F', 'Synthetic Bank', '2222') returning id",
+        [orgId],
+      )
+    ).id as string;
+    await one(
+      "select public.acc_bank_create_ledger($1, $2, $3, 'bank', 'SEED-BANK', 'Seed bank ledger') as r",
+      [orgId, userId, bank],
+    );
+    const gl = (await one("select gl_account_id as id from public.fin_bank_accounts where id = $1", [bank]))
+      .id as string;
+    const cash = (
+      await one(
+        "select id from public.acc_accounts where org_id = $1 and control = 'cash' order by code limit 1",
+        [orgId],
+      )
+    ).id;
+    const fee = (await one("select id from public.acc_accounts where org_id = $1 and code = '6500'", [orgId])).id;
+    const recv = (await one("select id from public.acc_accounts where org_id = $1 and code = '1210'", [orgId])).id;
+    await one("select public.acc_bank_statement_balance_save($1, $2, $3, '2026-07-31', 100) as r", [
+      orgId,
+      userId,
+      bank,
+    ]);
+    await one("select public.acc_bank_transfer_create($1, $2, $3::jsonb) as r", [
+      orgId,
+      userId,
+      JSON.stringify({
+        kind: "transfer",
+        transfer_date: "2026-07-02",
+        from_account_id: cash,
+        to_account_id: gl,
+        amount: 50,
+        narration: "Seed",
+      }),
+    ]);
+    await one("select public.acc_bank_entry_create($1, $2, $3::jsonb) as r", [
+      orgId,
+      userId,
+      JSON.stringify({
+        bank_account_id: bank,
+        entry_date: "2026-07-03",
+        kind: "bank_charge",
+        amount: 5,
+        account_id: fee,
+        narration: "Seed fee",
+      }),
+    ]);
+    const float = (
+      await one("select public.acc_petty_cash_float_save($1, $2, $3::jsonb) as r", [
+        orgId,
+        userId,
+        JSON.stringify({ name: "Seed float", imprest_amount: 100, code: "SEED-PC" }),
+      ])
+    ).r.id as string;
+    await one("select public.acc_petty_cash_expense_create($1, $2, $3::jsonb) as r", [
+      orgId,
+      userId,
+      JSON.stringify({
+        float_id: float,
+        expense_date: "2026-07-04",
+        amount: 1,
+        account_id: fee,
+        narration: "Seed expense",
+      }),
+    ]);
+    await one("select public.acc_petty_cash_count_prepare($1, $2, $3, '2026-07-31', 0, 'Seed count') as r", [
+      orgId,
+      userId,
+      float,
+    ]);
+    await one("select public.acc_cheque_book_save($1, $2, $3::jsonb) as r", [
+      orgId,
+      userId,
+      JSON.stringify({ bank_account_id: bank, first_number: "1", last_number: "50" }),
+    ]);
+    const cheque = (
+      await one("select public.acc_cheque_register($1, $2, $3::jsonb, '2026-07-10') as r", [
+        orgId,
+        userId,
+        JSON.stringify({
+          direction: "received",
+          bank_account_id: bank,
+          cheque_no: "900",
+          cheque_date: "2026-07-05",
+          recorded_on: "2026-07-05",
+          amount: 10,
+          party_kind: "other",
+          party_name: "Seed customer",
+          counter_account_id: recv,
+        }),
+      ])
+    ).r.id as string;
+    await one(
+      "select public.acc_cheque_act($1, $2, $3, 'bounce', '2026-07-06', 'seed bounce', null, '2026-07-10') as r",
+      [orgId, userId, cheque],
+    );
+  });
+}
+
+/** Phase 22F tables (banking and cash) with a browser (select) policy; seedPhase22FRows fills every one. */
+export const PHASE22F_TABLES = [
+  "acc_bank_entries",
+  "acc_bank_statement_balances",
+  "acc_bank_transfers",
+  "acc_cheque_books",
+  "acc_cheques",
+  "acc_party_flags",
+  "acc_petty_cash_counts",
+  "acc_petty_cash_expenses",
+  "acc_petty_cash_floats",
+] as const;
