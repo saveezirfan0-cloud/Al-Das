@@ -6,7 +6,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   CHRONIC_MIN_VISITS_KEY,
+  chronicFlagSkip,
   deriveChronicConditions,
+  effectiveLastVisitDate,
+  isCalendarDate,
   toApplyRows,
   type ChronicDiagnosisFact,
 } from "@/lib/clinical/chronic";
@@ -162,6 +165,44 @@ describe("chronic conditions from visit diagnoses", () => {
       last_seen_on: "2026-03-01",
       evidence_visits: 2,
     });
+  });
+
+  it("refuses a visit date that is not a real calendar date (fail closed)", () => {
+    const s = signedSettings({ [CHRONIC_MIN_VISITS_KEY]: 1 });
+    const r = deriveChronicConditions(
+      [fact({ firstVisitDate: "2026-02-30", lastVisitDate: "2026-02-30" })],
+      s,
+    );
+    expect(r.conditions).toEqual([]);
+    expect(r.skipped).toEqual({ no_visit_date: 1 });
+  });
+});
+
+describe("chronic alignment with Airtable (21B)", () => {
+  it("counts a diagnosis only when its chronic flag is exactly true", () => {
+    expect(chronicFlagSkip(true)).toBeNull();
+    expect(chronicFlagSkip(false)).toBe("not_chronic");
+    expect(chronicFlagSkip(null)).toBe("chronic_flag_unknown");
+    expect(chronicFlagSkip(undefined)).toBe("chronic_flag_unknown");
+  });
+
+  it("counts days from the later of the Pulse visit and Unite's last visit date, ignoring bad dates", () => {
+    expect(effectiveLastVisitDate("2026-05-01", "2026-07-15")).toBe("2026-07-15");
+    expect(effectiveLastVisitDate("2026-08-01", "2026-07-15")).toBe("2026-08-01");
+    // a patient with no visit in Pulse still has Unite's date (150 of Airtable's 445 eligible today)
+    expect(effectiveLastVisitDate(null, "2026-07-15")).toBe("2026-07-15");
+    expect(effectiveLastVisitDate("2026-05-01", undefined)).toBe("2026-05-01");
+    expect(effectiveLastVisitDate("2026-05-01", "2026-02-30")).toBe("2026-05-01");
+    expect(effectiveLastVisitDate("15/07/2026", "")).toBeNull();
+    expect(effectiveLastVisitDate(null, null)).toBeNull();
+  });
+
+  it("recognises real calendar dates only", () => {
+    expect(isCalendarDate("2024-02-29")).toBe(true);
+    expect(isCalendarDate("2026-02-29")).toBe(false);
+    expect(isCalendarDate("2026-13-01")).toBe(false);
+    expect(isCalendarDate("2026-1-01")).toBe(false);
+    expect(isCalendarDate(20260101)).toBe(false);
   });
 });
 
