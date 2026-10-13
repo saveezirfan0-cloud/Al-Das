@@ -162,6 +162,11 @@ describe.skipIf(!TEST_DATABASE_URL)("Accounting fixed assets and schedules (Phas
           "insert into public.memberships (org_id, user_id, role_id) select $1, $2, id from public.roles where org_id = $1 and name = $3",
           [orgA, users[u], role],
         );
+      // 22D's ledger start rule refuses every non-import posting until the date is set (22K)
+      await q(
+        "update public.acc_entities set ledger_start_date = '2000-01-01' where org_id in ($1, $2)",
+        [orgA, orgB],
+      );
     });
   });
   afterAll(async () => {
@@ -190,7 +195,7 @@ describe.skipIf(!TEST_DATABASE_URL)("Accounting fixed assets and schedules (Phas
             cost: "1510",
             accum: "1593",
             expense: "6400",
-            gain: "4910",
+            gain: "4920",
           },
           {
             code: "IT",
@@ -199,7 +204,7 @@ describe.skipIf(!TEST_DATABASE_URL)("Accounting fixed assets and schedules (Phas
             cost: "1520",
             accum: "1592",
             expense: "6400",
-            gain: "4910",
+            gain: "4920",
           },
           {
             code: "LHI",
@@ -208,7 +213,7 @@ describe.skipIf(!TEST_DATABASE_URL)("Accounting fixed assets and schedules (Phas
             cost: "1530",
             accum: "1594",
             expense: "6400",
-            gain: "4910",
+            gain: "4920",
           },
           {
             code: "MED",
@@ -217,7 +222,7 @@ describe.skipIf(!TEST_DATABASE_URL)("Accounting fixed assets and schedules (Phas
             cost: "1500",
             accum: "1591",
             expense: "6400",
-            gain: "4910",
+            gain: "4920",
           },
           {
             code: "VEH",
@@ -226,7 +231,7 @@ describe.skipIf(!TEST_DATABASE_URL)("Accounting fixed assets and schedules (Phas
             cost: "1540",
             accum: "1595",
             expense: "6400",
-            gain: "4910",
+            gain: "4920",
           },
         ]);
       }
@@ -521,7 +526,7 @@ describe.skipIf(!TEST_DATABASE_URL)("Accounting fixed assets and schedules (Phas
         { code: "1592", debit: 200, credit: 0, branch_code: "P" },
         { code: "1150", debit: 3500, credit: 0, branch_code: "P" },
         { code: "1520", debit: 0, credit: 3600, branch_code: "P" },
-        { code: "4910", debit: 0, credit: 100, branch_code: "P" },
+        { code: "4920", debit: 0, credit: 100, branch_code: "P" },
       ]);
       const a = await one<{ status: string }>(
         "select status from public.acc_assets where id = $1",

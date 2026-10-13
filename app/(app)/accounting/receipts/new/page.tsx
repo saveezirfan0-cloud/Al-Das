@@ -6,6 +6,7 @@ import {
   loadCustomers,
   loadOpenInvoices,
   loadReceiptAccounts,
+  loadReceiptCheques,
 } from "@/lib/accounting/receivables-server";
 import { ForbiddenError, can } from "@/lib/auth/can";
 import { requireMember } from "@/lib/auth/session";
@@ -29,13 +30,15 @@ export default async function NewReceiptPage({
   const sp = await searchParams;
   const admin = createAdminClient(); // service role AFTER the permission check
   const customers = (await loadCustomers(admin, member.orgId)).filter((c) => c.active);
-  const customer = customers.find((c) => UUID.test(sp.customer ?? "") && c.id === sp.customer) ?? null;
-  const [accounts, invoices] = customer
+  const customer =
+    customers.find((c) => UUID.test(sp.customer ?? "") && c.id === sp.customer) ?? null;
+  const [accounts, invoices, cheques] = customer
     ? await Promise.all([
         loadReceiptAccounts(admin, member.orgId),
         loadOpenInvoices(admin, member.orgId, customer.id),
+        loadReceiptCheques(admin, member.orgId, customer.id),
       ])
-    : [[], []];
+    : [[], [], []];
 
   return (
     <div className="flex flex-col gap-4">
@@ -46,7 +49,11 @@ export default async function NewReceiptPage({
       <form method="get" className="flex flex-wrap items-end gap-2">
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium">Customer</span>
-          <select name="customer" defaultValue={customer?.id ?? ""} className={`${selectClass} w-72`}>
+          <select
+            name="customer"
+            defaultValue={customer?.id ?? ""}
+            className={`${selectClass} w-72`}
+          >
             <option value="">Choose a customer</option>
             {customers.map((c) => (
               <option key={c.id} value={c.id}>
@@ -64,7 +71,8 @@ export default async function NewReceiptPage({
           <CardContent className="pt-6">
             {accounts.length === 0 ? (
               <p className="text-sm">
-                There is no active bank, cash or clearing ledger to receive into. Add one in the chart of accounts.
+                There is no active bank, cash or clearing ledger to receive into. Add one in the
+                chart of accounts.
               </p>
             ) : (
               <ReceiptForm
@@ -72,6 +80,7 @@ export default async function NewReceiptPage({
                 customerId={customer.id}
                 accounts={accounts}
                 invoices={invoices}
+                cheques={cheques}
                 today={new Date().toISOString().slice(0, 10)}
               />
             )}

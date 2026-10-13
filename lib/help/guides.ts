@@ -727,7 +727,8 @@ export const GUIDES: readonly Guide[] = [
       "Record money received from customers, see who owes what and for how long, and send statements and balance-confirmation letters.",
     steps: [
       "Receipts, New receipt: choose the customer, the date, the amount and the bank or cash account. Pulse allocates it to the oldest open invoice first; change the amounts to allocate by hand. Anything left stays on account.",
-      "Open a receipt to change its allocation, or Void it (a bounced cheque): its journal is reversed and the invoices are open again.",
+      "A receipt by cheque: register the cheque first (Banking, Cheques), then choose it on the receipt. The receipt posts it on the cheque's date, so it is never posted twice; a post-dated cheque's receipt posts on that date.",
+      "Open a receipt to change its allocation, or Void it: its journal is reversed and the invoices are open again. A receipt paid by a registered cheque is voided by bouncing or cancelling the cheque.",
       "Receivables ageing shows each customer's open amounts as at a date: current, 1-30, 31-60, 61-90, 91-120 and over 120 days past due.",
       "Statements: choose the customer and dates; download it as PDF or Excel, or a balance-confirmation letter for the auditors.",
     ],
@@ -820,7 +821,7 @@ export const GUIDES: readonly Guide[] = [
       "Transfers: money between two bank accounts, cash deposited or withdrawn, or a petty cash top-up. Each posts as a Contra voucher at once.",
       "Bank entries: charges, interest and direct debits or credits. Use Create entry on a statement line nothing explains yet; the line then counts as matched in the bank reconciliation.",
       "Petty cash: one float per branch with its own cash ledger. Record each expense with its receipt; at month end count the cash and save the count; someone else signs it.",
-      "Cheques: register cheques we issue (vouchers paid by cheque are listed to register) and cheques we receive. Mark them presented, cleared or bounced; cancel one that was never used.",
+      "Cheques: register cheques we issue (vouchers paid by cheque are listed to register) and cheques we receive. Mark them presented, cleared or bounced; cancel one that was never used. A voucher paid by cheque is posted by its cheque, not again on payment; until its cheque is registered it waits under Waiting to post.",
     ],
     watchOut: [
       "Nothing is edited after it is saved: cancel it (a posted item is reversed) and enter it again.",

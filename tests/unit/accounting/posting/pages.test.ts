@@ -45,14 +45,15 @@ describe("posting pages", () => {
     expect(hrefs(role("Finance"))).toEqual([]);
   });
 
-  it("each page has the posting guide; the release note is the newest", () => {
+  it("each page has the posting guide; the release note is there", () => {
     for (const p of [
       "/accounting/posting-rules",
       "/accounting/waiting",
       "/accounting/posting-preview",
     ])
       expect(guideForPath(p).id).toBe("accounting-posting");
-    expect(WHATS_NEW[0].id).toBe("2026-11-09-accounting-posting-engine");
+    // presence, not position: slices built in parallel each add a note at the top (22K)
+    expect(WHATS_NEW.map((n) => n.id)).toContain("2026-11-09-accounting-posting-engine");
   });
 
   it("every reason the engine records has a sentence, and so do the ledger-start codes", () => {

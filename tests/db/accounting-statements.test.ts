@@ -133,6 +133,11 @@ describe.skipIf(!TEST_DATABASE_URL)("Accounting statements (Phase 22G)", () => {
          on conflict (org_id) do update set acc_large_journal_amount = 1000`,
         [orgA],
       );
+      // 22D's ledger start rule refuses manual journals until the date is set (22K)
+      await q(
+        "update public.acc_entities set ledger_start_date = '2000-01-01' where org_id in ($1, $2)",
+        [orgA, orgB],
+      );
     });
     for (const p of fixture.postings)
       await rpc("acc_post_from_source", [

@@ -132,7 +132,13 @@ export async function loadCustomerOptions(admin: AdminClient, orgId: string) {
 }
 
 export type SalesOptions = {
-  customers: Array<{ id: string; name: string; kind: CustomerKind; trn: string | null; terms: number }>;
+  customers: Array<{
+    id: string;
+    name: string;
+    kind: CustomerKind;
+    trn: string | null;
+    terms: number;
+  }>;
   incomeAccounts: Option[];
   taxCodes: Array<{ id: string; code: string; name: string; rate: number }>;
   branches: Array<{ code: string; name: string }>;
@@ -299,7 +305,13 @@ export type SalesDetail = {
   journal: { id: string; number: string | null } | null;
   customer: CustomerView;
   original: { id: string; number: string | null; invoice_date: string; total: number } | null;
-  creditNotes: Array<{ id: string; number: string | null; invoice_date: string; total: number; status: string }>;
+  creditNotes: Array<{
+    id: string;
+    number: string | null;
+    invoice_date: string;
+    total: number;
+    status: string;
+  }>;
   allocations: Array<{ receipt_id: string; number: string; receipt_date: string; amount: number }>;
   lines: SalesLineView[];
   people: {
@@ -385,9 +397,7 @@ export async function loadSalesDetail(
     einvoice_status: d.einvoice_status,
     journal: journal.data ? { id: journal.data.id, number: journal.data.number } : null,
     customer,
-    original: original.data
-      ? { ...original.data, total: Number(original.data.total) }
-      : null,
+    original: original.data ? { ...original.data, total: Number(original.data.total) } : null,
     creditNotes: (credits.data ?? []).map((c) => ({ ...c, total: Number(c.total) })),
     allocations: (allocs.data ?? [])
       .map((a) => {
@@ -397,7 +407,12 @@ export async function loadSalesDetail(
           status: string;
         } | null;
         return r && r.status === "active"
-          ? { receipt_id: a.receipt_id, number: r.number, receipt_date: r.receipt_date, amount: Number(a.amount) }
+          ? {
+              receipt_id: a.receipt_id,
+              number: r.number,
+              receipt_date: r.receipt_date,
+              amount: Number(a.amount),
+            }
           : null;
       })
       .filter((x): x is NonNullable<typeof x> => !!x),
@@ -505,7 +520,12 @@ export type ReceiptDetail = ReceiptListRow & {
   journal: { id: string; number: string | null } | null;
   void_reason: string | null;
   prepared: string;
-  allocations: Array<{ invoice_id: string; number: string | null; invoice_date: string; amount: number }>;
+  allocations: Array<{
+    invoice_id: string;
+    number: string | null;
+    invoice_date: string;
+    amount: number;
+  }>;
 };
 
 export async function loadReceiptDetail(
@@ -552,7 +572,10 @@ export async function loadReceiptDetail(
     prepared: nameOf(names, r.prepared_by),
     allocations: (allocs.data ?? [])
       .map((a) => {
-        const i = a.acc_sales_invoices as unknown as { number: string | null; invoice_date: string } | null;
+        const i = a.acc_sales_invoices as unknown as {
+          number: string | null;
+          invoice_date: string;
+        } | null;
         return {
           invoice_id: a.invoice_id,
           number: i?.number ?? null,
@@ -575,6 +598,59 @@ export async function loadReceiptAccounts(admin: AdminClient, orgId: string): Pr
     .in("control", ["bank", "cash", "clearing"])
     .order("code");
   return (data ?? []).map((a) => ({ id: a.id, label: `${a.code} ${a.name}` }));
+}
+
+export type ReceiptChequeOption = {
+  id: string;
+  label: string;
+  amount: number;
+  chequeDate: string;
+  /** The ledger of the bank account the cheque is deposited to (the receipt is received into it). */
+  accountId: string | null;
+};
+
+/**
+ * Received cheques in the register (22F) that a receipt by cheque can name (22K): live, not a patient's, from this
+ * customer or with no customer id, and not already on an active receipt. The receipt then owns the bank posting.
+ */
+export async function loadReceiptCheques(
+  admin: AdminClient,
+  orgId: string,
+  customerId: string,
+): Promise<ReceiptChequeOption[]> {
+  const [{ data: cheques }, { data: used }] = await Promise.all([
+    admin
+      .from("acc_cheques")
+      .select(
+        "id, cheque_no, cheque_date, amount, party_kind, party_ref, fin_bank_accounts(gl_account_id, name)",
+      )
+      .eq("org_id", orgId)
+      .eq("direction", "received")
+      .in("status", ["received", "presented", "cleared"])
+      .neq("party_kind", "patient")
+      .order("cheque_date", { ascending: false })
+      .limit(500),
+    admin
+      .from("acc_receipts")
+      .select("cheque_id")
+      .eq("org_id", orgId)
+      .eq("status", "active")
+      .not("cheque_id", "is", null),
+  ]);
+  const taken = new Set((used ?? []).map((r) => r.cheque_id));
+  return (cheques ?? [])
+    .filter((c) => !taken.has(c.id))
+    .filter((c) => c.party_kind !== "customer" || !c.party_ref || c.party_ref === customerId)
+    .map((c) => {
+      const bank = c.fin_bank_accounts as { gl_account_id: string | null; name: string } | null;
+      return {
+        id: c.id,
+        label: `${c.cheque_no} dated ${c.cheque_date} (${bank?.name ?? "bank"})`,
+        amount: Number(c.amount),
+        chequeDate: c.cheque_date,
+        accountId: bank?.gl_account_id ?? null,
+      };
+    });
 }
 
 type OpenItemsRaw = {
@@ -624,7 +700,13 @@ export async function loadOpenInvoices(admin: AdminClient, orgId: string, custom
   const items = await loadOpenItems(admin, orgId, customerId, "2999-12-01");
   return items.invoices
     .filter((i) => i.open > 0)
-    .map((i) => ({ id: i.id, number: i.number, invoiceDate: i.invoice_date, open: i.open, total: i.total }));
+    .map((i) => ({
+      id: i.id,
+      number: i.number,
+      invoiceDate: i.invoice_date,
+      open: i.open,
+      total: i.total,
+    }));
 }
 
 export type AgeingView = {
@@ -633,7 +715,11 @@ export type AgeingView = {
   totals: AgeingRow;
 };
 
-export async function loadAgeing(admin: AdminClient, orgId: string, asOf: string): Promise<AgeingView> {
+export async function loadAgeing(
+  admin: AdminClient,
+  orgId: string,
+  asOf: string,
+): Promise<AgeingView> {
   const [items, customers] = await Promise.all([
     loadOpenItems(admin, orgId, null, asOf),
     loadCustomers(admin, orgId),

@@ -53,10 +53,10 @@ describe.skipIf(!TEST_DATABASE_URL)("Accounting receivables (Phase 22E)", () => 
     (await svc(() => q(sql, p))).rows[0] as T;
   const idOf = async (table: string, col: string, val: string, org = orgA) =>
     (
-      await one<{ id: string }>(`select id from public.${table} where org_id = $1 and ${col} = $2`, [
-        org,
-        val,
-      ])
+      await one<{ id: string }>(
+        `select id from public.${table} where org_id = $1 and ${col} = $2`,
+        [org, val],
+      )
     ).id;
 
   /** Save a draft through acc_sales_doc_save, with expected_total from the TypeScript rules. */
@@ -116,9 +116,12 @@ describe.skipIf(!TEST_DATABASE_URL)("Accounting receivables (Phase 22E)", () => 
         journal_id: string | null;
         invoice_form: string;
       };
-    }>("select public.acc_sales_doc_issue($1, $2, $3, $4) as r", [orgA, id, users[user], hash]).then(
-      (x) => x.r,
-    );
+    }>("select public.acc_sales_doc_issue($1, $2, $3, $4) as r", [
+      orgA,
+      id,
+      users[user],
+      hash,
+    ]).then((x) => x.r);
   const doc = (id: string) =>
     one<{
       status: string;
@@ -154,7 +157,11 @@ describe.skipIf(!TEST_DATABASE_URL)("Accounting receivables (Phase 22E)", () => 
       party_id: string | null;
       payer_id: string | null;
     }>;
-  const issued = async (customer: string, lines: DocLine[], header: Record<string, unknown> = {}) => {
+  const issued = async (
+    customer: string,
+    lines: DocLine[],
+    header: Record<string, unknown> = {},
+  ) => {
     const d = await save("acct", customer, lines, header);
     await issue(d.id, "acct");
     return d.id;
@@ -185,7 +192,18 @@ describe.skipIf(!TEST_DATABASE_URL)("Accounting receivables (Phase 22E)", () => 
   beforeAll(async () => {
     c = await connect();
     await resetDb(c);
-    for (const n of ["alice", "bob", "acct", "acct2", "chief", "fm", "ceo", "auditor", "fin", "nobody"])
+    for (const n of [
+      "alice",
+      "bob",
+      "acct",
+      "acct2",
+      "chief",
+      "fm",
+      "ceo",
+      "auditor",
+      "fin",
+      "nobody",
+    ])
       users[n] = await createAuthUser(c, `${n}-ar@example.test`);
     orgA = await createOrg(c, "Org A", "org-a", users.alice);
     orgB = await createOrg(c, "Org B", "org-b", users.bob);
@@ -216,9 +234,10 @@ describe.skipIf(!TEST_DATABASE_URL)("Accounting receivables (Phase 22E)", () => 
         "select 1 from information_schema.columns where table_schema = 'public' and table_name = 'acc_entities' and column_name = 'ledger_start_date'",
       );
       if (col.rowCount)
-        await q("update public.acc_entities set ledger_start_date = '2020-01-01' where org_id = $1", [
-          orgA,
-        ]);
+        await q(
+          "update public.acc_entities set ledger_start_date = '2020-01-01' where org_id = $1",
+          [orgA],
+        );
       const cust = async (name: string, kind: string, extra: Record<string, unknown> = {}) =>
         (
           await q(
@@ -229,7 +248,10 @@ describe.skipIf(!TEST_DATABASE_URL)("Accounting receivables (Phase 22E)", () => 
         ).rows[0].id as string;
       ids.corp = await cust("Synthetic Corporate LLC", "corporate", { trn: "100000000000003" });
       ids.tenant = await cust("Synthetic Tenant", "tenant", { terms: 0 });
-      ids.insurer = await cust("Synthetic Insurer", "insurer", { payer_id: "PAYER-SYN", trn: "100000000000011" });
+      ids.insurer = await cust("Synthetic Insurer", "insurer", {
+        payer_id: "PAYER-SYN",
+        trn: "100000000000011",
+      });
       ids.other = await cust("Synthetic Other", "other");
     });
     ids.bank = await idOf("acc_accounts", "code", "1150");
@@ -244,13 +266,14 @@ describe.skipIf(!TEST_DATABASE_URL)("Accounting receivables (Phase 22E)", () => 
       for (const org of [orgA, orgB]) {
         const { rows } = await svc(() =>
           q(
-            "select code, control, nature from public.acc_accounts where org_id = $1 and code in ('1220', '4910') order by code",
+            "select code, name, control, nature from public.acc_accounts where org_id = $1 and code in ('1230', '4910') order by code",
             [org],
           ),
         );
         expect(rows).toEqual([
-          { code: "1220", control: "receivable", nature: "asset" },
-          { code: "4910", control: null, nature: "income" },
+          // 22K: 1230 (1220 is 22D's corporate receivable)
+          { code: "1230", name: "Customer receivables", control: "receivable", nature: "asset" },
+          { code: "4910", name: "Rental income", control: null, nature: "income" },
         ]);
         const s = await one<{ t: string; l: string }>(
           "select issue_approval_threshold::text as t, simplified_invoice_limit::text as l from public.acc_ar_settings where org_id = $1",
@@ -308,28 +331,29 @@ describe.skipIf(!TEST_DATABASE_URL)("Accounting receivables (Phase 22E)", () => 
       );
       const rc = await idOf("acc_tax_codes", "code", "RC5");
       const e = await fails(
-        one(
-          "select public.acc_sales_doc_save($1, $2, null, $3::jsonb, $4::jsonb)",
-          [
-            orgA,
-            users.acct,
-            JSON.stringify({ customer_id: ids.corp, invoice_date: "2026-07-10", expected_total: 105 }),
-            JSON.stringify([
-              {
-                description: "x",
-                quantity: 1,
-                unit_price: 100,
-                income_account_id: await idOf("acc_accounts", "code", "4190"),
-                tax_code_id: rc,
-              },
-            ]),
-          ],
-        ),
+        one("select public.acc_sales_doc_save($1, $2, null, $3::jsonb, $4::jsonb)", [
+          orgA,
+          users.acct,
+          JSON.stringify({
+            customer_id: ids.corp,
+            invoice_date: "2026-07-10",
+            expected_total: 105,
+          }),
+          JSON.stringify([
+            {
+              description: "x",
+              quantity: 1,
+              unit_price: 100,
+              income_account_id: await idOf("acc_accounts", "code", "4190"),
+              tax_code_id: rc,
+            },
+          ]),
+        ]),
       );
       expect(hint(e)).toBe("sales_tax_code");
-      expect(hint(await fails(save("acct", ids.corp, [{ quantity: 1, unit_price: 5, income: "6200" }])))).toBe(
-        "income_account",
-      );
+      expect(
+        hint(await fails(save("acct", ids.corp, [{ quantity: 1, unit_price: 5, income: "6200" }]))),
+      ).toBe("income_account");
       expect(hint(await fails(save("fin", ids.corp, lines)))).toBe("not_permitted");
       await one("select public.acc_sales_doc_discard($1, $2, $3)", [orgA, ok.id, users.acct]);
     });
@@ -351,7 +375,7 @@ describe.skipIf(!TEST_DATABASE_URL)("Accounting receivables (Phase 22E)", () => 
       expect(Number(row.total)).toBe(1350);
       const jl = await journalLines(r.journal_id!);
       expect(jl.map((l) => [l.code, l.debit, l.credit])).toEqual([
-        ["1220", 1350, 0],
+        ["1230", 1350, 0],
         ["4190", 0, 1000],
         ["4100", 0, 300],
         ["2200", 0, 50],
@@ -368,17 +392,26 @@ describe.skipIf(!TEST_DATABASE_URL)("Accounting receivables (Phase 22E)", () => 
     it("gives the number back when an issue is refused, and starts a new series in a new fiscal year", async () => {
       const d = await save("acct", ids.tenant, [{ quantity: 1, unit_price: 100, income: "4910" }]);
       await svc(() =>
-        q("update public.acc_accounts set is_active = false where org_id = $1 and code = '4910'", [orgA]),
+        q("update public.acc_accounts set is_active = false where org_id = $1 and code = '4910'", [
+          orgA,
+        ]),
       );
       expect(hint(await fails(issue(d.id, "acct")))).toBe("account_inactive");
       await svc(() =>
-        q("update public.acc_accounts set is_active = true where org_id = $1 and code = '4910'", [orgA]),
+        q("update public.acc_accounts set is_active = true where org_id = $1 and code = '4910'", [
+          orgA,
+        ]),
       );
       expect((await issue(d.id, "acct")).number).toBe("SI/2026-27/00002");
       // 30 June belongs to the previous fiscal year (July to June)
-      const old = await save("acct", ids.tenant, [{ quantity: 1, unit_price: 100, income: "4910" }], {
-        invoice_date: "2026-06-30",
-      });
+      const old = await save(
+        "acct",
+        ids.tenant,
+        [{ quantity: 1, unit_price: 100, income: "4910" }],
+        {
+          invoice_date: "2026-06-30",
+        },
+      );
       expect((await issue(old.id, "acct")).number).toBe("SI/2025-26/00001");
       const t = await doc(d.id);
       expect(t.due_date).toBe("2026-07-10"); // no credit terms
@@ -392,7 +425,9 @@ describe.skipIf(!TEST_DATABASE_URL)("Accounting receivables (Phase 22E)", () => 
 
     it("above the approval limit needs a different person with the approval permission and the reviewed hash", async () => {
       await svc(() =>
-        q("update public.acc_ar_settings set issue_approval_threshold = 1000 where org_id = $1", [orgA]),
+        q("update public.acc_ar_settings set issue_approval_threshold = 1000 where org_id = $1", [
+          orgA,
+        ]),
       );
       try {
         const d = await save("acct", ids.corp, [{ quantity: 1, unit_price: 2000 }]);
@@ -415,9 +450,10 @@ describe.skipIf(!TEST_DATABASE_URL)("Accounting receivables (Phase 22E)", () => 
         expect(code(e)).toBe("23514");
       } finally {
         await svc(() =>
-          q("update public.acc_ar_settings set issue_approval_threshold = 50000 where org_id = $1", [
-            orgA,
-          ]),
+          q(
+            "update public.acc_ar_settings set issue_approval_threshold = 50000 where org_id = $1",
+            [orgA],
+          ),
         );
       }
     });
@@ -425,30 +461,39 @@ describe.skipIf(!TEST_DATABASE_URL)("Accounting receivables (Phase 22E)", () => 
     it("keeps an issued document as it is: no edit, no delete, no line change", async () => {
       const id = await issued(ids.corp, [{ quantity: 1, unit_price: 10 }]);
       expect(
-        hint(await fails(svc(() => q("update public.acc_sales_invoices set total = 1 where id = $1", [id])))),
+        hint(
+          await fails(
+            svc(() => q("update public.acc_sales_invoices set total = 1 where id = $1", [id])),
+          ),
+        ),
       ).toBe("posted_immutable");
-      expect(hint(await fails(svc(() => q("delete from public.acc_sales_invoices where id = $1", [id]))))).toBe(
-        "posted_immutable",
-      );
+      expect(
+        hint(
+          await fails(svc(() => q("delete from public.acc_sales_invoices where id = $1", [id]))),
+        ),
+      ).toBe("posted_immutable");
       expect(
         hint(
           await fails(
             svc(() =>
-              q("update public.acc_sales_invoice_lines set description = 'x' where invoice_id = $1", [id]),
+              q(
+                "update public.acc_sales_invoice_lines set description = 'x' where invoice_id = $1",
+                [id],
+              ),
             ),
           ),
         ),
       ).toBe("posted_immutable");
-      expect(hint(await fails(save("acct", ids.corp, [{ quantity: 1, unit_price: 10 }], {}, id)))).toBe(
-        "wrong_status",
-      );
+      expect(
+        hint(await fails(save("acct", ids.corp, [{ quantity: 1, unit_price: 10 }], {}, id))),
+      ).toBe("wrong_status");
     });
 
     it("voids with a credit note in full that reverses income, VAT and the receivable", async () => {
       const id = await issued(ids.insurer, [{ quantity: 4, unit_price: 250, branch_code: "G" }]);
       const inv = await doc(id);
       const jl = await journalLines(inv.journal_id!);
-      expect(jl[0]).toMatchObject({ code: "1220", debit: 1050, payer_id: "PAYER-SYN" });
+      expect(jl[0]).toMatchObject({ code: "1230", debit: 1050, payer_id: "PAYER-SYN" });
       const v = await one<{ r: { credit_note_id: string; credit_note_number: string } }>(
         "select public.acc_sales_invoice_void($1, $2, $3, '2026-07-20', 'Synthetic void') as r",
         [orgA, id, users.acct],
@@ -469,7 +514,11 @@ describe.skipIf(!TEST_DATABASE_URL)("Accounting receivables (Phase 22E)", () => 
       expect(
         hint(
           await fails(
-            one("select public.acc_sales_invoice_void($1, $2, $3, '2026-07-20', 'again')", [orgA, id, users.acct]),
+            one("select public.acc_sales_invoice_void($1, $2, $3, '2026-07-20', 'again')", [
+              orgA,
+              id,
+              users.acct,
+            ]),
           ),
         ),
       ).toBe("wrong_status");
@@ -534,20 +583,23 @@ describe.skipIf(!TEST_DATABASE_URL)("Accounting receivables (Phase 22E)", () => 
         "select public.acc_ar_open_items($1, $2, '2026-12-31') as r",
         [orgA, ids.tenant],
       ).then((x) => x.r.invoices);
-      const before = open.filter((o) => ![i1, i2, i3].includes(o.id)).reduce((s, o) => s + Number(o.open), 0);
+      const before = open
+        .filter((o) => ![i1, i2, i3].includes(o.id))
+        .reduce((s, o) => s + Number(o.open), 0);
       const r = await receipt(ids.tenant, before + 105 + 100, null, "2026-08-20");
       expect(r.number).toBe("RV/2026-27/00001");
       expect(Number(r.allocated)).toBe(before + 205);
       expect(await doc(i1)).toMatchObject({ status: "paid", amount_paid: "105.00" });
       expect(await doc(i2)).toMatchObject({ status: "part_paid", amount_paid: "100.00" });
       expect((await doc(i3)).status).toBe("issued");
-      const j = await one<{ journal_id: string }>("select journal_id from public.acc_receipts where id = $1", [
-        r.id,
-      ]);
+      const j = await one<{ journal_id: string }>(
+        "select journal_id from public.acc_receipts where id = $1",
+        [r.id],
+      );
       const jl = await journalLines(j.journal_id);
       expect(jl.map((l) => [l.code, l.debit, l.credit])).toEqual([
         ["1150", before + 205, 0],
-        ["1220", 0, before + 205],
+        ["1230", 0, before + 205],
       ]);
     });
 
@@ -559,7 +611,16 @@ describe.skipIf(!TEST_DATABASE_URL)("Accounting receivables (Phase 22E)", () => 
         "over_allocated",
       );
       expect(
-        hint(await fails(receipt(ids.tenant, 50, [{ invoice_id: (await save("acct", ids.corp, [{ quantity: 1, unit_price: 1 }])).id, amount: 1 }]))),
+        hint(
+          await fails(
+            receipt(ids.tenant, 50, [
+              {
+                invoice_id: (await save("acct", ids.corp, [{ quantity: 1, unit_price: 1 }])).id,
+                amount: 1,
+              },
+            ]),
+          ),
+        ),
       ).toBe("allocation_customer");
       const r = await receipt(ids.tenant, 500, [{ invoice_id: i3, amount: 300 }]);
       expect(Number(r.allocated)).toBe(300);
@@ -585,7 +646,11 @@ describe.skipIf(!TEST_DATABASE_URL)("Accounting receivables (Phase 22E)", () => 
       expect(
         hint(
           await fails(
-            one("select public.acc_sales_invoice_void($1, $2, $3, '2026-08-30', 'Synthetic')", [orgA, i3, users.acct]),
+            one("select public.acc_sales_invoice_void($1, $2, $3, '2026-08-30', 'Synthetic')", [
+              orgA,
+              i3,
+              users.acct,
+            ]),
           ),
         ),
       ).toBe("has_receipts");
@@ -606,28 +671,37 @@ describe.skipIf(!TEST_DATABASE_URL)("Accounting receivables (Phase 22E)", () => 
       );
       expect(j.status).toBe("reversed");
       expect(
-        hint(await fails(svc(() => q("update public.acc_receipts set amount = 1 where id = $1", [ids.manualReceipt])))),
+        hint(
+          await fails(
+            svc(() =>
+              q("update public.acc_receipts set amount = 1 where id = $1", [ids.manualReceipt]),
+            ),
+          ),
+        ),
       ).toBe("posted_immutable");
     });
 
     it("the statement and the open items agree with the ledger for the customer", async () => {
-      const st = await one<{ r: { opening: string; entries: Array<{ debit: string; credit: string }> } }>(
-        "select public.acc_ar_statement($1, $2, '2026-07-01', '2026-12-31') as r",
-        [orgA, ids.tenant],
-      ).then((x) => x.r);
+      const st = await one<{
+        r: { opening: string; entries: Array<{ debit: string; credit: string }> };
+      }>("select public.acc_ar_statement($1, $2, '2026-07-01', '2026-12-31') as r", [
+        orgA,
+        ids.tenant,
+      ]).then((x) => x.r);
       const closing =
         Number(st.opening) + st.entries.reduce((s, e) => s + Number(e.debit) - Number(e.credit), 0);
       const gl = await one<{ b: string }>(
         `select coalesce(sum(l.debit - l.credit), 0)::text as b
          from public.acc_journal_lines l join public.acc_accounts a on a.id = l.account_id
-         where l.org_id = $1 and a.code = '1220' and l.party_kind = 'customer' and l.party_id = $2`,
+         where l.org_id = $1 and a.code = '1230' and l.party_kind = 'customer' and l.party_id = $2`,
         [orgA, ids.tenant],
       );
       expect(Math.round(closing * 100) / 100).toBe(Number(gl.b));
-      const open = await one<{ r: { invoices: Array<{ open: string }>; on_account: Array<{ unallocated: string }> } }>(
-        "select public.acc_ar_open_items($1, $2, '2026-12-31') as r",
-        [orgA, ids.tenant],
-      ).then((x) => x.r);
+      const open = await one<{
+        r: { invoices: Array<{ open: string }>; on_account: Array<{ unallocated: string }> };
+      }>("select public.acc_ar_open_items($1, $2, '2026-12-31') as r", [orgA, ids.tenant]).then(
+        (x) => x.r,
+      );
       const openSum =
         open.invoices.reduce((s, i) => s + Number(i.open), 0) -
         open.on_account.reduce((s, i) => s + Number(i.unallocated), 0);
@@ -655,7 +729,11 @@ describe.skipIf(!TEST_DATABASE_URL)("Accounting receivables (Phase 22E)", () => 
           invoice_date: "2025-12-15",
         });
         const r = await issue(d.id, "acct");
-        expect(r).toMatchObject({ status: "issued", posting_status: "waiting_ledger_start", journal_id: null });
+        expect(r).toMatchObject({
+          status: "issued",
+          posting_status: "waiting_ledger_start",
+          journal_id: null,
+        });
         expect(r.number).toBe("SI/2025-26/00002");
         id = d.id;
         const rc = await receipt(ids.other, 105, null, "2025-12-20");
@@ -689,7 +767,8 @@ describe.skipIf(!TEST_DATABASE_URL)("Accounting receivables (Phase 22E)", () => 
     const seen = (user: string, table: string) =>
       as(user, async () =>
         Number(
-          (await q(`select count(*)::int as n from public.${table} where org_id = $1`, [orgA])).rows[0].n,
+          (await q(`select count(*)::int as n from public.${table} where org_id = $1`, [orgA]))
+            .rows[0].n,
         ),
       );
     const TABLES = [

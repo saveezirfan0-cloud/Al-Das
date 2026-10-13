@@ -117,6 +117,7 @@ export const REASON_CODES = [
   "package_deferral",
   "no_date",
   "foreign_currency",
+  "cheque_not_registered",
 ] as const;
 export type ReasonCode = (typeof REASON_CODES)[number];
 export type Reason = { code: ReasonCode; detail: string };

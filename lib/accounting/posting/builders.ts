@@ -93,6 +93,8 @@ export type VoucherRecord = {
   branch: string | null;
   pay_from: string | null;
   method: string;
+  /** A live cheque (issued, presented or cleared) is registered for the voucher in the cheque register (22F). */
+  cheque_live?: boolean;
 };
 
 export type RevshareRecord =
@@ -471,6 +473,22 @@ export function buildSupplierInvoice(rec: SupplierInvoiceRecord, ctx: PostingCon
 export function buildVoucher(rec: VoucherRecord, ctx: PostingContext): BuildResult {
   if (rec.status !== "paid") return { action: "withdraw" };
   const amount = fils(rec.amount);
+  // 22K, one journal per economic event: the cheque register owns the bank side of a voucher paid by cheque (it posts
+  // Dr payable / Cr bank on the cheque's date). Nothing here while a live cheque is registered; otherwise it waits.
+  if (rec.method.trim().toLowerCase() === "cheque") {
+    if (rec.cheque_live) return { action: "nothing", date: rec.date };
+    return {
+      action: "reasons",
+      reasons: [
+        {
+          code: "cheque_not_registered",
+          detail: `Voucher ${rec.voucher_no} is paid by cheque: register the cheque (Banking, Cheques)`,
+        },
+      ],
+      date: rec.date,
+      amount: fromFils(amount),
+    };
+  }
   if (!rec.date) return noDate(fromFils(amount));
   if ((rec.currency || "AED").toUpperCase() !== "AED")
     return {

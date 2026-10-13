@@ -463,6 +463,23 @@ describe("supplier invoices and vouchers", () => {
     for (const status of ["draft", "approved", "for_tally", "cancelled", "rejected"])
       expect(buildVoucher({ ...v, status }, ctx)).toEqual({ action: "withdraw" });
   });
+
+  it("leaves a voucher paid by cheque to the cheque register (22K): nothing, or waiting for the cheque", () => {
+    const v = { ...(sources.voucher as VoucherRecord), method: "cheque" };
+    expect(buildVoucher({ ...v, cheque_live: true }, ctx)).toEqual({
+      action: "nothing",
+      date: "2027-07-20",
+    });
+    const w = buildVoucher({ ...v, cheque_live: false }, ctx);
+    expect(w.action === "reasons" && w.reasons.map((r) => r.code)).toEqual([
+      "cheque_not_registered",
+    ]);
+    expect(w.action === "reasons" && w.amount).toBe(600);
+    // not paid yet: withdrawn as before
+    expect(buildVoucher({ ...v, status: "approved", cheque_live: true }, ctx)).toEqual({
+      action: "withdraw",
+    });
+  });
 });
 
 describe("revenue share, labs, cash-ups and settlements", () => {

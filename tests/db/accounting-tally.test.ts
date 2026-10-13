@@ -635,6 +635,12 @@ describe.skipIf(!TEST_DATABASE_URL)("Tally import and year-end close (Phase 22I)
       );
 
     beforeAll(async () => {
+      // the synthetic postings below are Pulse's own (source 'voucher'): 22D's ledger start must be set first (22K)
+      await svc(() =>
+        q("update public.acc_entities set ledger_start_date = '2000-01-01' where org_id = $1", [
+          orgB,
+        ]),
+      );
       await post("YE-0", "2026-03-01", [
         { account_code: "6200", debit: 20 },
         { account_code: "9000", credit: 20 },
