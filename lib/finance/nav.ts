@@ -50,6 +50,30 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
     permissions: ["finance.forecast.view"],
   },
   {
+    href: "/finance/insurance",
+    label: "Insurance overview",
+    section: "Overview",
+    permissions: ["finance.claims.view"],
+  },
+  {
+    href: "/finance/branches",
+    label: "Branches",
+    section: "Overview",
+    permissions: ["finance.view"],
+  },
+  {
+    href: "/finance/doctors",
+    label: "Doctors",
+    section: "Overview",
+    permissions: ["finance.revenue.view"],
+  },
+  {
+    href: "/finance/profitability",
+    label: "Profitability",
+    section: "Overview",
+    permissions: ["finance.profit.view"],
+  },
+  {
     href: "/finance/invoices",
     label: "Invoices",
     section: "Billing and claims",
@@ -132,6 +156,12 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
     label: "Accounting export",
     section: "Money",
     permissions: ["finance.export.run"],
+  },
+  {
+    href: "/finance/costs",
+    label: "Costs",
+    section: "Money",
+    permissions: ["finance.costs.manage", "finance.costs.view", "finance.costs.compensation"],
   },
   {
     href: "/finance/health",

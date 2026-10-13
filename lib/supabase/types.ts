@@ -3917,6 +3917,205 @@ export type Database = {
           },
         ];
       };
+      fin_cost_doctor_comp: {
+        Row: {
+          amount: number;
+          created_at: string;
+          created_by: string | null;
+          doctor_dha_id: string;
+          id: string;
+          month: string;
+          note: string | null;
+          org_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          amount: number;
+          created_at?: string;
+          created_by?: string | null;
+          doctor_dha_id: string;
+          id?: string;
+          month: string;
+          note?: string | null;
+          org_id: string;
+        };
+        Update: {
+          amount?: number;
+          created_at?: string;
+          created_by?: string | null;
+          doctor_dha_id?: string;
+          id?: string;
+          month?: string;
+          note?: string | null;
+          org_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_cost_doctor_comp_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_cost_doctor_comp_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      fin_cost_overheads: {
+        Row: {
+          amount: number;
+          basis: string;
+          branch_code: string | null;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          month: string;
+          note: string | null;
+          org_id: string;
+          pool: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          amount: number;
+          basis?: string;
+          branch_code?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          month: string;
+          note?: string | null;
+          org_id: string;
+          pool: string;
+        };
+        Update: {
+          amount?: number;
+          basis?: string;
+          branch_code?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          month?: string;
+          note?: string | null;
+          org_id?: string;
+          pool?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_cost_overheads_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_cost_overheads_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      fin_cost_periods: {
+        Row: {
+          approved_at: string | null;
+          approved_by: string | null;
+          month: string;
+          note: string | null;
+          org_id: string;
+          status: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          approved_at?: string | null;
+          approved_by?: string | null;
+          month: string;
+          note?: string | null;
+          org_id: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          approved_at?: string | null;
+          approved_by?: string | null;
+          month?: string;
+          note?: string | null;
+          org_id?: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_cost_periods_approved_by_fkey";
+            columns: ["approved_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_cost_periods_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      fin_cost_services: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          effective_from: string;
+          id: string;
+          item_code: string;
+          note: string | null;
+          org_id: string;
+          unit_cost: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          effective_from: string;
+          id?: string;
+          item_code: string;
+          note?: string | null;
+          org_id: string;
+          unit_cost: number;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          effective_from?: string;
+          id?: string;
+          item_code?: string;
+          note?: string | null;
+          org_id?: string;
+          unit_cost?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_cost_services_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_cost_services_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       fin_eligibility_checks: {
         Row: {
           appointment_id: string | null;
@@ -3985,6 +4184,13 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "fin_eligibility_checks_appointment_id_fkey";
+            columns: ["appointment_id"];
+            isOneToOne: false;
+            referencedRelation: "v_appointment_facts";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "fin_eligibility_checks_checked_by_fkey";
             columns: ["checked_by"];
             isOneToOne: false;
@@ -3997,6 +4203,20 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "contacts";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_eligibility_checks_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_birthday_today";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "fin_eligibility_checks_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_chronic_recall_eligibility";
+            referencedColumns: ["contact_id"];
           },
           {
             foreignKeyName: "fin_eligibility_checks_created_by_fkey";
@@ -4110,6 +4330,13 @@ export type Database = {
             foreignKeyName: "fin_invoice_lines_invoice_id_fkey";
             columns: ["invoice_id"];
             isOneToOne: false;
+            referencedRelation: "v_fin_billing_readiness";
+            referencedColumns: ["invoice_id"];
+          },
+          {
+            foreignKeyName: "fin_invoice_lines_invoice_id_fkey";
+            columns: ["invoice_id"];
+            isOneToOne: false;
             referencedRelation: "v_fin_invoice_list";
             referencedColumns: ["id"];
           },
@@ -4177,6 +4404,13 @@ export type Database = {
             foreignKeyName: "fin_invoice_versions_invoice_id_fkey";
             columns: ["invoice_id"];
             isOneToOne: false;
+            referencedRelation: "v_fin_billing_readiness";
+            referencedColumns: ["invoice_id"];
+          },
+          {
+            foreignKeyName: "fin_invoice_versions_invoice_id_fkey";
+            columns: ["invoice_id"];
+            isOneToOne: false;
             referencedRelation: "v_fin_invoice_list";
             referencedColumns: ["id"];
           },
@@ -4219,8 +4453,13 @@ export type Database = {
           last_received_at: string;
           modified_by: string | null;
           net: number | null;
+          ordering_doctor_dha_id: string | null;
+          ordering_doctor_name: string | null;
           org_id: string;
           patient_pin: string | null;
+          patient_ref: string | null;
+          performing_doctor_dha_id: string | null;
+          performing_doctor_name: string | null;
           record_hash: string;
           ref_type: string | null;
           referral_clinic: string | null;
@@ -4261,8 +4500,13 @@ export type Database = {
           last_received_at?: string;
           modified_by?: string | null;
           net?: number | null;
+          ordering_doctor_dha_id?: string | null;
+          ordering_doctor_name?: string | null;
           org_id: string;
           patient_pin?: string | null;
+          patient_ref?: string | null;
+          performing_doctor_dha_id?: string | null;
+          performing_doctor_name?: string | null;
           record_hash: string;
           ref_type?: string | null;
           referral_clinic?: string | null;
@@ -4302,8 +4546,13 @@ export type Database = {
           last_received_at?: string;
           modified_by?: string | null;
           net?: number | null;
+          ordering_doctor_dha_id?: string | null;
+          ordering_doctor_name?: string | null;
           org_id?: string;
           patient_pin?: string | null;
+          patient_ref?: string | null;
+          performing_doctor_dha_id?: string | null;
+          performing_doctor_name?: string | null;
           record_hash?: string;
           ref_type?: string | null;
           referral_clinic?: string | null;
@@ -4571,6 +4820,13 @@ export type Database = {
             foreignKeyName: "fin_payments_invoice_id_fkey";
             columns: ["invoice_id"];
             isOneToOne: false;
+            referencedRelation: "v_fin_billing_readiness";
+            referencedColumns: ["invoice_id"];
+          },
+          {
+            foreignKeyName: "fin_payments_invoice_id_fkey";
+            columns: ["invoice_id"];
+            isOneToOne: false;
             referencedRelation: "v_fin_invoice_list";
             referencedColumns: ["id"];
           },
@@ -4766,6 +5022,13 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "fin_pre_authorisations_appointment_id_fkey";
+            columns: ["appointment_id"];
+            isOneToOne: false;
+            referencedRelation: "v_appointment_facts";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "fin_pre_authorisations_claim_activity_id_fkey";
             columns: ["claim_activity_id"];
             isOneToOne: false;
@@ -4778,6 +5041,20 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "contacts";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_pre_authorisations_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_birthday_today";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "fin_pre_authorisations_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_chronic_recall_eligibility";
+            referencedColumns: ["contact_id"];
           },
           {
             foreignKeyName: "fin_pre_authorisations_created_by_fkey";
@@ -5097,6 +5374,20 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "fin_recovery_reminders_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_birthday_today";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "fin_recovery_reminders_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_chronic_recall_eligibility";
+            referencedColumns: ["contact_id"];
+          },
+          {
             foreignKeyName: "fin_recovery_reminders_created_by_fkey";
             columns: ["created_by"];
             isOneToOne: false;
@@ -5109,6 +5400,27 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "fin_invoices";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_recovery_reminders_invoice_id_fkey";
+            columns: ["invoice_id"];
+            isOneToOne: false;
+            referencedRelation: "v_fin_billing_readiness";
+            referencedColumns: ["invoice_id"];
+          },
+          {
+            foreignKeyName: "fin_recovery_reminders_invoice_id_fkey";
+            columns: ["invoice_id"];
+            isOneToOne: false;
+            referencedRelation: "v_fin_invoice_list";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_recovery_reminders_invoice_id_fkey";
+            columns: ["invoice_id"];
+            isOneToOne: false;
+            referencedRelation: "v_ins_invoice_match";
+            referencedColumns: ["invoice_id"];
           },
           {
             foreignKeyName: "fin_recovery_reminders_message_id_fkey";
@@ -5357,11 +5669,17 @@ export type Database = {
       };
       fin_ref_finance_settings: {
         Row: {
+          accepted_claim_statuses: string[];
           cashup_variance_tolerance: number;
           denial_cases_start_date: string | null;
           denial_default_resubmit_days: number;
           denial_task_enabled: boolean;
           denial_warn_days: number;
+          doctor_basis: string | null;
+          escalation_days: number;
+          escalation_role: string;
+          evidence_grace_days: number;
+          evidence_start_date: string | null;
           forecast_default_collection_rate: number;
           forecast_default_lag_days: number;
           forecast_horizon_weeks: number;
@@ -5394,11 +5712,17 @@ export type Database = {
         };
         ComputedFields: never;
         Insert: {
+          accepted_claim_statuses?: string[];
           cashup_variance_tolerance?: number;
           denial_cases_start_date?: string | null;
           denial_default_resubmit_days?: number;
           denial_task_enabled?: boolean;
           denial_warn_days?: number;
+          doctor_basis?: string | null;
+          escalation_days?: number;
+          escalation_role?: string;
+          evidence_grace_days?: number;
+          evidence_start_date?: string | null;
           forecast_default_collection_rate?: number;
           forecast_default_lag_days?: number;
           forecast_horizon_weeks?: number;
@@ -5430,11 +5754,17 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          accepted_claim_statuses?: string[];
           cashup_variance_tolerance?: number;
           denial_cases_start_date?: string | null;
           denial_default_resubmit_days?: number;
           denial_task_enabled?: boolean;
           denial_warn_days?: number;
+          doctor_basis?: string | null;
+          escalation_days?: number;
+          escalation_role?: string;
+          evidence_grace_days?: number;
+          evidence_start_date?: string | null;
           forecast_default_collection_rate?: number;
           forecast_default_lag_days?: number;
           forecast_horizon_weeks?: number;
@@ -6250,11 +6580,39 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "household_links_dependant_contact_id_fkey";
+            columns: ["dependant_contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_birthday_today";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "household_links_dependant_contact_id_fkey";
+            columns: ["dependant_contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_chronic_recall_eligibility";
+            referencedColumns: ["contact_id"];
+          },
+          {
             foreignKeyName: "household_links_guardian_contact_id_fkey";
             columns: ["guardian_contact_id"];
             isOneToOne: false;
             referencedRelation: "contacts";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "household_links_guardian_contact_id_fkey";
+            columns: ["guardian_contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_birthday_today";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "household_links_guardian_contact_id_fkey";
+            columns: ["guardian_contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_chronic_recall_eligibility";
+            referencedColumns: ["contact_id"];
           },
           {
             foreignKeyName: "household_links_org_id_fkey";
@@ -6592,6 +6950,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "fin_invoices";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ins_claim_activities_matched_invoice_id_fkey";
+            columns: ["matched_invoice_id"];
+            isOneToOne: false;
+            referencedRelation: "v_fin_billing_readiness";
+            referencedColumns: ["invoice_id"];
           },
           {
             foreignKeyName: "ins_claim_activities_matched_invoice_id_fkey";
@@ -8333,6 +8698,8 @@ export type Database = {
           due_date: string | null;
           entity_key: string;
           entity_type: string;
+          escalated_at: string | null;
+          escalated_from_role: string | null;
           id: string;
           opened_at: string;
           org_id: string;
@@ -8353,6 +8720,8 @@ export type Database = {
           due_date?: string | null;
           entity_key: string;
           entity_type: string;
+          escalated_at?: string | null;
+          escalated_from_role?: string | null;
           id?: string;
           opened_at?: string;
           org_id: string;
@@ -8372,6 +8741,8 @@ export type Database = {
           due_date?: string | null;
           entity_key?: string;
           entity_type?: string;
+          escalated_at?: string | null;
+          escalated_from_role?: string | null;
           id?: string;
           opened_at?: string;
           org_id?: string;
@@ -8640,6 +9011,20 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "contacts";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "patient_documents_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_birthday_today";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "patient_documents_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_chronic_recall_eligibility";
+            referencedColumns: ["contact_id"];
           },
           {
             foreignKeyName: "patient_documents_org_id_fkey";
@@ -9163,6 +9548,20 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "privacy_requests_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_birthday_today";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "privacy_requests_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_chronic_recall_eligibility";
+            referencedColumns: ["contact_id"];
+          },
+          {
             foreignKeyName: "privacy_requests_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
@@ -9303,17 +9702,17 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "quick_replies_media_asset_id_fkey";
-            columns: ["media_asset_id"];
-            isOneToOne: false;
-            referencedRelation: "media_assets";
-            referencedColumns: ["id"];
-          },
-          {
             foreignKeyName: "quick_replies_created_by_fkey";
             columns: ["created_by"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "quick_replies_media_asset_id_fkey";
+            columns: ["media_asset_id"];
+            isOneToOne: false;
+            referencedRelation: "media_assets";
             referencedColumns: ["id"];
           },
           {
@@ -10687,6 +11086,13 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "slot_offers_appointment_id_fkey";
+            columns: ["appointment_id"];
+            isOneToOne: false;
+            referencedRelation: "v_appointment_facts";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "slot_offers_location_id_fkey";
             columns: ["location_id"];
             isOneToOne: false;
@@ -10719,6 +11125,13 @@ export type Database = {
             columns: ["source_appointment_id"];
             isOneToOne: false;
             referencedRelation: "appointments";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "slot_offers_source_appointment_id_fkey";
+            columns: ["source_appointment_id"];
+            isOneToOne: false;
+            referencedRelation: "v_appointment_facts";
             referencedColumns: ["id"];
           },
           {
@@ -12339,11 +12752,32 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "waitlist_entries_booked_appointment_id_fkey";
+            columns: ["booked_appointment_id"];
+            isOneToOne: false;
+            referencedRelation: "v_appointment_facts";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "waitlist_entries_contact_id_fkey";
             columns: ["contact_id"];
             isOneToOne: false;
             referencedRelation: "contacts";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "waitlist_entries_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_birthday_today";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "waitlist_entries_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_chronic_recall_eligibility";
+            referencedColumns: ["contact_id"];
           },
           {
             foreignKeyName: "waitlist_entries_created_by_fkey";
@@ -13225,31 +13659,15 @@ export type Database = {
           transaction_date: string | null;
         };
         ComputedFields: never;
-        Insert: {
-          branch_code?: never;
-          doctor_dha_id?: never;
-          inv_display_number?: never;
-          invoice_id?: never;
-          net?: never;
-          org_id?: never;
-          patient_pin?: never;
-          reasons?: never;
-          total?: never;
-          transaction_date?: never;
-        };
-        Update: {
-          branch_code?: never;
-          doctor_dha_id?: never;
-          inv_display_number?: never;
-          invoice_id?: never;
-          net?: never;
-          org_id?: never;
-          patient_pin?: never;
-          reasons?: never;
-          total?: never;
-          transaction_date?: never;
-        };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "fin_invoices_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       v_fin_claims_status: {
         Row: {
@@ -13306,9 +13724,15 @@ export type Database = {
           capture_enabled: boolean | null;
           claim_count: number | null;
           credentials_configured: boolean | null;
+          escalated_exceptions: number | null;
+          first_claim_date: string | null;
+          first_invoice_date: string | null;
           invoice_count: number | null;
           last_capture_at: string | null;
+          last_claim_date: string | null;
           last_import_at: string | null;
+          last_invoice_date: string | null;
+          last_remittance_at: string | null;
           open_exceptions: number | null;
           org_id: string | null;
         };
@@ -13320,9 +13744,15 @@ export type Database = {
           capture_enabled?: boolean | null;
           claim_count?: never;
           credentials_configured?: never;
+          escalated_exceptions?: never;
+          first_claim_date?: never;
+          first_invoice_date?: never;
           invoice_count?: never;
           last_capture_at?: never;
+          last_claim_date?: never;
           last_import_at?: never;
+          last_invoice_date?: never;
+          last_remittance_at?: never;
           open_exceptions?: never;
           org_id?: string | null;
         };
@@ -13333,9 +13763,15 @@ export type Database = {
           capture_enabled?: boolean | null;
           claim_count?: never;
           credentials_configured?: never;
+          escalated_exceptions?: never;
+          first_claim_date?: never;
+          first_invoice_date?: never;
           invoice_count?: never;
           last_capture_at?: never;
+          last_claim_date?: never;
           last_import_at?: never;
+          last_invoice_date?: never;
+          last_remittance_at?: never;
           open_exceptions?: never;
           org_id?: string | null;
         };
@@ -13404,6 +13840,24 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      v_fin_monthly_measures: {
+        Row: {
+          accepted: number | null;
+          branch_code: string | null;
+          claimed: number | null;
+          generated: number | null;
+          month: string | null;
+          org_id: string | null;
+          outstanding: number | null;
+          paid_allocated: number | null;
+          rejected: number | null;
+          remitted: number | null;
+          self_pay_collected: number | null;
+          status_unknown_claims: number | null;
+        };
+        ComputedFields: never;
+        Relationships: [];
       };
       v_fin_monthly_summary: {
         Row: {
@@ -13661,6 +14115,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "fin_invoices";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_invoice_lines_invoice_id_fkey";
+            columns: ["invoice_id"];
+            isOneToOne: false;
+            referencedRelation: "v_fin_billing_readiness";
+            referencedColumns: ["invoice_id"];
           },
           {
             foreignKeyName: "fin_invoice_lines_invoice_id_fkey";
@@ -14264,10 +14725,7 @@ export type Database = {
         Returns: Json;
       };
       dearmor: { Args: { "": string }; Returns: string };
-      demo_wipe_org: {
-        Args: { p_org_id: string };
-        Returns: Json;
-      };
+      demo_wipe_org: { Args: { p_org_id: string }; Returns: Json };
       enquiries_count: {
         Args: { p_org_id: string; p_params: Json; p_q?: string; p_where: string };
         Returns: number;
@@ -14323,6 +14781,7 @@ export type Database = {
         Args: { p_entity_key: string; p_org_id: string; p_rule_code: string };
         Returns: number;
       };
+      fin_backfill_patient_refs: { Args: { p_limit?: number; p_org_id: string }; Returns: number };
       fin_batch_mark_failed: { Args: { p_batch_id: string; p_error: string }; Returns: undefined };
       fin_capture_enqueue_ticks: { Args: Record<PropertyKey, never>; Returns: number };
       fin_capture_release_lease: {
@@ -14334,20 +14793,12 @@ export type Database = {
         Returns: boolean;
       };
       fin_cashup_expected: {
-        Args: {
-          p_branch: string;
-          p_date: string;
-          p_org_id: string;
-        };
+        Args: { p_branch: string; p_date: string; p_org_id: string };
         Returns: Json;
       };
       fin_cashup_refresh: { Args: { p_cashup_id: string; p_org_id: string }; Returns: undefined };
       fin_cashup_submit: {
-        Args: {
-          p_cashup_id: string;
-          p_org_id: string;
-          p_user_id: string;
-        };
+        Args: { p_cashup_id: string; p_org_id: string; p_user_id: string };
         Returns: undefined;
       };
       fin_close_month_figures: { Args: { p_month: string; p_org_id: string }; Returns: Json };
@@ -14372,15 +14823,24 @@ export type Database = {
         Returns: undefined;
       };
       fin_close_store_snapshot: {
-        Args: {
-          p_month: string;
-          p_org_id: string;
-          p_snapshot: Json;
-          p_user_id: string;
-        };
+        Args: { p_month: string; p_org_id: string; p_snapshot: Json; p_user_id: string };
         Returns: string;
       };
       fin_close_withdraw: { Args: { p_close_id: string; p_org_id: string }; Returns: undefined };
+      fin_cost_set_period: {
+        Args: {
+          p_month: string;
+          p_note: string;
+          p_org_id: string;
+          p_status: string;
+          p_user: string;
+        };
+        Returns: undefined;
+      };
+      fin_cost_upsert: {
+        Args: { p_kind: string; p_org_id: string; p_rows: Json; p_user: string };
+        Returns: number;
+      };
       fin_denial_reasons: {
         Args: {
           p_from: string;
@@ -14391,8 +14851,17 @@ export type Database = {
         };
         Returns: Json;
       };
+      fin_doctor_measures: {
+        Args: { p_from: string; p_org_id: string; p_to: string };
+        Returns: Json;
+      };
+      fin_escalate_exceptions: { Args: { p_org_id: string }; Returns: number };
       fin_forecast_history: { Args: { p_mature_days?: number; p_org_id: string }; Returns: Json };
       fin_forecast_outstanding: { Args: { p_org_id: string }; Returns: Json };
+      fin_insurance_overview: {
+        Args: { p_from: string; p_org_id: string; p_to: string };
+        Returns: Json;
+      };
       fin_invoice_number_gaps: {
         Args: { p_from?: string; p_org_id: string };
         Returns: {
@@ -14404,11 +14873,7 @@ export type Database = {
       };
       fin_is_insurance_type: { Args: { p_inv_type: string }; Returns: boolean };
       fin_journal_source: {
-        Args: {
-          p_from: string;
-          p_org_id: string;
-          p_to: string;
-        };
+        Args: { p_from: string; p_org_id: string; p_to: string };
         Returns: Json;
       };
       fin_link_preauth_claims: { Args: { p_org_id: string }; Returns: number };
@@ -14425,13 +14890,11 @@ export type Database = {
         Returns: string;
       };
       fin_payer_scorecard: {
-        Args: {
-          p_from: string;
-          p_group: string;
-          p_org_id: string;
-          p_payer?: string;
-          p_to: string;
-        };
+        Args: { p_from: string; p_group: string; p_org_id: string; p_payer?: string; p_to: string };
+        Returns: Json;
+      };
+      fin_profit_inputs: {
+        Args: { p_from: string; p_org_id: string; p_to: string };
         Returns: Json;
       };
       fin_rederive_branches: { Args: { p_org_id: string }; Returns: number };
@@ -14456,24 +14919,16 @@ export type Database = {
       };
       fin_run_exception_rules: { Args: { p_org_id: string }; Returns: Json };
       fin_selfpay_balances: {
-        Args: {
-          p_limit?: number;
-          p_min_balance?: number;
-          p_min_days?: number;
-          p_org_id: string;
-        };
+        Args: { p_limit?: number; p_min_balance?: number; p_min_days?: number; p_org_id: string };
         Returns: Json;
       };
+      fin_set_invoice_doctor_roles: { Args: { p_org_id: string; p_rows: Json }; Returns: number };
       fin_sync_denial_cases: { Args: { p_limit?: number; p_org_id: string }; Returns: Json };
       gen_random_uuid: { Args: Record<PropertyKey, never>; Returns: string };
       gen_salt: { Args: { "": string }; Returns: string };
       ins_apply_matches: { Args: { p_matches: Json; p_org_id: string }; Returns: number };
       ins_claims_for_remittance: {
-        Args: {
-          p_invoice_keys: string[];
-          p_numbers: string[];
-          p_org_id: string;
-        };
+        Args: { p_invoice_keys: string[]; p_numbers: string[]; p_org_id: string };
         Returns: Json;
       };
       ins_commit_import: {
@@ -14515,12 +14970,7 @@ export type Database = {
         }[];
       };
       integration_usage_bump: {
-        Args: {
-          p_metric: string;
-          p_n?: number;
-          p_org: string;
-          p_provider: string;
-        };
+        Args: { p_metric: string; p_n?: number; p_org: string; p_provider: string };
         Returns: undefined;
       };
       is_reminder_excluded: {
@@ -15014,10 +15464,7 @@ export type Database = {
       set_presence: { Args: { p_org_id: string; p_presence: string }; Returns: undefined };
       show_limit: { Args: Record<PropertyKey, never>; Returns: number };
       show_trgm: { Args: { "": string }; Returns: string[] };
-      storage_usage_summary: {
-        Args: { p_org: string };
-        Returns: Json;
-      };
+      storage_usage_summary: { Args: { p_org: string }; Returns: Json };
       uuid_generate_v1: { Args: Record<PropertyKey, never>; Returns: string };
       uuid_generate_v1mc: { Args: Record<PropertyKey, never>; Returns: string };
       uuid_generate_v3: { Args: { name: string; namespace: string }; Returns: string };

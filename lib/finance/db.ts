@@ -42,6 +42,19 @@ export function dbProcessDeps(admin: AdminClient): ProcessDeps {
         }),
         "fin_apply_invoices",
       );
+      // Ordering / performing doctor, when Unite sent them: stored apart from the invoice doctor, never overwriting it.
+      const roles = invoices
+        .filter((i) => i.doctor_roles)
+        .map((i) => ({ inv: i.inv_display_number, ...i.doctor_roles }));
+      if (roles.length > 0) {
+        must(
+          await admin.rpc("fin_set_invoice_doctor_roles", {
+            p_org_id: orgId,
+            p_rows: roles as unknown as Json,
+          }),
+          "fin_set_invoice_doctor_roles",
+        );
+      }
       return (counts ?? {}) as Record<string, number>;
     },
     markFailed: async (batchId, error) => {

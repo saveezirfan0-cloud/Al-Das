@@ -119,6 +119,19 @@ describe("middleware two-step verification", () => {
     expect((await updateSession(req("/finance/claims"))).status).toBe(200);
   });
 
+  it("shows a browser a readable page when failing closed, and logs the cause without secrets", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    state.membershipError = { message: "column roles_1.require_mfa does not exist" };
+    const page = await updateSession(req("/dashboard", undefined, { headers: { accept: "text/html" } }));
+    expect(page.status).toBe(503);
+    expect(page.headers.get("content-type")).toContain("text/html");
+    expect(await page.text()).toContain("temporarily unavailable");
+    const api = await updateSession(req("/dashboard", undefined, { headers: { accept: "application/json" } }));
+    expect(await api.json()).toEqual({ error: "temporarily unavailable" });
+    expect(log.mock.calls[0]?.[0]).toContain("require_mfa does not exist");
+    log.mockRestore();
+  });
+
   it("keeps the MFA pages, sign-out and the public routes reachable", async () => {
     state.memberships = [{ org_id: "o1", roles: { require_mfa: true } }];
     for (const path of ["/mfa/enroll", "/mfa/verify", "/auth/signout"])

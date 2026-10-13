@@ -71,6 +71,13 @@ Rules: raw first (if the raw insert fails, process nothing, raise a critical ale
 | `appt.appointments`                                                     | Decided in F3: the platform `appointments` table if it exists, otherwise a thin reference table                                                                      |
 | Feature flag                                                            | Per-org `fin_capture_settings.enabled`, default **false**                                                                                                            |
 
+### F8 as built (Integration Blueprint v2)
+
+- **Migration `20261021000100_finance_blueprint.sql`** (after Phase 18): cost tables (`fin_cost_services`, `fin_cost_overheads`, `fin_cost_doctor_comp`, `fin_cost_periods`) with an approved-month guard, atomic `fin_cost_upsert` / `fin_cost_set_period`; settings (`doctor_basis`, `accepted_claim_statuses`, `evidence_*`, `escalation_*`); `patient_ref` (keyed hash, Vault key); ordering / performing doctor columns; exception rules **E11 to E14** and `fin_escalate_exceptions`; `v_fin_monthly_measures`; `v_fin_data_freshness` with coverage; `fin_profit_inputs` and `fin_doctor_measures` (service role only).
+- **Permissions:** `finance.costs.manage`, `finance.costs.view`, `finance.costs.compensation`, `finance.profit.view`, `finance.profit.approve`; new role **Cost / Payroll**.
+- **Pages:** Costs, Profitability, Doctors, Branches; provenance strip on the analytic pages; escalation badges on Exceptions; Workflow settings gains the doctor basis, accepted statuses, evidence checks and escalation.
+- **Status against the blueprint:** `docs/finance/blueprint-status.md`. Cost CSV formats: `docs/finance/cost-csv.md`.
+
 ### F7 as built (UI polish)
 
 - **Monthly summary:** headline cards with change against the previous period of equal length (rises in Rejected / Outstanding are not shown as good news), quick-range chips, branch / department / doctor selects, generated-vs-remitted trend, outstanding-by-age, top denial reasons, claims by payer, revenue grouped by department / doctor / service / branch, month rows that drill down to Invoices, and a "data as of" line. Charts are server-rendered bars (no chart library); every value is also in a table.

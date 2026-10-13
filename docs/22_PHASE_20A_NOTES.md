@@ -55,7 +55,7 @@ pnpm cutover:preflight --org al-das --stage pre-cutover
 
 ### Other changes
 
-- Migration `20261020000100_sanoflow_import.sql`:
+- Migration `20261023000100_sanoflow_import.sql`:
   - `appointments.source` allows `'import'`. The appointments list filter has an "Imported" option.
   - `reconcile_snapshot` adds `orphan_refs_other`: refs whose enquiry, appointment, segment, timeline entry or settings row is gone.
 - `lib/migration/reconcile.ts`:
@@ -123,7 +123,7 @@ pnpm cutover:preflight --org al-das --stage pre-cutover
    - Triggers on `contacts` delete a patient's archive rows (and their enquiries' tags) when they are erased, and move them to the surviving record on a merge.
    - Recipients count in `pnpm reconcile` as `sanoflow/campaign_recipient`.
 
-Migration `20261020000200_enquiry_tags_campaign_archive.sql` adds the three tables, the triggers and the extended `reconcile_snapshot`. The import order is now config → lists → contacts → segments → enquiries → activity → **campaigns** → appointments.
+Migration `20261023000200_enquiry_tags_campaign_archive.sql` adds the three tables, the triggers and the extended `reconcile_snapshot`. The import order is now config → lists → contacts → segments → enquiries → activity → **campaigns** → appointments.
 
 ## Still open
 

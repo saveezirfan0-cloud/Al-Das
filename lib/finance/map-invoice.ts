@@ -9,6 +9,7 @@ import {
   PAYMENT_FIELDS,
   pick,
   type FieldMap,
+  DOCTOR_ROLE_FIELDS,
 } from "@/lib/finance/unite-mapping";
 
 /**
@@ -69,6 +70,13 @@ export type NormalizedPayment = {
   remarks: string | null;
 };
 
+export type DoctorRoles = {
+  ordering_id: string | null;
+  ordering_name: string | null;
+  performing_id: string | null;
+  performing_name: string | null;
+};
+
 export type NormalizedInvoice = {
   inv_display_number: string;
   ref_type: string | null;
@@ -100,6 +108,8 @@ export type NormalizedInvoice = {
   modified_by: string | null;
   lines: NormalizedLine[];
   payments: NormalizedPayment[];
+  /** Ordering / performing doctor when Unite sends them (stored apart from the invoice doctor; not part of the hash). */
+  doctor_roles?: DoctorRoles;
   /** sha256 over the business content; version bumps only when it changes. */
   record_hash: string;
   /** Snapshot stored in fin_invoice_versions: normalised fields only, no patient names, no txn_ref_name. */
@@ -239,10 +249,10 @@ export function mapInvoice(raw: unknown, index = 0): NormalizedInvoice {
   }
 
   const body = {
-    ...(f as Omit<NormalizedInvoice, "lines" | "payments" | "record_hash" | "record">),
+    ...(f as Omit<NormalizedInvoice, "lines" | "payments" | "record_hash" | "record" | "doctor_roles">),
     is_package: (f.is_package as boolean | null) ?? false,
     is_deleted: f.is_deleted as boolean,
-  } as Omit<NormalizedInvoice, "lines" | "payments" | "record_hash" | "record">;
+  } as Omit<NormalizedInvoice, "lines" | "payments" | "record_hash" | "record" | "doctor_roles">;
 
   // txn_ref_name may hold a cardholder name: kept for the business row, never in the history snapshot or the hash.
   const snapshotPayments = payments.map((p) => {
@@ -253,7 +263,16 @@ export function mapInvoice(raw: unknown, index = 0): NormalizedInvoice {
   const record = { ...body, lines, payments: snapshotPayments };
   const record_hash = createHash("sha256").update(stableStringify(record)).digest("hex");
 
-  return { ...body, lines, payments, record_hash, record };
+  const roles = resolve(label, rec, DOCTOR_ROLE_FIELDS, "") as DoctorRoles;
+  const hasRoles = Object.values(roles).some((v) => v !== null);
+  return {
+    ...body,
+    lines,
+    payments,
+    record_hash,
+    record,
+    ...(hasRoles ? { doctor_roles: roles } : {}),
+  };
 }
 
 /**
