@@ -6,9 +6,12 @@ import pg from "pg";
 
 import type { CustomFieldDef } from "@/lib/contacts/custom-values";
 
+import { readEnquirySettings } from "@/lib/enquiries/settings";
+
 import type {
   BookInput,
   ContactMatch,
+  EnquiryListKey,
   RefTable,
   SanoflowPorts,
 } from "../../scripts/import/sanoflow/ports";
@@ -187,6 +190,17 @@ export class PgSanoflowPorts extends PgStore implements SanoflowPorts {
       [this.orgId, segmentId],
     );
   }
+  async addEnquiryTag(enquiryId: string, tagId: string) {
+    try {
+      await this.c.query(
+        "insert into public.enquiry_tags (org_id, enquiry_id, tag_id) values ($1,$2,$3) on conflict do nothing",
+        [this.orgId, enquiryId, tagId],
+      );
+      return {};
+    } catch (e) {
+      return { error: `db ${(e as { code?: string }).code ?? "error"}` };
+    }
+  }
   async findAppointment(m: { contactId: string; specialistId: string; startsAt: string }) {
     const { rows } = await this.c.query(
       `select id from public.appointments where org_id=$1 and contact_id=$2 and specialist_id=$3
@@ -231,7 +245,8 @@ export class PgSanoflowPorts extends PgStore implements SanoflowPorts {
     await this.c.query(
       `insert into public.sync_reviews (org_id, source, entity, external_id, reason, candidates, status)
        values ($1,'sanoflow',$2,$3,$4,$5::jsonb,'open')
-       on conflict (org_id, source, entity, external_id) do update set reason=excluded.reason, status='open'`,
+       on conflict (org_id, source, entity, external_id) do update set reason=excluded.reason, status='open'
+       where public.sync_reviews.status <> 'dismissed'`,
       [this.orgId, r.entity, r.externalId, r.reason, JSON.stringify(r.candidates ?? [])],
     );
   }
@@ -249,19 +264,17 @@ export class PgSanoflowPorts extends PgStore implements SanoflowPorts {
     );
     return rows as CustomFieldDef[];
   }
-  async enquirySources() {
+  async enquiryList(key: EnquiryListKey) {
     const { rows } = await this.c.query("select settings from public.orgs where id=$1", [
       this.orgId,
     ]);
-    return (
-      (rows[0]?.settings?.enquiries?.sources as string[] | undefined) ?? ["WhatsApp"]
-    ).slice();
+    return [...readEnquirySettings(rows[0]?.settings)[key]];
   }
-  async setEnquirySources(sources: string[]) {
+  async setEnquiryList(key: EnquiryListKey, values: string[]) {
     await this.c.query(
       `update public.orgs set settings = jsonb_set(coalesce(settings,'{}'::jsonb), '{enquiries}',
-         coalesce(settings->'enquiries','{}'::jsonb) || jsonb_build_object('sources', $2::jsonb)) where id=$1`,
-      [this.orgId, JSON.stringify(sources)],
+         coalesce(settings->'enquiries','{}'::jsonb) || jsonb_build_object($2::text, $3::jsonb)) where id=$1`,
+      [this.orgId, key, JSON.stringify(values)],
     );
     return {};
   }

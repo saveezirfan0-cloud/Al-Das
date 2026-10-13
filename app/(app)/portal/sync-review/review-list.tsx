@@ -15,6 +15,13 @@ import { resolveReview } from "./actions";
 
 export type ReviewItem = {
   id: string;
+  source: "unite" | "sanoflow";
+  /** sync_reviews.entity: contact, appointment … */
+  entity: string;
+  /** What to do, for Sanoflow import items. */
+  hint: string | null;
+  /** Allowed actions for Sanoflow items; null = the Unite set. */
+  actions: Array<"link" | "dismiss"> | null;
   key: string;
   reason: string;
   status: string;
@@ -38,6 +45,9 @@ const REASONS: Record<string, string> = {
   multiple_phone_matches: "More than one patient has this phone number",
   multiple_external_id_matches: "More than one patient has this Unite PIN",
   multiple_name_dob_matches: "More than one patient has this name and date of birth",
+  multiple_matches: "More than one patient matches",
+  appointment_contact_not_found: "No patient in Pulse for this appointment",
+  appointment_slot_taken: "The specialist is busy at this time in Pulse",
 };
 
 function ReviewCard({ item, canResolve }: { item: ReviewItem; canResolve: boolean }) {
@@ -81,19 +91,33 @@ function ReviewCard({ item, canResolve }: { item: ReviewItem; canResolve: boolea
   }
 
   const open = item.status === "open";
+  const sanoflow = item.source === "sanoflow";
+  const mayLink = !sanoflow || !!item.actions?.includes("link");
   return (
     <Card>
       <CardHeader className="flex flex-row items-start justify-between gap-3">
         <div>
-          <CardTitle className="text-base">
-            {item.incoming.name || "Unnamed patient"}{" "}
-            {item.incoming.pin && <Badge variant="outline">Unite {item.incoming.pin}</Badge>}
-          </CardTitle>
-          <p className="text-muted-foreground text-xs">
-            {[item.incoming.phone, item.incoming.dob && `DOB ${item.incoming.dob}`]
-              .filter(Boolean)
-              .join(" · ") || "No phone or date of birth sent"}
-          </p>
+          {sanoflow ? (
+            <>
+              <CardTitle className="text-base">
+                Sanoflow {item.entity.replace(/_/g, " ")}{" "}
+                <Badge variant="outline">{item.key}</Badge>
+              </CardTitle>
+              {item.hint && <p className="text-muted-foreground text-xs">{item.hint}</p>}
+            </>
+          ) : (
+            <>
+              <CardTitle className="text-base">
+                {item.incoming.name || "Unnamed patient"}{" "}
+                {item.incoming.pin && <Badge variant="outline">Unite {item.incoming.pin}</Badge>}
+              </CardTitle>
+              <p className="text-muted-foreground text-xs">
+                {[item.incoming.phone, item.incoming.dob && `DOB ${item.incoming.dob}`]
+                  .filter(Boolean)
+                  .join(" · ") || "No phone or date of birth sent"}
+              </p>
+            </>
+          )}
         </div>
         <div className="flex flex-col items-end gap-1 text-right">
           <Badge variant="secondary">{REASONS[item.reason] ?? item.reason}</Badge>
@@ -123,7 +147,7 @@ function ReviewCard({ item, canResolve }: { item: ReviewItem; canResolve: boolea
                       .join(" · ")}
                   </span>
                 </span>
-                {open && canResolve && (
+                {open && canResolve && mayLink && (
                   <span className="flex flex-wrap justify-end gap-2">
                     <Button
                       size="sm"
@@ -133,7 +157,7 @@ function ReviewCard({ item, canResolve }: { item: ReviewItem; canResolve: boolea
                     >
                       Link to this patient
                     </Button>
-                    {item.reason === "shared_phone" && item.incoming.name && (
+                    {!sanoflow && item.reason === "shared_phone" && item.incoming.name && (
                       <Button
                         size="sm"
                         variant="outline"
@@ -157,16 +181,18 @@ function ReviewCard({ item, canResolve }: { item: ReviewItem; canResolve: boolea
 
         {open && canResolve && (
           <div className="flex flex-col gap-2">
-            <div className="relative">
-              <Search className="text-muted-foreground absolute top-2.5 left-2.5 size-4" />
-              <Input
-                className="pl-8"
-                placeholder="Link to a different patient: search by name or phone"
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-              />
-            </div>
-            {found.length > 0 && (
+            {mayLink && (
+              <div className="relative">
+                <Search className="text-muted-foreground absolute top-2.5 left-2.5 size-4" />
+                <Input
+                  className="pl-8"
+                  placeholder="Link to a different patient: search by name or phone"
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                />
+              </div>
+            )}
+            {mayLink && found.length > 0 && (
               <ul className="divide-y rounded-md border text-sm">
                 {found.map((f) => (
                   <li key={f.id} className="flex items-center justify-between gap-3 px-3 py-2">
@@ -187,18 +213,20 @@ function ReviewCard({ item, canResolve }: { item: ReviewItem; canResolve: boolea
               </ul>
             )}
             <div className="flex flex-wrap gap-2">
-              <Button
-                size="sm"
-                disabled={pending}
-                onClick={() =>
-                  run(
-                    { id: item.id, action: "create" },
-                    "Create a new patient from the details Unite sent?",
-                  )
-                }
-              >
-                {pending && <Loader2 className="animate-spin" />} Create new patient
-              </Button>
+              {!sanoflow && (
+                <Button
+                  size="sm"
+                  disabled={pending}
+                  onClick={() =>
+                    run(
+                      { id: item.id, action: "create" },
+                      "Create a new patient from the details Unite sent?",
+                    )
+                  }
+                >
+                  {pending && <Loader2 className="animate-spin" />} Create new patient
+                </Button>
+              )}
               <Button
                 size="sm"
                 variant="ghost"
@@ -206,7 +234,9 @@ function ReviewCard({ item, canResolve }: { item: ReviewItem; canResolve: boolea
                 onClick={() =>
                   run(
                     { id: item.id, action: "dismiss" },
-                    "Dismiss this item? Its appointments stay unlinked.",
+                    sanoflow
+                      ? "Dismiss this item? Nothing is booked or linked, and later import runs will not raise it again."
+                      : "Dismiss this item? Its appointments stay unlinked.",
                   )
                 }
               >

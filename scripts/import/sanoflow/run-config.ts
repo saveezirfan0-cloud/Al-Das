@@ -5,6 +5,7 @@
  * renamed: a stage removed from the config stays in Pulse.
  */
 import type { SanoflowConfig } from "./config";
+import { ENQUIRY_LIST_MAX, type EnquiryListKey } from "./ports";
 import { newRun, warn, type EntityRun, type RunContext } from "./run";
 import { nameKey } from "./values";
 
@@ -19,6 +20,7 @@ export async function runConfig(ctx: RunContext): Promise<EntityRun[]> {
   const stages = newRun("stage", "Stages", null);
   const fields = newRun("enquiry_field", "Enquiry custom fields", null);
   const sources = newRun("enquiry_source", "Enquiry sources", null);
+  const lostReasons = newRun("lost_reason", "Lost / disqualified reasons", null);
 
   const hasDefault = !!(await ports.findOne("pipelines", { is_default: true }));
   const pipelineCount = await ports.countRows("pipelines");
@@ -119,31 +121,44 @@ export async function runConfig(ctx: RunContext): Promise<EntityRun[]> {
     } else fields.counters.created++;
   }
 
-  if (config.sources.length) {
-    const current = await ports.enquirySources();
-    const have = new Set(current.map((s) => s.toLowerCase()));
-    const add: string[] = [];
-    for (const s of config.sources) {
-      sources.counters.read++;
-      if (have.has(s.toLowerCase())) sources.counters.unchanged++;
-      else {
-        have.add(s.toLowerCase());
-        add.push(s);
-      }
-    }
-    if (add.length) {
-      const next = [...current, ...add].slice(0, 50);
-      const dropped = current.length + add.length - next.length;
-      const res = await ports.setEnquirySources(next);
-      if (res.error) sources.counters.failed += add.length;
-      else {
-        sources.counters.created += add.length - dropped;
-        sources.counters.skipped += dropped;
-        if (dropped) warn(sources, "sources_list_full");
-      }
+  await mergeEnquiryList(ctx, "sources", config.sources, sources);
+  // Pulse offers these when an enquiry is marked lost / disqualified (free text stays allowed).
+  const reasons = [...new Set(Object.values(config.lost_reasons).map((r) => r.trim()))];
+  await mergeEnquiryList(ctx, "lost_reasons", reasons, lostReasons);
+  return [pipelines, stages, fields, sources, lostReasons];
+}
+
+/** Adds the values a Settings → Enquiries list does not have yet (case-insensitive), within its cap. */
+export async function mergeEnquiryList(
+  ctx: RunContext,
+  key: EnquiryListKey,
+  wanted: readonly string[],
+  run: EntityRun,
+): Promise<number> {
+  if (!wanted.length) return 0;
+  const current = await ctx.ports.enquiryList(key);
+  const have = new Set(current.map((s) => s.toLowerCase()));
+  const add: string[] = [];
+  for (const v of wanted) {
+    run.counters.read++;
+    if (have.has(v.toLowerCase())) run.counters.unchanged++;
+    else {
+      have.add(v.toLowerCase());
+      add.push(v);
     }
   }
-  return [pipelines, stages, fields, sources];
+  if (!add.length) return 0;
+  const next = [...current, ...add].slice(0, ENQUIRY_LIST_MAX[key]);
+  const dropped = current.length + add.length - next.length;
+  const res = await ctx.ports.setEnquiryList(key, next);
+  if (res.error) {
+    run.counters.failed += add.length;
+    return 0;
+  }
+  run.counters.created += add.length - dropped;
+  run.counters.skipped += dropped;
+  if (dropped) warn(run, `${key}_list_full`);
+  return add.length - dropped;
 }
 
 /** Pulse ids for a Sanoflow pipeline / stage name, through the refs step 1 wrote. */

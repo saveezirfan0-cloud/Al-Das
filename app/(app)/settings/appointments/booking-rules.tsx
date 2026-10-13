@@ -358,6 +358,26 @@ export function BookingRules({
 
         <Card>
           <CardHeader>
+            <CardTitle>Imported appointments</CardTitle>
+            <CardDescription>
+              Appointments brought over from Sanoflow get no reminders until this is on. Turn it on
+              once Sanoflow&apos;s reminders are off and you have tested the setup; reminders are
+              then planned within five minutes. Turning it off again cancels any that have not gone
+              out.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Row label="Send reminders for imported appointments">
+              <Switch
+                checked={s.import_reminders_enabled}
+                onCheckedChange={(c) => set("import_reminders_enabled", c)}
+              />
+            </Row>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle>Test mode</CardTitle>
             <CardDescription>
               While running alongside the old reminder system, only patients whose number is on this

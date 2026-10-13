@@ -11,7 +11,7 @@ pnpm import:sanoflow:all --dir=exports/ --org=al-das --dry-run            # alwa
 pnpm import:sanoflow:all --dir=exports/ --org=al-das                      # everything except appointments
 pnpm import:sanoflow:all --dir=exports/ --org=al-das --with-appointments  # cut-over day only
 #   --mode=skip   never change a row an earlier run created
-#   --only=config,lists,contacts,segments,enquiries,activity,appointments
+#   --only=config,lists,contacts,segments,enquiries,activity,campaigns,appointments
 ```
 
 | Step | File(s) in `--dir` | Writes | Keyed in `external_refs` (source `sanoflow`) by |
@@ -19,10 +19,11 @@ pnpm import:sanoflow:all --dir=exports/ --org=al-das --with-appointments  # cut-
 | 1 config | `sanoflow-config.json` (hand-filled; example in `docs/audit/`) | pipelines, stages, enquiry custom fields (UTM fields included), extra enquiry sources | Sanoflow pipeline name; `pipeline::stage` name |
 | 2 lists | `tags*.csv`, `labels*.csv`, `conversation-categories*.csv`, `quick-replies*.csv` | `tags` (scope contact / conversation), `conv_categories`, `quick_replies` (English + Arabic text) | Sanoflow id, or the lower-cased name |
 | 3 contacts | `contacts*.csv` | contacts (unchanged logic, now `scripts/import/sanoflow/contacts.ts`) | Sanoflow contact id |
-| 4 segments | `segment-<name>.csv` or `segments-static*.csv`; `segments-dynamic*.csv` | static segments and their members; dynamic segments are **listed in the report only** | segment id or name; `segment|contact` |
+| 4 segments | `segment-<name>.csv` or `segments-static*.csv`; `segments-dynamic*.csv` | static segments and their members; dynamic segments are **listed in the report only** | segment id or name; `segment\|contact` |
 | 5 enquiries | `enquiries*.csv` (per pipeline and/or all; overlaps are de-duplicated) | `enquiries` with stage, status, lost reason, value, source, assignee by e-mail, location / specialist / service, appointment date, UTM and custom fields | Sanoflow enquiry id |
 | 6 activity | `enquiry-activity*.csv` | `timeline_events` type `import.sanoflow_activity` on the enquiry and its patient, at the original time (shown as "Sanoflow history") | activity id, or a SHA-256 of (enquiry, time, kind, text) |
-| 7 appointments | `appointments*.csv` | **future** appointments through `public.book_appointment` (advisory lock and overlap check), `source = 'import'`, `notify_early` off | Sanoflow appointment id |
+| 7 campaigns | `campaign-report-<name>.csv` | `campaign_archive`, `campaign_archive_recipients` (read-only history) | campaign id or name; `campaign\|contact` |
+| 8 appointments | `appointments*.csv` | **future** appointments through `public.book_appointment` (advisory lock and overlap check), `source = 'import'`, `notify_early` off | Sanoflow appointment id |
 
 The other hand-filled file is `sanoflow-names.json`, which maps Sanoflow location, specialist and service names to Pulse names. Lookups are case-insensitive and match the exact name otherwise. To override a step's header mapping, put a file named `<step>.map.json` next to the exports, containing `{ "CSV header": "field" | null }`.
 
@@ -92,11 +93,39 @@ pnpm cutover:preflight --org al-das --stage pre-cutover
 - **The date format of the exports.** Day-first is assumed (`date_order: "dmy"`); set `"mdy"` if the exports differ. Times without an offset are read in the org's timezone.
 - **Campaign report export:** not imported. Campaign history stays in Sanoflow's downloadable reports (see open questions).
 
-## Open questions for you
+## Decisions and follow-ups (answered by the clinic)
 
-1. **Reminders on cut-over day.** Imported appointments get Pulse reminders from the 5-minute sweep, like any booking. That is why `--with-appointments` is separate. Run it only after Sanoflow's own reminders are off, or patients get two. Is that the order you want, or should imported appointments skip the first reminder?
-2. **Lost reasons.** Pulse stores free text, and Sanoflow has a pick-list. `lost_reasons` in the config renames them. Do you want a Pulse pick-list (a small G10 item), or is free text fine?
-3. **Sync-review screen.** `Portal → Sync review` lists Unite reviews only. Sanoflow reviews (ambiguous contacts, appointment clashes) are settled by fixing the data and re-running. A review for a visit booked at a *different* time stays open and blocks `pnpm reconcile`. Should the screen also show Sanoflow reviews, with a "dismiss" action?
-4. **Enquiry tags.** Pulse enquiries have no tags (only contacts and conversations do), so an enquiry export's tag column is ignored. Is that acceptable?
-5. **Campaign history.** Should past campaign recipients and results come over? They are not needed to operate. Pulse's campaign tables expect Pulse templates.
-6. **Flow inventory.** `docs/audit/sanoflow-flow-inventory.md` is ready for you to fill. Note G0: Pulse's CRM flow nodes are not wired yet (fix planned first in 20b).
+1. **Reminders on cut-over day.** The plan is to turn Sanoflow off, set everything up, test, then switch reminders on.
+   - Imported appointments (`source = 'import'`) get **no reminders** until an administrator turns on *Send reminders for imported appointments* under Settings → Appointments. The setting is `import_reminders_enabled`, and saving it is audited by the existing booking-rules action.
+   - The rule is the pure `remindersAllowed()` in `lib/appointments/reminders.ts`. It is checked in `syncAppointmentReminders`, so the 5-minute sweep schedules the reminders within minutes of the switch going on.
+   - Switching it off again cancels any reminder not yet sent. Portal, Unite and bot bookings are unaffected.
+2. **Sync review screen.** Portal → Sync review now has a *Sanoflow import* tab next to *Unite sync*.
+   - Contact items (several patients share a phone) can be linked to one patient. This records the Sanoflow id against that patient, so the next import updates it.
+   - Every item can be dismissed. Each one shows a short hint about what to do.
+   - A dismissed item is never reopened by a later import run.
+   - Logic lives in `lib/migration/sanoflow-review.ts`. The action is permission-checked (`portal.sync_review.write`) and audited.
+3. **Lost reasons: pick-list and free text.**
+   - Settings → Enquiries has a *Lost and disqualified reasons* list (`lost_reasons` in the enquiry settings).
+   - The status dialog (drawer and bulk bar) offers those reasons as one-tap choices and still accepts your own text.
+   - The import's config step adds the wording from `lost_reasons` in `sanoflow-config.json` to that list.
+4. **Enquiry tags.**
+   - New table `enquiry_tags`: viewing needs `enquiries.view` and changing needs `enquiries.manage`. A trigger accepts only tags with scope `enquiry` from the same organisation.
+   - The enquiry drawer has a Tags field, where tags can be created on the fly. Changes go to the timeline and the audit log.
+   - The enquiry list can filter on Tags.
+   - Settings → Tags has *Contact tags* and *Enquiry tags* tabs, each gated by its own permission.
+   - The importer reads the enquiry export's tag column (split on `,` `;` `|`). It creates missing enquiry tags and only ever adds them.
+5. **Campaign history.** Sanoflow campaign reports (`campaign-report-<name>.csv`) are imported into a read-only archive:
+   - `campaign_archive` holds one row per campaign: name, template name, first send time and totals.
+   - `campaign_archive_recipients` holds a status (sent / delivered / read / replied / failed / other), times and an error code for each patient found in Pulse. No phone number, no message text.
+   - Totals count every row of the report, so they match Sanoflow. Retry rounds collapse to the furthest status.
+   - The rows never touch `campaigns`, which needs Pulse templates and is acted on by the send engine.
+   - Staff see them under Campaigns → Campaign history (`campaigns.view`).
+   - Triggers on `contacts` delete a patient's archive rows (and their enquiries' tags) when they are erased, and move them to the surviving record on a merge.
+   - Recipients count in `pnpm reconcile` as `sanoflow/campaign_recipient`.
+
+Migration `20261020000200_enquiry_tags_campaign_archive.sql` adds the three tables, the triggers and the extended `reconcile_snapshot`. The import order is now config → lists → contacts → segments → enquiries → activity → **campaigns** → appointments.
+
+## Still open
+
+- **Flow inventory.** `docs/audit/sanoflow-flow-inventory.md` is ready to fill. Pulse's CRM flow nodes are not wired yet (docs/20 G0); fixing that comes first in 20b.
+- **Campaign report columns** are guessed, like the other exports. Check the dry-run report's "Ignored columns" with the first real file.

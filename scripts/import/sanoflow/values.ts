@@ -190,3 +190,29 @@ export function stableId(parts: readonly string[]): string {
 
 /** Lower-cased trimmed key for name-keyed refs. */
 export const nameKey = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
+
+export const ARCHIVE_STATUSES = [
+  "replied",
+  "read",
+  "delivered",
+  "sent",
+  "failed",
+  "other",
+] as const;
+export type ArchiveStatus = (typeof ARCHIVE_STATUSES)[number];
+
+/** Sanoflow message status → the archive's closed set. */
+export function mapRecipientStatus(raw: string): ArchiveStatus {
+  const k = statusKey(raw);
+  if (["replied", "responded", "reply", "answered"].includes(k)) return "replied";
+  if (["read", "seen", "opened"].includes(k)) return "read";
+  if (k === "delivered") return "delivered";
+  if (["sent", "submitted", "accepted", "queued", "success"].includes(k)) return "sent";
+  if (["failed", "undelivered", "error", "rejected", "not delivered"].includes(k)) return "failed";
+  return "other";
+}
+
+/** How far a message got; a later retry round only ever improves a recipient's row. */
+export function statusRank(s: ArchiveStatus): number {
+  return { other: 0, failed: 1, sent: 2, delivered: 3, read: 4, replied: 5 }[s];
+}

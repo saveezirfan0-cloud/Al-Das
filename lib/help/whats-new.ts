@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-10-20-sanoflow-move",
+    date: "2026-10-20",
+    title: "Ready for the move from Sanoflow",
+    body: "Enquiries now have tags, set from the enquiry drawer and usable in filters. Marking an enquiry lost or disqualified offers the reasons set under Settings, Enquiries, and you can still write your own. Campaigns sent from Sanoflow can be seen under Campaigns, Campaign history (read-only). Portal, Sync review also lists Sanoflow records that need a person, which you can link or dismiss. Appointments brought over from Sanoflow get no reminders until an administrator turns them on in Settings, Appointments.",
+  },
+  {
     id: "2026-10-19-e-signature",
     date: "2026-10-19",
     title: "E-signature for consent forms",

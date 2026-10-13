@@ -15,11 +15,12 @@ import type { RunContext } from "../../scripts/import/sanoflow/run";
 import { outcomes } from "../../scripts/import/sanoflow/run";
 import { runActivity } from "../../scripts/import/sanoflow/run-activity";
 import { runAppointments } from "../../scripts/import/sanoflow/run-appointments";
+import { runCampaignHistory } from "../../scripts/import/sanoflow/run-campaigns";
 import { runConfig } from "../../scripts/import/sanoflow/run-config";
 import { runEnquiries } from "../../scripts/import/sanoflow/run-enquiries";
 import { runList, runQuickReplies } from "../../scripts/import/sanoflow/run-lists";
 import { runStaticSegments } from "../../scripts/import/sanoflow/run-segments";
-import { count, createAuthUser, createOrg, resetDb, TEST_DATABASE_URL } from "./helpers";
+import { asUser, count, createAuthUser, createOrg, resetDb, TEST_DATABASE_URL } from "./helpers";
 import { PgSanoflowPorts, pgTypes } from "./pg-store";
 
 const CONFIG = parseConfig({
@@ -50,6 +51,8 @@ describe.skipIf(!TEST_DATABASE_URL)("Sanoflow importers against the real schema"
   let ctx: RunContext;
   let contactA: string;
   let specialist: string;
+  let ownerId: string;
+  let bobId: string;
 
   beforeAll(async () => {
     c = new pg.Client({ connectionString: TEST_DATABASE_URL, types: pgTypes });
@@ -61,7 +64,9 @@ describe.skipIf(!TEST_DATABASE_URL)("Sanoflow importers against the real schema"
       owner,
     ]);
     orgA = await createOrg(c, "Org A", "org-a-sano", owner);
-    orgB = await createOrg(c, "Org B", "org-b-sano", owner);
+    ownerId = owner;
+    bobId = await createAuthUser(c, "bob.sanoflow@example.test");
+    orgB = await createOrg(c, "Org B", "org-b-sano", bobId);
     const ins = async (sql: string, params: unknown[]) =>
       (await c.query(sql, params)).rows[0].id as string;
     contactA = await ins(
@@ -314,5 +319,99 @@ describe.skipIf(!TEST_DATABASE_URL)("Sanoflow importers against the real schema"
     expect(before.orphan_refs_other).toBe(0);
     await c.query("delete from public.quick_replies where org_id=$1", [orgA]);
     expect((await snap()).orphan_refs_other).toBe(1);
+  });
+
+  it("enquiry tags: imported with scope 'enquiry', a contact tag is refused, org B sees none", async () => {
+    const run = await runEnquiries(ctx, [
+      f(
+        "enquiries-tags.csv",
+        ["Enquiry ID", "Contact ID", "Pipeline", "Stage", "Tags"],
+        [["E9", "SF-C1", "Leads", "New", "Ramadan; VIP"]],
+      ),
+    ]);
+    expect(run.counters).toMatchObject({ created: 1, failed: 0 });
+    expect(
+      await count(
+        c,
+        "select 1 from public.enquiry_tags et join public.tags t on t.id = et.tag_id where et.org_id = $1 and t.scope = 'enquiry'",
+        [orgA],
+      ),
+    ).toBe(2);
+    const { rows: ct } = await c.query(
+      "insert into public.tags (org_id, name, scope) values ($1, 'Contact only', 'contact') returning id",
+      [orgA],
+    );
+    const { rows: enq } = await c.query(
+      "select id from public.enquiries where org_id = $1 limit 1",
+      [orgA],
+    );
+    await expect(
+      c.query("insert into public.enquiry_tags (org_id, enquiry_id, tag_id) values ($1, $2, $3)", [
+        orgA,
+        enq[0].id,
+        ct[0].id,
+      ]),
+    ).rejects.toThrow(/not an enquiry tag/);
+    await asUser(c, ownerId, async () => {
+      expect(await count(c, "select 1 from public.enquiry_tags where org_id = $1", [orgA])).toBe(2);
+    });
+    await asUser(c, bobId, async () => {
+      expect(await count(c, "select 1 from public.enquiry_tags")).toBe(0);
+      expect(await count(c, "select 1 from public.campaign_archive")).toBe(0);
+    });
+  });
+
+  it("campaign history lands in the archive; erase and merge follow the patient", async () => {
+    const H = ["Contact ID", "Phone", "Status", "Sent At"];
+    const res = await runCampaignHistory(ctx, [
+      f("campaign-report-Spring.csv", H, [
+        ["SF-C1", "", "Read", "01/03/2026 09:00"],
+        ["", "+447700900202", "Delivered", "01/03/2026 09:00"],
+      ]),
+    ]);
+    expect(res.campaigns.counters).toMatchObject({ created: 1, failed: 0 });
+    expect(res.recipients.counters).toMatchObject({ created: 2, failed: 0 });
+    const { rows: arch } = await c.query(
+      "select totals, sent_at from public.campaign_archive where org_id = $1",
+      [orgA],
+    );
+    expect(arch[0].totals).toEqual({ recipients: 2, read: 1, delivered: 1 });
+
+    // merge: Omar Demo-02 into Layla Demo-01; Layla already has a row for this campaign, so Omar's goes
+    const { rows: omar } = await c.query(
+      "select id from public.contacts where org_id = $1 and phone_e164 = '+447700900202'",
+      [orgA],
+    );
+    await c.query(
+      "update public.contacts set merged_into_id = $2, deleted_at = now() where id = $1",
+      [omar[0].id, contactA],
+    );
+    expect(
+      await count(c, "select 1 from public.campaign_archive_recipients where org_id = $1", [orgA]),
+    ).toBe(1);
+    expect(
+      await count(c, "select 1 from public.campaign_archive_recipients where contact_id = $1", [
+        contactA,
+      ]),
+    ).toBe(1);
+
+    // erase: the patient's archived rows and their enquiries' tags go
+    await c.query("set role service_role");
+    await c.query("select public.erase_contact($1, $2, null)", [orgA, contactA]);
+    await c.query("reset role");
+    expect(
+      await count(c, "select 1 from public.campaign_archive_recipients where contact_id = $1", [
+        contactA,
+      ]),
+    ).toBe(0);
+    expect(
+      await count(
+        c,
+        "select 1 from public.enquiry_tags et join public.enquiries e on e.id = et.enquiry_id where e.contact_id = $1",
+        [contactA],
+      ),
+    ).toBe(0);
+    const snap = (await c.query("select public.reconcile_snapshot($1) as s", [orgA])).rows[0].s;
+    expect(snap.orphan_refs_other).toBeGreaterThan(0); // the recipient refs now point at removed rows
   });
 });

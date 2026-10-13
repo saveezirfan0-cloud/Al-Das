@@ -7,7 +7,8 @@
  *   4 segments    segment-*.csv, segments-static*.csv; segments-dynamic*.csv is report-only
  *   5 enquiries   enquiries*.csv                  (one per pipeline and/or "all")
  *   6 activity    enquiry-activity*.csv
- *   7 appointments appointments*.csv              future only; real writes need --with-appointments
+ *   7 campaigns   campaign-report-<name>.csv      read-only campaign history (campaign_archive)
+ *   8 appointments appointments*.csv              future only; real writes need --with-appointments
  *
  * A file "<step>.map.json" next to the exports overrides that step's header mapping
  * ({ "CSV header": "field" | null }); sanoflow-names.json maps location / specialist / service names.
@@ -17,6 +18,7 @@ import path from "node:path";
 
 import type { CustomFieldDef } from "@/lib/contacts/custom-values";
 import { parseCsv, type ParsedCsv } from "@/lib/csv";
+import { normalizePhone } from "@/lib/phone";
 import type { AdminClient } from "@/lib/supabase/admin";
 
 import { loadCustomFieldsForScript } from "../custom-fields";
@@ -27,11 +29,12 @@ import { DryRunPorts, supabaseSlotBusy, SupabasePorts, type SanoflowPorts } from
 import type { EntityRun, RunContext } from "./run";
 import { runActivity } from "./run-activity";
 import { runAppointments } from "./run-appointments";
+import { campaignNameFromFile, runCampaignHistory } from "./run-campaigns";
 import { runConfig } from "./run-config";
 import { runEnquiries } from "./run-enquiries";
 import { runList, runQuickReplies } from "./run-lists";
 import { readDynamicSegments, runStaticSegments, type DynamicSegment } from "./run-segments";
-import { stableId } from "./values";
+import { nameKey, stableId } from "./values";
 
 export const STEP_FILES = {
   tag: /^tags?([-_ ].*)?\.csv$/i,
@@ -44,6 +47,7 @@ export const STEP_FILES = {
   enquiry: /^enquir(y|ies)(?![-_ ]activit)([-_ ].*)?\.csv$/i,
   enquiry_activity: /^(enquir(y|ies)[-_ ])?activit(y|ies)([-_ ].*)?\.csv$/i,
   appointment: /^appointments?([-_ ].*)?\.csv$/i,
+  campaign_recipient: /^campaigns?[-_ ](report|history|recipients)([-_ ].*)?\.csv$/i,
 } as const;
 export type StepKey = keyof typeof STEP_FILES;
 
@@ -125,6 +129,25 @@ export function sourceCounts(
     ),
     appointment: distinct("appointment", byStep.appointment, (r, i) => cell(r, i, "id")),
     segment_member: rows(byStep.segment_member),
+    campaign_recipient: (() => {
+      const seen = new Set<string>();
+      let blank = 0;
+      for (const { file, csv } of readCsvs(dir, byStep.campaign_recipient)) {
+        const h = mapHeaders("campaign_recipient", csv.headers, {
+          override: readOverride(dir, "campaign_recipient"),
+        });
+        const fromFile = campaignNameFromFile(file);
+        for (const r of csv.rows) {
+          const camp =
+            cell(r, h.index, "campaign_id") || nameKey(cell(r, h.index, "campaign") || fromFile);
+          const who =
+            cell(r, h.index, "contact_id") || normalizePhone(cell(r, h.index, "phone"))?.e164 || "";
+          if (camp && who) seen.add(`${camp}|${who}`);
+          else blank++;
+        }
+      }
+      return seen.size + blank;
+    })(),
   };
 }
 
@@ -192,11 +215,11 @@ export async function runAll(
     );
 
   if (want("config")) {
-    log("1/7 config");
+    log("1/8 config");
     runs.push(...(await runConfig(ctx)));
   }
   if (want("lists")) {
-    log("2/7 tags, labels, categories, quick replies");
+    log("2/8 tags, labels, categories, quick replies");
     for (const kind of ["tag", "label", "conv_category"] as const)
       for (const { file, csv } of readCsvs(dir, byStep[kind]))
         runs.push(await runList(ctx, kind, csv, file, readOverride(dir, kind)));
@@ -204,7 +227,7 @@ export async function runAll(
       runs.push(await runQuickReplies(ctx, csv, file, readOverride(dir, "quick_reply")));
   }
   if (want("contacts")) {
-    log("3/7 contacts");
+    log("3/8 contacts");
     const customFields: CustomFieldDef[] = await loadCustomFieldsForScript(admin, org.id);
     for (const { file, csv } of readCsvs(dir, byStep.contact)) {
       const res = await runSanoflowContacts(admin, org.id, csv, {
@@ -219,7 +242,7 @@ export async function runAll(
     }
   }
   if (want("segments")) {
-    log("4/7 segments");
+    log("4/8 segments");
     if (byStep.segment_member.length) {
       const { segments, members } = await runStaticSegments(
         ctx,
@@ -239,14 +262,14 @@ export async function runAll(
     }
   }
   if (want("enquiries")) {
-    log("5/7 enquiries");
+    log("5/8 enquiries");
     if (byStep.enquiry.length)
       runs.push(
         await runEnquiries(ctx, readCsvs(dir, byStep.enquiry), readOverride(dir, "enquiry")),
       );
   }
   if (want("activity")) {
-    log("6/7 enquiry activity");
+    log("6/8 enquiry activity");
     if (byStep.enquiry_activity.length)
       runs.push(
         await runActivity(
@@ -256,8 +279,17 @@ export async function runAll(
         ),
       );
   }
+  if (want("campaigns") && byStep.campaign_recipient.length) {
+    log("7/8 campaign history");
+    const { campaigns, recipients } = await runCampaignHistory(
+      ctx,
+      readCsvs(dir, byStep.campaign_recipient),
+      readOverride(dir, "campaign_recipient"),
+    );
+    runs.push(campaigns, recipients);
+  }
   if (want("appointments") && byStep.appointment.length) {
-    log("7/7 future appointments");
+    log("8/8 future appointments");
     const live = !opts.dryRun && opts.withAppointments;
     if (!opts.dryRun && !opts.withAppointments)
       notes.push(

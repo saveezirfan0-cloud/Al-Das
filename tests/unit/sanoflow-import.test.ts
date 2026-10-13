@@ -8,9 +8,11 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
+import { remindersAllowed } from "@/lib/appointments/reminders";
 import { evaluateData } from "@/lib/cutover/preflight";
 import { parseCsv, toCsv } from "@/lib/csv";
 import { findPii, reconcile, type DbSnapshot } from "@/lib/migration/reconcile";
+import { sanoflowReviewActions } from "@/lib/migration/sanoflow-review";
 
 import { classifyFiles, sourceCounts } from "../../scripts/import/sanoflow/all";
 import { parseConfig, parseNames, type SanoflowConfig } from "../../scripts/import/sanoflow/config";
@@ -27,6 +29,10 @@ import { renderReport, toSummaries } from "../../scripts/import/sanoflow/report"
 import { outcomes, type RunContext } from "../../scripts/import/sanoflow/run";
 import { ACTIVITY_EVENT_TYPE, runActivity } from "../../scripts/import/sanoflow/run-activity";
 import { runAppointments } from "../../scripts/import/sanoflow/run-appointments";
+import {
+  campaignNameFromFile,
+  runCampaignHistory,
+} from "../../scripts/import/sanoflow/run-campaigns";
 import { runConfig } from "../../scripts/import/sanoflow/run-config";
 import { runEnquiries } from "../../scripts/import/sanoflow/run-enquiries";
 import { runList, runQuickReplies } from "../../scripts/import/sanoflow/run-lists";
@@ -34,6 +40,7 @@ import { readDynamicSegments, runStaticSegments } from "../../scripts/import/san
 import {
   mapAppointmentStatus,
   mapLostReason,
+  mapRecipientStatus,
   mapStatus,
   parseClock,
   parseDay,
@@ -41,6 +48,7 @@ import {
   parseLocalDateTime,
   parseMoney,
   stableId,
+  statusRank,
   toShortcut,
 } from "../../scripts/import/sanoflow/values";
 import { MemoryStore } from "../../scripts/import/store";
@@ -115,6 +123,11 @@ class MemoryPorts extends MemoryStore implements SanoflowPorts {
     const n = [...this.members].filter((m) => m.startsWith(`${segmentId}|`)).length;
     await this.updateRow("segments", segmentId, { member_count: n });
   }
+  enquiryTags = new Set<string>();
+  async addEnquiryTag(enquiryId: string, tagId: string) {
+    this.enquiryTags.add(`${enquiryId}|${tagId}`);
+    return {};
+  }
   async findAppointment(m: { contactId: string; specialistId: string; startsAt: string }) {
     const hit = this.rows("appointments").find(
       (a) =>
@@ -152,6 +165,7 @@ class MemoryPorts extends MemoryStore implements SanoflowPorts {
     });
   }
   async queueReview(r: { entity: string; externalId: string; reason: string }) {
+    if (this.reviews.get(`${r.entity}|${r.externalId}`)?.status === "dismissed") return;
     this.reviews.set(`${r.entity}|${r.externalId}`, { reason: r.reason, status: "open" });
   }
   async resolveReview(entity: string, externalId: string) {
@@ -169,11 +183,13 @@ class MemoryPorts extends MemoryStore implements SanoflowPorts {
         required: false,
       }));
   }
-  async enquirySources() {
-    return [...this.sources];
+  lostReasons: string[] = [];
+  async enquiryList(key: "sources" | "lost_reasons") {
+    return key === "sources" ? [...this.sources] : [...this.lostReasons];
   }
-  async setEnquirySources(s: string[]) {
-    this.sources = [...s];
+  async setEnquiryList(key: "sources" | "lost_reasons", values: string[]) {
+    if (key === "sources") this.sources = [...values];
+    else this.lostReasons = [...values];
     return {};
   }
 }
@@ -443,6 +459,8 @@ describe("config step", () => {
     expect(fields.counters.created).toBe(1);
     expect(sources.counters.created).toBe(1);
     expect(ports.sources).toEqual(["WhatsApp", "Ad"]);
+    // the config's lost-reason wording becomes the Settings → Enquiries pick-list
+    expect(ports.lostReasons).toEqual(["Price too high"]);
 
     const again = await runConfig(ctxFor(ports));
     expect(again[0].counters).toMatchObject({ unchanged: 1, created: 0 });
@@ -954,5 +972,115 @@ describe("report and sign-off wiring", () => {
         orphanRefsOther: 2,
       }),
     ).toEqual(["data:orphan-refs"]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Follow-ups: reminder hold, review actions, enquiry tags, campaign history
+// ---------------------------------------------------------------------------
+
+describe("follow-up rules", () => {
+  it("holds reminders for imported appointments until the switch is on", () => {
+    expect(remindersAllowed("import", { import_reminders_enabled: false })).toBe(false);
+    expect(remindersAllowed("import", { import_reminders_enabled: true })).toBe(true);
+    for (const s of ["portal", "unite", "bot", null, undefined])
+      expect(remindersAllowed(s, { import_reminders_enabled: false })).toBe(true);
+  });
+  it("Sanoflow reviews: contacts can be linked, everything can be dismissed", () => {
+    expect(sanoflowReviewActions("contact")).toEqual(["link", "dismiss"]);
+    expect(sanoflowReviewActions("appointment")).toEqual(["dismiss"]);
+  });
+  it("maps campaign statuses and keeps the furthest one", () => {
+    expect(mapRecipientStatus("Delivered")).toBe("delivered");
+    expect(mapRecipientStatus("seen")).toBe("read");
+    expect(mapRecipientStatus("Not delivered")).toBe("failed");
+    expect(mapRecipientStatus("weird")).toBe("other");
+    expect(statusRank("replied")).toBeGreaterThan(statusRank("read"));
+    expect(statusRank("sent")).toBeGreaterThan(statusRank("failed"));
+    expect(campaignNameFromFile("campaign-report-Ramadan_offer.csv")).toBe("Ramadan offer");
+    expect(
+      classifyFiles(["campaign-report-a.csv", "campaigns-history.csv"]).byStep.campaign_recipient,
+    ).toEqual(["campaign-report-a.csv", "campaigns-history.csv"]);
+  });
+  it("a dismissed appointment review is never reopened by a later run", async () => {
+    const ports = await seeded();
+    ports.busy.push({
+      specialistId: "spec-1",
+      start: Date.parse("2026-10-20T06:00:00Z"),
+      end: Date.parse("2026-10-20T07:00:00Z"),
+    });
+    const H = ["Appointment ID", "Contact ID", "Location", "Specialist", "Date", "Start Time"];
+    const rows = [["A1", "SF-C1", "Main Branch", "Dr Example One", "20/10/2026", "10:00"]];
+    await runAppointments(ctxFor(ports), [file("a.csv", H, rows)]);
+    ports.reviews.get("appointment|A1")!.status = "dismissed";
+    await runAppointments(ctxFor(ports), [file("a.csv", H, rows)]);
+    expect(ports.reviews.get("appointment|A1")?.status).toBe("dismissed");
+  });
+});
+
+describe("enquiry tags from the export", () => {
+  it("creates enquiry-scoped tags once and links them; re-runs add nothing twice", async () => {
+    const ports = await seeded();
+    ports.rows("tags").push({ id: "t-c", org_id: ports.orgId, name: "VIP", scope: "contact" });
+    const H = ["Enquiry ID", "Contact ID", "Pipeline", "Stage", "Tags"];
+    const rows = [
+      ["E1", "SF-C1", "Leads", "New", "VIP; Ramadan, vip"],
+      ["E2", "SF-C1", "Leads", "New", "Ramadan"],
+    ];
+    const run = await runEnquiries(ctxFor(ports), [file("enquiries.csv", H, rows)]);
+    expect(run.counters.created).toBe(2);
+    const tags = ports.rows("tags").filter((t) => t.scope === "enquiry");
+    expect(tags.map((t) => t.name).sort()).toEqual(["Ramadan", "VIP"]); // contact tag "VIP" is not reused
+    expect(ports.enquiryTags.size).toBe(3);
+    await runEnquiries(ctxFor(ports), [file("enquiries.csv", H, rows)]);
+    expect(ports.rows("tags").filter((t) => t.scope === "enquiry")).toHaveLength(2);
+    expect(ports.enquiryTags.size).toBe(3);
+  });
+});
+
+describe("campaign history step", () => {
+  const H = ["Contact ID", "Phone", "Template Name", "Status", "Sent At", "Read At"];
+  it("archives totals from every row, keeps matched patients only, and collapses retry rounds", async () => {
+    const ports = await seeded();
+    const res = await runCampaignHistory(ctxFor(ports), [
+      file("campaign-report-Ramadan offer.csv", H, [
+        ["SF-C1", "", "ramadan_v2", "Sent", "01/03/2026 09:00", ""],
+        ["SF-C1", "", "ramadan_v2", "Read", "01/03/2026 09:00", "01/03/2026 10:00"], // retry row
+        ["", P2, "ramadan_v2", "Failed", "01/03/2026 09:01", ""],
+        ["", "+447700900997", "ramadan_v2", "Delivered", "01/03/2026 09:02", ""], // not in Pulse
+      ]),
+    ]);
+    expect(res.campaigns.counters).toMatchObject({ read: 1, created: 1 });
+    expect(res.recipients.counters).toMatchObject({
+      read: 4,
+      duplicates: 1,
+      created: 2,
+      invalid: 1,
+    });
+    expect(outcomes(res.recipients.counters)).toBe(4);
+    const [archive] = ports.rows("campaign_archive");
+    expect(archive).toMatchObject({
+      source: "sanoflow",
+      name: "Ramadan offer",
+      template_name: "ramadan_v2",
+      sent_at: "2026-03-01T05:00:00.000Z",
+      totals: { recipients: 3, read: 1, failed: 1, delivered: 1 },
+    });
+    const c1 = ports.rows("campaign_archive_recipients").find((r) => r.contact_id === "c-1");
+    expect(c1).toMatchObject({ status: "read", read_at: "2026-03-01T06:00:00.000Z" });
+    expect(JSON.stringify(ports.rows("campaign_archive_recipients"))).not.toContain("+44");
+
+    const again = await runCampaignHistory(ctxFor(ports), [
+      file("campaign-report-Ramadan offer.csv", H, [
+        ["SF-C1", "", "ramadan_v2", "Read", "01/03/2026 09:00", "01/03/2026 10:00"],
+        ["", P2, "ramadan_v2", "Replied", "01/03/2026 09:01", ""], // a later export knows more
+      ]),
+    ]);
+    expect(again.campaigns.counters.updated).toBe(1); // totals changed
+    expect(again.recipients.counters).toMatchObject({ unchanged: 1, updated: 1 });
+    expect(ports.rows("campaign_archive")).toHaveLength(1);
+    expect(
+      ports.rows("campaign_archive_recipients").find((r) => r.contact_id === "c-2")?.status,
+    ).toBe("replied");
   });
 });

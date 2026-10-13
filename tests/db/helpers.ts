@@ -473,3 +473,56 @@ export const PHASE19_SERVICE_ONLY_TABLES = [
   "integration_webhook_events",
   "telehealth_rooms",
 ] as const;
+
+/**
+ * Phase 20a tables (enquiry tags, Sanoflow campaign archive): one synthetic row each, so the cross-org
+ * sweeps are not vacuous for them. Service role, like the import that writes them.
+ */
+export async function seedPhase20Rows(c: Client, orgId: string) {
+  const ids: Record<string, string> = {};
+  await asServiceRole(c, async () => {
+    const one = async (sql: string, params: unknown[]) =>
+      (await c.query<{ id: string }>(sql + " returning id::text", params)).rows[0].id;
+    const contact = await one(
+      "insert into public.contacts (org_id, first_name, phone_e164) values ($1, 'Layla Demo-20', '+447700900420')",
+      [orgId],
+    );
+    const pipeline = await one(
+      "insert into public.pipelines (org_id, name) values ($1, 'Sweep 20')",
+      [orgId],
+    );
+    const stage = await one(
+      "insert into public.stages (org_id, pipeline_id, name) values ($1, $2, 'New')",
+      [orgId, pipeline],
+    );
+    ids.enquiry = await one(
+      "insert into public.enquiries (org_id, pipeline_id, stage_id, title, contact_id) values ($1, $2, $3, 'Sweep', $4)",
+      [orgId, pipeline, stage, contact],
+    );
+    ids.tag = await one(
+      "insert into public.tags (org_id, name, scope) values ($1, 'Sweep 20', 'enquiry')",
+      [orgId],
+    );
+    await c.query(
+      "insert into public.enquiry_tags (org_id, enquiry_id, tag_id) values ($1, $2, $3)",
+      [orgId, ids.enquiry, ids.tag],
+    );
+    ids.archive = await one(
+      `insert into public.campaign_archive (org_id, name, totals) values ($1, 'Sweep campaign', '{"recipients":1,"read":1}')`,
+      [orgId],
+    );
+    ids.recipient = await one(
+      "insert into public.campaign_archive_recipients (org_id, archive_id, contact_id, status) values ($1, $2, $3, 'read')",
+      [orgId, ids.archive, contact],
+    );
+    ids.contact = contact;
+  });
+  return ids;
+}
+
+/** Phase 20a tables with a browser (select) policy. */
+export const PHASE20_TABLES = [
+  "campaign_archive",
+  "campaign_archive_recipients",
+  "enquiry_tags",
+] as const;

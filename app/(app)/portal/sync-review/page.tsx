@@ -3,6 +3,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/shell/page-header";
 import { can } from "@/lib/auth/can";
 import { requirePerm } from "@/lib/auth/session";
+import { SANOFLOW_REVIEW_HINTS, sanoflowReviewActions } from "@/lib/migration/sanoflow-review";
 import { formatPhone } from "@/lib/phone";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { cn } from "@/lib/utils";
@@ -12,6 +13,10 @@ import { ReviewList, type ReviewItem } from "./review-list";
 export const metadata = { title: "Sync Review" };
 
 const STATUSES = ["open", "resolved", "dismissed"] as const;
+const SOURCES = [
+  { key: "unite", label: "Unite sync" },
+  { key: "sanoflow", label: "Sanoflow import" },
+] as const;
 
 export default async function SyncReviewPage({
   searchParams,
@@ -23,6 +28,7 @@ export default async function SyncReviewPage({
   const status = (STATUSES as readonly string[]).includes(String(sp.status))
     ? (String(sp.status) as (typeof STATUSES)[number])
     : "open";
+  const source = sp.source === "sanoflow" ? "sanoflow" : "unite";
   const admin = createAdminClient();
 
   const { data: reviews } = await admin
@@ -31,7 +37,7 @@ export default async function SyncReviewPage({
       "id, external_id, entity, reason, candidates, incoming, status, created_at, resolved_at",
     )
     .eq("org_id", member.orgId)
-    .eq("source", "unite")
+    .eq("source", source)
     .eq("status", status)
     .order("created_at", { ascending: false })
     .limit(200);
@@ -55,15 +61,16 @@ export default async function SyncReviewPage({
   const byId = new Map((contacts ?? []).map((c) => [c.id, c]));
 
   const keys = (reviews ?? []).map((r) => r.external_id);
-  const { data: waiting } = keys.length
-    ? await admin
-        .from("appointments")
-        .select("custom")
-        .eq("org_id", member.orgId)
-        .eq("source", "unite")
-        .is("contact_id", null)
-        .limit(2000)
-    : { data: [] };
+  const { data: waiting } =
+    keys.length && source === "unite"
+      ? await admin
+          .from("appointments")
+          .select("custom")
+          .eq("org_id", member.orgId)
+          .eq("source", "unite")
+          .is("contact_id", null)
+          .limit(2000)
+      : { data: [] };
   const waitingByKey = new Map<string, number>();
   for (const a of waiting ?? []) {
     const key = (a.custom as Record<string, unknown> | null)?.unite_patient_key;
@@ -74,6 +81,10 @@ export default async function SyncReviewPage({
     const inc = (r.incoming ?? {}) as Record<string, unknown>;
     return {
       id: r.id,
+      source,
+      entity: r.entity,
+      hint: source === "sanoflow" ? (SANOFLOW_REVIEW_HINTS[r.reason] ?? null) : null,
+      actions: source === "sanoflow" ? sanoflowReviewActions(r.entity) : null,
       key: r.external_id,
       reason: r.reason,
       status: r.status,
@@ -110,13 +121,29 @@ export default async function SyncReviewPage({
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Sync Review"
-        description="Unite patients that could not be matched to a single contact. Nothing is merged automatically."
+        description="Unite patients and Sanoflow import records that could not be matched to a single contact or booked. Nothing is merged automatically."
       />
+      <div className="flex gap-1">
+        {SOURCES.map((s) => (
+          <Link
+            key={s.key}
+            href={`/portal/sync-review?source=${s.key}&status=${status}`}
+            className={cn(
+              "rounded-md px-3 py-1.5 text-sm",
+              s.key === source
+                ? "bg-accent font-medium"
+                : "text-muted-foreground hover:bg-accent/50",
+            )}
+          >
+            {s.label}
+          </Link>
+        ))}
+      </div>
       <div className="flex gap-1">
         {STATUSES.map((s) => (
           <Link
             key={s}
-            href={`/portal/sync-review?status=${s}`}
+            href={`/portal/sync-review?source=${source}&status=${s}`}
             className={cn(
               "rounded-md px-3 py-1.5 text-sm capitalize",
               s === status ? "bg-accent font-medium" : "text-muted-foreground hover:bg-accent/50",

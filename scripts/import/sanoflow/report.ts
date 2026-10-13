@@ -18,6 +18,7 @@ export const RECONCILED_ENTITIES = [
   "enquiry_activity",
   "appointment",
   "segment_member",
+  "campaign_recipient",
 ] as const;
 
 export function toSummaries(

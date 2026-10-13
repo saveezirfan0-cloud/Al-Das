@@ -424,7 +424,7 @@ registerTask("appointments_sweep", {
       const horizon = new Date(Date.now() + 30 * 24 * 3600_000).toISOString();
       const { data: upcoming } = await admin
         .from("appointments")
-        .select("id, org_id, contact_id, starts_at, status")
+        .select("id, org_id, contact_id, starts_at, status, source")
         .eq("org_id", org.id)
         .in("status", ["awaiting", "confirmed"])
         .gt("starts_at", new Date().toISOString())

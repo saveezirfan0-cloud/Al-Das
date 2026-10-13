@@ -19,6 +19,10 @@ export type ContactMatch =
   | { kind: "none" }
   | { kind: "ambiguous"; candidates: Array<{ contact_id: string; matched_on: string }> };
 
+export type EnquiryListKey = "sources" | "lost_reasons";
+/** Most entries each list may hold (lib/enquiries/settings.ts). */
+export const ENQUIRY_LIST_MAX: Record<EnquiryListKey, number> = { sources: 50, lost_reasons: 100 };
+
 export type RefTable = "locations" | "specialists" | "services";
 export type RefRow = {
   id: string;
@@ -49,6 +53,8 @@ export interface SanoflowPorts extends ImportStore {
   hasSegmentMember(segmentId: string, contactId: string): Promise<boolean>;
   addSegmentMember(segmentId: string, contactId: string): Promise<{ error?: string }>;
   refreshSegmentCount(segmentId: string): Promise<void>;
+  /** Attaches an enquiry tag (no-op when already there). Tags are only ever added by the import. */
+  addEnquiryTag(enquiryId: string, tagId: string): Promise<{ error?: string }>;
   /** A live (not cancelled) appointment for this patient and specialist at this exact start. */
   findAppointment(m: {
     contactId: string;
@@ -57,6 +63,7 @@ export interface SanoflowPorts extends ImportStore {
   }): Promise<string | null>;
   /** public.book_appointment with the overlap check on; { error: "slot_taken" } when the slot is busy. */
   bookAppointment(b: BookInput): Promise<{ id: string } | { error: string }>;
+  /** Opens (or re-opens) a review; one a person dismissed stays dismissed. */
   queueReview(r: {
     entity: string;
     externalId: string;
@@ -67,8 +74,9 @@ export interface SanoflowPorts extends ImportStore {
   resolveReview(entity: string, externalId: string): Promise<void>;
   /** Custom field definitions of an entity, as stored. */
   customFieldDefs(entity: "contact" | "enquiry"): Promise<CustomFieldDef[]>;
-  enquirySources(): Promise<string[]>;
-  setEnquirySources(sources: string[]): Promise<{ error?: string }>;
+  /** A list in Settings → Enquiries: the source choices or the lost / disqualified reasons. */
+  enquiryList(key: EnquiryListKey): Promise<string[]>;
+  setEnquiryList(key: EnquiryListKey, values: string[]): Promise<{ error?: string }>;
 }
 
 export class SupabasePorts extends SupabaseStore implements SanoflowPorts {
@@ -170,6 +178,16 @@ export class SupabasePorts extends SupabaseStore implements SanoflowPorts {
       .eq("id", segmentId);
   }
 
+  async addEnquiryTag(enquiryId: string, tagId: string) {
+    const { error } = await this.db
+      .from("enquiry_tags")
+      .upsert(
+        { org_id: this.orgId, enquiry_id: enquiryId, tag_id: tagId },
+        { onConflict: "enquiry_id,tag_id", ignoreDuplicates: true },
+      );
+    return error ? { error: `db ${error.code ?? "error"}` } : {};
+  }
+
   async findAppointment(m: { contactId: string; specialistId: string; startsAt: string }) {
     const { data } = await this.db
       .from("appointments")
@@ -214,6 +232,16 @@ export class SupabasePorts extends SupabaseStore implements SanoflowPorts {
     reason: string;
     candidates?: Array<{ contact_id: string; matched_on: string }>;
   }) {
+    // A person dismissed it in Portal → Sync review: never reopen it.
+    const { data: existing } = await this.db
+      .from("sync_reviews")
+      .select("status")
+      .eq("org_id", this.orgId)
+      .eq("source", "sanoflow")
+      .eq("entity", r.entity)
+      .eq("external_id", r.externalId)
+      .maybeSingle();
+    if (existing?.status === "dismissed") return;
     await queueSyncReview(this.admin, {
       orgId: this.orgId,
       source: "sanoflow",
@@ -245,16 +273,16 @@ export class SupabasePorts extends SupabaseStore implements SanoflowPorts {
     return ((data ?? []) as Parameters<typeof toCustomFieldDef>[0][]).map(toCustomFieldDef);
   }
 
-  async enquirySources() {
+  async enquiryList(key: EnquiryListKey) {
     const { data } = await this.db
       .from("orgs")
       .select("settings")
       .eq("id", this.orgId)
       .maybeSingle();
-    return readEnquirySettings(data?.settings).sources;
+    return [...readEnquirySettings(data?.settings)[key]];
   }
 
-  async setEnquirySources(sources: string[]) {
+  async setEnquiryList(key: EnquiryListKey, values: string[]) {
     const { data } = await this.db
       .from("orgs")
       .select("settings")
@@ -264,7 +292,7 @@ export class SupabasePorts extends SupabaseStore implements SanoflowPorts {
     const enquiries = (settings.enquiries ?? {}) as Record<string, Json>;
     const { error } = await this.db
       .from("orgs")
-      .update({ settings: { ...settings, enquiries: { ...enquiries, sources } } })
+      .update({ settings: { ...settings, enquiries: { ...enquiries, [key]: values } } })
       .eq("id", this.orgId);
     return error ? { error: `db ${error.code ?? "error"}` } : {};
   }
@@ -284,7 +312,7 @@ export class DryRunPorts extends DryRunStore implements SanoflowPorts {
     contactId: string;
     id: string;
   }> = [];
-  private sources: string[] | null = null;
+  private lists = new Map<EnquiryListKey, string[]>();
   constructor(
     private readonly real: SanoflowPorts,
     private readonly slotBusy: (b: BookInput) => Promise<boolean>,
@@ -312,6 +340,9 @@ export class DryRunPorts extends DryRunStore implements SanoflowPorts {
     return {};
   }
   async refreshSegmentCount() {}
+  async addEnquiryTag() {
+    return {};
+  }
   async findAppointment(m: { contactId: string; specialistId: string; startsAt: string }) {
     const t = Date.parse(m.startsAt);
     const hit = this.booked.find(
@@ -335,11 +366,11 @@ export class DryRunPorts extends DryRunStore implements SanoflowPorts {
   customFieldDefs(entity: "contact" | "enquiry") {
     return this.real.customFieldDefs(entity);
   }
-  async enquirySources() {
-    return this.sources ?? (await this.real.enquirySources());
+  async enquiryList(key: EnquiryListKey) {
+    return this.lists.get(key) ?? (await this.real.enquiryList(key));
   }
-  async setEnquirySources(sources: string[]) {
-    this.sources = sources;
+  async setEnquiryList(key: EnquiryListKey, values: string[]) {
+    this.lists.set(key, values);
     return {};
   }
 }

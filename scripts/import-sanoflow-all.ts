@@ -4,7 +4,7 @@
  *   pnpm import:sanoflow:all --dir=exports/ --org=al-das --dry-run
  *   pnpm import:sanoflow:all --dir=exports/ --org=al-das                       # everything but appointments
  *   pnpm import:sanoflow:all --dir=exports/ --org=al-das --with-appointments   # cut-over day
- *   options: --mode=skip (never change rows an earlier run created)  --only=config,lists,contacts,segments,enquiries,activity,appointments
+ *   options: --mode=skip (never change rows an earlier run created)  --only=config,lists,contacts,segments,enquiries,activity,campaigns,appointments
  *
  * Writes docs/audit/import-report-sanoflow-all-<ts>.md (counts only), import-summary-sanoflow-all-<ts>.json
  * (read by `pnpm reconcile`) and sanoflow-source-counts-<ts>.json (records per entity in the export, for
@@ -30,7 +30,16 @@ import {
   toSummaries,
 } from "./import/sanoflow/report";
 
-const STEPS = ["config", "lists", "contacts", "segments", "enquiries", "activity", "appointments"];
+const STEPS = [
+  "config",
+  "lists",
+  "contacts",
+  "segments",
+  "enquiries",
+  "activity",
+  "campaigns",
+  "appointments",
+];
 
 async function main() {
   const { flags, opts } = parseArgs(process.argv.slice(2));

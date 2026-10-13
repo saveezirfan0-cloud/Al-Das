@@ -19,6 +19,7 @@ export const SANOFLOW_EXPORTS = [
   "quick_reply",
   "segment_member",
   "segment_dynamic",
+  "campaign_recipient",
 ] as const;
 export type SanoflowExport = (typeof SANOFLOW_EXPORTS)[number];
 
@@ -74,6 +75,7 @@ const ENQUIRY: AliasTable = {
   appt_time: ["appointment time", "appt time", "appointmenttime"],
   created_at: ["created at", "created on", "created date", "open date", "date created", "created"],
   closed_at: ["closed at", "closed on", "close date", "closed date"],
+  tags: ["tags", "tag", "enquiry tags", "enquiry tag"],
   utm_source: ["utm source"],
   utm_medium: ["utm medium"],
   utm_campaign: ["utm campaign"],
@@ -131,6 +133,21 @@ const SEGMENT_DYNAMIC: AliasTable = {
   filter: ["filter", "segment filter", "conditions", "rules"],
 };
 
+const CAMPAIGN_RECIPIENT: AliasTable = {
+  campaign_id: ["campaign id", "campaignid", "campaign schedule id", "scheduled id"],
+  campaign: ["campaign", "campaign name", "campaignname"],
+  template: ["template", "template name", "templatename"],
+  contact_id: ["contact id", "contactid", "patient id", "patientid"],
+  phone: ["phone", "phone number", "mobile", "full phone", "fullphone", "whatsapp", "recipient"],
+  status: ["status", "message status", "delivery status"],
+  sent_at: ["sent at", "sent on", "sent", "sent time", "date"],
+  delivered_at: ["delivered at", "delivered on", "delivered time"],
+  read_at: ["read at", "read on", "read time", "seen at"],
+  replied_at: ["replied at", "replied on", "reply time", "responded at"],
+  failed_at: ["failed at", "failed on"],
+  error_code: ["error code", "errorcode", "failure code"],
+};
+
 export const SANOFLOW_ALIASES: Record<SanoflowExport, AliasTable> = {
   enquiry: ENQUIRY,
   enquiry_activity: ACTIVITY,
@@ -141,6 +158,7 @@ export const SANOFLOW_ALIASES: Record<SanoflowExport, AliasTable> = {
   quick_reply: QUICK_REPLY,
   segment_member: SEGMENT_MEMBER,
   segment_dynamic: SEGMENT_DYNAMIC,
+  campaign_recipient: CAMPAIGN_RECIPIENT,
 };
 
 /** Fields each export cannot be imported without. */
@@ -155,6 +173,8 @@ export const REQUIRED_FIELDS: Record<SanoflowExport, readonly string[][]> = {
   // the segment may come from the file name ("segment-<name>.csv"); it is checked per row
   segment_member: [["contact_id", "phone"]],
   segment_dynamic: [["segment"]],
+  // the campaign may come from the file name ("campaign-report-<name>.csv")
+  campaign_recipient: [["contact_id", "phone"], ["status"]],
 };
 
 export type HeaderMapping = {

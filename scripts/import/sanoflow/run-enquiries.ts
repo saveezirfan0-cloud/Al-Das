@@ -11,7 +11,7 @@ import { coerceCustomValue, type CustomFieldDef } from "@/lib/contacts/custom-va
 import type { ParsedCsv } from "@/lib/csv";
 
 import { cell, mapHeaders } from "./mapping";
-import { PipelineResolver } from "./run-config";
+import { mergeEnquiryList, PipelineResolver } from "./run-config";
 import {
   newRun,
   problem,
@@ -64,6 +64,38 @@ export async function runEnquiries(
       });
   const seen = new Set<string>();
   const sources = new Set<string>();
+  const tagIds = new Map<string, string | null>();
+  /** Enquiry tag id for a name, created (scope 'enquiry') when missing. */
+  const tagFor = async (name: string): Promise<string | null> => {
+    const k = name.toLowerCase();
+    if (!tagIds.has(k)) {
+      const found = await ctx.ports.findOne("tags", { scope: "enquiry", name });
+      if (found) tagIds.set(k, found.id);
+      else {
+        const res = await ctx.ports.insertRow("tags", { scope: "enquiry", name });
+        tagIds.set(k, "error" in res ? null : res.id);
+        if ("error" in res) warn(run, "tag_not_created");
+        else run.notes.push(`enquiry tag created: \`${name}\``);
+      }
+    }
+    return tagIds.get(k) ?? null;
+  };
+  const linkTags = async (enquiryId: string, raw: string) => {
+    const names = [
+      ...new Set(
+        raw
+          .split(/[,;|]/)
+          .map((t) => t.trim().slice(0, 40))
+          .filter(Boolean),
+      ),
+    ];
+    for (const n of names) {
+      const id = await tagFor(n);
+      if (!id) continue;
+      const res = await ctx.ports.addEnquiryTag(enquiryId, id);
+      if (res.error) warn(run, "tag_link_failed");
+    }
+  };
   let line = 0;
 
   for (const { file, csv } of files) {
@@ -215,13 +247,17 @@ export async function runEnquiries(
           patch.custom = { ...((current.custom as Record<string, unknown>) ?? {}), ...custom };
         if (Object.keys(patch).length === 0) {
           run.counters.unchanged++;
+          await linkTags(current.id, get(row, "tags"));
           continue;
         }
         const res = await ctx.ports.updateRow("enquiries", current.id, patch);
         if (res.error) {
           run.counters.failed++;
           problem(run, line, res.error);
-        } else run.counters.updated++;
+        } else {
+          run.counters.updated++;
+          await linkTags(current.id, get(row, "tags"));
+        }
         continue;
       }
 
@@ -238,6 +274,7 @@ export async function runEnquiries(
         continue;
       }
       run.counters.created++;
+      await linkTags(res.id, get(row, "tags"));
       await ctx.ports.upsertRef({
         entity: "enquiry",
         externalId: ext,
@@ -249,17 +286,10 @@ export async function runEnquiries(
 
   // Sources seen in the export become pickable in Pulse (the list holds at most 50).
   if (sources.size) {
-    const current = await ctx.ports.enquirySources();
-    const have = new Set(current.map((s) => s.toLowerCase()));
-    const add = [...sources].filter((s) => !have.has(s.toLowerCase()));
-    if (add.length) {
-      const next = [...current, ...add].slice(0, 50);
-      if (next.length < current.length + add.length) warn(run, "sources_list_full");
-      await ctx.ports.setEnquirySources(next);
-      run.notes.push(
-        `${Math.min(add.length, 50 - current.length)} new source value(s) added to Settings → Enquiries`,
-      );
-    }
+    const tally = newRun("enquiry_source", "Enquiry sources", null);
+    const added = await mergeEnquiryList(ctx, "sources", [...sources], tally);
+    if (added) run.notes.push(`${added} new source value(s) added to Settings → Enquiries`);
+    if (tally.warnings.sources_list_full) warn(run, "sources_list_full");
   }
   return run;
 }

@@ -106,7 +106,18 @@ export async function runSanoflowContacts(
       });
       if (m.kind === "ambiguous") {
         c.review++;
-        if (!opts.dryRun && sanoId)
+        const { data: prior } = sanoId
+          ? await admin
+              .from("sync_reviews")
+              .select("status")
+              .eq("org_id", orgId)
+              .eq("source", "sanoflow")
+              .eq("entity", "contact")
+              .eq("external_id", sanoId)
+              .maybeSingle()
+          : { data: null };
+        // a person dismissed it in Portal → Sync review: never reopen it
+        if (!opts.dryRun && sanoId && prior?.status !== "dismissed")
           await queueSyncReview(admin, {
             orgId,
             source: "sanoflow",
