@@ -3,6 +3,24 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-10-21-templates-campaigns",
+    date: "2026-10-21",
+    title: "Template delivery settings, recurring campaigns and closing with an enquiry",
+    body: "Each template can now retry a failed message, give up after a time limit, and turn the reminder text-message fallback off; its row menu also shows delivery, read, reply and click rates. Carousel templates can be sent. Campaigns can repeat on a schedule from a segment, and an administrator can set a monthly message budget that pauses campaigns when it is used up. Closing a conversation can create or update the patient's enquiry in the same step.",
+  },
+  {
+    id: "2026-10-21-routing-booking",
+    date: "2026-10-21",
+    title: "Smarter routing and booking rules",
+    body: "Teams can have a fallback team, office hours and an automatic reply, and each person can have a limit on open conversations. People who go idle are shown as away and stop receiving new chats. Managers can limit someone to their own or their team's enquiries. Services can have preparation and clean-up time and take several patients at once, and specialists can have their own slot length and weekly blocks such as lunch. New reports cover time to close, cohorts and the status log.",
+  },
+  {
+    id: "2026-10-21-flows",
+    date: "2026-10-21",
+    title: "More flow building blocks",
+    body: "Flows can now create and update enquiries, add tasks, write portal records and book appointments. New starts: any new message in an open conversation, a WhatsApp form reply, the 24-hour window about to close, and a patient joining a segment with a drip flow. Questions can check the answer (number, phone, e-mail, date or a pattern), ask again and save straight to a patient field. New steps send a payment link, record an ad event, set a label and sort a message by its intent.",
+  },
+  {
     id: "2026-10-20-sanoflow-move",
     date: "2026-10-20",
     title: "Ready for the move from Sanoflow",
