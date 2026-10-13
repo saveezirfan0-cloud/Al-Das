@@ -11,6 +11,7 @@ import {
   reminderHorizon,
   taskDueAt,
 } from "@/lib/finance/preauth";
+import { runFollowupTasks } from "@/lib/finance/followup-server";
 import { runRecovery } from "@/lib/finance/recovery-server";
 import { loadFinanceSettings } from "@/lib/finance/settings-db";
 import type { JobLogger } from "@/lib/jobs/types";
@@ -27,6 +28,8 @@ import type { Json } from "@/lib/supabase/types";
  *   2. Denials: cases are opened / refreshed / recovered from the Diligence claims (fin_sync_denial_cases, only once
  *      finance set a start date); cases inside the warning window of their deadline are reminded once.
  *   3. Self-pay reminders, only when finance switched them on (and approved the wording).
+ *   4. Insurance follow-up (Phase 20I): each unpaid claim that crossed a follow-up stage (60 / 90 / 120 days by default)
+ *      since finance set a start date gets ONE task per stage, claimed atomically in fin_followup_create_tasks.
  *
  * Notifications and task subjects are fixed generic sentences: no names, numbers or amounts. Counts only are logged.
  */
@@ -43,6 +46,9 @@ export type WorkflowTotals = {
   denial_tasks: number;
   recovery_queued: number;
   recovery_failed: number;
+  followup_raised: number;
+  followup_tasks: number;
+  followup_closed: number;
 };
 
 const PAGE = 200;
@@ -64,12 +70,15 @@ export async function runFinanceWorkflows(
     denial_tasks: 0,
     recovery_queued: 0,
     recovery_failed: 0,
+    followup_raised: 0,
+    followup_tasks: 0,
+    followup_closed: 0,
   };
   const { data: orgs } = await admin.from("orgs").select("id, name, timezone");
   for (const org of orgs ?? []) {
     totals.orgs++;
     try {
-      await oneOrg(admin, org, now, totals);
+      await oneOrg(admin, org, now, totals, log);
     } catch (err) {
       // one organisation's failure must not stop the others; the name only, never the message (it may echo data)
       log.error("finance workflows failed for an organisation", {
@@ -86,6 +95,7 @@ async function oneOrg(
   org: { id: string; name: string; timezone: string | null },
   now: Date,
   totals: WorkflowTotals,
+  log: JobLogger,
 ) {
   const today = formatInTimeZone(now, org.timezone || "UTC", "yyyy-MM-dd");
   const settings = await loadFinanceSettings(admin, org.id);
@@ -242,6 +252,33 @@ async function oneOrg(
         payload: { count: won.length } as NonNullable<Json>,
       });
     }
+  }
+
+  // ---- 4. insurance follow-up (off until finance sets a start date) --------------------------------
+  // Runs before the reminders so a reminder failure cannot hold it back; its own failure is contained here.
+  try {
+    const fu = await runFollowupTasks(admin, org.id, today, now);
+    totals.followup_raised += fu.raised;
+    totals.followup_tasks += fu.tasks;
+    totals.followup_closed += fu.closed;
+    if (fu.raised > 0 || fu.closed > 0)
+      await recordAudit(admin, {
+        orgId: org.id,
+        userId: null,
+        action: "finance.followup.tasks_raised",
+        entity: "ins_claim_followup_stages",
+        diff: {
+          raised: fu.raised,
+          tasks: fu.tasks,
+          superseded: fu.superseded,
+          unassigned: fu.unassigned,
+          closed: fu.closed,
+        } as Json,
+      });
+  } catch (err) {
+    log.error("insurance follow-up step failed for an organisation", {
+      error: err instanceof Error ? err.name : "unknown",
+    });
   }
 
   // ---- 3. self-pay reminders (switched off unless finance enabled them) --------------------------

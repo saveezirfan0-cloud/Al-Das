@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { requirePerm } from "@/lib/auth/session";
 import { loadBlueprintSettings } from "@/lib/finance/blueprint-settings";
+import { loadFollowupSettings } from "@/lib/finance/followup-settings";
 import { money } from "@/lib/finance/format";
 import { loadFinanceSettings } from "@/lib/finance/settings-db";
 import { createClient } from "@/lib/supabase/server";
@@ -19,6 +20,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   BlueprintSettingsForm,
   CodeForm,
+  FollowupSettingsForm,
   PriceImport,
   RemoveCode,
   RemovePrice,
@@ -41,6 +43,7 @@ export default async function WorkflowSettingsPage({
   const supabase = await createClient();
   const settings = await loadFinanceSettings(supabase, member.orgId);
   const blueprint = await loadBlueprintSettings(supabase, member.orgId);
+  const followup = await loadFollowupSettings(supabase, member.orgId);
   const payerFilter = (sp.payer ?? "").replace(/[^A-Za-z0-9._-]/g, "").slice(0, 60);
   let priceQuery = supabase
     .from("fin_ref_payer_prices")
@@ -52,7 +55,7 @@ export default async function WorkflowSettingsPage({
     .order("effective_from", { ascending: false })
     .limit(PAGE);
   if (payerFilter) priceQuery = priceQuery.eq("payer_id", payerFilter);
-  const [{ data: codes }, { data: prices, count }] = await Promise.all([
+  const [{ data: codes }, { data: prices, count }, { data: roles }] = await Promise.all([
     supabase
       .from("fin_ref_denial_codes")
       .select(
@@ -60,6 +63,7 @@ export default async function WorkflowSettingsPage({
       )
       .order("code"),
     priceQuery,
+    supabase.from("roles").select("name").eq("org_id", member.orgId).order("name"),
   ]);
   return (
     <div className="flex flex-col gap-6">
@@ -91,6 +95,20 @@ export default async function WorkflowSettingsPage({
         </CardHeader>
         <CardContent>
           <BlueprintSettingsForm s={blueprint} />
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Insurance follow-up and ageing</CardTitle>
+          <CardDescription>
+            Unpaid claims are followed up at each stage (by default 60, 90 and 120 days after the
+            transaction date). Tasks are off until you set a start date, so switching on never
+            floods old claims. The 0-30 / 31-60 / 61-90 / 90+ ageing of the monthly summary and of
+            closed month packs does not change.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <FollowupSettingsForm s={followup} roles={(roles ?? []).map((r) => r.name)} />
         </CardContent>
       </Card>
       <Card>

@@ -94,6 +94,21 @@ describe("Finance navigation", () => {
       expect(hrefs(member(role(name))), name).not.toContain("/finance/insurance");
   });
 
+  it("insurance follow-up and receivables by age need claim access: Insurance, Finance and the CEO, not Billing or the Medical Director", () => {
+    for (const r of ["Insurance", "Finance", "CEO"]) {
+      expect(hrefs(member(role(r))), r).toContain("/finance/followup");
+      expect(hrefs(member(role(r))), r).toContain("/finance/receivables");
+    }
+    for (const r of ["Billing", "Medical Director", "Cost / Payroll"]) {
+      expect(hrefs(member(role(r))), r).not.toContain("/finance/followup");
+      expect(hrefs(member(role(r))), r).not.toContain("/finance/receivables");
+    }
+    // recording follow-ups is its own key, held by Insurance and Finance, not the read-only CEO
+    expect(role("Insurance")).toContain("finance.followup.manage");
+    expect(role("Finance")).toContain("finance.followup.manage");
+    expect(role("CEO")).not.toContain("finance.followup.manage");
+  });
+
   it("cost and profit pages follow the blueprint's separation of duties", () => {
     // Cost / Payroll: costs only, no revenue, branch, doctor or profit pages
     expect(hrefs(member(role("Cost / Payroll")))).toEqual(["/finance/costs"]);

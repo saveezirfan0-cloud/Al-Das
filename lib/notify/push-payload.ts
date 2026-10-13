@@ -50,6 +50,10 @@ const GENERIC: Record<string, { title: string; body: string }> = {
     title: "Denial deadline close",
     body: "A denied claim is close to its resubmission deadline. Open Pulse to see which.",
   },
+  "finance.followup_due": {
+    title: "Claim follow-up due",
+    body: "An unpaid insurance claim needs a follow-up. Open Pulse to see which.",
+  },
   "waitlist.booked": {
     title: "Waiting list",
     body: "A waiting-list patient took an offered slot.",
@@ -101,6 +105,8 @@ export function pushUrl(event: string, ids: PushIds): string {
       return "/finance/preauth";
     case "finance.denial_deadline":
       return "/finance/denials";
+    case "finance.followup_due":
+      return "/finance/followup";
     case "test":
       return "/settings/notifications";
     default:

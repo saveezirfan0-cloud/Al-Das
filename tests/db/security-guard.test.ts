@@ -25,6 +25,7 @@ import {
   PHASE18_TABLES,
   PHASE19_SERVICE_ONLY_TABLES,
   PHASE19_TABLES,
+  PHASE20_TABLES,
   resetDb,
   seedPhase13Rows,
   seedPhase14Rows,
@@ -32,6 +33,7 @@ import {
   seedPhase17Rows,
   seedPhase18Rows,
   seedPhase19Rows,
+  seedPhase20Rows,
   seedSecurityRows,
   TEST_DATABASE_URL,
 } from "./helpers";
@@ -120,6 +122,19 @@ const PHASE18_SERVICE_FUNCTIONS = [
 
 /** Phase 19 SECURITY DEFINER functions that only server code (service role) may run. */
 const PHASE19_SERVICE_FUNCTIONS = ["calendar_feed_touch", "integration_call_stats", "integration_usage_bump"];
+
+/**
+ * Phase 20 SECURITY DEFINER functions that only server code (service role) may run: the flash report (20A) and the
+ * insurance follow-up, receivables and follow-up task functions (20I). The pages and the job run can() first.
+ */
+const PHASE20_SERVICE_FUNCTIONS = [
+  "fin_flash_inputs",
+  "fin_flash_set_targets",
+  "fin_followup_create_tasks",
+  "fin_followup_open_claims",
+  "fin_followup_worklist",
+  "fin_receivables_by_payer_age",
+];
 
 /** Phase 17 SECURITY DEFINER functions that only server code (service role) may run. */
 const PHASE17_SERVICE_FUNCTIONS = ["ai_add_conversation_tags"];
@@ -352,6 +367,33 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 19 service-role functions", () => {
   });
 });
 
+describe.skipIf(!TEST_DATABASE_URL)("phase 20 service-role functions", () => {
+  it("exist and are executable by the service role only", async () => {
+    const c = await connect();
+    try {
+      const { rows } = await c.query<{ name: string; anon: boolean; auth: boolean; svc: boolean }>(
+        `select p.proname as name,
+                has_function_privilege('anon', p.oid, 'execute') as anon,
+                has_function_privilege('authenticated', p.oid, 'execute') as auth,
+                has_function_privilege('service_role', p.oid, 'execute') as svc
+         from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+         where n.nspname = 'public' and p.proname = any ($1)`,
+        [PHASE20_SERVICE_FUNCTIONS],
+      );
+      expect(rows.map((r) => r.name).sort()).toEqual([...PHASE20_SERVICE_FUNCTIONS].sort());
+      for (const r of rows)
+        expect({ name: r.name, anon: r.anon, auth: r.auth, svc: r.svc }).toEqual({
+          name: r.name,
+          anon: false,
+          auth: false,
+          svc: true,
+        });
+    } finally {
+      await c.end();
+    }
+  });
+});
+
 describe.skipIf(!TEST_DATABASE_URL)("phase 17 service-role functions", () => {
   it("exist and are executable by the service role only", async () => {
     const c = await connect();
@@ -471,6 +513,8 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
     await seedPhase17Rows(c, orgA, alice);
     // Phase 19 tables likewise.
     await seedPhase19Rows(c, orgA, alice);
+    // Phase 20 tables likewise.
+    await seedPhase20Rows(c, orgA, alice);
   });
   afterAll(async () => {
     await resetDb(c);
@@ -481,14 +525,14 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
     expect(orgTables.length).toBeGreaterThanOrEqual(25);
   });
 
-  it("sweeps every Phase 13, 14, 15, 16, 17, 18 and 19 table (a new table must be added to PHASE13_TABLES / PHASE14_TABLES / PHASE15_TABLES / PHASE16_TABLES / PHASE17_TABLES / PHASE18_TABLES / PHASE19_TABLES and seeded)", () => {
-    for (const t of [...PHASE19_TABLES, ...PHASE18_TABLES, ...PHASE17_TABLES, ...PHASE16_TABLES, ...PHASE15_TABLES, ...PHASE14_TABLES, ...PHASE13_TABLES])
+  it("sweeps every Phase 13 to 20 table (a new table must be added to PHASE13_TABLES ... PHASE20_TABLES and seeded)", () => {
+    for (const t of [...PHASE20_TABLES, ...PHASE19_TABLES, ...PHASE18_TABLES, ...PHASE17_TABLES, ...PHASE16_TABLES, ...PHASE15_TABLES, ...PHASE14_TABLES, ...PHASE13_TABLES])
       expect(orgTables, `${t} is not in the org sweep`).toContain(t);
   });
 
-  it("really holds org A rows in the Phase 13, 14, 15, 16, 17, 18 and 19 tables, visible to org A's admin (control for the leak sweep)", async () => {
+  it("really holds org A rows in the Phase 13 to 20 tables, visible to org A's admin (control for the leak sweep)", async () => {
     await asUser(c, alice, async () => {
-      for (const t of [...PHASE19_TABLES, ...PHASE18_TABLES, ...PHASE17_TABLES, ...PHASE16_TABLES, ...PHASE15_TABLES, ...PHASE14_TABLES, ...PHASE13_TABLES]) {
+      for (const t of [...PHASE20_TABLES, ...PHASE19_TABLES, ...PHASE18_TABLES, ...PHASE17_TABLES, ...PHASE16_TABLES, ...PHASE15_TABLES, ...PHASE14_TABLES, ...PHASE13_TABLES]) {
         const { rows } = await c.query<{ n: string }>(
           `select count(*)::text as n from public.${t} where org_id = $1`,
           [orgA],

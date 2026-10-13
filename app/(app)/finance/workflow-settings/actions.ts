@@ -15,6 +15,7 @@ import {
 } from "@/lib/finance/action-support";
 import { OWNER_ROLES, parseStatusList } from "@/lib/finance/blueprint-settings";
 import { DENIAL_CATEGORIES } from "@/lib/finance/denials";
+import { parseDaySteps } from "@/lib/finance/followup";
 import { parsePriceText } from "@/lib/finance/payer-prices";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -152,6 +153,63 @@ export async function saveBlueprintSettings(raw: Record<string, string>): Promis
       evidence_check: d.evidence_start_date !== null,
       escalation_days: d.escalation_days,
       escalation_role: d.escalation_role,
+    },
+  });
+  refresh();
+  return { ok: true, message: "Settings saved." };
+}
+
+const followupSchema = z.object({
+  ageing_bucket_days: z.string().max(100),
+  followup_stage_days: z.string().max(100),
+  followup_start_date: optionalDate,
+  followup_task_enabled: checkbox,
+  followup_task_role: z.string().trim().min(1, "Name the role that gets the tasks.").max(60),
+  followup_task_due_days: int(0, 60),
+});
+
+/** Phase 20I: ageing buckets, follow-up stages and the follow-up tasks (off until a start date is set). */
+export async function saveFollowupSettings(raw: Record<string, string>): Promise<ActionResult> {
+  const member = await requirePerm(PERM);
+  const p = followupSchema.safeParse(raw);
+  if (!p.success) return fail(firstIssue(p.error, "Check the values."));
+  const d = p.data;
+  const buckets = parseDaySteps(d.ageing_bucket_days, 8);
+  if (!buckets)
+    return fail(
+      "Ageing buckets: 1 to 8 whole days in increasing order, for example 30, 60, 90, 120.",
+    );
+  const stages = parseDaySteps(d.followup_stage_days, 6);
+  if (!stages)
+    return fail(
+      "Follow-up stages: 1 to 6 whole days in increasing order, for example 60, 90, 120.",
+    );
+  const { error } = await (
+    await createClient()
+  )
+    .from("fin_ref_finance_settings")
+    .update({
+      ageing_bucket_days: buckets,
+      followup_stage_days: stages,
+      followup_start_date: d.followup_start_date,
+      followup_task_enabled: d.followup_task_enabled,
+      followup_task_role: d.followup_task_role,
+      followup_task_due_days: d.followup_task_due_days,
+    })
+    .eq("org_id", member.orgId);
+  if (error) return fail(dbMessage(error, "Could not save the settings."));
+  await recordAudit(createAdminClient(), {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "finance.workflow.followup_saved",
+    entity: "fin_ref_finance_settings",
+    entityId: member.orgId,
+    diff: {
+      buckets,
+      stages,
+      tasks_on: d.followup_start_date !== null && d.followup_task_enabled,
+      start_date: d.followup_start_date,
+      due_days: d.followup_task_due_days,
     },
   });
   refresh();
