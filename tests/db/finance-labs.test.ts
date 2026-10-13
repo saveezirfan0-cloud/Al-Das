@@ -286,6 +286,32 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance labs and referrals (slice 20E)", ()
   });
 
   describe("the import", () => {
+    it("keeps the file's extension only, never its name", async () => {
+      const names = (
+        await svc(() =>
+          q(
+            "select f.file_name from public.fin_provider_files f where f.statement_id = $1",
+            [statementOct],
+          ),
+        )
+      ).rows.map((r) => r.file_name);
+      expect(names.length).toBeGreaterThan(0);
+      for (const n of names) expect(n).toBe("csv");
+      await expect(
+        svc(() =>
+          q("update public.fin_provider_files set file_name = 'Layla Demo-07 results.xlsx' where statement_id = $1", [
+            statementOct,
+          ]),
+        ),
+      ).resolves.toBeTruthy();
+      const after = (
+        await svc(() =>
+          q("select distinct file_name from public.fin_provider_files where statement_id = $1", [statementOct]),
+        )
+      ).rows.map((r) => r.file_name);
+      expect(after).toEqual(["xlsx"]);
+    });
+
     it("stores sanitised rows in the provider's statement for the month, with the file's fingerprint only", async () => {
       const { rows } = await svc(() =>
         q(

@@ -145,7 +145,7 @@ export async function importProviderFile(
       p_provider_id: provider.id,
       p_month: month,
       p_format_id: format.id,
-      p_file_name: file.name.slice(0, 200),
+      p_file_name: /\.(csv|xlsx)$/i.exec(file.name)?.[0].toLowerCase() ?? "", // extension only, never the name
       p_sha256: sha,
       p_rows: rows as unknown as Json,
       p_user: member.userId,

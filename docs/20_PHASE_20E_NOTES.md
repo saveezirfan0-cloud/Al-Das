@@ -71,6 +71,7 @@ Labs are the clinic's biggest expense. The in-house lab costs a fixed AED 25,000
 6. Each month after WD7: upload the files, work the lists, review, and have a second person post before the revenue share is built.
 
 ## Decisions worth knowing
+- **File names are never stored.** `fin_provider_files.file_name` keeps the extension only (csv, xlsx), enforced by a trigger and a CHECK (migration `20261107000400`), because a lab file name can carry a patient's or a doctor's name.
 
 - **One statement per provider and month**, holding one or more files (branch-wise reports go into the same statement); the in-house fee is shared across all of them at once.
 - The doctor charged is Unite's (the doctor basis) for a matched test, the file's ordering doctor otherwise; costs with no doctor are shown and never posted. Charges are posted per doctor (the branch split is in the frozen figures; `fin_doctor_charges` has no branch).

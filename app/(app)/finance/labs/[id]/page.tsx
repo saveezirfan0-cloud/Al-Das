@@ -473,7 +473,7 @@ export default async function LabStatementPage({ params }: { params: Promise<{ i
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>File</TableHead>
+                <TableHead>File type</TableHead>
                 <TableHead>Lines</TableHead>
                 <TableHead>Dates</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
@@ -483,7 +483,7 @@ export default async function LabStatementPage({ params }: { params: Promise<{ i
             <TableBody>
               {files.map((f) => (
                 <TableRow key={f.id}>
-                  <TableCell>{f.file_name ?? "-"}</TableCell>
+                  <TableCell className="uppercase">{f.file_name ?? "-"}</TableCell>
                   <TableCell className="tabular-nums">{f.row_count}</TableCell>
                   <TableCell className="tabular-nums">
                     {f.first_date} to {f.last_date}
