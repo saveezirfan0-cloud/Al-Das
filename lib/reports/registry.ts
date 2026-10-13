@@ -10,6 +10,11 @@ import {
   whatsappUsageReport,
 } from "@/lib/reports/queries";
 import {
+  clinicalOperationsReport,
+  recallWeekReport,
+  reminderStatsReport,
+} from "@/lib/reports/clinical-queries";
+import {
   aiEngagementReport,
   assignmentCloseReport,
   enquiryCohortReport,
@@ -150,6 +155,33 @@ export const REPORTS: readonly ReportDef[] = [
     filters: [],
     requires: ["v_appointment_facts"],
     run: appointmentsReport,
+  },
+  {
+    key: "reminder-stats",
+    title: "Appointment reminders",
+    description: "Per doctor: reminders sent, delivered, read and replied, and the share of appointments contacted.",
+    group: "Appointments",
+    filters: [],
+    requires: ["v_appointment_reminder_stats", "v_appointment_facts"],
+    run: reminderStatsReport,
+  },
+  {
+    key: "recall-performance",
+    title: "Recall performance",
+    description: "Recall messages sent, replied to and booked in one week, by programme.",
+    group: "Campaigns",
+    filters: [],
+    requires: ["v_recall_weekly"],
+    run: recallWeekReport,
+  },
+  {
+    key: "clinical-operations",
+    title: "Clinical operations",
+    description: "Follow-Up Queue load, red flags in patient replies, and clinical data quality (counts only).",
+    group: "Clinical",
+    filters: [],
+    requires: ["v_followup_queue", "v_visit_data_quality", "v_unknown_diagnosis_codes"],
+    run: clinicalOperationsReport,
   },
   {
     key: "unite-appointments",

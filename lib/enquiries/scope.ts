@@ -1,6 +1,6 @@
 /**
  * Phase 20c: restricted enquiry view per member (memberships.enquiry_scope). The rule itself lives in ONE place, the SQL
- * function app.enquiry_visible_to() (20261025000100_routing_presence.sql), which both the RLS policy and the service-role
+ * function app.enquiry_visible_to() (20261108000200_routing_presence.sql), which both the RLS policy and the service-role
  * list queries call. This file only decides whether a server query needs the extra predicate and builds it. Pure.
  *
  *   all   every enquiry (the default: no behaviour change)

@@ -156,6 +156,39 @@ export const GUIDES: readonly Guide[] = [
     watchOut: ["Numbers use the clinic's time zone, not yours."],
   },
   {
+    id: "clinical-data-quality",
+    title: "Clinical data quality",
+    pages: ["/portal/data-quality", "/portal/unclassified-medications"],
+    purpose:
+      "Find the visits and medicines the clinical rules cannot judge yet, so follow-ups and antibiotic check-ins are not missed.",
+    steps: [
+      "Data quality lists visits with a missing temperature, blood pressure, oxygen or pulse, and visits with no matched patient. Fix the record in Unite; the next sync updates it.",
+      "Codes at the bottom are diagnoses Pulse does not know. Add them under Portal, Diagnoses (ICD-10) with the chronic flag; visits are linked the next night.",
+      "Unclassified medications lists Unite medicine codes with no class. Choose the class, tick that you checked the drug, then Save.",
+      "For an antibiotic, tick 'Probiotics afterwards by default' only if the clinic's rule says so for that drug.",
+    ],
+    watchOut: [
+      "The suggestion beside each medicine is the old automatic guess. It can be wrong; a person always decides.",
+      "Classifying a medicine as an antibiotic lets Pulse plan its check-ins. Nothing reaches a patient while clinical messaging is switched off.",
+    ],
+  },
+  {
+    id: "clinical-feedback",
+    title: "Clinical feedback",
+    pages: ["/portal/clinical-feedback"],
+    purpose:
+      "See what patients answered to clinical check-ins and which answers raised a red flag.",
+    steps: [
+      "Use 'Needing a person' to see replies the system could not judge on its own.",
+      "A red flag means the doctor and the care coordinators were both alerted. The call itself is in the Follow-Up Queue.",
+      "Open 'Show reply' only when you need the patient's own words.",
+    ],
+    watchOut: [
+      "Replies are health information. Never copy them into chats, e-mails or tasks.",
+      "While the thresholds are not signed off, every reply goes to a person.",
+    ],
+  },
+  {
     id: "finance",
     title: "Finance",
     pages: ["/finance"],
@@ -166,6 +199,204 @@ export const GUIDES: readonly Guide[] = [
       "Check Data freshness before you trust a number.",
     ],
     watchOut: ["Finance data never shows patient names, only the Unite PIN."],
+  },
+  {
+    id: "finance-flash",
+    title: "Daily flash",
+    pages: ["/finance/flash", "/finance/flash/settings"],
+    purpose:
+      "The daily financial summary, month to date and daily sales by branch against target, with patient volume, ARPP and doctor rankings, built from Unite invoices.",
+    steps: [
+      "Pick a day (yesterday by default). Daily summary shows that day; Month to date runs from the 1st to that day.",
+      "Daily sales lists every day of the month by branch and compares the month so far with the same days of last month.",
+      "Download Excel gives the same figures in the layout of the old sheets, with no formulas to break.",
+      "Finance sets the reporting lines (which branch codes or departments make each line) and the daily targets under Targets and lines.",
+    ],
+    watchOut: [
+      "A line called Unassigned means some invoices match no reporting line. Fix the lines rather than the figures.",
+      "Month-to-date targets are the daily target times the days elapsed.",
+      "Figures are only as recent as the latest Unite data; the date is shown under the day picker.",
+    ],
+  },
+  {
+    id: "finance-followup",
+    title: "Insurance follow-up and receivables",
+    pages: ["/finance/followup", "/finance/receivables"],
+    purpose:
+      "Chase unpaid insurance claims at 60, 90 and 120 days, see each claim's submissions and resubmissions, and see what each payer owes by age.",
+    steps: [
+      "Insurance follow-up lists every unpaid claim, oldest first, with the stage it has reached. Filter by stage, payer or branch.",
+      "Open a claim to see its submissions (first, second, third) with the amounts claimed and remitted, then record what you did and the next action date.",
+      "Once finance sets a start date in Workflow settings, each claim gets one task when it reaches a stage, given to a member of the chosen role.",
+      "Receivables by age shows each payer's unpaid amount in the age buckets from Workflow settings. Download it as CSV.",
+    ],
+    watchOut: [
+      "Write no patient names, card or phone numbers in a follow-up note.",
+      "Whether a resubmission was a correction (the whole amount re-sent) is worked out from the amounts; Diligence's report does not say.",
+      "Insurer payments are confirmed only against the bank statement and the remittance received.",
+    ],
+  },
+  {
+    id: "finance-analytics",
+    title: "Billing mix and trends",
+    pages: ["/finance/analytics"],
+    purpose:
+      "How each doctor bills (consultation, lab, radiology, procedures; insurance or self-pay) compared with the clinic as a whole, and revenue by week or month next to the same period last year.",
+    steps: [
+      "Pick the dates (the last twelve months by default) and, if you want, one branch code.",
+      "Doctor billing mix shows each doctor's revenue, patients, revenue per patient and the share of each service category, with the category where the doctor differs most from the clinic.",
+      "Seasonality shows each month or week against the same one last year; choose Week to see shorter patterns.",
+      "Mix CSV and Trend CSV download the same figures, with every category's share.",
+    ],
+    watchOut: [
+      "Unmapped means billed items without a service category. Finance fixes that under Reference data, then the mix is complete.",
+      "Last year is only compared when the invoices on record reach back that far.",
+      "These are activity measures, not a judgement of clinical quality.",
+    ],
+  },
+  {
+    id: "finance-close-timetable",
+    title: "Close timetable",
+    pages: ["/finance/close/timetable"],
+    purpose:
+      "The month-end close by working day: each step's owner, trained backup, due day and dependencies, and the close measures (inputs by WD5, close delivered by WD10, open reconciling items, backups).",
+    steps: [
+      "Pick the month being closed. Its working days are counted in the month after: September's WD5 is the fifth working day of October.",
+      "Owners and backups open Update on their step to mark it done or blocked. A blocked step says what it is waiting for.",
+      "Overdue steps are highlighted. The last row is the Board pack: it is done when the CEO signs and the month locks.",
+      "Finance managers assign owners and backups in the checklist template and set weekends, holidays and the start month under Calendar and settings.",
+    ],
+    watchOut: [
+      "Nothing runs until a start month is set. From then on each month's steps appear on working day 1 and owners get one reminder a day for steps due or late.",
+      "A changed due day applies to months whose steps are created afterwards; past months keep the day they were measured against.",
+      "Once a month is locked its timetable cannot change.",
+    ],
+  },
+  {
+    id: "finance-inbox",
+    title: "Finance inbox",
+    pages: ["/finance/inbox"],
+    purpose:
+      "One place for the finance paperwork that arrives: attachments e-mailed to the accounts mailbox by the allowed senders, and files dropped here, such as a photo of a paper invoice that came with goods to a branch.",
+    steps: [
+      "Drop files on the page or press Choose files: PDF, photos, Excel or CSV. Several at once is fine.",
+      "Open a file to read it, then give it a label: supplier invoice, bank statement, processor report or other.",
+      "For a supplier invoice press Make a supplier invoice: the invoice form opens with the file already attached. Once saved, the file leaves the inbox and travels with the invoice to its voucher.",
+      "Discard anything that is not finance paperwork (a newsletter, a duplicate scan). It is deleted for good.",
+    ],
+    watchOut: [
+      "Never put patient reports here: Diligence files, remittance advice and lab reports with names go on their own upload pages, which delete the original at once.",
+      "A file that is already in Pulse is not added twice.",
+      "Mail from a sender who is not on the allowed list is dropped; an administrator adds senders under Settings, Integrations, Finance mailbox.",
+    ],
+  },
+  {
+    id: "finance-vouchers",
+    title: "Payment vouchers and supplier invoices",
+    pages: [
+      "/finance/vouchers",
+      "/finance/vouchers/report",
+      "/finance/vouchers/settings",
+      "/finance/payables",
+      "/finance/suppliers",
+      "/finance/tally",
+    ],
+    purpose:
+      "Zero paper: supplier invoices and payment vouchers are kept in Pulse with their documents, and every voucher goes maker, Finance Manager, then the department head or CEO as the delegation of authority requires, before it is paid and exported to Tally.",
+    steps: [
+      "Add the supplier invoice under Supplier invoices and attach the PDF from the accounts mailbox, or a phone photo of a paper invoice.",
+      "Press Pay with a voucher (or New voucher under Payment vouchers). Check the amount, category, branch and narration, attach any other backup, save the draft and submit it.",
+      "The Finance Manager verifies it (Tier 1 vouchers can be verified together). Tier 2 then goes to a department head; Tier 3, Tier 4, payroll, intercompany and related-party vouchers go to the CEO, who can approve on a phone.",
+      "Anyone who rejects must write remarks; the maker edits the voucher and submits it again.",
+      "Once approved, someone other than the maker records the payment date and bank reference, then build the Tally file under Tally export and import it in Tally.",
+      "Download the approval certificate from a voucher for the auditors: it lists every step, person, time, remark and the fingerprint of the documents.",
+    ],
+    watchOut: [
+      "Each step must be a different person: whoever prepared or changed a voucher cannot verify or approve it.",
+      "Changing a voucher after it was submitted returns it to draft and clears its approvals.",
+      "Nothing dated in a locked month can change its amounts, dates or documents; its invoices can still be paid by a later voucher and exported to Tally.",
+      "A voucher for less than its invoices pays the oldest first; an invoice not fully paid stays Part paid with its balance for the next voucher.",
+      "The Tally file refuses until every category, supplier, bank and branch is mapped to a Tally ledger (Voucher settings).",
+    ],
+  },
+  {
+    id: "finance-bank",
+    title: "Bank reconciliation",
+    pages: ["/finance/bank", "/finance/bank/settings"],
+    purpose:
+      "Proves that every Unite collection reached the bank: card and EPG (T+2), Tabby (T+6 working days), cash deposits and insurers' bulk payments, net of the processors' fees, by bank account and month.",
+    steps: [
+      "Once, in Accounts and rules: add each bank account (last 4 digits only), a file layout per bank or processor (the header of each column in their export), and for each payment mode its lag in working days, fee % and bank account.",
+      "Import the bank statement (and, where you have it, the processor's settlement report) as .csv or .xlsx. The same file twice, or overlapping dates, are refused.",
+      "Open the month's reconciliation for an account. Save the automatic matches, then accept or reject each proposed match: the score and its reasons are shown.",
+      "Give a reason for every expected receipt that is late and for every bank credit nothing explains, then mark it reviewed. A second person signs it off.",
+      "Optional: press Ask AI to review on an open reconciliation. The AI suggests, for each open item, one of Pulse's own candidates (or no match) with a reason, and writes a short summary. Accept or Reject each suggestion; an accepted pair is saved exactly as if you had accepted the proposal yourself. The line above the list shows how many suggestions were accepted and rejected.",
+    ],
+    watchOut: [
+      "A pair is matched automatically only when it is the only candidate on both sides and scores at least the threshold; Pulse never picks between two that fit.",
+      "The AI summary is a draft: check it before relying on it. The AI sees ids, amounts, dates, payment modes and references only, never bank descriptions or names, and it cannot change a figure or pair anything itself. It needs the AI review permission and AI switched on for the workspace.",
+      "A payment mode is not reconciled until its rule has a bank account, a lag and a fee % (0 when there is no fee).",
+      "A locked month cannot be changed, and a signed reconciliation is final.",
+    ],
+  },
+  {
+    id: "finance-labs",
+    title: "Labs and referrals",
+    pages: ["/finance/labs", "/finance/labs/settings"],
+    purpose:
+      "Checks every lab test and referral on a provider's monthly file against what Unite billed (patient PIN, day and test code) before its cost is charged to the doctor: tests done but not billed, tests billed that the lab has no record of, price differences and late results.",
+    steps: [
+      "Once, in Providers, tests and layouts: add the in-house lab (its monthly fee and how to share it), each send-out lab, hospital and radiology provider, each provider's tests (expected days and agreed price), and a file layout per provider (the header of each column in their file).",
+      "Each month, upload each provider's file (one per branch is fine) for the month of service. Names and ID numbers in the file are never read; the same file twice is refused.",
+      "Open the statement: give a reason for every line not matched to Unite and every billed test missing from the lab's file (one reason can cover a whole list), check price differences and late results, then mark it reviewed.",
+      "A second person posts it: each doctor's cost becomes a lab or referral charge for the month, deducted in the revenue share.",
+    ],
+    watchOut: [
+      "A line is matched only when it is the only candidate both ways; Pulse never picks between two that fit.",
+      "Posting again, or reopening, replaces only this statement's charges. Once the month's revenue share is verified or the month is locked, the charges cannot change.",
+      "Unite PINs are shown masked; never type patient details into a note.",
+    ],
+  },
+  {
+    id: "finance-invoice-changes",
+    title: "Invoice changes",
+    pages: ["/finance/invoice-changes"],
+    purpose:
+      "Review every discount, cancellation, credit note, write-off, reduced amount and refund on a Unite invoice, so no change goes without an approval.",
+    steps: [
+      "Choose a period. Unreviewed changes come first; the boxes at the top total each kind of change.",
+      "Open a change to see the invoice, amount, date and the Unite user who made it, then record Approved, Not approved or No approval needed, with a reason.",
+      "Small changes up to the limit finance sets can be approved together with one reason.",
+      "The line at the top counts the changes still without an approval since the start date finance sets (target: zero). Download the list as CSV.",
+    ],
+    watchOut: [
+      "Pulse never changes anything in Unite: a review is a record of the decision only.",
+      "Changes are worked out from what Unite sends Pulse, so a change made and undone between two deliveries is not seen.",
+      "Write no patient names, card or phone numbers in a reason.",
+    ],
+  },
+  {
+    id: "finance-revenue-share",
+    title: "Doctor revenue share",
+    pages: [
+      "/finance/revenue-share",
+      "/finance/revenue-share/schemes",
+      "/finance/revenue-share/charges",
+    ],
+    purpose:
+      "Each doctor's monthly revenue share with a complete trail: the source revenue, the approved rule of their contract, the lab and referral charges, every calculation step, Finance verification, CEO approval, the accounting reference and each payment.",
+    steps: [
+      "Schemes: add one version per doctor contract (share of net revenue, optional rates per service category, which charges are deducted, an optional monthly threshold and minimum guarantee). The Finance Manager verifies it (never the person who drafted it), then the CEO approves it; an approved version never changes, so a new contract term is a new version.",
+      "Doctor charges: enter or upload the month's lab, external referral, consumable and other costs per doctor before working day 7. Re-uploading a corrected file replaces the earlier upload for the same month and kind.",
+      "Monthly runs: after the month ends, build the draft and open each doctor to check every step. The Finance Manager verifies (never the person who built it), then the CEO approves.",
+      "Record the accounting (Tally) reference, then each doctor's payment date and reference. The trail CSV downloads the whole calculation.",
+    ],
+    watchOut: [
+      "This is doctor compensation: only Finance and the CEO see it.",
+      "Verifying freezes the run and the month's charges. Return it to draft (before the CEO approves) to correct something.",
+      "A month locked by the month-end close cannot have its charges or draft changed; approve the run before the close.",
+      "The page warns when invoices, charges or schemes changed after the draft was built. Rebuild before verifying.",
+    ],
   },
   {
     id: "finance-workflows",

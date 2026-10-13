@@ -311,6 +311,13 @@ export const PERMISSIONS = [
     description: "Build the close pack for a finished month and withdraw a finance sign-off",
   },
   {
+    key: "finance.close.tasks",
+    group: "Finance",
+    label: "Close timetable: my steps",
+    description:
+      "See the monthly close timetable and mark the steps you own or back up as done or blocked. Audited.",
+  },
+  {
     key: "finance.close.signoff.finance",
     group: "Finance",
     label: "Sign off the close for Finance",
@@ -359,7 +366,8 @@ export const PERMISSIONS = [
     key: "finance.costs.view",
     group: "Finance",
     label: "View service costs and overheads",
-    description: "Read the cost inputs. Does not include doctor compensation, revenue detail or profit.",
+    description:
+      "Read the cost inputs. Does not include doctor compensation, revenue detail or profit.",
   },
   {
     key: "finance.costs.compensation",
@@ -379,7 +387,179 @@ export const PERMISSIONS = [
     key: "finance.profit.approve",
     group: "Finance",
     label: "Approve a cost month",
-    description: "Approve a month's costs so its profit figures stop being provisional, or reopen it. Audited.",
+    description:
+      "Approve a month's costs so its profit figures stop being provisional, or reopen it. Audited.",
+  },
+  {
+    key: "finance.followup.manage",
+    group: "Finance",
+    label: "Work insurance follow-ups",
+    description:
+      "Record what was done about an unpaid insurance claim (payer contacted, payment promised, resubmitted, disputed, write-off proposed) and the next action date. Reading the follow-up list and the receivables report needs View insurance claims. Audited.",
+  },
+  {
+    key: "finance.changes.view",
+    group: "Finance",
+    label: "View the invoice-change register",
+    description:
+      "Read the Unite invoice changes Pulse has seen (discounts, cancellations, credit notes, write-offs, reduced amounts, refunds), their review and the unapproved-changes measure, and download them as CSV.",
+  },
+  {
+    key: "finance.changes.review",
+    group: "Finance",
+    label: "Review invoice changes",
+    description:
+      "Approve, reject or explain a Unite invoice change with a reason, and bulk-approve small ones up to the amount Finance sets. Needs View the invoice-change register to open the page. Audited.",
+  },
+  {
+    key: "finance.flash.view",
+    group: "Finance",
+    label: "Daily flash report",
+    description:
+      "Daily financial summary, month to date and daily sales by branch against target, with doctor rankings",
+  },
+  {
+    key: "finance.targets.manage",
+    group: "Finance",
+    label: "Revenue targets and reporting lines",
+    description:
+      "Set the daily revenue, patient and ARPP targets and the reporting lines (branches, Chiro, leased units) used by the flash report. Audited.",
+  },
+  {
+    key: "finance.payables.view",
+    group: "Finance",
+    label: "View suppliers, supplier invoices and vouchers",
+    description:
+      "Read suppliers, supplier invoices, payment vouchers with their trail, the approval reports and the attached documents (signed links, logged)",
+  },
+  {
+    key: "finance.payables.manage",
+    group: "Finance",
+    label: "Manage suppliers and supplier invoices",
+    description: "Add and edit suppliers and supplier invoices, and upload their documents. Audited.",
+  },
+  {
+    key: "finance.vouchers.prepare",
+    group: "Finance",
+    label: "Prepare payment vouchers (maker)",
+    description:
+      "Create, edit, submit, reopen and cancel payment vouchers with the backup attached. A maker never verifies or approves their own voucher.",
+  },
+  {
+    key: "finance.vouchers.check",
+    group: "Finance",
+    label: "Verify payment vouchers (checker)",
+    description:
+      "The Finance Manager's step: verify or reject a submitted voucher (rejection needs remarks); bulk-verify Tier 1 vouchers.",
+  },
+  {
+    key: "finance.vouchers.approve_dept",
+    group: "Finance",
+    label: "Approve vouchers as department head",
+    description: "Approve or reject Tier 2 vouchers after the Finance Manager has verified them.",
+  },
+  {
+    key: "finance.vouchers.approve_ceo",
+    group: "Finance",
+    label: "Authorise vouchers as CEO",
+    description:
+      "Authorise or reject Tier 3, Tier 4 and special-category vouchers (payroll, intercompany, related party) after verification.",
+  },
+  {
+    key: "finance.vouchers.pay",
+    group: "Finance",
+    label: "Record voucher payments",
+    description: "Record the payment date and bank reference of an approved voucher.",
+  },
+  {
+    key: "finance.vouchers.settings",
+    group: "Finance",
+    label: "Delegation of authority",
+    description:
+      "Edit the approval tiers, special categories and the approval mode (approve in Pulse or in Tally). Audited.",
+  },
+  {
+    key: "finance.tally.export",
+    group: "Finance",
+    label: "Tally export",
+    description:
+      "Map Pulse categories, suppliers, banks and branches to Tally ledgers, and export approved vouchers and supplier invoices as a TallyPrime import file. One-way, audited.",
+  },
+  {
+    key: "finance.bank.view",
+    group: "Finance",
+    label: "Bank reconciliation",
+    description:
+      "See bank accounts, imported statements and the bank reconciliation of each account and month (expected receipts, matches, unmatched items and their ageing).",
+  },
+  {
+    key: "finance.bank.manage",
+    group: "Finance",
+    label: "Run bank reconciliation",
+    description:
+      "Import bank statements and settlement reports, set accounts, file layouts and settlement rules, accept or reject matches, give reasons and mark a reconciliation reviewed. Audited.",
+  },
+  {
+    key: "finance.bank.signoff",
+    group: "Finance",
+    label: "Sign off bank reconciliation",
+    description: "Sign a reviewed bank reconciliation. The signer must be a different person from the preparer. Audited.",
+  },
+  {
+    key: "finance.labs.view",
+    group: "Finance",
+    label: "Lab and referral reconciliation",
+    description:
+      "See lab and referral providers, their monthly statements, the matching against Unite (tests done but not billed, billed but not on the provider's file), price variances, late results and each doctor's share of the cost. Unite PINs are shown masked.",
+  },
+  {
+    key: "finance.labs.manage",
+    group: "Finance",
+    label: "Run lab and referral reconciliation",
+    description:
+      "Set up providers, their tests and file layouts, upload lab and provider files, give reasons, mark a statement reviewed and post the doctors' costs to their charges (a different person from the one who reviewed). Audited.",
+  },
+  {
+    key: "finance.revshare.view",
+    group: "Finance",
+    label: "View doctor revenue share",
+    description:
+      "See revenue-share schemes, doctor charges, monthly runs with every calculation step, payouts and payment references. This is doctor compensation: grant it only to named people.",
+  },
+  {
+    key: "finance.revshare.manage",
+    group: "Finance",
+    label: "Prepare doctor revenue share",
+    description:
+      "Draft scheme versions, enter or upload doctor charges (lab, referrals, consumables), build the monthly run and record the accounting and payment references. Audited.",
+  },
+  {
+    key: "finance.revshare.verify",
+    group: "Finance",
+    label: "Verify revenue share (Finance Manager)",
+    description:
+      "The Finance Manager's check of a scheme version or a monthly run, bound to the exact figures shown. Never the person who prepared it. Audited.",
+  },
+  {
+    key: "finance.revshare.approve",
+    group: "Finance",
+    label: "Approve revenue share (CEO)",
+    description:
+      "Approve a verified scheme version or monthly run, or retire a scheme. Must be a different person from the one who verified. Audited.",
+  },
+  {
+    key: "finance.inbox.manage",
+    group: "Finance",
+    label: "Finance inbox",
+    description:
+      "See the documents e-mailed to the accounts mailbox or dropped on the Finance inbox (supplier invoices, bank statements, processor reports), label them, turn one into a supplier invoice or discard it. Audited.",
+  },
+  {
+    key: "finance.bank.ai",
+    group: "Finance",
+    label: "AI review of bank reconciliation",
+    description:
+      "Ask the AI to review an open bank reconciliation (ids, amounts, dates and references only) and accept or reject its suggestions. The AI only suggests pairs from Pulse's own shortlist; a person decides each one. Also needs Run bank reconciliation, and AI must be on for the workspace.",
   },
   {
     key: "portal.recall_sends.write",
@@ -436,6 +616,54 @@ export type RolePreset = {
   permissions: string[];
 };
 
+/** What the Finance preset holds; the Finance Manager holds the same plus the checker and settings keys. */
+const FINANCE_PRESET: readonly string[] = [
+  "reports.view",
+  "finance.view",
+  "finance.invoices.view",
+  "finance.claims.view",
+  "finance.reference.manage",
+  "finance.preauth.manage",
+  "finance.denials.manage",
+  "finance.remittance.manage",
+  "finance.scorecards.view",
+  "finance.forecast.view",
+  "finance.recovery.manage",
+  "finance.recovery.approve",
+  "finance.payment_links",
+  "finance.close.view",
+  "finance.close.manage",
+  "finance.close.signoff.finance",
+  "finance.close.tasks",
+  "finance.cashup.manage",
+  "finance.revenue.view",
+  "finance.export.run",
+  "finance.costs.manage",
+  "finance.costs.view",
+  "finance.costs.compensation",
+  "finance.profit.view",
+  "finance.profit.approve",
+  "finance.flash.view",
+  "finance.targets.manage",
+  "finance.followup.manage",
+  "finance.changes.view",
+  "finance.changes.review",
+  "finance.revshare.view",
+  "finance.revshare.manage",
+  "finance.bank.view",
+  "finance.bank.manage",
+  "finance.bank.signoff",
+  "finance.bank.ai",
+  "finance.labs.view",
+  "finance.labs.manage",
+  "finance.payables.view",
+  "finance.payables.manage",
+  "finance.vouchers.prepare",
+  "finance.vouchers.pay",
+  "finance.tally.export",
+  "finance.inbox.manage",
+];
+
 /**
  * Finance & Insurance presets. Also applied to existing orgs with
  * `pnpm finance:seed` (calls the seed_finance_roles RPC). Admin (`*`) already
@@ -445,31 +673,17 @@ export const FINANCE_ROLES: readonly RolePreset[] = [
   {
     name: "Finance",
     description: "Finance reports, invoices and reference data. Sees all finance aggregates.",
+    permissions: [...FINANCE_PRESET],
+  },
+  {
+    name: "Finance Manager",
+    description:
+      "Everything Finance does, plus verifying payment vouchers and revenue share (the checker) and the delegation-of-authority settings.",
     permissions: [
-      "reports.view",
-      "finance.view",
-      "finance.invoices.view",
-      "finance.claims.view",
-      "finance.reference.manage",
-      "finance.preauth.manage",
-      "finance.denials.manage",
-      "finance.remittance.manage",
-      "finance.scorecards.view",
-      "finance.forecast.view",
-      "finance.recovery.manage",
-      "finance.recovery.approve",
-      "finance.payment_links",
-      "finance.close.view",
-      "finance.close.manage",
-      "finance.close.signoff.finance",
-      "finance.cashup.manage",
-      "finance.revenue.view",
-      "finance.export.run",
-      "finance.costs.manage",
-      "finance.costs.view",
-      "finance.costs.compensation",
-      "finance.profit.view",
-      "finance.profit.approve",
+      ...FINANCE_PRESET,
+      "finance.vouchers.check",
+      "finance.vouchers.settings",
+      "finance.revshare.verify",
     ],
   },
   {
@@ -483,12 +697,13 @@ export const FINANCE_ROLES: readonly RolePreset[] = [
       "finance.cashup.manage",
       "finance.recovery.manage",
       "finance.payment_links",
+      "finance.close.tasks",
     ],
   },
   {
     name: "Insurance",
     description:
-      "Uploads Diligence claim files, works the insurance exception queue, pre-authorisations, eligibility, denials and remittance.",
+      "Uploads Diligence claim files, works the insurance exception queue, pre-authorisations, eligibility, denials, remittance and the follow-up of unpaid claims.",
     permissions: [
       "finance.claims.view",
       "finance.claims.import",
@@ -498,6 +713,8 @@ export const FINANCE_ROLES: readonly RolePreset[] = [
       "finance.denials.manage",
       "finance.remittance.manage",
       "finance.scorecards.view",
+      "finance.followup.manage",
+      "finance.close.tasks",
     ],
   },
   {
@@ -515,6 +732,14 @@ export const FINANCE_ROLES: readonly RolePreset[] = [
       "finance.close.view",
       "finance.close.signoff.ceo",
       "finance.profit.view",
+      "finance.flash.view",
+      "finance.payables.view",
+      "finance.vouchers.approve_ceo",
+      "finance.bank.view",
+      "finance.labs.view",
+      "finance.changes.view",
+      "finance.revshare.view",
+      "finance.revshare.approve",
     ],
   },
   {
@@ -525,13 +750,31 @@ export const FINANCE_ROLES: readonly RolePreset[] = [
       "finance.view",
       "finance.scorecards.view",
       "finance.revenue.view",
+      "finance.flash.view",
     ],
   },
   {
     name: "Cost / Payroll",
     description:
       "Service costs, overheads and (when authorised) doctor compensation. No access to revenue detail or the consolidated P&L.",
-    permissions: ["finance.costs.manage", "finance.costs.view", "finance.costs.compensation"],
+    permissions: [
+      "finance.costs.manage",
+      "finance.costs.view",
+      "finance.costs.compensation",
+      "finance.close.tasks",
+    ],
+  },
+  {
+    name: "Department head",
+    description:
+      "Approves Tier 2 payment vouchers for their department after the Finance Manager has verified them.",
+    permissions: ["finance.vouchers.approve_dept"],
+  },
+  {
+    name: "Operations",
+    description:
+      "Owns Unite invoice changes: reviews discounts, cancellations, credit notes, write-offs and refunds in the invoice-change register.",
+    permissions: ["finance.changes.view", "finance.changes.review"],
   },
 ];
 

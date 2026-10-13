@@ -1,6 +1,7 @@
 import { runPatientTable, type PatientContext } from "./patients";
 import { REGISTRY, entityMap, type PatientEntry, type RegistryEntry } from "./registry";
 import { emptyResult, judge, type AirtableSource, type TableResult } from "./results";
+import { runJunction } from "./run-junction";
 import { runTable } from "./run-table";
 import { DryRunStore, type ImportStore } from "./store";
 import { entityOf } from "./tables/map";
@@ -64,6 +65,13 @@ export function planOrder(
   return out;
 }
 
+/** A junction mapper has its own entity ("<base>.<table>#<suffix>"); the plain entity selects the table only. */
+function entryEntity(e: RegistryEntry): string {
+  if (e.type === "table") return entityOf(e.mapper);
+  const base = e.type === "skip" ? e : e.mapper;
+  return `${base.baseId}.${base.tableId}`;
+}
+
 export function selectKeys(
   entries: readonly RegistryEntry[],
   only: string[] | undefined,
@@ -71,11 +79,7 @@ export function selectKeys(
   if (!only || only.length === 0) return new Set(entries.map((e) => e.key));
   const keys = new Set<string>();
   for (const want of only) {
-    const hit = entries.filter((e) => {
-      if (e.key === want) return true;
-      const base = e.type === "skip" ? e : e.mapper;
-      return `${base.baseId}.${base.tableId}` === want;
-    });
+    const hit = entries.filter((e) => e.key === want || entryEntity(e) === want);
     if (hit.length === 0) {
       const known = entries
         .filter((e) => e.type !== "skip")
@@ -150,7 +154,7 @@ export async function runImport(deps: ImportDeps, opts: ImportOptions): Promise<
       );
       continue;
     }
-    const r = await runTable(m, {
+    const r = await (m.junction ? runJunction : runTable)(m, {
       store,
       source: deps.source,
       entityOf: (k) => entities.get(k),

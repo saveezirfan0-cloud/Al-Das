@@ -1,0 +1,72 @@
+{
+  "_note": "Synthetic data only. October 2026 (cut-off 30th, weekend Saturday and Sunday). Two accounts: OPS (operating, card / EPG / Tabby / cash) and INS (insurers' payments).",
+  "settings": {
+    "weekendDays": [0, 6],
+    "windowDays": 3,
+    "toleranceAmount": 1,
+    "tolerancePct": 0,
+    "autoAcceptScore": 80,
+    "cutoffDay": 30
+  },
+  "accounts": {
+    "OPS": "00000000-0000-4000-8000-0000000000a1",
+    "INS": "00000000-0000-4000-8000-0000000000a2"
+  },
+  "period": { "start": "2026-10-01", "end": "2026-10-30" },
+  "today": "2026-11-03",
+  "statementEnd": "2026-10-31",
+  "rules": [
+    { "mode": "Card", "lagDays": 2, "feePct": 2.5, "account": "OPS", "settlesToBank": true, "source": "collections" },
+    { "mode": "EPG", "lagDays": 2, "feePct": 2, "account": "OPS", "settlesToBank": true, "source": "collections" },
+    { "mode": "Tabby", "lagDays": 6, "feePct": 5, "account": "OPS", "settlesToBank": true, "source": "settlement" },
+    { "mode": "Cash", "lagDays": 1, "feePct": 0, "account": "OPS", "settlesToBank": true, "source": "collections" },
+    { "mode": "rePG", "lagDays": null, "feePct": null, "account": null, "settlesToBank": true, "source": "collections" },
+    { "mode": "Insurance credit", "lagDays": null, "feePct": null, "account": null, "settlesToBank": false, "source": "collections" }
+  ],
+  "payments": [
+    { "mode": "Card", "date": "2026-10-01", "paid": 600, "refund": 0, "branch": "P" },
+    { "mode": "Card", "date": "2026-10-01", "paid": 400, "refund": 0, "branch": "M" },
+    { "mode": "Card", "date": "2026-10-02", "paid": 2000, "refund": 0, "branch": "P" },
+    { "mode": "Card", "date": "2026-10-02", "paid": 0, "refund": 100, "branch": "P" },
+    { "mode": "EPG", "date": "2026-10-05", "paid": 500, "refund": 0, "branch": "G" },
+    { "mode": "Cash", "date": "2026-10-06", "paid": 300, "refund": 0, "branch": "P" },
+    { "mode": "rePG", "date": "2026-10-06", "paid": 400, "refund": 0, "branch": "M" },
+    { "mode": "Insurance credit", "date": "2026-10-06", "paid": 5000, "refund": 0, "branch": "P" },
+    { "mode": "Tabby", "date": "2026-10-08", "paid": 600, "refund": 0, "branch": "P" },
+    { "mode": "Tabby", "date": "2026-10-09", "paid": 400, "refund": 0, "branch": "G" }
+  ],
+  "collections": [
+    { "mode": "Card", "date": "2026-10-01", "paid": 1000, "refunds": 0, "payments": 2 },
+    { "mode": "Card", "date": "2026-10-02", "paid": 2000, "refunds": 100, "payments": 1 },
+    { "mode": "Cash", "date": "2026-10-06", "paid": 300, "refunds": 0, "payments": 1 },
+    { "mode": "EPG", "date": "2026-10-05", "paid": 500, "refunds": 0, "payments": 1 },
+    { "mode": "Insurance credit", "date": "2026-10-06", "paid": 5000, "refunds": 0, "payments": 1 },
+    { "mode": "Tabby", "date": "2026-10-08", "paid": 600, "refunds": 0, "payments": 1 },
+    { "mode": "Tabby", "date": "2026-10-09", "paid": 400, "refunds": 0, "payments": 1 },
+    { "mode": "rePG", "date": "2026-10-06", "paid": 400, "refunds": 0, "payments": 1 }
+  ],
+  "settlements": [
+    { "mode": "Tabby", "txnDate": "2026-10-08", "settlementDate": "2026-10-16", "gross": 600, "fee": 30, "net": 570, "reference": "TBY-7781" },
+    { "mode": "Tabby", "txnDate": "2026-10-09", "settlementDate": "2026-10-16", "gross": 350, "fee": 17.5, "net": 332.5, "reference": "TBY-7781" }
+  ],
+  "remittances": [
+    { "id": "00000000-0000-4000-8000-0000000000b1", "ref": "RA-55501", "payerId": "A001", "date": "2026-10-12", "amount": 12000 }
+  ],
+  "lines": {
+    "OPS": [
+      { "id": "00000000-0000-4000-8000-000000000101", "valueDate": "2026-10-05", "amount": 975, "reference": null, "description": "CARD SETTLEMENT" },
+      { "id": "00000000-0000-4000-8000-000000000102", "valueDate": "2026-10-06", "amount": 1852, "reference": null, "description": "POS SETTLEMENT" },
+      { "id": "00000000-0000-4000-8000-000000000103", "valueDate": "2026-10-07", "amount": 490, "reference": null, "description": "EPG PAYOUT" },
+      { "id": "00000000-0000-4000-8000-000000000104", "valueDate": "2026-10-08", "amount": 490, "reference": null, "description": "EPG PAYOUT" },
+      { "id": "00000000-0000-4000-8000-000000000105", "valueDate": "2026-10-16", "amount": 902.5, "reference": "TBY-7781", "description": "TABBY PAYOUT" },
+      { "id": "00000000-0000-4000-8000-000000000106", "valueDate": "2026-10-20", "amount": 123.45, "reference": null, "description": "TRANSFER FROM [iban]" },
+      { "id": "00000000-0000-4000-8000-000000000107", "valueDate": "2026-10-21", "amount": -500, "reference": null, "description": "RENT" },
+      { "id": "00000000-0000-4000-8000-000000000108", "valueDate": "2026-09-29", "amount": 100, "reference": null, "description": "CARD SETTLEMENT" },
+      { "id": "00000000-0000-4000-8000-000000000109", "valueDate": "2026-10-31", "amount": 50, "reference": null, "description": "INTEREST" }
+    ],
+    "INS": [
+      { "id": "00000000-0000-4000-8000-000000000201", "valueDate": "2026-10-13", "amount": 12000, "reference": null, "description": "DAMAN RA-55501" }
+    ]
+  },
+  "matchedElsewhere": ["00000000-0000-4000-8000-000000000108"]
+}

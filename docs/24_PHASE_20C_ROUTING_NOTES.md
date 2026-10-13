@@ -10,8 +10,8 @@ Before this phase, routing was round-robin over online members with a per-member
 
 | File                                  | What                                                                                                                                              |
 | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `20261025000100_routing_presence.sql` | columns, the two log tables and their triggers, presence RPCs and sweep, the routing functions, the restricted enquiry view (RLS + server helper) |
-| `20261025000200_routing_reports.sql`  | three source views (`v_assignment_events`, `v_presence_events`, `v_conversation_engagement`) and five report functions                            |
+| `20261108000200_routing_presence.sql` | columns, the two log tables and their triggers, presence RPCs and sweep, the routing functions, the restricted enquiry view (RLS + server helper) |
+| `20261108000300_routing_reports.sql`  | three source views (`v_assignment_events`, `v_presence_events`, `v_conversation_engagement`) and five report functions                            |
 
 ### Schema
 
@@ -97,7 +97,7 @@ The report functions are service-role only (`can('reports.view')` first, like th
   - restricted view in RLS for own / team / all and another org, update blocked outside the view, the same rule through `enquiries_search` and `enquiry_ids_visible_to`, suspended member sees nothing;
   - report functions' numbers (first/last assign medians ≈ 7200 s / 3600 s, owner removed, AI engagement, cohort totals, presence payload);
   - report functions and views denied to signed-in users.
-- `tests/db/security-guard.test.ts`: the new tables are in `PHASE20C_TABLES` and seeded by `seedPhase20cRows()` (through the real triggers); `presence_heartbeat` is in `AUTHENTICATED_RPCS` (it touches only the caller's own membership); the four service-only functions are checked in a new "phase 20c service-role functions" block.
+- `tests/db/security-guard.test.ts`: the new tables are in `SF20C_TABLES` and seeded by `seedSf20cRows()` (through the real triggers); `presence_heartbeat` is in `AUTHENTICATED_RPCS` (it touches only the caller's own membership); the four service-only functions are checked in a new "phase 20c service-role functions" block.
 - Full DB suite on a fresh test database (`bash scripts/test-db.sh`, then `vitest run tests/db`): 44 files ran (624 tests passed), and 17 files were skipped because they need `TEST_POSTGREST_URL` (no PostgREST here). The one failure was `tests/db/jobs.test.ts`, whose list of cron jobs lacked the new `presence_auto_away`. The test was updated and re-run green, together with the routing, security-guard, inbox, enquiry and RLS suites (87 passed).
 - `pnpm test` (unit suite, no database): 190 files, 2607 tests passed.
 - `pnpm audit:security`: 0 unguarded and unreviewed (`setMemberRouting` is guarded and audited). The generated report was not committed.
@@ -117,7 +117,7 @@ The report functions are service-role only (`can('reports.view')` first, like th
 4. The open conversation limit counts `open` and `waiting` (not closed, not campaign-only). Manual assignment is never blocked.
 5. `pick_round_robin_assignee` (enquiry rules) is idle-aware but not capacity-limited.
 6. Team scope includes unassigned enquiries; own scope includes unassigned ones the person created. The restriction applies on top of the role, also to administrators if someone sets it (default `all`).
-7. `enquiry_tags` follows the view (migration `20261029000100_phase20_integration.sql`), and so does the inbox close-with-enquiry dialog (Phase 20d). Other child data of enquiries keeps its existing policies. This covers tasks linked to an enquiry (`tasks.view`), and timeline rows (fetched only after the detail check). Also not restricted: the Front desk patient card's "open enquiry" chip (`lib/front-desk/server.ts`, shows the latest open enquiry's number/title/stage to `frontdesk.use`), the Team lead dashboard's SLA count (a number), the public API (key-scoped, no member) and privacy exports (`privacy.manage`).
+7. `enquiry_tags` follows the view (migration `20261108000900_phase20_integration.sql`), and so does the inbox close-with-enquiry dialog (Phase 20d). Other child data of enquiries keeps its existing policies. This covers tasks linked to an enquiry (`tasks.view`), and timeline rows (fetched only after the detail check). Also not restricted: the Front desk patient card's "open enquiry" chip (`lib/front-desk/server.ts`, shows the latest open enquiry's number/title/stage to `frontdesk.use`), the Team lead dashboard's SLA count (a number), the public API (key-scoped, no member) and privacy exports (`privacy.manage`).
 8. The presence log starts at deploy. For the status log, time before a member's first change counts as the state recorded with that change (`previous`), else their current state.
 9. "Closed by AI" is not a Pulse concept (rule 12: drafts only). It is reported as closed without a staff reply, split into handled by automation vs no reply at all.
 

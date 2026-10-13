@@ -1,378 +1,17 @@
 -- Paste this whole file into Supabase > SQL Editor > New query, then Run.
 -- Run the files in numeric order. A failed file rolls back as a whole, so it is safe to retry.
--- Phase 20 (Sanoflow parity, docs/20 to docs/27). Needs every earlier file first, including 19b_phase_19b_integrations.sql and
--- 21_finance_insurance_overview.sql. Check the project name in the Supabase header first: this is for the Pulse project only.
--- 20a: Sanoflow import support (appointments.source 'import', reconcile refs), enquiry tags and the campaign history archive.
--- 20b: flow parity (new triggers, drip on segments, window-closing jobs). 20c: routing (fallback team, open-chat limits, office hours,
--- auto-reply, idle auto-away, restricted enquiry view, assignment and presence logs, reports) and booking capacity (buffers,
--- group places, slot length, weekly blocks). 20d: template delivery settings, retries and performance, recurring campaigns and the
--- monthly budget. 20e: website chat, Instagram and Messenger channels and Google Calendar busy sync. Integration: enquiry tags follow
--- the restricted enquiry view. Everything new is OFF or behaves as before until someone changes a setting.
--- Nothing here calls Unite, WhatsApp, Meta or Google. The migration-history lines are at the bottom of this file.
+-- Phases 20b to 20e (Sanoflow parity, docs/20 to docs/27). Needs every earlier file first, up to and including
+-- 40_finance_provider_file_ext.sql (21a and 21b hold the 20a Sanoflow import tables this builds on).
+-- Check the project name in the Supabase header first: this is for the Pulse project only.
+-- 20b: flow parity (new triggers, drip on segments, window-closing jobs). 20c: routing (fallback team, open-chat limits, office
+-- hours, auto-reply, idle auto-away, restricted enquiry view, assignment and presence logs, reports) and booking capacity
+-- (buffers, group places, slot length, weekly blocks). 20d: template delivery settings, retries and performance, recurring
+-- campaigns and the monthly budget. 20e: website chat, Instagram and Messenger channels and Google Calendar busy sync.
+-- Integration: enquiry tags follow the restricted enquiry view. Everything new is OFF or behaves as before until someone
+-- changes a setting. Nothing here calls Unite, WhatsApp, Meta or Google. The migration-history lines are at the bottom.
 
 -- ======================================================================
--- 20261023000100_sanoflow_import.sql
--- ======================================================================
--- Phase 20a: Sanoflow migration completeness.
---
--- 1. Future appointments brought over from Sanoflow are booked through public.book_appointment (advisory
---    lock + overlap check) with source 'import', so reports, the Unite diff and the appointments list can
---    tell them from portal bookings. Their Sanoflow id lives in external_refs (source 'sanoflow').
--- 2. reconcile_snapshot also counts Sanoflow/Airtable refs whose local row is gone (enquiries, appointments,
---    segments, timeline entries, settings lists). A static-segment membership ref points at its segment.
---    Counts only.
-
-alter table public.appointments drop constraint if exists appointments_source_check;
-alter table public.appointments
-  add constraint appointments_source_check check (source in ('portal', 'unite', 'bot', 'import'));
-
-create or replace function public.reconcile_snapshot(p_org_id uuid)
-returns jsonb
-language sql
-stable
-security definer
-set search_path = ''
-as $$
-  select jsonb_build_object(
-    'refs', coalesce((
-      select jsonb_object_agg(source || '/' || entity, n)
-      from (select source, entity, count(*) as n from public.external_refs where org_id = p_org_id group by source, entity) r
-    ), '{}'::jsonb),
-    'reviews_open', coalesce((
-      select jsonb_object_agg(source || '/' || entity, n)
-      from (select source, entity, count(*) as n from public.sync_reviews where org_id = p_org_id and status = 'open' group by source, entity) r
-    ), '{}'::jsonb),
-    'reviews_dismissed', coalesce((
-      select jsonb_object_agg(source || '/' || entity, n)
-      from (select source, entity, count(*) as n from public.sync_reviews where org_id = p_org_id and status = 'dismissed' group by source, entity) r
-    ), '{}'::jsonb),
-    'reviews_resolved', coalesce((
-      select jsonb_object_agg(source || '/' || entity, n)
-      from (select source, entity, count(*) as n from public.sync_reviews where org_id = p_org_id and status = 'resolved' group by source, entity) r
-    ), '{}'::jsonb),
-    'orphan_refs', (
-      select count(*) from public.external_refs r
-      where r.org_id = p_org_id and r.local_table = 'contacts'
-        and not exists (select 1 from public.contacts c where c.id = r.local_id)
-    ),
-    'orphan_refs_other', (
-      select count(*) from public.external_refs r
-      where r.org_id = p_org_id
-        and r.local_table in ('enquiries', 'appointments', 'segments', 'pipelines', 'stages',
-                              'tags', 'conv_categories', 'quick_replies', 'timeline_events')
-        and case r.local_table
-          when 'enquiries' then not exists (select 1 from public.enquiries x where x.id = r.local_id)
-          when 'appointments' then not exists (select 1 from public.appointments x where x.id = r.local_id)
-          when 'segments' then not exists (select 1 from public.segments x where x.id = r.local_id)
-          when 'pipelines' then not exists (select 1 from public.pipelines x where x.id = r.local_id)
-          when 'stages' then not exists (select 1 from public.stages x where x.id = r.local_id)
-          when 'tags' then not exists (select 1 from public.tags x where x.id = r.local_id)
-          when 'conv_categories' then not exists (select 1 from public.conv_categories x where x.id = r.local_id)
-          when 'quick_replies' then not exists (select 1 from public.quick_replies x where x.id = r.local_id)
-          when 'timeline_events' then not exists (select 1 from public.timeline_events x where x.id = r.local_id)
-          else false
-        end
-    ),
-    'refs_to_deleted_contacts', (
-      select count(*) from public.external_refs r
-      join public.contacts c on c.id = r.local_id
-      where r.org_id = p_org_id and r.local_table = 'contacts'
-        and c.deleted_at is not null and c.merged_into_id is null
-    ),
-    'contacts_live', (select count(*) from public.contacts where org_id = p_org_id and deleted_at is null),
-    'contacts_imported', (
-      select count(*) from public.contacts
-      where org_id = p_org_id and deleted_at is null and source in ('import_airtable', 'import_sanoflow', 'import_csv')
-    ),
-    'contacts_without_identifier', (
-      select count(*) from public.contacts
-      where org_id = p_org_id and deleted_at is null
-        and phone_e164 is null and wa_bsuid is null and external_id is null
-    ),
-    'duplicate_alternate_phones', (
-      select count(*) from (
-        select cp.phone_e164
-        from public.contact_phones cp
-        join public.contacts c on c.id = cp.contact_id and c.deleted_at is null
-        where cp.org_id = p_org_id
-        group by cp.phone_e164
-        having count(distinct cp.contact_id) > 1
-      ) d
-    ),
-    'alternate_phone_is_other_primary', (
-      select count(*) from public.contact_phones cp
-      join public.contacts c on c.id = cp.contact_id and c.deleted_at is null
-      join public.contacts o on o.org_id = cp.org_id and o.phone_e164 = cp.phone_e164
-        and o.deleted_at is null and o.id <> cp.contact_id
-      where cp.org_id = p_org_id
-    ),
-    'merge_chains_over_1', (
-      select count(*) from public.contacts c
-      join public.contacts m on m.id = c.merged_into_id
-      where c.org_id = p_org_id and m.merged_into_id is not null
-    )
-  );
-$$;
-
-revoke all on function public.reconcile_snapshot(uuid) from public, anon, authenticated;
-grant execute on function public.reconcile_snapshot(uuid) to service_role;
-
--- ======================================================================
--- 20261023000200_enquiry_tags_campaign_archive.sql
--- ======================================================================
--- Phase 20a follow-ups (docs/22):
---
--- 1. Enquiry tags. Tags with scope 'enquiry' (public.tags already allows it) are attached to enquiries
---    through enquiry_tags. Read with enquiries.view, changed with enquiries.manage; the tag must be an
---    enquiry tag of the same organisation.
--- 2. Campaign history from Sanoflow. Past campaigns cannot become rows of public.campaigns (those need a
---    Pulse template and channel, and the send engine acts on them), so they land in a read-only archive:
---    campaign_archive (one row per Sanoflow campaign, with totals) and campaign_archive_recipients (status
---    and times per patient). No message text, no phone numbers. Read with campaigns.view; written only by
---    the import (service role).
--- 3. Erasure and merges: when a contact is erased (erased_at set by public.erase_contact), their archived campaign
---    rows and their enquiries' tags go too; when two records are merged, archived campaign rows follow the
---    survivor. Triggers, so they keep working when erase_contact / merge_contacts are replaced.
--- 4. reconcile_snapshot counts orphan refs to the new tables as well.
-
--- ---------------------------------------------------------------------------
--- 1. Enquiry tags
--- ---------------------------------------------------------------------------
-create table public.enquiry_tags (
-  org_id uuid not null references public.orgs (id) on delete cascade,
-  enquiry_id uuid not null references public.enquiries (id) on delete cascade,
-  tag_id uuid not null references public.tags (id) on delete cascade,
-  added_by uuid references public.profiles (id) on delete set null,
-  added_at timestamptz not null default now(),
-  primary key (enquiry_id, tag_id)
-);
-create index enquiry_tags_tag_idx on public.enquiry_tags (tag_id, enquiry_id);
-
-create trigger enquiry_tags_enquiry_org_check before insert or update on public.enquiry_tags
-  for each row execute function app.check_parent_org('enquiries', 'enquiry_id');
-create trigger enquiry_tags_tag_org_check before insert or update on public.enquiry_tags
-  for each row execute function app.check_parent_org('tags', 'tag_id');
-
-create or replace function app.enquiry_tags_scope_check()
-returns trigger
-language plpgsql
-security definer
-set search_path = ''
-as $$
-begin
-  -- a missing tag is the NOT NULL constraint's job (and row security answers first for another org)
-  if new.tag_id is null then
-    return new;
-  end if;
-  if not exists (select 1 from public.tags t where t.id = new.tag_id and t.scope = 'enquiry') then
-    raise exception 'tag % is not an enquiry tag', new.tag_id using errcode = 'check_violation';
-  end if;
-  return new;
-end;
-$$;
-create trigger enquiry_tags_scope_check before insert or update of tag_id on public.enquiry_tags
-  for each row execute function app.enquiry_tags_scope_check();
-
-alter table public.enquiry_tags enable row level security;
-create policy enquiry_tags_select on public.enquiry_tags for select to authenticated
-  using (app.has_perm(org_id, 'enquiries.view'));
-create policy enquiry_tags_insert on public.enquiry_tags for insert to authenticated
-  with check (app.has_perm(org_id, 'enquiries.manage'));
-create policy enquiry_tags_delete on public.enquiry_tags for delete to authenticated
-  using (app.has_perm(org_id, 'enquiries.manage'));
-
--- ---------------------------------------------------------------------------
--- 2. Campaign history archive (Sanoflow)
--- ---------------------------------------------------------------------------
-create table public.campaign_archive (
-  id uuid primary key default gen_random_uuid(),
-  org_id uuid not null references public.orgs (id) on delete cascade,
-  source text not null default 'sanoflow' check (source in ('sanoflow')),
-  name text not null check (char_length(name) between 1 and 200),
-  template_name text check (template_name is null or char_length(template_name) <= 200),
-  sent_at timestamptz,
-  -- {"recipients": n, "sent": n, "delivered": n, "read": n, "replied": n, "failed": n, "other": n}
-  totals jsonb not null default '{}'::jsonb check (jsonb_typeof(totals) = 'object'),
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-create index campaign_archive_org_sent_idx on public.campaign_archive (org_id, sent_at desc);
-create trigger campaign_archive_set_updated_at before update on public.campaign_archive
-  for each row execute function app.set_updated_at();
-
-create table public.campaign_archive_recipients (
-  id uuid primary key default gen_random_uuid(),
-  org_id uuid not null references public.orgs (id) on delete cascade,
-  archive_id uuid not null references public.campaign_archive (id) on delete cascade,
-  contact_id uuid not null references public.contacts (id) on delete cascade,
-  status text not null check (status in ('sent', 'delivered', 'read', 'replied', 'failed', 'other')),
-  sent_at timestamptz,
-  delivered_at timestamptz,
-  read_at timestamptz,
-  replied_at timestamptz,
-  failed_at timestamptz,
-  error_code integer,
-  created_at timestamptz not null default now(),
-  unique (archive_id, contact_id)
-);
-create index campaign_archive_recipients_contact_idx on public.campaign_archive_recipients (contact_id);
-create trigger campaign_archive_recipients_archive_org_check before insert or update on public.campaign_archive_recipients
-  for each row execute function app.check_parent_org('campaign_archive', 'archive_id');
-create trigger campaign_archive_recipients_contact_org_check before insert or update on public.campaign_archive_recipients
-  for each row execute function app.check_parent_org('contacts', 'contact_id');
-
-alter table public.campaign_archive enable row level security;
-alter table public.campaign_archive_recipients enable row level security;
--- Read-only for staff; the Sanoflow import writes with the service role.
-create policy campaign_archive_select on public.campaign_archive for select to authenticated
-  using (app.has_perm(org_id, 'campaigns.view'));
-create policy campaign_archive_recipients_select on public.campaign_archive_recipients for select to authenticated
-  using (app.has_perm(org_id, 'campaigns.view'));
-
--- ---------------------------------------------------------------------------
--- 3. Erasure
--- ---------------------------------------------------------------------------
-create or replace function app.erase_contact_phase20()
-returns trigger
-language plpgsql
-security definer
-set search_path = ''
-as $$
-begin
-  delete from public.campaign_archive_recipients where org_id = new.org_id and contact_id = new.id;
-  delete from public.enquiry_tags et
-   using public.enquiries e
-   where e.id = et.enquiry_id and e.org_id = new.org_id and e.contact_id = new.id;
-  return new;
-end;
-$$;
-create trigger contacts_erase_phase20 after update of erased_at on public.contacts
-  for each row when (old.erased_at is null and new.erased_at is not null)
-  execute function app.erase_contact_phase20();
-
--- A merge moves the archived campaign rows to the surviving record (a trigger, like patient documents, so a
--- later rewrite of merge_contacts cannot forget it). Where both records got the same campaign, the
--- survivor's row stays and the duplicate goes.
-create or replace function app.move_campaign_archive_on_merge()
-returns trigger
-language plpgsql
-security definer
-set search_path = ''
-as $$
-begin
-  if new.merged_into_id is not null and new.merged_into_id is distinct from old.merged_into_id then
-    delete from public.campaign_archive_recipients d
-     where d.org_id = new.org_id and d.contact_id = new.id
-       and exists (select 1 from public.campaign_archive_recipients k
-                    where k.archive_id = d.archive_id and k.contact_id = new.merged_into_id);
-    update public.campaign_archive_recipients set contact_id = new.merged_into_id
-     where org_id = new.org_id and contact_id = new.id;
-  end if;
-  return new;
-end;
-$$;
-create trigger contacts_move_campaign_archive_on_merge after update of merged_into_id on public.contacts
-  for each row execute function app.move_campaign_archive_on_merge();
-
--- ---------------------------------------------------------------------------
--- 4. reconcile_snapshot: orphan refs to the new tables
--- ---------------------------------------------------------------------------
-create or replace function public.reconcile_snapshot(p_org_id uuid)
-returns jsonb
-language sql
-stable
-security definer
-set search_path = ''
-as $$
-  select jsonb_build_object(
-    'refs', coalesce((
-      select jsonb_object_agg(source || '/' || entity, n)
-      from (select source, entity, count(*) as n from public.external_refs where org_id = p_org_id group by source, entity) r
-    ), '{}'::jsonb),
-    'reviews_open', coalesce((
-      select jsonb_object_agg(source || '/' || entity, n)
-      from (select source, entity, count(*) as n from public.sync_reviews where org_id = p_org_id and status = 'open' group by source, entity) r
-    ), '{}'::jsonb),
-    'reviews_dismissed', coalesce((
-      select jsonb_object_agg(source || '/' || entity, n)
-      from (select source, entity, count(*) as n from public.sync_reviews where org_id = p_org_id and status = 'dismissed' group by source, entity) r
-    ), '{}'::jsonb),
-    'reviews_resolved', coalesce((
-      select jsonb_object_agg(source || '/' || entity, n)
-      from (select source, entity, count(*) as n from public.sync_reviews where org_id = p_org_id and status = 'resolved' group by source, entity) r
-    ), '{}'::jsonb),
-    'orphan_refs', (
-      select count(*) from public.external_refs r
-      where r.org_id = p_org_id and r.local_table = 'contacts'
-        and not exists (select 1 from public.contacts c where c.id = r.local_id)
-    ),
-    'orphan_refs_other', (
-      select count(*) from public.external_refs r
-      where r.org_id = p_org_id
-        and r.local_table in ('enquiries', 'appointments', 'segments', 'pipelines', 'stages', 'tags',
-                              'conv_categories', 'quick_replies', 'timeline_events', 'campaign_archive',
-                              'campaign_archive_recipients')
-        and case r.local_table
-          when 'enquiries' then not exists (select 1 from public.enquiries x where x.id = r.local_id)
-          when 'appointments' then not exists (select 1 from public.appointments x where x.id = r.local_id)
-          when 'segments' then not exists (select 1 from public.segments x where x.id = r.local_id)
-          when 'pipelines' then not exists (select 1 from public.pipelines x where x.id = r.local_id)
-          when 'stages' then not exists (select 1 from public.stages x where x.id = r.local_id)
-          when 'tags' then not exists (select 1 from public.tags x where x.id = r.local_id)
-          when 'conv_categories' then not exists (select 1 from public.conv_categories x where x.id = r.local_id)
-          when 'quick_replies' then not exists (select 1 from public.quick_replies x where x.id = r.local_id)
-          when 'timeline_events' then not exists (select 1 from public.timeline_events x where x.id = r.local_id)
-          when 'campaign_archive' then not exists (select 1 from public.campaign_archive x where x.id = r.local_id)
-          when 'campaign_archive_recipients' then not exists (select 1 from public.campaign_archive_recipients x where x.id = r.local_id)
-          else false
-        end
-    ),
-    'refs_to_deleted_contacts', (
-      select count(*) from public.external_refs r
-      join public.contacts c on c.id = r.local_id
-      where r.org_id = p_org_id and r.local_table = 'contacts'
-        and c.deleted_at is not null and c.merged_into_id is null
-    ),
-    'contacts_live', (select count(*) from public.contacts where org_id = p_org_id and deleted_at is null),
-    'contacts_imported', (
-      select count(*) from public.contacts
-      where org_id = p_org_id and deleted_at is null and source in ('import_airtable', 'import_sanoflow', 'import_csv')
-    ),
-    'contacts_without_identifier', (
-      select count(*) from public.contacts
-      where org_id = p_org_id and deleted_at is null
-        and phone_e164 is null and wa_bsuid is null and external_id is null
-    ),
-    'duplicate_alternate_phones', (
-      select count(*) from (
-        select cp.phone_e164
-        from public.contact_phones cp
-        join public.contacts c on c.id = cp.contact_id and c.deleted_at is null
-        where cp.org_id = p_org_id
-        group by cp.phone_e164
-        having count(distinct cp.contact_id) > 1
-      ) d
-    ),
-    'alternate_phone_is_other_primary', (
-      select count(*) from public.contact_phones cp
-      join public.contacts c on c.id = cp.contact_id and c.deleted_at is null
-      join public.contacts o on o.org_id = cp.org_id and o.phone_e164 = cp.phone_e164
-        and o.deleted_at is null and o.id <> cp.contact_id
-      where cp.org_id = p_org_id
-    ),
-    'merge_chains_over_1', (
-      select count(*) from public.contacts c
-      join public.contacts m on m.id = c.merged_into_id
-      where c.org_id = p_org_id and m.merged_into_id is not null
-    )
-  );
-$$;
-
-revoke all on function public.reconcile_snapshot(uuid) from public, anon, authenticated;
-grant execute on function public.reconcile_snapshot(uuid) to service_role;
-
--- ======================================================================
--- 20261024000100_flow_parity.sql
+-- 20261108000100_flow_parity.sql
 -- ======================================================================
 -- Phase 20b: flow parity (docs/23_PHASE_20B_NOTES.md).
 --
@@ -448,7 +87,7 @@ create index if not exists flow_runs_flow_conversation_started_idx
   where conversation_id is not null;
 
 -- ======================================================================
--- 20261025000100_routing_presence.sql
+-- 20261108000200_routing_presence.sql
 -- ======================================================================
 -- Phase 20c (routing half, docs/24_PHASE_20C_ROUTING_NOTES.md): team auto-reply and fallback team, a per-member open
 -- conversation limit honoured by round-robin, presence auto-away from browser heartbeats, a per-member restricted
@@ -1013,7 +652,7 @@ revoke all on function public.enquiry_ids_visible_to(uuid, uuid, uuid[]) from pu
 grant execute on function public.enquiry_ids_visible_to(uuid, uuid, uuid[]) to service_role;
 
 -- ======================================================================
--- 20261025000200_routing_reports.sql
+-- 20261108000300_routing_reports.sql
 -- ======================================================================
 -- Phase 20c / G13 reports (docs/24_PHASE_20C_ROUTING_NOTES.md). Source views (lib/reports/registry.ts `requires`) plus
 -- report functions. Service role only, called by lib/reports after can('reports.view'). Each returns a bounded,
@@ -1275,7 +914,7 @@ end;
 $$;
 
 -- ======================================================================
--- 20261026000100_booking_capacity.sql
+-- 20261108000400_booking_capacity.sql
 -- ======================================================================
 -- Phase 20c (booking half, G6): booking capacity. docs/25_PHASE_20C_BOOKING_NOTES.md.
 --
@@ -1635,7 +1274,7 @@ revoke all on function public.appointment_capacity_conflicts(uuid, uuid[]) from 
 grant execute on function public.appointment_capacity_conflicts(uuid, uuid[]) to service_role;
 
 -- ======================================================================
--- 20261027000100_phase20d_template_delivery.sql
+-- 20261108000500_phase20d_template_delivery.sql
 -- ======================================================================
 -- Phase 20d (docs/26_PHASE_20D_NOTES.md): template delivery settings, retry-on-fail, template performance.
 -- Service role writes everything here; no new table, so no new policy (wa_templates / messages keep theirs).
@@ -1650,7 +1289,7 @@ grant execute on function public.appointment_capacity_conflicts(uuid, uuid[]) to
 --   messages.retry_of_message_id the failed message a retry copies; unique, so a failure is retried at most once
 --   v_template_message_facts     template sends (ids, statuses, times only) for the template performance report
 --   report_template_performance  sent / delivered / read / replied / quick-reply clicks / failed per template and range
---   (media_asset_usage() learns carousel card headers in 20261027000200, next to recurring campaigns)
+--   (media_asset_usage() learns carousel card headers in 20261108000600, next to recurring campaigns)
 
 alter table public.wa_templates
   add column if not exists sms_fallback boolean not null default true,
@@ -1767,7 +1406,7 @@ revoke all on function public.report_template_performance(uuid, date, date, uuid
 grant execute on function public.report_template_performance(uuid, date, date, uuid[], uuid) to service_role;
 
 -- ======================================================================
--- 20261027000200_phase20d_recurring_campaigns_budget.sql
+-- 20261108000600_phase20d_recurring_campaigns_budget.sql
 -- ======================================================================
 -- Phase 20d (docs/26_PHASE_20D_NOTES.md): recurring campaigns and the monthly campaign message budget.
 --
@@ -2031,7 +1670,7 @@ revoke all on function public.media_asset_usage(uuid, uuid) from public, anon, a
 grant execute on function public.media_asset_usage(uuid, uuid) to service_role;
 
 -- ======================================================================
--- 20261028000100_web_chat_social_channels.sql
+-- 20261108000700_web_chat_social_channels.sql
 -- ======================================================================
 -- Phase 20e (G12): website chat widget, Instagram and Messenger as inbox channels.
 --
@@ -2334,7 +1973,7 @@ select cron.schedule('pulse:housekeeping_20e_channels', '35 3 * * *', $$
 $$);
 
 -- ======================================================================
--- 20261028000200_google_calendar_sync.sql
+-- 20261108000800_google_calendar_sync.sql
 -- ======================================================================
 -- Phase 20e (G7): Google Calendar two-way busy sync per specialist. OFF by default (integration_accounts kind
 -- 'google_calendar', typed confirmation because appointment times are shared with Google).
@@ -2560,7 +2199,7 @@ select cron.schedule('pulse:housekeeping_20e_gcal', '40 3 * * *', $$
 $$);
 
 -- ======================================================================
--- 20261029000100_phase20_integration.sql
+-- 20261108000900_phase20_integration.sql
 -- ======================================================================
 -- Phase 20 integration: enquiry tags follow the restricted enquiry view (20c). The tag rows of an enquiry a member
 -- may not see are hidden too; the enquiries policy (app.enquiry_visible_to) decides inside the exists.
@@ -2586,14 +2225,12 @@ create policy enquiry_tags_delete on public.enquiry_tags for delete to authentic
     and exists (select 1 from public.enquiries e where e.id = enquiry_id)
   );
 
-insert into supabase_migrations.schema_migrations (version, name) values ('20261023000100', 'sanoflow_import') on conflict (version) do nothing;
-insert into supabase_migrations.schema_migrations (version, name) values ('20261023000200', 'enquiry_tags_campaign_archive') on conflict (version) do nothing;
-insert into supabase_migrations.schema_migrations (version, name) values ('20261024000100', 'flow_parity') on conflict (version) do nothing;
-insert into supabase_migrations.schema_migrations (version, name) values ('20261025000100', 'routing_presence') on conflict (version) do nothing;
-insert into supabase_migrations.schema_migrations (version, name) values ('20261025000200', 'routing_reports') on conflict (version) do nothing;
-insert into supabase_migrations.schema_migrations (version, name) values ('20261026000100', 'booking_capacity') on conflict (version) do nothing;
-insert into supabase_migrations.schema_migrations (version, name) values ('20261027000100', 'phase20d_template_delivery') on conflict (version) do nothing;
-insert into supabase_migrations.schema_migrations (version, name) values ('20261027000200', 'phase20d_recurring_campaigns_budget') on conflict (version) do nothing;
-insert into supabase_migrations.schema_migrations (version, name) values ('20261028000100', 'web_chat_social_channels') on conflict (version) do nothing;
-insert into supabase_migrations.schema_migrations (version, name) values ('20261028000200', 'google_calendar_sync') on conflict (version) do nothing;
-insert into supabase_migrations.schema_migrations (version, name) values ('20261029000100', 'phase20_integration') on conflict (version) do nothing;
+insert into supabase_migrations.schema_migrations (version, name) values ('20261108000100', 'flow_parity') on conflict (version) do nothing;
+insert into supabase_migrations.schema_migrations (version, name) values ('20261108000200', 'routing_presence') on conflict (version) do nothing;
+insert into supabase_migrations.schema_migrations (version, name) values ('20261108000300', 'routing_reports') on conflict (version) do nothing;
+insert into supabase_migrations.schema_migrations (version, name) values ('20261108000400', 'booking_capacity') on conflict (version) do nothing;
+insert into supabase_migrations.schema_migrations (version, name) values ('20261108000500', 'phase20d_template_delivery') on conflict (version) do nothing;
+insert into supabase_migrations.schema_migrations (version, name) values ('20261108000600', 'phase20d_recurring_campaigns_budget') on conflict (version) do nothing;
+insert into supabase_migrations.schema_migrations (version, name) values ('20261108000700', 'web_chat_social_channels') on conflict (version) do nothing;
+insert into supabase_migrations.schema_migrations (version, name) values ('20261108000800', 'google_calendar_sync') on conflict (version) do nothing;
+insert into supabase_migrations.schema_migrations (version, name) values ('20261108000900', 'phase20_integration') on conflict (version) do nothing;

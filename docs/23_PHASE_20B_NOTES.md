@@ -57,7 +57,7 @@ All new nodes are in `NODE_TYPES`, `NODE_DATA_SCHEMAS`, the catalogue, the build
 
 ## Files
 
-- New: `lib/flow-engine/crm-adapters.ts`, `answers.ts`, `wa-flow.ts`, `node-options.ts` (client-safe lists: router labels, Meta event names, answer types, `patternProblem`), `executors/ai.ts`; migration `supabase/migrations/20261024000100_flow_parity.sql`; tests `tests/unit/flow-parity.test.ts`, `tests/unit/flow-answers.test.ts`, `tests/db/flow-parity.test.ts`.
+- New: `lib/flow-engine/crm-adapters.ts`, `answers.ts`, `wa-flow.ts`, `node-options.ts` (client-safe lists: router labels, Meta event names, answer types, `patternProblem`), `executors/ai.ts`; migration `supabase/migrations/20261108000100_flow_parity.sql`; tests `tests/unit/flow-parity.test.ts`, `tests/unit/flow-answers.test.ts`, `tests/db/flow-parity.test.ts`.
 - Changed: `lib/flow-engine/{types,deps,run,triggers,graph,catalog,labels,node-schemas,simulate,supabase-deps,starter-flows}.ts`, `executors/{crm,integrations,messaging,index}.ts`, `lib/jobs/handlers/flow-steps.ts` (job kinds `flow.window_closing`, `flow.drip`), `lib/inbox/inbound.ts` (`opened` in the `message.received` payload), `lib/integrations/payments/request-server.ts` (`actorId` nullable, `expectContactId`), `lib/ai/flow-copilot/policy.ts`, `lib/contacts/server.ts` (segment summary has `drip_flow_id`), flows builder (`node-form`, `trigger-form`, `page`, `flow-builder` lookups, `actions.ts`), contacts (`segment-dialog`, `actions.ts` `saveSegment`, `page`, `types`, `contacts-workspace`).
 - Deleted: `lib/flow-engine/crm-registry.ts`.
 - Starter flows: the recall starter's text no longer says Enquiries is "not installed"; new starter `window_closing_check_in`.

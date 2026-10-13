@@ -74,4 +74,6 @@ export const CALL_PROVIDERS: Record<IntegrationKind, readonly string[]> = {
   instagram: ["instagram"],
   messenger: ["messenger"],
   google_calendar: ["google_calendar"],
+  // Inbound only: the mail service posts to Pulse; Pulse never calls it.
+  finance_mailbox: [],
 };

@@ -5,6 +5,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { ActionForm, Field, RunButton, selectClass } from "@/components/finance/forms";
 import { CATEGORY_LABELS, DENIAL_CATEGORIES } from "@/lib/finance/denials";
 import type { BlueprintSettings } from "@/lib/finance/blueprint-settings";
+import { ageingBuckets } from "@/lib/finance/followup";
+import type { FollowupSettings } from "@/lib/finance/followup-settings";
 import type { FinanceSettings } from "@/lib/finance/settings-db";
 
 import {
@@ -13,6 +15,8 @@ import {
   importPayerPrices,
   saveBlueprintSettings,
   saveDenialCode,
+  saveChangeReviewSettings,
+  saveFollowupSettings,
   saveThresholds,
 } from "./actions";
 
@@ -376,6 +380,90 @@ export function BlueprintSettingsForm({ s }: { s: BlueprintSettings }) {
           </select>
         </Field>
       </fieldset>
+    </ActionForm>
+  );
+}
+
+export function FollowupSettingsForm({
+  s,
+  roles,
+}: {
+  s: FollowupSettings;
+  roles: readonly string[];
+}) {
+  const roleOptions = roles.includes(s.taskRole) ? roles : [s.taskRole, ...roles];
+  return (
+    <ActionForm action={saveFollowupSettings} submitLabel="Save settings">
+      <fieldset className="grid gap-3 sm:grid-cols-3">
+        <legend className="mb-1 text-sm font-semibold">Ageing</legend>
+        <Field
+          label="Ageing buckets (days)"
+          hint={`Gives ${ageingBuckets(s.bucketDays)
+            .map((b) => b.label)
+            .join(" / ")}. Used by Insurance follow-up and Receivables by age.`}
+          className="sm:col-span-2"
+        >
+          <Input name="ageing_bucket_days" defaultValue={s.bucketDays.join(", ")} />
+        </Field>
+      </fieldset>
+      <fieldset className="grid gap-3 sm:grid-cols-3">
+        <legend className="mb-1 text-sm font-semibold">Follow-up of unpaid claims</legend>
+        <Field label="Follow-up stages (days unpaid)" hint="For example 60, 90, 120.">
+          <Input name="followup_stage_days" defaultValue={s.stageDays.join(", ")} />
+        </Field>
+        <Field
+          label="Create follow-up tasks from"
+          hint="Blank = off. A stage reached before this date never creates a task."
+        >
+          <Input name="followup_start_date" type="date" defaultValue={s.startDate ?? ""} />
+        </Field>
+        <Field label="Give the tasks to members of">
+          <select name="followup_task_role" className={selectClass} defaultValue={s.taskRole}>
+            {roleOptions.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Task due after (days)">
+          <Input name="followup_task_due_days" inputMode="numeric" defaultValue={s.taskDueDays} />
+        </Field>
+        <div className="flex items-end">
+          <Check name="followup_task_enabled" label="Create tasks" checked={s.taskEnabled} />
+        </div>
+      </fieldset>
+    </ActionForm>
+  );
+}
+
+export function ChangeReviewSettingsForm({
+  s,
+}: {
+  s: { startDate: string | null; minAmount: number; bulkMax: number };
+}) {
+  return (
+    <ActionForm action={saveChangeReviewSettings} submitLabel="Save settings">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Field
+          label="Count unapproved invoice changes from"
+          hint="Blank = the register works but the measure is not counted. Changes before this date are never counted."
+        >
+          <Input name="change_review_start_date" type="date" defaultValue={s.startDate ?? ""} />
+        </Field>
+        <Field
+          label="Approval needed from (AED)"
+          hint="0 = every change needs an approval. A change below this amount needs none."
+        >
+          <Input name="change_review_min_amount" inputMode="decimal" defaultValue={s.minAmount} />
+        </Field>
+        <Field
+          label="Bulk approval up to (AED)"
+          hint="Unreviewed changes up to this amount can be approved together with one reason. 0 = off."
+        >
+          <Input name="change_bulk_approve_max" inputMode="decimal" defaultValue={s.bulkMax} />
+        </Field>
+      </div>
     </ActionForm>
   );
 }

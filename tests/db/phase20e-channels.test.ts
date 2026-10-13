@@ -15,7 +15,7 @@ import {
   createAuthUser,
   createOrg,
   resetDb,
-  seedPhase20eRows,
+  seedSf20eRows,
   TEST_DATABASE_URL,
 } from "./helpers";
 
@@ -360,7 +360,7 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 20e: channels and calendar mirror", (
 
   describe("row security", () => {
     beforeAll(async () => {
-      await seedPhase20eRows(c, orgA, alice);
+      await seedSf20eRows(c, orgA, alice);
     });
 
     it("hides org A's platform ids and event links from org B, and the token tables from everyone", async () => {

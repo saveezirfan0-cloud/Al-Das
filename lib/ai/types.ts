@@ -9,6 +9,8 @@ export const AI_FEATURES = [
   "campaign_audience",
   "campaign_copy",
   "intent",
+  // Phase 20H
+  "bank_review",
 ] as const;
 export type AiFeature = (typeof AI_FEATURES)[number];
 

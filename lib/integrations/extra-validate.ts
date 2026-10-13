@@ -1,3 +1,4 @@
+import { allowListProblem } from "@/lib/finance/mailbox";
 import type { IntegrationKind } from "@/lib/integrations/catalog";
 import { parseAllowedDomains } from "@/lib/channels/web/policy";
 import { validateRoomTemplate } from "@/lib/integrations/telehealth/url";
@@ -19,5 +20,6 @@ export function extraValidation(
     return "List up to 20 website host names, such as www.example.com, separated by commas.";
   if (kind === "web_chat" && /[<>]/.test(`${config.title ?? ""}${config.welcome ?? ""}`))
     return "The title and welcome text cannot contain < or >.";
+  if (kind === "finance_mailbox") return allowListProblem(config.allowed_senders);
   return null;
 }

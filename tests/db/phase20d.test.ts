@@ -14,7 +14,7 @@ import {
   createAuthUser,
   createOrg,
   resetDb,
-  seedPhase20dRows,
+  seedSf20dRows,
   TEST_DATABASE_URL,
 } from "./helpers";
 
@@ -54,8 +54,8 @@ describe.skipIf(!TEST_DATABASE_URL)("Phase 20d (db)", () => {
       carol,
       agent,
     ]);
-    seeded = await seedPhase20dRows(c, orgA, "a");
-    await seedPhase20dRows(c, orgB, "b");
+    seeded = await seedSf20dRows(c, orgA, "a");
+    await seedSf20dRows(c, orgB, "b");
   });
   afterAll(async () => {
     await resetDb(c);

@@ -30,6 +30,7 @@ import { money } from "@/lib/finance/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import { BuildButton, SignForm, WithdrawButton } from "../close-controls";
+import { ControlsSummary } from "./controls-summary";
 
 export const metadata = { title: "Month-end close" };
 export const dynamic = "force-dynamic";
@@ -98,8 +99,9 @@ export default async function CloseMonthPage({ params }: { params: Promise<{ mon
               canManage ? (
                 <>
                   <p>
-                    Build the pack from the invoices, claims, payments and cash-ups Pulse holds now.
-                    You can rebuild it until Finance signs.
+                    Build the pack from the invoices, claims, payments, cash-ups and the control
+                    summary (bank, payables, revenue share, invoice changes, timetable) Pulse holds
+                    now. You can rebuild it until Finance signs.
                   </p>
                   <div>
                     <BuildButton month={month} rebuild={false} />
@@ -233,6 +235,8 @@ export default async function CloseMonthPage({ params }: { params: Promise<{ mon
               </AlertDescription>
             </Alert>
           )}
+
+          <ControlsSummary pack={pack} />
 
           <div className="grid gap-4 lg:grid-cols-2">
             <Card>

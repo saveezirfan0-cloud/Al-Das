@@ -248,7 +248,7 @@ export async function sendLibraryMedia(
   if (!isLibraryPathFor(asset.storage_path, member.orgId, asset.id))
     return { ok: false, error: "That library file has an invalid location." };
   const check = validateMedia({ mime: asset.mime_type, size: asset.size_bytes }, "library");
-  if (!check.ok || check.kind === "patient_document")
+  if (!check.ok || check.kind === "patient_document" || check.kind === "finance_document")
     return { ok: false, error: check.ok ? "That file cannot be sent." : check.message };
   const path = `${member.orgId}/${conversation.id}/${randomUUID()}.${check.extension}`;
   const { error: copyErr } = await admin.storage

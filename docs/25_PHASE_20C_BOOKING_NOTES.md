@@ -61,7 +61,7 @@ All runs used the test database `pulse_test_c` (fresh from `scripts/test-db.sh`)
   - RLS on `specialist_recurring_blocks`: an Agent reads but cannot insert, the Admin inserts, the check constraint holds, and the other org sees nothing.
 - `tests/db/unite-sync.test.ts` gained a case that runs the **real Unite sync path** (`syncAppointments`, through PostgREST). A Unite appointment for a doctor blocked all day, on top of a portal booking, is created and then moved, and `appointment_capacity_conflicts` flags it `blocked`.
 - `tests/db/appointments-service.test.ts` gained a case through PostgREST: `slotsForDay` respects the 20-minute specialist step, buffers and the weekly break; `createAppointment` books two places of a 2-place group and refuses the third.
-- These existing suites also pass: `appointment-booking-lock`, `front-desk`, `front-desk-service` (waiting-list offers through `intervalHasPlace`), `appointments-rls`, `sanoflow-import`, `security-guard` (with `PHASE20CB_TABLES` + `seedPhase20cbRows`), `appointment-reports` and `demo-reset`.
+- These existing suites also pass: `appointment-booking-lock`, `front-desk`, `front-desk-service` (waiting-list offers through `intervalHasPlace`), `appointments-rls`, `sanoflow-import`, `security-guard` (with `SF20C_BOOKING_TABLES` + `seedSf20cBookingRows`), `appointment-reports` and `demo-reset`.
 - `tsc --noEmit` and eslint on the changed files are clean, `pnpm audit:security` reports 0 unguarded entry points, and the full `pnpm test` unit suite passes.
 
 ## Not built or not verified

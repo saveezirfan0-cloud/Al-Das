@@ -94,7 +94,7 @@ Retry rounds, CSV audience and test send were already built (re-checked) and are
 
 ### Files
 
-- Migrations: `20261027000100_phase20d_template_delivery.sql`, `20261027000200_phase20d_recurring_campaigns_budget.sql`.
+- Migrations: `20261108000500_phase20d_template_delivery.sql`, `20261108000600_phase20d_recurring_campaigns_budget.sql`.
 - New: `lib/templates/{delivery,retry,performance}.ts`, `lib/reports/template-performance.ts`,
   `lib/campaigns/{recurrence,recurring,budget}.ts`, `lib/inbox/{close,close-enquiry}.ts`,
   `app/(app)/templates/{delivery-dialog,performance-dialog}.tsx`, `app/(app)/campaigns/budget-meter.tsx`,

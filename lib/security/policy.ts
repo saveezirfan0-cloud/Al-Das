@@ -40,6 +40,8 @@ export const UNGUARDED_OK: Record<string, string> = {
     "Public website chat: a visitor's message, stored through web_chat_receive (idempotent per visitor message id, new visitors get a contact without a phone). Allowed websites only, integration on, not training; 8 KB body cap; rate limited per IP, per visitor and new visitors per IP.",
   "app/api/widget/[key]/messages/route.ts::OPTIONS":
     "CORS pre-flight of the public website chat: the same gate (switch, training, Origin allow-list); returns headers only.",
+  "app/api/webhooks/integrations/finance_mailbox/[accountId]/route.ts::POST":
+    "Authorised by HTTP basic auth against the stored webhook password (constant-time compare); unknown or switched-off accounts give 404; bodies over 4.5 MB give 413; failed attempts are rate limited per IP and every account per minute; each message is claimed once by its MessageID (integration_webhook_events). Only attachments from allow-listed senders are kept (sender domain only), a training workspace stores nothing.",
   "app/api/webhooks/integrations/payments/[accountId]/route.ts::POST":
     "Authorised by the gateway's signature (Stripe-Signature with a 5 minute replay window, or the PayTabs HMAC) using the stored secret, constant-time compare; unknown or switched-off accounts give 404; failed signatures are rate limited per IP; each event is claimed once (integration_webhook_events) and amounts are checked against the stored request.",
 };

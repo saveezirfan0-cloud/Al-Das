@@ -16,6 +16,8 @@ import {
   callScriptsMapper,
   doctorsMapper,
   medicalRecordsMapper,
+  patientChronicDiagnosesMapper,
+  visitDiagnosesMapper,
 } from "./tables/clinical";
 import {
   appointmentMessagesMapper,
@@ -31,6 +33,7 @@ import {
   settingsMapper,
   websiteMapper,
 } from "./tables/reference";
+import { entityOf } from "./tables/map";
 import type { TableMapper } from "./tables/types";
 
 export type PatientEntry = {
@@ -76,8 +79,10 @@ export const REGISTRY: readonly RegistryEntry[] = [
   // 3. patients
   patient("unite.patients", unitePatientsMapper),
   patient("acute.patients", acutePatientsMapper, ["unite.patients"]),
+  table(patientChronicDiagnosesMapper),
   // 4. visits, prescriptions
   table(medicalRecordsMapper),
+  table(visitDiagnosesMapper),
   table(acuteVisitsMapper),
   table(acutePrescriptionsMapper),
   // 5. follow-ups, feedback, logs
@@ -185,7 +190,7 @@ export function entityMap(): Map<string, string> {
   const m = new Map<string, string>();
   for (const e of REGISTRY) {
     if (e.type === "patients") m.set(e.key, `${e.mapper.baseId}.${e.mapper.tableId}`);
-    else if (e.type === "table") m.set(e.key, `${e.mapper.baseId}.${e.mapper.tableId}`);
+    else if (e.type === "table") m.set(e.key, entityOf(e.mapper));
   }
   return m;
 }

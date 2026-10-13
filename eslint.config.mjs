@@ -17,7 +17,7 @@ const eslintConfig = [
     rules: { "@typescript-eslint/no-explicit-any": "off" },
   },
   {
-    ignores: ["node_modules/**", ".next/**", "out/**", "build/**", "next-env.d.ts"],
+    ignores: ["node_modules/**", ".next/**", "out/**", "build/**", "next-env.d.ts", ".claude/**"],
   },
 ];
 

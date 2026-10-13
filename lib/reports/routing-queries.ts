@@ -3,7 +3,7 @@ import type { Kpi, ReportContext, ReportResult } from "@/lib/reports/types";
 
 /**
  * Phase 20c / G13 reports over the assignment and presence logs (20261025000100) and the report functions in
- * 20261025000200. Counts, seconds and staff names only: never patient details or message text.
+ * 20261108000300. Counts, seconds and staff names only: never patient details or message text.
  */
 
 const arr = <T>(a: T[]): T[] | undefined => (a.length ? a : undefined);

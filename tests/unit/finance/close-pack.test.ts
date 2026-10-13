@@ -103,6 +103,7 @@ describe("XLSX", () => {
     await wb.xlsx.load(a as never);
     expect(wb.worksheets.map((w) => w.name)).toEqual([
       "Summary",
+      "Controls",
       "By branch",
       "Revenue by category",
       "Revenue by department",

@@ -36,15 +36,17 @@ describe("catalogue", () => {
     expect(isIntegrationKind("unite")).toBe(false);
   });
 
-  it("requires typed confirmation for everything that messages patients, takes money or shares patient data, and nothing else", () => {
+  it("requires typed confirmation for everything that messages patients, takes money, shares patient data or accepts files, and nothing else", () => {
     for (const i of INTEGRATIONS) {
-      const expected = i.contactsPatients || i.movesMoney || i.sharesData;
+      const expected =
+        i.contactsPatients || i.movesMoney || i.sharesData || i.acceptsFiles === true;
       expect(needsConfirmation(i.kind), i.kind).toBe(expected);
       expect(i.confirmWord !== null, i.kind).toBe(expected);
     }
     expect(integrationDef("sms").confirmWord).toBe("ENABLE SMS");
     expect(integrationDef("payments").confirmWord).toBe("ENABLE PAYMENTS");
     expect(integrationDef("calendar_ics").confirmWord).toBeNull();
+    expect(integrationDef("finance_mailbox").confirmWord).toBe("ACCEPT MAILBOX ATTACHMENTS");
   });
 
   it("marks every credential as secret and keeps identifiers out of the encrypted blob", () => {
@@ -61,6 +63,8 @@ describe("catalogue", () => {
         "auth_token",
         "secret_key",
         "server_key",
+        // Stripe's signing secret and the finance mailbox's webhook password
+        "webhook_secret",
         "webhook_secret",
         "page_access_token",
         "page_access_token",
@@ -92,7 +96,7 @@ describe("permissions and presets", () => {
     expect(can(member(["settings.manage"]), "integrations.manage")).toBe(false);
   });
 
-  it("doctors' calendars go to the Manager; payment links only to Finance and Billing", () => {
+  it("doctors' calendars go to the Manager; payment links only to Finance (and the Finance Manager, a superset) and Billing", () => {
     const has = (name: string, key: string) =>
       SYSTEM_ROLES.find((r) => r.name === name)!.permissions.includes(key);
     expect(has("Manager", "integrations.calendar")).toBe(true);
@@ -101,7 +105,7 @@ describe("permissions and presets", () => {
       FINANCE_ROLES.filter((r) => r.permissions.includes("finance.payment_links"))
         .map((r) => r.name)
         .sort(),
-    ).toEqual(["Billing", "Finance"]);
+    ).toEqual(["Billing", "Finance", "Finance Manager"]);
   });
 
   it("finance.payment_links is its own key: no neighbour implies it", () => {

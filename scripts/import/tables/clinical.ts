@@ -276,6 +276,84 @@ export const medicalRecordsMapper: TableMapper = {
 };
 
 // ---------------------------------------------------------------------------
+// Phase 21: junctions. Medical Records Data → visit_diagnoses, Unite patients → contact_chronic_conditions
+// ---------------------------------------------------------------------------
+
+const DIAGNOSIS = "unite.diagnosis";
+
+/**
+ * MRD "Diagnosis" (and "Primary Diagnosis Link", which marks is_primary) → visit_diagnoses, one row per visit and
+ * code. The code comes from the linked ref_diagnoses row, so it is always a known code (ref_diagnosis_id set).
+ * Contact and date follow the visit. These rows feed the chronic-condition rule (lib/clinical/chronic.ts).
+ */
+export const visitDiagnosesMapper: TableMapper = {
+  key: "unite.visit_diagnoses",
+  name: "Unite · Medical Records Data → visit diagnoses",
+  baseId: BASE.unite,
+  tableId: "tblllKPKIY9qvMoEU",
+  entitySuffix: "visit_diagnoses",
+  target: "visit_diagnoses",
+  status: "ready",
+  naturalKey: ["visit_id", "diagnosis_code"],
+  dependsOn: ["unite.medical_records", DIAGNOSIS],
+  fields: [],
+  junction: {
+    parent: { mapper: "unite.medical_records", table: "visits" },
+    link: { fieldId: "fldsrglawqYEoNqZu", label: "Diagnosis", target: DIAGNOSIS, table: "ref_diagnoses" },
+    flagLink: { fieldId: "fldDJcDJYLqffQ5A0", label: "Primary Diagnosis Link" },
+    build({ parent, child, flagged }) {
+      const code = typeof child.code === "string" ? child.code.trim().toUpperCase() : "";
+      if (!code) return "diagnosis_without_code";
+      if (typeof parent.visit_date !== "string" || !parent.visit_date) return "visit_without_date";
+      return {
+        visit_id: parent.id,
+        contact_id: typeof parent.contact_id === "string" ? parent.contact_id : null,
+        ref_diagnosis_id: child.id,
+        diagnosis_code: code,
+        is_primary: flagged,
+        source: "airtable",
+        visit_date: parent.visit_date,
+      };
+    },
+  },
+};
+
+/**
+ * Unite patient "Chronic Diagnosis" (the patient-level chronic list the Unite base kept, data-model-mapping §1.1)
+ * → contact_chronic_conditions with source 'airtable'. The chronic-condition rule never removes these rows; it
+ * adds its own (source 'visit_diagnoses'). A merged patient's conditions go to the surviving record.
+ */
+export const patientChronicDiagnosesMapper: TableMapper = {
+  key: "unite.patient_chronic_diagnoses",
+  name: "Unite · patients → chronic conditions",
+  baseId: BASE.unite,
+  tableId: "tbl9856qJP9S7OEqB",
+  entitySuffix: "chronic_conditions",
+  target: "contact_chronic_conditions",
+  status: "ready",
+  naturalKey: ["contact_id", "ref_diagnosis_id"],
+  dependsOn: [PATIENTS, DIAGNOSIS],
+  fields: [],
+  junction: {
+    parent: { mapper: PATIENTS, table: "contacts" },
+    link: {
+      fieldId: "fld9gw5nJNzgywljY",
+      label: "Chronic Diagnosis",
+      target: DIAGNOSIS,
+      table: "ref_diagnoses",
+    },
+    build({ parent, child }) {
+      if (parent.deleted_at) return "patient_deleted";
+      const contactId =
+        typeof parent.merged_into_id === "string" && parent.merged_into_id
+          ? parent.merged_into_id
+          : parent.id;
+      return { contact_id: contactId, ref_diagnosis_id: child.id, source: "airtable" };
+    },
+  },
+};
+
+// ---------------------------------------------------------------------------
 // Acute.Visits (derived copies of MRD rows): only what MRD lacks
 // ---------------------------------------------------------------------------
 

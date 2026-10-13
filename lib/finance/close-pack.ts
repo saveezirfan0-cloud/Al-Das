@@ -1,3 +1,5 @@
+import { deriveMatters, type CloseControls, type Matter } from "@/lib/finance/close-controls";
+
 /**
  * The month-end close pack: composing the snapshot that gets frozen, and comparing a frozen snapshot with the live figures
  * (pure). The snapshot holds aggregates only (branches, categories, departments, doctors by DHA id and name, payers, amounts):
@@ -67,6 +69,8 @@ export type ClosePackInput = {
     by_branch: RevenueLine[];
   };
   denialReasons: ReasonLine[];
+  /** fin_close_controls (Phase 20G part 2). Packs built before it have neither `controls` nor `matters`. */
+  controls?: CloseControls;
 };
 
 export type ClosePack = {
@@ -100,6 +104,9 @@ export type ClosePack = {
   open_exceptions: number;
   freshness: MonthFigures["freshness"];
   notes: string[];
+  /** Absent in packs built before the control summary existed: render "not captured in this pack". */
+  controls?: CloseControls;
+  matters?: Matter[];
 };
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
@@ -149,6 +156,7 @@ export function buildClosePack(input: ClosePackInput): ClosePack {
       "Claimed, remitted, rejected and outstanding are by the claim's transaction month. Receivables ageing and outstanding are as of the build date, not month end.",
       "Revenue is the net of current invoice lines for invoices dated in the month; self-pay collected is payments dated in the month on self-pay invoices.",
     ],
+    ...(input.controls ? { controls: input.controls, matters: deriveMatters(input.controls) } : {}),
   };
 }
 

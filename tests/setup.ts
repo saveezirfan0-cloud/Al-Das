@@ -22,5 +22,8 @@ globalThis.fetch = ((input: Parameters<typeof fetch>[0], init?: Parameters<typeo
   // Phase 20e: Instagram / Messenger (graph.facebook.com is blocked above) and Google Calendar / OAuth are tested with fake fetches.
   if (/^https?:\/\/([a-z0-9-]+\.)*(instagram\.com|facebook\.com|messenger\.com|googleapis\.com|google\.com)([/:?#]|$)/i.test(url))
     throw new Error("Tests must never call Instagram, Messenger or Google: use a fake fetch");
+  // Phase 20B: the finance mailbox is inbound only (the mail service posts to Pulse); no test may reach the mail service.
+  if (/^https?:\/\/([a-z0-9-]+\.)*postmarkapp\.com([/:?#]|$)/i.test(url))
+    throw new Error("Tests must never call the mail service: post a synthetic message to the route instead");
   return realFetch(input, init);
 }) as typeof fetch;
