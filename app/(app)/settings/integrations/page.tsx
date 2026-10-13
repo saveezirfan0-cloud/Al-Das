@@ -55,6 +55,7 @@ export default async function IntegrationsHubPage() {
                     <Badge variant={VARIANT[h.state]}>{HEALTH_LABEL[h.state]}</Badge>
                     {def.contactsPatients && <Badge variant="outline">Messages patients</Badge>}
                     {def.movesMoney && <Badge variant="outline">Takes payments</Badge>}
+                    {def.sharesData && <Badge variant="outline">Shares data</Badge>}
                   </CardTitle>
                   <CardDescription>{def.description}</CardDescription>
                 </CardHeader>

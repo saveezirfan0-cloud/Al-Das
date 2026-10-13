@@ -1,6 +1,6 @@
 import "server-only";
 
-import { inspectStoredObject, type StoredObject } from "@/lib/media/inspect";
+import type { StoredObject } from "@/lib/media/inspect";
 import { probeObject, removeObjects } from "@/lib/media/probe";
 import type { ScanResult } from "@/lib/media/scan";
 import { configuredScanner, scanStored } from "@/lib/media/server";
@@ -38,5 +38,3 @@ export function supabaseEsignStorage(admin: AdminClient): EsignStorage {
     scan: (target) => scanStored(admin, target, configuredScanner()),
   };
 }
-
-export { inspectStoredObject };
