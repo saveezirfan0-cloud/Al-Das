@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-11-07-menu-tree",
+    date: "2026-11-07",
+    title: "A menu that opens up like a tree",
+    body: "Finance and Settings now open in the menu on the left: press the arrow next to them to see their sections and pages, and press a section heading or a group heading (Today, Patients and so on) to fold it away. Pulse remembers what you opened on this device; Expand all and Collapse all sit at the top of the menu. When the menu is narrow, point at the Finance or Settings icon (or press it) to pick a page. On a phone the Finance and Settings pages keep their own menu at the top of the page. Ctrl K now finds every Finance page too.",
+  },
+  {
     id: "2026-11-06-board-pack-controls",
     date: "2026-11-06",
     title: "Board pack: controls and matters needing attention",
