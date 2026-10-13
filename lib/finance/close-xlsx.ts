@@ -1,3 +1,9 @@
+import {
+  CONTROLS_SCOPE,
+  controlSections,
+  NOT_CAPTURED,
+  readControls,
+} from "@/lib/finance/close-controls";
 import { monthLabel, type ClosePack } from "@/lib/finance/close-pack";
 
 /**
@@ -90,6 +96,29 @@ export async function closePackXlsx(pack: ClosePack, sign: SignOff): Promise<Buf
   if (sign.ceoNote) kv("CEO note", sign.ceoNote);
   summary.addRow([]);
   for (const n of pack.notes) summary.addRow([n]);
+
+  // Controls and matters needing attention (frozen with the pack; text values only)
+  const controls = readControls(pack.controls);
+  const cs = wb.addWorksheet("Controls");
+  cs.columns = [{ width: 52 }, { width: 70 }];
+  cs.addRow(["Matters needing attention"]).font = { bold: true, size: 12 };
+  if (!controls) cs.addRow([NOT_CAPTURED]);
+  else {
+    const matters = Array.isArray(pack.matters) ? pack.matters : [];
+    if (matters.length === 0) cs.addRow(["None found by the checks below."]);
+    for (const m of matters) cs.addRow([m.text]);
+    cs.addRow([]);
+    cs.addRow([
+      `Ages and workflow states as at ${controls.as_of}; payables as at ${controls.month_end}.`,
+    ]);
+    for (const sec of controlSections(controls)) {
+      cs.addRow([]);
+      cs.addRow([sec.title]).font = { bold: true };
+      for (const [k, v] of sec.rows) cs.addRow([k, v]);
+    }
+  }
+  cs.addRow([]);
+  for (const n of CONTROLS_SCOPE) cs.addRow([n]);
 
   addTable(
     "By branch",

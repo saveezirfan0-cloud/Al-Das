@@ -61,5 +61,35 @@ The close timetable on slide 9 of the deck ("The next stage of financial & manag
 ## Decisions worth knowing
 
 - No step for "Board pack issued": the CEO lock already is that step, with two signatures and the hash; a second checkbox could disagree with it.
-- The 20G plan row also lists extending the pack with P&L, balance sheet, cash and bank, payables, liabilities and variances. That needs 20C, 20D and 20F data and is not built here.
+- The 20G plan row also lists extending the pack with P&L, balance sheet, cash and bank, payables, liabilities and variances. That is Part 2 below (Board pack controls).
 - Reconciling items are the finance exceptions only for now; the open-items measure gains bank items with 20C.
+
+## Part 2: Board pack controls
+
+_Built on `claude/funny-clarke-6t7gee` (deck slide 10: "one concise picture ... not hundreds of transactions; the detailed schedules sit underneath")._
+
+**What it adds.** When the month-end pack is built, `fin_close_controls(org, month, today)` (SECURITY DEFINER, `search_path = ''`, service role only, in `PHASE20_SERVICE_FUNCTIONS`) returns one control summary. It is stored inside the pack snapshot (`controls`), together with the **matters needing attention** derived from it (`matters`, pure `deriveMatters` in `lib/finance/close-controls.ts`), so both are covered by the pack's sha256 and the sign-offs. The page (`/finance/close/[month]`, `controls-summary.tsx`), the Excel ("Controls" sheet, after Summary, text values only) and the PDF (after the summary) all render the frozen copy, never live data. Counts, amounts, statuses and dates only; no patient, payee, supplier or doctor detail (bank accounts by name and last four digits).
+
+| Block | What it says | "Not set up" (null) when |
+|---|---|---|
+| Bank | per active account: the month's reconciliation status (none, open, reviewed, signed); expected receipts not found (from the frozen figures once reviewed, otherwise "known once the month is reviewed"); bank credits dated up to the month end that are unmatched and carry no reason in any reconciliation (count, amount, oldest age, how many over the age limit) | no active bank account |
+| Payables | supplier invoices unpaid **at the month end** (dated on or before it, not void, not paid by a voucher whose payment date is on or before it) by age 0-30 / 31-60 / 61-90 / 90+ at the month end; approved vouchers not paid (oldest days since approval, over the limit); vouchers waiting to be verified, for approval, for the CEO, at Tally | no supplier invoice and no voucher |
+| Revenue share | the month's run status, approval date, due date (WD `close_revshare_wd`); liability approved or posted but not paid (the `fin_revshare_liability` runs up to this month) | no scheme and no run |
+| Invoice changes | unapproved changes dated in the month (the 20J measure: needs approval, on or after the start date, no review or "not approved") | "Not measured" while there is no start date (or it is after the month) |
+| Insurance receivables | open claims and outstanding (20I's `fin_followup_open_claims`), the amount and share over 90 days | no claim activity at all |
+| Close timetable | steps done and blocked; inputs due by WD `close_inputs_wd` on time / late / not yet due (the timetable page's rule) | no task for the month |
+| Exceptions | open finance exceptions, oldest age, how many are older than the age limit (same count as the pack's open exceptions) | always shown |
+
+**As of what.** Payables are as at the month end. Everything else (reconciliation status, vouchers, revenue-share runs and liability, receivables, the timetable, exceptions) is the state at the build date in the clinic's time zone, like the pack's receivables ageing; ages are counted to the build date. Working days are counted in SQL the same way as `lib/finance/close-timetable.ts` (weekend days and holidays; a test compares the two).
+
+**Matters needing attention** (each threshold read from `fin_ref_finance_settings` at build time and frozen with the summary): a bank reconciliation for the month not signed; unexplained bank credits older than `close_item_max_age_days` (60); approved vouchers unpaid longer than `close_voucher_unpaid_days` (new, 14); the revenue-share run not approved, or approved after WD `close_revshare_wd` (new, 7); any unapproved invoice change; insurance receivables over 90 days above `close_receivables_over90_pct` of the outstanding (new, 25%); inputs late or missing; blocked steps; finance exceptions older than the age limit. The three new settings are on Finance, Close timetable, Calendar and settings ("Board pack: matters needing attention").
+
+**Said plainly on the page, in Excel and in the PDF:** the P&L in Pulse is the provisional profitability view (Finance, Profitability); the balance sheet comes from Tally; employee incentive liabilities are not held in Pulse yet.
+
+**Old packs.** A pack built before this change has no `controls`; it still opens, downloads and signs, and shows "Not captured in this pack". Rebuild an unsigned month to add the summary; signed and locked packs never change.
+
+**Files.** `supabase/migrations/20261106000100_finance_close_controls.sql` (paste file `deploy/supabase-paste/36_finance_close_controls.sql`, after `35_finance_labs.sql`), `lib/finance/close-controls.ts`, `lib/finance/close-pack.ts` (optional `controls` and `matters`), `close-server.ts` (calls the function when building), `close-xlsx.ts`, `close-pdf.ts`, `app/(app)/finance/close/[month]/controls-summary.tsx`, the settings form in `app/(app)/finance/close/timetable/`.
+
+**Verified.** `tests/unit/finance/close-controls.test.ts` (matters on a troubled and a clean month, a share equal to the limit, "not set up" and "not measured", the revenue-share cases, amount text, the pack freezing the summary, an old pack unchanged and rendering "not captured" in Excel and PDF, the Controls sheet with no formulas, the PDF text); `tests/unit/finance/close-pack.test.ts` (sheet list); `tests/unit/finance-close-timetable-actions.test.ts` (threshold validation); `tests/db/finance-close-controls.test.ts` (10, Postgres 16: every block against hand-worked synthetic rows, the working days against the TypeScript calendar with a holiday, pending inputs on an earlier day, thresholds from the settings, the derived matters, another org excluded, "not set up" for an empty org, an unknown org refused, service-role only, and the summary inside the stored snapshot with the sha256 covering it).
+
+**Not verified / decisions.** Not clicked through in a browser. The new defaults (14 days for vouchers, 25% over 90 days) are placeholders until Hardik sets them. Expected receipts of an open reconciliation are not shown (the reconciliation screen computes them; copying that logic into SQL would duplicate it). A bank credit explained with any reason counts as explained, as in 20C's review. Material variances and unusual transactions are not separate blocks yet: the drift table, cash-up variances, the voucher report's unusual transactions and the exceptions cover them until the clinic's Board pack template (D11) says what it wants.

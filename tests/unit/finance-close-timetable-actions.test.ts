@@ -188,6 +188,23 @@ describe("close timetable actions", () => {
         })
       ).ok,
     ).toBe(false);
+    // the Board pack thresholds (Phase 20G part 2) are validated the same way
+    const calendar = {
+      start: "",
+      inputs_wd: "5",
+      deadline_wd: "10",
+      item_max_age_days: "60",
+      revshare_wd: "7",
+      voucher_unpaid_days: "14",
+      receivables_over90_pct: "25",
+    };
+    for (const bad of [
+      { revshare_wd: "24" },
+      { voucher_unpaid_days: "0" },
+      { receivables_over90_pct: "120" },
+      { receivables_over90_pct: "x" },
+    ])
+      expect((await saveCloseCalendar({ ...calendar, ...bad })).ok).toBe(false);
     expect(state.adminCalls).toBe(0);
   });
 
