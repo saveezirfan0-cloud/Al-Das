@@ -183,6 +183,24 @@ export const GUIDES: readonly Guide[] = [
     ],
   },
   {
+    id: "finance-close-timetable",
+    title: "Close timetable",
+    pages: ["/finance/close/timetable"],
+    purpose:
+      "The month-end close by working day: each step's owner, trained backup, due day and dependencies, and the close measures (inputs by WD5, close delivered by WD10, open reconciling items, backups).",
+    steps: [
+      "Pick the month being closed. Its working days are counted in the month after: September's WD5 is the fifth working day of October.",
+      "Owners and backups open Update on their step to mark it done or blocked. A blocked step says what it is waiting for.",
+      "Overdue steps are highlighted. The last row is the Board pack: it is done when the CEO signs and the month locks.",
+      "Finance managers assign owners and backups in the checklist template and set weekends, holidays and the start month under Calendar and settings.",
+    ],
+    watchOut: [
+      "Nothing runs until a start month is set. From then on each month's steps appear on working day 1 and owners get one reminder a day for steps due or late.",
+      "A changed due day applies to months whose steps are created afterwards; past months keep the day they were measured against.",
+      "Once a month is locked its timetable cannot change.",
+    ],
+  },
+  {
     id: "finance-workflows",
     title: "Finance workflows",
     pages: [

@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-10-29-close-timetable",
+    date: "2026-10-29",
+    title: "Close timetable",
+    body: "Finance has a Close timetable for the month-end close by working day: inputs by WD5, revenue shares and Tally by WD7, draft accounts by WD8 and the final pack by WD10. Each step has an owner, a trained backup and its dependencies; owners mark their steps done or blocked and get a reminder when one is due. Close measures show inputs on time, whether each month closed by WD10, open reconciling items and steps without a backup.",
+  },
+  {
     id: "2026-10-23-daily-flash",
     date: "2026-10-23",
     title: "Daily flash report",

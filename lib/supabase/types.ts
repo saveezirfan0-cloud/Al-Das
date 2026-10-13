@@ -3750,6 +3750,161 @@ export type Database = {
           },
         ];
       };
+      fin_close_steps: {
+        Row: {
+          active: boolean;
+          backup_user_id: string | null;
+          code: string;
+          created_at: string;
+          depends_on: string[];
+          due_wd: number;
+          evidence_hint: string | null;
+          id: string;
+          org_id: string;
+          owner_role: string | null;
+          owner_user_id: string | null;
+          sort_order: number;
+          title: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          active?: boolean;
+          backup_user_id?: string | null;
+          code: string;
+          created_at?: string;
+          depends_on?: string[];
+          due_wd: number;
+          evidence_hint?: string | null;
+          id?: string;
+          org_id: string;
+          owner_role?: string | null;
+          owner_user_id?: string | null;
+          sort_order?: number;
+          title: string;
+          updated_at?: string;
+        };
+        Update: {
+          active?: boolean;
+          backup_user_id?: string | null;
+          code?: string;
+          created_at?: string;
+          depends_on?: string[];
+          due_wd?: number;
+          evidence_hint?: string | null;
+          id?: string;
+          org_id?: string;
+          owner_role?: string | null;
+          owner_user_id?: string | null;
+          sort_order?: number;
+          title?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_close_steps_backup_user_id_fkey";
+            columns: ["backup_user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_close_steps_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_close_steps_owner_user_id_fkey";
+            columns: ["owner_user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      fin_close_tasks: {
+        Row: {
+          blocked_reason: string | null;
+          created_at: string;
+          done_at: string | null;
+          done_by: string | null;
+          due_wd: number;
+          id: string;
+          month: string;
+          note: string | null;
+          org_id: string;
+          reminded_on: string | null;
+          status: string;
+          step_code: string;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          blocked_reason?: string | null;
+          created_at?: string;
+          done_at?: string | null;
+          done_by?: string | null;
+          due_wd: number;
+          id?: string;
+          month: string;
+          note?: string | null;
+          org_id: string;
+          reminded_on?: string | null;
+          status?: string;
+          step_code: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          blocked_reason?: string | null;
+          created_at?: string;
+          done_at?: string | null;
+          done_by?: string | null;
+          due_wd?: number;
+          id?: string;
+          month?: string;
+          note?: string | null;
+          org_id?: string;
+          reminded_on?: string | null;
+          status?: string;
+          step_code?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_close_tasks_done_by_fkey";
+            columns: ["done_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_close_tasks_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_close_tasks_org_id_step_code_fkey";
+            columns: ["org_id", "step_code"];
+            isOneToOne: false;
+            referencedRelation: "fin_close_steps";
+            referencedColumns: ["org_id", "code"];
+          },
+          {
+            foreignKeyName: "fin_close_tasks_updated_by_fkey";
+            columns: ["updated_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       fin_cost_doctor_comp: {
         Row: {
           amount: number;
@@ -5504,6 +5659,11 @@ export type Database = {
         Row: {
           accepted_claim_statuses: string[];
           cashup_variance_tolerance: number;
+          close_deadline_wd: number;
+          close_inputs_wd: number;
+          close_item_max_age_days: number;
+          close_timetable_start: string | null;
+          close_weekend_days: number[];
           denial_cases_start_date: string | null;
           denial_default_resubmit_days: number;
           denial_task_enabled: boolean;
@@ -5549,6 +5709,11 @@ export type Database = {
         Insert: {
           accepted_claim_statuses?: string[];
           cashup_variance_tolerance?: number;
+          close_deadline_wd?: number;
+          close_inputs_wd?: number;
+          close_item_max_age_days?: number;
+          close_timetable_start?: string | null;
+          close_weekend_days?: number[];
           denial_cases_start_date?: string | null;
           denial_default_resubmit_days?: number;
           denial_task_enabled?: boolean;
@@ -5593,6 +5758,11 @@ export type Database = {
         Update: {
           accepted_claim_statuses?: string[];
           cashup_variance_tolerance?: number;
+          close_deadline_wd?: number;
+          close_inputs_wd?: number;
+          close_item_max_age_days?: number;
+          close_timetable_start?: string | null;
+          close_weekend_days?: number[];
           denial_cases_start_date?: string | null;
           denial_default_resubmit_days?: number;
           denial_task_enabled?: boolean;
@@ -5654,6 +5824,49 @@ export type Database = {
             columns: ["recovery_tone_approved_by"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      fin_ref_holidays: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          holiday_on: string;
+          id: string;
+          name: string;
+          org_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          holiday_on: string;
+          id?: string;
+          name: string;
+          org_id: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          holiday_on?: string;
+          id?: string;
+          name?: string;
+          org_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_ref_holidays_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_ref_holidays_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
             referencedColumns: ["id"];
           },
         ];
@@ -14753,7 +14966,28 @@ export type Database = {
         Args: { p_cashup_id: string; p_org_id: string; p_user_id: string };
         Returns: undefined;
       };
+      fin_close_claim_reminders: {
+        Args: { p_org_id: string; p_task_ids: string[]; p_today: string };
+        Returns: {
+          owner_user_id: string;
+          task_id: string;
+        }[];
+      };
+      fin_close_generate_tasks: { Args: { p_month: string; p_org_id: string }; Returns: number };
       fin_close_month_figures: { Args: { p_month: string; p_org_id: string }; Returns: Json };
+      fin_close_seed_steps: { Args: { p_org_id: string }; Returns: number };
+      fin_close_set_task_status: {
+        Args: {
+          p_any_step: boolean;
+          p_note: string;
+          p_org_id: string;
+          p_reason: string;
+          p_status: string;
+          p_task_id: string;
+          p_user_id: string;
+        };
+        Returns: Json;
+      };
       fin_close_sign_ceo: {
         Args: {
           p_close_id: string;

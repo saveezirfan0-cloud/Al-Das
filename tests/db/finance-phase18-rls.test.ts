@@ -316,9 +316,11 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 18: finance upgrades, access", () => 
     const first = await read();
     // finance.payment_links arrived with Phase 19a (migration 20261018000100 grants it); the cost and profit keys and
     // the Cost / Payroll role arrived with F8 (20261021000100, tested in finance-blueprint.test.ts); the flash keys arrived
-    // with Phase 20A (20261023000100, tested in finance-flash.test.ts); this migration predates them.
+    // with Phase 20A (20261023000100, tested in finance-flash.test.ts); finance.close.tasks arrived with Phase 20G
+    // (20261029000100, tested in finance-close-timetable.test.ts); this migration predates them.
     const later = (p: string) =>
       p === "finance.payment_links" ||
+      p === "finance.close.tasks" ||
       p === "finance.flash.view" ||
       p === "finance.targets.manage" ||
       p.startsWith("finance.costs.") ||

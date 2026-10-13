@@ -178,7 +178,8 @@ Send anonymised or synthetic copies where a file contains patient details; heade
 | Slice | Status |
 |---|---|
 | 20A | Built on `claude/funny-clarke-6t7gee` (see `docs/20_PHASE_20A_NOTES.md`): flash report, targets and lines, comparison with the same days of last month, Excel export |
-| 20B to 20J, 21 | Not started |
+| 20G | Close timetable and close measures built on `claude/funny-clarke-6t7gee` (see `docs/20_PHASE_20G_NOTES.md`): working-day calendar, checklist with owner, backup, due day and dependencies, daily tasks and reminders (off until a start month is set), inputs by WD5, close by WD10, open items, backups. Not built: the pack extension (P&L, balance sheet, cash and bank, payables, liabilities), which needs 20C, 20D and 20F |
+| 20B to 20F, 20H to 20J, 21 | Not started |
 
 ## 8. Things noticed in the current reports
 

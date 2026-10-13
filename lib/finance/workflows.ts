@@ -11,6 +11,7 @@ import {
   reminderHorizon,
   taskDueAt,
 } from "@/lib/finance/preauth";
+import { runCloseTimetable } from "@/lib/finance/close-timetable-server";
 import { runRecovery } from "@/lib/finance/recovery-server";
 import { loadFinanceSettings } from "@/lib/finance/settings-db";
 import type { JobLogger } from "@/lib/jobs/types";
@@ -27,6 +28,8 @@ import type { Json } from "@/lib/supabase/types";
  *   2. Denials: cases are opened / refreshed / recovered from the Diligence claims (fin_sync_denial_cases, only once
  *      finance set a start date); cases inside the warning window of their deadline are reminded once.
  *   3. Self-pay reminders, only when finance switched them on (and approved the wording).
+ *   4. Close timetable (Phase 20G), only once finance set its start month: the month's tasks from working day 1, and one
+ *      reminder per person for steps due today or overdue (claimed per task and day, so a retry never repeats it).
  *
  * Notifications and task subjects are fixed generic sentences: no names, numbers or amounts. Counts only are logged.
  */
@@ -43,6 +46,8 @@ export type WorkflowTotals = {
   denial_tasks: number;
   recovery_queued: number;
   recovery_failed: number;
+  close_tasks_created: number;
+  close_reminders: number;
 };
 
 const PAGE = 200;
@@ -64,6 +69,8 @@ export async function runFinanceWorkflows(
     denial_tasks: 0,
     recovery_queued: 0,
     recovery_failed: 0,
+    close_tasks_created: 0,
+    close_reminders: 0,
   };
   const { data: orgs } = await admin.from("orgs").select("id, name, timezone");
   for (const org of orgs ?? []) {
@@ -263,4 +270,7 @@ async function oneOrg(
         diff: { queued: res.queued, failed: res.failed, skipped: res.skipped } as Json,
       });
   }
+
+  // ---- 4. close timetable (off until finance set its start month) --------------------------------
+  await runCloseTimetable(admin, org, now, totals);
 }

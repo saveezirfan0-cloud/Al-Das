@@ -73,6 +73,15 @@ describe("Finance navigation", () => {
     }
   });
 
+  it("the close timetable is open to step owners (finance.close.tasks) without the close packs", () => {
+    for (const r of ["Finance", "Billing", "Insurance", "Cost / Payroll", "CEO"])
+      expect(hrefs(member(role(r))), r).toContain("/finance/close/timetable");
+    expect(hrefs(member(role("Medical Director")))).not.toContain("/finance/close/timetable");
+    const owner = hrefs(member(["finance.close.tasks"]));
+    expect(owner).toEqual(["/finance/close/timetable"]);
+    expect(owner).not.toContain("/finance/close");
+  });
+
   it("the Medical Director sees revenue and scorecards only", () => {
     expect(hrefs(member(role("Medical Director"))).sort()).toEqual(
       [
@@ -95,8 +104,8 @@ describe("Finance navigation", () => {
   });
 
   it("cost and profit pages follow the blueprint's separation of duties", () => {
-    // Cost / Payroll: costs only, no revenue, branch, doctor or profit pages
-    expect(hrefs(member(role("Cost / Payroll")))).toEqual(["/finance/costs"]);
+    // Cost / Payroll: costs (and its own close steps), no revenue, branch, doctor or profit pages
+    expect(hrefs(member(role("Cost / Payroll")))).toEqual(["/finance/close/timetable", "/finance/costs"]);
     // CEO sees profitability but not the cost inputs
     const ceo = hrefs(member(role("CEO")));
     expect(ceo).toContain("/finance/profitability");
