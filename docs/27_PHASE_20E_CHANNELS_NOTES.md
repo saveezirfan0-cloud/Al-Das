@@ -61,6 +61,16 @@ What the tests cover: allowed-website parsing and exact Origin matching (look-al
 9. **Disconnect deletes only future events** Pulse wrote (at most 200, best effort); past "Busy" entries stay in the doctor's calendar as history.
 10. **The widget script has no Subresource Integrity hash** in the embed line: it is served by Pulse itself and changes with releases. Bump `WIDGET_VERSION` in the script when it changes.
 
+## Integration review fixes (merged branch)
+
+- **Widget polling looks back 2 minutes** (`POLL_OVERLAP_MS`): a reply queued before the visitor's last message and sent after it is still shown (the widget skips ids it already has).
+- **Instagram / Messenger sends are claimed atomically** (`queued` to `sending`). A message found already `sending` was handed to Meta by a worker that died before recording the answer: it is marked failed as possibly delivered and never posted again.
+- **Flows never start on these conversations**: `startRun` refuses a conversation whose channel is not WhatsApp (`channel_not_supported`), which also covers staff actions that emit `conversation.closed` / `conversation.waiting` and the shortcut button.
+- **Routing and team auto-reply** use the Phase 20c router (`routeConversation`, `sendTeamAutoReply`), as for WhatsApp.
+- **Close-with-enquiry** sets the enquiry source from the channel (`website`, `instagram`, `messenger`).
+- **Google busy blocks** cannot be removed from the calendar view (the action says so instead of reporting success). **Reconnecting** a doctor's calendar first runs the disconnect clean-up (future events deleted, grant revoked, busy blocks cleared); the new connection's first sync brings the busy times back.
+- **Widget POST** answers 503 with its CORS headers when something unexpected fails.
+
 ## How an administrator switches each on
 
 - **Website chat**: Settings, Integrations, Website chat: list the websites, set title, colour and welcome text, Save, switch on with `ENABLE WEBSITE CHAT`, then paste the line shown under "Add the chat to your website" before `</body>` on those websites.

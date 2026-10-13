@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-10-22-channels-calendar",
+    date: "2026-10-22",
+    title: "Website chat, Instagram, Messenger and Google Calendar",
+    body: "Patients can now write to the clinic from a chat button on your website, on Instagram or on Messenger, and the messages arrive in the Inbox like WhatsApp chats (text replies only; Instagram and Messenger allow replies for 24 hours after the patient's last message). Doctors can connect their Google Calendar: their appointments appear there as private Busy times with no patient details, and time they are busy in Google can no longer be booked. Each is off until an administrator switches it on in Settings, Integrations.",
+  },
+  {
     id: "2026-10-21-templates-campaigns",
     date: "2026-10-21",
     title: "Template delivery settings, recurring campaigns and closing with an enquiry",
