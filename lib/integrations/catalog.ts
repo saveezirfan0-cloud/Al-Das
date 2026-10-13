@@ -7,7 +7,15 @@
  * browser; every other field lives in integration_accounts.config and is shown as typed.
  */
 
-export const INTEGRATION_KINDS = ["calendar_ics", "sms", "payments"] as const;
+export const INTEGRATION_KINDS = [
+  "calendar_ics",
+  "sms",
+  "payments",
+  "google_reviews",
+  "meta_capi",
+  "telehealth",
+  "esign",
+] as const;
 export type IntegrationKind = (typeof INTEGRATION_KINDS)[number];
 
 export function isIntegrationKind(value: string): value is IntegrationKind {
@@ -28,6 +36,9 @@ export type FieldDef = {
   min?: number;
   /** Value used when the field is left empty. */
   default?: string | number;
+  /** A regular expression (source, without slashes) a text value must match, and the sentence shown when it does not. */
+  pattern?: string;
+  patternHint?: string;
 };
 
 export type ProviderDef = {
@@ -46,7 +57,9 @@ export type IntegrationDef = {
   contactsPatients: boolean;
   /** True when switching it on lets Pulse ask a patient for money. */
   movesMoney: boolean;
-  /** Typed in full to switch it on (only for integrations that contact patients or take money). */
+  /** True when switching it on sends patient-derived data to a third party (hashed ad identifiers, a signer's name and e-mail). */
+  sharesData: boolean;
+  /** Typed in full to switch it on (only for integrations that contact patients, take money or share patient data). */
   confirmWord: string | null;
   /** Permission to open its page and work with it (feeds, test, counters). Switching it on or off always needs integrations.manage. */
   viewPermission: "integrations.manage" | "integrations.calendar";
@@ -68,6 +81,7 @@ export const INTEGRATIONS: readonly IntegrationDef[] = [
       "A private calendar link per doctor to add to Outlook, Google or Apple Calendar. Read-only: it shows when a doctor is booked and where, never who with.",
     contactsPatients: false,
     movesMoney: false,
+    sharesData: false,
     confirmWord: null,
     viewPermission: "integrations.calendar",
     providers: [{ id: "ics", label: "iCalendar (ICS) feed", fields: [] }],
@@ -83,6 +97,7 @@ export const INTEGRATIONS: readonly IntegrationDef[] = [
       "When a WhatsApp reminder cannot be delivered, send a short, generic SMS (clinic name, date, time and a phone number) from your registered sender. Never used for marketing.",
     contactsPatients: true,
     movesMoney: false,
+    sharesData: false,
     confirmWord: "ENABLE SMS",
     viewPermission: "integrations.manage",
     providers: [
@@ -168,6 +183,7 @@ export const INTEGRATIONS: readonly IntegrationDef[] = [
       "From a finance invoice, send the patient a payment link in a WhatsApp template message. Pulse records what the gateway reports; it never marks an invoice as paid in Unite.",
     contactsPatients: true,
     movesMoney: true,
+    sharesData: false,
     confirmWord: "ENABLE PAYMENTS",
     viewPermission: "integrations.manage",
     providers: [
@@ -254,6 +270,280 @@ export const INTEGRATIONS: readonly IntegrationDef[] = [
     consequence:
       "Finance staff can send patients a link to pay an invoice by card. Money moves through your payment gateway account.",
   },
+  {
+    kind: "google_reviews",
+    outbound: false,
+    title: "Google review requests",
+    description:
+      "After a completed visit, send ONE approved WhatsApp message with your clinic's Google review link. No Google account is connected and no Google service is called: it is only a link inside a template. Only patients who opted in to messages are asked, and nobody is left out because of how their visit went.",
+    contactsPatients: true,
+    movesMoney: false,
+    sharesData: false,
+    confirmWord: "ENABLE REVIEW REQUESTS",
+    viewPermission: "integrations.manage",
+    providers: [{ id: "link", label: "Review link in a WhatsApp template", fields: [] }],
+    commonFields: [
+      {
+        key: "delay_minutes",
+        label: "Wait after the visit (minutes)",
+        type: "number",
+        min: 15,
+        max: 4320,
+        default: 120,
+        help: "The request goes out this long after the visit ended, but only inside the sending hours below.",
+      },
+      {
+        key: "send_from",
+        label: "Earliest time of day to send",
+        type: "text",
+        max: 5,
+        default: "09:00",
+        pattern: "^([01]\\d|2[0-3]):[0-5]\\d$",
+        patternHint: "Use 24-hour time such as 09:00.",
+        help: "In the clinic's time zone.",
+      },
+      {
+        key: "send_to",
+        label: "Latest time of day to send",
+        type: "text",
+        max: 5,
+        default: "20:00",
+        pattern: "^([01]\\d|2[0-3]):[0-5]\\d$",
+        patternHint: "Use 24-hour time such as 20:00.",
+      },
+      {
+        key: "cap_days",
+        label: "Ask the same person at most once every (days)",
+        type: "number",
+        min: 7,
+        max: 730,
+        default: 90,
+        help: "A parent with several children counts as one person.",
+      },
+    ],
+    consequence:
+      "Patients who opted in to messages will receive one WhatsApp message with your Google review link after a completed visit (at most once per person in the period you set). Staff can mark a patient 'do not ask'.",
+  },
+  {
+    kind: "meta_capi",
+    outbound: true,
+    title: "Meta ad attribution",
+    description:
+      "Records which Meta (Facebook or Instagram) ad each WhatsApp conversation came from, for a report of conversations, enquiries and bookings per ad. In 'send events' mode it also tells Meta when an ad patient made contact, became an enquiry or booked, so Meta can optimise your ads. Only event names and a hashed identifier are sent: never a service, doctor, diagnosis, price or message.",
+    contactsPatients: false,
+    movesMoney: false,
+    sharesData: true,
+    confirmWord: "SEND AD EVENTS TO META",
+    viewPermission: "integrations.manage",
+    providers: [
+      {
+        id: "meta_capi",
+        label: "Meta Conversions API (business messaging)",
+        fields: [
+          {
+            key: "dataset_id",
+            label: "Dataset ID",
+            type: "text",
+            max: 30,
+            pattern: "^\\d{5,25}$",
+            patternHint: "The dataset ID is a number from Meta Events Manager.",
+            help: "Only needed to send events. Events Manager, Data sources, your WhatsApp dataset.",
+          },
+          {
+            key: "access_token",
+            label: "Access token",
+            type: "password",
+            secret: true,
+            max: 400,
+            help: "A system user token with access to that dataset. Stored encrypted; never shown again.",
+          },
+        ],
+      },
+    ],
+    commonFields: [
+      {
+        key: "mode",
+        label: "What to do",
+        type: "select",
+        required: true,
+        default: "report_only",
+        options: [
+          {
+            value: "report_only",
+            label: "Report only: record which ad each conversation came from, send nothing",
+          },
+          { value: "send_events", label: "Report and send events to Meta" },
+        ],
+      },
+      {
+        key: "window_days",
+        label: "Attribution window (days after the click)",
+        type: "number",
+        min: 1,
+        max: 28,
+        default: 7,
+        help: "A booking or enquiry counts for an ad only this many days after the click.",
+      },
+      {
+        key: "include_phone",
+        label: "Also send a hashed phone number",
+        type: "select",
+        default: "no",
+        options: [
+          { value: "no", label: "No (the click id is enough)" },
+          { value: "yes", label: "Yes (SHA-256 of the number, to help Meta match)" },
+        ],
+      },
+      {
+        key: "graph_version",
+        label: "Graph API version (optional)",
+        type: "text",
+        max: 8,
+        pattern: "^v\\d{1,2}\\.\\d$",
+        patternHint: "Use a version such as v21.0, or leave it empty.",
+        help: "Leave empty to use the platform's default version.",
+      },
+      {
+        key: "test_event_code",
+        label: "Test event code (optional)",
+        type: "text",
+        max: 40,
+        help: "From Events Manager, Test events. While set, Meta shows the events in its test view and does not use them for ads. Clear it for real use.",
+      },
+    ],
+    consequence:
+      "Pulse will keep a record of which Meta ad each WhatsApp conversation came from. In 'send events' mode it also sends Meta the event name (Contact, Lead or Schedule), the ad click id and, if you choose, a hashed phone number, only for patients who opted in (or under the basis your administrator confirms). Meta's rules for health advertisers apply to you.",
+  },
+  {
+    kind: "telehealth",
+    outbound: true,
+    title: "Video visits",
+    description:
+      "Give video appointments a private video link. Staff see a Join button on the appointment and the front desk, and reminders can carry the link. Each appointment gets its own unguessable room that stops working after the visit; nothing is recorded and no patient detail is sent to the video service.",
+    contactsPatients: true,
+    movesMoney: false,
+    sharesData: false,
+    confirmWord: "ENABLE VIDEO VISITS",
+    viewPermission: "integrations.manage",
+    providers: [
+      {
+        id: "static",
+        label: "My own meeting service (address template)",
+        fields: [
+          {
+            key: "url_template",
+            label: "Meeting address",
+            type: "url",
+            required: true,
+            max: 300,
+            placeholder: "https://meet.example.com/{token}",
+            pattern: "\\{token\\}",
+            patternHint:
+              "The address must contain {token} once, for example https://meet.example.com/{token}.",
+            help: "{token} is replaced by a different long random value for every appointment. Pulse cannot end such a room: it only stops giving the address out after the visit.",
+          },
+        ],
+      },
+      {
+        id: "daily",
+        label: "Daily.co-style rooms (created through the API)",
+        fields: [
+          {
+            key: "api_key",
+            label: "API key",
+            type: "password",
+            secret: true,
+            required: true,
+            max: 200,
+          },
+          {
+            key: "domain",
+            label: "Domain name",
+            type: "text",
+            required: true,
+            max: 41,
+            pattern: "^[a-z0-9][a-z0-9-]{1,40}$",
+            patternHint: "Use the part before .daily.co, in lower case.",
+            placeholder: "myclinic",
+          },
+        ],
+      },
+    ],
+    commonFields: [
+      {
+        key: "grace_minutes",
+        label: "Keep the room open after the booked end (minutes)",
+        type: "number",
+        min: 0,
+        max: 240,
+        default: 30,
+      },
+      {
+        key: "early_minutes",
+        label: "Open the room before the start (minutes)",
+        type: "number",
+        min: 0,
+        max: 240,
+        default: 60,
+        help: "Only enforced by providers that can (the API option). A reminder sent earlier than this shows a link that is not open yet.",
+      },
+    ],
+    consequence:
+      "Video appointments will get a private video link that staff can open and that reminders can carry. Patients will receive these links in WhatsApp messages.",
+  },
+  {
+    kind: "esign",
+    outbound: true,
+    title: "E-signature for consent forms",
+    description:
+      "Send a patient's consent form (a PDF) to an e-signature service. The signer receives an e-mail from the service, signs, and the signed copy is stored on the patient as a new consent document. Needs patient documents to be switched on.",
+    contactsPatients: true,
+    movesMoney: false,
+    sharesData: true,
+    confirmWord: "SHARE SIGNER DETAILS AND FORMS",
+    viewPermission: "integrations.manage",
+    providers: [
+      {
+        id: "dropbox_sign",
+        label: "Dropbox Sign (HelloSign)",
+        fields: [
+          {
+            key: "api_key",
+            label: "API key",
+            type: "password",
+            secret: true,
+            required: true,
+            max: 200,
+            help: "Also used to check the provider's callbacks. Stored encrypted; never shown again.",
+          },
+        ],
+      },
+    ],
+    commonFields: [
+      {
+        key: "test_mode",
+        label: "Test mode",
+        type: "select",
+        required: true,
+        default: "yes",
+        options: [
+          { value: "yes", label: "Yes: free test requests that are not legally binding" },
+          { value: "no", label: "No: real, binding signature requests" },
+        ],
+        help: "Leave on until you have sent yourself a request and seen the signed copy arrive.",
+      },
+      {
+        key: "expiry_days",
+        label: "A request expires after (days)",
+        type: "number",
+        min: 1,
+        max: 30,
+        default: 7,
+      },
+    ],
+    consequence:
+      "This sends patient data to a third party. For every request the e-signature service receives the form itself and the signer's name and e-mail address, and it keeps its own copy of the signed document under its own terms and retention. Make sure your agreement with the service and its data location are approved. The title and message sent are fixed and generic.",
+  },
 ];
 
 export function integrationDef(kind: IntegrationKind): IntegrationDef {
@@ -282,7 +572,7 @@ export function allFields(
 /** Does this integration need the typed confirmation to be switched on? */
 export function needsConfirmation(kind: IntegrationKind): boolean {
   const d = integrationDef(kind);
-  return d.contactsPatients || d.movesMoney;
+  return d.contactsPatients || d.movesMoney || d.sharesData;
 }
 
 export type FieldValues = Record<string, string | number>;
@@ -342,6 +632,8 @@ export function validateFields(
       if (u.protocol !== "https:" || u.username || u.password)
         return { ok: false, error: `${f.label} must be an https address.` };
     }
+    if (f.pattern && !new RegExp(f.pattern).test(text))
+      return { ok: false, error: f.patternHint ?? `${f.label} is not valid.` };
     if (f.type === "select" && !f.options?.some((o) => o.value === text))
       return { ok: false, error: `${f.label} has an unknown value.` };
     if (/[\u0000-\u001f]/.test(text))

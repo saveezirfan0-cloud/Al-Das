@@ -36,9 +36,9 @@ describe("catalogue", () => {
     expect(isIntegrationKind("unite")).toBe(false);
   });
 
-  it("requires typed confirmation for everything that messages patients or takes money, and nothing else", () => {
+  it("requires typed confirmation for everything that messages patients, takes money or shares patient data, and nothing else", () => {
     for (const i of INTEGRATIONS) {
-      const expected = i.contactsPatients || i.movesMoney;
+      const expected = i.contactsPatients || i.movesMoney || i.sharesData;
       expect(needsConfirmation(i.kind), i.kind).toBe(expected);
       expect(i.confirmWord !== null, i.kind).toBe(expected);
     }
@@ -51,7 +51,18 @@ describe("catalogue", () => {
     const secretKeys = INTEGRATIONS.flatMap((i) =>
       i.providers.flatMap((p) => p.fields.filter((f) => f.secret).map((f) => f.key)),
     ).sort();
-    expect(secretKeys).toEqual(["auth_token", "secret_key", "server_key", "webhook_secret"].sort());
+    expect(secretKeys).toEqual(
+      // api_key: Daily (video rooms) and Dropbox Sign (e-signature)
+      [
+        "access_token",
+        "api_key",
+        "api_key",
+        "auth_token",
+        "secret_key",
+        "server_key",
+        "webhook_secret",
+      ].sort(),
+    );
     for (const i of INTEGRATIONS)
       for (const f of allFields(i.kind, i.providers[0].id))
         if (f.secret) expect(f.type).toBe("password");

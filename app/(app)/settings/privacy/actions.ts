@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { recordAudit } from "@/lib/audit";
 import { requirePerm } from "@/lib/auth/session";
+import { cancelPendingForErasure } from "@/lib/integrations/esign/server";
 import { createNotification } from "@/lib/notifications";
 import { redactPhone, redactText } from "@/lib/redact";
 import {
@@ -309,6 +310,14 @@ export async function executeErasure(id: string): Promise<ActionResult> {
     };
   }
 
+  // 1c. E-signature requests still waiting at the provider are withdrawn (best effort: the provider keeps its own record under its own
+  // terms, which the clinic's agreement with it has to cover). The request rows themselves are deleted by erase_contact.
+  const esign = await cancelPendingForErasure(
+    admin,
+    {},
+    { orgId: member.orgId, contactId: req.contact_id },
+  );
+
   // 2. Database anonymisation, one transaction.
   const { data, error } = await admin.rpc("erase_contact", {
     p_org: member.orgId,
@@ -326,6 +335,8 @@ export async function executeErasure(id: string): Promise<ActionResult> {
     ...((data ?? {}) as Record<string, Json>),
     media_files_removed: removedFiles,
     document_files_removed: docPaths.length,
+    esign_requests_withdrawn: esign.cancelled,
+    esign_requests_not_withdrawn: esign.failed,
   };
   await admin
     .from("privacy_requests")

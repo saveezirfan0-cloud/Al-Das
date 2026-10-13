@@ -70,6 +70,7 @@ const row = (over: Partial<BoardRow>): BoardRow => ({
   done_at: null,
   checked_out_at: null,
   notes_present: false,
+  visit_mode: "in_person",
   ...over,
 });
 

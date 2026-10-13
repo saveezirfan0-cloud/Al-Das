@@ -20,6 +20,8 @@ export const UNGUARDED_OK: Record<string, string> = {
     "A calendar app cannot sign in: the 256-bit token in the path is the credential (only its SHA-256 is stored, revocable and rotatable). Every request is rate limited per IP and per token; unknown, revoked and switched-off feeds give the same 404; the feed holds times and the location name only.",
   "app/api/webhooks/integrations/sms/[accountId]/route.ts::POST":
     "Authorised by the provider's request signature (HMAC over the exact callback URL and form fields, constant-time compare) using the stored auth token; unknown or switched-off accounts give 404; failed signatures are rate limited per IP; each receipt is claimed once (integration_webhook_events).",
+  "app/api/webhooks/integrations/esign/[accountId]/route.ts::POST":
+    "Authorised by the provider's event hash (HMAC-SHA256 of the event time and type with the stored API key, constant-time compare); unknown or switched-off accounts give 404; failed hashes are rate limited per IP; each event is claimed once (integration_webhook_events) and moves a request forward only.",
   "app/api/webhooks/integrations/payments/[accountId]/route.ts::POST":
     "Authorised by the gateway's signature (Stripe-Signature with a 5 minute replay window, or the PayTabs HMAC) using the stored secret, constant-time compare; unknown or switched-off accounts give 404; failed signatures are rate limited per IP; each event is claimed once (integration_webhook_events) and amounts are checked against the stored request.",
 };

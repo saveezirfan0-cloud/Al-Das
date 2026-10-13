@@ -42,7 +42,7 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 19a: integrations, access and constra
   beforeAll(async () => {
     c = await connect();
     await resetDb(c);
-    for (const n of ["alice", "bob", "cal", "pay", "mgr", "nobody"])
+    for (const n of ["alice", "bob", "cal", "pay", "mgr", "ads", "docs", "nobody"])
       users[n] = await createAuthUser(c, `${n}@example.test`);
     orgA = await createOrg(c, "Org A", "org-a", users.alice);
     orgB = await createOrg(c, "Org B", "org-b", users.bob);
@@ -55,6 +55,8 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 19a: integrations, access and constra
       await role("Calendar only", ["integrations.calendar"]);
       await role("Payments only", ["finance.payment_links"]);
       await role("Integrations admin", ["integrations.manage"]);
+      await role("Ads only", ["ads.view"]);
+      await role("Documents viewer", ["documents.view"]);
       const member = (user: string, name: string) =>
         q(
           "insert into public.memberships (org_id, user_id, role_id) select $1, $2, id from public.roles where org_id = $1 and name = $3",
@@ -63,6 +65,8 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 19a: integrations, access and constra
       await member("cal", "Calendar only");
       await member("pay", "Payments only");
       await member("mgr", "Integrations admin");
+      await member("ads", "Ads only");
+      await member("docs", "Documents viewer");
     });
     ids = await seedPhase19Rows(c, orgA, users.alice);
     await seedPhase19Rows(c, orgB, users.bob);
@@ -73,10 +77,14 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 19a: integrations, access and constra
   });
 
   const MATRIX: Record<string, string[]> = {
+    ad_attributions: ["ads"],
     calendar_feeds: ["cal"],
+    capi_events: ["ads"],
+    esign_requests: ["docs"],
     fin_payment_requests: ["pay"],
     integration_calls: ["mgr"],
     integration_usage_daily: ["mgr"],
+    review_requests: ["mgr"],
     sms_messages: ["mgr"],
   };
 
@@ -86,7 +94,7 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 19a: integrations, access and constra
 
   it("shows each table to exactly the permission that owns it, and only for the member's org", async () => {
     for (const [table, allowed] of Object.entries(MATRIX)) {
-      for (const user of ["alice", "cal", "pay", "mgr", "nobody", "bob"]) {
+      for (const user of ["alice", "cal", "pay", "mgr", "ads", "docs", "nobody", "bob"]) {
         const n = await asUser(c, users[user], () => count(c, `select 1 from public.${table}`));
         const mayRead = user === "alice" ? true : allowed.includes(user);
         if (user === "bob")
@@ -114,7 +122,7 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 19a: integrations, access and constra
   });
 
   it("never lets a browser session write any of them, whatever its role", async () => {
-    for (const user of ["alice", "mgr", "cal", "pay"]) {
+    for (const user of ["alice", "mgr", "cal", "pay", "ads", "docs"]) {
       await asUser(c, users[user], async () => {
         for (const t of [...PHASE19_TABLES, ...PHASE19_SERVICE_ONLY_TABLES]) {
           await q("begin");

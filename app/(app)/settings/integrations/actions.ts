@@ -21,12 +21,17 @@ import {
   providerDef,
   validateFields,
 } from "@/lib/integrations/catalog";
-import { PAYMENT_VALUE_SOURCES, readPaymentsConfig } from "@/lib/integrations/payments/config";
+import { extraValidation } from "@/lib/integrations/extra-validate";
+import { PAYMENT_VALUE_SOURCES } from "@/lib/integrations/payments/config";
 import { PROBE_CONTEXT, paymentValues } from "@/lib/integrations/payments/message";
 import { buildPaymentProvider } from "@/lib/integrations/payments/provider";
-import { loadPaymentTemplate, templateReadiness } from "@/lib/integrations/payments/request-server";
+import { loadPaymentTemplate } from "@/lib/integrations/payments/request-server";
 import { confirmationMatches, readinessProblems } from "@/lib/integrations/readiness";
+import { loadReadinessInput } from "@/lib/integrations/readiness-server";
+import { buildCapiClientFor } from "@/lib/integrations/capi/server";
 import { buildSmsProvider } from "@/lib/integrations/sms/provider";
+import { buildEsignProvider } from "@/lib/integrations/esign/server";
+import { buildTelehealthProvider } from "@/lib/integrations/telehealth/server";
 import { checkRateLimit, RATE_RULES, waitText } from "@/lib/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { MetaTemplateComponent } from "@/lib/whatsapp/types";
@@ -63,6 +68,8 @@ export async function saveIntegrationSettings(
     sameProvider ? view.secretsStored : {},
   );
   if (!checked.ok) return { ok: false, error: checked.error };
+  const extra = extraValidation(kind, providerId, checked.config);
+  if (extra) return { ok: false, error: extra };
   const saved = await saveSettings(admin, {
     orgId: member.orgId,
     kind,
@@ -107,21 +114,7 @@ export async function setIntegrationEnabled(
 
   if (enabled) {
     const view = await loadView(admin, member.orgId, kind);
-    let template = null;
-    if (kind === "payments") {
-      const cfg = readPaymentsConfig(view.config);
-      template = templateReadiness(
-        await loadPaymentTemplate(admin, member.orgId, cfg.templateId),
-        cfg,
-      );
-    }
-    const problems = readinessProblems({
-      kind,
-      provider: view.provider,
-      config: view.config,
-      secretsStored: view.secretsStored,
-      template,
-    });
+    const problems = readinessProblems(await loadReadinessInput(admin, member.orgId, kind, view));
     if (problems.length > 0) return { ok: false, error: problems[0] };
     if (!confirmationMatches(kind, p.data.confirm))
       return { ok: false, error: "Type the confirmation words exactly to switch this on." };
@@ -174,6 +167,19 @@ export async function testIntegration(kindInput: string): Promise<ActionResult> 
       : provider.verify
         ? await provider.verify()
         : { ok: false, code: "unsupported" };
+  } else if (kind === "meta_capi") {
+    result = (await buildCapiClientFor(admin, account)?.verify()) ?? {
+      ok: false,
+      code: "incomplete",
+    };
+  } else if (kind === "esign") {
+    result = (await buildEsignProvider(admin, account)?.verify()) ?? {
+      ok: false,
+      code: "incomplete",
+    };
+  } else if (kind === "telehealth") {
+    const provider = buildTelehealthProvider(admin, account);
+    result = provider?.verify ? await provider.verify() : { ok: false, code: "incomplete" };
   } else return { ok: false, error: "Nothing to test for this integration." };
 
   await recordAudit(admin, {

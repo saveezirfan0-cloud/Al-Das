@@ -24,6 +24,8 @@ export type ApptRow = {
   notify_early: boolean;
   created_at: string;
   reminder: ReminderSummary;
+  /** Phase 19b: null follows the service's default visit mode. */
+  visit_mode: string | null;
 };
 
 export type BlockRow = {
@@ -56,7 +58,13 @@ export type AppointmentsBootstrap = {
   can: { manage: boolean; export: boolean; contacts: boolean };
   locations: Array<{ id: string; name: string; timezone: string }>;
   departments: Array<{ id: string; name: string }>;
-  services: Array<{ id: string; name: string; duration_min: number; department_id: string | null }>;
+  services: Array<{
+    id: string;
+    name: string;
+    duration_min: number;
+    department_id: string | null;
+    default_visit_mode: string;
+  }>;
   specialists: SpecialistOption[];
   rules: Pick<
     AppointmentSettings,

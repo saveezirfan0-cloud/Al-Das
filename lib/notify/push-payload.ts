@@ -38,6 +38,10 @@ const GENERIC: Record<string, { title: string; body: string }> = {
     title: "Insurance card expiring",
     body: "A patient's insurance card is about to expire. Open Pulse to see whose.",
   },
+  "esign.update": {
+    title: "Signature update",
+    body: "A consent form you sent for signature has an update. Open Pulse to see which.",
+  },
   "finance.preauth_expiring": {
     title: "Pre-authorisation expiring",
     body: "An insurance pre-authorisation is about to expire. Open Pulse to see which.",
@@ -89,6 +93,8 @@ export function pushUrl(event: string, ids: PushIds): string {
       return cleanId(ids.task_id) ? "/tasks" : "/notifications";
     case "waitlist.booked":
       return "/front-desk";
+    case "esign.update":
+      return "/notifications";
     case "ai.insights_ready":
       return "/reports/ai-quality";
     case "finance.preauth_expiring":

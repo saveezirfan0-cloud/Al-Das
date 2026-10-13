@@ -94,6 +94,16 @@ export const NOTIFICATION_EVENTS = [
     permission: "documents.manage",
   },
   {
+    key: "esign.update",
+    group: "Work",
+    label: "A consent form you sent for signature has an update",
+    description:
+      "A patient signed, declined or let a consent form expire. Push and e-mail only say that one has an update; open Pulse to see which.",
+    channels: ALL,
+    defaults: { in_app: true, email: false, push: true },
+    permission: "documents.manage",
+  },
+  {
     key: "finance.preauth_expiring",
     group: "Work",
     label: "A pre-authorisation is about to expire",

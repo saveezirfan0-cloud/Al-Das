@@ -57,6 +57,109 @@ export type Database = {
           },
         ];
       };
+      ad_attributions: {
+        Row: {
+          channel_id: string | null;
+          clicked_at: string;
+          contact_id: string | null;
+          conversation_id: string | null;
+          created_at: string;
+          ctwa_clid: string;
+          headline: string | null;
+          id: string;
+          org_id: string;
+          source_id: string | null;
+          source_type: string | null;
+          waba_id: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          channel_id?: string | null;
+          clicked_at?: string;
+          contact_id?: string | null;
+          conversation_id?: string | null;
+          created_at?: string;
+          ctwa_clid: string;
+          headline?: string | null;
+          id?: string;
+          org_id: string;
+          source_id?: string | null;
+          source_type?: string | null;
+          waba_id?: string | null;
+        };
+        Update: {
+          channel_id?: string | null;
+          clicked_at?: string;
+          contact_id?: string | null;
+          conversation_id?: string | null;
+          created_at?: string;
+          ctwa_clid?: string;
+          headline?: string | null;
+          id?: string;
+          org_id?: string;
+          source_id?: string | null;
+          source_type?: string | null;
+          waba_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ad_attributions_channel_id_fkey";
+            columns: ["channel_id"];
+            isOneToOne: false;
+            referencedRelation: "channels";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ad_attributions_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ad_attributions_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_birthday_today";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "ad_attributions_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_chronic_recall_eligibility";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "ad_attributions_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ad_attributions_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "mv_conversation_facts";
+            referencedColumns: ["conversation_id"];
+          },
+          {
+            foreignKeyName: "ad_attributions_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "v_sla_breaches_now";
+            referencedColumns: ["conversation_id"];
+          },
+          {
+            foreignKeyName: "ad_attributions_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       ai_message_intents: {
         Row: {
           conversation_id: string;
@@ -609,6 +712,7 @@ export type Database = {
           status: string;
           unite_clinic_id: string | null;
           updated_at: string;
+          visit_mode: string | null;
           with_doctor_at: string | null;
         };
         ComputedFields: never;
@@ -640,6 +744,7 @@ export type Database = {
           status?: string;
           unite_clinic_id?: string | null;
           updated_at?: string;
+          visit_mode?: string | null;
           with_doctor_at?: string | null;
         };
         Update: {
@@ -670,6 +775,7 @@ export type Database = {
           status?: string;
           unite_clinic_id?: string | null;
           updated_at?: string;
+          visit_mode?: string | null;
           with_doctor_at?: string | null;
         };
         Relationships: [
@@ -1174,6 +1280,73 @@ export type Database = {
             columns: ["template_id"];
             isOneToOne: false;
             referencedRelation: "wa_templates";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      capi_events: {
+        Row: {
+          attempts: number;
+          attribution_id: string;
+          created_at: string;
+          event_id: string;
+          event_name: string;
+          event_time: string;
+          id: string;
+          is_test: boolean;
+          org_id: string;
+          reason: string | null;
+          sent_at: string | null;
+          status: string;
+          subject_id: string | null;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          attempts?: number;
+          attribution_id: string;
+          created_at?: string;
+          event_id: string;
+          event_name: string;
+          event_time: string;
+          id?: string;
+          is_test?: boolean;
+          org_id: string;
+          reason?: string | null;
+          sent_at?: string | null;
+          status?: string;
+          subject_id?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          attempts?: number;
+          attribution_id?: string;
+          created_at?: string;
+          event_id?: string;
+          event_name?: string;
+          event_time?: string;
+          id?: string;
+          is_test?: boolean;
+          org_id?: string;
+          reason?: string | null;
+          sent_at?: string | null;
+          status?: string;
+          subject_id?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "capi_events_attribution_id_fkey";
+            columns: ["attribution_id"];
+            isOneToOne: false;
+            referencedRelation: "ad_attributions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "capi_events_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
             referencedColumns: ["id"];
           },
         ];
@@ -2212,6 +2385,7 @@ export type Database = {
           last_name: string;
           merged_into_id: string | null;
           nationality: string | null;
+          no_review_requests_at: string | null;
           org_id: string;
           owner_id: string | null;
           phone_e164: string | null;
@@ -2248,6 +2422,7 @@ export type Database = {
           last_name?: string;
           merged_into_id?: string | null;
           nationality?: string | null;
+          no_review_requests_at?: string | null;
           org_id: string;
           owner_id?: string | null;
           phone_e164?: string | null;
@@ -2283,6 +2458,7 @@ export type Database = {
           last_name?: string;
           merged_into_id?: string | null;
           nationality?: string | null;
+          no_review_requests_at?: string | null;
           org_id?: string;
           owner_id?: string | null;
           phone_e164?: string | null;
@@ -3105,6 +3281,130 @@ export type Database = {
             columns: ["pipeline_id"];
             isOneToOne: false;
             referencedRelation: "pipelines";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      esign_requests: {
+        Row: {
+          completed_at: string | null;
+          contact_id: string;
+          created_at: string;
+          error_code: string | null;
+          expires_at: string | null;
+          id: string;
+          org_id: string;
+          provider: string;
+          provider_request_id: string | null;
+          requested_by: string | null;
+          sent_at: string | null;
+          signed_document_id: string | null;
+          signer_hint: string | null;
+          source_asset_id: string | null;
+          source_document_id: string | null;
+          source_kind: string;
+          status: string;
+          test_mode: boolean;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          completed_at?: string | null;
+          contact_id: string;
+          created_at?: string;
+          error_code?: string | null;
+          expires_at?: string | null;
+          id?: string;
+          org_id: string;
+          provider?: string;
+          provider_request_id?: string | null;
+          requested_by?: string | null;
+          sent_at?: string | null;
+          signed_document_id?: string | null;
+          signer_hint?: string | null;
+          source_asset_id?: string | null;
+          source_document_id?: string | null;
+          source_kind: string;
+          status?: string;
+          test_mode?: boolean;
+          updated_at?: string;
+        };
+        Update: {
+          completed_at?: string | null;
+          contact_id?: string;
+          created_at?: string;
+          error_code?: string | null;
+          expires_at?: string | null;
+          id?: string;
+          org_id?: string;
+          provider?: string;
+          provider_request_id?: string | null;
+          requested_by?: string | null;
+          sent_at?: string | null;
+          signed_document_id?: string | null;
+          signer_hint?: string | null;
+          source_asset_id?: string | null;
+          source_document_id?: string | null;
+          source_kind?: string;
+          status?: string;
+          test_mode?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "esign_requests_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "esign_requests_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_birthday_today";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "esign_requests_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_chronic_recall_eligibility";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "esign_requests_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "esign_requests_requested_by_fkey";
+            columns: ["requested_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "esign_requests_signed_document_id_fkey";
+            columns: ["signed_document_id"];
+            isOneToOne: false;
+            referencedRelation: "patient_documents";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "esign_requests_source_asset_id_fkey";
+            columns: ["source_asset_id"];
+            isOneToOne: false;
+            referencedRelation: "media_assets";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "esign_requests_source_document_id_fkey";
+            columns: ["source_document_id"];
+            isOneToOne: false;
+            referencedRelation: "patient_documents";
             referencedColumns: ["id"];
           },
         ];
@@ -7186,6 +7486,7 @@ export type Database = {
           name: string;
           org_id: string;
           photo_path: string | null;
+          review_url: string | null;
           timezone: string;
           updated_at: string;
         };
@@ -7202,6 +7503,7 @@ export type Database = {
           name: string;
           org_id: string;
           photo_path?: string | null;
+          review_url?: string | null;
           timezone?: string;
           updated_at?: string;
         };
@@ -7217,6 +7519,7 @@ export type Database = {
           name?: string;
           org_id?: string;
           photo_path?: string | null;
+          review_url?: string | null;
           timezone?: string;
           updated_at?: string;
         };
@@ -9604,6 +9907,139 @@ export type Database = {
           },
         ];
       };
+      review_requests: {
+        Row: {
+          appointment_id: string;
+          claimed_at: string | null;
+          contact_id: string | null;
+          created_at: string;
+          decided_at: string | null;
+          id: string;
+          location_id: string | null;
+          message_id: string | null;
+          org_id: string;
+          reason: string | null;
+          recipient_contact_id: string | null;
+          run_at: string;
+          status: string;
+          updated_at: string;
+          visit_ended_at: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          appointment_id: string;
+          claimed_at?: string | null;
+          contact_id?: string | null;
+          created_at?: string;
+          decided_at?: string | null;
+          id?: string;
+          location_id?: string | null;
+          message_id?: string | null;
+          org_id: string;
+          reason?: string | null;
+          recipient_contact_id?: string | null;
+          run_at: string;
+          status?: string;
+          updated_at?: string;
+          visit_ended_at?: string | null;
+        };
+        Update: {
+          appointment_id?: string;
+          claimed_at?: string | null;
+          contact_id?: string | null;
+          created_at?: string;
+          decided_at?: string | null;
+          id?: string;
+          location_id?: string | null;
+          message_id?: string | null;
+          org_id?: string;
+          reason?: string | null;
+          recipient_contact_id?: string | null;
+          run_at?: string;
+          status?: string;
+          updated_at?: string;
+          visit_ended_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "review_requests_appointment_id_fkey";
+            columns: ["appointment_id"];
+            isOneToOne: false;
+            referencedRelation: "appointments";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "review_requests_appointment_id_fkey";
+            columns: ["appointment_id"];
+            isOneToOne: false;
+            referencedRelation: "v_appointment_facts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "review_requests_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "review_requests_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_birthday_today";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "review_requests_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_chronic_recall_eligibility";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "review_requests_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "review_requests_message_id_fkey";
+            columns: ["message_id"];
+            isOneToOne: false;
+            referencedRelation: "messages";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "review_requests_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "review_requests_recipient_contact_id_fkey";
+            columns: ["recipient_contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "review_requests_recipient_contact_id_fkey";
+            columns: ["recipient_contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_birthday_today";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "review_requests_recipient_contact_id_fkey";
+            columns: ["recipient_contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_chronic_recall_eligibility";
+            referencedColumns: ["contact_id"];
+          },
+        ];
+      };
       roles: {
         Row: {
           created_at: string;
@@ -9962,6 +10398,7 @@ export type Database = {
         Row: {
           active: boolean;
           created_at: string;
+          default_visit_mode: string;
           department_id: string | null;
           duration_min: number;
           id: string;
@@ -9974,6 +10411,7 @@ export type Database = {
         Insert: {
           active?: boolean;
           created_at?: string;
+          default_visit_mode?: string;
           department_id?: string | null;
           duration_min?: number;
           id?: string;
@@ -9985,6 +10423,7 @@ export type Database = {
         Update: {
           active?: boolean;
           created_at?: string;
+          default_visit_mode?: string;
           department_id?: string | null;
           duration_min?: number;
           id?: string;
@@ -10844,6 +11283,93 @@ export type Database = {
           },
           {
             foreignKeyName: "teams_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      telehealth_rooms: {
+        Row: {
+          appointment_id: string;
+          created_at: string;
+          created_by: string | null;
+          expires_at: string;
+          for_ends_at: string;
+          for_starts_at: string;
+          id: string;
+          org_id: string;
+          provider: string;
+          provider_deleted_at: string | null;
+          revoked_at: string | null;
+          revoked_reason: string | null;
+          room_ref: string | null;
+          status: string;
+          token_enc: string;
+          token_hash: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          appointment_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          expires_at: string;
+          for_ends_at: string;
+          for_starts_at: string;
+          id?: string;
+          org_id: string;
+          provider: string;
+          provider_deleted_at?: string | null;
+          revoked_at?: string | null;
+          revoked_reason?: string | null;
+          room_ref?: string | null;
+          status?: string;
+          token_enc: string;
+          token_hash: string;
+        };
+        Update: {
+          appointment_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          expires_at?: string;
+          for_ends_at?: string;
+          for_starts_at?: string;
+          id?: string;
+          org_id?: string;
+          provider?: string;
+          provider_deleted_at?: string | null;
+          revoked_at?: string | null;
+          revoked_reason?: string | null;
+          room_ref?: string | null;
+          status?: string;
+          token_enc?: string;
+          token_hash?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "telehealth_rooms_appointment_id_fkey";
+            columns: ["appointment_id"];
+            isOneToOne: false;
+            referencedRelation: "appointments";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "telehealth_rooms_appointment_id_fkey";
+            columns: ["appointment_id"];
+            isOneToOne: false;
+            referencedRelation: "v_appointment_facts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "telehealth_rooms_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "telehealth_rooms_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
@@ -13371,6 +13897,10 @@ export type Database = {
         Args: { p_now?: string; p_offer_id: string; p_org_id: string };
         Returns: Json;
       };
+      ad_attribution_report: {
+        Args: { p_org: string; p_since: string; p_window_days?: number };
+        Returns: Json;
+      };
       ai_add_conversation_tags: {
         Args: { p_conversation: string; p_org: string; p_tags: string[] };
         Returns: string[];
@@ -13434,6 +13964,7 @@ export type Database = {
           status: string;
           unite_clinic_id: string | null;
           updated_at: string;
+          visit_mode: string | null;
           with_doctor_at: string | null;
         };
         SetofOptions: {
@@ -13483,6 +14014,10 @@ export type Database = {
       claim_flow_lock: {
         Args: { p_key: string; p_owner: string; p_ttl_seconds?: number };
         Returns: boolean;
+      };
+      claim_review_request: {
+        Args: { p_cap_days: number; p_org: string; p_request: string };
+        Returns: string;
       };
       claim_scheduled_jobs: {
         Args: { p_limit?: number; p_lock_ttl?: string; p_worker?: string };
@@ -13956,6 +14491,7 @@ export type Database = {
           status: string;
           unite_clinic_id: string | null;
           updated_at: string;
+          visit_mode: string | null;
           with_doctor_at: string | null;
         };
         SetofOptions: {
@@ -14296,6 +14832,7 @@ export type Database = {
         }[];
       };
       reserve_send_slot: { Args: { p_cap: number; p_channel_id: string }; Returns: number };
+      review_request_stats: { Args: { p_org: string; p_since: string }; Returns: Json };
       security_maintenance: { Args: { p_now?: string }; Returns: Json };
       seed_clinical_settings: { Args: { p_org: string }; Returns: undefined };
       seed_condition_groups: { Args: { p_org: string }; Returns: undefined };

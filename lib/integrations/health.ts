@@ -64,4 +64,9 @@ export const CALL_PROVIDERS: Record<IntegrationKind, readonly string[]> = {
   calendar_ics: [],
   sms: ["twilio"],
   payments: ["stripe", "paytabs"],
+  // Google review requests make no provider call at all: the link is only text inside a WhatsApp template.
+  google_reviews: [],
+  meta_capi: ["meta_capi"],
+  telehealth: ["daily"],
+  esign: ["dropbox_sign"],
 };

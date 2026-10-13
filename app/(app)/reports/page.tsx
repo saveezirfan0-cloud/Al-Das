@@ -40,6 +40,27 @@ export default async function ReportsIndexPage() {
           </div>
         </section>
       )}
+      {can(member, "ads.view") && (
+        <section aria-labelledby="g-ads" className="flex flex-col gap-3">
+          <h3 id="g-ads" className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+            Marketing
+          </h3>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <Link
+              href="/reports/ads"
+              className="bg-card hover:bg-accent/40 focus-visible:ring-ring flex flex-col gap-1.5 rounded-xl border p-4 transition-colors outline-none focus-visible:ring-2"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-medium">Ad attribution</span>
+                <ArrowRight className="text-muted-foreground size-4" aria-hidden />
+              </div>
+              <p className="text-muted-foreground text-sm">
+                Which Meta ads started WhatsApp conversations, and how many became enquiries or bookings.
+              </p>
+            </Link>
+          </div>
+        </section>
+      )}
       {REPORT_GROUPS.map((group) => {
         const reports = REPORTS.filter((r) => r.group === group);
         if (reports.length === 0) return null;

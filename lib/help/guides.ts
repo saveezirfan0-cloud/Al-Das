@@ -57,6 +57,7 @@ export const GUIDES: readonly Guide[] = [
       "Pick the patient, service, doctor and one of the free times shown.",
       "Open an appointment to confirm, move or cancel it. The patient is told if you tick Notify.",
       "Reminders go out on their own; a failed reminder creates a call task.",
+      "For a video appointment, open it and press Join video visit (also on the Front desk board). Copy link gives you the address; New link replaces it if it was shared by mistake.",
     ],
     watchOut: [
       "Appointments that come from Unite are read-only here. Change them in Unite.",
@@ -202,12 +203,104 @@ export const GUIDES: readonly Guide[] = [
       "To switch on SMS fallback or payment links, type the confirmation words shown on the page. Both can contact patients.",
       "Calendar feeds: create a feed for a doctor, copy the link at once (it is shown only once) and add it to Outlook, Google or Apple Calendar.",
       "If a link is shared by mistake, Rotate it. The old link stops working immediately.",
+      "Google review requests: choose the approved WhatsApp template, map its variables, paste each location's Google review link, save, then switch on with the typed words. Staff can mark a patient 'Do not ask' on the patient's card.",
       "System health shows whether each integration is working.",
     ],
     watchOut: [
       "A calendar feed shows appointment times and the clinic location only, never patient details, but anyone with the link can see them.",
+      "Review requests go only to patients who opted in to messages, at most once per person in the period you set, and never depend on how the visit went. Pulse does not contact Google.",
       "SMS is only a fallback for appointment reminders that WhatsApp could not deliver, and each message costs money.",
       "Nothing here ever writes to Unite.",
+    ],
+  },
+  {
+    id: "review-requests",
+    title: "Google review requests",
+    pages: ["/settings/integrations/google_reviews"],
+    purpose:
+      "Send one WhatsApp message with your Google review link after a completed visit, to patients who agreed to receive messages.",
+    steps: [
+      "Choose the approved WhatsApp template and map its variables, with one of them set to the review link.",
+      "Paste each location's Google review link (g.page, google.com or maps.app.goo.gl) and save.",
+      "Set how long to wait after the visit, the sending hours and how often one person may be asked, then save.",
+      "Switch on with the typed words. Only visits that finish after that are asked.",
+      "To never ask a patient, open the patient and tick 'Do not ask for a Google review'.",
+    ],
+    watchOut: [
+      "Only patients who opted in to messages are asked, and a parent with several children is asked once. Pulse does not contact Google: the link is only text in the message.",
+      "Nobody is left out, or sent somewhere else, because of how their visit went: Google does not allow that.",
+      "Nothing is sent from a training workspace.",
+    ],
+  },
+  {
+    id: "ad-attribution-setup",
+    title: "Meta ad attribution",
+    pages: ["/settings/integrations/meta_capi"],
+    purpose:
+      "Record which Meta ad each WhatsApp conversation came from and, if you choose, tell Meta when an ad patient made contact, became an enquiry or booked.",
+    steps: [
+      "Start in 'Report only'. Switch on with the typed words and the Ad attribution report fills as ad conversations arrive.",
+      "To send events, enter the dataset ID and access token from Meta Events Manager, choose 'Report and send events', save and press Test connection.",
+      "Use the test event code from Events Manager first and check the events appear in its Test events view, then clear the code.",
+      "Leave 'Whose events may be sent' on opt-in unless your administrator has confirmed another basis.",
+    ],
+    watchOut: [
+      "Events carry only the event name, the ad click id and, if you choose, a hashed phone number: never a service, doctor, diagnosis or price.",
+      "Patients who asked to stop marketing are never included.",
+      "Check Meta's rules for health advertisers before sending events.",
+    ],
+  },
+  {
+    id: "video-visits-setup",
+    title: "Video visits",
+    pages: ["/settings/integrations/telehealth"],
+    purpose:
+      "Give video appointments a private video link that staff can join and reminders can carry.",
+    steps: [
+      "Choose a provider: your own meeting service (an address with {token} in it) or Daily.co-style rooms created through the API.",
+      "Enter the address or the API key and domain, set how long the room stays open after the visit, save and press Test connection.",
+      "Switch on with the typed words, then mark a service as Video under Settings, Appointments (or change a single booking on the appointment).",
+      "To put the link in a reminder or confirmation, map a template variable to 'Appointment: video visit link'.",
+    ],
+    watchOut: [
+      "Each appointment gets its own long random link. It stops being given out after the visit and when the appointment is cancelled, missed or moved.",
+      "With your own meeting service Pulse cannot end the room itself; with the API option the room expires on its own.",
+      "Nothing is recorded, and no patient name or detail is sent to the video service. Nothing is created in a training workspace.",
+    ],
+  },
+  {
+    id: "esign-setup",
+    title: "E-signature for consent forms",
+    pages: ["/settings/integrations/esign"],
+    purpose:
+      "Send a patient's consent form to an e-signature service and keep the signed copy on the patient.",
+    steps: [
+      "Switch on patient documents first (Settings, Patient documents).",
+      "Enter the provider's API key, leave Test mode on, save and press Test connection.",
+      "Give the provider the callback address shown on this page (in its API settings, Event callback).",
+      "Switch on with the typed words, send a request to yourself from a patient's Documents tab, sign it and check the signed copy appears.",
+      "Then turn Test mode off for real, binding requests.",
+    ],
+    watchOut: [
+      "This shares the form and the signer's name and e-mail address with the provider, which keeps its own copy under its own terms. Your agreement with it and its data location must be approved.",
+      "The form must carry the provider's signature tags, or the signer has nowhere to sign.",
+      "Nothing is sent from a training workspace. A request that is still waiting can be cancelled from the patient's Documents tab.",
+    ],
+  },
+  {
+    id: "ad-report",
+    title: "Ad attribution report",
+    pages: ["/reports/ads"],
+    purpose:
+      "See which Meta ads started WhatsApp conversations and how many became enquiries or bookings.",
+    steps: [
+      "Pick the period. Each row is one ad: its headline, conversations, patients, enquiries and bookings.",
+      "A booking counts for an ad when it was made after the click, for the same patient, inside the attribution window.",
+      "Events sent to Meta shows how many were sent, are waiting, failed, or were skipped and why.",
+    ],
+    watchOut: [
+      "Counts only: no patient is named here.",
+      "The report starts when ad attribution is switched on; earlier conversations are not included.",
     ],
   },
   {

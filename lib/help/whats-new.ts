@@ -3,6 +3,30 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-10-19-e-signature",
+    date: "2026-10-19",
+    title: "E-signature for consent forms",
+    body: "From a patient's Documents tab, send a consent form (a PDF) to an e-signature service. The signer gets an e-mail, signs, and the signed copy is stored on the patient as a new consent document; you are told when it is signed, declined or expired, and can cancel a request that is still waiting. The service receives the form and the signer's name and e-mail address, so it needs an administrator's typed confirmation in Settings, Integrations, and patient documents must be on.",
+  },
+  {
+    id: "2026-10-19-video-visits",
+    date: "2026-10-19",
+    title: "Video visits",
+    body: "Mark a service (or a single booking) as a video visit and each appointment gets its own private video link. Staff press Join on the appointment or the Front desk board, and reminders and confirmations can carry the link through a new template variable. The link stops working after the visit and when the appointment is cancelled, missed or moved; nothing is recorded and no patient detail goes to the video service. Off until an administrator switches it on in Settings, Integrations.",
+  },
+  {
+    id: "2026-10-19-ad-attribution",
+    date: "2026-10-19",
+    title: "Meta ad attribution",
+    body: "A new Ad attribution report shows which Meta ads started WhatsApp conversations and how many became enquiries or bookings. Pulse can also tell Meta when an ad patient made contact, became an enquiry or booked, using only the event name and the ad click id, never a service, doctor or diagnosis. It starts in report-only mode, sends events only for patients who opted in, and is off until an administrator switches it on in Settings, Integrations.",
+  },
+  {
+    id: "2026-10-19-review-requests",
+    date: "2026-10-19",
+    title: "Google review requests",
+    body: "After a completed visit, Pulse can send one WhatsApp message with your clinic's Google review link, a couple of hours later and only during the hours you choose. Only patients who opted in to messages are asked, at most once in the period you set, and nobody is left out because of how their visit went. Staff can mark a patient 'Do not ask' on the patient's card. Off until an administrator switches it on in Settings, Integrations.",
+  },
+  {
     id: "2026-10-18-integrations",
     date: "2026-10-18",
     title: "Integrations: calendar feeds, SMS fallback and payment links",

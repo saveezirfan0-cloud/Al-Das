@@ -51,6 +51,11 @@ export type WebhookSpec = {
   parse: (raw: string, ctx: VerifyContext) => WebhookEvent[];
   /** Returns a short outcome word stored with the key ("applied", "duplicate_payment", ...). */
   handle: (event: WebhookEvent, ctx: VerifyContext & { admin: AdminClient }) => Promise<string>;
+  /**
+   * Some providers only treat a delivery as accepted when the body says so (Dropbox Sign wants "Hello API Event Received"). When set,
+   * a successful answer is this plain text instead of the JSON summary.
+   */
+  successBody?: string;
 };
 
 export async function receiveIntegrationWebhook(
@@ -173,5 +178,10 @@ export async function receiveIntegrationWebhook(
       return NextResponse.json({ error: "processing failed" }, { status: 500 });
     }
   }
+  if (spec.successBody)
+    return new Response(spec.successBody, {
+      status: 200,
+      headers: { "content-type": "text/plain; charset=utf-8" },
+    });
   return NextResponse.json({ ok: true, processed, duplicates }, { status: 200 });
 }

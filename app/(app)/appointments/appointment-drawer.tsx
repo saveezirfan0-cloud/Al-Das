@@ -21,14 +21,17 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { localDate } from "@/lib/appointments/slots";
 import { canTransition, STATUS_LABELS, type AppointmentStatus } from "@/lib/appointments/status";
+import { effectiveVisitMode, isVisitMode } from "@/lib/integrations/telehealth/policy";
 import { cn } from "@/lib/utils";
 
 import {
   getAppointmentDetail,
   getFreeSlots,
+  getVideoJoinLink,
   moveAppointment,
   sendReminderNow,
   setStatus,
+  setVisitMode,
   updateAppointmentNotes,
 } from "./actions";
 import { dateTimeLabel, REMINDER_LABELS, STATUS_STYLES, timeLabel } from "./format";
@@ -114,6 +117,9 @@ export function AppointmentDrawer({
   const specialist = bootstrap.specialists.find((s) => s.id === a?.specialist_id);
   const service = bootstrap.services.find((s) => s.id === a?.service_id);
   const isUnite = a?.source === "unite";
+  const visitMode = effectiveVisitMode(a?.visit_mode, service?.default_visit_mode);
+  const videoLive =
+    visitMode === "video" && a && a.status !== "cancelled" && a.status !== "no_show";
 
   // Slots for the reschedule picker.
   React.useEffect(() => {
@@ -164,6 +170,55 @@ export function AppointmentDrawer({
       toast.success(res.message);
       if (moveNotify && res.data && !res.data.notified && res.data.notifyError)
         toast.warning(`Patient not notified: ${res.data.notifyError}`);
+      reload();
+    });
+  }
+
+  function joinVideo(renew = false) {
+    if (!a) return;
+    startTransition(async () => {
+      const res = await getVideoJoinLink({ id: a.id, renew });
+      if (!res.ok || !res.data) {
+        toast.error(res.ok ? "No link." : res.error);
+        return;
+      }
+      if (renew) {
+        try {
+          await navigator.clipboard.writeText(res.data.url);
+          toast.success("New link made and copied. The old link no longer works.");
+        } catch {
+          toast.success("New link made. The old link no longer works.");
+        }
+      } else window.open(res.data.url, "_blank", "noopener,noreferrer");
+    });
+  }
+
+  function copyVideo() {
+    if (!a) return;
+    startTransition(async () => {
+      const res = await getVideoJoinLink({ id: a.id });
+      if (!res.ok || !res.data) {
+        toast.error(res.ok ? "No link." : res.error);
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(res.data.url);
+        toast.success("Link copied.");
+      } catch {
+        toast.error("Could not copy the link.");
+      }
+    });
+  }
+
+  function changeVisitMode(value: string) {
+    if (!a) return;
+    const mode = isVisitMode(value) ? value : null;
+    startTransition(async () => {
+      const res = await setVisitMode({ id: a.id, mode });
+      if (!res.ok) {
+        toast.error(res.error);
+        return;
+      }
       reload();
     });
   }
@@ -225,7 +280,57 @@ export function AppointmentDrawer({
               <dd>{service?.name ?? "—"}</dd>
               <dt className="text-muted-foreground">Source</dt>
               <dd className="capitalize">{a.source}</dd>
+              <dt className="text-muted-foreground">Visit type</dt>
+              <dd>
+                {bootstrap.can.manage ? (
+                  <select
+                    aria-label="Visit type"
+                    className="border-input bg-background h-8 rounded-md border px-2 text-sm"
+                    value={a.visit_mode ?? ""}
+                    disabled={pending}
+                    onChange={(e) => changeVisitMode(e.target.value)}
+                  >
+                    <option value="">
+                      Follow the service (
+                      {service?.default_visit_mode === "video" ? "video" : "in person"})
+                    </option>
+                    <option value="in_person">In person</option>
+                    <option value="video">Video</option>
+                  </select>
+                ) : visitMode === "video" ? (
+                  "Video"
+                ) : (
+                  "In person"
+                )}
+              </dd>
             </dl>
+
+            {videoLive && (
+              <section className="flex flex-wrap items-center gap-2 rounded-md border p-3">
+                <Button size="sm" disabled={pending} onClick={() => joinVideo(false)}>
+                  Join video visit
+                </Button>
+                <Button size="sm" variant="outline" disabled={pending} onClick={copyVideo}>
+                  Copy link
+                </Button>
+                {bootstrap.can.manage && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={pending}
+                    onClick={() => {
+                      if (confirm("Make a new link? The old link will stop working."))
+                        joinVideo(true);
+                    }}
+                  >
+                    New link
+                  </Button>
+                )}
+                <p className="text-muted-foreground w-full text-xs">
+                  The link is private to this appointment and stops working after the visit.
+                </p>
+              </section>
+            )}
 
             {bootstrap.can.manage && !isUnite && (
               <section className="flex flex-col gap-2">

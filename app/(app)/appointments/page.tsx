@@ -45,7 +45,7 @@ export default async function AppointmentsPage({
     admin.from("departments").select("id, name").eq("org_id", org).eq("active", true).order("name"),
     admin
       .from("services")
-      .select("id, name, duration_min, department_id")
+      .select("id, name, duration_min, department_id, default_visit_mode")
       .eq("org_id", org)
       .eq("active", true)
       .order("name"),

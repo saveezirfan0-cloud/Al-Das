@@ -17,6 +17,7 @@ import {
 import { formatInTimeZone } from "date-fns-tz";
 import { toast } from "sonner";
 
+import { getVideoJoinLink } from "@/app/(app)/appointments/actions";
 import { searchContactsQuick } from "@/app/(app)/contacts/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -404,6 +405,7 @@ function BoardLine({
   const waited = waitingMinutes(row, now);
   const closed = section === "cancelled" || section === "no_show";
   const isUnite = row.source === "unite";
+  const isVideo = row.visit_mode === "video";
 
   return (
     <li
@@ -439,6 +441,7 @@ function BoardLine({
       </button>
       <span className="flex flex-wrap items-center gap-1">
         {badge && <Badge variant={badge.variant}>{badge.label}</Badge>}
+        {isVideo && <Badge variant="outline">Video</Badge>}
         {waited !== null && waited >= 1 && (
           <span className="text-muted-foreground text-xs">{waited} min</span>
         )}
@@ -452,6 +455,20 @@ function BoardLine({
           <span className="text-muted-foreground text-xs">reminder sent</span>
         )}
       </span>
+      {isVideo && !closed && (
+        <Button
+          size="xs"
+          variant="outline"
+          disabled={disabled}
+          onClick={async () => {
+            const r = await getVideoJoinLink({ id: row.id });
+            if (r.ok && r.data) window.open(r.data.url, "_blank", "noopener,noreferrer");
+            else if (!r.ok) toast.error(r.error);
+          }}
+        >
+          Join
+        </Button>
+      )}
       {canManage && !closed && (
         <span className="flex items-center gap-1">
           {next && (

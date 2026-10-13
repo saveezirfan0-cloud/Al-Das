@@ -8,21 +8,36 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 
-import { savePaymentTemplate } from "./actions";
-
 type Option = {
   id: string;
   label: string;
   variables: Array<{ key: string; supported: boolean; example: string | null }>;
 };
 
-export function PaymentTemplate({
+type SaveResult = { ok: true; message: string } | { ok: false; error: string };
+
+/**
+ * Chooses the approved WhatsApp template an integration sends and maps each of its variables to one of a closed set of values.
+ * Used by payment links and by review requests; the server action (`save`) checks the choice again.
+ */
+export function TemplateMapPanel({
+  title,
+  description,
+  idPrefix,
+  save: saveTemplate,
   canManage,
   options,
   templateId,
   variableMap,
   sources,
 }: {
+  title: string;
+  description: string;
+  idPrefix: string;
+  save: (input: {
+    templateId: string | null;
+    variableMap: Record<string, string>;
+  }) => Promise<SaveResult>;
   canManage: boolean;
   options: Option[];
   templateId: string | null;
@@ -36,7 +51,7 @@ export function PaymentTemplate({
 
   function save() {
     start(async () => {
-      const r = await savePaymentTemplate({ templateId: id, variableMap: map });
+      const r = await saveTemplate({ templateId: id, variableMap: map });
       if (r.ok) toast.success(r.message);
       else toast.error(r.error);
     });
@@ -45,18 +60,14 @@ export function PaymentTemplate({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Payment message</CardTitle>
-        <CardDescription>
-          The approved WhatsApp template (Utility category) that carries the payment link. Map one
-          variable to the payment link and every other variable to a value. Only text variables in
-          the header or body are supported.
-        </CardDescription>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div className="grid max-w-md gap-1">
-          <Label htmlFor="pay-template">Template</Label>
+          <Label htmlFor={`${idPrefix}-template`}>Template</Label>
           <select
-            id="pay-template"
+            id={`${idPrefix}-template`}
             className="border-input bg-background h-9 rounded-md border px-3 text-sm"
             disabled={!canManage}
             value={id ?? ""}
@@ -98,7 +109,7 @@ export function PaymentTemplate({
               </select>
             ) : (
               <p className="text-destructive text-xs">
-                A media header or button variable cannot be used for payment messages.
+                A media header or button variable cannot be used here.
               </p>
             )}
           </div>
