@@ -16,7 +16,7 @@
     "db:reset": "supabase db reset && pnpm gen:types",
     "db:seed": "supabase db reset",
     "gen:types": "supabase gen types typescript --local --schema public > lib/supabase/types.ts",
-    "gen:types:url": "supabase gen types typescript --schema public --db-url \"$TEST_DATABASE_URL?sslmode=disable\" > lib/supabase/types.ts",
+    "gen:types:url": ": \"${TEST_DATABASE_URL:?set TEST_DATABASE_URL first}\" && supabase gen types typescript --schema public --db-url \"$TEST_DATABASE_URL?sslmode=disable\" > lib/supabase/types.ts.tmp && mv lib/supabase/types.ts.tmp lib/supabase/types.ts",
     "wa:simulate": "tsx scripts/wa-simulate.ts",
     "import:airtable": "tsx scripts/import-airtable.ts",
     "import:sanoflow": "tsx scripts/import-sanoflow.ts",
