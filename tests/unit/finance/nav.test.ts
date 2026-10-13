@@ -109,6 +109,18 @@ describe("Finance navigation", () => {
     expect(role("CEO")).not.toContain("finance.followup.manage");
   });
 
+  it("invoice changes: Finance, the CEO and Operations see the register; Operations and Finance review, the CEO does not", () => {
+    for (const r of ["Finance", "CEO", "Operations"])
+      expect(hrefs(member(role(r))), r).toContain("/finance/invoice-changes");
+    for (const r of ["Billing", "Insurance", "Medical Director", "Cost / Payroll"])
+      expect(hrefs(member(role(r))), r).not.toContain("/finance/invoice-changes");
+    // Operations owns Unite invoice changes and sees nothing else in Finance
+    expect(hrefs(member(role("Operations")))).toEqual(["/finance/invoice-changes"]);
+    expect(role("Operations")).toContain("finance.changes.review");
+    expect(role("Finance")).toContain("finance.changes.review");
+    expect(role("CEO")).not.toContain("finance.changes.review");
+  });
+
   it("cost and profit pages follow the blueprint's separation of duties", () => {
     // Cost / Payroll: costs only, no revenue, branch, doctor or profit pages
     expect(hrefs(member(role("Cost / Payroll")))).toEqual(["/finance/costs"]);

@@ -216,6 +216,45 @@ export async function saveFollowupSettings(raw: Record<string, string>): Promise
   return { ok: true, message: "Settings saved." };
 }
 
+const changeReviewSchema = z.object({
+  change_review_start_date: optionalDate,
+  change_review_min_amount: num(0, 9_999_999),
+  change_bulk_approve_max: num(0, 9_999_999),
+});
+
+/** Phase 20J: when the unapproved-changes measure starts, the amount below which no approval is needed, the bulk limit. */
+export async function saveChangeReviewSettings(raw: Record<string, string>): Promise<ActionResult> {
+  const member = await requirePerm(PERM);
+  const p = changeReviewSchema.safeParse(raw);
+  if (!p.success) return fail(firstIssue(p.error, "Check the values."));
+  const d = p.data;
+  const { error } = await (
+    await createClient()
+  )
+    .from("fin_ref_finance_settings")
+    .update({
+      change_review_start_date: d.change_review_start_date,
+      change_review_min_amount: d.change_review_min_amount,
+      change_bulk_approve_max: d.change_bulk_approve_max,
+    })
+    .eq("org_id", member.orgId);
+  if (error) return fail(dbMessage(error, "Could not save the settings."));
+  await recordAudit(createAdminClient(), {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "finance.workflow.change_review_saved",
+    entity: "fin_ref_finance_settings",
+    entityId: member.orgId,
+    diff: {
+      start_date: d.change_review_start_date,
+      min_amount: d.change_review_min_amount,
+      bulk_max: d.change_bulk_approve_max,
+    },
+  });
+  refresh();
+  return { ok: true, message: "Settings saved." };
+}
+
 const codeSchema = z.object({
   code: z
     .string()

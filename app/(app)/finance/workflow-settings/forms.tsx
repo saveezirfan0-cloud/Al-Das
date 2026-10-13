@@ -15,6 +15,7 @@ import {
   importPayerPrices,
   saveBlueprintSettings,
   saveDenialCode,
+  saveChangeReviewSettings,
   saveFollowupSettings,
   saveThresholds,
 } from "./actions";
@@ -432,6 +433,37 @@ export function FollowupSettingsForm({
           <Check name="followup_task_enabled" label="Create tasks" checked={s.taskEnabled} />
         </div>
       </fieldset>
+    </ActionForm>
+  );
+}
+
+export function ChangeReviewSettingsForm({
+  s,
+}: {
+  s: { startDate: string | null; minAmount: number; bulkMax: number };
+}) {
+  return (
+    <ActionForm action={saveChangeReviewSettings} submitLabel="Save settings">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Field
+          label="Count unapproved invoice changes from"
+          hint="Blank = the register works but the measure is not counted. Changes before this date are never counted."
+        >
+          <Input name="change_review_start_date" type="date" defaultValue={s.startDate ?? ""} />
+        </Field>
+        <Field
+          label="Approval needed from (AED)"
+          hint="0 = every change needs an approval. A change below this amount needs none."
+        >
+          <Input name="change_review_min_amount" inputMode="decimal" defaultValue={s.minAmount} />
+        </Field>
+        <Field
+          label="Bulk approval up to (AED)"
+          hint="Unreviewed changes up to this amount can be approved together with one reason. 0 = off."
+        >
+          <Input name="change_bulk_approve_max" inputMode="decimal" defaultValue={s.bulkMax} />
+        </Field>
+      </div>
     </ActionForm>
   );
 }
