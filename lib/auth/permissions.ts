@@ -541,6 +541,13 @@ export const PERMISSIONS = [
       "See the documents e-mailed to the accounts mailbox or dropped on the Finance inbox (supplier invoices, bank statements, processor reports), label them, turn one into a supplier invoice or discard it. Audited.",
   },
   {
+    key: "finance.bank.ai",
+    group: "Finance",
+    label: "AI review of bank reconciliation",
+    description:
+      "Ask the AI to review an open bank reconciliation (ids, amounts, dates and references only) and accept or reject its suggestions. The AI only suggests pairs from Pulse's own shortlist; a person decides each one. Also needs Run bank reconciliation, and AI must be on for the workspace.",
+  },
+  {
     key: "portal.recall_sends.write",
     group: "Portal",
     label: "Edit recall call-list entries",
@@ -632,6 +639,7 @@ const FINANCE_PRESET: readonly string[] = [
   "finance.bank.view",
   "finance.bank.manage",
   "finance.bank.signoff",
+  "finance.bank.ai",
   "finance.payables.view",
   "finance.payables.manage",
   "finance.vouchers.prepare",

@@ -323,7 +323,8 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 18: finance upgrades, access", () => 
     // invoice-change keys and the Operations role with Phase 20J (20261031000100, tested in
     // finance-invoice-changes.test.ts) and the revenue-share keys with Phase 20F (20261101000100, tested in
     // finance-revenue-share.test.ts) and finance.inbox.manage with Phase 20B (20261103000100, tested in
-    // finance-intake.test.ts); this migration predates them.
+    // finance-intake.test.ts) and finance.bank.ai with Phase 20H (20261104000100, tested in
+    // finance-bank-ai.test.ts); this migration predates them.
     const later = (p: string) =>
       p === "finance.payment_links" ||
       p === "finance.close.tasks" ||
@@ -334,7 +335,7 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 18: finance upgrades, access", () => 
       p.startsWith("finance.payables.") ||
       p.startsWith("finance.vouchers.") ||
       p === "finance.tally.export" ||
-      p.startsWith("finance.bank.") ||
+      p.startsWith("finance.bank.") || // includes finance.bank.ai (20H)
       p.startsWith("finance.changes.") ||
       p.startsWith("finance.revshare.") ||
       p.startsWith("finance.costs.") ||

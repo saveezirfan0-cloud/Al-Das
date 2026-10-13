@@ -325,9 +325,11 @@ export const GUIDES: readonly Guide[] = [
       "Import the bank statement (and, where you have it, the processor's settlement report) as .csv or .xlsx. The same file twice, or overlapping dates, are refused.",
       "Open the month's reconciliation for an account. Save the automatic matches, then accept or reject each proposed match: the score and its reasons are shown.",
       "Give a reason for every expected receipt that is late and for every bank credit nothing explains, then mark it reviewed. A second person signs it off.",
+      "Optional: press Ask AI to review on an open reconciliation. The AI suggests, for each open item, one of Pulse's own candidates (or no match) with a reason, and writes a short summary. Accept or Reject each suggestion; an accepted pair is saved exactly as if you had accepted the proposal yourself. The line above the list shows how many suggestions were accepted and rejected.",
     ],
     watchOut: [
       "A pair is matched automatically only when it is the only candidate on both sides and scores at least the threshold; Pulse never picks between two that fit.",
+      "The AI summary is a draft: check it before relying on it. The AI sees ids, amounts, dates, payment modes and references only, never bank descriptions or names, and it cannot change a figure or pair anything itself. It needs the AI review permission and AI switched on for the workspace.",
       "A payment mode is not reconciled until its rule has a bank account, a lag and a fee % (0 when there is no fee).",
       "A locked month cannot be changed, and a signed reconciliation is final.",
     ],
