@@ -74,6 +74,10 @@ const GENERIC: Record<string, { title: string; body: string }> = {
     title: "Voucher rejected",
     body: "A payment voucher you prepared was rejected. Open Pulse to read the remarks.",
   },
+  "accounting.runs_prepared": {
+    title: "Runs ready to review",
+    body: "Month-end depreciation and schedule runs are ready. Open Pulse to review them.",
+  },
   "waitlist.booked": {
     title: "Waiting list",
     body: "A waiting-list patient took an offered slot.",
@@ -136,6 +140,8 @@ export function pushUrl(event: string, ids: PushIds): string {
       return "/finance/vouchers?tab=approve";
     case "finance.voucher_rejected":
       return "/finance/vouchers?tab=rejected";
+    case "accounting.runs_prepared":
+      return "/accounting/depreciation";
     case "test":
       return "/settings/notifications";
     default:

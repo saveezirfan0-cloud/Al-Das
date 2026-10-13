@@ -39,6 +39,7 @@ import {
   PHASE22G_TABLES,
   PHASE22I_SERVICE_ONLY_TABLES,
   PHASE22I_TABLES,
+  PHASE22H_TABLES,
   resetDb,
   seedPhase13Rows,
   seedPhase14Rows,
@@ -56,6 +57,7 @@ import {
   seedPhase22CRows,
   seedPhase22ERows,
   seedPhase22FRows,
+  seedPhase22HRows,
   seedSecurityRows,
   TEST_DATABASE_URL,
 } from "./helpers";
@@ -305,6 +307,16 @@ const PHASE22I_SERVICE_FUNCTIONS = [
   "acc_year_end_close_months",
   "acc_year_end_preview",
   "acc_year_end_reopen",
+];
+
+/** Phase 22H SECURITY DEFINER functions (fixed assets and schedules) that only server code (service role) may run. */
+const PHASE22H_SERVICE_FUNCTIONS = [
+  "acc_asset_disposal_cancel",
+  "acc_asset_disposal_post",
+  "acc_asset_disposal_prepare",
+  "acc_asset_run_post",
+  "acc_asset_run_prepare",
+  "acc_assets_seed",
 ];
 
 /** Phase 17 SECURITY DEFINER functions that only server code (service role) may run. */
@@ -679,6 +691,33 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 22G service-role functions", () => {
   });
 });
 
+describe.skipIf(!TEST_DATABASE_URL)("phase 22H service-role functions", () => {
+  it("exist and are executable by the service role only", async () => {
+    const c = await connect();
+    try {
+      const { rows } = await c.query<{ name: string; anon: boolean; auth: boolean; svc: boolean }>(
+        `select p.proname as name,
+                has_function_privilege('anon', p.oid, 'execute') as anon,
+                has_function_privilege('authenticated', p.oid, 'execute') as auth,
+                has_function_privilege('service_role', p.oid, 'execute') as svc
+         from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+         where n.nspname = 'public' and p.proname = any ($1)`,
+        [PHASE22H_SERVICE_FUNCTIONS],
+      );
+      expect(rows.map((r) => r.name).sort()).toEqual([...PHASE22H_SERVICE_FUNCTIONS].sort());
+      for (const r of rows)
+        expect({ name: r.name, anon: r.anon, auth: r.auth, svc: r.svc }).toEqual({
+          name: r.name,
+          anon: false,
+          auth: false,
+          svc: true,
+        });
+    } finally {
+      await c.end();
+    }
+  });
+});
+
 describe.skipIf(!TEST_DATABASE_URL)("phase 17 service-role functions", () => {
   it("exist and are executable by the service role only", async () => {
     const c = await connect();
@@ -818,6 +857,8 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
     await seedPhase22GRows(c, orgA, alice);
     // Phase 22I (Tally import) tables likewise.
     await seedPhase22IRows(c, orgA);
+    // Phase 22H (fixed assets and schedules) tables likewise.
+    await seedPhase22HRows(c, orgA);
   });
   afterAll(async () => {
     await resetDb(c);
@@ -836,6 +877,7 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
       ...PHASE22C_TABLES,
       ...PHASE22E_TABLES,
       ...PHASE22F_TABLES,
+      ...PHASE22H_TABLES,
       ...PHASE21_TABLES,
       ...PHASE20_TABLES,
       ...PHASE20A_TABLES,
@@ -860,6 +902,7 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
         ...PHASE22C_TABLES,
         ...PHASE22E_TABLES,
         ...PHASE22F_TABLES,
+        ...PHASE22H_TABLES,
         ...PHASE21_TABLES,
         ...PHASE20_TABLES,
         ...PHASE20A_TABLES,

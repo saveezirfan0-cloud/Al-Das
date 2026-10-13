@@ -26,5 +26,6 @@ export function notificationHref(type: string, payload: unknown): string | null 
   // Finance reminders without an id open their page (same targets as the push links).
   if (type === "finance.close_due") return "/finance/close/timetable";
   if (type === "finance.followup_due") return "/finance/followup";
+  if (type === "accounting.runs_prepared") return "/accounting/depreciation";
   return null;
 }

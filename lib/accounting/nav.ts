@@ -13,6 +13,14 @@ export type AccountingNavEntry = {
   permissions: readonly string[];
 };
 
+/** Fixed assets, depreciation and schedules (22H): managers, the approvers who post runs, and readers. */
+const ASSETS = [
+  "accounting.assets.manage",
+  "accounting.journals.approve",
+  "accounting.reports.view",
+  "accounting.view",
+] as const;
+
 const JOURNALS = [
   "accounting.ledger.view",
   "accounting.journals.prepare",
@@ -67,6 +75,14 @@ export const ACCOUNTING_NAV: readonly AccountingNavEntry[] = [
     section: "Ledger",
     permissions: ["accounting.ledger.view"],
   },
+  { href: "/accounting/assets", label: "Fixed assets", section: "Assets", permissions: ASSETS },
+  {
+    href: "/accounting/depreciation",
+    label: "Depreciation",
+    section: "Assets",
+    permissions: ASSETS,
+  },
+  { href: "/accounting/schedules", label: "Schedules", section: "Assets", permissions: ASSETS },
   {
     href: "/accounting/sales-invoices",
     label: "Sales invoices",

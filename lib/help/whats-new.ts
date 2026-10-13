@@ -33,6 +33,12 @@ export const WHATS_NEW: readonly WhatsNewEntry[] = [
     body: "Accounting, Setup now has a Tally import: upload TallyPrime's All Masters and Day Book XML exports and Pulse shows a dry run first (groups mapped onto Pulse's, new ledgers, the opening trial balance, vouchers per month and anything it refuses, with the reason), then imports groups, ledgers, opening balances and every voucher. Importing again never posts anything twice, and a voucher altered in Tally is reversed and posted again. Tally reconciliation compares Pulse's trial balance with Tally's Excel trial balance ledger by ledger. Opening balances can also be typed in for checking and posting by someone else. Accounting, Close has the Year-end close: it moves the year's income and expenses to retained earnings and closes the year; re-opening reverses it.",
   },
   {
+    id: "2026-11-09-accounting-assets",
+    date: "2026-11-09",
+    title: "Accounting: fixed assets, depreciation and schedules",
+    body: "Accounting now keeps a fixed asset register (medical equipment, IT, furniture, leasehold improvements and vehicles, optionally linked to the supplier bill) and works out monthly depreciation, straight line or reducing balance. Each month's depreciation is prepared for review, by you or automatically on the first working day, and posted as one journal by a different person with journal approval. Disposals book the gain or loss the same way. A new Schedules page spreads prepayments, accruals (optionally reversing on the 1st of the next month) and deferred revenue over their months. The register at any date, a 12-month depreciation forecast and the schedule status download as Excel. Leases are entered as schedules until the IFRS 16 decision.",
+  },
+  {
     id: "2026-11-08-chronic-recall-alignment",
     date: "2026-11-08",
     title: "Chronic recall: only chronic diagnoses count",

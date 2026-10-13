@@ -26,6 +26,7 @@ export const HISTORY_TABLES = {
   acc_bank_transfers: "Bank transfer",
   acc_bank_entries: "Bank entry",
   acc_cheques: "Cheque",
+  acc_assets: "Fixed asset",
 } as const;
 
 export type HistoryTable = keyof typeof HISTORY_TABLES;
@@ -53,6 +54,7 @@ export const HISTORY_PERMISSION: Partial<Record<HistoryTable, string>> = {
   acc_bank_transfers: "accounting.banking.manage",
   acc_bank_entries: "accounting.banking.manage",
   acc_cheques: "accounting.banking.manage",
+  acc_assets: "accounting.view",
 };
 
 export type HistoryChange = { field: string; label: string; from: string; to: string };
