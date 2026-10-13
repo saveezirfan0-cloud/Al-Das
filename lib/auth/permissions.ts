@@ -506,6 +506,20 @@ export const PERMISSIONS = [
     description: "Sign a reviewed bank reconciliation. The signer must be a different person from the preparer. Audited.",
   },
   {
+    key: "finance.labs.view",
+    group: "Finance",
+    label: "Lab and referral reconciliation",
+    description:
+      "See lab and referral providers, their monthly statements, the matching against Unite (tests done but not billed, billed but not on the provider's file), price variances, late results and each doctor's share of the cost. Unite PINs are shown masked.",
+  },
+  {
+    key: "finance.labs.manage",
+    group: "Finance",
+    label: "Run lab and referral reconciliation",
+    description:
+      "Set up providers, their tests and file layouts, upload lab and provider files, give reasons, mark a statement reviewed and post the doctors' costs to their charges (a different person from the one who reviewed). Audited.",
+  },
+  {
     key: "finance.revshare.view",
     group: "Finance",
     label: "View doctor revenue share",
@@ -625,6 +639,8 @@ const FINANCE_PRESET: readonly string[] = [
   "finance.bank.view",
   "finance.bank.manage",
   "finance.bank.signoff",
+  "finance.labs.view",
+  "finance.labs.manage",
   "finance.payables.view",
   "finance.payables.manage",
   "finance.vouchers.prepare",
@@ -704,6 +720,7 @@ export const FINANCE_ROLES: readonly RolePreset[] = [
       "finance.payables.view",
       "finance.vouchers.approve_ceo",
       "finance.bank.view",
+      "finance.labs.view",
       "finance.changes.view",
       "finance.revshare.view",
       "finance.revshare.approve",

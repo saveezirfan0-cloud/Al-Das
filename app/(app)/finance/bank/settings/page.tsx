@@ -16,6 +16,7 @@ import { requirePerm } from "@/lib/auth/session";
 import { ruleProblem } from "@/lib/finance/bank-recon";
 import { loadBankSettings, loadSettlementRules } from "@/lib/finance/bank-server";
 import {
+  BANK_IMPORT_KINDS,
   fieldsFor,
   IMPORT_KINDS,
   isImportKind,
@@ -47,6 +48,7 @@ export default async function BankSettingsPage() {
     admin
       .from("fin_import_formats")
       .select("id, kind, name, mapping, date_format, amount_style, active")
+      .in("kind", [...BANK_IMPORT_KINDS])
       .eq("org_id", member.orgId)
       .order("name"),
     loadSettlementRules(admin, member.orgId),

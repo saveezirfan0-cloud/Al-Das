@@ -155,7 +155,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: "Finance",
     icon: "finance",
     group: "Insight & back office",
-    keywords: ["invoices", "insurance", "claims", "denials", "pre-authorisation", "remittance", "forecast", "cash-up", "month-end", "revenue", "flash", "daily summary", "targets", "arpp", "follow-up", "receivables", "ageing", "arp", "billing mix", "seasonality", "trends", "close timetable", "working day", "vouchers", "payment voucher", "suppliers", "supplier invoices", "payables", "approvals", "tally", "bank reconciliation", "bank statement", "settlement", "tabby", "card settlement", "invoice changes", "discounts", "cancellations", "refunds", "revenue share", "doctor incentives", "doctor charges", "payout"],
+    keywords: ["invoices", "insurance", "claims", "denials", "pre-authorisation", "remittance", "forecast", "cash-up", "month-end", "revenue", "flash", "daily summary", "targets", "arpp", "follow-up", "receivables", "ageing", "arp", "billing mix", "seasonality", "trends", "close timetable", "working day", "vouchers", "payment voucher", "suppliers", "supplier invoices", "payables", "approvals", "tally", "bank reconciliation", "bank statement", "settlement", "tabby", "card settlement", "invoice changes", "discounts", "cancellations", "refunds", "revenue share", "doctor incentives", "doctor charges", "payout", "labs", "lab reconciliation", "send-out lab", "referrals", "radiology", "turnaround"],
     permissions: [
       "finance.view",
       "finance.invoices.view",
@@ -200,6 +200,8 @@ export const NAV_ITEMS: readonly NavItem[] = [
       "finance.bank.view",
       "finance.bank.manage",
       "finance.bank.signoff",
+      "finance.labs.view",
+      "finance.labs.manage",
       "finance.changes.review",
       "finance.changes.view",
       "finance.revshare.view",

@@ -475,7 +475,7 @@ export const PHASE19_SERVICE_ONLY_TABLES = [
 ] as const;
 
 /**
- * One row in every Phase 20 table (20A flash report, 20I insurance follow-up, 20J invoice-change reviews), for an org, so the cross-org sweeps are not
+ * One row in every Phase 20 table (20A flash report, 20I insurance follow-up, 20J invoice-change reviews, 20F revenue share, 20E labs), for an org, so the cross-org sweeps are not
  * vacuous for them. Synthetic ids and amounts only. Service role only: none of them has a write policy.
  */
 export async function seedPhase20Rows(c: Client, orgId: string, userId: string) {
@@ -529,6 +529,31 @@ export async function seedPhase20Rows(c: Client, orgId: string, userId: string) 
       "insert into public.fin_revshare_lines (org_id, run_id, doctor_dha_id, scheme_id, scheme_version, payout) values ($1, $2, 'SYN-SEED', $3, 1, 100)",
       [orgId, ids.run20, ids.scheme20],
     );
+    // 20E: a provider, one of its tests, an open statement with one file, one line and one reason
+    ids.provider20 = await one(
+      "insert into public.fin_providers (org_id, name, kind) values ($1, 'Synthetic Lab', 'send_out_lab')",
+      [orgId],
+    );
+    ids.providerTest20 = await one(
+      "insert into public.fin_ref_provider_tests (org_id, provider_id, code, expected_days) values ($1, $2, '85025', 2)",
+      [orgId, ids.provider20],
+    );
+    ids.statement20 = await one(
+      "insert into public.fin_provider_statements (org_id, provider_id, month, created_by) values ($1, $2, '2026-09-01', $3)",
+      [orgId, ids.provider20, userId],
+    );
+    ids.providerFile20 = await one(
+      "insert into public.fin_provider_files (org_id, statement_id, kind, file_sha256) values ($1, $2, 'provider_invoice', encode(sha256(gen_random_uuid()::text::bytea), 'hex'))",
+      [orgId, ids.statement20],
+    );
+    ids.providerLine20 = await one(
+      "insert into public.fin_provider_lines (org_id, statement_id, file_id, row_no, service_date, code, amount) values ($1, $2, $3, 1, '2026-09-02', '85025', 10)",
+      [orgId, ids.statement20, ids.providerFile20],
+    );
+    ids.providerNote20 = await one(
+      "insert into public.fin_provider_notes (org_id, statement_id, item_key, reason_code) values ($1, $2, 'line|' || $3, 'provider_error')",
+      [orgId, ids.statement20, ids.providerLine20],
+    );
   });
   return ids;
 }
@@ -539,6 +564,12 @@ export const PHASE20_TABLES = [
   "fin_ref_report_lines",
   "fin_ref_revenue_targets",
   "fin_doctor_charges",
+  "fin_provider_files",
+  "fin_provider_lines",
+  "fin_provider_notes",
+  "fin_provider_statements",
+  "fin_providers",
+  "fin_ref_provider_tests",
   "fin_revshare_lines",
   "fin_revshare_runs",
   "fin_revshare_schemes",

@@ -335,3 +335,97 @@ export function parseSettlement(
     (r) => r.net,
   );
 }
+
+/** A lab or provider file row, sanitised: codes, dates, an amount, the Unite PIN and a doctor id. Nothing else. */
+export type ProviderRow = {
+  service_date: string;
+  code: string;
+  patient_pin: string | null;
+  doctor_dha_id: string | null;
+  branch: string | null; // as written in the file; the server resolves it to a branch code before storing
+  result_date: string | null;
+  amount: number | null;
+  invoice_no: string | null;
+};
+
+const CODE_RE = /^[A-Z0-9][A-Z0-9._/-]{0,39}$/;
+/** A Unite PIN or a DHA id: letters, digits, "/" and "-", at least one digit. A name never passes (spaces, no digit). */
+const ID_RE = /^[A-Z0-9][A-Z0-9/-]{0,39}$/;
+const INVOICE_RE = /^[A-Za-z0-9][A-Za-z0-9._/-]{0,39}$/;
+export const isPinLike = (v: string) => ID_RE.test(v) && /\d/.test(v);
+export const isTestCode = (v: string) => CODE_RE.test(v);
+
+/**
+ * Lab activity reports and provider invoices (send-out lab, hospital, radiology). ONLY the mapped columns of the kind's
+ * field list are read, and that list has no name or ID-number field. Each text value must look like what it is (a code,
+ * a PIN, a DHA id, an invoice number): a cell that does not refuses the file, so a wrongly mapped name column can never
+ * be stored. Errors carry row numbers and field names, never cell values.
+ */
+export function parseProviderLines(
+  table: ReadonlyArray<ReadonlyArray<unknown>>,
+  format: ImportFormat,
+): ImportResult<ProviderRow> {
+  if (format.kind !== "lab_activity" && format.kind !== "provider_invoice")
+    return { ok: false, missing: [], errors: ["This layout is not for lab or provider files."] };
+  const invoice = format.kind === "provider_invoice";
+  return parseWith<ProviderRow>(
+    table,
+    format,
+    (cells, rowNo, fail) => {
+      const service = readDate(cells.service_date, format.dateFormat);
+      const rawCode = str(cells.test_code);
+      const amount = invoice ? readAmount(cells.amount) : null;
+      if (service === null && rawCode === null) return "skip"; // a total or sub-total line
+      if (service === "invalid" || service === null)
+        return bad(
+          fail,
+          `Row ${rowNo}: the service date is missing or not in ${format.dateFormat}.`,
+        );
+      const code = rawCode?.toUpperCase() ?? null;
+      if (!code || !CODE_RE.test(code))
+        return bad(fail, `Row ${rowNo}: ${label(format, "test_code")} is missing or not a code.`);
+      const pin = str(cells.patient_pin)?.toUpperCase() ?? null;
+      if (pin !== null && !isPinLike(pin))
+        return bad(
+          fail,
+          `Row ${rowNo}: ${label(format, "patient_pin")} does not look like a Unite PIN.`,
+        );
+      const doctor = str(cells.doctor_dha_id)?.toUpperCase() ?? null;
+      if (doctor !== null && !isPinLike(doctor))
+        return bad(
+          fail,
+          `Row ${rowNo}: ${label(format, "doctor_dha_id")} does not look like a DHA id.`,
+        );
+      const branch = str(cells.branch);
+      if (branch !== null && branch.length > 40)
+        return bad(fail, `Row ${rowNo}: ${label(format, "branch")} is too long.`);
+      const result = readDate(cells.result_date, format.dateFormat);
+      if (result === "invalid")
+        return bad(fail, `Row ${rowNo}: the result date is not in ${format.dateFormat}.`);
+      if (result !== null && result < service)
+        return bad(fail, `Row ${rowNo}: the result date is before the service date.`);
+      if (amount === "invalid") return bad(fail, `Row ${rowNo}: the amount is not a number.`);
+      if (invoice && amount === null) return bad(fail, `Row ${rowNo}: the amount is missing.`);
+      if (amount !== null && amount < 0)
+        return bad(fail, `Row ${rowNo}: a negative amount (credit lines are not accepted).`);
+      const invoiceNo = invoice ? str(cells.invoice_number) : null;
+      if (invoiceNo !== null && !INVOICE_RE.test(invoiceNo))
+        return bad(
+          fail,
+          `Row ${rowNo}: ${label(format, "invoice_number")} is not an invoice number.`,
+        );
+      return {
+        service_date: service,
+        code,
+        patient_pin: pin,
+        doctor_dha_id: doctor,
+        branch,
+        result_date: result,
+        amount,
+        invoice_no: invoiceNo,
+      };
+    },
+    (r) => r.service_date,
+    (r) => r.amount ?? 0,
+  );
+}
