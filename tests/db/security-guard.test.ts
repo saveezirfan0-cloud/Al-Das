@@ -124,16 +124,19 @@ const PHASE18_SERVICE_FUNCTIONS = [
 const PHASE19_SERVICE_FUNCTIONS = ["calendar_feed_touch", "integration_call_stats", "integration_usage_bump"];
 
 /**
- * Phase 20 SECURITY DEFINER functions that only server code (service role) may run: the flash report (20A) and the
- * insurance follow-up, receivables and follow-up task functions (20I). The pages and the job run can() first.
+ * Phase 20 SECURITY DEFINER functions that only server code (service role) may run: the flash report (20A), the
+ * insurance follow-up, receivables and follow-up task functions (20I) and the billing mix and trend (20K). The pages,
+ * routes and the job run can() first.
  */
 const PHASE20_SERVICE_FUNCTIONS = [
+  "fin_billing_mix",
   "fin_flash_inputs",
   "fin_flash_set_targets",
   "fin_followup_create_tasks",
   "fin_followup_open_claims",
   "fin_followup_worklist",
   "fin_receivables_by_payer_age",
+  "fin_revenue_trend",
 ];
 
 /** Phase 17 SECURITY DEFINER functions that only server code (service role) may run. */

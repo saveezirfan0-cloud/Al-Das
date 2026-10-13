@@ -1,0 +1,124 @@
+{
+  "mix": {
+    "doctor_basis": null,
+    "clinic": {
+      "doctor_id": null,
+      "doctor_name": null,
+      "department": null,
+      "net": 10000.0,
+      "invoices": 40,
+      "lines": 100,
+      "patients": 30,
+      "payer": {
+        "insurance": { "net": 6000.0, "invoices": 24 },
+        "self_pay": { "net": 3500.0, "invoices": 15 },
+        "other": { "net": 500.0, "invoices": 1 }
+      },
+      "categories": {
+        "Unmapped": 1000.0,
+        "Lab": 3000.0,
+        "Consultation": 4000.0,
+        "Radiology": 2000.0
+      }
+    },
+    "rows": [
+      {
+        "doctor_id": "SYN-D1",
+        "doctor_name": "Dr Synthetic Alpha",
+        "department": "Family Medicine",
+        "net": 6000.0,
+        "invoices": 25,
+        "lines": 70,
+        "patients": 20,
+        "payer": {
+          "insurance": { "net": 4500.0, "invoices": 18 },
+          "self_pay": { "net": 1500.0, "invoices": 7 },
+          "other": { "net": 0.0, "invoices": 0 }
+        },
+        "categories": {
+          "Consultation": 1500.0,
+          "Lab": 2400.0,
+          "Radiology": 1500.0,
+          "Unmapped": 600.0
+        }
+      },
+      {
+        "doctor_id": "SYN-D2",
+        "doctor_name": "Dr Synthetic Bravo",
+        "department": "Orthopaedics",
+        "net": 3500.0,
+        "invoices": 12,
+        "lines": 24,
+        "patients": 9,
+        "payer": {
+          "insurance": { "net": 1200.0, "invoices": 5 },
+          "self_pay": { "net": 1800.0, "invoices": 6 },
+          "other": { "net": 500.0, "invoices": 1 }
+        },
+        "categories": {
+          "Consultation": 2300.0,
+          "Lab": 500.0,
+          "Radiology": 500.0,
+          "Unmapped": 200.0
+        }
+      },
+      {
+        "doctor_id": null,
+        "doctor_name": null,
+        "department": null,
+        "net": 500.0,
+        "invoices": 3,
+        "lines": 6,
+        "patients": 3,
+        "payer": {
+          "insurance": { "net": 300.0, "invoices": 1 },
+          "self_pay": { "net": 200.0, "invoices": 2 },
+          "other": { "net": 0.0, "invoices": 0 }
+        },
+        "categories": { "Consultation": 200.0, "Lab": 100.0, "Unmapped": 200.0 }
+      }
+    ]
+  },
+  "trend": {
+    "grain": "month",
+    "history_from": "2025-08-20",
+    "rows": [
+      {
+        "period": "2026-08-01",
+        "from": "2026-08-15",
+        "to": "2026-08-31",
+        "net": 20000.0,
+        "invoices": 50,
+        "patients": 40,
+        "ly_net": 3000.0,
+        "ly_invoices": 8,
+        "ly_patients": 8,
+        "ly_covered": false
+      },
+      {
+        "period": "2026-09-01",
+        "from": "2026-09-01",
+        "to": "2026-09-30",
+        "net": 44000.0,
+        "invoices": 110,
+        "patients": 90,
+        "ly_net": 40000.0,
+        "ly_invoices": 100,
+        "ly_patients": 85,
+        "ly_covered": true
+      },
+      {
+        "period": "2026-10-01",
+        "from": "2026-10-01",
+        "to": "2026-10-12",
+        "net": 15000.0,
+        "invoices": 40,
+        "patients": 35,
+        "ly_net": 20000.0,
+        "ly_invoices": 52,
+        "ly_patients": 44,
+        "ly_covered": true
+      }
+    ]
+  }
+}
