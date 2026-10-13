@@ -5513,6 +5513,8 @@ export type Database = {
           escalation_role: string;
           evidence_grace_days: number;
           evidence_start_date: string | null;
+          flash_share_basis: string;
+          flash_top_doctors: number;
           forecast_default_collection_rate: number;
           forecast_default_lag_days: number;
           forecast_horizon_weeks: number;
@@ -5556,6 +5558,8 @@ export type Database = {
           escalation_role?: string;
           evidence_grace_days?: number;
           evidence_start_date?: string | null;
+          flash_share_basis?: string;
+          flash_top_doctors?: number;
           forecast_default_collection_rate?: number;
           forecast_default_lag_days?: number;
           forecast_horizon_weeks?: number;
@@ -5598,6 +5602,8 @@ export type Database = {
           escalation_role?: string;
           evidence_grace_days?: number;
           evidence_start_date?: string | null;
+          flash_share_basis?: string;
+          flash_top_doctors?: number;
           forecast_default_collection_rate?: number;
           forecast_default_lag_days?: number;
           forecast_horizon_weeks?: number;
@@ -5729,6 +5735,119 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "fin_ref_payers_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      fin_ref_report_lines: {
+        Row: {
+          active: boolean;
+          code: string;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          in_core: boolean;
+          label: string;
+          match_kind: string;
+          match_values: string[];
+          org_id: string;
+          sort_order: number;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          active?: boolean;
+          code: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          in_core?: boolean;
+          label: string;
+          match_kind: string;
+          match_values: string[];
+          org_id: string;
+          sort_order?: number;
+          updated_at?: string;
+        };
+        Update: {
+          active?: boolean;
+          code?: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          in_core?: boolean;
+          label?: string;
+          match_kind?: string;
+          match_values?: string[];
+          org_id?: string;
+          sort_order?: number;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_ref_report_lines_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_ref_report_lines_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      fin_ref_revenue_targets: {
+        Row: {
+          arpp: number | null;
+          created_at: string;
+          created_by: string | null;
+          daily_patients: number | null;
+          daily_revenue: number | null;
+          id: string;
+          line_code: string | null;
+          month: string;
+          org_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          arpp?: number | null;
+          created_at?: string;
+          created_by?: string | null;
+          daily_patients?: number | null;
+          daily_revenue?: number | null;
+          id?: string;
+          line_code?: string | null;
+          month: string;
+          org_id: string;
+        };
+        Update: {
+          arpp?: number | null;
+          created_at?: string;
+          created_by?: string | null;
+          daily_patients?: number | null;
+          daily_revenue?: number | null;
+          id?: string;
+          line_code?: string | null;
+          month?: string;
+          org_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_ref_revenue_targets_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_ref_revenue_targets_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
@@ -14689,6 +14808,11 @@ export type Database = {
         Returns: Json;
       };
       fin_escalate_exceptions: { Args: { p_org_id: string }; Returns: number };
+      fin_flash_inputs: { Args: { p_from: string; p_org_id: string; p_to: string }; Returns: Json };
+      fin_flash_set_targets: {
+        Args: { p_month: string; p_org_id: string; p_rows: Json; p_user: string };
+        Returns: number;
+      };
       fin_forecast_history: { Args: { p_mature_days?: number; p_org_id: string }; Returns: Json };
       fin_forecast_outstanding: { Args: { p_org_id: string }; Returns: Json };
       fin_insurance_overview: {

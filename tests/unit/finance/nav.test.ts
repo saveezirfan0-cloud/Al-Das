@@ -62,11 +62,23 @@ describe("Finance navigation", () => {
     expect(h).not.toContain("/finance/close");
   });
 
+  it("the flash report is read by Finance, the CEO and the Medical Director; only Finance edits targets", () => {
+    for (const r of ["Finance", "CEO", "Medical Director"]) {
+      expect(hrefs(member(role(r))), r).toContain("/finance/flash");
+    }
+    expect(hrefs(member(role("Finance")))).toContain("/finance/flash/settings");
+    expect(hrefs(member(role("CEO")))).not.toContain("/finance/flash/settings");
+    for (const r of ["Billing", "Insurance", "Cost / Payroll"]) {
+      expect(hrefs(member(role(r))), r).not.toContain("/finance/flash");
+    }
+  });
+
   it("the Medical Director sees revenue and scorecards only", () => {
     expect(hrefs(member(role("Medical Director"))).sort()).toEqual(
       [
         "/finance/branches",
         "/finance/doctors",
+        "/finance/flash",
         "/finance/revenue",
         "/finance/scorecards",
         "/finance/summary",

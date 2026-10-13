@@ -1,6 +1,6 @@
 # Phase 20 and 21: finance control, reconciliation and the end of Make and Airtable
 
-_Written 13 Oct 2026. Sources: the finance meeting summaries (Irfan, Saeed, Hardik, Krishna, Althaf, Mohammed, Vineetha), the deck "The next stage of financial & management control" (September 2026), the CEO directive "Zero Paper. Full Accountability: TallyPrime digital payment approval workflow" (July 2026), five report screenshots (daily financial summary, doctor summaries, monthly revenue summary, daily sales summary for October 2026), and a code survey of `main` at `13aa60b`._
+_Written 13 Oct 2026. Sources: the two finance meeting transcripts (Otter: "Financial Automation and Systems Integration" and "Financial Reconciliation and Automation Meeting") and their summaries (Saeed, Hardik, Krishna, Althaf, Mohammed Sharafadin, Vineetha, Abdul; "Irfan" / "Shaveez" in the transcripts is Saveez, who builds Pulse), the deck "The next stage of financial & management control" (September 2026), the CEO directive "Zero Paper. Full Accountability: TallyPrime digital payment approval workflow" (July 2026), five report screenshots (daily financial summary, doctor summaries, monthly revenue summary, daily sales summary for October 2026), and a code survey of `main` at `13aa60b`._
 
 This document is the plan. Each slice below is built one at a time, starts with a short plan in its notes file, and finishes with typecheck, lint, tests, the security audit and its own notes (`docs/2x_PHASE_20x_NOTES.md`). The live status of each slice is in section 7.
 
@@ -39,6 +39,32 @@ Rejections carry mandatory remarks; bulk authorisation for routine items; every 
 **AI (Saveez).** Claude reviews each reconciliation, proposes matches with reasons and a score, writes the reconciliation report, and a person approves.
 
 **Make and Airtable.** Everything they do today moves into Pulse; both are switched off afterwards.
+
+### 1.1 What the transcripts add (details the summaries leave out)
+
+| Topic | What was said | Consequence for Pulse |
+|---|---|---|
+| Unite finance API | Each record is delivered once, but Unite **can re-queue records on request, including a full backup from January**. Saeed: "we're just going to save everything" | The guarded capture (F2) is the intended revenue source; ask Unite for a January backfill when it is switched on (OQ-94) |
+| Daily reception reconciliation (Abdul) | Each day: card machine (POS) total against Unite's card collection, cash against Unite's cash collection report, insurance credit total against the day's insurance invoices | Cash-up (Phase 18) already does counted vs Unite by payment mode; add the POS terminal batch total as an input (20C) |
+| Finance bank reconciliation (Hardik) | Card and EPG settle T+2, Tabby T+6 working days; month-end cut-off is the 30th; everything Unite shows as revenue must be found in the bank; what has not arrived is aged with a reason | 20C settlement rules in working days, cut-off setting, ageing of unreceived items with a reason code |
+| Insurance receipts (Mohammed, Saeed) | Insurers pay in bulk; the only proof is the bank statement, matched monthly against "remittance received" | 20C matches bank credits to remittance batches (`ins_remittance_batches`) |
+| Insurance changes (Mohammed) | Values change with every resubmission; a resubmission in "correction" mode sends the whole amount back to the RA, including what was paid | Claim history must be sequence-aware (first, second, third submission); 20I builds the sequence view from Diligence uploads |
+| Insurance close (Hardik) | All submissions and resubmissions for a month are done by the 5th | WD5 dependency in the close timetable (20G) |
+| Diligence into Unite (Saeed) | Saeed would like Diligence figures to appear in Unite so Unite shows the whole financial picture; Mohammed does not trust Unite's insurance module; Hardik says Sharaf is working with Unite on it | Pulse must not write to Unite (CLAUDE.md rule 7). Pulse already holds Unite revenue and Diligence claims side by side; the combined view lives in Pulse (OQ-100) |
+| Accounting | All accounting is in Tally; Unite has no accounting module; Zoho Books is integrated with Unite but only for invoices (judged too weak). Tally is not connected to the bank and "not set up properly yet" | Tally stays; 20D includes a Tally set-up checklist (ledgers, cost centres, authorisation) |
+| Supplier invoices (Hardik) | Fewer than 100 a month; most arrive by e-mail to a **dedicated accounts mailbox**, some come with the goods to one of the three branches and are carried to the central office | 20B: forward or connect the accounts mailbox; a phone photo upload for paper invoices |
+| Althaf's pain | Report structure; payment modes card, rePG, Tabby, MX reconciled **weekly**; Unite data re-keyed into Tally | 20C payment-mode rules; 20D Tally XML replaces re-keying |
+| Krishna's pain | Downloads the Unite revenue data, prepares the reports, reconciles the figures with reception | 20A flash report (done) and 20C daily reconciliation |
+| Hardik's pain | 1: doctor incentives (each doctor's offer is designed uniquely); 2: branch-level P&L; also cash-flow projections | 20F formula per doctor contract; 20G branch P&L and a cash-flow projection |
+| Mohammed's pain | Submissions, resubmissions, approvals all manual with a person on each claim; follow-up at 60, 90 and 120 days; final reconciliation | 20I |
+| Vineetha's pain | The ARP report is completely manual; supports Mohammed's requests | 20I once ARP is defined (OQ-95) |
+| Labs (Hardik, Mohammed, Abdul) | Biggest expense. In-house lab: AED 25,000 a month, unlimited investigations. Send-out lab: separate invoice. Reports arrive monthly, branch-wise, by the 7th or 8th. **Each test is matched (patient, day, doctor) against what Unite billed before the cost is charged to that doctor's account** and before revenue share | 20E: per-test matching both ways (lab did it but Unite did not bill it = revenue leakage; Unite billed it but the lab has no record); cost charged to the doctor feeds 20F |
+| Lab turnaround (Saeed) | Wants a "barometer of service": the expected turnaround per test, with late results flagged | 20E turnaround table per test and an overdue list (needs result dates; Unite activity or the lab report) |
+| Third parties (Saeed, Abdul) | Hospitals (deliveries at another hospital, King's Hospital) and radiology (one in Jumeirah). These reports have no connection with Unite today. Unite has internal referrals and an unused external-referral feature that Unite has not finished explaining | 20E referral providers and invoices; follow up with Unite (Saeed's escalation e-mail) |
+| Unite branch separation | Unite will release separate billing codes ("PM" for Palm, Meadows and Shoreline) on **10 Nov**; Saveez to send Saeed a technical note that it should take days, not a month | The branch codes on invoices change from that date: update the flash reporting lines and `fin_ref_branches` the same day (checklist item in the 20A notes) |
+| Analysis Saeed wants | Doctor trends, seasonality, each doctor's billing characteristics (consultation vs lab vs radiology, cash vs insurance) | A later analytics slice on `fin_invoice_lines` and service categories (20K) |
+| Service standards | Doctors are asked to define the service and standard of each department and agree price ranges | Not a Pulse feature; price lists can later live in `fin_ref_services` |
+| Irfan's four steps | Source; raw data; processing; final look and destination. Learn from the team how they decide a match is 100% vs 90% and when they call it verified | Each slice starts from one raw sample and one reconciled sample per report (section 6) and records the team's match rules as tests |
 
 ## 2. What Pulse already has (do not rebuild)
 
@@ -118,6 +144,7 @@ Each slice is independently useful, ships behind its own permission and, where i
 | **20G** | Close timetable and Board pack | Working-day calendar (UAE weekends and holidays), close checklist with owner, due day and dependency; inputs-on-time and open-item-age KPIs; pack extended with P&L, cash and bank, payables, liabilities, variances, unresolved reconciliations, matters needing attention | 20C, 20D, 20F |
 | **20H** | Reconciliation agent | Claude reviews each reconciliation run (bank, lab, referral, insurance): explanations, proposed pairs from the shortlist, grouped exceptions, draft narrative; accept / reject per proposal; quality report (accepted vs rejected) | 20C, 20E |
 | **20I** | Insurance follow-up | Ageing buckets 0-30 / 31-60 / 61-90 / 91-120 / 120+, follow-up tasks at 60, 90, 120 days, resubmission sequence view, ARP report (once defined, OQ-95) | none |
+| **20K** | Doctor and seasonal analytics | Billing mix per doctor (consultation, lab, radiology, procedures; cash vs insurance), seasonality by week and month, trends against last year | Unite capture with history |
 | **20J** | Invoice-change control and HR inputs | Authority matrix for Unite invoice changes (discount, cancel, refund, credit) and a daily "changes without approval" report from Unite versions; HR commitments register (joiners, leavers, package changes, visas, incentives) with cut-off | OQ-96 / 97 |
 | **21** | Make and Airtable retirement | (1) Unite visits / diagnoses / prescriptions sync; (2) writer for `contact_chronic_conditions` so chronic recall selects patients; (3) antibiotic and probiotic sequence wiring; (4) the three Campaigns message-log importers (coordinate with PR #28); (5) Data quality, Unclassified medications and clinical feedback screens; (6) reminder stats and recall KPIs on the management dashboard; (7) lab orders and the two Airtable lab automations; (8) screening eligibility views; (9) parallel run, reconciliation and switch-off | Unite endpoints (OQ-23 / 26), Make export access |
 
@@ -150,7 +177,7 @@ Send anonymised or synthetic copies where a file contains patient details; heade
 
 | Slice | Status |
 |---|---|
-| 20A | In progress on `claude/funny-clarke-6t7gee` (see `docs/20_PHASE_20A_NOTES.md`) |
+| 20A | Built on `claude/funny-clarke-6t7gee` (see `docs/20_PHASE_20A_NOTES.md`): flash report, targets and lines, comparison with the same days of last month, Excel export |
 | 20B to 20J, 21 | Not started |
 
 ## 8. Things noticed in the current reports
@@ -160,5 +187,6 @@ Send anonymised or synthetic copies where a file contains patient details; heade
 - The doctor table (all branches, excl. Chiro) totals 526,499 and 669 patients against 543,684 and 693 on the branch table: some revenue has no doctor or a doctor missing from the list.
 - "% of Total" uses the total excluding Chiro for the daily doctor table but the total including Chiro for the monthly one and for Chiro rows.
 - The month-to-date target equals the daily target times calendar days elapsed (for example Palm 32,593 x 12 = 391,116); patient target 78.25 a day.
+- September grid (1 to 12 Sep): column totals differ from the rows by 1 or 2 in three places (Palm 201,861 vs 201,862; Longevity 46,805 vs 46,803; two daily totals off by 1), which is rounding in hand-copied cells.
 
 Pulse computes all of these from one set of rules, so the sheets cannot disagree with each other.

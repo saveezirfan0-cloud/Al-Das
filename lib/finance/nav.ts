@@ -32,6 +32,12 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
     permissions: ["finance.view"],
   },
   {
+    href: "/finance/flash",
+    label: "Daily flash",
+    section: "Overview",
+    permissions: ["finance.flash.view"],
+  },
+  {
     href: "/finance/revenue",
     label: "Revenue",
     section: "Overview",
@@ -180,6 +186,12 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
     label: "Workflow settings",
     section: "Setup",
     permissions: ["finance.reference.manage"],
+  },
+  {
+    href: "/finance/flash/settings",
+    label: "Targets and report lines",
+    section: "Setup",
+    permissions: ["finance.targets.manage"],
   },
 ];
 

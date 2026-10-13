@@ -382,6 +382,20 @@ export const PERMISSIONS = [
     description: "Approve a month's costs so its profit figures stop being provisional, or reopen it. Audited.",
   },
   {
+    key: "finance.flash.view",
+    group: "Finance",
+    label: "Daily flash report",
+    description:
+      "Daily financial summary, month to date and daily sales by branch against target, with doctor rankings",
+  },
+  {
+    key: "finance.targets.manage",
+    group: "Finance",
+    label: "Revenue targets and reporting lines",
+    description:
+      "Set the daily revenue, patient and ARPP targets and the reporting lines (branches, Chiro, leased units) used by the flash report. Audited.",
+  },
+  {
     key: "portal.recall_sends.write",
     group: "Portal",
     label: "Edit recall call-list entries",
@@ -470,6 +484,8 @@ export const FINANCE_ROLES: readonly RolePreset[] = [
       "finance.costs.compensation",
       "finance.profit.view",
       "finance.profit.approve",
+      "finance.flash.view",
+      "finance.targets.manage",
     ],
   },
   {
@@ -515,6 +531,7 @@ export const FINANCE_ROLES: readonly RolePreset[] = [
       "finance.close.view",
       "finance.close.signoff.ceo",
       "finance.profit.view",
+      "finance.flash.view",
     ],
   },
   {
@@ -525,6 +542,7 @@ export const FINANCE_ROLES: readonly RolePreset[] = [
       "finance.view",
       "finance.scorecards.view",
       "finance.revenue.view",
+      "finance.flash.view",
     ],
   },
   {

@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-10-23-daily-flash",
+    date: "2026-10-23",
+    title: "Daily flash report",
+    body: "Finance now has a Daily flash page: net revenue, patient volume and ARPP against target, revenue by branch, the top doctors, and a daily sales grid for the month next to the same days of last month. Chiro and leased units are reported on their own lines. Finance sets the targets and lines; the CEO and Medical Director can read it, and it downloads as Excel in the familiar layout.",
+  },
+  {
     id: "2026-10-19-e-signature",
     date: "2026-10-19",
     title: "E-signature for consent forms",

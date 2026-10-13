@@ -165,6 +165,24 @@ export const GUIDES: readonly Guide[] = [
     watchOut: ["Finance data never shows patient names, only the Unite PIN."],
   },
   {
+    id: "finance-flash",
+    title: "Daily flash",
+    pages: ["/finance/flash", "/finance/flash/settings"],
+    purpose:
+      "The daily financial summary, month to date and daily sales by branch against target, with patient volume, ARPP and doctor rankings, built from Unite invoices.",
+    steps: [
+      "Pick a day (yesterday by default). Daily summary shows that day; Month to date runs from the 1st to that day.",
+      "Daily sales lists every day of the month by branch and compares the month so far with the same days of last month.",
+      "Download Excel gives the same figures in the layout of the old sheets, with no formulas to break.",
+      "Finance sets the reporting lines (which branch codes or departments make each line) and the daily targets under Targets and lines.",
+    ],
+    watchOut: [
+      "A line called Unassigned means some invoices match no reporting line. Fix the lines rather than the figures.",
+      "Month-to-date targets are the daily target times the days elapsed.",
+      "Figures are only as recent as the latest Unite data; the date is shown under the day picker.",
+    ],
+  },
+  {
     id: "finance-workflows",
     title: "Finance workflows",
     pages: [
