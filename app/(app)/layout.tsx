@@ -80,39 +80,49 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         userId={member.userId}
         canTasks={can(member, "tasks.view")}
       >
+        <a
+          href="#main-content"
+          className="bg-background ring-ring sr-only rounded-md px-3 py-2 text-sm font-medium focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:ring-2 print:hidden"
+        >
+          Skip to main content
+        </a>
         <NavBadgesProvider>
-        <div className="flex h-svh overflow-hidden print:block print:h-auto print:overflow-visible">
-          <Sidebar
-            tree={items}
-            navState={navState}
-            orgName={member.org.name}
-            defaultCollapsed={collapsed}
-            className="hidden md:flex print:hidden"
-          />
-          <div className="flex min-w-0 flex-1 flex-col print:block">
-            {member.org.is_training && <TrainingBanner />}
-            <Topbar
-              items={items}
+          <div className="flex h-svh overflow-hidden print:block print:h-auto print:overflow-visible">
+            <Sidebar
+              tree={items}
               navState={navState}
-              helpVideos={readHelpSettings(member.org.settings).videos}
               orgName={member.org.name}
-              user={{
-                userId: member.userId,
-                orgId: member.orgId,
-                name,
-                email: member.user.email ?? "",
-                roleName: member.roleName,
-                presence: member.presence,
-                orgs: member.orgs,
-              }}
+              defaultCollapsed={collapsed}
+              className="hidden md:flex print:hidden"
             />
-            <main className="flex-1 overflow-y-auto p-4 pb-20 md:p-6 md:pb-6 print:overflow-visible print:p-0">
-              {children}
-            </main>
+            <div className="flex min-w-0 flex-1 flex-col print:block">
+              {member.org.is_training && <TrainingBanner />}
+              <Topbar
+                items={items}
+                navState={navState}
+                helpVideos={readHelpSettings(member.org.settings).videos}
+                orgName={member.org.name}
+                user={{
+                  userId: member.userId,
+                  orgId: member.orgId,
+                  name,
+                  email: member.user.email ?? "",
+                  roleName: member.roleName,
+                  presence: member.presence,
+                  orgs: member.orgs,
+                }}
+              />
+              <main
+                id="main-content"
+                tabIndex={-1}
+                className="flex-1 overflow-y-auto p-4 pb-20 outline-none md:p-6 md:pb-6 print:overflow-visible print:p-0"
+              >
+                {children}
+              </main>
+            </div>
           </div>
-        </div>
-        <MobileTabs items={items} />
-        <CommandPalette links={quickLinks} />
+          <MobileTabs items={items} />
+          <CommandPalette links={quickLinks} />
         </NavBadgesProvider>
       </ShellDataProvider>
     </TooltipProvider>

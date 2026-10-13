@@ -69,6 +69,12 @@ export const WHATS_NEW: readonly WhatsNewEntry[] = [
     body: "Finance and Settings now open in the menu on the left: press the arrow next to them to see their sections and pages, and press a section heading or a group heading (Today, Patients and so on) to fold it away. Pulse remembers what you opened on this device; Expand all and Collapse all sit at the top of the menu. When the menu is narrow, point at the Finance or Settings icon (or press it) to pick a page. On a phone the Finance and Settings pages keep their own menu at the top of the page. Ctrl K now finds every Finance page too.",
   },
   {
+    id: "2026-11-07-look-and-feel",
+    date: "2026-11-07",
+    title: "A fresher look, dark mode and easier navigation",
+    body: "Pulse has calmer colours and clearer focus outlines for keyboard users. Choose Light, Dark or Match system under your name in the top right; the choice is kept on this device. The menu now marks the page you are on more clearly and the top bar shows which section it belongs to. Quick search (Ctrl K, or ⌘K on a Mac) lists the pages you opened recently first. The dashboard tiles open the matching inbox folder, task list or enquiries.",
+  },
+  {
     id: "2026-11-06-board-pack-controls",
     date: "2026-11-06",
     title: "Board pack: controls and matters needing attention",

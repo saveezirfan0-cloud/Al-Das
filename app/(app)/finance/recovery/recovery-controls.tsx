@@ -193,7 +193,7 @@ export function PreviewPanel({ canRun }: { canRun: boolean }) {
             {res.failed ? `, ${res.failed} failed` : ""}.
           </p>
           {res.blocked.length > 0 && (
-            <ul className="list-disc pl-5 text-xs text-amber-600">
+            <ul className="list-disc pl-5 text-xs text-amber-600 dark:text-amber-400">
               {res.blocked.map((b) => (
                 <li key={b}>{b}</li>
               ))}

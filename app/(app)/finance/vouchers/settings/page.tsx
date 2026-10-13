@@ -78,7 +78,7 @@ export default async function VoucherSettingsPage() {
                 submitted afterwards.
               </p>
               {problems.length > 0 && (
-                <ul className="list-disc rounded-md border border-amber-300 bg-amber-50 p-3 pl-6 text-sm text-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+                <ul className="list-disc rounded-md border border-amber-300 dark:border-amber-500/30 bg-amber-50 p-3 pl-6 text-sm text-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
                   {problems.map((p) => (
                     <li key={p}>{p}</li>
                   ))}

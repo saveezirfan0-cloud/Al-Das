@@ -391,7 +391,7 @@ export function Composer({
           </span>
         )}
         {mode === "chat" && selected.contact.stop_marketing && (
-          <span className="ml-auto text-xs text-amber-700">Opted out of marketing</span>
+          <span className="ml-auto text-xs text-amber-700 dark:text-amber-300">Opted out of marketing</span>
         )}
       </div>
 
@@ -435,7 +435,7 @@ export function Composer({
                   <span
                     className={cn(
                       "size-2 rounded-full",
-                      p.presence === "online" ? "bg-emerald-500" : "bg-gray-300",
+                      p.presence === "online" ? "bg-emerald-500" : "bg-gray-300 dark:bg-gray-600",
                     )}
                   />
                   {p.name}
@@ -453,7 +453,7 @@ export function Composer({
             </span>
             <button
               type="button"
-              className="pointer-coarse:size-11 inline-flex size-6 items-center justify-center rounded hover:bg-black/10"
+              className="pointer-coarse:size-11 inline-flex size-6 items-center justify-center rounded hover:bg-black/10 dark:hover:bg-white/10"
               aria-label="Remove the attached file"
               onClick={() => setAttachment(null)}
             >
@@ -487,7 +487,7 @@ export function Composer({
           }
           className={cn(
             "w-full resize-none rounded-md border px-3 py-2 text-base outline-none focus-visible:ring-2 md:text-sm",
-            mode === "comment" && "border-amber-300 bg-amber-50/60 dark:bg-amber-950/20",
+            mode === "comment" && "border-amber-300 dark:border-amber-500/30 bg-amber-50/60 dark:bg-amber-950/20",
           )}
           aria-label={mode === "comment" ? "Internal note" : "Message"}
           dir="auto"

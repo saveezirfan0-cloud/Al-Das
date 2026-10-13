@@ -2,9 +2,14 @@
 
 import { Toaster as Sonner, type ToasterProps } from "sonner";
 
+import { useIsDark } from "@/lib/hooks/use-is-dark";
+
 const Toaster = ({ ...props }: ToasterProps) => {
+  // Follow the app theme (not the OS) so rich success / error colours suit the page.
+  const isDark = useIsDark();
   return (
     <Sonner
+      theme={isDark ? "dark" : "light"}
       className="toaster group"
       style={
         {

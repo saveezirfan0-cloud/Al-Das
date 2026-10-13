@@ -64,8 +64,8 @@ const ImageEditorDialog = dynamic(
 );
 
 const EXPIRY_CLASS: Record<string, string> = {
-  expired: "border-red-300 bg-red-50 text-red-800 dark:bg-red-950/40 dark:text-red-200",
-  expiring: "border-amber-300 bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200",
+  expired: "border-red-300 dark:border-red-500/30 bg-red-50 text-red-800 dark:bg-red-950/40 dark:text-red-200",
+  expiring: "border-amber-300 dark:border-amber-500/30 bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200",
 };
 
 function whenLabel(iso: string, tz: string): string {
@@ -136,7 +136,7 @@ export function ContactDocuments({
   return (
     <div className="flex flex-col gap-3">
       {!view.enabled && (
-        <p className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+        <p className="rounded-md border border-amber-300 dark:border-amber-500/30 bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
           Patient documents are switched off for this workspace, so nothing can be added yet. An
           administrator turns them on under Settings, Patient documents, once the storage location
           has been approved.

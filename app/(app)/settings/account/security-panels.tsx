@@ -29,9 +29,9 @@ export function MfaCard({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           {enrolled ? (
-            <ShieldCheck className="size-5 text-emerald-600" />
+            <ShieldCheck className="size-5 text-emerald-600 dark:text-emerald-400" />
           ) : (
-            <ShieldAlert className="size-5 text-amber-600" />
+            <ShieldAlert className="size-5 text-amber-600 dark:text-amber-400" />
           )}
           Two-step verification
           {required && <Badge variant="outline">Required for your role</Badge>}

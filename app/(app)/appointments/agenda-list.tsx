@@ -139,7 +139,7 @@ export function AgendaList({
                       </span>
                       {a.reminder === "failed" && (
                         <PhoneOff
-                          className="size-4 shrink-0 text-rose-600"
+                          className="size-4 shrink-0 text-rose-600 dark:text-rose-400"
                           aria-label="Reminder failed"
                         />
                       )}

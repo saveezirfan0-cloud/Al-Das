@@ -12,10 +12,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
 export const metadata = { title: "Run trace" };
 
 const ICON = {
-  ok: <CheckCircle2 className="size-4 text-emerald-600" />,
-  failed: <TriangleAlert className="size-4 text-amber-600" />,
-  waiting: <Hourglass className="size-4 text-sky-600" />,
-  running: <CircleDashed className="size-4 text-sky-600" />,
+  ok: <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />,
+  failed: <TriangleAlert className="size-4 text-amber-600 dark:text-amber-400" />,
+  waiting: <Hourglass className="size-4 text-sky-600 dark:text-sky-400" />,
+  running: <CircleDashed className="size-4 text-sky-600 dark:text-sky-400" />,
   skipped: <MinusCircle className="text-muted-foreground size-4" />,
 } as const;
 
@@ -64,7 +64,7 @@ export default async function RunTracePage({
         </Button>
       </PageHeader>
       {run.error && (
-        <p className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-200">
+        <p className="rounded-lg border border-amber-300 dark:border-amber-500/30 bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-200">
           {run.error}
         </p>
       )}

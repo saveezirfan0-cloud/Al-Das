@@ -328,9 +328,9 @@ function Stat({
 }) {
   const color =
     tone === "good"
-      ? "text-emerald-600"
+      ? "text-emerald-600 dark:text-emerald-400"
       : tone === "warn"
-        ? "text-amber-600"
+        ? "text-amber-600 dark:text-amber-400"
         : tone === "bad"
           ? "text-destructive"
           : "";

@@ -296,14 +296,14 @@ export default async function CloseTimetablePage({
                     </TableCell>
                     <TableCell className="text-sm">
                       {nameOf(s?.ownerUserId ?? null) ?? (
-                        <span className="text-amber-700">
+                        <span className="text-amber-700 dark:text-amber-300">
                           No owner{s?.ownerRole ? ` (${s.ownerRole})` : ""}
                         </span>
                       )}
                     </TableCell>
                     <TableCell className="text-sm">
                       {nameOf(s?.backupUserId ?? null) ?? (
-                        <span className="text-amber-700">None</span>
+                        <span className="text-amber-700 dark:text-amber-300">None</span>
                       )}
                     </TableCell>
                     <TableCell className="text-xs">
@@ -608,7 +608,7 @@ function Measure({
     <Card>
       <CardContent className="flex flex-col gap-1 pt-6">
         <div className="text-muted-foreground text-xs">{label}</div>
-        <div className={cn("text-2xl font-semibold tabular-nums", bad && "text-red-600")}>
+        <div className={cn("text-2xl font-semibold tabular-nums", bad && "text-red-600 dark:text-red-400")}>
           {value}
         </div>
         <div className="text-muted-foreground text-xs">{note}</div>

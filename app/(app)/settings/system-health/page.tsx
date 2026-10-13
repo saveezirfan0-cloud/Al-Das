@@ -353,7 +353,7 @@ function Stat({
       <CardHeader>
         <CardDescription>{label}</CardDescription>
         <CardTitle
-          className={`text-3xl tabular-nums ${tone === "bad" ? "text-destructive" : tone === "good" ? "text-emerald-600" : ""}`}
+          className={`text-3xl tabular-nums ${tone === "bad" ? "text-destructive" : tone === "good" ? "text-emerald-600 dark:text-emerald-400" : ""}`}
         >
           {value}
         </CardTitle>

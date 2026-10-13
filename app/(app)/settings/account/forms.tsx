@@ -114,7 +114,7 @@ export function ProfileForm({
         </p>
       )}
       {state?.message && (
-        <p className="text-sm text-emerald-700" role="status">
+        <p className="text-sm text-emerald-700 dark:text-emerald-300" role="status">
           {state.message}
         </p>
       )}
@@ -161,7 +161,7 @@ export function PasswordForm() {
         </p>
       )}
       {state?.message && (
-        <p className="text-sm text-emerald-700" role="status">
+        <p className="text-sm text-emerald-700 dark:text-emerald-300" role="status">
           {state.message}
         </p>
       )}

@@ -97,12 +97,17 @@ const countLabel = (n: number) => (n > 99 ? "99+" : String(n));
 
 function CountPill({ n, label }: { n: number; label: string }) {
   return (
-    <span
-      className="bg-destructive ml-auto shrink-0 rounded-full px-1.5 text-[10px] leading-4 font-semibold text-white tabular-nums"
-      aria-label={`${n} ${label}`}
-    >
-      {countLabel(n)}
-    </span>
+    <>
+      <span
+        className="bg-destructive ml-auto shrink-0 rounded-full px-1.5 text-[10px] leading-4 font-semibold text-white tabular-nums"
+        aria-hidden
+      >
+        {countLabel(n)}
+      </span>
+      <span className="sr-only">
+        , {n} {label}
+      </span>
+    </>
   );
 }
 
@@ -117,6 +122,7 @@ export function Sidebar({
   navState,
   className,
   onNavigate,
+  collapsible = true,
 }: {
   tree: readonly SidebarNode[];
   orgName: string;
@@ -126,6 +132,8 @@ export function Sidebar({
   className?: string;
   /** Set when the sidebar sits in the phone drawer (closes it after a tap). */
   onNavigate?: () => void;
+  /** False inside the phone sheet, where collapsing makes no sense. */
+  collapsible?: boolean;
 }) {
   const pathname = usePathname();
   const tree = useBadgedItems(rawTree);
@@ -174,8 +182,8 @@ export function Sidebar({
 
   const rowClass = (active: boolean) =>
     cn(
-      "flex h-9 min-w-0 items-center gap-3 rounded-md px-2.5 text-sm font-medium transition-colors",
-      "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+      "group/nav relative flex h-9 min-w-0 items-center gap-3 rounded-md px-2.5 text-sm font-medium transition-colors outline-none",
+      "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-sidebar-ring focus-visible:ring-2",
       active && "bg-sidebar-accent text-sidebar-accent-foreground",
     );
 
@@ -189,8 +197,22 @@ export function Sidebar({
         aria-current={active ? "page" : undefined}
         className={cn(rowClass(active), collapsed && "justify-center px-0")}
       >
+        {active && (
+          <span
+            className="bg-sidebar-primary absolute inset-y-1.5 left-0 w-[3px] rounded-r-full"
+            aria-hidden
+          />
+        )}
         <span className="relative flex shrink-0">
-          <Icon className="size-4" />
+          <Icon
+            aria-hidden
+            className={cn(
+              "size-4",
+              active
+                ? "text-sidebar-primary"
+                : "text-muted-foreground group-hover/nav:text-sidebar-accent-foreground",
+            )}
+          />
           {collapsed && item.badge ? <Dot /> : null}
         </span>
         {!collapsed && <span className="truncate">{item.label}</span>}
@@ -238,7 +260,15 @@ export function Sidebar({
               inside && open && "text-sidebar-accent-foreground",
             )}
           >
-            <Icon className="size-4 shrink-0" />
+            <Icon
+              aria-hidden
+              className={cn(
+                "size-4 shrink-0",
+                inside
+                  ? "text-sidebar-primary"
+                  : "text-muted-foreground group-hover/nav:text-sidebar-accent-foreground",
+              )}
+            />
             <span className="truncate">{node.label}</span>
             {!open && total > 0 ? <CountPill n={total} label="waiting" /> : null}
           </Link>
@@ -337,19 +367,28 @@ export function Sidebar({
     >
       <div
         className={cn(
-          "flex h-14 shrink-0 items-center gap-2 border-b px-3",
+          "flex h-14 shrink-0 items-center border-b px-2",
           collapsed && "justify-center px-0",
         )}
       >
-        <span className="bg-primary text-primary-foreground flex size-8 shrink-0 items-center justify-center rounded-md">
-          <Activity className="size-4" />
-        </span>
-        {!collapsed && (
-          <div className="min-w-0">
-            <div className="truncate text-sm leading-tight font-semibold">Pulse</div>
-            <div className="text-muted-foreground truncate text-xs leading-tight">{orgName}</div>
-          </div>
-        )}
+        <Link
+          href="/dashboard"
+          onClick={onNavigate}
+          aria-label="Pulse home"
+          className="focus-visible:ring-sidebar-ring flex min-w-0 items-center gap-2 rounded-md p-1 outline-none focus-visible:ring-2"
+        >
+          <span className="bg-primary text-primary-foreground flex size-8 shrink-0 items-center justify-center rounded-md">
+            <Activity className="size-4" aria-hidden />
+          </span>
+          {!collapsed && (
+            <span className="min-w-0">
+              <span className="block truncate text-sm leading-tight font-semibold">Pulse</span>
+              <span className="text-muted-foreground block truncate text-xs leading-tight">
+                {orgName}
+              </span>
+            </span>
+          )}
+        </Link>
       </div>
 
       <nav aria-label="Main" className="flex-1 overflow-y-auto p-2">
@@ -418,16 +457,20 @@ export function Sidebar({
         )}
       </nav>
 
-      {!inDrawer && (
+      {!inDrawer && collapsible && (
         <div className="flex flex-col gap-0.5 border-t p-2">
           <Button
             variant="ghost"
             size="sm"
             onClick={toggleRail}
             aria-label={collapsed ? "Expand navigation" : "Collapse navigation"}
-            className={cn("w-full justify-start", collapsed && "justify-center px-0")}
+            aria-expanded={!collapsed}
+            className={cn(
+              "text-muted-foreground w-full justify-start",
+              collapsed && "justify-center px-0",
+            )}
           >
-            {collapsed ? <ChevronsRight /> : <ChevronsLeft />}
+            {collapsed ? <ChevronsRight aria-hidden /> : <ChevronsLeft aria-hidden />}
             {!collapsed && <span>Collapse</span>}
           </Button>
         </div>

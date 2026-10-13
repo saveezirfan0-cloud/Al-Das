@@ -185,7 +185,7 @@ export function VoucherForm({
     >
       {initial.id && <input type="hidden" name="id" value={initial.id} />}
       {warnReturnToDraft && (
-        <p className="rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+        <p className="rounded-md border border-amber-300 dark:border-amber-500/30 bg-amber-50 p-2 text-xs text-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
           This voucher has been submitted. Saving a change returns it to draft and clears every
           approval; it must be submitted and approved again.
         </p>
@@ -599,7 +599,7 @@ export function VoucherDrawer({
           ) : (
             <>
               {v.status === "rejected" && v.rejection_remarks && (
-                <div className="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-900 dark:bg-red-950/40 dark:text-red-100">
+                <div className="rounded-md border border-red-300 dark:border-red-500/30 bg-red-50 p-3 text-sm text-red-900 dark:bg-red-950/40 dark:text-red-100">
                   <p className="font-medium">Rejected</p>
                   <p className="whitespace-pre-wrap">{v.rejection_remarks}</p>
                 </div>
@@ -699,15 +699,15 @@ export function VoucherDrawer({
 
               <p className="flex items-center gap-1 text-xs">
                 {intact ? (
-                  <ShieldCheck className="size-4 text-emerald-600" />
+                  <ShieldCheck className="size-4 text-emerald-600 dark:text-emerald-400" />
                 ) : (
-                  <ShieldAlert className="size-4 text-red-600" />
+                  <ShieldAlert className="size-4 text-red-600 dark:text-red-400" />
                 )}
                 <span className="text-muted-foreground">Fingerprint</span>
                 <span className="font-mono" title={detail.currentHash}>
                   {detail.currentHash.slice(0, 16)}…
                 </span>
-                {!intact && <span className="text-red-700">does not match what was approved</span>}
+                {!intact && <span className="text-red-700 dark:text-red-300">does not match what was approved</span>}
               </p>
 
               {v.route !== "tally" && v.status !== "draft" && (
