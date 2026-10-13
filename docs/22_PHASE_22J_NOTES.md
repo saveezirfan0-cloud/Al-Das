@@ -31,7 +31,7 @@ A connector on the Tally PC does the talking: it reaches Tally on `127.0.0.1` on
 
 | Piece | Where |
 |---|---|
-| Migration (paste file 50, needs 49 first) | `supabase/migrations/20261109000700_accounting_tally_bridge.sql`, `deploy/supabase-paste/50_accounting_tally_bridge.sql` |
+| Migrations | `supabase/migrations/20261109000700_accounting_tally_bridge.sql` (paste `deploy/supabase-paste/50_accounting_tally_bridge.sql`, needs 49 first) and, after the 22K integration pass, `20261109001000_tally_bridge_capture.sql` (paste `52_tally_bridge_capture.sql`, **must follow 51**) |
 | Pure parts | `lib/accounting/tally/bridge.ts` (REMOTEID, voucher numbers, tokens and pairing codes, the voucher for a journal, the daily summary, the job allow-list), `bridge-sources.ts` (sources and labels), `response.ts` (Tally's import answer, the trial balance from closing balances); `parse.ts` now also reads `REMOTEID` and `CLOSINGBALANCE`; the voucher XML is written by `buildBridgeVoucherXml` in `lib/finance/tally-xml.ts` |
 | Server | `lib/accounting/tally/bridge-server.ts` (scheduler, claims, results, pulls), `bridge-route.ts` (the connector's token check); `buildJournalsForSources` added to `lib/accounting/posting/runner.ts` |
 | Routes (connector only) | `app/api/tally-bridge/pair` (POST), `jobs` (GET), `results` (POST); in `UNGUARDED_OK` with their reasons and public in the middleware |
@@ -161,8 +161,15 @@ triggers check `accounting.settings.manage` again. No new permission keys.
 
 - **Version in the REMOTEID, reversal vouchers for changes** (the task's id shape). The research also allowed an Alter of
   the same REMOTEID; reversing keeps Tally's audit trail and never relies on Tally's Alter semantics.
-- **The 22E / 22F capture** patches `acc_post_from_source` in place (like 22F did for its source kinds). A later
-  migration that redefines the function must keep the block (a database test fails without it).
+- **The 22E / 22F capture** needs one block in `acc_post_from_source`. 20261109000700 patched it in place; 22K's
+  migration 20261109000900 then made the final literal definition and dropped it, so 20261109001000 redefines the
+  function as 22K's body verbatim plus the capture block (before the per-item lock). A later migration that redefines
+  `acc_post_from_source` must keep the block (the 22J database tests fail without it). Nothing else of 22J was
+  overwritten by 22K.
+- **One journal per economic event (22K).** A received cheque named by an active receipt is posted by the receipt, never
+  by the register; the bridge follows it (the cheque is never captured on its own and a pushed one is withdrawn, the
+  receipt goes to Tally dated the cheque). A voucher paid by cheque already gives `nothing` in 22D's builder, so Tally
+  gets its cheque only.
 - **Daily summaries per branch**: one voucher per day and branch per kind (Unite invoices as Pulse Sales, Unite payments as
   Pulse Receipt), lines netted per account and branch, so revenue stays per service category through 22D's revenue rule
   per category. The mode cannot change once Unite revenue was sent (`mode_locked`).
@@ -193,7 +200,7 @@ triggers check `accounting.settings.manage` again. No new permission keys.
   MasterID; refused with Tally's text redacted (a phone number in it is masked); an unreadable answer, a timeout, a
   look-up without the voucher or broken parts are ambiguous, never success; a look-up that shows it; Tally not running;
   the connector's refusal; an answer to a job not waiting for one; a failed export.
-- Database (`tests/db/accounting-tally-bridge.test.ts`, 18 tests, Postgres 16): pairing (hashes only, single use, expiry,
+- Database (`tests/db/accounting-tally-bridge.test.ts`, 19 tests, Postgres 16): pairing (hashes only, single use, expiry,
   one connector per org, revoke with permission and org); push needs the switch, permission and a first date; a new item
   queued once with the TS base plus the version; out of range; changed in place; claim, waiting while sent, an answer from
   the wrong connector refused, done; reversal plus next version once in Tally; withdrawal; held then released; only the
@@ -203,7 +210,8 @@ triggers check `accounting.settings.manage` again. No new permission keys.
   person (a file import still refused), Tally names and cursors; the pushed voucher pulled back posted once as Tally's and
   linked, unchanged on a second pull, the cursor never moving back, refusals logged once; a voucher cancelled in Tally
   reversed in the mirror once; the trial-balance check with and without drift; the 22F capture (journal returned, nothing
-  posted, the item still waiting) and the candidates; who reads what. `tests/db/security-guard.test.ts` sweeps the five
+  posted, the item still waiting) and the candidates; a received cheque named by a receipt goes as the receipt only;
+  who reads what. `tests/db/security-guard.test.ts` sweeps the five
   tables, `acc_tally_devices` service-only and the 17 functions service-role only.
 - Typecheck, lint, `pnpm audit:security` (0 unguarded), the full unit and database suites.
 
@@ -223,6 +231,8 @@ triggers check `accounting.settings.manage` again. No new permission keys.
 
 ## Before first use
 
-1. Apply `deploy/supabase-paste/50_accounting_tally_bridge.sql` (after 49). It adds the cron job.
+1. Apply `deploy/supabase-paste/50_accounting_tally_bridge.sql` (after 49; it adds the cron job), then, once
+   `51_accounting_integration.sql` (22K) is in, `52_tally_bridge_capture.sql`. **52 must follow 51**: 51 redefines
+   `acc_post_from_source` without the bridge's capture block and 52 puts it back.
 2. The 22I file import of masters and history first, reconciled (22I notes).
 3. The clinic's steps above, pull only, then push.

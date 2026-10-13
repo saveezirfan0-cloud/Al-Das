@@ -3,10 +3,16 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
-    id: "2026-11-09-accounting-tally-bridge",
-    date: "2026-11-09",
+    id: "2026-11-10-accounting-tally-bridge",
+    date: "2026-11-10",
     title: "Accounting: the Tally bridge",
     body: "Until the ledger start Pulse can now keep TallyPrime in step by itself. A small connector installed on the Tally PC sends Pulse's approved items to Tally as vouchers (bills, payment vouchers, sales documents, receipts, bank entries, depreciation and Unite revenue as one voucher per day and branch) and copies what is entered in Tally back into Pulse's ledger every 15 minutes. Every voucher carries a Pulse id, so nothing is ever sent twice; a changed item is reversed in Tally and sent again, and nothing in Tally is ever deleted. A daily check compares Tally's balances with Pulse's ledger. Set it up under Accounting, Setup, Tally bridge; from the ledger start pushing stops by itself.",
+  },
+  {
+    id: "2026-11-10-accounting-integration",
+    date: "2026-11-10",
+    title: "Accounting: cheques posted once, clearer ledger codes",
+    body: "The accounting sections now work as one. A voucher paid by cheque is posted by its cheque in the register (dated the cheque), never again when it is marked paid; until the cheque is registered it waits under Waiting to post. A customer receipt by cheque names the cheque from the register and posts it on the cheque's date; bouncing or cancelling the cheque voids the receipt. A bank statement line is explained either by a reconciliation match or by a bank entry, not both. Pulse's own sales invoices now use 1230 Customer receivables (1220 stays the corporate receivable of Unite invoices) and disposal gains and losses use 4920 (4910 is rental income). The year-end close also works for years kept in Tally, and the profit and loss, cash flow and budget reports leave the closing journal out.",
   },
   {
     id: "2026-11-09-accounting-receivables",

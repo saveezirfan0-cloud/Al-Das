@@ -124,6 +124,11 @@ describe.skipIf(!TEST_DATABASE_URL)("Accounting banking and cash (Phase 22F)", (
           [orgA],
         )
       ).rows[0].id;
+      // 22D's ledger start rule refuses every non-import posting until the date is set (22K)
+      await q(
+        "update public.acc_entities set ledger_start_date = '2000-01-01' where org_id in ($1, $2)",
+        [orgA, orgB],
+      );
       bankBOther = (
         await q(
           "insert into public.fin_bank_accounts (org_id, name, bank_name, last4) values ($1, 'Operating', 'Synthetic Bank', '1111') returning id",

@@ -980,6 +980,84 @@ describe.skipIf(!TEST_DATABASE_URL)("Tally bridge (Phase 22J)", () => {
         ]),
       );
     });
+
+    it("a received cheque named by a receipt goes to Tally as the receipt only (22K: one journal per event)", async () => {
+      await rpc("acc_tally_bridge_save_settings", [
+        orgA,
+        users.chief,
+        {
+          push_enabled: true,
+          pull_enabled: true,
+          push_from: "2026-07-01",
+          revenue_mode: "daily",
+          push_sources: ["bank_transfer", "cheque", "receipt", "supplier_invoice", "voucher", "unite_invoice"],
+        },
+      ]);
+      const gl = (await one<{ id: string }>("select id from public.acc_accounts where org_id = $1 and code = '1150'", [orgA])).id;
+      const recv = (
+        await one<{ id: string }>(
+          "select id from public.acc_accounts where org_id = $1 and control = 'receivable' and not is_group and is_active order by code limit 1",
+          [orgA],
+        )
+      ).id;
+      const bank = (
+        await one<{ id: string }>(
+          "insert into public.fin_bank_accounts (org_id, name, bank_name, last4) values ($1, 'Operating', 'Synthetic Bank', '4321') returning id",
+          [orgA],
+        )
+      ).id;
+      const customer = (
+        await one<{ id: string }>(
+          "insert into public.acc_customers (org_id, kind, name) values ($1, 'corporate', 'Demo Clinic Corp') returning id",
+          [orgA],
+        )
+      ).id;
+      await rpc("acc_bank_link_gl", [orgA, users.chief, bank, gl]);
+      const ch = await rpc<{ id: string; posting: string }>("acc_cheque_register", [
+        orgA,
+        users.chief,
+        {
+          direction: "received",
+          bank_account_id: bank,
+          cheque_no: "700001",
+          cheque_date: "2026-07-21",
+          recorded_on: "2026-07-21",
+          amount: 250,
+          party_kind: "customer",
+          party_ref: customer,
+          counter_account_id: recv,
+        },
+        "2026-07-22",
+      ]);
+      expect(ch.posting).toBe("waiting_ledger_start");
+      expect(await rpc("acc_tally_bridge_capture", [orgA, "cheque", ch.id])).toMatchObject({ source_kind: "cheque" });
+      const r = await rpc<{ id: string }>("acc_receipt_save", [
+        orgA,
+        users.chief,
+        { customer_id: customer, receipt_date: "2026-07-22", account_id: gl, amount: 250, mode: "cheque", cheque_id: ch.id },
+        null,
+      ]);
+      // the cheque is the receipt's now: never captured on its own, and a candidate only to withdraw a push
+      expect(await rpc("acc_tally_bridge_capture", [orgA, "cheque", ch.id])).toBeNull();
+      expect(await rpc("acc_tally_bridge_capture", [orgA, "receipt", r.id])).toMatchObject({
+        source_kind: "receipt",
+        date: "2026-07-21",
+      });
+      await q("set session_replication_role = replica");
+      try {
+        await q("update public.acc_cheques set updated_at = now() - interval '5 minutes' where id = $1", [ch.id]);
+        await q("update public.acc_receipts set updated_at = now() - interval '5 minutes' where id = $1", [r.id]);
+      } finally {
+        await q("set session_replication_role = origin");
+      }
+      const cands = await rpc<Array<Record<string, unknown>>>("acc_tally_bridge_candidates", [orgA, null, null, 100]);
+      expect(cands).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ kind: "cheque", id: ch.id, state: "gone" }),
+          expect.objectContaining({ kind: "receipt", id: r.id, state: "ready" }),
+        ]),
+      );
+    });
   });
 
   describe("who sees what", () => {

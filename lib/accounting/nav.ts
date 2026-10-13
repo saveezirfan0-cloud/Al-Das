@@ -75,14 +75,6 @@ export const ACCOUNTING_NAV: readonly AccountingNavEntry[] = [
     section: "Ledger",
     permissions: ["accounting.ledger.view"],
   },
-  { href: "/accounting/assets", label: "Fixed assets", section: "Assets", permissions: ASSETS },
-  {
-    href: "/accounting/depreciation",
-    label: "Depreciation",
-    section: "Assets",
-    permissions: ASSETS,
-  },
-  { href: "/accounting/schedules", label: "Schedules", section: "Assets", permissions: ASSETS },
   {
     href: "/accounting/sales-invoices",
     label: "Sales invoices",
@@ -149,6 +141,15 @@ export const ACCOUNTING_NAV: readonly AccountingNavEntry[] = [
     section: "Banking",
     permissions: BANKING,
   },
+  // Assets after Banking, as plan §5 lists the sections (22K: the merge had put them after Ledger)
+  { href: "/accounting/assets", label: "Fixed assets", section: "Assets", permissions: ASSETS },
+  {
+    href: "/accounting/depreciation",
+    label: "Depreciation",
+    section: "Assets",
+    permissions: ASSETS,
+  },
+  { href: "/accounting/schedules", label: "Schedules", section: "Assets", permissions: ASSETS },
   {
     href: "/accounting/trial-balance",
     label: "Trial balance",

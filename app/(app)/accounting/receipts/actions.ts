@@ -57,6 +57,8 @@ const receiptSchema = z.object({
   notes: z.string().max(600).default(""),
   /** null = oldest invoice first */
   allocations: z.array(allocationSchema).max(500).nullable().default(null),
+  /** A receipt by cheque names the received cheque in the register (22K); the receipt then posts it. */
+  cheque_id: uuid.nullable().default(null),
 });
 
 export async function saveReceipt(
@@ -79,6 +81,7 @@ export async function saveReceipt(
       mode: v.mode,
       reference: redactStatementText(v.reference, 60) ?? "",
       notes: redactStatementText(v.notes, 300) ?? "",
+      cheque_id: v.mode === "cheque" ? v.cheque_id : null,
     },
     p_allocations: v.allocations as Json,
   });

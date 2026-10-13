@@ -95,7 +95,7 @@ Accounting menu:
 | 22G | Statements and budgets: P&L, balance sheet, cash flow (indirect), comparatives, branch and doctor views, budget against actual, VAT 201, ratios, Excel and PDF | `20261109000400_accounting_statements` | 47 |
 | 22H | Fixed assets and depreciation, prepayments and accruals | `20261109000500_accounting_assets` | 48 |
 | 22I | Tally import (groups, ledgers, opening balances and the full voucher history, by GUID) and opening balance entry, with dry run and reconciliation report; year-end close | `20261109000600_accounting_tally_import` | 49 |
-| 22J | Tally connector: an on-premise agent (outbound HTTPS only) that talks to Tally on the clinic's machine (XML over HTTP, port 9000): pushes Pulse's posted journals as Tally vouchers, pulls masters and vouchers changed in Tally (by AlterID), each matched by GUID; a sync log with errors per voucher; switched off at cut-over (built: `docs/22_PHASE_22J_NOTES.md`) | `20261109000700_accounting_tally_bridge` | 50 |
+| 22J | Tally connector: an on-premise agent (outbound HTTPS only) that talks to Tally on the clinic's machine (XML over HTTP, port 9000): pushes Pulse's posted journals as Tally vouchers, pulls masters and vouchers changed in Tally (by AlterID), each matched by GUID; a sync log with errors per voucher; switched off at cut-over (built: `docs/22_PHASE_22J_NOTES.md`) | `20261109000700_accounting_tally_bridge`, `20261109001000_tally_bridge_capture` (after 22K) | 50, 52 |
 
 22A, 22B and 22C run in parallel; 22D to 22J start from 22A.
 

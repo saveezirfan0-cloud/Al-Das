@@ -70,6 +70,16 @@ export const ACCOUNTING_ERRORS: Record<string, string> = {
   package_deferral: "Package invoices are held until packages are set up (OQ-127).",
   no_date: "The item has no date.",
   foreign_currency: "The item is in a foreign currency; it is not posted automatically.",
+  // Phase 22K: one journal per economic event across the slices
+  cheque_not_registered:
+    "Paid by cheque: the cheque register posts it. Register the cheque (Banking, Cheques), then it is no longer waiting.",
+  cheque_by_receipt: "This cheque is posted by the receipt that names it.",
+  cheque_mismatch:
+    "Choose a live received cheque of the same amount, deposited to the ledger chosen and not on another receipt.",
+  receipt_has_cheque:
+    "This receipt was paid by a registered cheque: bounce or cancel the cheque in the register and the receipt is voided with it.",
+  line_has_bank_entry:
+    "A bank entry already explains this statement line; cancel it before matching the line.",
   error: "Something went wrong. It will be tried again.",
   // budgets (Phase 22G)
   budget_approved: "An approved budget cannot change. Reopen it first.",

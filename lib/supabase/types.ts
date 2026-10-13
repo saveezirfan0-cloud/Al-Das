@@ -1320,7 +1320,7 @@ export type Database = {
           {
             foreignKeyName: "acc_cheques_voucher_id_fkey";
             columns: ["voucher_id"];
-            isOneToOne: true;
+            isOneToOne: false;
             referencedRelation: "fin_payment_vouchers";
             referencedColumns: ["id"];
           },
@@ -2824,6 +2824,7 @@ export type Database = {
           account_id: string;
           amount: number;
           amount_allocated: number;
+          cheque_id: string | null;
           created_at: string;
           customer_id: string;
           entity_id: string;
@@ -2849,6 +2850,7 @@ export type Database = {
           account_id: string;
           amount: number;
           amount_allocated?: number;
+          cheque_id?: string | null;
           created_at?: string;
           customer_id: string;
           entity_id: string;
@@ -2873,6 +2875,7 @@ export type Database = {
           account_id?: string;
           amount?: number;
           amount_allocated?: number;
+          cheque_id?: string | null;
           created_at?: string;
           customer_id?: string;
           entity_id?: string;
@@ -2899,6 +2902,13 @@ export type Database = {
             columns: ["account_id"];
             isOneToOne: false;
             referencedRelation: "acc_accounts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_receipts_cheque_id_fkey";
+            columns: ["cheque_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_cheques";
             referencedColumns: ["id"];
           },
           {

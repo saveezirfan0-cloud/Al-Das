@@ -14,6 +14,7 @@ import {
   RECEIPT_MODES,
   type ReceiptMode,
 } from "@/lib/accounting/sales";
+import type { ReceiptChequeOption } from "@/lib/accounting/receivables-server";
 import { money } from "@/lib/finance/format";
 
 import { allocateReceipt, saveReceipt } from "./actions";
@@ -123,11 +124,13 @@ export function ReceiptForm({
   customerId,
   accounts,
   invoices,
+  cheques,
   today,
 }: {
   customerId: string;
   accounts: Array<{ id: string; label: string }>;
   invoices: OpenInvoiceOption[];
+  cheques: ReceiptChequeOption[];
   today: string;
 }) {
   const router = useRouter();
@@ -138,7 +141,18 @@ export function ReceiptForm({
   const [mode, setMode] = React.useState<ReceiptMode>("bank_transfer");
   const [reference, setReference] = React.useState("");
   const [notes, setNotes] = React.useState("");
+  const [chequeId, setChequeId] = React.useState("");
   const amt = n(amount);
+  const byCheque = mode === "cheque";
+
+  /** A receipt by cheque takes the registered cheque's amount and the ledger of its bank account. */
+  function chooseCheque(id: string) {
+    setChequeId(id);
+    const c = cheques.find((x) => x.id === id);
+    if (!c) return;
+    setAmount(c.amount.toFixed(2));
+    if (c.accountId) setAccountId(c.accountId);
+  }
   const a = useAllocation(invoices, Number.isFinite(amt) && amt > 0 ? amt : 0);
 
   function submit() {
@@ -152,6 +166,7 @@ export function ReceiptForm({
         reference,
         notes,
         allocations: a.manual ? a.list() : null,
+        cheque_id: byCheque && chequeId ? chequeId : null,
       });
       if (res.ok && res.data) {
         toast.success(res.message ?? "Saved");
@@ -188,6 +203,21 @@ export function ReceiptForm({
             ))}
           </select>
         </Field>
+        {byCheque && (
+          <Field
+            label="Cheque"
+            hint="Register the cheque under Banking, Cheques first. The receipt posts it on the cheque's date."
+          >
+            <select className={selectClass} value={chequeId} onChange={(e) => chooseCheque(e.target.value)}>
+              <option value="">Choose a received cheque</option>
+              {cheques.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.label}, {money(c.amount)}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
         <Field label="Reference" hint="Cheque or transfer reference; account numbers are masked.">
           <Input value={reference} maxLength={60} onChange={(e) => setReference(e.target.value)} />
         </Field>
@@ -197,7 +227,10 @@ export function ReceiptForm({
       </div>
       <AllocationTable invoices={invoices} a={a} />
       <div>
-        <Button onClick={submit} disabled={pending || !(amt > 0) || !accountId || a.unallocated < 0}>
+        <Button
+          onClick={submit}
+          disabled={pending || !(amt > 0) || !accountId || a.unallocated < 0 || (byCheque && !chequeId)}
+        >
           {pending && <Loader2 className="animate-spin" />} Record receipt
         </Button>
       </div>

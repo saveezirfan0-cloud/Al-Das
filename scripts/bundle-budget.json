@@ -1,5 +1,5 @@
 {
-  "_comment": "First Load JS budgets in kB, checked by `pnpm bundle:check` after `pnpm build` (CI runs it). Each entry is the size measured on 13 Oct 2026 plus about 7% headroom; routes not listed share defaultKb. If a change legitimately adds weight, raise the number in the same commit and say why in the pull request. Phase 14 added /front-desk at 218 kB measured on 14 Oct 2026 (board, tabs, sheet, walk-in form and time-zone formatting; the patient card and its dialogs load on demand, and /inbox grew by 3 kB). Baseline before Phase 13 and the after numbers are in docs/13_PHASE_13_NOTES.md.",
+  "_comment": "First Load JS budgets in kB, checked by `pnpm bundle:check` after `pnpm build` (CI runs it). Each entry is the size measured on 13 Oct 2026 plus about 7% headroom; routes not listed share defaultKb. If a change legitimately adds weight, raise the number in the same commit and say why in the pull request. Phase 14 added /front-desk at 218 kB measured on 14 Oct 2026 (board, tabs, sheet, walk-in form and time-zone formatting; the patient card and its dialogs load on demand, and /inbox grew by 3 kB). Phase 22K added /accounting/tally-import at 217 kB measured on 13 Oct 2026 (22I's page carries the Tally XML dry-run and upload loop; over the default on the integrated build; 22I never ran the budget check, docs/22_PHASE_22K_NOTES.md). Baseline before Phase 13 and the after numbers are in docs/13_PHASE_13_NOTES.md.",
   "sharedKb": 115,
   "defaultKb": 215,
   "routes": {
@@ -10,6 +10,7 @@
     "/enquiries": 415,
     "/flows/[id]": 125,
     "/front-desk": 235,
+    "/accounting/tally-import": 232,
     "/inbox": 315,
     "/portal/[object]": 355,
     "/reports/[report]": 215,
