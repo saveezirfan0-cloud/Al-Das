@@ -269,6 +269,34 @@ export const GUIDES: readonly Guide[] = [
     ],
   },
   {
+    id: "finance-vouchers",
+    title: "Payment vouchers and supplier invoices",
+    pages: [
+      "/finance/vouchers",
+      "/finance/vouchers/report",
+      "/finance/vouchers/settings",
+      "/finance/payables",
+      "/finance/suppliers",
+      "/finance/tally",
+    ],
+    purpose:
+      "Zero paper: supplier invoices and payment vouchers are kept in Pulse with their documents, and every voucher goes maker, Finance Manager, then the department head or CEO as the delegation of authority requires, before it is paid and exported to Tally.",
+    steps: [
+      "Add the supplier invoice under Supplier invoices and attach the PDF from the accounts mailbox, or a phone photo of a paper invoice.",
+      "Press Pay with a voucher (or New voucher under Payment vouchers). Check the amount, category, branch and narration, attach any other backup, save the draft and submit it.",
+      "The Finance Manager verifies it (Tier 1 vouchers can be verified together). Tier 2 then goes to a department head; Tier 3, Tier 4, payroll, intercompany and related-party vouchers go to the CEO, who can approve on a phone.",
+      "Anyone who rejects must write remarks; the maker edits the voucher and submits it again.",
+      "Once approved, record the payment date and bank reference, then build the Tally file under Tally export and import it in Tally.",
+      "Download the approval certificate from a voucher for the auditors: it lists every step, person, time, remark and the fingerprint of the documents.",
+    ],
+    watchOut: [
+      "Each step must be a different person: whoever prepared or changed a voucher cannot verify or approve it.",
+      "Changing a voucher after it was submitted returns it to draft and clears its approvals.",
+      "Nothing dated in a locked month can change.",
+      "The Tally file refuses until every category, supplier, bank and branch is mapped to a Tally ledger (Voucher settings).",
+    ],
+  },
+  {
     id: "finance-workflows",
     title: "Finance workflows",
     pages: [

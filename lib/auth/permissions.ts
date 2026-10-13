@@ -412,6 +412,66 @@ export const PERMISSIONS = [
       "Set the daily revenue, patient and ARPP targets and the reporting lines (branches, Chiro, leased units) used by the flash report. Audited.",
   },
   {
+    key: "finance.payables.view",
+    group: "Finance",
+    label: "View suppliers, supplier invoices and vouchers",
+    description:
+      "Read suppliers, supplier invoices, payment vouchers with their trail, the approval reports and the attached documents (signed links, logged)",
+  },
+  {
+    key: "finance.payables.manage",
+    group: "Finance",
+    label: "Manage suppliers and supplier invoices",
+    description: "Add and edit suppliers and supplier invoices, and upload their documents. Audited.",
+  },
+  {
+    key: "finance.vouchers.prepare",
+    group: "Finance",
+    label: "Prepare payment vouchers (maker)",
+    description:
+      "Create, edit, submit, reopen and cancel payment vouchers with the backup attached. A maker never verifies or approves their own voucher.",
+  },
+  {
+    key: "finance.vouchers.check",
+    group: "Finance",
+    label: "Verify payment vouchers (checker)",
+    description:
+      "The Finance Manager's step: verify or reject a submitted voucher (rejection needs remarks); bulk-verify Tier 1 vouchers.",
+  },
+  {
+    key: "finance.vouchers.approve_dept",
+    group: "Finance",
+    label: "Approve vouchers as department head",
+    description: "Approve or reject Tier 2 vouchers after the Finance Manager has verified them.",
+  },
+  {
+    key: "finance.vouchers.approve_ceo",
+    group: "Finance",
+    label: "Authorise vouchers as CEO",
+    description:
+      "Authorise or reject Tier 3, Tier 4 and special-category vouchers (payroll, intercompany, related party) after verification.",
+  },
+  {
+    key: "finance.vouchers.pay",
+    group: "Finance",
+    label: "Record voucher payments",
+    description: "Record the payment date and bank reference of an approved voucher.",
+  },
+  {
+    key: "finance.vouchers.settings",
+    group: "Finance",
+    label: "Delegation of authority",
+    description:
+      "Edit the approval tiers, special categories and the approval mode (approve in Pulse or in Tally). Audited.",
+  },
+  {
+    key: "finance.tally.export",
+    group: "Finance",
+    label: "Tally export",
+    description:
+      "Map Pulse categories, suppliers, banks and branches to Tally ledgers, and export approved vouchers and supplier invoices as a TallyPrime import file. One-way, audited.",
+  },
+  {
     key: "portal.recall_sends.write",
     group: "Portal",
     label: "Edit recall call-list entries",
@@ -466,6 +526,43 @@ export type RolePreset = {
   permissions: string[];
 };
 
+/** What the Finance preset holds; the Finance Manager holds the same plus the checker and settings keys. */
+const FINANCE_PRESET: readonly string[] = [
+  "reports.view",
+  "finance.view",
+  "finance.invoices.view",
+  "finance.claims.view",
+  "finance.reference.manage",
+  "finance.preauth.manage",
+  "finance.denials.manage",
+  "finance.remittance.manage",
+  "finance.scorecards.view",
+  "finance.forecast.view",
+  "finance.recovery.manage",
+  "finance.recovery.approve",
+  "finance.payment_links",
+  "finance.close.view",
+  "finance.close.manage",
+  "finance.close.signoff.finance",
+  "finance.close.tasks",
+  "finance.cashup.manage",
+  "finance.revenue.view",
+  "finance.export.run",
+  "finance.costs.manage",
+  "finance.costs.view",
+  "finance.costs.compensation",
+  "finance.profit.view",
+  "finance.profit.approve",
+  "finance.flash.view",
+  "finance.targets.manage",
+  "finance.followup.manage",
+  "finance.payables.view",
+  "finance.payables.manage",
+  "finance.vouchers.prepare",
+  "finance.vouchers.pay",
+  "finance.tally.export",
+];
+
 /**
  * Finance & Insurance presets. Also applied to existing orgs with
  * `pnpm finance:seed` (calls the seed_finance_roles RPC). Admin (`*`) already
@@ -475,36 +572,13 @@ export const FINANCE_ROLES: readonly RolePreset[] = [
   {
     name: "Finance",
     description: "Finance reports, invoices and reference data. Sees all finance aggregates.",
-    permissions: [
-      "reports.view",
-      "finance.view",
-      "finance.invoices.view",
-      "finance.claims.view",
-      "finance.reference.manage",
-      "finance.preauth.manage",
-      "finance.denials.manage",
-      "finance.remittance.manage",
-      "finance.scorecards.view",
-      "finance.forecast.view",
-      "finance.recovery.manage",
-      "finance.recovery.approve",
-      "finance.payment_links",
-      "finance.close.view",
-      "finance.close.manage",
-      "finance.close.signoff.finance",
-      "finance.close.tasks",
-      "finance.cashup.manage",
-      "finance.revenue.view",
-      "finance.export.run",
-      "finance.costs.manage",
-      "finance.costs.view",
-      "finance.costs.compensation",
-      "finance.profit.view",
-      "finance.profit.approve",
-      "finance.flash.view",
-      "finance.targets.manage",
-      "finance.followup.manage",
-    ],
+    permissions: [...FINANCE_PRESET],
+  },
+  {
+    name: "Finance Manager",
+    description:
+      "Everything Finance does, plus verifying payment vouchers (the checker) and the delegation-of-authority settings.",
+    permissions: [...FINANCE_PRESET, "finance.vouchers.check", "finance.vouchers.settings"],
   },
   {
     name: "Billing",
@@ -553,6 +627,8 @@ export const FINANCE_ROLES: readonly RolePreset[] = [
       "finance.close.signoff.ceo",
       "finance.profit.view",
       "finance.flash.view",
+      "finance.payables.view",
+      "finance.vouchers.approve_ceo",
     ],
   },
   {
@@ -576,6 +652,12 @@ export const FINANCE_ROLES: readonly RolePreset[] = [
       "finance.costs.compensation",
       "finance.close.tasks",
     ],
+  },
+  {
+    name: "Department head",
+    description:
+      "Approves Tier 2 payment vouchers for their department after the Finance Manager has verified them.",
+    permissions: ["finance.vouchers.approve_dept"],
   },
 ];
 

@@ -17,6 +17,15 @@ export type FinanceNavEntry = {
   badge?: FinanceBadge;
 };
 
+const VOUCHERS = [
+  "finance.payables.view",
+  "finance.vouchers.prepare",
+  "finance.vouchers.check",
+  "finance.vouchers.approve_dept",
+  "finance.vouchers.approve_ceo",
+  "finance.vouchers.pay",
+] as const;
+
 const CLOSE = [
   "finance.close.view",
   "finance.close.manage",
@@ -169,6 +178,36 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
     permissions: ["finance.payment_links"],
   },
   {
+    href: "/finance/vouchers",
+    label: "Payment vouchers",
+    section: "Money",
+    permissions: VOUCHERS,
+  },
+  {
+    href: "/finance/vouchers/report",
+    label: "Voucher report",
+    section: "Money",
+    permissions: VOUCHERS,
+  },
+  {
+    href: "/finance/payables",
+    label: "Supplier invoices",
+    section: "Money",
+    permissions: ["finance.payables.view", "finance.payables.manage"],
+  },
+  {
+    href: "/finance/suppliers",
+    label: "Suppliers",
+    section: "Money",
+    permissions: ["finance.payables.view", "finance.payables.manage"],
+  },
+  {
+    href: "/finance/tally",
+    label: "Tally export",
+    section: "Money",
+    permissions: ["finance.tally.export"],
+  },
+  {
     href: "/finance/close",
     label: "Month-end close",
     section: "Money",
@@ -216,6 +255,12 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
     label: "Targets and report lines",
     section: "Setup",
     permissions: ["finance.targets.manage"],
+  },
+  {
+    href: "/finance/vouchers/settings",
+    label: "Voucher settings",
+    section: "Setup",
+    permissions: ["finance.vouchers.settings", "finance.tally.export"],
   },
 ];
 

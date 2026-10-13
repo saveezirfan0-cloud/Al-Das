@@ -84,7 +84,7 @@ describe("permissions and presets", () => {
     expect(can(member(["settings.manage"]), "integrations.manage")).toBe(false);
   });
 
-  it("doctors' calendars go to the Manager; payment links only to Finance and Billing", () => {
+  it("doctors' calendars go to the Manager; payment links only to Finance (and the Finance Manager, a superset) and Billing", () => {
     const has = (name: string, key: string) =>
       SYSTEM_ROLES.find((r) => r.name === name)!.permissions.includes(key);
     expect(has("Manager", "integrations.calendar")).toBe(true);
@@ -93,7 +93,7 @@ describe("permissions and presets", () => {
       FINANCE_ROLES.filter((r) => r.permissions.includes("finance.payment_links"))
         .map((r) => r.name)
         .sort(),
-    ).toEqual(["Billing", "Finance"]);
+    ).toEqual(["Billing", "Finance", "Finance Manager"]);
   });
 
   it("finance.payment_links is its own key: no neighbour implies it", () => {

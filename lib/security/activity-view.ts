@@ -19,6 +19,7 @@ export const ACCESS_ENTITIES = [
   "finance_claim",
   "finance_invoice",
   "document",
+  "finance_document",
   "enquiry",
   "appointment",
   "portal_record",

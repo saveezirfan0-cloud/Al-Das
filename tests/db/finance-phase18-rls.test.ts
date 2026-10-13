@@ -316,8 +316,9 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 18: finance upgrades, access", () => 
     const first = await read();
     // finance.payment_links arrived with Phase 19a (migration 20261018000100 grants it); the cost and profit keys and
     // the Cost / Payroll role arrived with F8 (20261021000100, tested in finance-blueprint.test.ts); the flash keys arrived
-    // with Phase 20A (20261023000100, tested in finance-flash.test.ts), the follow-up key with Phase 20I (20261026000100,
-    // tested in finance-followup.test.ts) and finance.close.tasks with Phase 20G (20261029000100, tested in
+    // with Phase 20A (20261023000100, tested in finance-flash.test.ts), the payables, voucher and Tally keys with Phase 20D
+    // (20261024000100, tested in finance-payables.test.ts), the follow-up key with Phase 20I (20261026000100, tested in
+    // finance-followup.test.ts) and finance.close.tasks with Phase 20G (20261029000100, tested in
     // finance-close-timetable.test.ts); this migration predates them.
     const later = (p: string) =>
       p === "finance.payment_links" ||
@@ -325,6 +326,9 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 18: finance upgrades, access", () => 
       p === "finance.flash.view" ||
       p === "finance.targets.manage" ||
       p === "finance.followup.manage" ||
+      p.startsWith("finance.payables.") ||
+      p.startsWith("finance.vouchers.") ||
+      p === "finance.tally.export" ||
       p.startsWith("finance.costs.") ||
       p.startsWith("finance.profit.");
     for (const preset of FINANCE_ROLES.filter((r) => first[r.name]))

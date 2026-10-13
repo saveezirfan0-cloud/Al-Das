@@ -58,6 +58,22 @@ const GENERIC: Record<string, { title: string; body: string }> = {
     title: "Close step due",
     body: "A month-end close step is due. Open Pulse to see which.",
   },
+  "finance.voucher_to_check": {
+    title: "Voucher to verify",
+    body: "A payment voucher is waiting for verification. Open Pulse to see which.",
+  },
+  "finance.voucher_to_approve_dept": {
+    title: "Voucher to approve",
+    body: "A payment voucher is waiting for a department head. Open Pulse to see which.",
+  },
+  "finance.voucher_to_approve": {
+    title: "Voucher to authorise",
+    body: "A payment voucher is waiting for your authorisation. Open Pulse to see which.",
+  },
+  "finance.voucher_rejected": {
+    title: "Voucher rejected",
+    body: "A payment voucher you prepared was rejected. Open Pulse to read the remarks.",
+  },
   "waitlist.booked": {
     title: "Waiting list",
     body: "A waiting-list patient took an offered slot.",
@@ -113,6 +129,13 @@ export function pushUrl(event: string, ids: PushIds): string {
       return "/finance/followup";
     case "finance.close_due":
       return "/finance/close/timetable";
+    case "finance.voucher_to_check":
+      return "/finance/vouchers?tab=check";
+    case "finance.voucher_to_approve_dept":
+    case "finance.voucher_to_approve":
+      return "/finance/vouchers?tab=approve";
+    case "finance.voucher_rejected":
+      return "/finance/vouchers?tab=rejected";
     case "test":
       return "/settings/notifications";
     default:

@@ -27,6 +27,12 @@ export const WHATS_NEW: readonly WhatsNewEntry[] = [
     body: "Finance has a new Insurance follow-up page: every unpaid insurance claim, oldest first, with the 60, 90 or 120-day stage it has reached, its last resubmission and the last follow-up. Open a claim to see its first, second and third submissions with the amounts, and record what you did and when to act next. Once finance sets a start date, Pulse creates one task per claim at each stage. A Receivables by age report shows what each payer owes in age buckets you choose, and downloads as CSV.",
   },
   {
+    id: "2026-10-24-payment-vouchers",
+    date: "2026-10-24",
+    title: "Payment vouchers, supplier invoices and Tally export",
+    body: "Finance now keeps suppliers, supplier invoices and payment vouchers in Pulse with their documents attached, so nothing needs printing. A voucher goes from its maker to the Finance Manager, then to a department head or the CEO as the delegation of authority requires; every step is a different person, rejections need remarks, and the CEO can approve on a phone. Each voucher has an approval certificate, the Voucher report shows what is pending, approved and rejected and how long approval takes, and approved items export to TallyPrime as an import file.",
+  },
+  {
     id: "2026-10-23-daily-flash",
     date: "2026-10-23",
     title: "Daily flash report",

@@ -550,3 +550,72 @@ export async function seedPhase21Rows(c: Client, orgId: string) {
 
 /** Phase 21 tables with a (PHI-gated) select policy and no write policy. */
 export const PHASE21_TABLES = ["contact_chronic_conditions", "visit_diagnoses"] as const;
+
+/**
+ * One row in every Phase 20D (payables and vouchers) table for an org, so the cross-org sweeps are not vacuous for them.
+ * Synthetic names and amounts; the document row is a placeholder (no file). Service role only: none of these tables has a
+ * write policy. The voucher is made by fin_voucher_save, so the counter (service-only) and the trail get rows as well.
+ * `userId` must hold finance.vouchers.prepare (the org owner's Admin role does).
+ */
+export async function seedPhase20DRows(c: Client, orgId: string, userId: string) {
+  const ids: Record<string, string> = {};
+  await asServiceRole(c, async () => {
+    const one = async (sql: string, params: unknown[]) =>
+      (await c.query<{ id: string }>(sql + " returning id::text", params)).rows[0].id;
+    ids.document = await one(
+      "insert into public.fin_documents (org_id, kind, storage_path, mime_type, size_bytes, sha256, status, uploaded_by) values ($1::uuid, 'voucher_backup', $1::text || '/' || gen_random_uuid() || '.pdf', 'application/pdf', 100, encode(sha256(gen_random_uuid()::text::bytea), 'hex'), 'ready', $2)",
+      [orgId, userId],
+    );
+    ids.supplier = await one(
+      "insert into public.fin_suppliers (org_id, name, created_by) values ($1, 'Supplier Test Seed', $2)",
+      [orgId, userId],
+    );
+    ids.invoice = await one(
+      "insert into public.fin_supplier_invoices (org_id, supplier_id, invoice_number, invoice_date, category, net, vat, document_id) values ($1, $2, 'INV-SEED-1', '2026-10-01', 'Consumables', 100, 5, $3)",
+      [orgId, ids.supplier, ids.document],
+    );
+    const { rows } = await c.query<{ r: { id: string } }>(
+      "select public.fin_voucher_save($1, $2, null, $3::jsonb, $4::uuid[], $5::uuid[]) as r",
+      [
+        orgId,
+        userId,
+        JSON.stringify({
+          voucher_date: "2026-10-02",
+          payee_name: "Supplier Test Seed",
+          amount: 105,
+          category: "Consumables",
+          narration: "Seed voucher",
+        }),
+        [ids.invoice],
+        [ids.document],
+      ],
+    );
+    ids.voucher = rows[0].r.id;
+    await c.query(
+      "insert into public.fin_ref_tally_ledgers (org_id, kind, key, ledger_name) values ($1, 'category', 'Consumables', 'Seed Consumables')",
+      [orgId],
+    );
+    ids.export = await one(
+      "insert into public.fin_tally_exports (org_id, voucher_count, invoice_count, checksum, xml, exported_by) values ($1, 0, 1, encode(sha256('seed'::bytea), 'hex'), '<ENVELOPE/>', $2)",
+      [orgId, userId],
+    );
+  });
+  return ids;
+}
+
+/** Phase 20D tables with a browser (select) policy. fin_ref_approval_tiers is seeded for every org. */
+export const PHASE20D_TABLES = [
+  "fin_documents",
+  "fin_payment_vouchers",
+  "fin_ref_approval_tiers",
+  "fin_ref_tally_ledgers",
+  "fin_supplier_invoices",
+  "fin_suppliers",
+  "fin_tally_exports",
+  "fin_voucher_documents",
+  "fin_voucher_events",
+  "fin_voucher_invoices",
+] as const;
+
+/** Phase 20D service-only tables: RLS on, no policy (the per-org voucher number counter). */
+export const PHASE20D_SERVICE_ONLY_TABLES = ["fin_voucher_counters"] as const;

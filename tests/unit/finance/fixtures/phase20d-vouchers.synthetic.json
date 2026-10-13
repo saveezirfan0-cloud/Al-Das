@@ -1,0 +1,194 @@
+{
+  "_comment": "Synthetic. Phase 20D voucher approvals: the delegation of authority from the CEO directive and step-by-step scenarios. tests/unit/finance/vouchers.test.ts runs them through the pure mirror (lib/finance/vouchers.ts) and tests/db/finance-payables.test.ts through fin_voucher_act / fin_voucher_save; both must give the expected outcome at every step. expect = the status after the step, or the error code (HINT). hash: current = the hash stored at submission, stale = any other.",
+  "voucherDate": "2026-10-05",
+  "lockedDate": "2026-01-15",
+  "actors": {
+    "maker": ["finance.vouchers.prepare", "finance.vouchers.pay"],
+    "fm": ["finance.vouchers.prepare", "finance.vouchers.check", "finance.vouchers.pay"],
+    "dept": ["finance.vouchers.approve_dept"],
+    "ceo": ["finance.vouchers.approve_ceo"],
+    "admin": ["*"]
+  },
+  "tiers": [
+    { "code": "T1", "label": "Tier 1", "specialCategory": null, "minAmount": 0, "maxAmount": 5000, "needsDeptHead": false, "needsCeo": false, "bulkAllowed": true, "active": true },
+    { "code": "T2", "label": "Tier 2", "specialCategory": null, "minAmount": 5000.01, "maxAmount": 15000, "needsDeptHead": true, "needsCeo": false, "bulkAllowed": false, "active": true },
+    { "code": "T3", "label": "Tier 3", "specialCategory": null, "minAmount": 15000.01, "maxAmount": 50000, "needsDeptHead": false, "needsCeo": true, "bulkAllowed": false, "active": true },
+    { "code": "T4", "label": "Tier 4", "specialCategory": null, "minAmount": 50000.01, "maxAmount": null, "needsDeptHead": false, "needsCeo": true, "bulkAllowed": false, "active": true },
+    { "code": "SP_PAYROLL", "label": "Special: payroll", "specialCategory": "payroll", "minAmount": null, "maxAmount": null, "needsDeptHead": false, "needsCeo": true, "bulkAllowed": false, "active": true },
+    { "code": "SP_INTERCO", "label": "Special: intercompany", "specialCategory": "intercompany", "minAmount": null, "maxAmount": null, "needsDeptHead": false, "needsCeo": true, "bulkAllowed": false, "active": true },
+    { "code": "SP_RELATED", "label": "Special: related party", "specialCategory": "related_party", "minAmount": null, "maxAmount": null, "needsDeptHead": false, "needsCeo": true, "bulkAllowed": false, "active": true }
+  ],
+  "routing": [
+    { "amount": 0.01, "special": "none", "tier": "T1" },
+    { "amount": 5000, "special": "none", "tier": "T1" },
+    { "amount": 5000.01, "special": "none", "tier": "T2" },
+    { "amount": 15000, "special": "none", "tier": "T2" },
+    { "amount": 15000.01, "special": "none", "tier": "T3" },
+    { "amount": 50000, "special": "none", "tier": "T3" },
+    { "amount": 50000.01, "special": "none", "tier": "T4" },
+    { "amount": 1250000, "special": "none", "tier": "T4" },
+    { "amount": 10, "special": "payroll", "tier": "SP_PAYROLL" },
+    { "amount": 999999, "special": "intercompany", "tier": "SP_INTERCO" },
+    { "amount": 300, "special": "related_party", "tier": "SP_RELATED" }
+  ],
+  "scenarios": [
+    {
+      "name": "Tier 1: the Finance Manager's verification is the approval",
+      "amount": 1200.5,
+      "steps": [
+        { "actor": "maker", "action": "submit", "expect": "submitted" },
+        { "actor": "maker", "action": "check", "expect": "not_permitted" },
+        { "actor": "fm", "action": "check", "hash": "stale", "expect": "hash_mismatch" },
+        { "actor": "fm", "action": "check", "expect": "approved" },
+        { "actor": "maker", "action": "pay", "payment": { "date": "2026-10-08", "reference": "" }, "expect": "payment_details_required" },
+        { "actor": "maker", "action": "pay", "payment": { "date": "2026-10-08", "reference": "BANKREF-0001" }, "expect": "paid" },
+        { "actor": "maker", "action": "cancel", "remarks": "Too late", "expect": "wrong_status" }
+      ]
+    },
+    {
+      "name": "Tier 2: Finance Manager then a department head, no CEO",
+      "amount": 8000,
+      "steps": [
+        { "actor": "maker", "action": "submit", "expect": "submitted" },
+        { "actor": "fm", "action": "check", "expect": "checked" },
+        { "actor": "ceo", "action": "approve_ceo", "expect": "wrong_status" },
+        { "actor": "dept", "action": "approve_dept", "expect": "approved" }
+      ]
+    },
+    {
+      "name": "Tier 3: rejection needs remarks, the maker resubmits, the CEO authorises",
+      "amount": 22000,
+      "steps": [
+        { "actor": "maker", "action": "submit", "expect": "submitted" },
+        { "actor": "fm", "action": "check", "expect": "checked" },
+        { "actor": "ceo", "action": "reject", "remarks": "", "expect": "remarks_required" },
+        { "actor": "ceo", "action": "reject", "remarks": "Quotation missing", "expect": "rejected" },
+        { "actor": "ceo", "action": "approve_ceo", "expect": "wrong_status" },
+        { "actor": "maker", "action": "submit", "expect": "submitted" },
+        { "actor": "fm", "action": "check", "expect": "checked" },
+        { "actor": "ceo", "action": "approve_ceo", "expect": "approved" }
+      ]
+    },
+    {
+      "name": "Tier 4: the CEO cannot skip the Finance Manager, and only the CEO authorises",
+      "amount": 75000,
+      "steps": [
+        { "actor": "maker", "action": "submit", "expect": "submitted" },
+        { "actor": "ceo", "action": "approve_ceo", "expect": "wrong_status" },
+        { "actor": "fm", "action": "check", "expect": "checked" },
+        { "actor": "fm", "action": "approve_ceo", "expect": "not_permitted" },
+        { "actor": "dept", "action": "approve_dept", "expect": "wrong_status" },
+        { "actor": "ceo", "action": "approve_ceo", "expect": "approved" }
+      ]
+    },
+    {
+      "name": "Special category: payroll goes to the CEO whatever the amount",
+      "amount": 900,
+      "special": "payroll",
+      "steps": [
+        { "actor": "maker", "action": "submit", "expect": "submitted" },
+        { "actor": "fm", "action": "check", "expect": "checked" },
+        { "actor": "ceo", "action": "approve_ceo", "expect": "approved" }
+      ]
+    },
+    {
+      "name": "A maker never verifies their own voucher",
+      "amount": 400,
+      "creator": "fm",
+      "steps": [
+        { "actor": "fm", "action": "submit", "expect": "submitted" },
+        { "actor": "fm", "action": "check", "expect": "same_person" },
+        { "actor": "fm", "action": "reject", "remarks": "Changed my mind", "expect": "same_person" },
+        { "actor": "admin", "action": "check", "expect": "approved" }
+      ]
+    },
+    {
+      "name": "Editing after submission returns to draft and clears approvals",
+      "amount": 30000,
+      "steps": [
+        { "actor": "maker", "action": "submit", "expect": "submitted" },
+        { "actor": "fm", "action": "check", "expect": "checked" },
+        { "actor": "maker", "action": "edit", "expect": "draft" },
+        { "actor": "ceo", "action": "approve_ceo", "expect": "wrong_status" },
+        { "actor": "maker", "action": "submit", "expect": "submitted" },
+        { "actor": "fm", "action": "check", "expect": "checked" },
+        { "actor": "ceo", "action": "approve_ceo", "expect": "approved" }
+      ]
+    },
+    {
+      "name": "Whoever edits becomes a maker and cannot verify",
+      "amount": 700,
+      "steps": [
+        { "actor": "maker", "action": "submit", "expect": "submitted" },
+        { "actor": "fm", "action": "edit", "expect": "draft" },
+        { "actor": "maker", "action": "submit", "expect": "submitted" },
+        { "actor": "fm", "action": "check", "expect": "same_person" },
+        { "actor": "admin", "action": "check", "expect": "approved" }
+      ]
+    },
+    {
+      "name": "Each approval is a different person (checker cannot also approve as department head)",
+      "amount": 9000,
+      "steps": [
+        { "actor": "maker", "action": "submit", "expect": "submitted" },
+        { "actor": "admin", "action": "check", "expect": "checked" },
+        { "actor": "admin", "action": "approve_dept", "expect": "same_person" },
+        { "actor": "dept", "action": "approve_dept", "hash": "stale", "expect": "hash_mismatch" },
+        { "actor": "dept", "action": "approve_dept", "expect": "approved" }
+      ]
+    },
+    {
+      "name": "No backup, no submission",
+      "amount": 250,
+      "documents": 0,
+      "steps": [{ "actor": "maker", "action": "submit", "expect": "no_attachment" }]
+    },
+    {
+      "name": "Fails closed when no rule covers the amount",
+      "amount": 8000,
+      "inactiveTiers": ["T2"],
+      "steps": [{ "actor": "maker", "action": "submit", "expect": "no_rule" }]
+    },
+    {
+      "name": "Nothing changes in a locked month",
+      "amount": 1000,
+      "locked": true,
+      "steps": [
+        { "actor": "maker", "action": "submit", "expect": "month_locked" },
+        { "actor": "maker", "action": "edit", "expect": "month_locked" }
+      ]
+    },
+    {
+      "name": "Approval mode Tally: Pulse skips its own approvals",
+      "amount": 30000,
+      "approvalMode": "tally",
+      "steps": [
+        { "actor": "maker", "action": "submit", "expect": "for_tally" },
+        { "actor": "fm", "action": "check", "expect": "wrong_status" },
+        { "actor": "maker", "action": "pay", "payment": { "date": "2026-10-09", "reference": "BANKREF-0002" }, "expect": "paid" }
+      ]
+    },
+    {
+      "name": "Cancelling needs remarks and ends the voucher",
+      "amount": 600,
+      "steps": [
+        { "actor": "maker", "action": "cancel", "remarks": " ", "expect": "remarks_required" },
+        { "actor": "maker", "action": "cancel", "remarks": "Duplicate request", "expect": "cancelled" },
+        { "actor": "maker", "action": "submit", "expect": "wrong_status" },
+        { "actor": "maker", "action": "edit", "expect": "wrong_status" }
+      ]
+    },
+    {
+      "name": "A rejected voucher is reopened as a draft",
+      "amount": 450,
+      "steps": [
+        { "actor": "maker", "action": "submit", "expect": "submitted" },
+        { "actor": "dept", "action": "reject", "remarks": "Not mine to decide", "expect": "not_permitted" },
+        { "actor": "fm", "action": "reject", "remarks": "Wrong supplier", "expect": "rejected" },
+        { "actor": "ceo", "action": "reopen", "expect": "not_permitted" },
+        { "actor": "maker", "action": "reopen", "expect": "draft" },
+        { "actor": "maker", "action": "submit", "expect": "submitted" }
+      ]
+    }
+  ]
+}
