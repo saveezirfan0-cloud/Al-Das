@@ -1,0 +1,67 @@
+import type { IntegrationKind } from "@/lib/integrations/catalog";
+
+/**
+ * Health of an integration for the Settings page and System health (pure classification).
+ *   off       switched off
+ *   idle      on, but no call has been made yet
+ *   ok        recent calls succeed (or it makes none: calendar feeds)
+ *   degraded  some recent calls failed, or the last thing that happened was an error
+ *   down      the circuit breaker is open, or most recent calls failed
+ */
+
+export type HealthState = "off" | "idle" | "ok" | "degraded" | "down";
+
+export type HealthInput = {
+  enabled: boolean;
+  outbound: boolean;
+  breakerOpenUntil: string | null;
+  lastOkAt: string | null;
+  lastErrorAt: string | null;
+  /** Calls in the last 24 hours. */
+  calls: number;
+  failedCalls: number;
+};
+
+export function classifyHealth(i: HealthInput, now: Date): HealthState {
+  if (!i.enabled) return "off";
+  if (!i.outbound) return "ok";
+  if (i.breakerOpenUntil && new Date(i.breakerOpenUntil) > now) return "down";
+  if (i.calls >= 3 && i.failedCalls / i.calls >= 0.5) return "down";
+  const errorIsLatest =
+    !!i.lastErrorAt && (!i.lastOkAt || new Date(i.lastErrorAt) > new Date(i.lastOkAt));
+  if (i.failedCalls > 0 || errorIsLatest) return "degraded";
+  if (i.calls === 0 && !i.lastOkAt) return "idle";
+  return "ok";
+}
+
+export const HEALTH_LABEL: Record<HealthState, string> = {
+  off: "Off",
+  idle: "On, not used yet",
+  ok: "Healthy",
+  degraded: "Some failures",
+  down: "Failing",
+};
+
+export type CallStatRow = { provider: string; outcome: string; calls: number };
+
+/** Folds the per-outcome rows from integration_call_stats() into totals. */
+export function foldCallStats(
+  rows: readonly CallStatRow[],
+  providers: readonly string[],
+): { calls: number; failedCalls: number } {
+  let calls = 0;
+  let failedCalls = 0;
+  for (const r of rows) {
+    if (!providers.includes(r.provider)) continue;
+    calls += Number(r.calls);
+    if (r.outcome !== "ok") failedCalls += Number(r.calls);
+  }
+  return { calls, failedCalls };
+}
+
+/** The provider names a kind writes into integration_calls (its adapters' `provider` ids). */
+export const CALL_PROVIDERS: Record<IntegrationKind, readonly string[]> = {
+  calendar_ics: [],
+  sms: ["twilio"],
+  payments: ["stripe", "paytabs"],
+};

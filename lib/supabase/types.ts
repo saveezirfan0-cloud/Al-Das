@@ -838,6 +838,84 @@ export type Database = {
           },
         ];
       };
+      calendar_feeds: {
+        Row: {
+          access_count: number;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          kind: string;
+          label: string;
+          last_access_at: string | null;
+          org_id: string;
+          revoked_at: string | null;
+          rotated_at: string | null;
+          specialist_id: string | null;
+          token_hash: string;
+          user_id: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          access_count?: number;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          kind: string;
+          label: string;
+          last_access_at?: string | null;
+          org_id: string;
+          revoked_at?: string | null;
+          rotated_at?: string | null;
+          specialist_id?: string | null;
+          token_hash: string;
+          user_id?: string | null;
+        };
+        Update: {
+          access_count?: number;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          kind?: string;
+          label?: string;
+          last_access_at?: string | null;
+          org_id?: string;
+          revoked_at?: string | null;
+          rotated_at?: string | null;
+          specialist_id?: string | null;
+          token_hash?: string;
+          user_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "calendar_feeds_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "calendar_feeds_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "calendar_feeds_specialist_id_fkey";
+            columns: ["specialist_id"];
+            isOneToOne: false;
+            referencedRelation: "specialists";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "calendar_feeds_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       campaign_recipients: {
         Row: {
           attempts: number;
@@ -2139,6 +2217,7 @@ export type Database = {
           phone_e164: string | null;
           promotions_consent: Json | null;
           promotions_opt_in: boolean;
+          sms_opt_out_at: string | null;
           source: string;
           stop_marketing: boolean;
           updated_at: string;
@@ -2174,6 +2253,7 @@ export type Database = {
           phone_e164?: string | null;
           promotions_consent?: Json | null;
           promotions_opt_in?: boolean;
+          sms_opt_out_at?: string | null;
           source?: string;
           stop_marketing?: boolean;
           updated_at?: string;
@@ -2208,6 +2288,7 @@ export type Database = {
           phone_e164?: string | null;
           promotions_consent?: Json | null;
           promotions_opt_in?: boolean;
+          sms_opt_out_at?: string | null;
           source?: string;
           stop_marketing?: boolean;
           updated_at?: string;
@@ -3783,6 +3864,153 @@ export type Database = {
           },
           {
             foreignKeyName: "fin_invoices_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      fin_payment_requests: {
+        Row: {
+          amount_minor: number;
+          amount_paid_minor: number | null;
+          contact_id: string | null;
+          created_at: string;
+          created_by: string | null;
+          currency: string;
+          expires_at: string | null;
+          failure_code: string | null;
+          id: string;
+          invoice_id: string;
+          invoice_number: string;
+          last_event_at: string | null;
+          message_id: string | null;
+          needs_review: boolean;
+          org_id: string;
+          paid_at: string | null;
+          patient_pin: string | null;
+          provider: string;
+          provider_ref: string | null;
+          review_reason: string | null;
+          status: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          amount_minor: number;
+          amount_paid_minor?: number | null;
+          contact_id?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          currency: string;
+          expires_at?: string | null;
+          failure_code?: string | null;
+          id?: string;
+          invoice_id: string;
+          invoice_number: string;
+          last_event_at?: string | null;
+          message_id?: string | null;
+          needs_review?: boolean;
+          org_id: string;
+          paid_at?: string | null;
+          patient_pin?: string | null;
+          provider: string;
+          provider_ref?: string | null;
+          review_reason?: string | null;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          amount_minor?: number;
+          amount_paid_minor?: number | null;
+          contact_id?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          currency?: string;
+          expires_at?: string | null;
+          failure_code?: string | null;
+          id?: string;
+          invoice_id?: string;
+          invoice_number?: string;
+          last_event_at?: string | null;
+          message_id?: string | null;
+          needs_review?: boolean;
+          org_id?: string;
+          paid_at?: string | null;
+          patient_pin?: string | null;
+          provider?: string;
+          provider_ref?: string | null;
+          review_reason?: string | null;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_payment_requests_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_payment_requests_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_birthday_today";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "fin_payment_requests_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_chronic_recall_eligibility";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "fin_payment_requests_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_payment_requests_invoice_id_fkey";
+            columns: ["invoice_id"];
+            isOneToOne: false;
+            referencedRelation: "fin_invoices";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_payment_requests_invoice_id_fkey";
+            columns: ["invoice_id"];
+            isOneToOne: false;
+            referencedRelation: "v_fin_billing_readiness";
+            referencedColumns: ["invoice_id"];
+          },
+          {
+            foreignKeyName: "fin_payment_requests_invoice_id_fkey";
+            columns: ["invoice_id"];
+            isOneToOne: false;
+            referencedRelation: "v_fin_invoice_list";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_payment_requests_invoice_id_fkey";
+            columns: ["invoice_id"];
+            isOneToOne: false;
+            referencedRelation: "v_ins_invoice_match";
+            referencedColumns: ["invoice_id"];
+          },
+          {
+            foreignKeyName: "fin_payment_requests_message_id_fkey";
+            columns: ["message_id"];
+            isOneToOne: false;
+            referencedRelation: "messages";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_payment_requests_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
@@ -6416,9 +6644,15 @@ export type Database = {
           config_enc: string;
           consecutive_failures: number;
           created_at: string;
+          credentials_set_at: string | null;
+          enabled: boolean;
+          enabled_at: string | null;
+          enabled_by: string | null;
           id: string;
           kind: string;
           last_error: string | null;
+          last_error_at: string | null;
+          last_ok_at: string | null;
           org_id: string;
           status: string;
           token_expires_at: string | null;
@@ -6431,9 +6665,15 @@ export type Database = {
           config_enc: string;
           consecutive_failures?: number;
           created_at?: string;
+          credentials_set_at?: string | null;
+          enabled?: boolean;
+          enabled_at?: string | null;
+          enabled_by?: string | null;
           id?: string;
           kind: string;
           last_error?: string | null;
+          last_error_at?: string | null;
+          last_ok_at?: string | null;
           org_id: string;
           status?: string;
           token_expires_at?: string | null;
@@ -6445,9 +6685,15 @@ export type Database = {
           config_enc?: string;
           consecutive_failures?: number;
           created_at?: string;
+          credentials_set_at?: string | null;
+          enabled?: boolean;
+          enabled_at?: string | null;
+          enabled_by?: string | null;
           id?: string;
           kind?: string;
           last_error?: string | null;
+          last_error_at?: string | null;
+          last_ok_at?: string | null;
           org_id?: string;
           status?: string;
           token_expires_at?: string | null;
@@ -6455,7 +6701,128 @@ export type Database = {
         };
         Relationships: [
           {
+            foreignKeyName: "integration_accounts_enabled_by_fkey";
+            columns: ["enabled_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "integration_accounts_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      integration_calls: {
+        Row: {
+          at: string;
+          attempt: number;
+          duration_ms: number | null;
+          http_status: number | null;
+          id: number;
+          operation: string;
+          org_id: string;
+          outcome: string;
+          provider: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          at?: string;
+          attempt?: number;
+          duration_ms?: number | null;
+          http_status?: number | null;
+          id?: never;
+          operation: string;
+          org_id: string;
+          outcome: string;
+          provider: string;
+        };
+        Update: {
+          at?: string;
+          attempt?: number;
+          duration_ms?: number | null;
+          http_status?: number | null;
+          id?: never;
+          operation?: string;
+          org_id?: string;
+          outcome?: string;
+          provider?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "integration_calls_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      integration_usage_daily: {
+        Row: {
+          day: string;
+          metric: string;
+          org_id: string;
+          provider: string;
+          value: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          day: string;
+          metric: string;
+          org_id: string;
+          provider: string;
+          value?: number;
+        };
+        Update: {
+          day?: string;
+          metric?: string;
+          org_id?: string;
+          provider?: string;
+          value?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "integration_usage_daily_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      integration_webhook_events: {
+        Row: {
+          event_key: string;
+          id: number;
+          org_id: string;
+          outcome: string | null;
+          provider: string;
+          received_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          event_key: string;
+          id?: never;
+          org_id: string;
+          outcome?: string | null;
+          provider: string;
+          received_at?: string;
+        };
+        Update: {
+          event_key?: string;
+          id?: never;
+          org_id?: string;
+          outcome?: string | null;
+          provider?: string;
+          received_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "integration_webhook_events_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
@@ -9764,6 +10131,114 @@ export type Database = {
           },
         ];
       };
+      sms_messages: {
+        Row: {
+          appointment_id: string | null;
+          contact_id: string | null;
+          created_at: string;
+          dedupe_key: string;
+          delivered_at: string | null;
+          error_code: string | null;
+          id: string;
+          kind: string;
+          org_id: string;
+          provider: string;
+          provider_message_id: string | null;
+          segments: number | null;
+          sent_at: string | null;
+          source_message_id: string | null;
+          status: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          appointment_id?: string | null;
+          contact_id?: string | null;
+          created_at?: string;
+          dedupe_key: string;
+          delivered_at?: string | null;
+          error_code?: string | null;
+          id?: string;
+          kind?: string;
+          org_id: string;
+          provider: string;
+          provider_message_id?: string | null;
+          segments?: number | null;
+          sent_at?: string | null;
+          source_message_id?: string | null;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          appointment_id?: string | null;
+          contact_id?: string | null;
+          created_at?: string;
+          dedupe_key?: string;
+          delivered_at?: string | null;
+          error_code?: string | null;
+          id?: string;
+          kind?: string;
+          org_id?: string;
+          provider?: string;
+          provider_message_id?: string | null;
+          segments?: number | null;
+          sent_at?: string | null;
+          source_message_id?: string | null;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "sms_messages_appointment_id_fkey";
+            columns: ["appointment_id"];
+            isOneToOne: false;
+            referencedRelation: "appointments";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "sms_messages_appointment_id_fkey";
+            columns: ["appointment_id"];
+            isOneToOne: false;
+            referencedRelation: "v_appointment_facts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "sms_messages_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "sms_messages_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_birthday_today";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "sms_messages_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_chronic_recall_eligibility";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "sms_messages_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "sms_messages_source_message_id_fkey";
+            columns: ["source_message_id"];
+            isOneToOne: false;
+            referencedRelation: "messages";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       specialist_locations: {
         Row: {
           location_id: string;
@@ -12968,6 +13443,7 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      calendar_feed_touch: { Args: { p_id: string }; Returns: undefined };
       campaign_add_csv_rows: {
         Args: {
           p_campaign_id: string;
@@ -13326,6 +13802,25 @@ export type Database = {
         Returns: undefined;
       };
       ins_purge_stale_staging: { Args: Record<PropertyKey, never>; Returns: number };
+      integration_call_stats: {
+        Args: { p_org: string; p_since: string };
+        Returns: {
+          avg_ms: number;
+          calls: number;
+          last_at: string;
+          outcome: string;
+          provider: string;
+        }[];
+      };
+      integration_usage_bump: {
+        Args: {
+          p_metric: string;
+          p_n?: number;
+          p_org: string;
+          p_provider: string;
+        };
+        Returns: undefined;
+      };
       is_reminder_excluded: {
         Args: { p_doctor_name: string; p_org: string; p_patient_name: string };
         Returns: boolean;

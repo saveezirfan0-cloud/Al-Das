@@ -46,6 +46,20 @@ export const RATE_RULES = {
   helpFeedbackPerUser: { limit: 10, windowSec: 3600, failOpen: false },
   /** Phase 17: a dry run of a flow with sample messages (CPU only; no model, no network). */
   flowDryRunPerUser: { limit: 30, windowSec: 60, failOpen: true },
+  /** Phase 19: inbound integration webhooks. Counts failed signatures (and unknown accounts) per IP. */
+  integrationWebhookBadSignature: { limit: 30, windowSec: 60, failOpen: true },
+  /** Phase 19: every inbound integration webhook, per integration account. */
+  integrationWebhook: { limit: 300, windowSec: 60, failOpen: true },
+  /** Phase 19: the public calendar feed, per IP (every request counts). */
+  calendarFeedPerIp: { limit: 60, windowSec: 60, failOpen: true },
+  /** Phase 19: the public calendar feed, per feed token hash. */
+  calendarFeedPerToken: { limit: 120, windowSec: 60, failOpen: true },
+  /** Phase 19: creating, rotating or revoking calendar feeds. */
+  calendarFeedManagePerUser: { limit: 20, windowSec: 60, failOpen: false },
+  /** Phase 19: "Test connection" on an integration. */
+  integrationTestPerUser: { limit: 6, windowSec: 60, failOpen: false },
+  /** Phase 19: sending payment links by staff. */
+  paymentLinkPerUser: { limit: 20, windowSec: 60, failOpen: false },
   /** Phase 10 /api/public/v1, per API key. */
   publicApi: { limit: 120, windowSec: 60, failOpen: true },
 } as const satisfies Record<string, RateRule>;

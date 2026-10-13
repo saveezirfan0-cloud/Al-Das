@@ -7,6 +7,7 @@ import "@/lib/jobs/handlers/finance-capture";
 import "@/lib/jobs/handlers/meta-events";
 import "@/lib/jobs/handlers/media-fetch";
 import "@/lib/jobs/handlers/outbound";
+import "@/lib/jobs/handlers/sms-outbound";
 import "@/lib/jobs/handlers/inbox-housekeeping";
 import "@/lib/jobs/handlers/campaign-fanout";
 import "@/lib/jobs/handlers/campaign-tick";

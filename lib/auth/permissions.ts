@@ -335,6 +335,13 @@ export const PERMISSIONS = [
     description: "Download the one-way accounting journal (CSV) and map accounts",
   },
   {
+    key: "finance.payment_links",
+    group: "Finance",
+    label: "Send payment links",
+    description:
+      "Ask a patient to pay an invoice by sending a payment link in WhatsApp, and see the status the payment gateway reports. Pulse never marks the invoice as paid in Unite.",
+  },
+  {
     key: "portal.recall_sends.write",
     group: "Portal",
     label: "Edit recall call-list entries",
@@ -345,6 +352,20 @@ export const PERMISSIONS = [
     group: "Settings",
     label: "Manage settings, users, roles and teams",
     description: "Full administrative access to Settings and System health",
+  },
+  {
+    key: "integrations.manage",
+    group: "Settings",
+    label: "Manage integrations",
+    description:
+      "Store provider credentials, switch integrations on or off (SMS fallback, payment links, calendar feeds) and see their health. Switching on anything that messages patients or takes money needs a typed confirmation. Give this to the administrator only.",
+  },
+  {
+    key: "integrations.calendar",
+    group: "Settings",
+    label: "Manage doctor calendar feeds",
+    description:
+      "Create, rotate and revoke the private calendar links for doctors (times and clinic location only, never patient details). The integration itself is switched on by an administrator.",
   },
   {
     key: "security.manage",
@@ -397,6 +418,7 @@ export const FINANCE_ROLES: readonly RolePreset[] = [
       "finance.forecast.view",
       "finance.recovery.manage",
       "finance.recovery.approve",
+      "finance.payment_links",
       "finance.close.view",
       "finance.close.manage",
       "finance.close.signoff.finance",
@@ -415,6 +437,7 @@ export const FINANCE_ROLES: readonly RolePreset[] = [
       "finance.eligibility.manage",
       "finance.cashup.manage",
       "finance.recovery.manage",
+      "finance.payment_links",
     ],
   },
   {
@@ -502,6 +525,7 @@ export const SYSTEM_ROLES: readonly RolePreset[] = [
       "ai.use",
       "ai.insights.view",
       "kb.manage",
+      "integrations.calendar",
     ],
   },
   {

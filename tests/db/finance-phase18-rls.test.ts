@@ -314,8 +314,11 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 18: finance upgrades, access", () => 
       );
     await asServiceRole(c, () => q(block!));
     const first = await read();
+    // finance.payment_links arrived with Phase 19a (migration 20261018000100 grants it); this migration predates it.
     for (const preset of FINANCE_ROLES)
-      expect([...first[preset.name]].sort(), preset.name).toEqual([...preset.permissions].sort());
+      expect([...first[preset.name]].sort(), preset.name).toEqual(
+        preset.permissions.filter((p) => p !== "finance.payment_links").sort(),
+      );
     expect(first["Custom finance"]).toEqual(["finance.view"]);
     await asServiceRole(c, () => q(block!));
     expect(await read()).toEqual(first);

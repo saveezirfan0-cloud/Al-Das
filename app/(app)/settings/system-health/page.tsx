@@ -13,6 +13,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { requirePerm } from "@/lib/auth/session";
+import { HEALTH_LABEL, type HealthState } from "@/lib/integrations/health";
+import { loadIntegrationHealth } from "@/lib/integrations/health-server";
 import { getSystemHealth, type QueueHealth } from "@/lib/jobs/health";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -33,13 +35,28 @@ const STATUS: Record<
   unknown: { label: "Unknown", variant: "outline" },
 };
 
+const INTEGRATION_STATE: Record<
+  HealthState,
+  "secondary" | "success" | "warning" | "destructive" | "outline"
+> = {
+  off: "outline",
+  idle: "secondary",
+  ok: "success",
+  degraded: "warning",
+  down: "destructive",
+};
+
 function fmt(iso: string | null | undefined) {
   return iso ? new Date(iso).toLocaleString() : "—";
 }
 
 export default async function SystemHealthPage() {
-  await requirePerm("settings.manage");
-  const health = await getSystemHealth(createAdminClient());
+  const member = await requirePerm("settings.manage");
+  const admin = createAdminClient();
+  const [health, integrations] = await Promise.all([
+    getSystemHealth(admin),
+    loadIntegrationHealth(admin, member.orgId),
+  ]);
   const problems =
     health.queues.filter((q) => q.status === "failing" || q.status === "backlog").length +
     health.deadLetters.length;
@@ -126,6 +143,51 @@ export default async function SystemHealthPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     {q.handler && <RunNowButton queue={q.queue} label="Drain" size="sm" />}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Integrations</CardTitle>
+          <CardDescription>
+            SMS fallback, payment links and calendar feeds (Settings, Integrations). Calls in the
+            last 24 hours; no message text or amounts are logged.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Integration</TableHead>
+                <TableHead>State</TableHead>
+                <TableHead className="text-right">Calls</TableHead>
+                <TableHead className="text-right">Failed</TableHead>
+                <TableHead>Last success</TableHead>
+                <TableHead>Last problem</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {integrations.map((i) => (
+                <TableRow key={i.kind}>
+                  <TableCell>{i.title}</TableCell>
+                  <TableCell>
+                    <Badge variant={INTEGRATION_STATE[i.state]}>{HEALTH_LABEL[i.state]}</Badge>
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">{i.calls24h}</TableCell>
+                  <TableCell className="text-right tabular-nums">{i.failed24h}</TableCell>
+                  <TableCell className="text-muted-foreground text-xs">
+                    {fmt(i.view.lastOkAt)}
+                  </TableCell>
+                  <TableCell
+                    className="text-destructive max-w-56 truncate text-xs"
+                    title={i.view.lastError ?? undefined}
+                  >
+                    {i.view.lastError ?? ""}
                   </TableCell>
                 </TableRow>
               ))}

@@ -192,6 +192,42 @@ export const GUIDES: readonly Guide[] = [
     ],
   },
   {
+    id: "integrations",
+    title: "Integrations",
+    pages: ["/settings/integrations"],
+    purpose:
+      "Connect Pulse to a text-message provider, a payment gateway and doctors' calendars. Each one is off until an administrator switches it on.",
+    steps: [
+      "Open an integration, enter its settings and keys, press Save, then Test connection. Keys are stored encrypted and never shown again.",
+      "To switch on SMS fallback or payment links, type the confirmation words shown on the page. Both can contact patients.",
+      "Calendar feeds: create a feed for a doctor, copy the link at once (it is shown only once) and add it to Outlook, Google or Apple Calendar.",
+      "If a link is shared by mistake, Rotate it. The old link stops working immediately.",
+      "System health shows whether each integration is working.",
+    ],
+    watchOut: [
+      "A calendar feed shows appointment times and the clinic location only, never patient details, but anyone with the link can see them.",
+      "SMS is only a fallback for appointment reminders that WhatsApp could not deliver, and each message costs money.",
+      "Nothing here ever writes to Unite.",
+    ],
+  },
+  {
+    id: "payment-links",
+    title: "Payment links",
+    pages: ["/finance/payment-links"],
+    purpose: "Ask a patient to pay an invoice by card with a link sent on WhatsApp.",
+    steps: [
+      "Type the invoice number and press Find. Check the total and whether the invoice has a patient.",
+      "Check the amount, tick the box and send. The patient receives an approved WhatsApp message with the link.",
+      "Watch the status: sent, paid, expired or cancelled. Cancel a link that should not be paid any more.",
+      "A row marked review needs a look in the payment gateway before you reconcile it.",
+    ],
+    watchOut: [
+      "Paid means the payment gateway said so. Pulse does not mark the invoice as paid in Unite: do that in your usual way.",
+      "There is one open link per invoice. Refunds are not handled here.",
+      "Send a link only when you have been asked to or the patient agreed to pay now.",
+    ],
+  },
+  {
     id: "settings",
     title: "Settings",
     pages: ["/settings"],

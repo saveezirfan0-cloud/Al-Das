@@ -13,5 +13,8 @@ globalThis.fetch = ((input: Parameters<typeof fetch>[0], init?: Parameters<typeo
   // Phase 17: the AI features are tested with a fake model behind the Llm interface; no test may reach a provider.
   if (/^https?:\/\/([a-z0-9-]+\.)*(anthropic\.com|voyageai\.com|graph\.facebook\.com)([/:?#]|$)/i.test(url))
     throw new Error("Tests must never call an AI provider or Meta: use a fake client");
+  // Phase 19: payment gateways and the SMS provider are tested with fake clients and recorded responses; no test may reach them.
+  if (/^https?:\/\/([a-z0-9-]+\.)*(stripe\.com|paytabs\.com|paytabs\.sa|twilio\.com)([/:?#]|$)/i.test(url))
+    throw new Error("Tests must never call a payment gateway or an SMS provider: use a fake client");
   return realFetch(input, init);
 }) as typeof fetch;

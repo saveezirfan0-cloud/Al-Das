@@ -115,6 +115,12 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
     permissions: ["finance.recovery.manage", "finance.recovery.approve"],
   },
   {
+    href: "/finance/payment-links",
+    label: "Payment links",
+    section: "Money",
+    permissions: ["finance.payment_links"],
+  },
+  {
     href: "/finance/close",
     label: "Month-end close",
     section: "Money",
