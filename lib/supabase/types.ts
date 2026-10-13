@@ -1022,6 +1022,133 @@ export type Database = {
           },
         ];
       };
+      campaign_archive: {
+        Row: {
+          created_at: string;
+          id: string;
+          name: string;
+          org_id: string;
+          sent_at: string | null;
+          source: string;
+          template_name: string | null;
+          totals: NonNullable<Json>;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          id?: string;
+          name: string;
+          org_id: string;
+          sent_at?: string | null;
+          source?: string;
+          template_name?: string | null;
+          totals?: NonNullable<Json>;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          name?: string;
+          org_id?: string;
+          sent_at?: string | null;
+          source?: string;
+          template_name?: string | null;
+          totals?: NonNullable<Json>;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "campaign_archive_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      campaign_archive_recipients: {
+        Row: {
+          archive_id: string;
+          contact_id: string;
+          created_at: string;
+          delivered_at: string | null;
+          error_code: number | null;
+          failed_at: string | null;
+          id: string;
+          org_id: string;
+          read_at: string | null;
+          replied_at: string | null;
+          sent_at: string | null;
+          status: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          archive_id: string;
+          contact_id: string;
+          created_at?: string;
+          delivered_at?: string | null;
+          error_code?: number | null;
+          failed_at?: string | null;
+          id?: string;
+          org_id: string;
+          read_at?: string | null;
+          replied_at?: string | null;
+          sent_at?: string | null;
+          status: string;
+        };
+        Update: {
+          archive_id?: string;
+          contact_id?: string;
+          created_at?: string;
+          delivered_at?: string | null;
+          error_code?: number | null;
+          failed_at?: string | null;
+          id?: string;
+          org_id?: string;
+          read_at?: string | null;
+          replied_at?: string | null;
+          sent_at?: string | null;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "campaign_archive_recipients_archive_id_fkey";
+            columns: ["archive_id"];
+            isOneToOne: false;
+            referencedRelation: "campaign_archive";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "campaign_archive_recipients_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "campaign_archive_recipients_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_birthday_today";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "campaign_archive_recipients_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_chronic_recall_eligibility";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "campaign_archive_recipients_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       campaign_recipients: {
         Row: {
           attempts: number;
@@ -3225,6 +3352,67 @@ export type Database = {
             columns: ["org_id"];
             isOneToOne: true;
             referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      enquiry_tags: {
+        Row: {
+          added_at: string;
+          added_by: string | null;
+          enquiry_id: string;
+          org_id: string;
+          tag_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          added_at?: string;
+          added_by?: string | null;
+          enquiry_id: string;
+          org_id: string;
+          tag_id: string;
+        };
+        Update: {
+          added_at?: string;
+          added_by?: string | null;
+          enquiry_id?: string;
+          org_id?: string;
+          tag_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "enquiry_tags_added_by_fkey";
+            columns: ["added_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "enquiry_tags_enquiry_id_fkey";
+            columns: ["enquiry_id"];
+            isOneToOne: false;
+            referencedRelation: "enquiries";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "enquiry_tags_enquiry_id_fkey";
+            columns: ["enquiry_id"];
+            isOneToOne: false;
+            referencedRelation: "v_enquiry_facts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "enquiry_tags_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "enquiry_tags_tag_id_fkey";
+            columns: ["tag_id"];
+            isOneToOne: false;
+            referencedRelation: "tags";
             referencedColumns: ["id"];
           },
         ];

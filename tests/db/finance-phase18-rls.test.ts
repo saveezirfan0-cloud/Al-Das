@@ -316,7 +316,7 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 18: finance upgrades, access", () => 
     const first = await read();
     // finance.payment_links arrived with Phase 19a (migration 20261018000100 grants it); the cost and profit keys and
     // the Cost / Payroll role arrived with F8 (20261021000100, tested in finance-blueprint.test.ts); the flash keys arrived
-    // with Phase 20A (20261023000100, tested in finance-flash.test.ts), the payables, voucher and Tally keys with Phase 20D
+    // with Phase 20A (20261023000300, tested in finance-flash.test.ts), the payables, voucher and Tally keys with Phase 20D
     // (20261024000100, tested in finance-payables.test.ts), the follow-up key with Phase 20I (20261026000100, tested in
     // finance-followup.test.ts), finance.close.tasks with Phase 20G (20261029000100, tested in
     // finance-close-timetable.test.ts), the bank keys with Phase 20C (20261028000100, tested in finance-bank.test.ts) and the

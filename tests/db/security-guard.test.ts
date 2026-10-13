@@ -26,6 +26,7 @@ import {
   PHASE19_SERVICE_ONLY_TABLES,
   PHASE19_TABLES,
   PHASE20_TABLES,
+  PHASE20A_TABLES,
   PHASE20D_SERVICE_ONLY_TABLES,
   PHASE20D_TABLES,
   PHASE21_TABLES,
@@ -37,6 +38,7 @@ import {
   seedPhase18Rows,
   seedPhase19Rows,
   seedPhase20Rows,
+  seedPhase20aRows,
   seedPhase20DRows,
   seedPhase21Rows,
   seedSecurityRows,
@@ -554,6 +556,8 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
     await seedPhase20DRows(c, orgA, alice);
     // Phase 21 tables likewise.
     await seedPhase21Rows(c, orgA);
+    // Phase 20a (Sanoflow) tables likewise.
+    await seedPhase20aRows(c, orgA);
   });
   afterAll(async () => {
     await resetDb(c);
@@ -565,13 +569,13 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
   });
 
   it("sweeps every Phase 13 to 21 table (a new table must be added to PHASE13_TABLES ... PHASE21_TABLES and seeded)", () => {
-    for (const t of [...PHASE21_TABLES, ...PHASE20_TABLES, ...PHASE20D_TABLES, ...PHASE19_TABLES, ...PHASE18_TABLES, ...PHASE17_TABLES, ...PHASE16_TABLES, ...PHASE15_TABLES, ...PHASE14_TABLES, ...PHASE13_TABLES])
+    for (const t of [...PHASE21_TABLES, ...PHASE20_TABLES, ...PHASE20A_TABLES, ...PHASE20D_TABLES, ...PHASE19_TABLES, ...PHASE18_TABLES, ...PHASE17_TABLES, ...PHASE16_TABLES, ...PHASE15_TABLES, ...PHASE14_TABLES, ...PHASE13_TABLES])
       expect(orgTables, `${t} is not in the org sweep`).toContain(t);
   });
 
   it("really holds org A rows in the Phase 13 to 21 tables, visible to org A's admin (control for the leak sweep)", async () => {
     await asUser(c, alice, async () => {
-      for (const t of [...PHASE21_TABLES, ...PHASE20_TABLES, ...PHASE20D_TABLES, ...PHASE19_TABLES, ...PHASE18_TABLES, ...PHASE17_TABLES, ...PHASE16_TABLES, ...PHASE15_TABLES, ...PHASE14_TABLES, ...PHASE13_TABLES]) {
+      for (const t of [...PHASE21_TABLES, ...PHASE20_TABLES, ...PHASE20A_TABLES, ...PHASE20D_TABLES, ...PHASE19_TABLES, ...PHASE18_TABLES, ...PHASE17_TABLES, ...PHASE16_TABLES, ...PHASE15_TABLES, ...PHASE14_TABLES, ...PHASE13_TABLES]) {
         const { rows } = await c.query<{ n: string }>(
           `select count(*)::text as n from public.${t} where org_id = $1`,
           [orgA],

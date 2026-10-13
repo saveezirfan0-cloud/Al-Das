@@ -77,8 +77,8 @@ export const SETTINGS_PAGES: readonly SettingsPage[] = [
     href: "/settings/tags",
     label: "Tags",
     section: "Workspace",
-    keywords: ["labels"],
-    allow: (m) => can(m, "contacts.manage"),
+    keywords: ["labels", "enquiry tags"],
+    allow: (m) => can(m, "contacts.manage") || can(m, "enquiries.manage"),
   },
 
   {

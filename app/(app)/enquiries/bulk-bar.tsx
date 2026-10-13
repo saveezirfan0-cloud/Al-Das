@@ -233,6 +233,7 @@ export function BulkBar({
       <StatusReasonDialog
         open={!!reasonFor}
         status={reasonFor}
+        reasons={bootstrap.lostReasons}
         count={ids.length}
         pending={pending}
         onCancel={() => setReasonFor(null)}

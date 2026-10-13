@@ -114,6 +114,7 @@ export const GUIDES: readonly Guide[] = [
       "Choose or build the audience and look at the count before you go on.",
       "Pick an approved template and use the phone preview to check it.",
       "Send now or schedule. Watch delivery and replies on the campaign page.",
+      "Campaigns sent from Sanoflow before the move are under Campaign history (read-only).",
       "Stuck? The Campaign Copilot turns a sentence into an audience with its size, and suggests English and Arabic wording. In Flows, Describe a bot drafts a flow and Dry run tries it with sample messages.",
     ],
     watchOut: [

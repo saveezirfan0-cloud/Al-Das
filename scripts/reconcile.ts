@@ -6,6 +6,9 @@
  *   pnpm reconcile --org <slug> --live-airtable --write-source-counts docs/audit/source-counts.json
  *
  * Options: --allow-open-reviews N (default 0)  --tolerance N (default 0)  --summaries <dir> (default docs/audit)
+ *          --sanoflow-counts <file|latest>   add the record counts `pnpm import:sanoflow:all` wrote for its
+ *                                            export folder (docs/audit/sanoflow-source-counts-<ts>.json)
+ *          --source-counts a.json,b.json     several count files are merged
  *
  * source-counts.json: { "airtable": { "<baseId>.<tableId>": { "label": "Unite patients", "total": 10652 } } }
  * Reads the importers' summaries (docs/audit/import-summary-*.json), asks the database for a counts-only
@@ -45,6 +48,31 @@ function loadSummaries(dir: string): ImportSummary[] {
     });
 }
 
+function mergeCounts(a: SourceCountsFile, b: SourceCountsFile): SourceCountsFile {
+  const out: SourceCountsFile = { ...a };
+  for (const [source, entities] of Object.entries(b))
+    out[source] = { ...(out[source] ?? {}), ...entities };
+  return out;
+}
+
+/** "latest" → the newest docs/audit/sanoflow-source-counts-*.json; anything else is a path. */
+function sanoflowCountsFile(arg: string): string {
+  if (arg !== "latest") return arg;
+  const dir = path.join(process.cwd(), "docs/audit");
+  const last = fs.existsSync(dir)
+    ? fs
+        .readdirSync(dir)
+        .filter((f) => /^sanoflow-source-counts-.*\.json$/.test(f))
+        .sort()
+        .at(-1)
+    : undefined;
+  if (!last)
+    throw new Error(
+      "no docs/audit/sanoflow-source-counts-*.json (run pnpm import:sanoflow:all first)",
+    );
+  return path.join(dir, last);
+}
+
 async function countAirtable(): Promise<SourceCountsFile> {
   const pat = process.env.AIRTABLE_PAT;
   if (!pat) throw new Error("AIRTABLE_PAT is required for --live-airtable");
@@ -76,10 +104,21 @@ async function main() {
       console.log(`source counts → ${opts["write-source-counts"]}`);
     }
   } else if (opts["source-counts"]) {
-    counts = JSON.parse(fs.readFileSync(opts["source-counts"], "utf8")) as SourceCountsFile;
-  } else {
-    console.warn("no --source-counts or --live-airtable: per-entity accounting will be skipped");
+    for (const f of opts["source-counts"].split(","))
+      counts = mergeCounts(
+        counts,
+        JSON.parse(fs.readFileSync(f.trim(), "utf8")) as SourceCountsFile,
+      );
   }
+  if (opts["sanoflow-counts"]) {
+    const f = sanoflowCountsFile(opts["sanoflow-counts"]);
+    counts = mergeCounts(counts, JSON.parse(fs.readFileSync(f, "utf8")) as SourceCountsFile);
+    console.log(`Sanoflow source counts ← ${path.relative(process.cwd(), f)}`);
+  }
+  if (!Object.keys(counts).length)
+    console.warn(
+      "no --source-counts, --sanoflow-counts or --live-airtable: per-entity accounting will be skipped",
+    );
 
   const sources: SourceCount[] = Object.entries(counts).flatMap(([source, entities]) =>
     Object.entries(entities).map(([entity, v]) => ({

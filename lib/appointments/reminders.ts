@@ -42,6 +42,18 @@ export function computeReminders(opts: {
 }
 
 /**
+ * Appointments brought over from Sanoflow (source 'import') get no reminders until an administrator
+ * turns `import_reminders_enabled` on under Settings → Appointments, after Sanoflow's own reminders
+ * are off and the setup has been tested (docs/22). Every other source is unaffected.
+ */
+export function remindersAllowed(
+  source: string | null | undefined,
+  settings: { import_reminders_enabled: boolean },
+): boolean {
+  return source !== "import" || settings.import_reminders_enabled;
+}
+
+/**
  * Diff the desired reminders against what is stored. A reminder is (re)scheduled when it is new or
  * its due time moved (appointment rescheduled); rows no longer wanted are cancelled unless they have
  * already gone out.

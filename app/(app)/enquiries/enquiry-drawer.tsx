@@ -11,6 +11,7 @@ import { Timeline } from "@/components/timeline/timeline";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { MultiSelect } from "@/components/ui/multi-select";
 import {
   Sheet,
   SheetContent,
@@ -25,6 +26,8 @@ import { fromLocalInput, toLocalInput } from "@/lib/enquiries/datetime";
 
 import {
   addEnquiryNote,
+  createEnquiryTag,
+  setEnquiryTags,
   changePipeline,
   changeStage,
   changeStatus,
@@ -97,6 +100,12 @@ export function EnquiryDrawer({
   const [note, setNote] = React.useState("");
   const [reasonFor, setReasonFor] = React.useState<EnquiryStatus | null>(null);
   const [movePipelineId, setMovePipelineId] = React.useState<string | null>(null);
+  // Tags created from this drawer join the list without a reload.
+  const [extraTags, setExtraTags] = React.useState<Array<{ id: string; name: string }>>([]);
+  const tagOptions = [...bootstrap.enquiryTags, ...extraTags].map((t) => ({
+    value: t.id,
+    label: t.name,
+  }));
 
   const onCloseRef = React.useRef(onClose);
   onCloseRef.current = onClose;
@@ -352,6 +361,32 @@ export function EnquiryDrawer({
                   )}
                 </div>
 
+                <section className="flex flex-col gap-2 border-t pt-3">
+                  <h3 className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+                    Tags
+                  </h3>
+                  <MultiSelect
+                    options={tagOptions}
+                    value={detail.tagIds}
+                    disabled={!canManage || pending}
+                    placeholder="Add tags…"
+                    onChange={(ids) => run(() => setEnquiryTags(detail.enquiry.id, ids))}
+                    onCreate={
+                      canManage
+                        ? async (label) => {
+                            const res = await createEnquiryTag({ name: label });
+                            if (!res.ok) {
+                              toast.error(res.error);
+                              return null;
+                            }
+                            setExtraTags((cur) => [...cur, res.data]);
+                            return res.data.id;
+                          }
+                        : undefined
+                    }
+                  />
+                </section>
+
                 {canManage && otherPipelines.length > 0 && (
                   <section className="flex flex-col gap-2 border-t pt-3">
                     <h3 className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
@@ -477,6 +512,7 @@ export function EnquiryDrawer({
             <StatusReasonDialog
               open={!!reasonFor}
               status={reasonFor}
+              reasons={bootstrap.lostReasons}
               pending={pending}
               onCancel={() => setReasonFor(null)}
               onConfirm={(reason) =>

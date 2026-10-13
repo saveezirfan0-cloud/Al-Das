@@ -93,6 +93,9 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
         <Button asChild variant="outline" size="sm">
           <Link href="/templates">Manage templates</Link>
         </Button>
+        <Button asChild variant="outline" size="sm">
+          <Link href="/campaigns/history">Campaign history</Link>
+        </Button>
         {canCreate &&
           can(member, "campaigns.ai") &&
           readAiSettings(member.org.settings).enabled && (

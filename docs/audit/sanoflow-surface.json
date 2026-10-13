@@ -1,0 +1,4546 @@
+{
+ "_about": {
+  "captured": "2026-10-13 from app.sanoflow.io (Al Das workspace), read-only, by fetching the logged-in app's page HTML and reading Wappler Server Connect declarations (dmx-serverconnect url, dmx-param:*, serverconnect-form field names) and the page's i18n key vocabulary. No API was called, no record data, names, phones or message text were captured. Endpoint/field names describe behaviour; do not copy Sanoflow naming into Pulse.",
+  "method": "REA-style passive web observation (equivalent of rea inspect-web-page + analyze-web-bundle on the server-rendered HTML)",
+  "counts": {
+   "pages": 25,
+   "endpoints": 333,
+   "by_module": {
+    "Appointments": 19,
+    "Campaigns": 14,
+    "Common": 19,
+    "Masters": 1,
+    "Messages": 2,
+    "OCInbox": 37,
+    "Patients": 18,
+    "Settings": 132,
+    "Task": 4,
+    "Users": 1,
+    "contact-details": 16,
+    "dashboard": 4,
+    "enquiry-details": 5,
+    "enquiry": 23,
+    "organizations": 2,
+    "reports": 8,
+    "template": 13,
+    "workflow": 15
+   }
+  }
+ },
+ "app_routes": [
+  "/dashboard",
+  "/appointments",
+  "/contacts",
+  "/enquiries",
+  "/tasks",
+  "/chat-inbox",
+  "/chat-inbox/failed-messages",
+  "/campaigns",
+  "/campaigns/new-campaigns",
+  "/templates",
+  "/flow",
+  "/flow/log/:id",
+  "/reports",
+  "/forms",
+  "/payments",
+  "/settings/account",
+  "/settings/account/notification",
+  "/settings/company/organization",
+  "/settings/company/billing",
+  "/settings/company/users",
+  "/settings/company/integrations",
+  "/settings/company/knowledgebase",
+  "/settings/platform/enquiries",
+  "/settings/platform/inbox",
+  "/settings/platform/appointments",
+  "/download-campaign-report/:id",
+  "/download-knowledgebase-file/:id"
+ ],
+ "frontend_stack": [
+  "Wappler App Connect (dmx-*) server-rendered pages",
+  "jQuery 3.5, Bootstrap 5",
+  "Socket.io (/socket.io) + dmxSockets",
+  "FullCalendar (custom build) + appt-calendar.js",
+  "JointJS flow canvas, jQuery QueryBuilder, JSONEditor 9.10, jquery-cron-quartz + cronstrue",
+  "AG Grid Enterprise + AG Charts Enterprise, Chart.js, ApexCharts",
+  "Tiptap, Tagify, Select2, Sortable",
+  "intl-tel-input + libphonenumber-js",
+  "S3 direct upload (dmxS3Upload), Dropzone",
+  "CSVBox (hosted CSV import widget)",
+  "WonderPush (web push)",
+  "Facebook JS SDK, GA4"
+ ],
+ "endpoints": [
+  {
+   "endpoint": "/api/Appointments/AddAppt",
+   "module": "Appointments",
+   "kind": "mutation_form",
+   "pages": [
+    "/appointments",
+    "/contacts",
+    "/enquiries",
+    "/chat-inbox"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "TempMsgID",
+    "LeadID",
+    "PatientID",
+    "patient_id",
+    "LocID",
+    "SpecID",
+    "ServiceID",
+    "ApptDate",
+    "duration",
+    "session_code",
+    "no_of_token",
+    "hms_time_slot",
+    "hms_room_id",
+    "StartTime",
+    "hms_end_time",
+    "EndTime",
+    "NotifBySMS",
+    "NotifByEmail",
+    "NotifyEarlyAvail",
+    "Notes"
+   ]
+  },
+  {
+   "endpoint": "/api/Appointments/AddEditPatient",
+   "module": "Appointments",
+   "kind": "mutation_form",
+   "pages": [
+    "/appointments",
+    "/contacts",
+    "/enquiries",
+    "/chat-inbox"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "PatientID",
+    "FirstName",
+    "LastName",
+    "Phone",
+    "CountryCode",
+    "ISDCode",
+    "FullPhone",
+    "Email"
+   ]
+  },
+  {
+   "endpoint": "/api/Appointments/AllAppt",
+   "module": "Appointments",
+   "kind": "data_source",
+   "pages": [
+    "/appointments"
+   ],
+   "query_params": [
+    "appdate",
+    "specialist",
+    "location",
+    "view"
+   ],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Appointments/AllSpecialistAppt",
+   "module": "Appointments",
+   "kind": "data_source",
+   "pages": [
+    "/appointments"
+   ],
+   "query_params": [
+    "appdate",
+    "location"
+   ],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Appointments/ConfirmApptTIme",
+   "module": "Appointments",
+   "kind": "data_source",
+   "pages": [
+    "/appointments"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Appointments/SpecLoc",
+   "module": "Appointments",
+   "kind": "data_source",
+   "pages": [
+    "/appointments"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Appointments/SpecOSList",
+   "module": "Appointments",
+   "kind": "data_source",
+   "pages": [
+    "/appointments"
+   ],
+   "query_params": [
+    "fromdate",
+    "specialist",
+    "location"
+   ],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Appointments/TimeSlotEnd",
+   "module": "Appointments",
+   "kind": "data_source",
+   "pages": [
+    "*shell*"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Appointments/TimeSlots",
+   "module": "Appointments",
+   "kind": "data_source",
+   "pages": [
+    "*shell*"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Appointments/activity-list",
+   "module": "Appointments",
+   "kind": "data_source",
+   "pages": [
+    "/appointments"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Appointments/col-show-hide",
+   "module": "Appointments",
+   "kind": "mutation_form",
+   "pages": [
+    "/appointments"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "phone",
+    "channel",
+    "status",
+    "location",
+    "specialist",
+    "service",
+    "notes",
+    "external_id"
+   ]
+  },
+  {
+   "endpoint": "/api/Appointments/col-show-hide-list",
+   "module": "Appointments",
+   "kind": "data_source",
+   "pages": [
+    "/appointments"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Appointments/col-width-update",
+   "module": "Appointments",
+   "kind": "data_source",
+   "pages": [
+    "/appointments"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Appointments/details",
+   "module": "Appointments",
+   "kind": "data_source",
+   "pages": [
+    "/appointments"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Appointments/edit-activity",
+   "module": "Appointments",
+   "kind": "data_source",
+   "pages": [
+    "/appointments"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Appointments/edit-appt-status",
+   "module": "Appointments",
+   "kind": "mutation_form",
+   "pages": [
+    "/appointments"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "Status",
+    "ApptID",
+    "NotifBySMS",
+    "NotifByEmail"
+   ]
+  },
+  {
+   "endpoint": "/api/Appointments/export-all-appt",
+   "module": "Appointments",
+   "kind": "data_source",
+   "pages": [
+    "/appointments"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Appointments/export-table-appt",
+   "module": "Appointments",
+   "kind": "data_source",
+   "pages": [
+    "/appointments"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Appointments/sms-channel",
+   "module": "Appointments",
+   "kind": "data_source",
+   "pages": [
+    "/appointments"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Campaigns/SchedulePlayStop",
+   "module": "Campaigns",
+   "kind": "data_source",
+   "pages": [
+    "/campaigns"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Campaigns/add-recipient-segment",
+   "module": "Campaigns",
+   "kind": "data_source",
+   "pages": [
+    "/campaigns"
+   ],
+   "query_params": [
+    "recipients_id",
+    "campaign_schedule_id",
+    "status"
+   ],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Campaigns/campaign-contacts",
+   "module": "Campaigns",
+   "kind": "data_source",
+   "pages": [
+    "/campaigns/new-campaigns"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Campaigns/cron-edit",
+   "module": "Campaigns",
+   "kind": "mutation_form",
+   "pages": [
+    "/campaigns"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "recurring_period",
+    "recurring_time",
+    "campaign_id"
+   ]
+  },
+  {
+   "endpoint": "/api/Campaigns/delete",
+   "module": "Campaigns",
+   "kind": "mutation_form",
+   "pages": [
+    "/campaigns"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "campaign_id"
+   ]
+  },
+  {
+   "endpoint": "/api/Campaigns/list",
+   "module": "Campaigns",
+   "kind": "data_source",
+   "pages": [
+    "/campaigns"
+   ],
+   "query_params": [
+    "limit",
+    "offset",
+    "search",
+    "status"
+   ],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Campaigns/new-campaign-details",
+   "module": "Campaigns",
+   "kind": "data_source",
+   "pages": [
+    "/campaigns/new-campaigns"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Campaigns/recipient-details",
+   "module": "Campaigns",
+   "kind": "data_source",
+   "pages": [
+    "/campaigns"
+   ],
+   "query_params": [
+    "id",
+    "type",
+    "scheduled_id"
+   ],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Campaigns/recipient-list",
+   "module": "Campaigns",
+   "kind": "data_source",
+   "pages": [
+    "/campaigns"
+   ],
+   "query_params": [
+    "id",
+    "type",
+    "limit",
+    "search",
+    "scheduled_id",
+    "status"
+   ],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Campaigns/retry-one-recipient-list",
+   "module": "Campaigns",
+   "kind": "data_source",
+   "pages": [
+    "/campaigns"
+   ],
+   "query_params": [
+    "id",
+    "type",
+    "limit",
+    "search",
+    "scheduled_id",
+    "status"
+   ],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Campaigns/retry-two-recipient-list",
+   "module": "Campaigns",
+   "kind": "data_source",
+   "pages": [
+    "/campaigns"
+   ],
+   "query_params": [
+    "id",
+    "type",
+    "limit",
+    "search",
+    "scheduled_id",
+    "status"
+   ],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Campaigns/retry-three-recipient-list",
+   "module": "Campaigns",
+   "kind": "data_source",
+   "pages": [
+    "/campaigns"
+   ],
+   "query_params": [
+    "id",
+    "type",
+    "limit",
+    "search",
+    "scheduled_id",
+    "status"
+   ],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Campaigns/start-campaign",
+   "module": "Campaigns",
+   "kind": "mutation_form",
+   "pages": [
+    "/campaigns/new-campaigns"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "name",
+    "channel_id",
+    "audience",
+    "template_id",
+    "segment_id",
+    "recipient_count",
+    "campaign_type",
+    "schedule_date",
+    "is_retry",
+    "retry_one",
+    "retry_two",
+    "retry_three"
+   ]
+  },
+  {
+   "endpoint": "/api/Campaigns/test-template",
+   "module": "Campaigns",
+   "kind": "data_source",
+   "pages": [
+    "/campaigns/new-campaigns"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Common/AllLocations",
+   "module": "Common",
+   "kind": "data_source",
+   "pages": [
+    "*shell*"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Common/LabelsAndTags",
+   "module": "Common",
+   "kind": "data_source",
+   "pages": [
+    "*shell*"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Common/Patients",
+   "module": "Common",
+   "kind": "data_source",
+   "pages": [
+    "*shell*"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Common/RunRoundRobin",
+   "module": "Common",
+   "kind": "data_source",
+   "pages": [
+    "*shell*"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Common/WebContent",
+   "module": "Common",
+   "kind": "data_source",
+   "pages": [
+    "*shell*"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Common/alert-status-update",
+   "module": "Common",
+   "kind": "data_source",
+   "pages": [
+    "*shell*"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Common/all-org-locations",
+   "module": "Common",
+   "kind": "data_source",
+   "pages": [
+    "/settings/company/users",
+    "/settings/platform/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Common/all-pipelines",
+   "module": "Common",
+   "kind": "data_source",
+   "pages": [
+    "*shell*"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Common/all-teams",
+   "module": "Common",
+   "kind": "data_source",
+   "pages": [
+    "*shell*"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Common/contacts",
+   "module": "Common",
+   "kind": "data_source",
+   "pages": [
+    "*shell*"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Common/enquiry-setting",
+   "module": "Common",
+   "kind": "data_source",
+   "pages": [
+    "*shell*"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Common/get-payment-methods",
+   "module": "Common",
+   "kind": "data_source",
+   "pages": [
+    "*shell*"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Common/set-user-status",
+   "module": "Common",
+   "kind": "data_source",
+   "pages": [
+    "*shell*"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Common/update-user-status",
+   "module": "Common",
+   "kind": "data_source",
+   "pages": [
+    "*shell*"
+   ],
+   "query_params": [
+    "socket_id"
+   ],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Common/user-all-alert",
+   "module": "Common",
+   "kind": "data_source",
+   "pages": [
+    "*shell*"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Common/user-inbox-filter/add-edit",
+   "module": "Common",
+   "kind": "data_source",
+   "pages": [
+    "/chat-inbox"
+   ],
+   "query_params": [
+    "socket_id",
+    "status"
+   ],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Common/user-inbox-filter/delete",
+   "module": "Common",
+   "kind": "data_source",
+   "pages": [
+    "*shell*"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Common/user-info",
+   "module": "Common",
+   "kind": "data_source",
+   "pages": [
+    "*shell*"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Common/widget-details",
+   "module": "Common",
+   "kind": "data_source",
+   "pages": [
+    "*shell*"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Masters/Status",
+   "module": "Masters",
+   "kind": "data_source",
+   "pages": [
+    "*shell*"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Messages/AddEditTemplate",
+   "module": "Messages",
+   "kind": "mutation_form",
+   "pages": [
+    "/templates"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "channel",
+    "type",
+    "id",
+    "name",
+    "message"
+   ]
+  },
+  {
+   "endpoint": "/api/Messages/all-message-templates",
+   "module": "Messages",
+   "kind": "data_source",
+   "pages": [
+    "/appointments",
+    "/chat-inbox",
+    "/templates"
+   ],
+   "query_params": [
+    "search",
+    "limit"
+   ],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/OCInbox/AddComment",
+   "module": "OCInbox",
+   "kind": "mutation_form",
+   "pages": [
+    "/chat-inbox"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "TempMsgID",
+    "PatientID",
+    "Comment"
+   ]
+  },
+  {
+   "endpoint": "/api/OCInbox/AgentTakeOverChatBot",
+   "module": "OCInbox",
+   "kind": "data_source",
+   "pages": [
+    "/chat-inbox"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/OCInbox/All",
+   "module": "OCInbox",
+   "kind": "data_source",
+   "pages": [
+    "/chat-inbox"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/OCInbox/ChatQueue",
+   "module": "OCInbox",
+   "kind": "data_source",
+   "pages": [
+    "/chat-inbox"
+   ],
+   "query_params": [
+    "filtertype",
+    "limit",
+    "txtsearch",
+    "offset",
+    "sort",
+    "dir",
+    "channel_filter",
+    "assigned_to_user",
+    "notreplied",
+    "labels",
+    "tags",
+    "get_notif_data",
+    "notreplieduser",
+    "is_bot",
+    "tab",
+    "team_id",
+    "op_status",
+    "op_assigned_to",
+    "msg_search",
+    "status"
+   ],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/OCInbox/DeleteCannedMessage",
+   "module": "OCInbox",
+   "kind": "mutation_form",
+   "pages": [
+    "/chat-inbox"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "MessageTemplateID"
+   ]
+  },
+  {
+   "endpoint": "/api/OCInbox/PatientChannel",
+   "module": "OCInbox",
+   "kind": "data_source",
+   "pages": [
+    "/chat-inbox"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/OCInbox/PatientChats",
+   "module": "OCInbox",
+   "kind": "data_source",
+   "pages": [
+    "/contacts",
+    "/enquiries",
+    "/chat-inbox"
+   ],
+   "query_params": [
+    "chat_offset"
+   ],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/OCInbox/UnMapChatToPatient",
+   "module": "OCInbox",
+   "kind": "mutation_form",
+   "pages": [
+    "/contacts",
+    "/enquiries",
+    "/chat-inbox"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "PatientChannelID",
+    "PatientID"
+   ]
+  },
+  {
+   "endpoint": "/api/OCInbox/UpdatePatientStatus",
+   "module": "OCInbox",
+   "kind": "mutation_form",
+   "pages": [
+    "/chat-inbox"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "Status",
+    "PatientID",
+    "PatientChannelID",
+    "waiting_until",
+    "category_id",
+    "notes",
+    "channel_id",
+    "enquiry_id",
+    "title",
+    "first_name",
+    "last_name",
+    "phone",
+    "isd_code",
+    "country_code",
+    "FullPhoneNumber",
+    "email",
+    "location",
+    "specialist",
+    "service",
+    "enquiry_channel",
+    "appointmentTime",
+    "appointmentDate",
+    "team_id",
+    "user_id",
+    "enquiry_stage",
+    "enquiry_status",
+    "disqualify_reason",
+    "disqualify_note",
+    "timeDiff",
+    "tags",
+    "source",
+    "utm_medium",
+    "utm_source",
+    "utm_content",
+    "utm_campaign",
+    "utm_term",
+    "enquiry_notes"
+   ]
+  },
+  {
+   "endpoint": "/api/OCInbox/add-edit-view",
+   "module": "OCInbox",
+   "kind": "mutation_form",
+   "pages": [
+    "/chat-inbox"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "view_name",
+    "id",
+    "view"
+   ]
+  },
+  {
+   "endpoint": "/api/OCInbox/all-payment-providers",
+   "module": "OCInbox",
+   "kind": "data_source",
+   "pages": [
+    "/chat-inbox"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/OCInbox/call-details",
+   "module": "OCInbox",
+   "kind": "data_source",
+   "pages": [
+    "/chat-inbox"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/OCInbox/catalogue-products",
+   "module": "OCInbox",
+   "kind": "data_source",
+   "pages": [
+    "/chat-inbox"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/OCInbox/contact-appt-list",
+   "module": "OCInbox",
+   "kind": "data_source",
+   "pages": [
+    "/chat-inbox"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/OCInbox/contact-enquiry",
+   "module": "OCInbox",
+   "kind": "data_source",
+   "pages": [
+    "/chat-inbox"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/OCInbox/contact-merge-details",
+   "module": "OCInbox",
+   "kind": "data_source",
+   "pages": [
+    "/chat-inbox"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/OCInbox/contact-open-close-enquiry",
+   "module": "OCInbox",
+   "kind": "data_source",
+   "pages": [
+    "/chat-inbox"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/OCInbox/contact-shared-media-files",
+   "module": "OCInbox",
+   "kind": "data_source",
+   "pages": [
+    "/chat-inbox"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/OCInbox/delete-view",
+   "module": "OCInbox",
+   "kind": "mutation_form",
+   "pages": [
+    "/chat-inbox"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "id"
+   ]
+  },
+  {
+   "endpoint": "/api/OCInbox/failed-msg-list",
+   "module": "OCInbox",
+   "kind": "data_source",
+   "pages": [
+    "/chat-inbox/failed-messages"
+   ],
+   "query_params": [
+    "limit",
+    "offset",
+    "search",
+    "start_date",
+    "end_date"
+   ],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/OCInbox/forward-contacts",
+   "module": "OCInbox",
+   "kind": "data_source",
+   "pages": [
+    "/chat-inbox"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/OCInbox/forward-msg",
+   "module": "OCInbox",
+   "kind": "mutation_form",
+   "pages": [
+    "/chat-inbox"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "forward_table_id",
+    "forward_channel_type",
+    "patient_channel_id"
+   ]
+  },
+  {
+   "endpoint": "/api/OCInbox/initiate-employee-call",
+   "module": "OCInbox",
+   "kind": "mutation_form",
+   "pages": [
+    "/chat-inbox"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "patient_id"
+   ]
+  },
+  {
+   "endpoint": "/api/OCInbox/kb-negative-feedback",
+   "module": "OCInbox",
+   "kind": "mutation_form",
+   "pages": [
+    "/chat-inbox"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "kb_source_id",
+    "question",
+    "incorrect_answer",
+    "knowledgebase_id",
+    "correct_answer"
+   ]
+  },
+  {
+   "endpoint": "/api/OCInbox/kb-positive-feedback",
+   "module": "OCInbox",
+   "kind": "data_source",
+   "pages": [
+    "/chat-inbox"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/OCInbox/msg-sources",
+   "module": "OCInbox",
+   "kind": "data_source",
+   "pages": [
+    "/chat-inbox"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/OCInbox/openai/ai-action",
+   "module": "OCInbox",
+   "kind": "data_source",
+   "pages": [
+    "/chat-inbox"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/OCInbox/openai/ask-ai",
+   "module": "OCInbox",
+   "kind": "data_source",
+   "pages": [
+    "/chat-inbox"
+   ],
+   "query_params": [
+    "c_so_id",
+    "msg",
+    "social_media_name",
+    "lang",
+    "contact_id"
+   ],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/OCInbox/openai/chat-suggestion",
+   "module": "OCInbox",
+   "kind": "data_source",
+   "pages": [
+    "/chat-inbox"
+   ],
+   "query_params": [
+    "patient_id",
+    "c_so_id",
+    "social_media_name",
+    "lang"
+   ],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/OCInbox/openai/chat-summary",
+   "module": "OCInbox",
+   "kind": "data_source",
+   "pages": [
+    "/chat-inbox"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/OCInbox/openai/get-languages",
+   "module": "OCInbox",
+   "kind": "data_source",
+   "pages": [
+    "/chat-inbox"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/OCInbox/shortcut-flow",
+   "module": "OCInbox",
+   "kind": "data_source",
+   "pages": [
+    "/chat-inbox"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/OCInbox/trigger-shortcut-flow",
+   "module": "OCInbox",
+   "kind": "mutation_form",
+   "pages": [
+    "/chat-inbox"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "contact_channel_id",
+    "workflow_id"
+   ]
+  },
+  {
+   "endpoint": "/api/OCInbox/typing-indicator",
+   "module": "OCInbox",
+   "kind": "data_source",
+   "pages": [
+    "/chat-inbox"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/OCInbox/view-list",
+   "module": "OCInbox",
+   "kind": "data_source",
+   "pages": [
+    "/chat-inbox"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/OCInbox/view-share",
+   "module": "OCInbox",
+   "kind": "mutation_form",
+   "pages": [
+    "/chat-inbox"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "id",
+    "teams"
+   ]
+  },
+  {
+   "endpoint": "/api/OCInbox/view-shared-teams",
+   "module": "OCInbox",
+   "kind": "data_source",
+   "pages": [
+    "/chat-inbox"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Patients/AddEditPatient",
+   "module": "Patients",
+   "kind": "mutation_form",
+   "pages": [
+    "/contacts"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "FirstName",
+    "LastName",
+    "phone[0][Phone]",
+    "phone[0][CountryCode]",
+    "phone[0][ISDCode]",
+    "phone[0][FullPhone]",
+    "DOB",
+    "Email",
+    "Gender",
+    "NationalityID",
+    "language_id",
+    "Label",
+    "source",
+    "Tags",
+    "cw_team_id",
+    "cw_agent_id"
+   ]
+  },
+  {
+   "endpoint": "/api/Patients/AllExportPatients",
+   "module": "Patients",
+   "kind": "data_source",
+   "pages": [
+    "/contacts"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Patients/ColShowHide",
+   "module": "Patients",
+   "kind": "mutation_form",
+   "pages": [
+    "/contacts"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "Label",
+    "Gender",
+    "Nationality",
+    "Tags",
+    "contact_owner",
+    "Phone",
+    "Messaging",
+    "Email",
+    "last_interaction_time"
+   ]
+  },
+  {
+   "endpoint": "/api/Patients/ExportPatients",
+   "module": "Patients",
+   "kind": "mutation_form",
+   "pages": [
+    "/contacts"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "PatientID"
+   ]
+  },
+  {
+   "endpoint": "/api/Patients/Segments/All",
+   "module": "Patients",
+   "kind": "data_source",
+   "pages": [
+    "/campaigns/new-campaigns"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Patients/Segments/add-static-segment",
+   "module": "Patients",
+   "kind": "mutation_form",
+   "pages": [
+    "/contacts"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "exist_segment",
+    "contact_id",
+    "segment_name",
+    "segment_id"
+   ]
+  },
+  {
+   "endpoint": "/api/Patients/Segments/drip-shortcut-flow",
+   "module": "Patients",
+   "kind": "data_source",
+   "pages": [
+    "/contacts"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Patients/Segments/dynamic-segment-list",
+   "module": "Patients",
+   "kind": "data_source",
+   "pages": [
+    "/contacts"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Patients/Segments/manage-dynamic-segment",
+   "module": "Patients",
+   "kind": "mutation_form",
+   "pages": [
+    "/contacts"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "segment_filter",
+    "id",
+    "segment_name"
+   ]
+  },
+  {
+   "endpoint": "/api/Patients/Segments/manage-flow",
+   "module": "Patients",
+   "kind": "mutation_form",
+   "pages": [
+    "/contacts"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "flow_id",
+    "segment_id",
+    "segment_type"
+   ]
+  },
+  {
+   "endpoint": "/api/Patients/Segments/remove-contact-segment",
+   "module": "Patients",
+   "kind": "mutation_form",
+   "pages": [
+    "/contacts"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "segment_id",
+    "contact_id"
+   ]
+  },
+  {
+   "endpoint": "/api/Patients/Segments/remove-flow",
+   "module": "Patients",
+   "kind": "mutation_form",
+   "pages": [
+    "/contacts"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "segment_id",
+    "segment_type"
+   ]
+  },
+  {
+   "endpoint": "/api/Patients/Segments/static-segment-list",
+   "module": "Patients",
+   "kind": "data_source",
+   "pages": [
+    "/contacts"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Patients/SendTagMessage",
+   "module": "Patients",
+   "kind": "mutation_form",
+   "pages": [
+    "/contacts"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "PatientID",
+    "Channel",
+    "TagName",
+    "Message"
+   ]
+  },
+  {
+   "endpoint": "/api/Patients/UnlinkContact",
+   "module": "Patients",
+   "kind": "mutation_form",
+   "pages": [
+    "/contacts",
+    "/enquiries",
+    "/chat-inbox"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "LinkPatientID",
+    "PatientID"
+   ]
+  },
+  {
+   "endpoint": "/api/Patients/col-show-hide-list",
+   "module": "Patients",
+   "kind": "data_source",
+   "pages": [
+    "/contacts"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Patients/col-width-update",
+   "module": "Patients",
+   "kind": "data_source",
+   "pages": [
+    "/contacts"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Patients/custom-fields",
+   "module": "Patients",
+   "kind": "data_source",
+   "pages": [
+    "/contacts"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/AllCategory",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "*shell*"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/account/account-details",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/account"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/account/appt-notifi-list",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/account/notification"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/account/change-password",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/account"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "current_password",
+    "new_password",
+    "confirm_password"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/account/control-receive-notif",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/account/notification"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/account/control-sound-notif",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/account/notification"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/account/edit-notifi-setting",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/account/notification"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "UserNotifID",
+    "EmailNotif",
+    "BrowserNotif"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/account/edit-profile",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/account"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "first_name",
+    "last_name",
+    "designation",
+    "timezone",
+    "current_lang",
+    "lang"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/account/edit-send-appt-notifi",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/account/notification"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/account/edit-send-enquiry-notifi",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/account/notification"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/account/edit-send-inbox-notifi",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/account/notification"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/account/edit-send-other-notifi",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/account/notification"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/account/enquiry-notifi-list",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/account/notification"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/account/inbox-notifi-list",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/account/notification"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/account/notif-send-setting",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/account/notification"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/account/other-notifi-list",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/account/notification"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/account/user-notif-info",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/account/notification"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/company/Billing/add-payment-method",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/company/billing"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/company/Billing/addon-list",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/company/billing"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/company/Billing/check-subscription-event",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/company/billing"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/company/Billing/download-invoice",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/company/billing"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/company/Billing/get-billing-info",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/company/billing"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/company/Billing/get-current-subscription",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/company/billing"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/company/Billing/get-offline-pay-status",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/company/billing"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/company/Billing/get-transaction-status",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/company/billing"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/company/Billing/payment-method",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/company/billing"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/company/Billing/plan-addon-list",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/company/billing"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/company/integration/add-edit-widget-channel",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/company/integrations"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "default_icon",
+    "channel_name",
+    "domain",
+    "widget_title",
+    "widget_subtitle",
+    "widget_welcome_title",
+    "widget_colour",
+    "icon",
+    "channel_id"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/company/integration/add-waca-catalogue",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/company/integrations"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "channel_id",
+    "remove_catalogue",
+    "catalogue_id"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/company/integration/add-waga-account",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/company/integrations"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/company/integration/connect-disconnect-channel",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/company/integrations"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/company/integration/create-gupshup-account",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/company/integrations"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "app_id"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/company/integration/edit-channel",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/company/integrations"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "Id",
+    "account_name"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/company/integration/edit-googlecalendar",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/company/integrations"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "id",
+    "account_name"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/company/integration/edit-waba-profile",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/company/integrations"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "channel_id",
+    "profile_edit",
+    "account_name",
+    "icon",
+    "about_section",
+    "address",
+    "email",
+    "vertical",
+    "websites_one",
+    "websites_two",
+    "description"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/company/integration/facebook-oauth-redirection",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/company/integrations"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/company/integration/hms/fetch-loc-spec",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/company/integrations"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "fetch_data_type"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/company/integration/manage-api-key",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/company/integrations"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "api_key_name",
+    "api_key_type",
+    "expire_after",
+    "api_key_id"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/company/integration/manage-callgear",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/company/integrations"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "channel_name",
+    "user_name",
+    "password",
+    "virtual_number",
+    "channel_id"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/company/integration/manage-facebook",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/company/integrations"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "page_access_token",
+    "user_access_token",
+    "page_name",
+    "account_name",
+    "page_id"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/company/integration/manage-hms",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/company/integrations"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "channel_type",
+    "channel_name",
+    "hospital_name",
+    "base_url",
+    "user_name",
+    "password",
+    "city_name",
+    "account_token",
+    "subscriber_id",
+    "id"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/company/integration/manage-instagram",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/company/integrations"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "page_access_token",
+    "page_id",
+    "page_name",
+    "user_access_token",
+    "account_name",
+    "insta_id"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/company/integration/manage-payment-provider",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/company/integrations"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "channel_type",
+    "channel_name",
+    "profile_id",
+    "account_key",
+    "currencies",
+    "is_default",
+    "id"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/company/integration/manage-sms",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/company/integrations"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "req_type",
+    "req_url",
+    "header",
+    "auth_type",
+    "user_name",
+    "password",
+    "body",
+    "resp_content_type",
+    "success_resp_msg_path",
+    "success_resp_msg",
+    "org_channel_id"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/company/integration/manage-webhook",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/company/integrations"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "webhook_name",
+    "webhook_events",
+    "webhook_url",
+    "webhook_channel_id"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/company/integration/mm-lite-eligibility-check",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/company/integrations"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/company/integration/remove-api-key",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/company/integrations"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "api_key_id"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/company/integration/remove-webhook",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/company/integrations"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "webhook_channel_id"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/company/integration/troubleshoot-facebook-accounts",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/company/integrations"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "social_media",
+    "page_access_token",
+    "user_access_token",
+    "page_id",
+    "Id"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/company/integration/waba-profile",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/company/integrations"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/company/knowledgebase/delete-source-file",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/company/knowledgebase"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "id"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/company/knowledgebase/delete-source-group",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/company/knowledgebase"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "knowledge_source_group_id"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/company/knowledgebase/feedback-accept",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/company/knowledgebase"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "id",
+    "knowledgebase_id",
+    "correct_answer"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/company/knowledgebase/feedback-list",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/company/knowledgebase"
+   ],
+   "query_params": [
+    "limit",
+    "offset",
+    "status",
+    "search"
+   ],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/company/knowledgebase/feedback-reject",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/company/knowledgebase"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/company/knowledgebase/feedback-source-file",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/company/knowledgebase"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/company/knowledgebase/manage-source-file",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/company/knowledgebase"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "knowledge_source_type",
+    "knowledge_source_id",
+    "knowledge_source_group_id",
+    "knowledge_source_url_name",
+    "knowledge_source_url",
+    "upload_file"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/company/knowledgebase/manage-source-group",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/company/knowledgebase"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "knowledge_source_group_id",
+    "knowledge_source_group_name"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/company/knowledgebase/source-file-list",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/company/knowledgebase"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/company/knowledgebase/source-group-list",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/company/knowledgebase"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/company/knowledgebase/upload-org-data",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/company/knowledgebase"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "knowledge_source_id"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/company/organization/all-currencies",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/company/organization"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/company/organization/change-logo",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/company/organization"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "org_logo",
+    "remove"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/company/organization/edit-org",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/company/organization"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "org_name",
+    "website_url",
+    "lang",
+    "currencies",
+    "inactive_time",
+    "sanoflow_support"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/company/organization/org-details",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/company/integrations",
+    "/settings/company/organization",
+    "/settings/platform/appointments"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/company/users/add-edit-role",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/company/users"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "RoleName",
+    "RoleInformation",
+    "RoleID"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/company/users/add-edit-team",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/company/users"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "team_id",
+    "name",
+    "is_default",
+    "users",
+    "channels",
+    "pipelines",
+    "auto_assign",
+    "fallback_team",
+    "auto_reply",
+    "auto_reply_msg"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/company/users/add-edit-user",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/company/users"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "user_id",
+    "media",
+    "FirstName",
+    "LastName",
+    "Email",
+    "Designation",
+    "Role",
+    "restrict_enquiry_view",
+    "DefaultView",
+    "CheckRestrictView",
+    "RestrictView",
+    "max_assigned_chats",
+    "teams"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/company/users/channel-setting",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/flow",
+    "/settings/company/integrations",
+    "/settings/company/users"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/company/users/delete-role",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/company/users"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "RoleID"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/company/users/delete-team",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/company/users"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "team_id"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/company/users/manage-role-permission",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/company/users"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/company/users/office-hour-list",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/company/users"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/company/users/role-list",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/company/users"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/company/users/suspend-unsuspend-user",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/company/users"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/company/users/team-list",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/company/users"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/company/users/user-list",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/company/users",
+    "/settings/platform/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/platform/appointments/booking/setting",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/platform/appointments"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/platform/appointments/department/all-department-list",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/platform/appointments"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/platform/appointments/department/modify-department",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/platform/appointments"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "m_dept_id",
+    "dept_name",
+    "id"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/platform/appointments/location/delete",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/platform/appointments"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "location_id"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/platform/appointments/service/add-edit-service",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/platform/appointments"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "ServiceID",
+    "ServiceNameEN",
+    "Dept",
+    "currency",
+    "Price",
+    "ApptDuration",
+    "PreBuffer",
+    "PostBuffer",
+    "OnlineBooking",
+    "require_payment",
+    "ConcurrentPatients"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/platform/appointments/service/all-services",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/platform/appointments"
+   ],
+   "query_params": [
+    "search",
+    "offset",
+    "limit"
+   ],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/platform/appointments/service/del-service",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/platform/appointments"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "ServiceID"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/platform/appointments/specialist/Integrations/get-all-calendar-list",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/platform/appointments"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/platform/appointments/specialist/Integrations/google-cal-revoke-auth",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/platform/appointments"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "org_channel_id",
+    "specid",
+    "delalloverrideevent"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/platform/appointments/specialist/Integrations/update-google-calID",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/platform/appointments"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "calendar_channel_id",
+    "SpecID",
+    "GoogleCalName",
+    "GoogleCalID"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/platform/appointments/specialist/add-edit-schedule",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/platform/appointments"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "SchedID",
+    "SpecID",
+    "LocationID",
+    "Weekday[]",
+    "StartTime",
+    "EndTime"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/platform/appointments/specialist/add-edit-specialist",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/platform/appointments"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "SpecID",
+    "pic",
+    "profilepic",
+    "firstName",
+    "lastName",
+    "Specialty",
+    "Email",
+    "Gender",
+    "ShowBusy",
+    "Department",
+    "time_slot_duration",
+    "Locations",
+    "enable_multiple_bookings",
+    "max_bookings_per_slot"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/platform/appointments/specialist/add-location-service",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/platform/appointments"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "SpecID"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/platform/appointments/specialist/add-override",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/appointments",
+    "/contacts",
+    "/enquiries",
+    "/chat-inbox",
+    "/settings/platform/appointments"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "LocID",
+    "SpecID",
+    "StartDate",
+    "EndDate",
+    "StartTime",
+    "EndTime",
+    "Comment",
+    "IsRecurring",
+    "Weekday[]"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/platform/appointments/specialist/all-specialists",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/platform/appointments"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/platform/appointments/specialist/del-override",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/platform/appointments"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "OverrideID"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/platform/appointments/specialist/delete-schedule",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/platform/appointments"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "SchedID"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/platform/appointments/specialist/delete-specialist",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/platform/appointments"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "SpecID"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/platform/appointments/specialist/edit-specialist-booking",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/platform/appointments"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "specialist_id",
+    "time_slot_duration",
+    "enable_multiple_bookings",
+    "max_bookings_per_slot",
+    "agree_spec_booking_changes"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/platform/appointments/specialist/teams",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/platform/appointments"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/platform/appointments/template/change-sms-template",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/platform/appointments"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/platform/appointments/template/edit-whatsapp-template",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/platform/appointments"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/platform/appointments/template/setting",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/platform/appointments"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/platform/edit-settings",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/platform/enquiries",
+    "/settings/platform/inbox",
+    "/settings/platform/appointments"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "olsla",
+    "ena",
+    "TBAR1",
+    "TBAR1-FD",
+    "TBAR1-FT",
+    "TBAR2",
+    "TBAR2-FD",
+    "TBAR2-FT",
+    "TBAR3",
+    "tbba",
+    "tbbr",
+    "tbr",
+    "tbc",
+    "CPAA",
+    "MSGCA",
+    "SMS-WA",
+    "SMS/WA",
+    "SelectWhatsAppChannel"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/platform/enquiry/add-edit-field",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/platform/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "CustomFieldID",
+    "PageName",
+    "TypeName",
+    "CustomFieldName",
+    "CustomFieldReq",
+    "CustomFormUsed",
+    "CustomFieldData[]"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/platform/enquiry/add-edit-lead-enquiry-notif",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/platform/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "EnquiryNotifID",
+    "Name",
+    "Escalation",
+    "Locations",
+    "Departments",
+    "user"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/platform/enquiry/add-edit-pipeline",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/platform/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "pipeline_id",
+    "emoji",
+    "pipeline_name",
+    "default_pipeline",
+    "teams",
+    "stage_id",
+    "stage_name",
+    "status_id",
+    "status_type",
+    "status_name",
+    "default_field_id",
+    "default_check_field",
+    "default_required",
+    "custom_field_id",
+    "custom_check_field",
+    "custom_required",
+    "reason_id",
+    "reason"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/platform/enquiry/add-edit-rule",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/platform/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "rule_id",
+    "location_id",
+    "team_id"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/platform/enquiry/add-lead-channels",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/platform/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "LeadChannelName"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/platform/enquiry/assignment-rule",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/platform/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/platform/enquiry/channels",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/platform/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/platform/enquiry/check-stage",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/platform/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/platform/enquiry/delete-enquiry-notif",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/platform/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "EnquiryNotifID"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/platform/enquiry/delete-field",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/platform/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "CustomFieldID"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/platform/enquiry/delete-lead-channels",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/platform/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "LeadChannelsID"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/platform/enquiry/delete-pipeline",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/platform/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "id"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/platform/enquiry/delete-rule",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/platform/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "rule_id"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/platform/enquiry/delete-stage",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/platform/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "stage_id"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/platform/enquiry/enquiry-routings",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/platform/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/platform/enquiry/fields-list",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/platform/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/platform/enquiry/more-settting",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/platform/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/platform/enquiry/pipeline-list",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/platform/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/platform/enquiry/toggle-enquiry-assignment",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/platform/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/platform/inbox/add-edit-category",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/platform/inbox"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "name",
+    "Categoryid"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/platform/inbox/all-messages",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/platform/inbox"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/platform/inbox/delete-canned-msg",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/platform/inbox"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "cannedmsg_id"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/platform/inbox/delete-category",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/platform/inbox"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "CategoryId"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/platform/inbox/delete-label",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/platform/inbox"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "LabelID"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/platform/inbox/delete-tag",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/platform/inbox"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "TagID"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/platform/inbox/edit-close-time",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/platform/inbox"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "close"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/platform/inbox/edit-label-time",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/platform/inbox"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "label"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/platform/inbox/setting",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/platform/inbox"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/platform/inbox/show-agent-name",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/settings/platform/inbox"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "inbox_agent_name"
+   ]
+  },
+  {
+   "endpoint": "/api/Settings/platform/inbox/toggle-close-conversation",
+   "module": "Settings",
+   "kind": "data_source",
+   "pages": [
+    "/settings/platform/inbox"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Settings/quick-responses/add-edit",
+   "module": "Settings",
+   "kind": "mutation_form",
+   "pages": [
+    "/chat-inbox",
+    "/settings/platform/inbox"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "id",
+    "name",
+    "message"
+   ]
+  },
+  {
+   "endpoint": "/api/Task/AddEditTask",
+   "module": "Task",
+   "kind": "mutation_form",
+   "pages": [
+    "/tasks"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "Taskid",
+    "activityType",
+    "callTime",
+    "subject",
+    "assignTo",
+    "patient",
+    "note",
+    "done",
+    "dateCompleted"
+   ]
+  },
+  {
+   "endpoint": "/api/Task/AllTaskList",
+   "module": "Task",
+   "kind": "data_source",
+   "pages": [
+    "/tasks"
+   ],
+   "query_params": [
+    "offset",
+    "limit",
+    "taskfilter",
+    "search"
+   ],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/Task/DeleteTask",
+   "module": "Task",
+   "kind": "mutation_form",
+   "pages": [
+    "/tasks"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "TaskID"
+   ]
+  },
+  {
+   "endpoint": "/api/Task/ToggleDoneStatus",
+   "module": "Task",
+   "kind": "mutation_form",
+   "pages": [
+    "/tasks"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "DoneID",
+    "Done"
+   ]
+  },
+  {
+   "endpoint": "/api/Users/UserLogout",
+   "module": "Users",
+   "kind": "data_source",
+   "pages": [
+    "*shell*"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/contact-details/add-system-note",
+   "module": "contact-details",
+   "kind": "mutation_form",
+   "pages": [
+    "/contacts",
+    "/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "patient_id",
+    "lead_id",
+    "comment"
+   ]
+  },
+  {
+   "endpoint": "/api/contact-details/add-task",
+   "module": "contact-details",
+   "kind": "mutation_form",
+   "pages": [
+    "/contacts",
+    "/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "patient_id",
+    "enquiry_id",
+    "task_type",
+    "call_time",
+    "assignTo",
+    "note",
+    "done",
+    "task_completed"
+   ]
+  },
+  {
+   "endpoint": "/api/contact-details/all-merge-contact",
+   "module": "contact-details",
+   "kind": "mutation_form",
+   "pages": [
+    "/contacts",
+    "/enquiries",
+    "/chat-inbox"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "merge_contact",
+    "first_name",
+    "last_name",
+    "mobile",
+    "dob",
+    "gender",
+    "email",
+    "nationality_id",
+    "label_id"
+   ]
+  },
+  {
+   "endpoint": "/api/contact-details/all-merge-contact-details",
+   "module": "contact-details",
+   "kind": "data_source",
+   "pages": [
+    "/contacts",
+    "/enquiries",
+    "/chat-inbox"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/contact-details/contact-appointments",
+   "module": "contact-details",
+   "kind": "data_source",
+   "pages": [
+    "/contacts"
+   ],
+   "query_params": [
+    "limit",
+    "offset"
+   ],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/contact-details/contact-campaigns",
+   "module": "contact-details",
+   "kind": "data_source",
+   "pages": [
+    "/contacts"
+   ],
+   "query_params": [
+    "limit",
+    "offset"
+   ],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/contact-details/contact-enquiries",
+   "module": "contact-details",
+   "kind": "data_source",
+   "pages": [
+    "/contacts"
+   ],
+   "query_params": [
+    "limit",
+    "offset"
+   ],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/contact-details/contact-system-note",
+   "module": "contact-details",
+   "kind": "data_source",
+   "pages": [
+    "/contacts",
+    "/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/contact-details/contact-task",
+   "module": "contact-details",
+   "kind": "data_source",
+   "pages": [
+    "/contacts",
+    "/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/contact-details/delete-contact",
+   "module": "contact-details",
+   "kind": "mutation_form",
+   "pages": [
+    "/contacts"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "contact_id",
+    "delete_linked_contact"
+   ]
+  },
+  {
+   "endpoint": "/api/contact-details/delete-segment",
+   "module": "contact-details",
+   "kind": "mutation_form",
+   "pages": [
+    "/contacts"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "id",
+    "segment_type"
+   ]
+  },
+  {
+   "endpoint": "/api/contact-details/delete-selected-contact",
+   "module": "contact-details",
+   "kind": "mutation_form",
+   "pages": [
+    "/contacts"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "contact_id",
+    "delete_linked_contact"
+   ]
+  },
+  {
+   "endpoint": "/api/contact-details/details",
+   "module": "contact-details",
+   "kind": "data_source",
+   "pages": [
+    "/contacts",
+    "/enquiries",
+    "/chat-inbox"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/contact-details/update-custom-field-details",
+   "module": "contact-details",
+   "kind": "mutation_form",
+   "pages": [
+    "/contacts",
+    "/enquiries",
+    "/chat-inbox"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "contact_id"
+   ]
+  },
+  {
+   "endpoint": "/api/contact-details/update-details",
+   "module": "contact-details",
+   "kind": "data_source",
+   "pages": [
+    "/contacts",
+    "/enquiries",
+    "/chat-inbox"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/contact-details/update-selected-contact",
+   "module": "contact-details",
+   "kind": "mutation_form",
+   "pages": [
+    "/contacts"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "contact_id",
+    "label",
+    "tag_id",
+    "gender",
+    "nationality",
+    "source"
+   ]
+  },
+  {
+   "endpoint": "/api/dashboard/all-enquiries",
+   "module": "dashboard",
+   "kind": "data_source",
+   "pages": [
+    "/dashboard"
+   ],
+   "query_params": [
+    "limit",
+    "offset",
+    "team_id",
+    "team_name"
+   ],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/dashboard/all-tasks",
+   "module": "dashboard",
+   "kind": "data_source",
+   "pages": [
+    "/dashboard"
+   ],
+   "query_params": [
+    "limit",
+    "offset"
+   ],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/dashboard/all-users-by-team-status",
+   "module": "dashboard",
+   "kind": "data_source",
+   "pages": [
+    "/dashboard"
+   ],
+   "query_params": [
+    "team_id",
+    "status",
+    "limit",
+    "offset"
+   ],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/dashboard/daily-enquiries",
+   "module": "dashboard",
+   "kind": "data_source",
+   "pages": [
+    "/dashboard"
+   ],
+   "query_params": [
+    "team_id",
+    "team_name"
+   ],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/enquiry-details/all",
+   "module": "enquiry-details",
+   "kind": "data_source",
+   "pages": [
+    "/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/enquiry-details/custom-fields",
+   "module": "enquiry-details",
+   "kind": "data_source",
+   "pages": [
+    "/contacts",
+    "/enquiries",
+    "/chat-inbox"
+   ],
+   "query_params": [
+    "contact_id",
+    "enquiry_id",
+    "pipeline_id"
+   ],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/enquiry-details/custom-fields-update",
+   "module": "enquiry-details",
+   "kind": "mutation_form",
+   "pages": [
+    "/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "enquiry_id"
+   ]
+  },
+  {
+   "endpoint": "/api/enquiry-details/edit",
+   "module": "enquiry-details",
+   "kind": "data_source",
+   "pages": [
+    "/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/enquiry-details/loc-spec-service-edit",
+   "module": "enquiry-details",
+   "kind": "mutation_form",
+   "pages": [
+    "/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "enquiry_id",
+    "location",
+    "specialist",
+    "consultationtype"
+   ]
+  },
+  {
+   "endpoint": "/api/enquiry/all-locations",
+   "module": "enquiry",
+   "kind": "data_source",
+   "pages": [
+    "*shell*"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/enquiry/col-width-update",
+   "module": "enquiry",
+   "kind": "data_source",
+   "pages": [
+    "/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/enquiry/csv-data",
+   "module": "enquiry",
+   "kind": "data_source",
+   "pages": [
+    "/enquiries"
+   ],
+   "query_params": [
+    "pipeline_id"
+   ],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/enquiry/custom-fields",
+   "module": "enquiry",
+   "kind": "data_source",
+   "pages": [
+    "/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/enquiry/custom-views/all",
+   "module": "enquiry",
+   "kind": "data_source",
+   "pages": [
+    "/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/enquiry/custom-views/delete",
+   "module": "enquiry",
+   "kind": "mutation_form",
+   "pages": [
+    "/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "id"
+   ]
+  },
+  {
+   "endpoint": "/api/enquiry/custom-views/manage",
+   "module": "enquiry",
+   "kind": "mutation_form",
+   "pages": [
+    "/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "view",
+    "id",
+    "column_info",
+    "view_name",
+    "pipeline_id"
+   ]
+  },
+  {
+   "endpoint": "/api/enquiry/custom-views/share",
+   "module": "enquiry",
+   "kind": "mutation_form",
+   "pages": [
+    "/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "id",
+    "teams"
+   ]
+  },
+  {
+   "endpoint": "/api/enquiry/custom-views/shared-teams",
+   "module": "enquiry",
+   "kind": "data_source",
+   "pages": [
+    "/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/enquiry/delete",
+   "module": "enquiry",
+   "kind": "mutation_form",
+   "pages": [
+    "/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "EnquiryID"
+   ]
+  },
+  {
+   "endpoint": "/api/enquiry/delete-selected-enquiry",
+   "module": "enquiry",
+   "kind": "mutation_form",
+   "pages": [
+    "/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "EnquiryID"
+   ]
+  },
+  {
+   "endpoint": "/api/enquiry/disqualify-enquiry",
+   "module": "enquiry",
+   "kind": "mutation_form",
+   "pages": [
+    "/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "enquiry_id",
+    "status_id",
+    "subject",
+    "followup_Time",
+    "done",
+    "date_completed",
+    "activity_type",
+    "reason",
+    "note"
+   ]
+  },
+  {
+   "endpoint": "/api/enquiry/edit-selected",
+   "module": "enquiry",
+   "kind": "mutation_form",
+   "pages": [
+    "/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "enquiry_id",
+    "title",
+    "channel",
+    "source",
+    "stage",
+    "status",
+    "tags",
+    "assigned_team_id",
+    "assigned_user_id"
+   ]
+  },
+  {
+   "endpoint": "/api/enquiry/enquiry-common-details",
+   "module": "enquiry",
+   "kind": "data_source",
+   "pages": [
+    "*shell*"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/enquiry/export",
+   "module": "enquiry",
+   "kind": "mutation_form",
+   "pages": [
+    "/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "EnquiryID",
+    "pipeline_id",
+    "view_id"
+   ]
+  },
+  {
+   "endpoint": "/api/enquiry/export-activity",
+   "module": "enquiry",
+   "kind": "mutation_form",
+   "pages": [
+    "/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "EnquiryID",
+    "pipeline_id"
+   ]
+  },
+  {
+   "endpoint": "/api/enquiry/export-activity-all",
+   "module": "enquiry",
+   "kind": "data_source",
+   "pages": [
+    "/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/enquiry/export-all",
+   "module": "enquiry",
+   "kind": "data_source",
+   "pages": [
+    "/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/enquiry/pipeline-field-show-hide",
+   "module": "enquiry",
+   "kind": "mutation_form",
+   "pages": [
+    "/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "pipeline_id",
+    "field_id",
+    "check_field"
+   ]
+  },
+  {
+   "endpoint": "/api/enquiry/toggle-follow-up-status",
+   "module": "enquiry",
+   "kind": "mutation_form",
+   "pages": [
+    "/contacts",
+    "/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "FollowUpID",
+    "Done"
+   ]
+  },
+  {
+   "endpoint": "/api/enquiry/update-pipeline",
+   "module": "enquiry",
+   "kind": "mutation_form",
+   "pages": [
+    "/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "enquiry_id",
+    "pipeline_id"
+   ]
+  },
+  {
+   "endpoint": "/api/enquiry/update-stage",
+   "module": "enquiry",
+   "kind": "data_source",
+   "pages": [
+    "/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/enquiry/update-status",
+   "module": "enquiry",
+   "kind": "data_source",
+   "pages": [
+    "/enquiries"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/organizations/accept-invite",
+   "module": "organizations",
+   "kind": "data_source",
+   "pages": [
+    "*shell*"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/organizations/change-workspace",
+   "module": "organizations",
+   "kind": "mutation_form",
+   "pages": [
+    "*shell*"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "org_id"
+   ]
+  },
+  {
+   "endpoint": "/api/reports/appointments",
+   "module": "reports",
+   "kind": "data_source",
+   "pages": [
+    "/reports"
+   ],
+   "query_params": [
+    "location",
+    "startdate",
+    "enddate",
+    "type",
+    "location_name"
+   ],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/reports/chats",
+   "module": "reports",
+   "kind": "data_source",
+   "pages": [
+    "/reports"
+   ],
+   "query_params": [
+    "startdate",
+    "enddate",
+    "type",
+    "account_id",
+    "user",
+    "agent",
+    "status",
+    "ad_id",
+    "breakdown",
+    "flow_id",
+    "template_id",
+    "insight_fields"
+   ],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/reports/common-data",
+   "module": "reports",
+   "kind": "data_source",
+   "pages": [
+    "/reports"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/reports/dashboard",
+   "module": "reports",
+   "kind": "data_source",
+   "pages": [
+    "/reports"
+   ],
+   "query_params": [
+    "start_date",
+    "end_date",
+    "type",
+    "pipeline_id"
+   ],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/reports/enquiries",
+   "module": "reports",
+   "kind": "data_source",
+   "pages": [
+    "/reports"
+   ],
+   "query_params": [
+    "startdate",
+    "enddate",
+    "type",
+    "team",
+    "team_name",
+    "pipeline_id"
+   ],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/reports/list-ad-accounts",
+   "module": "reports",
+   "kind": "data_source",
+   "pages": [
+    "/reports"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/reports/list-ads",
+   "module": "reports",
+   "kind": "data_source",
+   "pages": [
+    "/reports"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/reports/open-conversations",
+   "module": "reports",
+   "kind": "data_source",
+   "pages": [
+    "/dashboard"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/template/all-channels",
+   "module": "template",
+   "kind": "data_source",
+   "pages": [
+    "/templates"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/template/all-master-template",
+   "module": "template",
+   "kind": "data_source",
+   "pages": [
+    "/templates"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/template/all-whatsapp-template",
+   "module": "template",
+   "kind": "data_source",
+   "pages": [
+    "/templates"
+   ],
+   "query_params": [
+    "id",
+    "search",
+    "status",
+    "offset",
+    "limit"
+   ],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/template/edit-mapper",
+   "module": "template",
+   "kind": "mutation_form",
+   "pages": [
+    "/templates"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "template_id",
+    "header_mapper_missing",
+    "button_mapper_missing",
+    "button_mapper2_missing",
+    "all_mapper_missing",
+    "TemplateHeader",
+    "headerMediaFileName",
+    "HeaderType",
+    "header_mapper",
+    "button_mapper",
+    "button_mapper2"
+   ]
+  },
+  {
+   "endpoint": "/api/template/edit-mapper-details",
+   "module": "template",
+   "kind": "data_source",
+   "pages": [
+    "/templates"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/template/manage",
+   "module": "template",
+   "kind": "mutation_form",
+   "pages": [
+    "/templates"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "template_id",
+    "edit_template",
+    "mapper_list",
+    "custom_mapper",
+    "header_custom_mapper",
+    "url_custom_mapper1",
+    "url_custom_mapper2",
+    "url_mapper_list1",
+    "url_mapper_list2",
+    "header_mapper_list",
+    "template_name",
+    "category",
+    "language",
+    "channel",
+    "template_type",
+    "time_to_live",
+    "header_type",
+    "template_header",
+    "header_mapper_example[]",
+    "header_media_file_name",
+    "body",
+    "mapper_example[]",
+    "footer",
+    "quick_reply_index",
+    "quick_reply",
+    "carousel[card_no]",
+    "carousel[header_type]",
+    "carousel[no_of_btn]",
+    "carousel[btn_type_1]",
+    "carousel[btn_type_2]"
+   ]
+  },
+  {
+   "endpoint": "/api/template/performance",
+   "module": "template",
+   "kind": "data_source",
+   "pages": [
+    "/templates"
+   ],
+   "query_params": [
+    "template_id",
+    "startdate",
+    "enddate"
+   ],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/template/sync-all-templates",
+   "module": "template",
+   "kind": "mutation_form",
+   "pages": [
+    "/templates"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "org_channel_id"
+   ]
+  },
+  {
+   "endpoint": "/api/template/sync-gupshup-template",
+   "module": "template",
+   "kind": "mutation_form",
+   "pages": [
+    "/templates"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "org_channel_id",
+    "sync_type"
+   ]
+  },
+  {
+   "endpoint": "/api/template/sync-template",
+   "module": "template",
+   "kind": "mutation_form",
+   "pages": [
+    "/templates"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "id"
+   ]
+  },
+  {
+   "endpoint": "/api/template/unarchive",
+   "module": "template",
+   "kind": "mutation_form",
+   "pages": [
+    "/templates"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "template_id"
+   ]
+  },
+  {
+   "endpoint": "/api/template/update-template-retry-on-fail",
+   "module": "template",
+   "kind": "mutation_form",
+   "pages": [
+    "/templates"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "retry_on_fail",
+    "template_id"
+   ]
+  },
+  {
+   "endpoint": "/api/template/update-template-sms-fallback",
+   "module": "template",
+   "kind": "mutation_form",
+   "pages": [
+    "/templates"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "has_sms_fallback",
+    "template_id"
+   ]
+  },
+  {
+   "endpoint": "/api/workflow/add-edit",
+   "module": "workflow",
+   "kind": "mutation_form",
+   "pages": [
+    "/flow"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "flow_type",
+    "trigger_type",
+    "type",
+    "recurring_time",
+    "recurring_period",
+    "channel_type",
+    "communication_channel",
+    "flow_template_id",
+    "workflow_type",
+    "channel_id",
+    "communication_channel_id",
+    "workflow_name",
+    "workflow_desc",
+    "pipeline_id",
+    "event_type",
+    "wa_flow_id"
+   ]
+  },
+  {
+   "endpoint": "/api/workflow/all",
+   "module": "workflow",
+   "kind": "data_source",
+   "pages": [
+    "/flow"
+   ],
+   "query_params": [
+    "search",
+    "status",
+    "offset",
+    "limit",
+    "trigger_type",
+    "channel"
+   ],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/workflow/common-data",
+   "module": "workflow",
+   "kind": "data_source",
+   "pages": [
+    "*shell*"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/workflow/delete",
+   "module": "workflow",
+   "kind": "mutation_form",
+   "pages": [
+    "/flow"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "flow_id",
+    "flow_type",
+    "drip_flow"
+   ]
+  },
+  {
+   "endpoint": "/api/workflow/duplicate-workflow",
+   "module": "workflow",
+   "kind": "mutation_form",
+   "pages": [
+    "/flow"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "workflow_id",
+    "workflow_name",
+    "workflow_desc"
+   ]
+  },
+  {
+   "endpoint": "/api/workflow/edit-workflow",
+   "module": "workflow",
+   "kind": "mutation_form",
+   "pages": [
+    "/flow"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "workflow_id",
+    "workflow_status"
+   ]
+  },
+  {
+   "endpoint": "/api/workflow/flow-template",
+   "module": "workflow",
+   "kind": "data_source",
+   "pages": [
+    "/flow"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/workflow/log/all",
+   "module": "workflow",
+   "kind": "data_source",
+   "pages": [
+    "/flow/log/:id"
+   ],
+   "query_params": [
+    "search",
+    "status",
+    "offset",
+    "limit",
+    "workflow_id"
+   ],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/workflow/log/step",
+   "module": "workflow",
+   "kind": "data_source",
+   "pages": [
+    "/flow/log/:id"
+   ],
+   "query_params": [
+    "offset",
+    "limit"
+   ],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/workflow/log/stop-workflow",
+   "module": "workflow",
+   "kind": "mutation_form",
+   "pages": [
+    "/flow/log/:id"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "contact_workflow_id"
+   ]
+  },
+  {
+   "endpoint": "/api/workflow/update-status",
+   "module": "workflow",
+   "kind": "data_source",
+   "pages": [
+    "/flow"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/workflow/variables/add-variable",
+   "module": "workflow",
+   "kind": "mutation_form",
+   "pages": [
+    "/flow"
+   ],
+   "query_params": [],
+   "form_fields": [
+    "variable_name"
+   ]
+  },
+  {
+   "endpoint": "/api/workflow/variables/all",
+   "module": "workflow",
+   "kind": "data_source",
+   "pages": [
+    "*shell*"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/workflow/variables/disable-enable-variable",
+   "module": "workflow",
+   "kind": "data_source",
+   "pages": [
+    "/flow"
+   ],
+   "query_params": [],
+   "form_fields": []
+  },
+  {
+   "endpoint": "/api/workflow/whatsapp-flows",
+   "module": "workflow",
+   "kind": "data_source",
+   "pages": [
+    "/flow"
+   ],
+   "query_params": [],
+   "form_fields": []
+  }
+ ],
+ "flow_engine": {
+  "node_types_observed": [
+   "send_a_message",
+   "ask_a_question(question_type: text|number|multiple_choice|both; answer_validation regex; store_answer; request_contact_info)",
+   "quick_reply",
+   "template(whatsapp_template + mapper)",
+   "send_ai_message / ai_action (intents[] with intent_label + intent_prompt, system_prompt, source_group (KB scope), tone, send_ai_generated_response_before_executing_next_step)",
+   "branch(condition groups AND/OR, operator equals/does_not_equal/contains/does_not_contain, else)",
+   "wait(wait_time_value + unit minutes|hours|days|weeks|months; wait_for_response option)",
+   "office_hours_check(inside|outside)",
+   "run_flow",
+   "end_flow",
+   "assign_to(team|user|unassign|bot)",
+   "close_conversation",
+   "add_comment",
+   "update_contact_field(field incl. opt_in_promotions/opt_out_promotions, label set/remove, tag add/remove/remove_all, gender, nationality, dob)",
+   "update_enquiry_field(stage|status|pipeline|field)",
+   "create_enquiry",
+   "create_campaign",
+   "add_task(task_type, due_now|due_after time_value)",
+   "api_action(request_url, method, headers, json body, store_response)",
+   "send_notification(notification_type, alert type, category, team, message)",
+   "payment_link(provider, product_service, amount, currency, message)",
+   "send_meta_event(event_name e.g. lead|purchase|addpaymentinfo, amount, currency, event_json)",
+   "appointment_agent(initial_appointment_action e.g. create|confirm|reschedule|cancel)",
+   "enquiry_agent",
+   "support_agent / ai_agents",
+   "file_upload node content (image 5MB, video 16MB, document 100MB)",
+   "set message status / label by message_id (new_status, set_label, label_name)"
+  ],
+  "trigger_types_observed": [
+   "conversation_opened",
+   "conversation_closed",
+   "conversation_waiting",
+   "new_message_received",
+   "whatsapp_template (button reply)",
+   "whatsapp_flow (Meta Flow completion, wa_flow_id)",
+   "shortcut (manual from inbox)",
+   "drip (attached to static/dynamic segment)",
+   "enquiry_added",
+   "enquiry_stage_updated",
+   "enquiry_status_updated",
+   "incoming_webhook",
+   "recurring (daily|weekly|monthly|yearly, nth weekday)",
+   "messaging_window_exit (24h window about to close/closed)"
+  ],
+  "trigger_condition_fields": [
+   "source (channel, ads, website, booking page, call centre)",
+   "keyword",
+   "ad (CTWA ad id)",
+   "ai_tags",
+   "intent"
+  ],
+  "builder_validation_messages": [
+   "each action connected",
+   "each option connected",
+   "at least one branch",
+   "one condition per branch",
+   "trigger connected to action",
+   "template variable mapping required",
+   "max file sizes per media type"
+  ],
+  "flow_variables": "workspace-level variables, enable/disable, add",
+  "flow_runtime": "per-contact run log with steps (/api/workflow/log/all, /log/step) and a manual stop (stop-workflow)"
+ },
+ "reports": {
+  "chat_metrics": [
+   "avg_first_response_time",
+   "avg_response_time",
+   "avg_resolution_time",
+   "max_resolution_time",
+   "average_first_assign_to_close_time",
+   "average_last_assign_to_close_time",
+   "incoming_msg",
+   "outgoing_msg",
+   "first_assignee",
+   "last_assignee",
+   "owner_removed",
+   "closed_by",
+   "category",
+   "summary",
+   "ai_engaged",
+   "closed_by_ai"
+  ],
+  "ads_metrics": [
+   "impressions",
+   "clicks",
+   "unique_clicks",
+   "cpm_1000_imp",
+   "spend",
+   "reach",
+   "ad_name",
+   "adset_name",
+   "ad_caption",
+   "post_caption",
+   "cost_per_delivered",
+   "cost_per_link_button_click",
+   "link_btn_click_rate",
+   "delivery_rate",
+   "read_rate",
+   "website_add_to_cart",
+   "website_initiate_checkout",
+   "website_purchase",
+   "website_purchase_values"
+  ],
+  "enquiry_metrics": [
+   "open_date",
+   "close_date",
+   "open_month",
+   "close_month",
+   "last_stage_change",
+   "age",
+   "won_enquiry",
+   "won_appointments",
+   "record_count",
+   "grouped_by",
+   "estimated_value"
+  ],
+  "params": {
+   "chats": "startdate,enddate,type,account_id,user,agent,status,ad_id,breakdown,flow_id,template_id,insight_fields",
+   "enquiries": "startdate,enddate,type,team,pipeline_id",
+   "appointments": "location,startdate,enddate,type",
+   "dashboard": "start_date,end_date,type,pipeline_id"
+  }
+ },
+ "opaque_settings": {
+  "endpoint": "/api/Settings/platform/edit-settings",
+  "note": "Meanings are INFERRED from the settings screens, not confirmed. Verify in the UI before relying on them.",
+  "keys": {
+   "olsla": "open-enquiry SLA",
+   "ena": "enquiry notification/assignment toggle",
+   "TBAR1..3 (+ -FD/-FT)": "three appointment reminders: value, 'from' direction, unit",
+   "tbba": "lead time before booking",
+   "tbbr / tbr": "reschedule window / minutes before reschedule",
+   "tbc": "minutes before cancel",
+   "CPAA": "auto-confirm appointments",
+   "MSGCA": "conversation auto-close / message category",
+   "SMS-WA, SMS/WA, SelectWhatsAppChannel": "which channel sends booking notifications"
+  }
+ }
+}

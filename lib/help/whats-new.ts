@@ -81,6 +81,12 @@ export const WHATS_NEW: readonly WhatsNewEntry[] = [
     body: "Finance now has a Daily flash page: net revenue, patient volume and ARPP against target, revenue by branch, the top doctors, and a daily sales grid for the month next to the same days of last month. Chiro and leased units are reported on their own lines. Finance sets the targets and lines; the CEO and Medical Director can read it, and it downloads as Excel in the familiar layout.",
   },
   {
+    id: "2026-10-20-sanoflow-move",
+    date: "2026-10-20",
+    title: "Ready for the move from Sanoflow",
+    body: "Enquiries now have tags, set from the enquiry drawer and usable in filters. Marking an enquiry lost or disqualified offers the reasons set under Settings, Enquiries, and you can still write your own. Campaigns sent from Sanoflow can be seen under Campaigns, Campaign history (read-only). Portal, Sync review also lists Sanoflow records that need a person, which you can link or dismiss. Appointments brought over from Sanoflow get no reminders until an administrator turns them on in Settings, Appointments.",
+  },
+  {
     id: "2026-10-19-e-signature",
     date: "2026-10-19",
     title: "E-signature for consent forms",

@@ -98,7 +98,14 @@ export async function saveEnquirySettings(input: unknown): Promise<ActionResult>
     return fail("A notification rule refers to a team or user that does not exist.");
   const sources = [...new Set(parsed.data.sources.map((s) => s.trim()).filter(Boolean))];
   const { data: org } = await admin.from("orgs").select("settings").eq("id", member.orgId).single();
-  const next = writeEnquirySettings(org?.settings, { ...parsed.data, sources });
+  const lostReasons = [
+    ...new Map(parsed.data.lost_reasons.map((r) => [r.trim().toLowerCase(), r.trim()])).values(),
+  ].filter(Boolean);
+  const next = writeEnquirySettings(org?.settings, {
+    ...parsed.data,
+    sources,
+    lost_reasons: lostReasons,
+  });
   const { error } = await admin
     .from("orgs")
     .update({ settings: next as NonNullable<Json> })

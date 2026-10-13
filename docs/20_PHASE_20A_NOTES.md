@@ -15,7 +15,7 @@ The hand-built Excel sheets Krishna sends each day: **Daily Financial Summary** 
 | Excel download in the sheets' layout (Daily summary, Month to date, Doctors, Daily sales, Daily sales of the previous month) | `GET /api/finance/flash?date=` (`app/api/finance/flash/route.ts`, `lib/finance/flash-xlsx.ts`) |
 | The rules (pure, unit-tested) | `lib/finance/flash.ts` |
 | Loader (service role after the permission check) | `lib/finance/flash-server.ts` |
-| Migration | `supabase/migrations/20261023000100_finance_flash.sql`, paste file `deploy/supabase-paste/22_finance_flash.sql` |
+| Migration | `supabase/migrations/20261023000300_finance_flash.sql`, paste file `deploy/supabase-paste/22_finance_flash.sql` |
 
 **Permissions.** `finance.flash.view` (Finance, CEO, Medical Director) reads the report and downloads it; `finance.targets.manage` (Finance) edits lines, targets and display settings. Billing, Insurance and Cost / Payroll do not see it.
 

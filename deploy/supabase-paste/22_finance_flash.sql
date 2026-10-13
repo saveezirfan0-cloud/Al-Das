@@ -1,4 +1,4 @@
--- Paste into Supabase > SQL Editor > New query, then Run. Needs 21_finance_insurance_overview.sql applied first.
+-- Paste into Supabase > SQL Editor > New query, then Run. Needs 21b_enquiry_tags_campaign_archive.sql applied first.
 -- The migration-history line is included at the bottom of this file.
 
 -- Phase 20A: revenue targets, reporting lines and the daily flash report (docs/20_FINANCE_CONTROL_PLAN.md, OQ-93).
@@ -172,4 +172,4 @@ $$;
 revoke all on function public.fin_flash_set_targets(uuid, date, jsonb, uuid) from public, anon, authenticated;
 grant execute on function public.fin_flash_set_targets(uuid, date, jsonb, uuid) to service_role;
 
-insert into supabase_migrations.schema_migrations (version, name) values ('20261023000100', 'finance_flash') on conflict (version) do nothing;
+insert into supabase_migrations.schema_migrations (version, name) values ('20261023000300', 'finance_flash') on conflict (version) do nothing;

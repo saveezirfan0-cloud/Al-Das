@@ -39,6 +39,67 @@ function minutesLabel(m: number): string {
   return "1 day";
 }
 
+/** Removable chips plus an "Add" box; duplicates (ignoring case) are not added. */
+function ChipListEditor({
+  values,
+  onChange,
+  maxLength,
+  placeholder,
+  label,
+}: {
+  values: string[];
+  onChange: (next: string[]) => void;
+  maxLength: number;
+  placeholder: string;
+  label: string;
+}) {
+  const [draft, setDraft] = React.useState("");
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap gap-2">
+        {values.map((s) => (
+          <span
+            key={s}
+            className="bg-muted flex items-center gap-1 rounded-full py-1 pr-1 pl-3 text-sm"
+          >
+            {s}
+            <button
+              type="button"
+              aria-label={`Remove ${s}`}
+              className="hover:bg-background rounded-full p-1"
+              onClick={() => onChange(values.filter((x) => x !== s))}
+            >
+              <X className="size-3" />
+            </button>
+          </span>
+        ))}
+      </div>
+      <form
+        className="flex gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const v = draft.trim();
+          if (v && !values.some((s) => s.toLowerCase() === v.toLowerCase()))
+            onChange([...values, v]);
+          setDraft("");
+        }}
+      >
+        <Input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          maxLength={maxLength}
+          placeholder={placeholder}
+          aria-label={`New ${label}`}
+          className="max-w-xs"
+        />
+        <Button type="submit" variant="outline" disabled={!draft.trim()}>
+          <Plus /> Add
+        </Button>
+      </form>
+    </div>
+  );
+}
+
 export function GeneralTab({
   settings,
   teams,
@@ -51,7 +112,7 @@ export function GeneralTab({
   const [sla, setSla] = React.useState<number | null>(settings.sla_default_minutes);
   const [lead, setLead] = React.useState(settings.task_reminder_lead_minutes);
   const [sources, setSources] = React.useState<string[]>(settings.sources);
-  const [newSource, setNewSource] = React.useState("");
+  const [lostReasons, setLostReasons] = React.useState<string[]>(settings.lost_reasons);
   const [rules, setRules] = React.useState<NotificationRule[]>(settings.notification_rules);
   const [pending, startTransition] = React.useTransition();
 
@@ -69,6 +130,7 @@ export function GeneralTab({
         sla_default_minutes: sla,
         task_reminder_lead_minutes: lead,
         sources,
+        lost_reasons: lostReasons,
         notification_rules: rules,
       });
       if (res.ok) toast.success(res.message ?? "Saved.");
@@ -119,47 +181,33 @@ export function GeneralTab({
           <CardTitle>Sources</CardTitle>
           <CardDescription>The choices offered for “Source” on an enquiry.</CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          <div className="flex flex-wrap gap-2">
-            {sources.map((s) => (
-              <span
-                key={s}
-                className="bg-muted flex items-center gap-1 rounded-full py-1 pr-1 pl-3 text-sm"
-              >
-                {s}
-                <button
-                  type="button"
-                  aria-label={`Remove ${s}`}
-                  className="hover:bg-background rounded-full p-1"
-                  onClick={() => setSources((cur) => cur.filter((x) => x !== s))}
-                >
-                  <X className="size-3" />
-                </button>
-              </span>
-            ))}
-          </div>
-          <form
-            className="flex gap-2"
-            onSubmit={(e) => {
-              e.preventDefault();
-              const v = newSource.trim();
-              if (v && !sources.some((s) => s.toLowerCase() === v.toLowerCase()))
-                setSources((cur) => [...cur, v]);
-              setNewSource("");
-            }}
-          >
-            <Input
-              value={newSource}
-              onChange={(e) => setNewSource(e.target.value)}
-              maxLength={60}
-              placeholder="Add a source"
-              aria-label="New source"
-              className="max-w-xs"
-            />
-            <Button type="submit" variant="outline" disabled={!newSource.trim()}>
-              <Plus /> Add
-            </Button>
-          </form>
+        <CardContent>
+          <ChipListEditor
+            values={sources}
+            onChange={setSources}
+            maxLength={60}
+            placeholder="Add a source"
+            label="source"
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Lost and disqualified reasons</CardTitle>
+          <CardDescription>
+            Offered as one-tap choices when an enquiry is marked lost or disqualified. Staff can
+            still write their own reason.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ChipListEditor
+            values={lostReasons}
+            onChange={setLostReasons}
+            maxLength={200}
+            placeholder="Add a reason"
+            label="reason"
+          />
         </CardContent>
       </Card>
 
