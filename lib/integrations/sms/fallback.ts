@@ -1,5 +1,6 @@
 import "server-only";
 
+import { readAppointmentSettings } from "@/lib/appointments/settings";
 import { addTimelineEvent } from "@/lib/contacts/timeline";
 import { resolveRecipient, type HouseholdContact } from "@/lib/household/addressing";
 import { loadHouseholdLink } from "@/lib/household/server";
@@ -8,6 +9,7 @@ import { readSmsConfig } from "@/lib/integrations/sms/config";
 import { smsDecision } from "@/lib/integrations/sms/policy";
 import { enqueue } from "@/lib/jobs/enqueue";
 import type { AdminClient } from "@/lib/supabase/admin";
+import { smsFallbackAllowed } from "@/lib/templates/delivery";
 import { isTrainingOrg } from "@/lib/training/mode";
 
 /**
@@ -43,6 +45,15 @@ export async function queueSmsFallback(
   if (await isTrainingOrg(admin, a.orgId)) {
     await bumpUsage(admin, a.orgId, "sms", "blocked_training");
     return "training";
+  }
+
+  // Phase 20d: the template's own switch can turn the fallback off for it, and a marketing template never falls
+  // back. The template is the one the failed message used, or (when the reminder never became a message) the one
+  // mapped for reminders in Settings, Appointments.
+  const template = await fallbackTemplate(admin, a.orgId, a.sourceMessageId ?? null);
+  if (template && !smsFallbackAllowed(template)) {
+    await bumpUsage(admin, a.orgId, "sms", "skipped_template_off");
+    return "skipped:template_off";
   }
 
   const { data: appt } = await admin
@@ -123,4 +134,37 @@ export async function queueSmsFallback(
     payload: { appointment_id: appt.id, sms_id: smsId },
   });
   return "queued";
+}
+
+/** The template behind a failed reminder: from the failed message, else the reminder template mapped in settings. */
+async function fallbackTemplate(
+  admin: AdminClient,
+  orgId: string,
+  sourceMessageId: string | null,
+): Promise<{ category: string; sms_fallback: boolean } | null> {
+  let templateId: string | null = null;
+  if (sourceMessageId) {
+    const { data: msg } = await admin
+      .from("messages")
+      .select("payload")
+      .eq("id", sourceMessageId)
+      .eq("org_id", orgId)
+      .maybeSingle();
+    const send = (msg?.payload as { send?: { type?: unknown; template_id?: unknown } } | null)
+      ?.send;
+    if (send?.type === "template" && typeof send.template_id === "string")
+      templateId = send.template_id;
+  }
+  if (!templateId) {
+    const { data: org } = await admin.from("orgs").select("settings").eq("id", orgId).maybeSingle();
+    templateId = readAppointmentSettings(org?.settings).templates.reminder ?? null;
+  }
+  if (!templateId) return null;
+  const { data } = await admin
+    .from("wa_templates")
+    .select("category, sms_fallback")
+    .eq("id", templateId)
+    .eq("org_id", orgId)
+    .maybeSingle();
+  return data ?? null;
 }

@@ -1135,6 +1135,36 @@ export type Database = {
           },
         ];
       };
+      campaign_budget_months: {
+        Row: {
+          month: string;
+          org_id: string;
+          updated_at: string;
+          used: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          month: string;
+          org_id: string;
+          updated_at?: string;
+          used?: number;
+        };
+        Update: {
+          month?: string;
+          org_id?: string;
+          updated_at?: string;
+          used?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "campaign_budget_months_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       campaign_recipients: {
         Row: {
           attempts: number;
@@ -1261,6 +1291,125 @@ export type Database = {
           },
         ];
       };
+      campaign_recurrences: {
+        Row: {
+          channel_id: string;
+          created_at: string;
+          created_by: string | null;
+          cron: string;
+          fallbacks: NonNullable<Json>;
+          guardrails: NonNullable<Json>;
+          id: string;
+          last_campaign_id: string | null;
+          last_run_at: string | null;
+          last_run_outcome: string | null;
+          name: string;
+          next_run_at: string | null;
+          org_id: string;
+          retry_delay_minutes: number;
+          retry_rounds: number;
+          runs: number;
+          segment_id: string | null;
+          status: string;
+          template_id: string;
+          timezone: string;
+          updated_at: string;
+          variable_map: NonNullable<Json>;
+        };
+        ComputedFields: never;
+        Insert: {
+          channel_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          cron: string;
+          fallbacks?: NonNullable<Json>;
+          guardrails?: NonNullable<Json>;
+          id?: string;
+          last_campaign_id?: string | null;
+          last_run_at?: string | null;
+          last_run_outcome?: string | null;
+          name: string;
+          next_run_at?: string | null;
+          org_id: string;
+          retry_delay_minutes?: number;
+          retry_rounds?: number;
+          runs?: number;
+          segment_id?: string | null;
+          status?: string;
+          template_id: string;
+          timezone: string;
+          updated_at?: string;
+          variable_map?: NonNullable<Json>;
+        };
+        Update: {
+          channel_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          cron?: string;
+          fallbacks?: NonNullable<Json>;
+          guardrails?: NonNullable<Json>;
+          id?: string;
+          last_campaign_id?: string | null;
+          last_run_at?: string | null;
+          last_run_outcome?: string | null;
+          name?: string;
+          next_run_at?: string | null;
+          org_id?: string;
+          retry_delay_minutes?: number;
+          retry_rounds?: number;
+          runs?: number;
+          segment_id?: string | null;
+          status?: string;
+          template_id?: string;
+          timezone?: string;
+          updated_at?: string;
+          variable_map?: NonNullable<Json>;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "campaign_recurrences_channel_id_fkey";
+            columns: ["channel_id"];
+            isOneToOne: false;
+            referencedRelation: "channels";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "campaign_recurrences_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "campaign_recurrences_last_campaign_id_fkey";
+            columns: ["last_campaign_id"];
+            isOneToOne: false;
+            referencedRelation: "campaigns";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "campaign_recurrences_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "campaign_recurrences_segment_id_fkey";
+            columns: ["segment_id"];
+            isOneToOne: false;
+            referencedRelation: "segments";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "campaign_recurrences_template_id_fkey";
+            columns: ["template_id"];
+            isOneToOne: false;
+            referencedRelation: "wa_templates";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       campaigns: {
         Row: {
           audience_type: string;
@@ -1281,9 +1430,11 @@ export type Database = {
           paused_at: string | null;
           paused_reason: string | null;
           quality_at_start: string | null;
+          recurrence_id: string | null;
           retry_delay_minutes: number;
           retry_round: number;
           retry_rounds: number;
+          run_key: string | null;
           scheduled_at: string | null;
           segment_id: string | null;
           started_at: string | null;
@@ -1314,9 +1465,11 @@ export type Database = {
           paused_at?: string | null;
           paused_reason?: string | null;
           quality_at_start?: string | null;
+          recurrence_id?: string | null;
           retry_delay_minutes?: number;
           retry_round?: number;
           retry_rounds?: number;
+          run_key?: string | null;
           scheduled_at?: string | null;
           segment_id?: string | null;
           started_at?: string | null;
@@ -1346,9 +1499,11 @@ export type Database = {
           paused_at?: string | null;
           paused_reason?: string | null;
           quality_at_start?: string | null;
+          recurrence_id?: string | null;
           retry_delay_minutes?: number;
           retry_round?: number;
           retry_rounds?: number;
+          run_key?: string | null;
           scheduled_at?: string | null;
           segment_id?: string | null;
           started_at?: string | null;
@@ -1360,6 +1515,13 @@ export type Database = {
           variable_map?: NonNullable<Json>;
         };
         Relationships: [
+          {
+            foreignKeyName: "campaigns_recurrence_id_fkey";
+            columns: ["recurrence_id"];
+            isOneToOne: false;
+            referencedRelation: "campaign_recurrences";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "campaigns_channel_id_fkey";
             columns: ["channel_id"];
@@ -8496,6 +8658,7 @@ export type Database = {
           org_id: string;
           payload: NonNullable<Json>;
           reply_to_wa_message_id: string | null;
+          retry_of_message_id: string | null;
           sent_by_user_id: string | null;
           status: string;
           updated_at: string;
@@ -8521,6 +8684,7 @@ export type Database = {
           org_id: string;
           payload?: NonNullable<Json>;
           reply_to_wa_message_id?: string | null;
+          retry_of_message_id?: string | null;
           sent_by_user_id?: string | null;
           status?: string;
           updated_at?: string;
@@ -8545,12 +8709,20 @@ export type Database = {
           org_id?: string;
           payload?: NonNullable<Json>;
           reply_to_wa_message_id?: string | null;
+          retry_of_message_id?: string | null;
           sent_by_user_id?: string | null;
           status?: string;
           updated_at?: string;
           wa_message_id?: string | null;
         };
         Relationships: [
+          {
+            foreignKeyName: "messages_retry_of_message_id_fkey";
+            columns: ["retry_of_message_id"];
+            isOneToOne: false;
+            referencedRelation: "messages";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "messages_campaign_recipient_id_fkey";
             columns: ["campaign_recipient_id"];
@@ -12815,8 +12987,10 @@ export type Database = {
           quality: string | null;
           rejected_reason: string | null;
           retry_on_fail: boolean;
+          sms_fallback: boolean;
           status: string;
           submitted_at: string | null;
+          ttl_seconds: number | null;
           type: string;
           updated_at: string;
           variable_map: NonNullable<Json>;
@@ -12843,8 +13017,10 @@ export type Database = {
           quality?: string | null;
           rejected_reason?: string | null;
           retry_on_fail?: boolean;
+          sms_fallback?: boolean;
           status?: string;
           submitted_at?: string | null;
+          ttl_seconds?: number | null;
           type?: string;
           updated_at?: string;
           variable_map?: NonNullable<Json>;
@@ -12870,8 +13046,10 @@ export type Database = {
           quality?: string | null;
           rejected_reason?: string | null;
           retry_on_fail?: boolean;
+          sms_fallback?: boolean;
           status?: string;
           submitted_at?: string | null;
+          ttl_seconds?: number | null;
           type?: string;
           updated_at?: string;
           variable_map?: NonNullable<Json>;
@@ -14638,6 +14816,24 @@ export type Database = {
           },
         ];
       };
+      v_template_message_facts: {
+        Row: {
+          at: string | null;
+          channel_id: string | null;
+          conversation_id: string | null;
+          day: string | null;
+          error_code: number | null;
+          from_campaign: boolean | null;
+          id: string | null;
+          is_retry: boolean | null;
+          org_id: string | null;
+          status: string | null;
+          template_key: string | null;
+          wa_message_id: string | null;
+        };
+        ComputedFields: never;
+        Relationships: [];
+      };
       v_unclassified_medications: {
         Row: {
           first_seen: string | null;
@@ -14875,6 +15071,18 @@ export type Database = {
         };
         Returns: Json;
       };
+      campaign_budget_claim: {
+        Args: { p_org: string; p_requested: number };
+        Returns: number;
+      };
+      campaign_budget_refund: {
+        Args: { p_count: number; p_org: string };
+        Returns: undefined;
+      };
+      campaign_budget_status: {
+        Args: { p_org: string };
+        Returns: { month: string; monthly_limit: number | null; used: number }[];
+      };
       campaign_dispatch: {
         Args: { p_campaign_id: string; p_items: Json };
         Returns: {
@@ -14883,6 +15091,15 @@ export type Database = {
         }[];
       };
       campaign_funnel: { Args: { p_campaign_id: string }; Returns: Json };
+      campaign_recurrence_claim: {
+        Args: {
+          p_next_run_at: string;
+          p_recurrence_id: string;
+          p_run_at: string;
+          p_skip_reason?: string;
+        };
+        Returns: string | null;
+      };
       campaign_requeue_failed: {
         Args: { p_campaign_id: string; p_codes: number[] };
         Returns: number;
@@ -15747,6 +15964,31 @@ export type Database = {
         }[];
       };
       report_sources_available: { Args: Record<PropertyKey, never>; Returns: string[] };
+      report_template_performance: {
+        Args: {
+          p_channels?: string[];
+          p_from: string;
+          p_org: string;
+          p_template?: string;
+          p_to: string;
+        };
+        Returns: {
+          category: string;
+          clicked: number;
+          delivered: number;
+          failed: number;
+          from_campaigns: number;
+          language: string;
+          messages: number;
+          name: string;
+          pending: number;
+          read_count: number;
+          replied: number;
+          retries: number;
+          sent: number;
+          template_id: string;
+        }[];
+      };
       report_unite_appointments_by_day: {
         Args: { p_from: string; p_org: string; p_to: string };
         Returns: {

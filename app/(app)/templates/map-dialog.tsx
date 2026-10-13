@@ -32,11 +32,26 @@ import { saveTemplateVariableMap } from "./actions";
 export type MapTemplate = {
   id: string;
   name: string;
-  variables: Array<{ key: string; example: string | null }>;
+  /** `kind` marks header media (image/video/document) and URL-button suffixes; carousel cards add `card.N.*` keys. */
+  variables: Array<{ key: string; example: string | null; kind?: string }>;
   map: Record<string, string>;
   /** The header media format this template needs, if any (offers the Media Library for `header.media`). */
   headerKind?: MediaKind | null;
 };
+
+function mediaKindOf(kind: string | undefined): MediaKind | null {
+  return kind === "image" || kind === "video" || kind === "document" ? kind : null;
+}
+
+/** A short hint for keys that are not plain text, so the person knows what the value is used for. */
+function keyHint(key: string, kind: string | undefined): string | null {
+  const card = /^card\.(\d+)\./.exec(key);
+  const where = card ? `Card ${Number(card[1]) + 1}: ` : "";
+  if (mediaKindOf(kind)) return `${where}header ${kind}`;
+  if (kind === "url_suffix") return `${where}end of the button link`;
+  if (kind === "copy_code") return `${where}code to copy`;
+  return card ? `${where}text` : null;
+}
 
 const NONE = "__none__";
 const TEXT = "__text__";
@@ -60,11 +75,16 @@ export function MapDialog({
   const router = useRouter();
   const [map, setMap] = useState<Record<string, string>>(template.map);
   const [pending, startTransition] = useTransition();
-  const [pickerOpen, setPickerOpen] = useState(false);
+  /** The header-media key the Media Library picker is choosing for (message header or a carousel card). */
+  const [pickerFor, setPickerFor] = useState<string | null>(null);
+  const kindFor = (key: string): MediaKind | null =>
+    mediaKindOf(template.variables.find((v) => v.key === key)?.kind) ??
+    (key === "header.media" ? (template.headerKind ?? null) : null);
+  const pickerKind = pickerFor ? kindFor(pickerFor) : null;
 
   function set(key: string, kind: string) {
     if (kind === LIBRARY) {
-      setPickerOpen(true);
+      setPickerFor(key);
       return;
     }
     setMap((p) => {
@@ -105,10 +125,12 @@ export function MapDialog({
           <div className="flex flex-col gap-3">
             {template.variables.map((v) => {
               const kind = kindOf(map[v.key]);
+              const hint = keyHint(v.key, v.kind);
               return (
                 <div key={v.key} className="grid gap-1.5 sm:grid-cols-[7rem_1fr]">
                   <div>
-                    <code className="text-xs">{v.key}</code>
+                    <code className="text-xs break-all">{v.key}</code>
+                    {hint && <span className="text-muted-foreground block text-xs">{hint}</span>}
                     {v.example && (
                       <span className="text-muted-foreground block truncate text-xs">
                         e.g. {v.example}
@@ -128,7 +150,7 @@ export function MapDialog({
                           </SelectItem>
                         ))}
                         <SelectItem value={TEXT}>Fixed text…</SelectItem>
-                        {v.key === "header.media" && template.headerKind && (
+                        {kindFor(v.key) && (
                           <SelectItem value={LIBRARY}>
                             {kind === LIBRARY
                               ? "Media Library file (change…)"
@@ -158,14 +180,18 @@ export function MapDialog({
             })}
           </div>
         )}
-        {template.headerKind && (
+        {pickerFor && pickerKind && (
           <MediaPicker
-            open={pickerOpen}
-            onOpenChange={setPickerOpen}
-            kind={template.headerKind}
-            mimes={TEMPLATE_HEADER_TYPES[template.headerKind]}
+            open
+            onOpenChange={(o) => !o && setPickerFor(null)}
+            kind={pickerKind}
+            mimes={TEMPLATE_HEADER_TYPES[pickerKind]}
             title="Choose the header file"
-            onPick={(a) => setMap((p) => ({ ...p, "header.media": mediaSource(a.id) }))}
+            onPick={(a) => {
+              const key = pickerFor;
+              setMap((p) => ({ ...p, [key]: mediaSource(a.id) }));
+              setPickerFor(null);
+            }}
           />
         )}
         <DialogFooter>

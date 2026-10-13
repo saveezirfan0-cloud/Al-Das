@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatInTimeZone } from "date-fns-tz";
 
 import { PageHeader } from "@/components/shell/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +14,7 @@ import {
 } from "@/components/ui/table";
 import { requirePerm } from "@/lib/auth/session";
 import { draftFromComponents, emptyDraft } from "@/lib/templates/builder";
+import { describeTtl } from "@/lib/templates/delivery";
 import { galleryItem } from "@/lib/templates/gallery";
 import {
   TEMPLATE_PAGE_SIZE,
@@ -67,6 +69,7 @@ export default async function TemplatesPage({ searchParams }: { searchParams: Pr
   const isNew = one(sp.new) === "1";
   const galleryKey = one(sp.gallery);
   const tz = member.org.timezone;
+  const today = formatInTimeZone(new Date(), tz || "UTC", "yyyy-MM-dd");
 
   const supabase = await createClient();
   const [{ data: channels }, list] = await Promise.all([
@@ -262,6 +265,10 @@ export default async function TemplatesPage({ searchParams }: { searchParams: Pr
                       <span className="mt-0.5 flex gap-1">
                         <Badge variant="outline">{t.language}</Badge>
                         <Badge variant="outline">{t.type.replace("_", " & ")}</Badge>
+                        {t.retry_on_fail && <Badge variant="outline">retries</Badge>}
+                        {t.ttl_seconds && (
+                          <Badge variant="outline">limit {describeTtl(t.ttl_seconds)}</Badge>
+                        )}
                       </span>
                     </TableCell>
                     <TableCell className="max-w-96">
@@ -291,10 +298,23 @@ export default async function TemplatesPage({ searchParams }: { searchParams: Pr
                         map={{
                           id: t.id,
                           name: t.name,
-                          variables: vars.map((v) => ({ key: v.key, example: v.example })),
+                          variables: vars.map((v) => ({
+                            key: v.key,
+                            example: v.example,
+                            kind: v.kind,
+                          })),
                           map: t.variable_map,
                           headerKind: headerMediaKind(t.components),
                         }}
+                        delivery={{
+                          id: t.id,
+                          name: t.name,
+                          category: t.category,
+                          retry_on_fail: t.retry_on_fail,
+                          sms_fallback: t.sms_fallback,
+                          ttl_seconds: t.ttl_seconds,
+                        }}
+                        today={today}
                       />
                     </TableCell>
                   </TableRow>

@@ -20,8 +20,13 @@ import {
 export const metadata = { title: "New campaign" };
 export const dynamic = "force-dynamic";
 
-export default async function NewCampaignPage() {
+export default async function NewCampaignPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const member = await requirePerm("campaigns.create");
+  const repeat = (await searchParams).repeat === "1";
   const supabase = await createClient();
   const admin = createAdminClient();
 
@@ -38,7 +43,6 @@ export default async function NewCampaignPage() {
         .select("id, name, language, category, status, type, waba_id, components, variable_map")
         .eq("org_id", member.orgId)
         .eq("status", "APPROVED")
-        .neq("type", "carousel") // cards need per-card media at send time; not supported in campaigns yet
         .is("archived_at", null)
         .order("name"),
       supabase
@@ -98,6 +102,7 @@ export default async function NewCampaignPage() {
         customFields={customFields.map((f) => ({ key: f.key, label: f.label }))}
         timezone={member.org.timezone}
         canMedia={canAny(member, ["media.view", "media.manage"])}
+        initialMode={repeat ? "repeat" : "now"}
       />
     </div>
   );

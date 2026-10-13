@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { countsAsFirstTouch, markContactEnquiriesTouched } from "@/lib/enquiries/touch";
-import { emit } from "@/lib/events/emit";
+import { emit, on } from "@/lib/events/emit";
 import { sendSpecSchema, type SendSpec } from "@/lib/inbox/send";
 import { readInboxSettings } from "@/lib/inbox/settings";
 import { enqueue } from "@/lib/jobs/enqueue";
@@ -25,6 +25,9 @@ import { MediaUseError, resolveHeaderMedia } from "@/lib/media/resolve";
 import { buildTemplateSend, isMarketingBlocked, isTemplateSendable } from "@/lib/whatsapp/templates";
 import type { MetaTemplateComponent, SendResult } from "@/lib/whatsapp/types";
 import { serviceWindow } from "@/lib/whatsapp/window";
+import { isTtlExpired, readRetryMarker, TTL_EXPIRED_CODE } from "@/lib/templates/delivery";
+import { maybeRetryTemplateMessage } from "@/lib/templates/retry";
+import { redactText } from "@/lib/redact";
 
 /**
  * `outbound` / `outbound_priority` queues: { message_id }.
@@ -100,6 +103,33 @@ export async function deliverOutbound(
   if (!to) {
     await markFailed(admin, message.id, -1, "The contact has no WhatsApp phone or user id.");
     return;
+  }
+
+  // Phase 20d TTL: a template message older than its template's time limit is not sent at all (a retry counts from
+  // the first queueing of its chain). Checked before a send slot is taken; reminder listeners react to the failure.
+  if (spec.type === "template") {
+    const { data: limit } = await admin
+      .from("wa_templates")
+      .select("ttl_seconds")
+      .eq("id", spec.template_id)
+      .eq("org_id", message.org_id)
+      .maybeSingle();
+    const originAt = readRetryMarker(message.payload)?.origin_at ?? message.at;
+    if (isTtlExpired(originAt, limit?.ttl_seconds, new Date())) {
+      await markFailed(
+        admin,
+        message.id,
+        TTL_EXPIRED_CODE,
+        "Not sent: the message was older than the template's time limit.",
+      );
+      await emit(message.org_id, "message.failed", {
+        message_id: message.id,
+        conversation_id: conversation.id,
+        code: TTL_EXPIRED_CODE,
+        category: "message",
+      });
+      return;
+    }
   }
 
   if (spec.type !== "template") {
@@ -414,5 +444,19 @@ for (const queue of ["outbound_priority", "outbound"] as const) {
     },
   });
 }
+
+// Phase 20d retry-on-fail: a failed non-campaign template message whose template has retry_on_fail is copied and
+// queued again later (bounded, idempotent: lib/templates/retry.ts). The reminder listener calls the same function,
+// so whichever runs first queues the retry and the other finds it.
+on("message.failed", async (event) => {
+  const messageId = event.payload.message_id;
+  if (typeof messageId !== "string") return;
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  try {
+    await maybeRetryTemplateMessage(createAdminClient(), event.orgId, messageId);
+  } catch (err) {
+    console.error("[template-retry] could not queue", { error: redactText(err, 120) });
+  }
+});
 
 export type { SendSpec };

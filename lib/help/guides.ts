@@ -40,7 +40,7 @@ export const GUIDES: readonly Guide[] = [
       "Type / in the message box to use a quick reply. Names and appointment details fill in for you.",
       "If the 24-hour window has closed, pick a template instead of typing a message.",
       "Use the Patient tab on the right to see the next appointment and any flags without leaving the chat.",
-      "Close the conversation when it is finished, with a category if your clinic asks for one.",
+      "Close the conversation when it is finished, with a category if your clinic asks for one. In the same box you can create the patient's enquiry or move theirs on (stage, won, or lost with a reason).",
     ],
     watchOut: [
       "Never copy patient details into another chat or email.",
@@ -116,9 +116,11 @@ export const GUIDES: readonly Guide[] = [
       "Send now or schedule. Watch delivery and replies on the campaign page.",
       "Campaigns sent from Sanoflow before the move are under Campaign history (read-only).",
       "Stuck? The Campaign Copilot turns a sentence into an audience with its size, and suggests English and Arabic wording. In Flows, Describe a bot drafts a flow and Dry run tries it with sample messages.",
+      "To send the same campaign on a schedule, choose Repeat under When and how; Recurring lists them with play and pause. On Templates, the row menu has Delivery settings (retry, SMS fallback for reminders, time limit) and Performance.",
     ],
     watchOut: [
       "Patients who opted out of marketing are always left out.",
+      "An administrator can set a monthly campaign budget. When it is used up, campaigns pause until it is raised.",
       "Send a small test to your own number first.",
       "AI drafts are never published or sent for you. An AI flow needs your review before it can be published.",
     ],
