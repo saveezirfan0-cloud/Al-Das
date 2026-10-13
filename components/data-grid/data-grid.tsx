@@ -333,7 +333,14 @@ export function DataGrid<T extends { id: string }>(props: DataGridProps<T>) {
                     key={row.id}
                     data-index={vr.index}
                     ref={virtualizer.measureElement}
+                    tabIndex={onRowClick ? 0 : undefined}
                     onClick={() => onRowClick?.(row.original)}
+                    onKeyDown={(e) =>
+                      onRowClick &&
+                      e.key === "Enter" &&
+                      e.target === e.currentTarget &&
+                      (e.preventDefault(), onRowClick(row.original))
+                    }
                     className={cn(
                       "hover:bg-muted/50 border-b",
                       onRowClick && "cursor-pointer",

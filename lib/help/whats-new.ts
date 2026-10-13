@@ -27,6 +27,12 @@ export const WHATS_NEW: readonly WhatsNewEntry[] = [
     body: "Flows can now create and update enquiries, add tasks, write portal records and book appointments. New starts: any new message in an open conversation, a WhatsApp form reply, the 24-hour window about to close, and a patient joining a segment with a drip flow. Questions can check the answer (number, phone, e-mail, date or a pattern), ask again and save straight to a patient field. New steps send a payment link, record an ad event, set a label and sort a message by its intent.",
   },
   {
+    id: "2026-11-07-look-and-feel",
+    date: "2026-11-07",
+    title: "A fresher look, dark mode and easier navigation",
+    body: "Pulse has calmer colours and clearer focus outlines for keyboard users. Choose Light, Dark or Match system under your name in the top right; the choice is kept on this device. The menu now marks the page you are on more clearly and the top bar shows which section it belongs to. Quick search (Ctrl K, or ⌘K on a Mac) lists the pages you opened recently first. The dashboard tiles open the matching inbox folder, task list or enquiries.",
+  },
+  {
     id: "2026-11-06-board-pack-controls",
     date: "2026-11-06",
     title: "Board pack: controls and matters needing attention",

@@ -70,7 +70,7 @@ export function SwipeRow({
         <>
           <div
             className={cn(
-              "absolute inset-y-0 left-0 flex w-40 items-center gap-2 bg-emerald-600 pl-4 text-sm font-medium text-white",
+              "absolute inset-y-0 left-0 flex w-40 items-center gap-2 bg-emerald-700 pl-4 text-sm font-medium text-white",
               dx <= 0 && "invisible",
             )}
             aria-hidden

@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 type Result = { ok: true; message?: string } | { ok: false; error: string };
 
 export const selectClass =
-  "border-input bg-background h-9 w-full rounded-md border px-2 text-sm focus-visible:ring-ring/50 outline-none focus-visible:ring-[3px]";
+  "border-input bg-background h-9 w-full rounded-md border px-2 text-sm focus-visible:ring-ring outline-none focus-visible:ring-[3px]";
 
 export function Field({
   label,

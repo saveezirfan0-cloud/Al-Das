@@ -166,13 +166,13 @@ export function FlowsList({ rows, canAi }: { rows: FlowRow[]; canAi: boolean }) 
                 <TableCell>
                   <div className="flex items-center gap-3 text-sm tabular-nums">
                     <span className="inline-flex items-center gap-1" title="Completed">
-                      <CheckCircle2 className="size-3.5 text-emerald-600" /> {f.ok}
+                      <CheckCircle2 className="size-3.5 text-emerald-600 dark:text-emerald-400" /> {f.ok}
                     </span>
                     <span className="inline-flex items-center gap-1" title="Failed">
-                      <TriangleAlert className="size-3.5 text-amber-600" /> {f.failed}
+                      <TriangleAlert className="size-3.5 text-amber-600 dark:text-amber-400" /> {f.failed}
                     </span>
                     <span className="inline-flex items-center gap-1" title="Running or waiting">
-                      <Hourglass className="size-3.5 text-sky-600" /> {f.waiting}
+                      <Hourglass className="size-3.5 text-sky-600 dark:text-sky-400" /> {f.waiting}
                     </span>
                   </div>
                 </TableCell>

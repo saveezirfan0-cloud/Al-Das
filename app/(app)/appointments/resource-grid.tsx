@@ -168,7 +168,7 @@ export function ResourceGrid(props: Props) {
                         e.stopPropagation();
                         props.onBlockClick(b);
                       }}
-                      className="absolute inset-x-1 overflow-hidden rounded border border-dashed border-zinc-400 bg-zinc-200/80 px-1.5 py-0.5 text-left text-[11px] text-zinc-700 dark:bg-zinc-800/80 dark:text-zinc-200"
+                      className="absolute inset-x-1 overflow-hidden rounded border border-dashed border-zinc-400 dark:border-zinc-600 bg-zinc-200/80 px-1.5 py-0.5 text-left text-[11px] text-zinc-700 dark:bg-zinc-800/80 dark:text-zinc-200"
                       style={{
                         top: (top - axisStart) * PX_PER_MIN,
                         height: (end - top) * PX_PER_MIN - 1,

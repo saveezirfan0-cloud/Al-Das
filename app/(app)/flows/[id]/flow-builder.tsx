@@ -53,6 +53,7 @@ import {
 } from "@/lib/flow-engine/catalog";
 import { hasErrors, validateGraph, type GraphIssue } from "@/lib/flow-engine/graph";
 import type { FlowGraph, NodeType } from "@/lib/flow-engine/types";
+import { useIsDark } from "@/lib/hooks/use-is-dark";
 
 import { publishFlow, saveFlowDraft, setFlowStatus } from "../actions";
 import { markAiFlowReviewed } from "../ai-actions";
@@ -175,6 +176,7 @@ function Builder({
 }) {
   const router = useRouter();
   const rf = useReactFlow();
+  const isDark = useIsDark();
   const initial = useMemo(() => fromGraph(flow.graph), [flow.graph]);
   const [nodes, setNodes] = useState<Node[]>(initial.nodes);
   const [edges, setEdges] = useState<Edge[]>(initial.edges);
@@ -437,7 +439,7 @@ function Builder({
         <span className="text-muted-foreground text-xs">
           {flow.version > 0 ? `v${flow.version} published` : "Never published"}
         </span>
-        {dirty && <span className="text-xs text-amber-600">Unsaved changes</span>}
+        {dirty && <span className="text-xs text-amber-600 dark:text-amber-400">Unsaved changes</span>}
         <div className="ml-auto flex flex-wrap items-center gap-1.5">
           <Button
             variant="ghost"
@@ -626,7 +628,7 @@ function Builder({
             minZoom={0.2}
             maxZoom={1.75}
             deleteKeyCode={["Backspace", "Delete"]}
-            colorMode="system"
+            colorMode={isDark ? "dark" : "light"}
             proOptions={{ hideAttribution: true }}
           >
             <Background />

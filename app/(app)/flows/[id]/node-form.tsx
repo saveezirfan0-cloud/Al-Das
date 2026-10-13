@@ -244,7 +244,7 @@ export function NodeForm({ type, config, onChange, lookups }: Props) {
             }))}
           />
           {tpl && tpl.status !== "APPROVED" && (
-            <p className="text-xs text-amber-700">
+            <p className="text-xs text-amber-700 dark:text-amber-300">
               This template is {tpl.status}; the step will fail until it is approved.
             </p>
           )}

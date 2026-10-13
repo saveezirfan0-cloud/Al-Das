@@ -37,3 +37,24 @@ export function rankQuickLinks(query: string, links: readonly QuickLink[]): Quic
     .sort((a, b) => b.s - a.s || a.index - b.index)
     .map((x) => x.link);
 }
+
+/** The recently opened list after opening `href`: newest first, no repeats, at most `max`. */
+export function pushRecent(list: readonly string[], href: string, max = 5): string[] {
+  return [href, ...list.filter((h) => h !== href)].slice(0, max);
+}
+
+/**
+ * Splits the palette's links into recently opened ones (in `recentHrefs` order) and the rest.
+ * A remembered href the member can no longer open (permissions changed) is simply dropped.
+ */
+export function withRecentFirst(
+  links: readonly QuickLink[],
+  recentHrefs: readonly string[],
+): { recent: QuickLink[]; rest: QuickLink[] } {
+  const byHref = new Map(links.map((l) => [l.href, l]));
+  const recent = [...new Set(recentHrefs)]
+    .map((h) => byHref.get(h))
+    .filter((l): l is QuickLink => !!l);
+  const seen = new Set(recent.map((l) => l.href));
+  return { recent, rest: links.filter((l) => !seen.has(l.href)) };
+}

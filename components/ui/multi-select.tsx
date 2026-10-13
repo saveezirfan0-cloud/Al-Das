@@ -79,9 +79,10 @@ export function MultiSelect({
                 className="bg-secondary text-secondary-foreground inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs"
               >
                 {o.label}
+                {/* Mouse shortcut only: a control cannot sit inside the trigger button, and keyboard and
+                    screen-reader users remove a value by unticking it in the list. */}
                 <span
-                  role="button"
-                  aria-label={`Remove ${o.label}`}
+                  aria-hidden
                   className="hover:text-destructive"
                   onClick={(e) => {
                     e.stopPropagation();
