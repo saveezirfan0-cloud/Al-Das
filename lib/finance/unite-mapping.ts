@@ -14,6 +14,27 @@
 export type FieldSpec = { aliases: readonly string[]; required?: boolean };
 export type FieldMap = Record<string, FieldSpec>;
 
+/**
+ * Ordering and performing doctor, when Unite delivers them separately from the invoice's single doctor. All optional
+ * and OUTSIDE the invoice hash: the invoice's own doctor is never overwritten, and an absent field is simply null.
+ * Confirm the real key names with Unite's field list (docs/finance/open-items.md).
+ */
+export const DOCTOR_ROLE_FIELDS = {
+  ordering_id: {
+    aliases: ["OrderingDoctorDHAId", "OrderingDoctorDHAID", "OrderingDoctorId", "OrderingDHAId"],
+  },
+  ordering_name: { aliases: ["OrderingDoctorName", "OrderingDoctor"] },
+  performing_id: {
+    aliases: [
+      "PerformingDoctorDHAId",
+      "PerformingDoctorDHAID",
+      "PerformingDoctorId",
+      "PerformingDHAId",
+    ],
+  },
+  performing_name: { aliases: ["PerformingDoctorName", "PerformingDoctor"] },
+} satisfies FieldMap;
+
 export const INVOICE_FIELDS = {
   inv_display_number: { aliases: ["InvDisplayNumber", "InvoiceNumber", "InvNo"], required: true },
   ref_type: { aliases: ["RefType"] },

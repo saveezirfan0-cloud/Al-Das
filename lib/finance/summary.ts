@@ -5,6 +5,11 @@ export type SummaryRow = {
   branch_code: string | null;
   generated: number | null;
   claimed: number | null;
+  /** claimed amount with evidence of acceptance (a remitted amount or a configured status) */
+  accepted?: number | null;
+  /** payments allocated to claims from reconciled remittance advices */
+  paid_allocated?: number | null;
+  status_unknown_claims?: number | null;
   remitted: number | null;
   rejected: number | null;
   outstanding: number | null;
@@ -14,6 +19,8 @@ export type SummaryRow = {
 export const SUMMARY_COLUMNS = [
   "generated",
   "claimed",
+  "accepted",
+  "paid_allocated",
   "remitted",
   "rejected",
   "outstanding",

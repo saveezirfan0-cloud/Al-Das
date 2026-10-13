@@ -242,7 +242,7 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance blueprint (F8)", () => {
           );
         return id;
       });
-      const read = async () =>
+      const read = async (): Promise<Record<string, string[]>> =>
         Object.fromEntries(
           (
             await svc(() =>

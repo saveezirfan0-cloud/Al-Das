@@ -75,3 +75,14 @@
 39. **Not built from the roadmap wording in `docs/09`**: payment links, instalment tracking and the patient estimate generator (not part of Prompt 18).
 40. **Still not exercised**: nothing in Phase 18 was driven in a browser, against Unite, a payer's real file, a real WhatsApp number or an accounting package.
 
+
+## Added in F8 (Integration Blueprint v2)
+
+33. **Status against the blueprint** is in `blueprint-status.md` (what is built, what is not and why, and the decisions Al Das owns).
+34. **Doctor basis** (ordering or performing) is unset by design. Management and the Medical Director choose it in Workflow settings; until then reports use the invoice doctor and say so. Unite's real key names for the two doctors are guesses in `DOCTOR_ROLE_FIELDS` (`lib/finance/unite-mapping.ts`).
+35. **Accepted claim statuses** are empty until Sharaf lists the Diligence statuses that evidence acceptance (Workflow settings). A remitted amount always counts as evidence.
+36. **E11 / E12 start date** is blank (off). Set it only after the visit feed and the first full invoice pull have been checked. E11 will flag legitimate invoices with no visit (for example a pharmacy sale), which is why it is a review signal.
+37. **Cost inputs** start empty: every service line is uncosted and profit shows as provisional. Finance loads the CSVs (`cost-csv.md`) and approves months.
+38. **Pseudonymous reporting ID** needs the Vault secret `finance_ref_key` (see `blueprint-status.md` section 4). Without it the ID stays empty and the report functions fall back to counting by PIN internally; no PIN is ever returned.
+39. **Escalation** moves an overdue exception to the configured role (default Finance after 14 days). The first owner is kept in `escalated_from_role` but no longer sees the item in their queue; tell the team this is a hand-over.
+40. **Cost / Payroll role** is created for every organisation by the migration and for new organisations from `FINANCE_ROLES`. Doctor compensation is a separate permission; grant it to named people only.

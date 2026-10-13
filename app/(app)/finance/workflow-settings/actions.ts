@@ -13,6 +13,7 @@ import {
   uuid,
   type ActionResult,
 } from "@/lib/finance/action-support";
+import { OWNER_ROLES, parseStatusList } from "@/lib/finance/blueprint-settings";
 import { DENIAL_CATEGORIES } from "@/lib/finance/denials";
 import { parsePriceText } from "@/lib/finance/payer-prices";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -104,6 +105,53 @@ export async function saveThresholds(raw: Record<string, string>): Promise<Actio
     diff: {
       ready_check: d.ready_start_date !== null,
       denial_cases: d.denial_cases_start_date !== null,
+    },
+  });
+  refresh();
+  return { ok: true, message: "Settings saved." };
+}
+
+const blueprint = z.object({
+  doctor_basis: z.enum(["", "ordering", "performing"]),
+  accepted_claim_statuses: z.string().max(2000),
+  evidence_start_date: optionalDate,
+  evidence_grace_days: int(0, 30),
+  escalation_days: int(1, 365),
+  escalation_role: z.enum(OWNER_ROLES as unknown as [string, ...string[]]),
+});
+
+/** Integration Blueprint settings: doctor basis, evidenced claim statuses, completion evidence, escalation. */
+export async function saveBlueprintSettings(raw: Record<string, string>): Promise<ActionResult> {
+  const member = await requirePerm(PERM);
+  const p = blueprint.safeParse(raw);
+  if (!p.success) return fail(firstIssue(p.error, "Check the values."));
+  const d = p.data;
+  const { error } = await (
+    await createClient()
+  )
+    .from("fin_ref_finance_settings")
+    .update({
+      doctor_basis: d.doctor_basis === "" ? null : d.doctor_basis,
+      accepted_claim_statuses: parseStatusList(d.accepted_claim_statuses),
+      evidence_start_date: d.evidence_start_date,
+      evidence_grace_days: d.evidence_grace_days,
+      escalation_days: d.escalation_days,
+      escalation_role: d.escalation_role,
+    })
+    .eq("org_id", member.orgId);
+  if (error) return fail(dbMessage(error, "Could not save the settings."));
+  await recordAudit(createAdminClient(), {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "finance.workflow.blueprint_saved",
+    entity: "fin_ref_finance_settings",
+    entityId: member.orgId,
+    diff: {
+      doctor_basis: d.doctor_basis || null,
+      statuses: parseStatusList(d.accepted_claim_statuses).length,
+      evidence_check: d.evidence_start_date !== null,
+      escalation_days: d.escalation_days,
+      escalation_role: d.escalation_role,
     },
   });
   refresh();

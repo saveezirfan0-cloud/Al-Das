@@ -53,7 +53,7 @@ export default async function ExceptionsPage({ searchParams }: { searchParams: P
   let q = supabase
     .from("ops_exceptions")
     .select(
-      "id, rule_code, entity_type, entity_key, branch_code, owner_role, status, due_date, opened_at, assignee_user_id",
+      "id, rule_code, entity_type, entity_key, branch_code, owner_role, status, due_date, opened_at, assignee_user_id, escalated_at, escalated_from_role",
       { count: "exact" },
     )
     .order("due_date", { ascending: true, nullsFirst: false })
@@ -198,6 +198,15 @@ export default async function ExceptionsPage({ searchParams }: { searchParams: P
                           {e.rule_code}
                         </Badge>{" "}
                         <span className="text-xs">{RULE_INFO[e.rule_code]?.title}</span>
+                        {e.escalated_at && (
+                          <Badge
+                            variant="destructive"
+                            className="ml-1"
+                            title={`Handed over from ${e.escalated_from_role ?? "its first owner"} on ${e.escalated_at.slice(0, 10)}`}
+                          >
+                            escalated
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell className="font-mono text-xs">
                         <Link

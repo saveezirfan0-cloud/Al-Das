@@ -14660,6 +14660,20 @@ export type Database = {
         Returns: string;
       };
       fin_close_withdraw: { Args: { p_close_id: string; p_org_id: string }; Returns: undefined };
+      fin_cost_set_period: {
+        Args: {
+          p_month: string;
+          p_note: string;
+          p_org_id: string;
+          p_status: string;
+          p_user: string;
+        };
+        Returns: undefined;
+      };
+      fin_cost_upsert: {
+        Args: { p_kind: string; p_org_id: string; p_rows: Json; p_user: string };
+        Returns: number;
+      };
       fin_denial_reasons: {
         Args: {
           p_from: string;

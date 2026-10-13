@@ -350,3 +350,27 @@ describe("provenance", () => {
     expect(p.sources[0].note).toBe("capture is off");
   });
 });
+
+import { mapInvoice } from "@/lib/finance/map-invoice";
+
+import { rawInvoice } from "./factory";
+
+describe("ordering and performing doctor mapping", () => {
+  it("is absent when Unite does not send it, and the invoice hash does not change when it does", () => {
+    const plain = mapInvoice(rawInvoice());
+    expect(plain.doctor_roles).toBeUndefined();
+    const withRoles = mapInvoice(
+      rawInvoice({ OrderingDoctorDHAId: "ord-1", PerformingDoctorName: "Dr Test Performing" }),
+    );
+    expect(withRoles.doctor_roles).toEqual({
+      ordering_id: "ord-1",
+      ordering_name: null,
+      performing_id: null,
+      performing_name: "Dr Test Performing",
+    });
+    // stored apart from the invoice: same business content, same hash, same doctor
+    expect(withRoles.record_hash).toBe(plain.record_hash);
+    expect(withRoles.doctor_dha_id).toBe(plain.doctor_dha_id);
+    expect(JSON.stringify(withRoles.record)).not.toContain("ord-1");
+  });
+});

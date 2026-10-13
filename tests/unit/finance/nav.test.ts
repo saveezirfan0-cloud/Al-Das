@@ -64,8 +64,32 @@ describe("Finance navigation", () => {
 
   it("the Medical Director sees revenue and scorecards only", () => {
     expect(hrefs(member(role("Medical Director"))).sort()).toEqual(
-      ["/finance/revenue", "/finance/scorecards", "/finance/summary"].sort(),
+      [
+        "/finance/branches",
+        "/finance/doctors",
+        "/finance/revenue",
+        "/finance/scorecards",
+        "/finance/summary",
+      ].sort(),
     );
+  });
+
+  it("cost and profit pages follow the blueprint's separation of duties", () => {
+    // Cost / Payroll: costs only, no revenue, branch, doctor or profit pages
+    expect(hrefs(member(role("Cost / Payroll")))).toEqual(["/finance/costs"]);
+    // CEO sees profitability but not the cost inputs
+    const ceo = hrefs(member(role("CEO")));
+    expect(ceo).toContain("/finance/profitability");
+    expect(ceo).not.toContain("/finance/costs");
+    // Billing and the Medical Director never see cost or profit pages
+    for (const name of ["Billing", "Medical Director", "Insurance"]) {
+      const h = hrefs(member(role(name)));
+      expect(h, name).not.toContain("/finance/costs");
+      expect(h, name).not.toContain("/finance/profitability");
+    }
+    // Finance sees all of it
+    const fin = hrefs(member(role("Finance")));
+    expect(fin).toEqual(expect.arrayContaining(["/finance/costs", "/finance/profitability", "/finance/doctors", "/finance/branches"]));
   });
 
   it("the sign-offs are split: finance and CEO presets each hold only their own key", () => {

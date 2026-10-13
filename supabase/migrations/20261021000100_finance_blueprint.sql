@@ -809,7 +809,7 @@ begin
   insert into public.fin_cost_periods (org_id, month, status, approved_by, approved_at, note)
   values (p_org_id, p_month, p_status,
           case when p_status = 'approved' then p_user end,
-          case when p_status = 'approved' then now() end, p_note)
+          case when p_status = 'approved' then now() end, nullif(btrim(coalesce(p_note, '')), ''))
   on conflict (org_id, month) do update
     set status = excluded.status, approved_by = excluded.approved_by, approved_at = excluded.approved_at, note = excluded.note;
 end;

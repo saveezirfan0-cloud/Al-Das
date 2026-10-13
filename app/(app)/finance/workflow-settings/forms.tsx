@@ -4,12 +4,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ActionForm, Field, RunButton, selectClass } from "@/components/finance/forms";
 import { CATEGORY_LABELS, DENIAL_CATEGORIES } from "@/lib/finance/denials";
+import type { BlueprintSettings } from "@/lib/finance/blueprint-settings";
 import type { FinanceSettings } from "@/lib/finance/settings-db";
 
 import {
   deleteDenialCode,
   deletePayerPrice,
   importPayerPrices,
+  saveBlueprintSettings,
   saveDenialCode,
   saveThresholds,
 } from "./actions";
@@ -311,6 +313,69 @@ export function PriceImport() {
           placeholder={"99213, 180\n99214, 250, 01-01-2026"}
         />
       </Field>
+    </ActionForm>
+  );
+}
+
+export function BlueprintSettingsForm({ s }: { s: BlueprintSettings }) {
+  return (
+    <ActionForm action={saveBlueprintSettings} submitLabel="Save settings">
+      <fieldset className="grid gap-3 sm:grid-cols-2">
+        <legend className="mb-1 text-sm font-semibold">Which doctor counts</legend>
+        <Field
+          label="Doctor basis for revenue and doctor reports"
+          hint="Management and the Medical Director decide this. Until then the invoice's doctor is used and reports say so."
+        >
+          <select name="doctor_basis" defaultValue={s.doctorBasis ?? ""} className={selectClass}>
+            <option value="">Not decided</option>
+            <option value="ordering">Ordering doctor</option>
+            <option value="performing">Performing doctor</option>
+          </select>
+        </Field>
+      </fieldset>
+      <fieldset className="grid gap-3">
+        <legend className="mb-1 text-sm font-semibold">Accepted claims</legend>
+        <Field
+          label="Claim statuses that show a claim was accepted"
+          hint="One per line or comma separated, as they appear in Diligence. A remitted amount always counts as evidence; a claim with neither is never assumed accepted."
+        >
+          <Textarea
+            name="accepted_claim_statuses"
+            rows={3}
+            defaultValue={s.acceptedClaimStatuses.join("\n")}
+          />
+        </Field>
+      </fieldset>
+      <fieldset className="grid gap-3 sm:grid-cols-3">
+        <legend className="mb-1 text-sm font-semibold">Visit and billing checks (E11, E12)</legend>
+        <Field
+          label="Compare visits and invoices dated from"
+          hint="Blank = off. Nothing earlier is ever flagged. These are review signals, not proof."
+        >
+          <Input name="evidence_start_date" type="date" defaultValue={s.evidenceStartDate ?? ""} />
+        </Field>
+        <Field label="Match within this many days">
+          <Input
+            name="evidence_grace_days"
+            inputMode="numeric"
+            defaultValue={s.evidenceGraceDays}
+          />
+        </Field>
+      </fieldset>
+      <fieldset className="grid gap-3 sm:grid-cols-3">
+        <legend className="mb-1 text-sm font-semibold">Escalation</legend>
+        <Field label="Escalate after this many days overdue">
+          <Input name="escalation_days" inputMode="numeric" defaultValue={s.escalationDays} />
+        </Field>
+        <Field label="Escalate to">
+          <select name="escalation_role" defaultValue={s.escalationRole} className={selectClass}>
+            <option value="finance">Finance</option>
+            <option value="insurance">Insurance</option>
+            <option value="billing">Billing</option>
+            <option value="admin">Admin</option>
+          </select>
+        </Field>
+      </fieldset>
     </ActionForm>
   );
 }
