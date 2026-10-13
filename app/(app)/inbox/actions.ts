@@ -463,7 +463,8 @@ export async function assignConversation(
   if (!parsed.success) return { ok: false, error: "Invalid input" };
   const { error, conversation } = await visibleConversation(member, parsed.data.conversation_id);
   if (error || !conversation) return { ok: false, error: error ?? "Conversation not found." };
-  const admin = createAdminClient();
+  // The actor header lets the assignment log (Phase 20c) name who assigned it.
+  const admin = createAdminClient(member.userId);
   const { error: upErr } = await admin
     .from("conversations")
     .update({
@@ -517,11 +518,15 @@ export async function autoAssignConversation(conversationId: string): Promise<Ac
       ok: false,
       error: "No team to assign from. Pick a team first or set a default team in Settings → Inbox.",
     };
-  const { data: userId } = await admin.rpc("pick_round_robin_assignee", {
+  const { data: userId } = await admin.rpc("pick_round_robin_assignee_capped", {
     p_org_id: member.orgId,
     p_team_id: teamId,
   });
-  if (!userId) return { ok: false, error: "Nobody on that team is online right now." };
+  if (!userId)
+    return {
+      ok: false,
+      error: "Nobody on that team is online with room for another conversation right now.",
+    };
   return assignConversation({
     conversation_id: conversation.id,
     user_id: userId as string,
@@ -677,7 +682,7 @@ export async function startConversation(
   const parsed = startSchema.safeParse(input);
   if (!parsed.success)
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
-  const admin = createAdminClient();
+  const admin = createAdminClient(member.userId);
   const { data: channel } = await admin
     .from("channels")
     .select("id, status")

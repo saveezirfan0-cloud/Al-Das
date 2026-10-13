@@ -526,3 +526,32 @@ export const PHASE20_TABLES = [
   "campaign_archive_recipients",
   "enquiry_tags",
 ] as const;
+
+/**
+ * Phase 20c (routing): one row in each new log table for an org, written the way production writes them (the triggers
+ * on conversations.assignee_* and memberships.presence), so the cross-org sweeps are not vacuous for them.
+ */
+export async function seedPhase20cRows(c: Client, orgId: string, userId: string) {
+  const ids: Record<string, string> = {};
+  await asServiceRole(c, async () => {
+    const one = async (sql: string, params: unknown[]) =>
+      (await c.query<{ id: string }>(sql + " returning id::text", params)).rows[0].id;
+    const contact = await one(
+      "insert into public.contacts (org_id, first_name, phone_e164) values ($1, 'Layla Demo-21', '+447700900421')",
+      [orgId],
+    );
+    const channel = await one(
+      "insert into public.channels (org_id, name, waba_id, phone_number_id) values ($1, 'Sweep 20c', 'waba-20c-' || gen_random_uuid(), 'pn-20c-' || gen_random_uuid())",
+      [orgId],
+    );
+    ids.conversation = await one(
+      "insert into public.conversations (org_id, channel_id, contact_id, assignee_user_id) values ($1, $2, $3, $4)",
+      [orgId, channel, contact, userId],
+    );
+    await c.query("update public.memberships set presence = 'away' where org_id = $1 and user_id = $2", [orgId, userId]);
+  });
+  return ids;
+}
+
+/** Phase 20c tables with a browser (select) policy. */
+export const PHASE20C_TABLES = ["conversation_assignment_events", "member_presence_events"] as const;

@@ -6,6 +6,7 @@ import { cache } from "react";
 import type { User } from "@supabase/supabase-js";
 
 import { assertCan, type MemberLike } from "@/lib/auth/can";
+import { parseEnquiryScope } from "@/lib/enquiries/scope";
 import { AUTH_MODE_HEADER, isAuthMode } from "@/lib/supabase/auth-mode";
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/supabase/types";
@@ -18,6 +19,8 @@ export type CurrentMember = MemberLike & {
   profile: Tables<"profiles">;
   org: Tables<"orgs">;
   presence: "online" | "away" | "offline";
+  /** Phase 20c: restricted enquiry view (memberships.enquiry_scope); lib/enquiries/visibility.ts reads it. */
+  enquiryScope?: "all" | "team" | "own";
   roleName: string;
   /** Other orgs the user belongs to (for the org switcher). */
   orgs: Array<{ id: string; name: string; slug: string }>;
@@ -85,7 +88,9 @@ export const getCurrentMember = cache(async (): Promise<CurrentMember | null> =>
   const supabase = await createClient();
   const { data: memberships } = await supabase
     .from("memberships")
-    .select("id, org_id, role_id, status, presence, roles(name, permissions), orgs(*)")
+    .select(
+      "id, org_id, role_id, status, presence, enquiry_scope, roles(name, permissions), orgs(*)",
+    )
     .eq("user_id", user.id)
     .eq("status", "active")
     .order("created_at");
@@ -114,6 +119,7 @@ export const getCurrentMember = cache(async (): Promise<CurrentMember | null> =>
     membershipId: membership.id,
     status: membership.status as "active" | "suspended",
     presence: membership.presence as "online" | "away" | "offline",
+    enquiryScope: parseEnquiryScope(membership.enquiry_scope),
     permissions,
     user,
     profile,
