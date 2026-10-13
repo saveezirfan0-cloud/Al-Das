@@ -31,6 +31,7 @@ import {
   PHASE20D_TABLES,
   PHASE21_TABLES,
   PHASE22_TABLES,
+  PHASE22F_TABLES,
   resetDb,
   seedPhase13Rows,
   seedPhase14Rows,
@@ -43,6 +44,7 @@ import {
   seedPhase20DRows,
   seedPhase21Rows,
   seedPhase22Rows,
+  seedPhase22FRows,
   seedSecurityRows,
   TEST_DATABASE_URL,
 } from "./helpers";
@@ -198,6 +200,27 @@ const PHASE22_SERVICE_FUNCTIONS = [
   "acc_seed_chart",
   "acc_set_period_status",
   "acc_trial_balance",
+];
+
+/** Phase 22F SECURITY DEFINER functions (banking and cash) that only server code (service role) may run. */
+const PHASE22F_SERVICE_FUNCTIONS = [
+  "acc_account_balances",
+  "acc_bank_create_ledger",
+  "acc_bank_entry_create",
+  "acc_bank_link_gl",
+  "acc_bank_position",
+  "acc_bank_statement_balance_save",
+  "acc_bank_transfer_create",
+  "acc_banking_cancel",
+  "acc_banking_sweep",
+  "acc_cheque_act",
+  "acc_cheque_book_save",
+  "acc_cheque_register",
+  "acc_party_flag_clear",
+  "acc_petty_cash_count_prepare",
+  "acc_petty_cash_count_sign",
+  "acc_petty_cash_expense_create",
+  "acc_petty_cash_float_save",
 ];
 
 /** Phase 17 SECURITY DEFINER functions that only server code (service role) may run. */
@@ -469,9 +492,11 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 22 service-role functions", () => {
                 has_function_privilege('service_role', p.oid, 'execute') as svc
          from pg_proc p join pg_namespace n on n.oid = p.pronamespace
          where n.nspname = 'public' and p.proname = any ($1)`,
-        [PHASE22_SERVICE_FUNCTIONS],
+        [[...PHASE22_SERVICE_FUNCTIONS, ...PHASE22F_SERVICE_FUNCTIONS]],
       );
-      expect(rows.map((r) => r.name).sort()).toEqual([...PHASE22_SERVICE_FUNCTIONS].sort());
+      expect(rows.map((r) => r.name).sort()).toEqual(
+        [...PHASE22_SERVICE_FUNCTIONS, ...PHASE22F_SERVICE_FUNCTIONS].sort(),
+      );
       for (const r of rows)
         expect({ name: r.name, anon: r.anon, auth: r.auth, svc: r.svc }).toEqual({
           name: r.name,
@@ -614,6 +639,8 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
     await seedPhase20aRows(c, orgA);
     // Phase 22A (accounting) tables likewise.
     await seedPhase22Rows(c, orgA);
+    // Phase 22F (banking and cash) tables likewise.
+    await seedPhase22FRows(c, orgA, alice);
   });
   afterAll(async () => {
     await resetDb(c);
@@ -627,6 +654,7 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
   it("sweeps every Phase 13 to 22 table (a new table must be added to PHASE13_TABLES ... PHASE22_TABLES and seeded)", () => {
     for (const t of [
       ...PHASE22_TABLES,
+      ...PHASE22F_TABLES,
       ...PHASE21_TABLES,
       ...PHASE20_TABLES,
       ...PHASE20A_TABLES,
@@ -646,6 +674,8 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
     await asUser(c, alice, async () => {
       for (const t of [
         ...PHASE22_TABLES,
+        ...PHASE22F_TABLES,
+      ...PHASE22F_TABLES,
         ...PHASE21_TABLES,
         ...PHASE20_TABLES,
         ...PHASE20A_TABLES,

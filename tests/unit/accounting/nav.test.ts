@@ -44,6 +44,7 @@ describe("Accounting navigation", () => {
     expect([...new Set(ACCOUNTING_NAV.map((e) => e.section))]).toEqual([
       "Overview",
       "Ledger",
+      "Banking",
       "Reports",
       "Close",
       "Setup",

@@ -674,6 +674,27 @@ export const GUIDES: readonly Guide[] = [
       "Audit adjustments after the year end go into the year's adjustment period (people who manage periods only), so the last month stays closed.",
     ],
   },
+  {
+    id: "accounting-banking",
+    title: "Banking and cash",
+    pages: ["/accounting/banking"],
+    purpose:
+      "The books' side of the bank and the cash: each bank account's ledger and position, transfers (Contra), bank charges and interest, petty cash and the cheque register.",
+    steps: [
+      "Bank accounts: link each bank account (Finance adds them under Bank reconciliation) to its ledger, or create one under Bank Accounts or Bank OD A/c. Type the statement's closing balance for a date to see the books against the bank.",
+      "Transfers: money between two bank accounts, cash deposited or withdrawn, or a petty cash top-up. Each posts as a Contra voucher at once.",
+      "Bank entries: charges, interest and direct debits or credits. Use Create entry on a statement line nothing explains yet; the line then counts as matched in the bank reconciliation.",
+      "Petty cash: one float per branch with its own cash ledger. Record each expense with its receipt; at month end count the cash and save the count; someone else signs it.",
+      "Cheques: register cheques we issue (vouchers paid by cheque are listed to register) and cheques we receive. Mark them presented, cleared or bounced; cancel one that was never used.",
+    ],
+    watchOut: [
+      "Nothing is edited after it is saved: cancel it (a posted item is reversed) and enter it again.",
+      "A post-dated cheque posts on its date (a daily job, or Post what is due). A cheque goes stale six months after its date and its posting is reversed.",
+      "A bounced cheque reverses its posting and flags the party; clear the flag with a reason once settled.",
+      "An item dated before the ledger starts waits and posts by itself once that date is open.",
+      "A patient on a cheque is recorded by the Unite PIN only, never by name.",
+    ],
+  },
 ];
 
 export const FALLBACK_GUIDE: Guide = {

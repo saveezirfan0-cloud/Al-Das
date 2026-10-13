@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-11-09-accounting-banking",
+    date: "2026-11-09",
+    title: "Accounting: banking, petty cash and cheques",
+    body: "Accounting has a Banking section. Each bank account is linked to its ledger (or gets a new one under Bank Accounts or Bank OD A/c), and the bank position compares the books with the balance on the bank statement, allowing for cheques not yet through the bank. Transfers between banks, cash deposits and petty cash top-ups post as Contra vouchers. Bank charges, interest and direct debits can be entered by hand or straight from a statement line nothing explains yet, which then shows as matched in the bank reconciliation. Each branch can keep a petty cash float with receipts and a monthly count signed by a second person. The cheque register holds cheques issued and received: post-dated cheques post on their date, and a bounced cheque reverses its posting and flags the party.",
+  },
+  {
     id: "2026-11-08-chronic-recall-alignment",
     date: "2026-11-08",
     title: "Chronic recall: only chronic diagnoses count",
