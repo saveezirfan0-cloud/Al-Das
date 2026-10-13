@@ -36,6 +36,8 @@ export type ScenarioVM = {
   diffsExplained: boolean;
   makeOff: boolean;
   blockedReason: string | null;
+  /** Differences expected by design (lib/parallel-run/diff.ts EXPECTED_DIFFERENCES). */
+  expected: string | null;
   comparable: boolean;
   days: Day[];
   readiness: { ready: boolean; reasons: string[] };
@@ -140,6 +142,11 @@ export function ParallelRunReport({
         .map((s) => (
           <section key={s.key} className="flex flex-col gap-2">
             <h3 className="font-semibold">{s.name}: day by day</h3>
+            {s.expected && (
+              <p className="text-muted-foreground max-w-3xl text-sm">
+                Expected differences: {s.expected}
+              </p>
+            )}
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>

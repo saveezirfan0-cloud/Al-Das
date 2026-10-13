@@ -80,7 +80,7 @@ describe("registry integrity", () => {
         // Junction mappers build their row from the parent and the linked row (run-junction.ts).
         const built = m.junction.build({
           parent: { id: "parent-1", visit_date: "2026-09-01", contact_id: "contact-1" },
-          child: { id: "child-1", code: "i10" },
+          child: { id: "child-1", code: "i10", chronic: true },
           flagged: false,
         });
         expect(typeof built, m.key).toBe("object");
@@ -568,7 +568,27 @@ describe("pending mappers (validated by --dry-run only)", () => {
     );
     expect(r.values.follow_up_status).toBe("called");
     expect(r.values.notes).toBeNull();
+    // no last-visit date on the row: the send date is the fallback, and the report counts it
     expect(r.values.cycle_key).toBe("2026-09-02");
+    expect(r.warnings).toContain("cycle_key_from_sent_date");
+  });
+
+  it("Chronic recall: the cycle is the last-visit date at send, so the same cycle is never messaged again", () => {
+    const r = mapRecord(
+      chronicRecallMapper,
+      rec({
+        fldmqIT40DYyGAe8q: "PIN1",
+        fld6a8W0nUzktk9o5: "2026-05-20",
+        fld01KXt1biCwWS55: "2026-09-02T06:00:00.000Z",
+      }),
+    );
+    // v_chronic_recall_eligibility dedupes on cycle_key = last_visit_date::text
+    expect(r.values.cycle_key).toBe("2026-05-20");
+    expect(r.values.last_visit_date_at_send).toBe("2026-05-20");
+    expect(r.warnings).not.toContain("cycle_key_from_sent_date");
+    expect(
+      mapRecord(chronicRecallMapper, rec({ fldmqIT40DYyGAe8q: "PIN1" })).values.cycle_key,
+    ).toBe("undated");
   });
 
   it("Appointment messages: date-only send time becomes noon Dubai", () => {

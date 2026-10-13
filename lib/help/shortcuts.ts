@@ -9,7 +9,7 @@ export const SHORTCUT_GROUPS: readonly ShortcutGroup[] = [
     title: "Anywhere",
     items: [
       { keys: ["?"], does: "Show this list" },
-      { keys: ["Ctrl", "K"], does: "Quick search: jump to any page or setting" },
+      { keys: ["Ctrl", "K"], does: "Quick search: jump to any page, Finance page or setting" },
       { keys: ["Esc"], does: "Close a panel or dialog" },
     ],
   },

@@ -184,6 +184,16 @@ export const NOTIFICATION_EVENTS = [
     permission: "finance.vouchers.prepare",
   },
   {
+    key: "accounting.runs_prepared",
+    group: "Work",
+    label: "Month-end depreciation and schedule runs are ready",
+    description:
+      "On the first working day of a month Pulse prepares last month's depreciation and schedule runs for review. Push and e-mail say only that runs are ready.",
+    channels: ALL,
+    defaults: { in_app: true, email: false, push: false },
+    permission: "accounting.assets.manage",
+  },
+  {
     key: "ai.insights_ready",
     group: "Work",
     label: "The weekly AI reply-quality report is ready",
@@ -284,6 +294,7 @@ export function categoryForType(type: string): NotificationCategory {
     type === "finance.denial_deadline" ||
     type === "finance.followup_due" ||
     type === "finance.close_due" ||
+    type === "accounting.runs_prepared" ||
     type.startsWith("finance.voucher_") ||
     type === "reminder.failed"
   )
@@ -315,6 +326,7 @@ export function typeFilterForCategory(category: NotificationCategory): {
           "finance.voucher_to_approve",
           "finance.voucher_rejected",
           "ai.insights_ready",
+          "accounting.runs_prepared",
         ],
         prefixes: ["task.", "enquiry.", "appointment.", "document."],
       };

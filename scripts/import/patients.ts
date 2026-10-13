@@ -178,6 +178,17 @@ export async function runPatientTable(
         localId: res.id,
       });
     } else {
+      if (mapped.uniteLastVisitDate) {
+        // Typed copy of Unite's last visit date for chronic recall (writePreparedContact only knows custom).
+        const { error } = await admin
+          .from("contacts")
+          .update({ unite_last_visit_date: mapped.uniteLastVisitDate })
+          .eq("id", res.id)
+          .eq("org_id", orgId);
+        if (error)
+          result.warnings.last_visit_date_not_written =
+            (result.warnings.last_visit_date_not_written ?? 0) + 1;
+      }
       await upsertExternalRef(admin, {
         orgId,
         source: "airtable",

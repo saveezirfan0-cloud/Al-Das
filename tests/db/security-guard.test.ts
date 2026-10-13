@@ -30,6 +30,16 @@ import {
   PHASE20D_SERVICE_ONLY_TABLES,
   PHASE20D_TABLES,
   PHASE21_TABLES,
+  PHASE22_SERVICE_ONLY_TABLES,
+  PHASE22_TABLES,
+  PHASE22C_SERVICE_ONLY_TABLES,
+  PHASE22C_TABLES,
+  PHASE22E_TABLES,
+  PHASE22F_TABLES,
+  PHASE22G_TABLES,
+  PHASE22I_SERVICE_ONLY_TABLES,
+  PHASE22I_TABLES,
+  PHASE22H_TABLES,
   resetDb,
   seedPhase13Rows,
   seedPhase14Rows,
@@ -41,6 +51,13 @@ import {
   seedPhase20aRows,
   seedPhase20DRows,
   seedPhase21Rows,
+  seedPhase22GRows,
+  seedPhase22IRows,
+  seedPhase22Rows,
+  seedPhase22CRows,
+  seedPhase22ERows,
+  seedPhase22FRows,
+  seedPhase22HRows,
   seedSecurityRows,
   TEST_DATABASE_URL,
 } from "./helpers";
@@ -66,10 +83,17 @@ const SERVICE_ONLY = new Set([
   "ins_staged_activities",
   // Phase 20D: the per-org, per-year payment voucher number counter; only fin_voucher_save (security definer) touches it
   "fin_voucher_counters",
+  // Phase 22C: a person's own signing certificate (.p12, AES-256-GCM, PIN never stored), read and written only by
+  // server actions for that person; the sealed PDFs, served only by the download routes after the document read check
+  "fin_sealed_documents",
+  "fin_signing_certificates",
   // Phase 18: an uploaded payment advice (name, sha256, validation result) and its sanitised staged lines. They wait for
   // the confirm step and are deleted at commit; only server code (service role, after can('finance.remittance.manage')) reads them
   "fin_raw_remittance_files",
   "fin_staged_remittance_lines",
+  // Phase 22I: the sanitised Tally rows staged between the dry run and the commit (deleted when the commit finishes);
+  // only server code (service role, after can('accounting.import')) and the acc_tally_* functions touch them
+  "acc_tally_staged",
   // Finance F2 / Phase 19: provider credentials (config_enc, AES-256-GCM) and token cache; only server code after can('integrations.manage') reads or writes them
   "integration_accounts",
   // Phase 19: idempotency keys of inbound provider webhooks (provider event ids and a short outcome word); claimed by the webhook route, never read by a browser
@@ -83,6 +107,8 @@ const SERVICE_ONLY = new Set([
   "rate_limit_hits",
   "scheduled_jobs",
   "webhook_events_in",
+  // Phase 22D: where the posting runner got to per org and source kind; only the runner (service role) reads or moves it
+  "acc_posting_cursors",
 ]);
 
 /** SECURITY DEFINER functions in `public` that signed-in users may call directly (each uses auth.uid() inside). */
@@ -130,7 +156,11 @@ const PHASE18_SERVICE_FUNCTIONS = [
 ];
 
 /** Phase 19 SECURITY DEFINER functions that only server code (service role) may run. */
-const PHASE19_SERVICE_FUNCTIONS = ["calendar_feed_touch", "integration_call_stats", "integration_usage_bump"];
+const PHASE19_SERVICE_FUNCTIONS = [
+  "calendar_feed_touch",
+  "integration_call_stats",
+  "integration_usage_bump",
+];
 
 /**
  * Phase 20 SECURITY DEFINER functions that only server code (service role) may run: the flash report (20A), payables
@@ -171,6 +201,122 @@ const PHASE20_SERVICE_FUNCTIONS = [
   "fin_revshare_scheme_save",
   "fin_revshare_scheme_step",
   "fin_revshare_store_draft",
+];
+
+/**
+ * Phase 22A SECURITY DEFINER functions (accounting ledger core) that only server code (service role) may run: the chart
+ * seed, periods, manual journals, posting and reversal, the posting API for later slices, the content hash and reports.
+ */
+const PHASE22_SERVICE_FUNCTIONS = [
+  "acc_day_book",
+  "acc_ensure_period",
+  "acc_journal_act",
+  "acc_journal_canonical",
+  "acc_journal_compute_hash",
+  "acc_journal_save",
+  "acc_ledger",
+  "acc_post_from_source",
+  "acc_post_journal",
+  "acc_reverse_journal",
+  "acc_run_auto_reversals",
+  "acc_seed_chart",
+  "acc_set_period_status",
+  "acc_trial_balance",
+  // Phase 22D: the ledger start, the default rules and the posting runner
+  "acc_posting_apply",
+  "acc_posting_candidates",
+  "acc_posting_context",
+  "acc_posting_load",
+  "acc_posting_needed_keys",
+  "acc_posting_preview_report",
+  "acc_posting_set_cursor",
+  "acc_seed_posting_rules",
+  "acc_set_ledger_start",
+];
+/** Phase 22C: an approval step and its personal signature in one transaction (server actions after can()). */
+const PHASE22C_SERVICE_FUNCTIONS = ["fin_close_sign_signed", "fin_voucher_act_signed"];
+
+/**
+ * Phase 22E SECURITY DEFINER functions (receivables): seeding, sales documents, receipts and allocations, retrying postings
+ * that waited for the ledger start, and the report data. Server code (service role) only.
+ */
+const PHASE22E_SERVICE_FUNCTIONS = [
+  "acc_ar_open_items",
+  "acc_ar_retry_postings",
+  "acc_ar_statement",
+  "acc_receipt_allocate",
+  "acc_receipt_save",
+  "acc_receipt_void",
+  "acc_sales_doc_discard",
+  "acc_sales_doc_issue",
+  "acc_sales_doc_save",
+  "acc_sales_invoice_void",
+  "acc_seed_receivables",
+];
+
+/** Phase 22F SECURITY DEFINER functions (banking and cash) that only server code (service role) may run. */
+const PHASE22F_SERVICE_FUNCTIONS = [
+  "acc_account_balances",
+  "acc_bank_create_ledger",
+  "acc_bank_entry_create",
+  "acc_bank_link_gl",
+  "acc_bank_position",
+  "acc_bank_statement_balance_save",
+  "acc_bank_transfer_create",
+  "acc_banking_cancel",
+  "acc_banking_sweep",
+  "acc_cheque_act",
+  "acc_cheque_book_save",
+  "acc_cheque_register",
+  "acc_party_flag_clear",
+  "acc_petty_cash_count_prepare",
+  "acc_petty_cash_count_sign",
+  "acc_petty_cash_expense_create",
+  "acc_petty_cash_float_save",
+];
+
+/**
+ * Phase 22G SECURITY DEFINER functions (statements, budgets, VAT return): reports and the budget workflow, service role
+ * only (the server runs can() first).
+ */
+const PHASE22G_SERVICE_FUNCTIONS = [
+  "acc_balance_sheet",
+  "acc_budget_act",
+  "acc_budget_hash",
+  "acc_budget_save",
+  "acc_budget_vs_actual",
+  "acc_cash_flow",
+  "acc_ct_bridge",
+  "acc_profit_and_loss",
+  "acc_statement_exceptions",
+  "acc_vat_return",
+];
+
+/**
+ * Phase 22I SECURITY DEFINER functions (Tally import, reconciliation, year-end close) that only server code (service
+ * role) may run; each checks the person's permission again.
+ */
+const PHASE22I_SERVICE_FUNCTIONS = [
+  "acc_tally_apply_masters",
+  "acc_tally_finish",
+  "acc_tally_lock_periods",
+  "acc_tally_post_opening",
+  "acc_tally_post_vouchers",
+  "acc_tally_reconcile",
+  "acc_year_end_close",
+  "acc_year_end_close_months",
+  "acc_year_end_preview",
+  "acc_year_end_reopen",
+];
+
+/** Phase 22H SECURITY DEFINER functions (fixed assets and schedules) that only server code (service role) may run. */
+const PHASE22H_SERVICE_FUNCTIONS = [
+  "acc_asset_disposal_cancel",
+  "acc_asset_disposal_post",
+  "acc_asset_disposal_prepare",
+  "acc_asset_run_post",
+  "acc_asset_run_prepare",
+  "acc_assets_seed",
 ];
 
 /** Phase 17 SECURITY DEFINER functions that only server code (service role) may run. */
@@ -404,6 +550,39 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 19 service-role functions", () => {
   });
 });
 
+describe.skipIf(!TEST_DATABASE_URL)("phase 22C service-role functions", () => {
+  it("exist and are executable by the service role only; the signature store is internal", async () => {
+    const c = await connect();
+    try {
+      const { rows } = await c.query<{ name: string; anon: boolean; auth: boolean; svc: boolean }>(
+        `select p.proname as name,
+                has_function_privilege('anon', p.oid, 'execute') as anon,
+                has_function_privilege('authenticated', p.oid, 'execute') as auth,
+                has_function_privilege('service_role', p.oid, 'execute') as svc
+         from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+         where n.nspname = 'public' and p.proname = any ($1)`,
+        [PHASE22C_SERVICE_FUNCTIONS],
+      );
+      expect(rows.map((r) => r.name).sort()).toEqual([...PHASE22C_SERVICE_FUNCTIONS].sort());
+      for (const r of rows)
+        expect({ name: r.name, anon: r.anon, auth: r.auth, svc: r.svc }).toEqual({
+          name: r.name,
+          anon: false,
+          auth: false,
+          svc: true,
+        });
+      const inner = await c.query<{ auth: boolean }>(
+        `select has_function_privilege('authenticated', p.oid, 'execute') as auth
+         from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+         where n.nspname = 'app' and p.proname = 'fin_store_approval_signature'`,
+      );
+      expect(inner.rows).toEqual([{ auth: false }]);
+    } finally {
+      await c.end();
+    }
+  });
+});
+
 describe.skipIf(!TEST_DATABASE_URL)("phase 20 service-role functions", () => {
   it("exist and are executable by the service role only", async () => {
     const c = await connect();
@@ -418,6 +597,114 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 20 service-role functions", () => {
         [PHASE20_SERVICE_FUNCTIONS],
       );
       expect(rows.map((r) => r.name).sort()).toEqual([...PHASE20_SERVICE_FUNCTIONS].sort());
+      for (const r of rows)
+        expect({ name: r.name, anon: r.anon, auth: r.auth, svc: r.svc }).toEqual({
+          name: r.name,
+          anon: false,
+          auth: false,
+          svc: true,
+        });
+    } finally {
+      await c.end();
+    }
+  });
+});
+
+describe.skipIf(!TEST_DATABASE_URL)("phase 22I service-role functions", () => {
+  it("exist and are executable by the service role only", async () => {
+    const c = await connect();
+    try {
+      const { rows } = await c.query<{ name: string; anon: boolean; auth: boolean; svc: boolean }>(
+        `select p.proname as name,
+                has_function_privilege('anon', p.oid, 'execute') as anon,
+                has_function_privilege('authenticated', p.oid, 'execute') as auth,
+                has_function_privilege('service_role', p.oid, 'execute') as svc
+         from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+         where n.nspname = 'public' and p.proname = any ($1)`,
+        [PHASE22I_SERVICE_FUNCTIONS],
+      );
+      expect(rows.map((r) => r.name).sort()).toEqual([...PHASE22I_SERVICE_FUNCTIONS].sort());
+      for (const r of rows)
+        expect({ name: r.name, anon: r.anon, auth: r.auth, svc: r.svc }).toEqual({
+          name: r.name,
+          anon: false,
+          auth: false,
+          svc: true,
+        });
+    } finally {
+      await c.end();
+    }
+  });
+});
+
+describe.skipIf(!TEST_DATABASE_URL)("phase 22 service-role functions", () => {
+  it("exist and are executable by the service role only", async () => {
+    const c = await connect();
+    try {
+      const { rows } = await c.query<{ name: string; anon: boolean; auth: boolean; svc: boolean }>(
+        `select p.proname as name,
+                has_function_privilege('anon', p.oid, 'execute') as anon,
+                has_function_privilege('authenticated', p.oid, 'execute') as auth,
+                has_function_privilege('service_role', p.oid, 'execute') as svc
+         from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+         where n.nspname = 'public' and p.proname = any ($1)`,
+        [[...PHASE22_SERVICE_FUNCTIONS, ...PHASE22E_SERVICE_FUNCTIONS, ...PHASE22F_SERVICE_FUNCTIONS]],
+      );
+      expect(rows.map((r) => r.name).sort()).toEqual([...PHASE22_SERVICE_FUNCTIONS, ...PHASE22E_SERVICE_FUNCTIONS, ...PHASE22F_SERVICE_FUNCTIONS].sort());
+      for (const r of rows)
+        expect({ name: r.name, anon: r.anon, auth: r.auth, svc: r.svc }).toEqual({
+          name: r.name,
+          anon: false,
+          auth: false,
+          svc: true,
+        });
+    } finally {
+      await c.end();
+    }
+  });
+});
+
+describe.skipIf(!TEST_DATABASE_URL)("phase 22G service-role functions", () => {
+  it("exist and are executable by the service role only", async () => {
+    const c = await connect();
+    try {
+      const { rows } = await c.query<{ name: string; anon: boolean; auth: boolean; svc: boolean }>(
+        `select p.proname as name,
+                has_function_privilege('anon', p.oid, 'execute') as anon,
+                has_function_privilege('authenticated', p.oid, 'execute') as auth,
+                has_function_privilege('service_role', p.oid, 'execute') as svc
+         from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+         where n.nspname = 'public' and p.proname = any ($1)`,
+        [PHASE22G_SERVICE_FUNCTIONS],
+      );
+      expect(rows.map((r) => r.name).sort()).toEqual([...PHASE22G_SERVICE_FUNCTIONS].sort());
+      for (const r of rows)
+        expect({ name: r.name, anon: r.anon, auth: r.auth, svc: r.svc }).toEqual({
+          name: r.name,
+          anon: false,
+          auth: false,
+          svc: true,
+        });
+    } finally {
+      await c.end();
+    }
+  });
+});
+
+describe.skipIf(!TEST_DATABASE_URL)("phase 22H service-role functions", () => {
+  it("exist and are executable by the service role only", async () => {
+    const c = await connect();
+    try {
+      const { rows } = await c.query<{ name: string; anon: boolean; auth: boolean; svc: boolean }>(
+        `select p.proname as name,
+                has_function_privilege('anon', p.oid, 'execute') as anon,
+                has_function_privilege('authenticated', p.oid, 'execute') as auth,
+                has_function_privilege('service_role', p.oid, 'execute') as svc
+         from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+         where n.nspname = 'public' and p.proname = any ($1)`,
+        [PHASE22H_SERVICE_FUNCTIONS],
+      );
+      expect(rows.map((r) => r.name).sort()).toEqual([...PHASE22H_SERVICE_FUNCTIONS].sort());
       for (const r of rows)
         expect({ name: r.name, anon: r.anon, auth: r.auth, svc: r.svc }).toEqual({
           name: r.name,
@@ -558,6 +845,20 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
     await seedPhase21Rows(c, orgA);
     // Phase 20a (Sanoflow) tables likewise.
     await seedPhase20aRows(c, orgA);
+    // Phase 22A (accounting) tables likewise.
+    await seedPhase22Rows(c, orgA);
+    // Phase 22C (digital signatures) tables likewise.
+    await seedPhase22CRows(c, orgA, alice);
+    // Phase 22E (receivables) tables likewise.
+    await seedPhase22ERows(c, orgA, alice);
+    // Phase 22F (banking and cash) tables likewise.
+    await seedPhase22FRows(c, orgA, alice);
+    // Phase 22G (statements: budgets) likewise.
+    await seedPhase22GRows(c, orgA, alice);
+    // Phase 22I (Tally import) tables likewise.
+    await seedPhase22IRows(c, orgA);
+    // Phase 22H (fixed assets and schedules) tables likewise.
+    await seedPhase22HRows(c, orgA);
   });
   afterAll(async () => {
     await resetDb(c);
@@ -568,14 +869,52 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
     expect(orgTables.length).toBeGreaterThanOrEqual(25);
   });
 
-  it("sweeps every Phase 13 to 21 table (a new table must be added to PHASE13_TABLES ... PHASE21_TABLES and seeded)", () => {
-    for (const t of [...PHASE21_TABLES, ...PHASE20_TABLES, ...PHASE20A_TABLES, ...PHASE20D_TABLES, ...PHASE19_TABLES, ...PHASE18_TABLES, ...PHASE17_TABLES, ...PHASE16_TABLES, ...PHASE15_TABLES, ...PHASE14_TABLES, ...PHASE13_TABLES])
+  it("sweeps every Phase 13 to 22 table (a new table must be added to PHASE13_TABLES ... PHASE22_TABLES and seeded)", () => {
+    for (const t of [
+      ...PHASE22G_TABLES,
+      ...PHASE22I_TABLES,
+      ...PHASE22_TABLES,
+      ...PHASE22C_TABLES,
+      ...PHASE22E_TABLES,
+      ...PHASE22F_TABLES,
+      ...PHASE22H_TABLES,
+      ...PHASE21_TABLES,
+      ...PHASE20_TABLES,
+      ...PHASE20A_TABLES,
+      ...PHASE20D_TABLES,
+      ...PHASE19_TABLES,
+      ...PHASE18_TABLES,
+      ...PHASE17_TABLES,
+      ...PHASE16_TABLES,
+      ...PHASE15_TABLES,
+      ...PHASE14_TABLES,
+      ...PHASE13_TABLES,
+    ])
       expect(orgTables, `${t} is not in the org sweep`).toContain(t);
   });
 
   it("really holds org A rows in the Phase 13 to 21 tables, visible to org A's admin (control for the leak sweep)", async () => {
     await asUser(c, alice, async () => {
-      for (const t of [...PHASE21_TABLES, ...PHASE20_TABLES, ...PHASE20A_TABLES, ...PHASE20D_TABLES, ...PHASE19_TABLES, ...PHASE18_TABLES, ...PHASE17_TABLES, ...PHASE16_TABLES, ...PHASE15_TABLES, ...PHASE14_TABLES, ...PHASE13_TABLES]) {
+      for (const t of [
+        ...PHASE22G_TABLES,
+        ...PHASE22I_TABLES,
+        ...PHASE22_TABLES,
+        ...PHASE22C_TABLES,
+        ...PHASE22E_TABLES,
+        ...PHASE22F_TABLES,
+        ...PHASE22H_TABLES,
+        ...PHASE21_TABLES,
+        ...PHASE20_TABLES,
+        ...PHASE20A_TABLES,
+        ...PHASE20D_TABLES,
+        ...PHASE19_TABLES,
+        ...PHASE18_TABLES,
+        ...PHASE17_TABLES,
+        ...PHASE16_TABLES,
+        ...PHASE15_TABLES,
+        ...PHASE14_TABLES,
+        ...PHASE13_TABLES,
+      ]) {
         const { rows } = await c.query<{ n: string }>(
           `select count(*)::text as n from public.${t} where org_id = $1`,
           [orgA],
@@ -637,6 +976,9 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
         ...PHASE18_SERVICE_ONLY_TABLES,
         ...PHASE19_SERVICE_ONLY_TABLES,
         ...PHASE20D_SERVICE_ONLY_TABLES,
+        ...PHASE22C_SERVICE_ONLY_TABLES,
+        ...PHASE22_SERVICE_ONLY_TABLES,
+        ...PHASE22I_SERVICE_ONLY_TABLES,
       ]) {
         const { rows } = await c
           .query<{ n: string }>(`select count(*)::text as n from public.${t}`)

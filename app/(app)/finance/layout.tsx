@@ -4,6 +4,8 @@ import { financeNavFor } from "@/lib/finance/nav";
 import { loadFinanceBadges } from "@/lib/finance/nav-badges";
 import { createClient } from "@/lib/supabase/server";
 
+import { PublishNavBadges } from "@/components/shell/nav-badges";
+
 import { SettingsNav } from "../settings/settings-nav";
 
 /** Finance & Insurance module shell. Each tab is gated again on its own page. */
@@ -16,7 +18,11 @@ export default async function FinanceLayout({ children }: { children: React.Reac
 
   return (
     <div className="flex flex-col gap-6 md:flex-row md:gap-10">
-      <SettingsNav items={items} label="Finance" />
+      {/* phones keep this menu; from md up the sidebar tree lists the same pages and shows these counts */}
+      <SettingsNav items={items} label="Finance" mobileOnly />
+      <PublishNavBadges
+        counts={Object.fromEntries(items.filter((i) => i.badge).map((i) => [i.href, i.badge!]))}
+      />
       <div className="min-w-0 flex-1">{children}</div>
     </div>
   );

@@ -15,6 +15,7 @@
  *  - Nothing here notifies anyone or schedules a send. Message-log rows are terminal history.
  */
 import type { TriggerCategory } from "@/lib/clinical/category";
+import { chronicFlagSkip } from "@/lib/clinical/chronic";
 import { dedupeKey } from "@/lib/clinical/followup";
 import { PLAUSIBLE, parseBp, parseVital } from "@/lib/clinical/vitals";
 
@@ -299,7 +300,12 @@ export const visitDiagnosesMapper: TableMapper = {
   fields: [],
   junction: {
     parent: { mapper: "unite.medical_records", table: "visits" },
-    link: { fieldId: "fldsrglawqYEoNqZu", label: "Diagnosis", target: DIAGNOSIS, table: "ref_diagnoses" },
+    link: {
+      fieldId: "fldsrglawqYEoNqZu",
+      label: "Diagnosis",
+      target: DIAGNOSIS,
+      table: "ref_diagnoses",
+    },
     flagLink: { fieldId: "fldDJcDJYLqffQ5A0", label: "Primary Diagnosis Link" },
     build({ parent, child, flagged }) {
       const code = typeof child.code === "string" ? child.code.trim().toUpperCase() : "";
@@ -319,9 +325,11 @@ export const visitDiagnosesMapper: TableMapper = {
 };
 
 /**
- * Unite patient "Chronic Diagnosis" (the patient-level chronic list the Unite base kept, data-model-mapping §1.1)
- * → contact_chronic_conditions with source 'airtable'. The chronic-condition rule never removes these rows; it
- * adds its own (source 'visit_diagnoses'). A merged patient's conditions go to the surviving record.
+ * Unite patient "Chronic Diagnosis" (data-model-mapping §1.1) → contact_chronic_conditions with source 'airtable'.
+ * Despite its name the list held every diagnosis of every visit (Make "Update Chronic" had no Chronic filter), so
+ * only links to a diagnosis flagged chronic are kept (Phase 21B); the rest are skipped as `not_chronic` /
+ * `chronic_flag_unknown`. The chronic-condition rule never removes these rows; it adds its own (source
+ * 'visit_diagnoses'). A merged patient's conditions go to the surviving record.
  */
 export const patientChronicDiagnosesMapper: TableMapper = {
   key: "unite.patient_chronic_diagnoses",
@@ -344,6 +352,10 @@ export const patientChronicDiagnosesMapper: TableMapper = {
     },
     build({ parent, child }) {
       if (parent.deleted_at) return "patient_deleted";
+      // Make "Update Chronic" copied every visit diagnosis into this list: keep chronic-flagged codes only
+      // (skips are counted per reason in the dry-run and reconciliation report).
+      const notChronic = chronicFlagSkip(typeof child.chronic === "boolean" ? child.chronic : null);
+      if (notChronic) return notChronic;
       const contactId =
         typeof parent.merged_into_id === "string" && parent.merged_into_id
           ? parent.merged_into_id

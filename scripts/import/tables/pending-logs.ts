@@ -38,10 +38,16 @@ export const chronicRecallMapper: TableMapper = {
       convert: (v) => (/^sent to:/i.test(toText(v)) ? null : toText(v) || null),
     },
   ],
-  finalize(values) {
+  finalize(values, _raw, warn) {
     values.programme_key = "chronic_90d";
+    // v_chronic_recall_eligibility dedupes on cycle_key = the last-visit date, so an imported send must carry
+    // the last-visit date it was sent for, or the same patient would be messaged again in the same cycle (21B).
+    // The send date is only a fallback, counted in the report.
+    const lastVisit =
+      typeof values.last_visit_date_at_send === "string" ? values.last_visit_date_at_send : "";
     const sent = typeof values.sent_at === "string" ? values.sent_at : "";
-    values.cycle_key = sent.slice(0, 10) || "undated";
+    if (!lastVisit) warn("cycle_key_from_sent_date");
+    values.cycle_key = lastVisit || sent.slice(0, 10) || "undated";
     // follow_up_status='booked' requires booked_at (check constraint): never invent a date.
     if (values.follow_up_status === "booked" && !values.booked_at)
       values.follow_up_status = "called";

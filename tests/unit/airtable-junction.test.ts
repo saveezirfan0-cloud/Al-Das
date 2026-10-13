@@ -32,7 +32,8 @@ const DATA: Record<string, AirtableRecord[]> = {
     rec("recV4", {}), // no links: not counted
   ],
   [PATIENTS]: [
-    rec("recP1", { fld9gw5nJNzgywljY: ["recD1", "recD2"] }),
+    // Make "Update Chronic" put every visit diagnosis on the list: D3 is not chronic, D4 has no flag (21B)
+    rec("recP1", { fld9gw5nJNzgywljY: ["recD1", "recD2", "recD3", "recD4"] }),
     rec("recP2", { fld9gw5nJNzgywljY: ["recD1"] }), // merged into P1's contact
   ],
 };
@@ -55,6 +56,20 @@ async function seeded() {
   const d2 = (await store.insertRow("ref_diagnoses", { code: "E11.9", chronic: true })) as {
     id: string;
   };
+  const d3 = (await store.insertRow("ref_diagnoses", { code: "J06.9", chronic: false })) as {
+    id: string;
+  };
+  const d4 = (await store.insertRow("ref_diagnoses", { code: "Z99.9" })) as { id: string };
+  for (const [ext, local] of [
+    ["recD3", d3.id],
+    ["recD4", d4.id],
+  ] as const)
+    await store.upsertRef({
+      entity: e.get("unite.diagnosis")!,
+      externalId: ext,
+      localTable: "ref_diagnoses",
+      localId: local,
+    });
   await store.upsertRef({
     entity: e.get("unite.diagnosis")!,
     externalId: "recD1",
@@ -133,8 +148,10 @@ describe("junction importers", () => {
     );
 
     const cc = run.results.find((r) => r.key === "unite.patient_chronic_diagnoses")!;
-    // P2 was merged into P1's contact: its I10 adopts the row P1 already created (natural key)
-    expect(cc.counters).toMatchObject({ read: 3, created: 2, adopted: 1, failed: 0 });
+    // P2 was merged into P1's contact: its I10 adopts the row P1 already created (natural key).
+    // Only chronic-flagged diagnoses are kept; the skipped links are counted per reason in the report.
+    expect(cc.counters).toMatchObject({ read: 5, created: 2, adopted: 1, skipped: 2, failed: 0 });
+    expect(cc.warnings).toEqual({ not_chronic: 1, chronic_flag_unknown: 1 });
     expect(
       store
         .rows("contact_chronic_conditions")

@@ -1,20 +1,27 @@
 import { Needs, type ClinicalSettings } from "@/lib/clinical/settings";
 
 /**
- * Chronic conditions from visit diagnoses (Phase 21, rule R-20 input).
+ * Chronic conditions (Phase 21, rule R-20 input; aligned with Airtable in 21B).
  *
  * The chronic recall view reads `contact_chronic_conditions`. In the Make/Airtable era that list was the
- * Unite base's patient-level "Chronic Diagnosis" link, filled by Unite. Pulse also derives it from the
- * diagnoses coded on a patient's visits: a diagnosis whose reference row (`ref_diagnoses.chronic`) is
- * flagged chronic, recorded on at least `chronic_condition_min_visits` separate visits, makes it one of the
- * patient's chronic conditions.
+ * Unite base's patient-level "Chronic Diagnosis" link, which was NOT filled by Unite: the Make scenario
+ * "Update Chronic" copied every diagnosis of every new visit into it, with no filter on the Diagnosis
+ * "Chronic" flag. Only the chronic-flagged codes ever counted for recall (through their condition group),
+ * and one coded visit was enough. So in Pulse a chronic condition is a diagnosis whose reference row
+ * (`ref_diagnoses.chronic`) is flagged chronic, from either source:
+ *  - the imported list, keeping only chronic-flagged links (`chronicFlagSkip`), and
+ *  - derived from the diagnoses coded on a patient's visits, recorded on at least
+ *    `chronic_condition_min_visits` separate visits (`deriveChronicConditions`).
+ * Recall counts days from the later of the latest Pulse visit and Unite's patient-level last visit date
+ * (`effectiveLastVisitDate`); the SQL views apply the same rules.
  *
  * Pure, no I/O. FAIL CLOSED: an unknown code (no reference row), a blank or false chronic flag, a missing
  * patient or visit date never produces a condition, and while the threshold is not signed off nothing is
  * derived at all. The caller removes previously derived rows that this function no longer returns.
  *
  * Medication classes are NOT used: the audit (docs/audit/clinical-rules.md, R-05) defines no chronic
- * medication class, so a drug never makes a condition chronic.
+ * medication class, so a drug never makes a condition chronic. (Airtable's "60 days >" long-prescription
+ * flag is an open decision, OQ-104 (4).)
  */
 
 /** One patient + diagnosis, aggregated over that patient's non-test visits. */
@@ -59,6 +66,41 @@ export const CHRONIC_MIN_VISITS_KEY = "chronic_condition_min_visits";
 const YMD = /^\d{4}-\d{2}-\d{2}$/;
 const blank = (s: string | null | undefined) => !s || s.trim() === "";
 
+/** A real calendar date written YYYY-MM-DD (2026-02-30 is not). */
+export function isCalendarDate(s: unknown): s is string {
+  if (typeof s !== "string" || !YMD.test(s)) return false;
+  const d = new Date(`${s}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
+}
+
+/**
+ * Does this diagnosis count as chronic? Only a flag that is exactly true does (a blank flag is not
+ * chronic: fail closed). Used for both sources: the imported patient-level Chronic Diagnosis list held
+ * every visit diagnosis (Make "Update Chronic"), so its links are filtered with this too. Returns null
+ * when the diagnosis counts, otherwise why it does not.
+ */
+export function chronicFlagSkip(
+  chronic: boolean | null | undefined,
+): Extract<ChronicSkipReason, "not_chronic" | "chronic_flag_unknown"> | null {
+  if (chronic === true) return null;
+  return chronic === false ? "not_chronic" : "chronic_flag_unknown";
+}
+
+/**
+ * The last-visit date chronic recall counts from: the later of the latest Pulse visit and Unite's
+ * patient-level Last Visit Date (Airtable's "Time Elapsed" used the Unite date, which also covers
+ * patients with no visit in Pulse). A value that is not a real date is ignored; neither → null (the
+ * patient is never eligible).
+ */
+export function effectiveLastVisitDate(
+  pulseLastVisit: string | null | undefined,
+  uniteLastVisit: string | null | undefined,
+): string | null {
+  const dates = [pulseLastVisit, uniteLastVisit].filter(isCalendarDate);
+  if (dates.length === 0) return null;
+  return dates.reduce((a, b) => (b > a ? b : a));
+}
+
 /** The signed-off minimum, or undefined (missing, unsigned, not a whole number of at least 1). */
 export function chronicMinVisits(settings: ClinicalSettings): number | undefined {
   const n = new Needs(settings).num(CHRONIC_MIN_VISITS_KEY);
@@ -86,18 +128,15 @@ export function deriveChronicConditions(
       skip("unknown_code");
       continue;
     }
-    if (f.chronic === null || f.chronic === undefined) {
-      skip("chronic_flag_unknown");
-      continue;
-    }
-    if (f.chronic !== true) {
-      skip("not_chronic");
+    const flag = chronicFlagSkip(f.chronic);
+    if (flag) {
+      skip(flag);
       continue;
     }
     const visits =
       typeof f.visitCount === "number" && Number.isFinite(f.visitCount) ? f.visitCount : 0;
-    const first = f.firstVisitDate && YMD.test(f.firstVisitDate) ? f.firstVisitDate : null;
-    const last = f.lastVisitDate && YMD.test(f.lastVisitDate) ? f.lastVisitDate : null;
+    const first = isCalendarDate(f.firstVisitDate) ? f.firstVisitDate : null;
+    const last = isCalendarDate(f.lastVisitDate) ? f.lastVisitDate : null;
     if (visits <= 0 || !first || !last) {
       skip("no_visit_date");
       continue;

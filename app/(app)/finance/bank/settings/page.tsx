@@ -12,6 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { can } from "@/lib/auth/can";
 import { requirePerm } from "@/lib/auth/session";
 import { ruleProblem } from "@/lib/finance/bank-recon";
 import { loadBankSettings, loadSettlementRules } from "@/lib/finance/bank-server";
@@ -77,7 +78,7 @@ export default async function BankSettingsPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-2">
           <CardTitle className="text-base">Bank accounts</CardTitle>
-          <AccountButton />
+          <AccountButton offerLedger={can(member, "accounting.banking.manage")} />
         </CardHeader>
         <CardContent>
           <Table>
