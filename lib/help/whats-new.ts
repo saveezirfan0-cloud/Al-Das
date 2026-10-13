@@ -9,6 +9,12 @@ export const WHATS_NEW: readonly WhatsNewEntry[] = [
     body: "Finance has a new Billing mix and trends page. For each doctor it shows revenue, patients, revenue per patient, how the bills split between consultation, lab, radiology, procedures and other services, and how much is insurance or self-pay, next to the clinic as a whole. A seasonality view puts each month or week beside the same one last year. Finance, the CEO and the Medical Director can open it and download both tables.",
   },
   {
+    id: "2026-10-29-close-timetable",
+    date: "2026-10-29",
+    title: "Close timetable",
+    body: "Finance has a Close timetable for the month-end close by working day: inputs by WD5, revenue shares and Tally by WD7, draft accounts by WD8 and the final pack by WD10. Each step has an owner, a trained backup and its dependencies; owners mark their steps done or blocked and get a reminder when one is due. Close measures show inputs on time, whether each month closed by WD10, open reconciling items and steps without a backup.",
+  },
+  {
     id: "2026-10-26-insurance-follow-up",
     date: "2026-10-26",
     title: "Insurance follow-up and receivables by age",

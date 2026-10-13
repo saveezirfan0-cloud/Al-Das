@@ -180,7 +180,8 @@ Send anonymised or synthetic copies where a file contains patient details; heade
 | 20A | Built on `claude/funny-clarke-6t7gee` (see `docs/20_PHASE_20A_NOTES.md`): flash report, targets and lines, comparison with the same days of last month, Excel export |
 | 20I | Built (see `docs/20_PHASE_20I_NOTES.md`): Insurance follow-up worklist with 60 / 90 / 120-day stages and a follow-up record per claim, daily follow-up tasks (off until a start date), submission sequence per claim (reconstructed; exact once Diligence sends a submission-level report, OQ-102), Receivables by payer and age with CSV (candidate ARP report, OQ-95), configurable ageing buckets |
 | 20K | Built on `claude/funny-clarke-6t7gee` (see `docs/20_PHASE_20K_NOTES.md`): doctor billing mix (service categories, insurance vs self-pay, revenue per patient, difference from the clinic), seasonality by week or month against last year, CSV export |
-| 20B to 20H, 20J, 21 | Not started |
+| 20G | Close timetable and close measures built on `claude/funny-clarke-6t7gee` (see `docs/20_PHASE_20G_NOTES.md`): working-day calendar, checklist with owner, backup, due day and dependencies, daily tasks and reminders (off until a start month is set), inputs by WD5, close by WD10, open items, backups. Not built: the pack extension (P&L, balance sheet, cash and bank, payables, liabilities), which needs 20C, 20D and 20F |
+| 20B to 20F, 20H, 20J, 21 | In progress or not started |
 
 ## 8. Things noticed in the current reports
 

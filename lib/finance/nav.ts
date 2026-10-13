@@ -176,6 +176,12 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
     badge: "close",
   },
   {
+    href: "/finance/close/timetable",
+    label: "Close timetable",
+    section: "Money",
+    permissions: ["finance.close.view", "finance.close.manage", "finance.close.tasks"],
+  },
+  {
     href: "/finance/export",
     label: "Accounting export",
     section: "Money",

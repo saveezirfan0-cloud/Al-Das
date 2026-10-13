@@ -31,6 +31,9 @@ async function main() {
 
   const ref = await admin.rpc("seed_finance_reference", { p_org_id: org.id });
   if (ref.error) throw new Error(ref.error.message);
+  // Phase 20G: the standard close checklist (no owners; they are assigned in the app). Never overwrites an edited step.
+  const steps = await admin.rpc("fin_close_seed_steps", { p_org_id: org.id });
+  if (steps.error) throw new Error(steps.error.message);
   const roles = await admin.rpc("seed_finance_roles", {
     p_org_id: org.id,
     p_roles: FINANCE_ROLES.map((r) => ({

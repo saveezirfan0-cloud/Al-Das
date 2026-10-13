@@ -12,6 +12,7 @@ import {
   taskDueAt,
 } from "@/lib/finance/preauth";
 import { runFollowupTasks } from "@/lib/finance/followup-server";
+import { runCloseTimetable } from "@/lib/finance/close-timetable-server";
 import { runRecovery } from "@/lib/finance/recovery-server";
 import { loadFinanceSettings } from "@/lib/finance/settings-db";
 import type { JobLogger } from "@/lib/jobs/types";
@@ -30,6 +31,8 @@ import type { Json } from "@/lib/supabase/types";
  *   3. Self-pay reminders, only when finance switched them on (and approved the wording).
  *   4. Insurance follow-up (Phase 20I): each unpaid claim that crossed a follow-up stage (60 / 90 / 120 days by default)
  *      since finance set a start date gets ONE task per stage, claimed atomically in fin_followup_create_tasks.
+ *   4. Close timetable (Phase 20G), only once finance set its start month: the month's tasks from working day 1, and one
+ *      reminder per person for steps due today or overdue (claimed per task and day, so a retry never repeats it).
  *
  * Notifications and task subjects are fixed generic sentences: no names, numbers or amounts. Counts only are logged.
  */
@@ -49,6 +52,8 @@ export type WorkflowTotals = {
   followup_raised: number;
   followup_tasks: number;
   followup_closed: number;
+  close_tasks_created: number;
+  close_reminders: number;
 };
 
 const PAGE = 200;
@@ -73,6 +78,8 @@ export async function runFinanceWorkflows(
     followup_raised: 0,
     followup_tasks: 0,
     followup_closed: 0,
+    close_tasks_created: 0,
+    close_reminders: 0,
   };
   const { data: orgs } = await admin.from("orgs").select("id, name, timezone");
   for (const org of orgs ?? []) {
@@ -299,5 +306,15 @@ async function oneOrg(
         entity: "fin_recovery_reminders",
         diff: { queued: res.queued, failed: res.failed, skipped: res.skipped } as Json,
       });
+  }
+
+  // ---- 5. close timetable (off until finance set its start month) --------------------------------
+  // Its own failure is contained here, like the follow-up step, so it cannot hold back another step.
+  try {
+    await runCloseTimetable(admin, org, now, totals);
+  } catch (err) {
+    log.error("close timetable step failed for an organisation", {
+      error: err instanceof Error ? err.name : "unknown",
+    });
   }
 }

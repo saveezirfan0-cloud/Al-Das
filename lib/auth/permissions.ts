@@ -311,6 +311,13 @@ export const PERMISSIONS = [
     description: "Build the close pack for a finished month and withdraw a finance sign-off",
   },
   {
+    key: "finance.close.tasks",
+    group: "Finance",
+    label: "Close timetable: my steps",
+    description:
+      "See the monthly close timetable and mark the steps you own or back up as done or blocked. Audited.",
+  },
+  {
     key: "finance.close.signoff.finance",
     group: "Finance",
     label: "Sign off the close for Finance",
@@ -485,6 +492,7 @@ export const FINANCE_ROLES: readonly RolePreset[] = [
       "finance.close.view",
       "finance.close.manage",
       "finance.close.signoff.finance",
+      "finance.close.tasks",
       "finance.cashup.manage",
       "finance.revenue.view",
       "finance.export.run",
@@ -509,6 +517,7 @@ export const FINANCE_ROLES: readonly RolePreset[] = [
       "finance.cashup.manage",
       "finance.recovery.manage",
       "finance.payment_links",
+      "finance.close.tasks",
     ],
   },
   {
@@ -525,6 +534,7 @@ export const FINANCE_ROLES: readonly RolePreset[] = [
       "finance.remittance.manage",
       "finance.scorecards.view",
       "finance.followup.manage",
+      "finance.close.tasks",
     ],
   },
   {
@@ -560,7 +570,12 @@ export const FINANCE_ROLES: readonly RolePreset[] = [
     name: "Cost / Payroll",
     description:
       "Service costs, overheads and (when authorised) doctor compensation. No access to revenue detail or the consolidated P&L.",
-    permissions: ["finance.costs.manage", "finance.costs.view", "finance.costs.compensation"],
+    permissions: [
+      "finance.costs.manage",
+      "finance.costs.view",
+      "finance.costs.compensation",
+      "finance.close.tasks",
+    ],
   },
 ];
 

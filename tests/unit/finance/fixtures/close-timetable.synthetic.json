@@ -1,0 +1,26 @@
+{
+  "_note": "Synthetic close timetable for the 20G KPI tests. Codes and dates only; no people, no figures.",
+  "calendar": { "weekend": [6, 7], "holidays": ["2026-12-02", "2026-12-03"] },
+  "today": "2026-10-13",
+  "inputsWd": 5,
+  "deadlineWd": 10,
+  "months": ["2026-09-01", "2026-08-01", "2026-07-01"],
+  "tasks": [
+    { "month": "2026-09-01", "code": "INS_SUBMISSIONS", "dueWd": 5, "status": "done", "doneOn": "2026-10-06" },
+    { "month": "2026-09-01", "code": "REVENUE_UNITE", "dueWd": 5, "status": "done", "doneOn": "2026-10-08" },
+    { "month": "2026-09-01", "code": "BANK_CASH", "dueWd": 5, "status": "open", "doneOn": null },
+    { "month": "2026-09-01", "code": "HR_INPUTS", "dueWd": 5, "status": "blocked", "doneOn": null },
+    { "month": "2026-09-01", "code": "REVENUE_SHARES", "dueWd": 7, "status": "open", "doneOn": null },
+    { "month": "2026-08-01", "code": "INS_SUBMISSIONS", "dueWd": 5, "status": "done", "doneOn": "2026-09-07" },
+    { "month": "2026-08-01", "code": "REVENUE_UNITE", "dueWd": 5, "status": "done", "doneOn": "2026-09-04" },
+    { "month": "2026-08-01", "code": "DRAFT_ACCOUNTS", "dueWd": 8, "status": "done", "doneOn": "2026-09-20" }
+  ],
+  "lockedOn": { "2026-08-01": "2026-09-14", "2026-07-01": "2026-08-20" },
+  "steps": [
+    { "code": "INS_SUBMISSIONS", "active": true, "ownerUserId": "u-owner-1", "backupUserId": "u-backup-1" },
+    { "code": "REVENUE_UNITE", "active": true, "ownerUserId": "u-owner-2", "backupUserId": null },
+    { "code": "BANK_CASH", "active": true, "ownerUserId": null, "backupUserId": null },
+    { "code": "HR_INPUTS", "active": true, "ownerUserId": "u-owner-3", "backupUserId": "u-owner-3" },
+    { "code": "OLD_STEP", "active": false, "ownerUserId": null, "backupUserId": null }
+  ]
+}

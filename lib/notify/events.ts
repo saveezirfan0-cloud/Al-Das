@@ -134,6 +134,16 @@ export const NOTIFICATION_EVENTS = [
     permission: "finance.followup.manage",
   },
   {
+    key: "finance.close_due",
+    group: "Work",
+    label: "A month-end close step of mine is due or overdue",
+    description:
+      "A close timetable step you own (Finance, Close timetable) is due today or late. At most one a day, on working days. Push and e-mail say only that a step is due.",
+    channels: ALL,
+    defaults: { in_app: true, email: false, push: false },
+    permission: "finance.close.tasks",
+  },
+  {
     key: "ai.insights_ready",
     group: "Work",
     label: "The weekly AI reply-quality report is ready",
@@ -233,6 +243,7 @@ export function categoryForType(type: string): NotificationCategory {
     type === "finance.preauth_expiring" ||
     type === "finance.denial_deadline" ||
     type === "finance.followup_due" ||
+    type === "finance.close_due" ||
     type === "reminder.failed"
   )
     return "work";
@@ -257,6 +268,7 @@ export function typeFilterForCategory(category: NotificationCategory): {
           "finance.preauth_expiring",
           "finance.denial_deadline",
           "finance.followup_due",
+          "finance.close_due",
           "ai.insights_ready",
         ],
         prefixes: ["task.", "enquiry.", "appointment.", "document."],
