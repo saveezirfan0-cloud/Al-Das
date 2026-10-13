@@ -18,9 +18,23 @@ export async function connect(): Promise<Client> {
 export async function resetDb(c: Client) {
   await c.query("reset role");
   await c.query("truncate public.orgs cascade");
-  await c.query("truncate public.scheduled_jobs, public.job_runs, public.dead_letters, public.flow_locks");
+  await c.query(
+    "truncate public.scheduled_jobs, public.job_runs, public.dead_letters, public.flow_locks",
+  );
   await c.query("delete from auth.users");
-  for (const q of ["outbound", "outbound_priority", "flow_steps", "notifications", "meta_events", "webhooks_out", "kb_ingest", "ai_insights", "sms_outbound", "capi_events", "clinical"]) {
+  for (const q of [
+    "outbound",
+    "outbound_priority",
+    "flow_steps",
+    "notifications",
+    "meta_events",
+    "webhooks_out",
+    "kb_ingest",
+    "ai_insights",
+    "sms_outbound",
+    "capi_events",
+    "clinical",
+  ]) {
     await c.query(`delete from pgmq.q_${q}`);
     await c.query(`delete from pgmq.a_${q}`);
   }
@@ -93,23 +107,48 @@ export async function count(c: Client, sql: string, params: unknown[] = []): Pro
 export async function seedSecurityRows(c: Client, orgId: string, userId: string) {
   const ids: Record<string, string> = {};
   await asServiceRole(c, async () => {
-    const one = async (sql: string, params: unknown[]) => (await c.query<{ id: string }>(sql + " returning id::text", params)).rows[0].id;
+    const one = async (sql: string, params: unknown[]) =>
+      (await c.query<{ id: string }>(sql + " returning id::text", params)).rows[0].id;
     ids.authEvent = await one(
       "insert into public.auth_events (org_id, user_id, event_type, ip_address, ip_hash, ua_family) values ($1, $2, 'sign_in', '203.0.113.7', 'hash', 'Chrome on Windows')",
       [orgId, userId],
     );
-    ids.session = await one("insert into public.user_sessions (org_id, user_id, session_id) values ($1, $2, 'sess-' || gen_random_uuid()::text)", [orgId, userId]);
-    ids.access = await one("insert into public.record_access_log (org_id, user_id, entity, entity_id, action) values ($1, $2, 'contact', 'c-1', 'view')", [orgId, userId]);
-    ids.alert = await one("insert into public.security_alerts (org_id, kind, user_id, dedupe_key, summary) values ($1, 'bulk_export', $2, 'seed-' || gen_random_uuid()::text, 'Large export')", [orgId, userId]);
-    ids.apiKey = await one("insert into public.api_keys (org_id, name, key_prefix, key_hash, created_by) values ($1, 'seed key', 'pk_seed', 'hash-' || gen_random_uuid()::text, $2)", [orgId, userId]);
-    await c.query("insert into public.api_read_log (org_id, api_key_id, resource, bucket, request_count, row_count) values ($1, $2, 'contacts', date_trunc('hour', now()), 1, 5)", [orgId, ids.apiKey]);
-    ids.review = await one("insert into public.access_reviews (org_id, period, snapshot, opened_by) values ($1, '2026-Q4', '[]'::jsonb, $2)", [orgId, userId]);
-    ids.contact = await one("insert into public.contacts (org_id, first_name, last_name, phone_e164) values ($1, 'Sample', 'Patient', '+971500000001')", [orgId]);
+    ids.session = await one(
+      "insert into public.user_sessions (org_id, user_id, session_id) values ($1, $2, 'sess-' || gen_random_uuid()::text)",
+      [orgId, userId],
+    );
+    ids.access = await one(
+      "insert into public.record_access_log (org_id, user_id, entity, entity_id, action) values ($1, $2, 'contact', 'c-1', 'view')",
+      [orgId, userId],
+    );
+    ids.alert = await one(
+      "insert into public.security_alerts (org_id, kind, user_id, dedupe_key, summary) values ($1, 'bulk_export', $2, 'seed-' || gen_random_uuid()::text, 'Large export')",
+      [orgId, userId],
+    );
+    ids.apiKey = await one(
+      "insert into public.api_keys (org_id, name, key_prefix, key_hash, created_by) values ($1, 'seed key', 'pk_seed', 'hash-' || gen_random_uuid()::text, $2)",
+      [orgId, userId],
+    );
+    await c.query(
+      "insert into public.api_read_log (org_id, api_key_id, resource, bucket, request_count, row_count) values ($1, $2, 'contacts', date_trunc('hour', now()), 1, 5)",
+      [orgId, ids.apiKey],
+    );
+    ids.review = await one(
+      "insert into public.access_reviews (org_id, period, snapshot, opened_by) values ($1, '2026-Q4', '[]'::jsonb, $2)",
+      [orgId, userId],
+    );
+    ids.contact = await one(
+      "insert into public.contacts (org_id, first_name, last_name, phone_e164) values ($1, 'Sample', 'Patient', '+971500000001')",
+      [orgId],
+    );
     ids.privacy = await one(
       "insert into public.privacy_requests (org_id, kind, contact_id, reason, requested_by) values ($1, 'export', $2, 'seed request for tests', $3)",
       [orgId, ids.contact, userId],
     );
-    ids.history = await one("insert into public.record_history (org_id, table_name, record_id, op, changes) values ($1, 'tasks', gen_random_uuid(), 'update', '{\"subject\": {\"from\": \"a\", \"to\": \"b\"}}'::jsonb)", [orgId]);
+    ids.history = await one(
+      'insert into public.record_history (org_id, table_name, record_id, op, changes) values ($1, \'tasks\', gen_random_uuid(), \'update\', \'{"subject": {"from": "a", "to": "b"}}\'::jsonb)',
+      [orgId],
+    );
   });
   return ids;
 }
@@ -134,26 +173,39 @@ export const PHASE15_TABLES = [
 export async function seedPhase13Rows(c: Client, orgId: string, userId: string) {
   const ids: Record<string, string> = {};
   await asServiceRole(c, async () => {
-    const one = async (sql: string, params: unknown[]) => (await c.query<{ id: string }>(sql + " returning id::text", params)).rows[0].id;
-    ids.pref = await one("insert into public.notification_preferences (org_id, user_id, event, channel, enabled) values ($1, $2, 'inbox.message', 'push', false)", [orgId, userId]);
+    const one = async (sql: string, params: unknown[]) =>
+      (await c.query<{ id: string }>(sql + " returning id::text", params)).rows[0].id;
+    ids.pref = await one(
+      "insert into public.notification_preferences (org_id, user_id, event, channel, enabled) values ($1, $2, 'inbox.message', 'push', false)",
+      [orgId, userId],
+    );
     ids.push = await one(
       "insert into public.push_subscriptions (org_id, user_id, endpoint_hash, subscription_enc, ua_family) values ($1, $2, repeat('a', 64), 'v1:seed:seed:seed', 'Chrome on Android')",
       [orgId, userId],
     );
-    ids.digest = await one("insert into public.notification_digest_log (org_id, user_id, kind, period_key) values ($1, $2, 'daily', '2026-10-12')", [orgId, userId]);
+    ids.digest = await one(
+      "insert into public.notification_digest_log (org_id, user_id, kind, period_key) values ($1, $2, 'daily', '2026-10-12')",
+      [orgId, userId],
+    );
   });
   return ids;
 }
 
 /** The tables Phase 13 added, for catalogue assertions. */
-export const PHASE13_TABLES = ["notification_digest_log", "notification_preferences", "push_subscriptions"] as const;
+export const PHASE13_TABLES = [
+  "notification_digest_log",
+  "notification_preferences",
+  "push_subscriptions",
+] as const;
 
 /** An HS256 JWT for an authenticated user, signed with the test PostgREST secret (see supabase/test/README.md). */
 export function userJwt(userId: string): string {
   const b = (o: unknown) => Buffer.from(JSON.stringify(o)).toString("base64url");
   const head = b({ alg: "HS256", typ: "JWT" });
   const body = b({ sub: userId, role: "authenticated", exp: 4102444800 });
-  const sig = createHmac("sha256", "pulse-test-jwt-secret-pulse-test-jwt-secret").update(`${head}.${body}`).digest("base64url");
+  const sig = createHmac("sha256", "pulse-test-jwt-secret-pulse-test-jwt-secret")
+    .update(`${head}.${body}`)
+    .digest("base64url");
   return `${head}.${body}.${sig}`;
 }
 
@@ -164,26 +216,60 @@ export function userJwt(userId: string): string {
 export async function seedPhase14Rows(c: Client, orgId: string, userId: string) {
   const ids: Record<string, string> = {};
   await asServiceRole(c, async () => {
-    const one = async (sql: string, params: unknown[]) => (await c.query<{ id: string }>(sql + " returning id::text", params)).rows[0].id;
-    ids.location = await one("insert into public.locations (org_id, name) values ($1, 'Seed clinic 14')", [orgId]);
-    ids.specialist = await one("insert into public.specialists (org_id, name) values ($1, 'Dr Seed 14')", [orgId]);
-    ids.service = await one("insert into public.services (org_id, name, duration_min) values ($1, 'Seed consult 14', 30)", [orgId]);
-    ids.guardian = await one("insert into public.contacts (org_id, first_name, last_name, phone_e164) values ($1, 'Guardian', 'Seed', '+971500000141')", [orgId]);
-    ids.dependant = await one("insert into public.contacts (org_id, first_name, last_name) values ($1, 'Dependant', 'Seed')", [orgId]);
-    ids.link = await one("insert into public.household_links (org_id, guardian_contact_id, dependant_contact_id, created_by) values ($1, $2, $3, $4)", [orgId, ids.guardian, ids.dependant, userId]);
-    ids.entry = await one("insert into public.waitlist_entries (org_id, contact_id, specialist_id, service_id, created_by) values ($1, $2, $3, $4, $5)", [orgId, ids.guardian, ids.specialist, ids.service, userId]);
+    const one = async (sql: string, params: unknown[]) =>
+      (await c.query<{ id: string }>(sql + " returning id::text", params)).rows[0].id;
+    ids.location = await one(
+      "insert into public.locations (org_id, name) values ($1, 'Seed clinic 14')",
+      [orgId],
+    );
+    ids.specialist = await one(
+      "insert into public.specialists (org_id, name) values ($1, 'Dr Seed 14')",
+      [orgId],
+    );
+    ids.service = await one(
+      "insert into public.services (org_id, name, duration_min) values ($1, 'Seed consult 14', 30)",
+      [orgId],
+    );
+    ids.guardian = await one(
+      "insert into public.contacts (org_id, first_name, last_name, phone_e164) values ($1, 'Guardian', 'Seed', '+971500000141')",
+      [orgId],
+    );
+    ids.dependant = await one(
+      "insert into public.contacts (org_id, first_name, last_name) values ($1, 'Dependant', 'Seed')",
+      [orgId],
+    );
+    ids.link = await one(
+      "insert into public.household_links (org_id, guardian_contact_id, dependant_contact_id, created_by) values ($1, $2, $3, $4)",
+      [orgId, ids.guardian, ids.dependant, userId],
+    );
+    ids.entry = await one(
+      "insert into public.waitlist_entries (org_id, contact_id, specialist_id, service_id, created_by) values ($1, $2, $3, $4, $5)",
+      [orgId, ids.guardian, ids.specialist, ids.service, userId],
+    );
     ids.offer = await one(
       "insert into public.slot_offers (org_id, waitlist_entry_id, specialist_id, location_id, service_id, starts_at, ends_at, expires_at) values ($1, $2, $3, $4, $5, now() + interval '2 days', now() + interval '2 days 30 minutes', now() + interval '1 day')",
       [orgId, ids.entry, ids.specialist, ids.location, ids.service],
     );
-    ids.note = await one("insert into public.handover_notes (org_id, body, created_by) values ($1, 'Seed handover note', $2)", [orgId, userId]);
-    ids.feedback = await one("insert into public.help_feedback (org_id, user_id, page, kind, message) values ($1, $2, '/front-desk', 'idea', 'Seed feedback')", [orgId, userId]);
+    ids.note = await one(
+      "insert into public.handover_notes (org_id, body, created_by) values ($1, 'Seed handover note', $2)",
+      [orgId, userId],
+    );
+    ids.feedback = await one(
+      "insert into public.help_feedback (org_id, user_id, page, kind, message) values ($1, $2, '/front-desk', 'idea', 'Seed feedback')",
+      [orgId, userId],
+    );
   });
   return ids;
 }
 
 /** The tables Phase 14 added, for catalogue assertions. */
-export const PHASE14_TABLES = ["handover_notes", "help_feedback", "household_links", "slot_offers", "waitlist_entries"] as const;
+export const PHASE14_TABLES = [
+  "handover_notes",
+  "help_feedback",
+  "household_links",
+  "slot_offers",
+  "waitlist_entries",
+] as const;
 
 /**
  * One row in every Phase 16 table (media folders and assets, patient documents, retention policies) for an org, so
@@ -192,26 +278,43 @@ export const PHASE14_TABLES = ["handover_notes", "help_feedback", "household_lin
 export async function seedPhase16Rows(c: Client, orgId: string, userId: string) {
   const ids: Record<string, string> = {};
   await asServiceRole(c, async () => {
-    const one = async (sql: string, params: unknown[]) => (await c.query<{ id: string }>(sql + " returning id::text", params)).rows[0].id;
-    ids.folder = await one("insert into public.media_folders (org_id, name, created_by) values ($1, 'Seed folder 16', $2)", [orgId, userId]);
-    ids.assetId = (await c.query<{ id: string }>("select gen_random_uuid()::text as id")).rows[0].id;
+    const one = async (sql: string, params: unknown[]) =>
+      (await c.query<{ id: string }>(sql + " returning id::text", params)).rows[0].id;
+    ids.folder = await one(
+      "insert into public.media_folders (org_id, name, created_by) values ($1, 'Seed folder 16', $2)",
+      [orgId, userId],
+    );
+    ids.assetId = (
+      await c.query<{ id: string }>("select gen_random_uuid()::text as id")
+    ).rows[0].id;
     ids.asset = await one(
       "insert into public.media_assets (id, org_id, folder_id, name, kind, mime_type, size_bytes, storage_path, status, uploaded_by) values ($2::uuid, $1::uuid, $3, 'Seed image 16', 'image', 'image/jpeg', 1234, $1::uuid::text || '/' || $2::uuid::text || '/original.jpg', 'ready', $4)",
       [orgId, ids.assetId, ids.folder, userId],
     );
-    ids.contact16 = await one("insert into public.contacts (org_id, first_name, last_name, phone_e164) values ($1, 'Docs', 'Seed', '+971500000161')", [orgId]);
+    ids.contact16 = await one(
+      "insert into public.contacts (org_id, first_name, last_name, phone_e164) values ($1, 'Docs', 'Seed', '+971500000161')",
+      [orgId],
+    );
     ids.docId = (await c.query<{ id: string }>("select gen_random_uuid()::text as id")).rows[0].id;
     ids.document = await one(
       "insert into public.patient_documents (id, org_id, contact_id, category, title, mime_type, size_bytes, storage_path, status, uploaded_by) values ($3::uuid, $1::uuid, $2::uuid, 'insurance_card', 'Seed card 16', 'image/jpeg', 2345, $1::uuid::text || '/' || $2::uuid::text || '/' || $3::uuid::text || '.jpg', 'ready', $4)",
       [orgId, ids.contact16, ids.docId, userId],
     );
-    await c.query("insert into public.document_retention_policies (org_id, category, retain_days, auto_delete, updated_by) values ($1, 'referral', 365, false, $2)", [orgId, userId]);
+    await c.query(
+      "insert into public.document_retention_policies (org_id, category, retain_days, auto_delete, updated_by) values ($1, 'referral', 365, false, $2)",
+      [orgId, userId],
+    );
   });
   return ids;
 }
 
 /** The tables Phase 16 added, for catalogue assertions. */
-export const PHASE16_TABLES = ["document_retention_policies", "media_assets", "media_folders", "patient_documents"] as const;
+export const PHASE16_TABLES = [
+  "document_retention_policies",
+  "media_assets",
+  "media_folders",
+  "patient_documents",
+] as const;
 
 /**
  * One row in every Phase 18 table that has a browser policy, for an org, so the cross-org sweeps are not vacuous for
@@ -371,7 +474,11 @@ export async function seedPhase17Rows(c: Client, orgId: string, userId: string) 
 }
 
 /** Phase 17 tables with a browser (select) policy. */
-export const PHASE17_TABLES = ["ai_message_intents", "ai_quality_reports", "ai_suggestion_outcomes"] as const;
+export const PHASE17_TABLES = [
+  "ai_message_intents",
+  "ai_quality_reports",
+  "ai_suggestion_outcomes",
+] as const;
 
 /**
  * One row in every Phase 19 table, for an org, so the cross-org sweeps are not vacuous for them (synthetic ids only; no phone,
@@ -826,6 +933,30 @@ export async function seedPhase22Rows(c: Client, orgId: string) {
   });
   return ids;
 }
+
+/**
+ * One row in every Phase 22G (statements) table for an org: a draft budget with one line, saved through acc_budget_save
+ * by `userId` (who must hold accounting.budgets.manage there; the org owner is an Admin). Synthetic amounts only.
+ */
+export async function seedPhase22GRows(c: Client, orgId: string, userId: string) {
+  const ids: Record<string, string> = {};
+  await asServiceRole(c, async () => {
+    const { rows } = await c.query<{ r: { id: string } }>(
+      "select public.acc_budget_save($1, $2, null, $3::jsonb, $4::jsonb) as r",
+      [
+        orgId,
+        userId,
+        JSON.stringify({ fy_start: "2026-07-01", name: "Seed budget" }),
+        JSON.stringify([{ account_code: "6200", month: "2026-07", amount: 10 }]),
+      ],
+    );
+    ids.budget = rows[0].r.id;
+  });
+  return ids;
+}
+
+/** Phase 22G tables with a browser (select) policy; seeded by seedPhase22GRows. */
+export const PHASE22G_TABLES = ["acc_budget_lines", "acc_budgets"] as const;
 
 /** Phase 20a tables with a browser (select) policy. */
 export const PHASE20A_TABLES = [

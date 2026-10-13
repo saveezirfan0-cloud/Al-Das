@@ -5,6 +5,8 @@ import { z } from "zod";
 
 import { ACCOUNT_CODE_RE, CONTROL_KINDS } from "@/lib/accounting/accounts";
 import { rpcErrorMessage } from "@/lib/accounting/errors";
+import { CASH_FLOW_CLASSES } from "@/lib/accounting/statements/cash-flow";
+import { CT_TREATMENTS } from "@/lib/accounting/statements/corporate-tax";
 import { recordAudit } from "@/lib/audit";
 import { can } from "@/lib/auth/can";
 import { requireMember } from "@/lib/auth/session";
@@ -178,4 +180,55 @@ export async function deleteAccount(raw: { id: string }): Promise<ActionResult> 
   });
   revalidatePath("/accounting/accounts");
   return { ok: true, message: "Account deleted." };
+}
+
+const reportingSchema = z.object({
+  id: uuid,
+  cash_flow_class: z.union([z.enum(CASH_FLOW_CLASSES), z.literal("")]).default(""),
+  ct_treatment: z.union([z.enum(CT_TREATMENTS), z.literal("")]).default(""),
+  requires_branch: z.string().optional(),
+  requires_cost_centre: z.string().optional(),
+});
+
+/**
+ * How an account is reported (Phase 22G): its cash flow class (blank = from its group), the corporate tax treatment
+ * and whether its lines should carry a branch or cost centre (the exception report lists those that do not; posting is
+ * unchanged). Groups take a cash flow class only.
+ */
+export async function saveAccountReporting(values: Record<string, string>): Promise<ActionResult> {
+  const member = await gate("accounting.coa.manage");
+  if (!member) return fail(DENIED);
+  const p = reportingSchema.safeParse(values);
+  if (!p.success) return fail(firstIssue(p.error));
+  const admin = createAdminClient(member.userId); // service role AFTER the permission check
+  const { data: acc } = await admin
+    .from("acc_accounts")
+    .select("id, is_group, nature")
+    .eq("id", p.data.id)
+    .eq("org_id", member.orgId)
+    .maybeSingle();
+  if (!acc) return fail("Account not found.");
+  const pl = acc.nature === "income" || acc.nature === "expense";
+  const row = {
+    cash_flow_class: pl ? null : p.data.cash_flow_class || null,
+    ct_treatment: acc.is_group || acc.nature !== "expense" ? null : p.data.ct_treatment || null,
+    requires_branch: !acc.is_group && p.data.requires_branch === "on",
+    requires_cost_centre: !acc.is_group && p.data.requires_cost_centre === "on",
+  };
+  const { error } = await admin
+    .from("acc_accounts")
+    .update(row)
+    .eq("id", acc.id)
+    .eq("org_id", member.orgId);
+  if (error) return fail(rpcErrorMessage(error, "The account could not be saved."));
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "accounting.account.reporting_updated",
+    entity: "acc_accounts",
+    entityId: acc.id,
+    diff: row,
+  });
+  revalidatePath("/accounting/accounts");
+  return { ok: true, message: "Reporting saved." };
 }

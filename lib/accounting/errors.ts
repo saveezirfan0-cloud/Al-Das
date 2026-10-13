@@ -53,6 +53,14 @@ export const ACCOUNTING_ERRORS: Record<string, string> = {
   fy_in_use: "The fiscal year start cannot change once a fiscal year exists.",
   period_status: "That period change is not possible (close a period before locking it).",
   invalid: "Check the form and try again.",
+  // budgets (Phase 22G)
+  budget_approved: "An approved budget cannot change. Reopen it first.",
+  budget_account: "Budgets take active income and expense ledgers only.",
+  budget_month: "A month is outside the budget's fiscal year.",
+  budget_same_person: "A different person from the one who prepared the budget must approve it.",
+  budget_hash_mismatch: "The budget changed since you opened it. Reload and review it again.",
+  budget_empty: "The budget has no lines yet.",
+  duplicate_line: "The same account, month, branch and department appear twice.",
 };
 
 export function accountingErrorMessage(code: string | null | undefined, fallback: string): string {

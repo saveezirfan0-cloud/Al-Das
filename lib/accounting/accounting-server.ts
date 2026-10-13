@@ -40,13 +40,17 @@ export type AccountView = AccountRow & {
   tally_group: string | null;
   affects_gross_profit: boolean;
   sort_order: number;
+  cash_flow_class: string | null;
+  requires_branch: boolean;
+  requires_cost_centre: boolean;
+  ct_treatment: string | null;
 };
 
 export async function loadAccounts(admin: AdminClient, orgId: string): Promise<AccountView[]> {
   const { data } = await admin
     .from("acc_accounts")
     .select(
-      "id, parent_id, code, name, nature, is_group, is_active, is_system, control, allow_manual, entity_id, currency, description, tally_group, affects_gross_profit, sort_order",
+      "id, parent_id, code, name, nature, is_group, is_active, is_system, control, allow_manual, entity_id, currency, description, tally_group, affects_gross_profit, sort_order, cash_flow_class, requires_branch, requires_cost_centre, ct_treatment",
     )
     .eq("org_id", orgId)
     .order("code")

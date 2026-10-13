@@ -7,10 +7,12 @@ export type Database = {
         Row: {
           affects_gross_profit: boolean;
           allow_manual: boolean;
+          cash_flow_class: string | null;
           code: string;
           control: string | null;
           created_at: string;
           created_by: string | null;
+          ct_treatment: string | null;
           currency: string | null;
           description: string | null;
           entity_id: string | null;
@@ -22,6 +24,8 @@ export type Database = {
           nature: string;
           org_id: string;
           parent_id: string | null;
+          requires_branch: boolean;
+          requires_cost_centre: boolean;
           sort_order: number;
           tally_alter_id: number | null;
           tally_group: string | null;
@@ -32,10 +36,12 @@ export type Database = {
         Insert: {
           affects_gross_profit?: boolean;
           allow_manual?: boolean;
+          cash_flow_class?: string | null;
           code: string;
           control?: string | null;
           created_at?: string;
           created_by?: string | null;
+          ct_treatment?: string | null;
           currency?: string | null;
           description?: string | null;
           entity_id?: string | null;
@@ -47,6 +53,8 @@ export type Database = {
           nature: string;
           org_id: string;
           parent_id?: string | null;
+          requires_branch?: boolean;
+          requires_cost_centre?: boolean;
           sort_order?: number;
           tally_alter_id?: number | null;
           tally_group?: string | null;
@@ -56,10 +64,12 @@ export type Database = {
         Update: {
           affects_gross_profit?: boolean;
           allow_manual?: boolean;
+          cash_flow_class?: string | null;
           code?: string;
           control?: string | null;
           created_at?: string;
           created_by?: string | null;
+          ct_treatment?: string | null;
           currency?: string | null;
           description?: string | null;
           entity_id?: string | null;
@@ -71,6 +81,8 @@ export type Database = {
           nature?: string;
           org_id?: string;
           parent_id?: string | null;
+          requires_branch?: boolean;
+          requires_cost_centre?: boolean;
           sort_order?: number;
           tally_alter_id?: number | null;
           tally_group?: string | null;
@@ -104,6 +116,143 @@ export type Database = {
             columns: ["parent_id"];
             isOneToOne: false;
             referencedRelation: "acc_accounts";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      acc_budget_lines: {
+        Row: {
+          account_id: string;
+          amount: number;
+          branch_code: string | null;
+          budget_id: string;
+          created_at: string;
+          department: string | null;
+          id: string;
+          month: string;
+          org_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          account_id: string;
+          amount: number;
+          branch_code?: string | null;
+          budget_id: string;
+          created_at?: string;
+          department?: string | null;
+          id?: string;
+          month: string;
+          org_id: string;
+        };
+        Update: {
+          account_id?: string;
+          amount?: number;
+          branch_code?: string | null;
+          budget_id?: string;
+          created_at?: string;
+          department?: string | null;
+          id?: string;
+          month?: string;
+          org_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "acc_budget_lines_account_id_fkey";
+            columns: ["account_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_accounts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_budget_lines_budget_id_fkey";
+            columns: ["budget_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_budgets";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_budget_lines_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      acc_budgets: {
+        Row: {
+          approved_at: string | null;
+          approved_by: string | null;
+          approved_sha256: string | null;
+          created_at: string;
+          entity_id: string;
+          fy_start: string;
+          id: string;
+          name: string;
+          org_id: string;
+          prepared_at: string | null;
+          prepared_by: string | null;
+          status: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          approved_at?: string | null;
+          approved_by?: string | null;
+          approved_sha256?: string | null;
+          created_at?: string;
+          entity_id: string;
+          fy_start: string;
+          id?: string;
+          name: string;
+          org_id: string;
+          prepared_at?: string | null;
+          prepared_by?: string | null;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          approved_at?: string | null;
+          approved_by?: string | null;
+          approved_sha256?: string | null;
+          created_at?: string;
+          entity_id?: string;
+          fy_start?: string;
+          id?: string;
+          name?: string;
+          org_id?: string;
+          prepared_at?: string | null;
+          prepared_by?: string | null;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "acc_budgets_approved_by_fkey";
+            columns: ["approved_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_budgets_entity_id_fkey";
+            columns: ["entity_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_entities";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_budgets_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_budgets_prepared_by_fkey";
+            columns: ["prepared_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
             referencedColumns: ["id"];
           },
         ];
@@ -153,6 +302,7 @@ export type Database = {
           base_currency: string;
           created_at: string;
           created_by: string | null;
+          default_emirate: string;
           fiscal_year_start_month: number;
           id: string;
           is_default: boolean;
@@ -160,6 +310,8 @@ export type Database = {
           org_id: string;
           trn: string | null;
           updated_at: string;
+          vat_period_anchor_month: number;
+          vat_period_months: number;
         };
         ComputedFields: never;
         Insert: {
@@ -167,6 +319,7 @@ export type Database = {
           base_currency?: string;
           created_at?: string;
           created_by?: string | null;
+          default_emirate?: string;
           fiscal_year_start_month?: number;
           id?: string;
           is_default?: boolean;
@@ -174,12 +327,15 @@ export type Database = {
           org_id: string;
           trn?: string | null;
           updated_at?: string;
+          vat_period_anchor_month?: number;
+          vat_period_months?: number;
         };
         Update: {
           active?: boolean;
           base_currency?: string;
           created_at?: string;
           created_by?: string | null;
+          default_emirate?: string;
           fiscal_year_start_month?: number;
           id?: string;
           is_default?: boolean;
@@ -187,6 +343,8 @@ export type Database = {
           org_id?: string;
           trn?: string | null;
           updated_at?: string;
+          vat_period_anchor_month?: number;
+          vat_period_months?: number;
         };
         Relationships: [
           {
@@ -8190,6 +8348,13 @@ export type Database = {
       };
       fin_ref_finance_settings: {
         Row: {
+          acc_budget_variance_pct: number;
+          acc_ct_connected_limit: number;
+          acc_ct_entertainment_pct: number;
+          acc_ct_rate: number;
+          acc_ct_sbr_limit: number;
+          acc_ct_threshold: number;
+          acc_large_journal_amount: number;
           accepted_claim_statuses: string[];
           ageing_bucket_days: number[];
           approval_mode: string;
@@ -8266,6 +8431,13 @@ export type Database = {
         };
         ComputedFields: never;
         Insert: {
+          acc_budget_variance_pct?: number;
+          acc_ct_connected_limit?: number;
+          acc_ct_entertainment_pct?: number;
+          acc_ct_rate?: number;
+          acc_ct_sbr_limit?: number;
+          acc_ct_threshold?: number;
+          acc_large_journal_amount?: number;
           accepted_claim_statuses?: string[];
           ageing_bucket_days?: number[];
           approval_mode?: string;
@@ -8341,6 +8513,13 @@ export type Database = {
           voucher_mismatch_tolerance?: number;
         };
         Update: {
+          acc_budget_variance_pct?: number;
+          acc_ct_connected_limit?: number;
+          acc_ct_entertainment_pct?: number;
+          acc_ct_rate?: number;
+          acc_ct_sbr_limit?: number;
+          acc_ct_threshold?: number;
+          acc_large_journal_amount?: number;
           accepted_claim_statuses?: string[];
           ageing_bucket_days?: number[];
           approval_mode?: string;
@@ -18420,6 +18599,61 @@ export type Database = {
       };
     };
     Functions: {
+      acc_balance_sheet: {
+        Args: {
+          p_as_at: string;
+          p_entity_id: string;
+          p_include_adjustment: boolean;
+          p_org_id: string;
+        };
+        Returns: Json;
+      };
+      acc_budget_act: {
+        Args: {
+          p_action: string;
+          p_budget_id: string;
+          p_hash: string;
+          p_org_id: string;
+          p_user_id: string;
+        };
+        Returns: Json;
+      };
+      acc_budget_hash: { Args: { p_budget_id: string }; Returns: string };
+      acc_budget_save: {
+        Args: {
+          p_budget_id: string;
+          p_header: Json;
+          p_lines: Json;
+          p_org_id: string;
+          p_user_id: string;
+        };
+        Returns: Json;
+      };
+      acc_budget_vs_actual: {
+        Args: {
+          p_branch: string;
+          p_budget_id: string;
+          p_department: string;
+          p_from: string;
+          p_org_id: string;
+          p_to: string;
+        };
+        Returns: Json;
+      };
+      acc_cash_flow: {
+        Args: {
+          p_entity_id: string;
+          p_from: string;
+          p_include_adjustment: boolean;
+          p_org_id: string;
+          p_to: string;
+        };
+        Returns: Json;
+      };
+      acc_ct_bridge: {
+        Args: { p_entity_id: string; p_from: string; p_org_id: string; p_to: string };
+        Returns: Json;
+      };
       acc_day_book: {
         Args: { p_entity_id: string; p_from: string; p_org_id: string; p_to: string };
         Returns: Json;
@@ -18479,6 +18713,17 @@ export type Database = {
         Args: { p_hash?: string; p_journal_id: string; p_org_id: string; p_user_id: string };
         Returns: Json;
       };
+      acc_profit_and_loss: {
+        Args: {
+          p_dimension: string;
+          p_entity_id: string;
+          p_from: string;
+          p_include_adjustment: boolean;
+          p_org_id: string;
+          p_to: string;
+        };
+        Returns: Json;
+      };
       acc_reverse_journal: {
         Args: {
           p_date: string;
@@ -18495,7 +18740,15 @@ export type Database = {
         Args: { p_org_id: string; p_period_id: string; p_status: string; p_user_id: string };
         Returns: Json;
       };
+      acc_statement_exceptions: {
+        Args: { p_entity_id: string; p_from: string; p_org_id: string; p_to: string };
+        Returns: Json;
+      };
       acc_trial_balance: {
+        Args: { p_entity_id: string; p_from: string; p_org_id: string; p_to: string };
+        Returns: Json;
+      };
+      acc_vat_return: {
         Args: { p_entity_id: string; p_from: string; p_org_id: string; p_to: string };
         Returns: Json;
       };

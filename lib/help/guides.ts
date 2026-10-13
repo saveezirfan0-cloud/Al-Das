@@ -674,6 +674,65 @@ export const GUIDES: readonly Guide[] = [
       "Audit adjustments after the year end go into the year's adjustment period (people who manage periods only), so the last month stays closed.",
     ],
   },
+  {
+    id: "accounting-statements",
+    title: "Financial statements",
+    pages: [
+      "/accounting/reports/profit-and-loss",
+      "/accounting/reports/balance-sheet",
+      "/accounting/reports/cash-flow",
+      "/accounting/reports/ratios",
+      "/accounting/reports/exceptions",
+      "/accounting/report-settings",
+    ],
+    purpose:
+      "The profit and loss, balance sheet, cash flow, ratios and exception lists, all read from the posted ledger, with Excel and PDF downloads.",
+    steps: [
+      "Profit and loss: choose the dates; split the columns by month, branch, department or doctor, or compare with the previous period or the same period last year. Click a ledger to open its general ledger.",
+      "Balance sheet: choose the date; this year's profit shows as a line in equity until the year-end close. It must balance; a difference is shown in red.",
+      "Cash flow: net profit, non-cash items, working capital, investing and financing, reconciled to the cash and bank ledgers. Set a ledger's class under Chart of accounts, Reporting.",
+      "Exceptions: look at these before closing a month (late postings, cash below zero, balances on the wrong side, suspense, large manual journals, missing branch or cost centre).",
+      "Excel and PDF hold exactly what the page shows.",
+    ],
+    watchOut: [
+      "Figures are Provisional until every month in the range is closed or locked under Periods.",
+      "The adjustment period can be left out with the Adjustment period option, to see the books before audit adjustments.",
+    ],
+  },
+  {
+    id: "accounting-budgets",
+    title: "Budgets",
+    pages: ["/accounting/budgets", "/accounting/reports/budget-vs-actual"],
+    purpose:
+      "Monthly budgets per income and expense ledger, approved by a second person, and compared with the actuals.",
+    steps: [
+      "Press New budget, choose the fiscal year and name it.",
+      "Type the amounts in the grid and save, or import a CSV (account_code, month as yyyy-mm, amount, and optionally branch_code and department).",
+      "Someone else with the post permission (Finance Manager or Chief Accountant) opens it and presses Approve.",
+      "Budget against actual: choose the budget, the months and optionally a branch or department. Lines worse than budget by more than the threshold are highlighted.",
+    ],
+    watchOut: [
+      "An approved budget cannot change. Reopen it to edit; it then needs approving again.",
+      "Importing a CSV replaces every line of the budget.",
+    ],
+  },
+  {
+    id: "accounting-tax",
+    title: "VAT return and corporate tax bridge",
+    pages: ["/accounting/reports/vat-return", "/accounting/reports/corporate-tax"],
+    purpose:
+      "Working papers for the tax adviser: the VAT 201 boxes from the tax codes on journal lines, and the bridge from accounting profit to taxable income.",
+    steps: [
+      "VAT return: pick the tax period. Click a box to see its supporting lines; fix the lines without a tax code before using the figures.",
+      "Box 1 splits by the emirate of each line's branch; lines without a branch use the entity's default emirate and are flagged.",
+      "VAT settings (tax permission): monthly or quarterly, the month a quarter starts in, and the default emirate.",
+      "Corporate tax bridge: tag ledgers (entertainment, fines, donations, other non-deductible, connected persons) under Chart of accounts, Reporting; type any other adjustment on the page.",
+    ],
+    watchOut: [
+      "Pulse never files a VAT or corporate tax return. Enter the reviewed figures in EmaraTax.",
+      "Which services are zero-rated or standard-rated is the tax adviser's decision.",
+    ],
+  },
 ];
 
 export const FALLBACK_GUIDE: Guide = {

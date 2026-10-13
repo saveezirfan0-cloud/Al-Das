@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-11-09-accounting-statements",
+    date: "2026-11-09",
+    title: "Accounting: statements, budgets and the VAT return",
+    body: "Accounting now has its reports: the profit and loss in Tally's layout (gross and net profit, by month, branch, department or doctor, compared with the previous period or last year), the balance sheet, the cash flow statement reconciled to cash and bank, ratios, exception lists to check before closing a month, a VAT return working paper with the VAT 201 boxes and the lines behind each box, and a corporate tax bridge. Budgets can be typed in a monthly grid or imported from a CSV, are approved by a second person and compared with the actuals. Every report downloads as Excel or PDF and says Provisional until its months are closed. Nothing is filed with the FTA from Pulse.",
+  },
+  {
     id: "2026-11-08-chronic-recall-alignment",
     date: "2026-11-08",
     title: "Chronic recall: only chronic diagnoses count",
