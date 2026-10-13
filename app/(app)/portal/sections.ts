@@ -25,6 +25,30 @@ export const PORTAL_SECTIONS: readonly PortalSection[] = [
     write: "portal.clinical_followups.write",
   },
   {
+    href: "/portal/clinical-feedback",
+    label: "Clinical feedback",
+    description:
+      "Patient replies to clinical check-ins: score, side effects, red flags and whether the doctor and coordinator were told.",
+    read: "portal.clinical_followups.read",
+    write: "portal.clinical_feedback.write",
+  },
+  {
+    href: "/portal/data-quality",
+    label: "Data quality",
+    description:
+      "Visits with missing vitals or no matched patient, and diagnosis codes Pulse does not know. The rules cannot judge these.",
+    read: "portal.clinical_visits.read",
+    write: "portal.clinical_visits.read",
+  },
+  {
+    href: "/portal/unclassified-medications",
+    label: "Unclassified medications",
+    description:
+      "Unite medication codes with no class yet. No antibiotic sequence uses them until a clinician classifies them.",
+    read: "portal.clinical_visits.read",
+    write: "portal.medication_classes.write",
+  },
+  {
     href: "/portal/clinical-settings",
     label: "Clinical settings",
     description:

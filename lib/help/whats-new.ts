@@ -15,6 +15,12 @@ export const WHATS_NEW: readonly WhatsNewEntry[] = [
     body: "Finance has a Close timetable for the month-end close by working day: inputs by WD5, revenue shares and Tally by WD7, draft accounts by WD8 and the final pack by WD10. Each step has an owner, a trained backup and its dependencies; owners mark their steps done or blocked and get a reminder when one is due. Close measures show inputs on time, whether each month closed by WD10, open reconciling items and steps without a backup.",
   },
   {
+    id: "2026-10-27-clinical-data-quality",
+    date: "2026-10-27",
+    title: "Clinical data quality, medicines and reminder reports",
+    body: "Three new Portal screens: Data quality (visits with missing vitals or no matched patient, and unknown diagnosis codes), Unclassified medications (choose the class of a Unite medicine code; the old automatic guess is shown as a hint only) and Clinical feedback (patient replies, red flags and who was told). Reports gain Appointment reminders per doctor, Recall performance and Clinical operations, and the Management dashboard shows reminders, this week's recall and the follow-up load. Chronic conditions can now come from visit diagnoses once the clinical lead signs off the rule; clinical messages to patients stay off.",
+  },
+  {
     id: "2026-10-26-insurance-follow-up",
     date: "2026-10-26",
     title: "Insurance follow-up and receivables by age",

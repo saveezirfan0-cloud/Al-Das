@@ -86,6 +86,31 @@ export type TableMapper = {
   enrich?: (ctx: EnrichContext) => Promise<void>;
   /** Replaces the generic writer (clinical_settings has sign-off rules). */
   writer?: "clinical_settings";
+  /**
+   * Junction table (Phase 21): one row per linked record of a multipleRecordLinks field instead of one row per
+   * Airtable record (MRD → visit_diagnoses, patient → contact_chronic_conditions). Run by run-junction.ts.
+   */
+  junction?: JunctionSpec;
+  /**
+   * Appended to the entity ("<baseId>.<tableId>#<suffix>") so a junction mapper reading the same Airtable table
+   * as another mapper keeps its own external_refs (external_id "<recordId>:<linkedRecordId>").
+   */
+  entitySuffix?: string;
+};
+
+export type JunctionSpec = {
+  /** Mapper key whose external_refs resolve this Airtable record to the parent row, and the parent's table. */
+  parent: { mapper: string; table: string };
+  /** The link field: one junction row per linked record that resolves through `target`'s refs. */
+  link: { fieldId: string; label: string; target: string; table: string };
+  /** Optional second link field: records linked here mark the row (e.g. the primary diagnosis) and also count. */
+  flagLink?: { fieldId: string; label: string };
+  /** The column values to write, or a reason code to skip the pair (counted as skipped, reported). */
+  build: (ctx: {
+    parent: import("../store").StoreRow;
+    child: import("../store").StoreRow;
+    flagged: boolean;
+  }) => Record<string, unknown> | string;
 };
 
 export type EnrichContext = {

@@ -41,3 +41,38 @@ export function ingestVisitFields(raw: RawVisitFields) {
     }),
   };
 }
+
+/**
+ * ICD-10(-CM) as Unite and the Airtable Diagnosis table write it: a letter, a digit, a character, then
+ * up to four more characters with or without the dot ("I10", "E11.9", "E119", "S72.001A").
+ */
+const ICD10 = /^[A-Z][0-9][0-9A-Z](\.?[0-9A-Z]{1,4})?$/;
+
+export type IngestedDiagnosis = { code: string; isPrimary: boolean };
+
+/**
+ * Phase 21: the diagnosis codes of one visit, ready for public.clinical_store_visit_diagnoses().
+ * Codes are trimmed and upper-cased; duplicates collapse (primary wins); anything that is not an ICD-10
+ * shape is dropped and counted, never guessed. The primary code is added if it is missing from the list.
+ */
+export function ingestDiagnosisCodes(raw: {
+  primary?: string | null;
+  codes?: ReadonlyArray<string | null | undefined> | null;
+}): { diagnoses: IngestedDiagnosis[]; rejected: number } {
+  const norm = (s: string | null | undefined) => (s ?? "").trim().toUpperCase();
+  const out = new Map<string, IngestedDiagnosis>();
+  let rejected = 0;
+  const add = (value: string | null | undefined, isPrimary: boolean) => {
+    const code = norm(value);
+    if (!code) return;
+    if (!ICD10.test(code)) {
+      rejected++;
+      return;
+    }
+    const prev = out.get(code);
+    out.set(code, { code, isPrimary: isPrimary || !!prev?.isPrimary });
+  };
+  add(raw.primary, true);
+  for (const c of raw.codes ?? []) add(c, false);
+  return { diagnoses: [...out.values()], rejected };
+}
