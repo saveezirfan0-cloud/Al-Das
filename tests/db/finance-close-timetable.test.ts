@@ -83,6 +83,9 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance close timetable (Phase 20G)", () =>
     orgA = await createOrg(c, "Org A", "org-a", users.alice);
     orgB = await createOrg(c, "Org B", "org-b", users.bob);
     await svc(async () => {
+      // New orgs get the checklist from a trigger (tested in finance-new-org-seeds.test.ts); these tests start empty so
+      // they can prove what the seed function itself does.
+      await q("delete from public.fin_close_steps where org_id in ($1, $2)", [orgA, orgB]);
       for (const r of FINANCE_ROLES)
         await q(
           "insert into public.roles (org_id, name, description, permissions, is_system) values ($1, $2, $3, $4::jsonb, true) on conflict (org_id, name) do nothing",

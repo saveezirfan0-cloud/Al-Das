@@ -23,5 +23,8 @@ export function notificationHref(type: string, payload: unknown): string | null 
   // A payment voucher opens its drawer on the vouchers page.
   const voucher = id(p, "voucher_id");
   if (voucher && type.startsWith("finance.voucher_")) return `/finance/vouchers?v=${voucher}`;
+  // Finance reminders without an id open their page (same targets as the push links).
+  if (type === "finance.close_due") return "/finance/close/timetable";
+  if (type === "finance.followup_due") return "/finance/followup";
   return null;
 }

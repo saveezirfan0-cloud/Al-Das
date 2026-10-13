@@ -1,4 +1,4 @@
--- Paste into Supabase > SQL Editor > New query, then Run. Apply it after every other Phase 20 paste file.
+-- Paste into Supabase > SQL Editor > New query, then Run. Needs 31_finance_revenue_share.sql applied first (apply the paste files in number order).
 -- The migration-history line is included at the bottom of this file.
 
 -- Phase 20: keep the Finance Manager preset a superset of Finance in existing workspaces.

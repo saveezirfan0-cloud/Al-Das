@@ -554,13 +554,82 @@ export async function seedPhase20Rows(c: Client, orgId: string, userId: string) 
       "insert into public.fin_provider_notes (org_id, statement_id, item_key, reason_code) values ($1, $2, 'line|' || $3, 'provider_error')",
       [orgId, ids.statement20, ids.providerLine20],
     );
+    // 20C bank reconciliation, 20H AI review, 20G close timetable (the close steps and settlement rules are seeded for
+    // every new org by the orgs_seed_finance_phase20 trigger)
+    const sha = "encode(sha256(gen_random_uuid()::text::bytea), 'hex')";
+    ids.bankAccount = await one(
+      "insert into public.fin_bank_accounts (org_id, name, bank_name, last4) values ($1, 'Seed account', 'Seed Bank', '0001')",
+      [orgId],
+    );
+    ids.importFormat = await one(
+      "insert into public.fin_import_formats (org_id, kind, name, mapping, date_format) values ($1, 'bank_statement', 'Seed layout', '{}'::jsonb, 'YYYY-MM-DD')",
+      [orgId],
+    );
+    ids.bankImport = await one(
+      `insert into public.fin_bank_imports (org_id, kind, account_id, file_sha256) values ($1, 'bank_statement', $2, ${sha})`,
+      [orgId, ids.bankAccount],
+    );
+    ids.bankLine = await one(
+      "insert into public.fin_bank_lines (org_id, account_id, import_id, row_no, value_date, amount) values ($1, $2, $3, 1, '2026-09-02', 100)",
+      [orgId, ids.bankAccount, ids.bankImport],
+    );
+    ids.settlementImport = await one(
+      `insert into public.fin_bank_imports (org_id, kind, payment_mode, file_sha256) values ($1, 'settlement', 'Card', ${sha})`,
+      [orgId],
+    );
+    ids.settlementLine = await one(
+      "insert into public.fin_settlement_lines (org_id, import_id, row_no, payment_mode, txn_date, settlement_date, gross, net) values ($1, $2, 1, 'Card', '2026-09-01', '2026-09-03', 100, 98)",
+      [orgId, ids.settlementImport],
+    );
+    ids.bankRec = await one(
+      "insert into public.fin_bank_recs (org_id, account_id, month, period_start, period_end) values ($1, $2, '2026-09-01', '2026-09-01', '2026-09-30')",
+      [orgId, ids.bankAccount],
+    );
+    ids.bankMatch = await one(
+      "insert into public.fin_bank_matches (org_id, rec_id, bank_line_id, expected_key, expected_kind, expected_date, expected_amount, bank_amount, score, status) values ($1, $2, $3, 'SEED', 'collection', '2026-09-01', 100, 100, 90, 'matched')",
+      [orgId, ids.bankRec, ids.bankLine],
+    );
+    ids.bankNote = await one(
+      "insert into public.fin_bank_rec_notes (org_id, rec_id, item_key, reason_code) values ($1, $2, 'SEED2', 'in_transit')",
+      [orgId, ids.bankRec],
+    );
+    ids.aiReview = await one(
+      "insert into public.fin_bank_ai_reviews (org_id, rec_id, status, model, reject_reason, suggestion_count) values ($1, $2, 'rejected', 'test-model', 'seed', 0)",
+      [orgId, ids.bankRec],
+    );
+    ids.aiSuggestion = await one(
+      "insert into public.fin_bank_ai_suggestions (org_id, rec_id, review_id, item_key, reason_code, confidence) values ($1, $2, $3, 'SEED', 'needs_person', 'low')",
+      [orgId, ids.bankRec, ids.aiReview],
+    );
+    ids.closeTask = await one(
+      "insert into public.fin_close_tasks (org_id, month, step_code, due_wd) select $1, '2026-09-01', code, 5 from public.fin_close_steps where org_id = $1 order by code limit 1",
+      [orgId],
+    );
+    ids.holiday = await one(
+      "insert into public.fin_ref_holidays (org_id, holiday_on, name) values ($1, '2026-12-02', 'Seed holiday')",
+      [orgId],
+    );
   });
   return ids;
 }
 
 /** Phase 20 tables with a browser (select) policy. */
 export const PHASE20_TABLES = [
+  "fin_bank_accounts",
+  "fin_bank_ai_reviews",
+  "fin_bank_ai_suggestions",
+  "fin_bank_imports",
+  "fin_bank_lines",
+  "fin_bank_matches",
+  "fin_bank_rec_notes",
+  "fin_bank_recs",
+  "fin_close_steps",
+  "fin_close_tasks",
+  "fin_import_formats",
   "fin_invoice_change_reviews",
+  "fin_ref_holidays",
+  "fin_ref_settlement_rules",
+  "fin_settlement_lines",
   "fin_ref_report_lines",
   "fin_ref_revenue_targets",
   "fin_doctor_charges",
