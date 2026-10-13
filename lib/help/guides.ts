@@ -307,7 +307,7 @@ export const GUIDES: readonly Guide[] = [
       "The Finance Manager verifies it (Tier 1 vouchers can be verified together). Tier 2 then goes to a department head; Tier 3, Tier 4, payroll, intercompany and related-party vouchers go to the CEO, who can approve on a phone.",
       "Anyone who rejects must write remarks; the maker edits the voucher and submits it again.",
       "Once approved, someone other than the maker records the payment date and bank reference, then build the Tally file under Tally export and import it in Tally.",
-      "Download the approval certificate from a voucher for the auditors: it lists every step, person, time, remark and the fingerprint of the documents.",
+      "Download the approval certificate from a voucher for the auditors: it lists every step, person, time, remark and the fingerprint of the documents. Once the voucher is fully approved and the organisation seal is on, the certificate is digitally sealed and every download is the same sealed file.",
     ],
     watchOut: [
       "Each step must be a different person: whoever prepared or changed a voucher cannot verify or approve it.",
@@ -315,6 +315,7 @@ export const GUIDES: readonly Guide[] = [
       "Nothing dated in a locked month can change its amounts, dates or documents; its invoices can still be paid by a later voucher and exported to Tally.",
       "A voucher for less than its invoices pays the oldest first; an invoice not fully paid stays Part paid with its balance for the next voucher.",
       "The Tally file refuses until every category, supplier, bank and branch is mapped to a Tally ledger (Voucher settings).",
+      "With a signing certificate (Settings, Signing certificate), type its PIN when you verify or approve to sign with it; a wrong PIN saves nothing. Leave it blank to approve without a personal signature.",
     ],
   },
   {
@@ -422,6 +423,7 @@ export const GUIDES: readonly Guide[] = [
       "Reminders to patients are off until the tone has been approved and an administrator switches them on.",
       "Every AI-written appeal starts with a DRAFT banner. Read it and check the figures before using it.",
       "A signed month cannot be changed. Withdraw the finance sign-off first if something is wrong.",
+      "Each sign-off can carry your personal digital signature (type your certificate PIN). The PDF of a locked month is sealed with the organisation certificate when the seal is on; the Sign-off box shows whether each signature is valid.",
     ],
   },
   {
@@ -443,6 +445,42 @@ export const GUIDES: readonly Guide[] = [
       "Review requests go only to patients who opted in to messages, at most once per person in the period you set, and never depend on how the visit went. Pulse does not contact Google.",
       "SMS is only a fallback for appointment reminders that WhatsApp could not deliver, and each message costs money.",
       "Nothing here ever writes to Unite.",
+    ],
+  },
+  {
+    id: "document-seal",
+    title: "Organisation seal",
+    pages: ["/settings/integrations/document_seal"],
+    purpose:
+      "Digitally seal the final payment voucher approval certificates and the locked month-end close packs with the organisation's certificate, so anyone can check who issued the PDF and that it has not been changed.",
+    steps: [
+      "Get a certificate issued to the organisation (from a certificate authority, or your IT provider for internal use) and export it with its private key as a .p12 / .pfx file with a password.",
+      "Choose the file, type its password and the name to show with the seal, then Save settings. A file that cannot be opened with the password is refused at once.",
+      "Check the certificate details shown below (subject, issuer, validity), then type SEAL DOCUMENTS and Switch on.",
+      "From then on, a voucher's certificate is sealed when it is fully approved, and a close pack PDF when the month is locked. The sealed file is kept, so every download is the same.",
+    ],
+    watchOut: [
+      "Switch it off at once if the certificate file or its password may have leaked, then replace the certificate.",
+      "Renew the certificate before it expires: an expired certificate seals nothing, and documents show 'Not digitally sealed'.",
+      "A self-signed certificate seals correctly, but PDF readers will say the signer is not trusted.",
+      "The seal is not a UAE qualified electronic signature. Signing happens inside Pulse; nothing is sent anywhere.",
+    ],
+  },
+  {
+    id: "signing-certificate",
+    title: "Signing certificate",
+    pages: ["/settings/signing-certificate"],
+    purpose:
+      "Add your own soft certificate so you can digitally sign the approvals you give: verifying and approving payment vouchers, and the month-end sign-offs.",
+    steps: [
+      "Export your certificate with its private key as a .p12 / .pfx file protected by a PIN (at least 4 characters).",
+      "Choose the file, type the PIN and press Add my certificate. Pulse reads the certificate and forgets the PIN.",
+      "When you verify, approve or sign off, type the PIN in 'Sign with my certificate'. Your signature is listed on the approval certificate and the close pack.",
+    ],
+    watchOut: [
+      "A wrong PIN stops the approval: nothing is saved until you type it correctly or leave the box blank.",
+      "A USB token cannot be used by Pulse; keep using it in Tally where required.",
+      "Expired certificates are refused. Revoke yours here at once if the file or the PIN may be known to someone else.",
     ],
   },
   {

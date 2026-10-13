@@ -21,7 +21,10 @@ import {
   voucherErrorMessage,
   type VoucherAction,
 } from "@/lib/finance/vouchers";
+import { sealVoucherCertificateNow } from "@/lib/finance/signed-pdfs-server";
 import { memberIdsWithPermission, notify } from "@/lib/notify/dispatch-db";
+import { checkRateLimit, RATE_RULES, waitText } from "@/lib/rate-limit";
+import { signApprovalStatement, type SignedStatement } from "@/lib/signing/personal-server";
 import { createAdminClient, type AdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/types";
 
@@ -185,7 +188,11 @@ const stepSchema = z.object({
   remarks: z.string().trim().max(1000).default(""),
   payment_date: z.string().trim().default(""),
   payment_reference: z.string().trim().max(60).default(""),
+  /** Phase 22C: the PIN of the person's own certificate, to sign this step (never stored or logged). */
+  pin: z.string().max(200).default(""),
 });
+
+const SIGNABLE: ReadonlySet<VoucherAction> = new Set(["check", "approve_dept", "approve_ceo"]);
 
 const DONE: Record<VoucherAction, string> = {
   submit: "Submitted. The Finance Manager verifies it next.",
@@ -221,17 +228,63 @@ export async function voucherStep(
   if (s.action === "pay" && !isoDate.safeParse(s.payment_date).success)
     return fail(voucherErrorMessage("payment_details_required", "Enter the payment date."));
   const admin = createAdminClient(member.userId);
-  const { data, error } = await admin.rpc("fin_voucher_act", {
+
+  // Phase 22C: sign the step with the person's own certificate first. A wrong PIN or an unusable certificate stops
+  // here, before the step is attempted, so the approval is never consumed; the step and the signature are then stored
+  // together by fin_voucher_act_signed (one transaction).
+  let signature: SignedStatement | null = null;
+  if (s.pin !== "") {
+    if (!SIGNABLE.has(s.action) || !s.hash)
+      return fail(voucherErrorMessage("signature_step", "That step cannot be signed."));
+    const limit = await checkRateLimit(
+      admin,
+      "signing-pin",
+      member.userId,
+      RATE_RULES.signingPinPerUser,
+    );
+    if (!limit.allowed)
+      return fail(`Too many signing attempts. Try again in ${waitText(limit.retryAfter)}.`);
+    const { data: v } = await admin
+      .from("fin_payment_vouchers")
+      .select("voucher_no")
+      .eq("org_id", member.orgId)
+      .eq("id", s.id)
+      .maybeSingle();
+    if (!v) return fail(voucherErrorMessage("not_found", "Voucher not found."));
+    const signed = await signApprovalStatement(admin, {
+      orgId: member.orgId,
+      userId: member.userId,
+      pin: s.pin,
+      docType: "payment_voucher",
+      docId: s.id,
+      docRef: v.voucher_no,
+      step: s.action as "check" | "approve_dept" | "approve_ceo",
+      boundSha256: s.hash,
+      remarks: s.remarks || null,
+    });
+    if (!signed.ok) return fail(`${signed.error} Nothing was saved.`);
+    signature = signed.signature;
+  }
+
+  const base = {
     p_org_id: member.orgId,
     p_voucher_id: s.id,
     p_user_id: member.userId,
     p_action: s.action,
     p_hash: (s.hash ?? null) as string,
     p_remarks: s.remarks,
-    p_payment: (s.action === "pay"
-      ? { date: s.payment_date, reference: s.payment_reference }
-      : null) as Json,
-  });
+  };
+  const { data, error } = signature
+    ? await admin.rpc("fin_voucher_act_signed", {
+        ...base,
+        p_signature: signature as unknown as Json,
+      })
+    : await admin.rpc("fin_voucher_act", {
+        ...base,
+        p_payment: (s.action === "pay"
+          ? { date: s.payment_date, reference: s.payment_reference }
+          : null) as Json,
+      });
   if (error || !data) return fail(rpcError(error, "That step could not be saved."));
   const r = data as StepResult;
   await recordAudit(admin, {
@@ -240,11 +293,36 @@ export async function voucherStep(
     action: `finance.voucher.${s.action}`,
     entity: "fin_payment_vouchers",
     entityId: r.id,
-    diff: { voucher_no: r.voucher_no, from: r.from, to: r.to, remarks: s.remarks !== "" },
+    diff: {
+      voucher_no: r.voucher_no,
+      from: r.from,
+      to: r.to,
+      remarks: s.remarks !== "",
+      signed: signature !== null,
+      ...(signature ? { cert_fingerprint: signature.fingerprint } : {}),
+    },
   });
   await tellNext(admin, member.orgId, member.userId, r);
+  // The final approval: seal and keep the certificate now, while it shows the approval trail as it stands (best effort).
+  const sealed =
+    r.to === "approved"
+      ? await sealVoucherCertificateNow(
+          admin,
+          {
+            orgId: member.orgId,
+            orgName: member.org.name,
+            timezone: member.org.timezone,
+            userId: member.userId,
+          },
+          r.id,
+        )
+      : false;
   refresh();
-  return { ok: true, data: { status: r.to }, message: DONE[s.action] };
+  return {
+    ok: true,
+    data: { status: r.to },
+    message: `${DONE[s.action]}${signature ? " Signed with your certificate." : ""}${sealed ? " The approval certificate was sealed." : ""}`,
+  };
 }
 
 /** Who acts next is told (fixed generic sentence, ids only). */

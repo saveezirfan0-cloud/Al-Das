@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-11-08-digital-signatures",
+    date: "2026-11-08",
+    title: "Digital signatures on approval certificates and close packs",
+    body: "Once an administrator adds the organisation's certificate under Settings, Integrations, Organisation seal, the payment voucher approval certificate (when the voucher is fully approved) and the month-end close pack PDF (when the month is locked) carry a digital signature in the organisation's name: any PDF reader shows who sealed the file and that it has not changed since. People who verify or approve vouchers or sign the close can also add their own soft certificate (.p12 / .pfx) under Settings, Signing certificate and type its PIN when they approve; their signature is listed on the certificate. The voucher and close pages show whether each signature is valid. Without a certificate everything works as before.",
+  },
+  {
     id: "2026-11-06-board-pack-controls",
     date: "2026-11-06",
     title: "Board pack: controls and matters needing attention",
