@@ -279,12 +279,26 @@ const calendarSchema = z
       .int("Age limit must be a whole number.")
       .min(1, "Age limit: 1 to 365 days.")
       .max(365, "Age limit: 1 to 365 days."),
+    revshare_wd: wd("Revenue shares working day"),
+    voucher_unpaid_days: z.coerce
+      .number({ message: "Voucher days must be a number." })
+      .int("Voucher days must be a whole number.")
+      .min(1, "Voucher days: 1 to 365.")
+      .max(365, "Voucher days: 1 to 365."),
+    receivables_over90_pct: z.coerce
+      .number({ message: "Receivables share must be a number." })
+      .min(0, "Receivables share: 0 to 100.")
+      .max(100, "Receivables share: 0 to 100.")
+      .transform((x) => Math.round(x * 100) / 100),
   })
   .refine((x) => x.inputs_wd <= x.deadline_wd, {
     message: "Inputs are due on or before the delivery working day.",
   });
 
-/** Field names: start (YYYY-MM or blank = off), inputs_wd, deadline_wd, item_max_age_days and wk_1..wk_7 checkboxes. */
+/**
+ * Field names: start (YYYY-MM or blank = off), inputs_wd, deadline_wd, item_max_age_days, wk_1..wk_7 checkboxes, and the
+ * Board pack thresholds revshare_wd, voucher_unpaid_days and receivables_over90_pct.
+ */
 export async function saveCloseCalendar(values: Record<string, string>): Promise<ActionResult> {
   const member = await gate([MANAGE]);
   if (!member) return fail(DENIED);
@@ -299,6 +313,9 @@ export async function saveCloseCalendar(values: Record<string, string>): Promise
     close_inputs_wd: p.data.inputs_wd,
     close_deadline_wd: p.data.deadline_wd,
     close_item_max_age_days: p.data.item_max_age_days,
+    close_revshare_wd: p.data.revshare_wd,
+    close_voucher_unpaid_days: p.data.voucher_unpaid_days,
+    close_receivables_over90_pct: p.data.receivables_over90_pct,
   };
   const { error } = await admin
     .from("fin_ref_finance_settings")

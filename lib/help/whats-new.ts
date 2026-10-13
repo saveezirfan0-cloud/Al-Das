@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-11-06-board-pack-controls",
+    date: "2026-11-06",
+    title: "Board pack: controls and matters needing attention",
+    body: "The month-end close pack now carries a one-page control summary for the Board: each bank account's reconciliation and the unexplained bank credits, unpaid supplier invoices by age and the voucher queue, the doctor revenue-share run and what is approved but not paid, unapproved invoice changes, insurance receivables over 90 days, the close timetable and open finance exceptions. A list of matters needing attention is worked out from it, using limits finance sets on the Close timetable page. Both are frozen with the pack and its fingerprint, and appear on the page, in Excel and in the PDF. Packs built earlier say the summary was not captured.",
+  },
+  {
     id: "2026-11-05-labs-and-referrals",
     date: "2026-11-05",
     title: "Lab and referral reconciliation",

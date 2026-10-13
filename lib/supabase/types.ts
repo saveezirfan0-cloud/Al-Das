@@ -7216,7 +7216,10 @@ export type Database = {
           close_deadline_wd: number;
           close_inputs_wd: number;
           close_item_max_age_days: number;
+          close_receivables_over90_pct: number;
+          close_revshare_wd: number;
           close_timetable_start: string | null;
+          close_voucher_unpaid_days: number;
           close_weekend_days: number[];
           denial_cases_start_date: string | null;
           denial_default_resubmit_days: number;
@@ -7289,7 +7292,10 @@ export type Database = {
           close_deadline_wd?: number;
           close_inputs_wd?: number;
           close_item_max_age_days?: number;
+          close_receivables_over90_pct?: number;
+          close_revshare_wd?: number;
           close_timetable_start?: string | null;
+          close_voucher_unpaid_days?: number;
           close_weekend_days?: number[];
           denial_cases_start_date?: string | null;
           denial_default_resubmit_days?: number;
@@ -7361,7 +7367,10 @@ export type Database = {
           close_deadline_wd?: number;
           close_inputs_wd?: number;
           close_item_max_age_days?: number;
+          close_receivables_over90_pct?: number;
+          close_revshare_wd?: number;
           close_timetable_start?: string | null;
+          close_voucher_unpaid_days?: number;
           close_weekend_days?: number[];
           denial_cases_start_date?: string | null;
           denial_default_resubmit_days?: number;
@@ -17784,6 +17793,10 @@ export type Database = {
           owner_user_id: string;
           task_id: string;
         }[];
+      };
+      fin_close_controls: {
+        Args: { p_month: string; p_org_id: string; p_today?: string };
+        Returns: Json;
       };
       fin_close_generate_tasks: { Args: { p_month: string; p_org_id: string }; Returns: number };
       fin_close_month_figures: { Args: { p_month: string; p_org_id: string }; Returns: Json };

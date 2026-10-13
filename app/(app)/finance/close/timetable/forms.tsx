@@ -203,12 +203,18 @@ export function CalendarForm({
   inputsWd,
   deadlineWd,
   itemMaxAgeDays,
+  revshareWd,
+  voucherUnpaidDays,
+  receivablesOver90Pct,
 }: {
   start: string | null;
   weekend: number[];
   inputsWd: number;
   deadlineWd: number;
   itemMaxAgeDays: number;
+  revshareWd: number;
+  voucherUnpaidDays: number;
+  receivablesOver90Pct: number;
 }) {
   return (
     <ActionForm action={saveCloseCalendar} submitLabel="Save">
@@ -241,6 +247,22 @@ export function CalendarForm({
         </Field>
         <Field label="Reconciling items: age limit (days)">
           <Input name="item_max_age_days" inputMode="numeric" defaultValue={itemMaxAgeDays} />
+        </Field>
+      </div>
+      <div className="text-sm font-medium">Board pack: matters needing attention</div>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Field label="Revenue shares approved by working day">
+          <Input name="revshare_wd" inputMode="numeric" defaultValue={revshareWd} />
+        </Field>
+        <Field label="Approved vouchers unpaid after (days)">
+          <Input name="voucher_unpaid_days" inputMode="numeric" defaultValue={voucherUnpaidDays} />
+        </Field>
+        <Field label="Insurance receivables over 90 days: limit (%)">
+          <Input
+            name="receivables_over90_pct"
+            inputMode="decimal"
+            defaultValue={receivablesOver90Pct}
+          />
         </Field>
       </div>
     </ActionForm>

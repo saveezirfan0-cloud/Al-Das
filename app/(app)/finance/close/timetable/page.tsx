@@ -561,6 +561,9 @@ export default async function CloseTimetablePage({
               inputsWd={cal.inputsWd}
               deadlineWd={cal.deadlineWd}
               itemMaxAgeDays={cal.itemMaxAgeDays}
+              revshareWd={cal.revshareWd}
+              voucherUnpaidDays={cal.voucherUnpaidDays}
+              receivablesOver90Pct={cal.receivablesOver90Pct}
             />
             <div className="flex flex-col gap-3">
               <div className="text-sm font-medium">Public holidays</div>
