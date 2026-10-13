@@ -23,7 +23,7 @@ export function PhonePreview({
         {preview && preview.buttons.length > 0 && (
           <div className="mt-2 flex flex-col gap-1 border-t pt-1">
             {preview.buttons.map((b, i) => (
-              <span key={i} className="text-center text-xs text-sky-600">
+              <span key={i} className="text-center text-xs text-sky-600 dark:text-sky-400">
                 {b.text}
               </span>
             ))}
@@ -42,7 +42,7 @@ export function PhonePreview({
               </div>
               <p className="whitespace-pre-wrap">{c.body}</p>
               {c.buttons.map((b, j) => (
-                <span key={j} className="mt-1 block border-t pt-1 text-center text-sky-600">
+                <span key={j} className="mt-1 block border-t pt-1 text-center text-sky-600 dark:text-sky-400">
                   {b}
                 </span>
               ))}

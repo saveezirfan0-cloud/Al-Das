@@ -236,7 +236,7 @@ export default async function VouchersPage({
       </PageHeader>
 
       {settings.approvalMode === "tally" && (
-        <p className="rounded-md border border-amber-300 bg-amber-50 p-2 text-sm text-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+        <p className="rounded-md border border-amber-300 dark:border-amber-500/30 bg-amber-50 p-2 text-sm text-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
           Approval mode is Tally (OQ-90): submitted vouchers are exported for authorisation in Tally
           and are not verified or approved in Pulse.
         </p>

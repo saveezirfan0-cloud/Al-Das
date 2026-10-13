@@ -831,7 +831,7 @@ function NotesPanel({ data }: { data: DeskData }) {
             className={cn(
               "rounded-lg border p-3 text-sm",
               n.resolved_at && "opacity-60",
-              n.pinned && !n.resolved_at && "border-amber-300",
+              n.pinned && !n.resolved_at && "border-amber-300 dark:border-amber-500/30",
             )}
           >
             <p className="whitespace-pre-wrap">{n.body}</p>

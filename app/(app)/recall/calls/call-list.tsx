@@ -66,7 +66,7 @@ export function CallList({ rows, canEdit }: { rows: CallRow[]; canEdit: boolean 
                 {r.patient}
               </Link>
               {r.overdue && (
-                <Badge variant="secondary" className="ml-2 bg-amber-100 text-amber-800">
+                <Badge variant="secondary" className="ml-2 bg-amber-100 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300">
                   Overdue
                 </Badge>
               )}

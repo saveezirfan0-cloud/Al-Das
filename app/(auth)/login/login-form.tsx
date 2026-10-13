@@ -57,7 +57,7 @@ export function LoginForm({ next, initialError }: { next?: string; initialError?
                 </p>
               )}
               <Button type="submit" disabled={pwPending} className="w-full">
-                {pwPending && <Loader2 className="animate-spin" />}
+                {pwPending && <Loader2 className="animate-spin" aria-hidden />}
                 Sign in
               </Button>
             </form>
@@ -75,12 +75,12 @@ export function LoginForm({ next, initialError }: { next?: string; initialError?
                 </p>
               )}
               {mlState?.message && (
-                <p className="text-sm text-emerald-700" role="status">
+                <p className="text-sm text-emerald-700 dark:text-emerald-400" role="status">
                   {mlState.message}
                 </p>
               )}
               <Button type="submit" disabled={mlPending} className="w-full" variant="secondary">
-                {mlPending && <Loader2 className="animate-spin" />}
+                {mlPending && <Loader2 className="animate-spin" aria-hidden />}
                 Send sign-in link
               </Button>
             </form>

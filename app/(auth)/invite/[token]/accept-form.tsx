@@ -50,7 +50,7 @@ export function AcceptInviteForm({
         </p>
       )}
       <Button type="submit" disabled={pending} className="w-full">
-        {pending && <Loader2 className="animate-spin" />}
+        {pending && <Loader2 className="animate-spin" aria-hidden />}
         {needsPassword ? "Create account and join" : "Join workspace"}
       </Button>
     </form>
