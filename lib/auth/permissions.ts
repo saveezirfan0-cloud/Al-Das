@@ -20,6 +20,7 @@ export const PERMISSION_GROUPS = [
   "Reports",
   "AI & knowledge base",
   "Finance",
+  "Accounting",
   "Settings",
   "Security & privacy",
 ] as const;
@@ -562,6 +563,100 @@ export const PERMISSIONS = [
       "Ask the AI to review an open bank reconciliation (ids, amounts, dates and references only) and accept or reject its suggestions. The AI only suggests pairs from Pulse's own shortlist; a person decides each one. Also needs Run bank reconciliation, and AI must be on for the workspace.",
   },
   {
+    key: "accounting.view",
+    group: "Accounting",
+    label: "Open Accounting",
+    description: "Open the Accounting module, its dashboard and the chart of accounts.",
+  },
+  {
+    key: "accounting.ledger.view",
+    group: "Accounting",
+    label: "See journals and the ledger",
+    description: "Read journals, the general ledger and the day book.",
+  },
+  {
+    key: "accounting.reports.view",
+    group: "Accounting",
+    label: "See accounting reports",
+    description:
+      "The trial balance, and later the profit and loss, balance sheet, cash flow, budgets and ratios.",
+  },
+  {
+    key: "accounting.coa.manage",
+    group: "Accounting",
+    label: "Manage the chart of accounts",
+    description: "Add and edit accounts, groups, cost centres and tax codes. Audited.",
+  },
+  {
+    key: "accounting.journals.prepare",
+    group: "Accounting",
+    label: "Prepare journals (maker)",
+    description:
+      "Prepare manual journals (Journal, Contra, Debit and Credit notes) and submit them for posting. Never posts its own.",
+  },
+  {
+    key: "accounting.journals.approve",
+    group: "Accounting",
+    label: "Post and reverse journals (checker)",
+    description:
+      "Post a journal someone else prepared, send one back with a reason, and reverse posted journals. Audited.",
+  },
+  {
+    key: "accounting.sales.manage",
+    group: "Accounting",
+    label: "Sales invoices and credit notes",
+    description: "Raise sales invoices and credit notes to insurers, corporates and tenants (a later slice).",
+  },
+  {
+    key: "accounting.receipts.manage",
+    group: "Accounting",
+    label: "Receipts",
+    description: "Record receipts and allocate them to invoices (a later slice).",
+  },
+  {
+    key: "accounting.banking.manage",
+    group: "Accounting",
+    label: "Banking and petty cash",
+    description: "Bank accounts, transfers, bank charges and petty cash (a later slice).",
+  },
+  {
+    key: "accounting.assets.manage",
+    group: "Accounting",
+    label: "Fixed assets",
+    description: "Fixed assets and depreciation runs (a later slice).",
+  },
+  {
+    key: "accounting.budgets.manage",
+    group: "Accounting",
+    label: "Budgets",
+    description: "Budgets by account and month (a later slice).",
+  },
+  {
+    key: "accounting.periods.manage",
+    group: "Accounting",
+    label: "Open, close and lock periods",
+    description:
+      "Close and reopen accounting periods, lock them for good, post into a closed period or the year's adjustment period, and run the year-end close. Audited.",
+  },
+  {
+    key: "accounting.tax.manage",
+    group: "Accounting",
+    label: "VAT settings and return",
+    description: "VAT settings and the VAT return (a later slice).",
+  },
+  {
+    key: "accounting.settings.manage",
+    group: "Accounting",
+    label: "Accounting settings",
+    description: "Entities, fiscal years, branch mapping, numbering and posting rules. Audited.",
+  },
+  {
+    key: "accounting.import",
+    group: "Accounting",
+    label: "Tally import and opening balances",
+    description: "Import from Tally and enter opening-balance journals. Audited.",
+  },
+  {
     key: "portal.recall_sends.write",
     group: "Portal",
     label: "Edit recall call-list entries",
@@ -684,6 +779,10 @@ export const FINANCE_ROLES: readonly RolePreset[] = [
       "finance.vouchers.check",
       "finance.vouchers.settings",
       "finance.revshare.verify",
+      "accounting.view",
+      "accounting.ledger.view",
+      "accounting.reports.view",
+      "accounting.journals.approve",
     ],
   },
   {
@@ -740,6 +839,8 @@ export const FINANCE_ROLES: readonly RolePreset[] = [
       "finance.changes.view",
       "finance.revshare.view",
       "finance.revshare.approve",
+      "accounting.view",
+      "accounting.reports.view",
     ],
   },
   {
@@ -775,6 +876,57 @@ export const FINANCE_ROLES: readonly RolePreset[] = [
     description:
       "Owns Unite invoice changes: reviews discounts, cancellations, credit notes, write-offs and refunds in the invoice-change register.",
     permissions: ["finance.changes.view", "finance.changes.review"],
+  },
+];
+
+/**
+ * Accounting presets (Phase 22A). Also created for existing orgs by migration 20261108000100 and by
+ * `pnpm finance:seed`. The Finance Manager and the CEO get their accounting keys in FINANCE_ROLES above.
+ */
+export const ACCOUNTING_ROLES: readonly RolePreset[] = [
+  {
+    name: "Accountant",
+    description:
+      "Keeps the books: prepares journals, sales, receipts, banking, assets and budgets, and reads the ledger and reports. Cannot post their own journals.",
+    permissions: [
+      "accounting.view",
+      "accounting.ledger.view",
+      "accounting.reports.view",
+      "accounting.journals.prepare",
+      "accounting.sales.manage",
+      "accounting.receipts.manage",
+      "accounting.banking.manage",
+      "accounting.assets.manage",
+      "accounting.budgets.manage",
+    ],
+  },
+  {
+    name: "Chief Accountant",
+    description:
+      "Everything in Accounting: the chart of accounts, posting journals someone else prepared, periods, tax, settings and the Tally import.",
+    permissions: [
+      "accounting.view",
+      "accounting.ledger.view",
+      "accounting.reports.view",
+      "accounting.coa.manage",
+      "accounting.journals.prepare",
+      "accounting.journals.approve",
+      "accounting.sales.manage",
+      "accounting.receipts.manage",
+      "accounting.banking.manage",
+      "accounting.assets.manage",
+      "accounting.budgets.manage",
+      "accounting.periods.manage",
+      "accounting.tax.manage",
+      "accounting.settings.manage",
+      "accounting.import",
+    ],
+  },
+  {
+    name: "Auditor",
+    description:
+      "Read-only: the chart of accounts, journals, the general ledger, the day book and the reports.",
+    permissions: ["accounting.view", "accounting.ledger.view", "accounting.reports.view"],
   },
 ];
 
@@ -899,6 +1051,7 @@ export const SYSTEM_ROLES: readonly RolePreset[] = [
     ],
   },
   ...FINANCE_ROLES,
+  ...ACCOUNTING_ROLES,
 ];
 
 /**

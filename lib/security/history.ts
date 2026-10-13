@@ -19,6 +19,8 @@ export const HISTORY_TABLES = {
   fin_eligibility_checks: "Eligibility check",
   ins_denial_cases: "Denial case",
   fin_period_closes: "Month-end close",
+  acc_accounts: "Account",
+  acc_journals: "Journal",
 } as const;
 
 export type HistoryTable = keyof typeof HISTORY_TABLES;
@@ -39,6 +41,8 @@ export const HISTORY_PERMISSION: Partial<Record<HistoryTable, string>> = {
   fin_eligibility_checks: "finance.eligibility.manage",
   ins_denial_cases: "finance.denials.manage",
   fin_period_closes: "finance.close.view",
+  acc_accounts: "accounting.view",
+  acc_journals: "accounting.ledger.view",
 };
 
 export type HistoryChange = { field: string; label: string; from: string; to: string };

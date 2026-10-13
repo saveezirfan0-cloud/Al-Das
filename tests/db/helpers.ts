@@ -797,9 +797,53 @@ export async function seedPhase20aRows(c: Client, orgId: string) {
   return ids;
 }
 
+/**
+ * One row in every Phase 22A (accounting) table for an org, so the cross-org sweeps are not vacuous for them. The org's
+ * chart, entity, branch mapping and tax codes come from the orgs insert trigger; a cost centre is added and one journal is
+ * posted through acc_post_from_source, which also creates the fiscal year, the period and the number series. Synthetic
+ * amounts only. Service role only: none of these tables has a write policy.
+ */
+export async function seedPhase22Rows(c: Client, orgId: string) {
+  const ids: Record<string, string> = {};
+  await asServiceRole(c, async () => {
+    ids.costCentre = (
+      await c.query<{ id: string }>(
+        "insert into public.acc_cost_centres (org_id, code, name) values ($1, 'SEED', 'Seed centre') returning id::text as id",
+        [orgId],
+      )
+    ).rows[0].id;
+    const { rows } = await c.query<{ r: { id: string } }>(
+      "select public.acc_post_from_source($1, null, 'voucher', 'SEED-22A', 1, '2026-07-01', 'journal', 'Seed journal', $2::jsonb) as r",
+      [
+        orgId,
+        JSON.stringify([
+          { account_code: "6200", debit: 10, cost_centre: "SEED" },
+          { account_code: "9000", credit: 10 },
+        ]),
+      ],
+    );
+    ids.journal = rows[0].r.id;
+  });
+  return ids;
+}
+
 /** Phase 20a tables with a browser (select) policy. */
 export const PHASE20A_TABLES = [
   "campaign_archive",
   "campaign_archive_recipients",
   "enquiry_tags",
+] as const;
+
+/** Phase 22A tables with a browser (select) policy; every one is seeded for an org by the trigger and seedPhase22Rows. */
+export const PHASE22_TABLES = [
+  "acc_accounts",
+  "acc_cost_centres",
+  "acc_entities",
+  "acc_entity_branches",
+  "acc_fiscal_years",
+  "acc_journal_lines",
+  "acc_journals",
+  "acc_number_series",
+  "acc_periods",
+  "acc_tax_codes",
 ] as const;

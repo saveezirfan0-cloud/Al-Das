@@ -1,4 +1,5 @@
 import { PORTAL_SECTIONS } from "@/app/(app)/portal/sections";
+import { ACCOUNTING_KEYS } from "@/lib/accounting/nav";
 import { PORTAL_OBJECTS } from "@/lib/portal/objects";
 
 /** Left-nav modules. `permission` hides the entry for members without it. */
@@ -18,6 +19,7 @@ export type NavIcon =
   | "portal"
   | "reports"
   | "finance"
+  | "accounting"
   | "settings";
 
 export type NavGroup = "Today" | "Patients" | "Growth" | "Insight & back office";
@@ -210,6 +212,14 @@ export const NAV_ITEMS: readonly NavItem[] = [
       "finance.revshare.verify",
       "finance.revshare.approve",
     ],
+  },
+  {
+    href: "/accounting",
+    label: "Accounting",
+    icon: "accounting",
+    group: "Insight & back office",
+    keywords: ["ledger", "general ledger", "chart of accounts", "journals", "journal entry", "day book", "trial balance", "periods", "fiscal year", "tax codes", "vat", "cost centres", "entities", "tally", "double entry", "books"],
+    permissions: ACCOUNTING_KEYS,
   },
   {
     href: "/settings",

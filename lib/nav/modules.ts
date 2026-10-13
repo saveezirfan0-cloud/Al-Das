@@ -1,5 +1,6 @@
 import { SETTINGS_PAGES } from "@/components/shell/settings-pages";
 import type { MemberLike } from "@/lib/auth/can";
+import { ACCOUNTING_NAV } from "@/lib/accounting/nav";
 import { FINANCE_NAV } from "@/lib/finance/nav";
 
 /**
@@ -29,5 +30,6 @@ export type NavModules = Readonly<Record<string, readonly ModuleEntry[]>>;
 
 export const NAV_MODULES: NavModules = {
   "/finance": FINANCE_NAV,
+  "/accounting": ACCOUNTING_NAV,
   "/settings": SETTINGS_PAGES,
 };
