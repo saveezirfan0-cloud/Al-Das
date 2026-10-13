@@ -15,14 +15,18 @@ import {
 } from "@/lib/finance/action-support";
 import { OWNER_ROLES, parseStatusList } from "@/lib/finance/blueprint-settings";
 import { DENIAL_CATEGORIES } from "@/lib/finance/denials";
+import { parseDaySteps } from "@/lib/finance/followup";
 import { parsePriceText } from "@/lib/finance/payer-prices";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 /**
  * Finance workflow settings: thresholds, the denial reason-code taxonomy and the payers' agreed price lists. Needs
- * finance.reference.manage. Writes use the member's own client so row level security decides (the same model as the other
- * reference tables), and every change is audited.
+ * finance.reference.manage. The Phase 18 thresholds and the blueprint settings use the member's own client so row level
+ * security decides (the same model as the other reference tables); a database trigger lets such a write change ONLY
+ * those columns (app.fin_settings_user_columns(), kept equal to the two update lists below by a database test). The
+ * Phase 20 follow-up and change-review settings are written with the service role after the permission check, like
+ * every other Phase 20 setting. Every change is audited.
  */
 
 const PERM = "finance.reference.manage";
@@ -152,6 +156,100 @@ export async function saveBlueprintSettings(raw: Record<string, string>): Promis
       evidence_check: d.evidence_start_date !== null,
       escalation_days: d.escalation_days,
       escalation_role: d.escalation_role,
+    },
+  });
+  refresh();
+  return { ok: true, message: "Settings saved." };
+}
+
+const followupSchema = z.object({
+  ageing_bucket_days: z.string().max(100),
+  followup_stage_days: z.string().max(100),
+  followup_start_date: optionalDate,
+  followup_task_enabled: checkbox,
+  followup_task_role: z.string().trim().min(1, "Name the role that gets the tasks.").max(60),
+  followup_task_due_days: int(0, 60),
+});
+
+/** Phase 20I: ageing buckets, follow-up stages and the follow-up tasks (off until a start date is set). */
+export async function saveFollowupSettings(raw: Record<string, string>): Promise<ActionResult> {
+  const member = await requirePerm(PERM);
+  const p = followupSchema.safeParse(raw);
+  if (!p.success) return fail(firstIssue(p.error, "Check the values."));
+  const d = p.data;
+  const buckets = parseDaySteps(d.ageing_bucket_days, 8);
+  if (!buckets)
+    return fail(
+      "Ageing buckets: 1 to 8 whole days in increasing order, for example 30, 60, 90, 120.",
+    );
+  const stages = parseDaySteps(d.followup_stage_days, 6);
+  if (!stages)
+    return fail(
+      "Follow-up stages: 1 to 6 whole days in increasing order, for example 60, 90, 120.",
+    );
+  const admin = createAdminClient(member.userId); // service role AFTER the permission check
+  const { error } = await admin
+    .from("fin_ref_finance_settings")
+    .update({
+      ageing_bucket_days: buckets,
+      followup_stage_days: stages,
+      followup_start_date: d.followup_start_date,
+      followup_task_enabled: d.followup_task_enabled,
+      followup_task_role: d.followup_task_role,
+      followup_task_due_days: d.followup_task_due_days,
+    })
+    .eq("org_id", member.orgId);
+  if (error) return fail(dbMessage(error, "Could not save the settings."));
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "finance.workflow.followup_saved",
+    entity: "fin_ref_finance_settings",
+    entityId: member.orgId,
+    diff: {
+      buckets,
+      stages,
+      tasks_on: d.followup_start_date !== null && d.followup_task_enabled,
+      start_date: d.followup_start_date,
+      due_days: d.followup_task_due_days,
+    },
+  });
+  refresh();
+  return { ok: true, message: "Settings saved." };
+}
+
+const changeReviewSchema = z.object({
+  change_review_start_date: optionalDate,
+  change_review_min_amount: num(0, 9_999_999),
+  change_bulk_approve_max: num(0, 9_999_999),
+});
+
+/** Phase 20J: when the unapproved-changes measure starts, the amount below which no approval is needed, the bulk limit. */
+export async function saveChangeReviewSettings(raw: Record<string, string>): Promise<ActionResult> {
+  const member = await requirePerm(PERM);
+  const p = changeReviewSchema.safeParse(raw);
+  if (!p.success) return fail(firstIssue(p.error, "Check the values."));
+  const d = p.data;
+  const admin = createAdminClient(member.userId); // service role AFTER the permission check
+  const { error } = await admin
+    .from("fin_ref_finance_settings")
+    .update({
+      change_review_start_date: d.change_review_start_date,
+      change_review_min_amount: d.change_review_min_amount,
+      change_bulk_approve_max: d.change_bulk_approve_max,
+    })
+    .eq("org_id", member.orgId);
+  if (error) return fail(dbMessage(error, "Could not save the settings."));
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "finance.workflow.change_review_saved",
+    entity: "fin_ref_finance_settings",
+    entityId: member.orgId,
+    diff: {
+      start_date: d.change_review_start_date,
+      min_amount: d.change_review_min_amount,
+      bulk_max: d.change_bulk_approve_max,
     },
   });
   refresh();

@@ -1,0 +1,31 @@
+{
+  "_comment": "Synthetic. Branch totals, patient counts and targets copy the shape of the clinic's Daily Financial Summary for one day; doctor names, departments and the split between them are invented. No patient data.",
+  "lines": [
+    { "code": "PALM", "label": "Palm", "matchKind": "branch", "matchValues": ["P"], "inCore": true, "sortOrder": 10 },
+    { "code": "GM", "label": "Golden Mile", "matchKind": "branch", "matchValues": ["G"], "inCore": true, "sortOrder": 20 },
+    { "code": "MTC", "label": "Meadows", "matchKind": "branch", "matchValues": ["M"], "inCore": true, "sortOrder": 30 },
+    { "code": "LONGEVITY", "label": "Longevity", "matchKind": "branch", "matchValues": ["L"], "inCore": true, "sortOrder": 40 },
+    { "code": "CHIRO", "label": "Chiro", "matchKind": "department", "matchValues": ["Chiropractic"], "inCore": false, "sortOrder": 50 },
+    { "code": "DENTAL", "label": "Dental (leased unit)", "matchKind": "branch", "matchValues": ["D"], "inCore": false, "sortOrder": 60 }
+  ],
+  "targets": [
+    { "month": "2026-10-01", "lineCode": "PALM", "dailyRevenue": 32593, "dailyPatients": null, "arpp": null },
+    { "month": "2026-10-01", "lineCode": "GM", "dailyRevenue": 9402, "dailyPatients": null, "arpp": null },
+    { "month": "2026-10-01", "lineCode": "MTC", "dailyRevenue": 13037, "dailyPatients": null, "arpp": null },
+    { "month": "2026-10-01", "lineCode": "LONGEVITY", "dailyRevenue": 3635, "dailyPatients": null, "arpp": null },
+    { "month": "2026-10-01", "lineCode": null, "dailyRevenue": null, "dailyPatients": 78, "arpp": 750 }
+  ],
+  "rows": [
+    { "date": "2026-10-12", "branch": "P", "department": "General Practice", "doctorId": "SYN-0001", "doctorName": "Dr Test Alpha", "net": 15232, "patients": 20, "invoices": 21 },
+    { "date": "2026-10-12", "branch": "M", "department": "Internal Medicine", "doctorId": "SYN-0002", "doctorName": "Dr Test Bravo", "net": 13099, "patients": 16, "invoices": 16 },
+    { "date": "2026-10-12", "branch": "L", "department": "Family Medicine", "doctorId": "SYN-0003", "doctorName": "Dr Test Charlie", "net": 382, "patients": 1, "invoices": 1 },
+    { "date": "2026-10-12", "branch": "P", "department": "Family Medicine", "doctorId": "SYN-0003", "doctorName": "Dr Test Charlie", "net": 3262, "patients": 5, "invoices": 5 },
+    { "date": "2026-10-12", "branch": "M", "department": "Family Medicine", "doctorId": "SYN-0003", "doctorName": "Dr Test Charlie", "net": 4634, "patients": 7, "invoices": 7 },
+    { "date": "2026-10-12", "branch": "M", "department": "Dermatology", "doctorId": "SYN-0004", "doctorName": "Dr Test Delta", "net": 6608, "patients": 6, "invoices": 6 },
+    { "date": "2026-10-12", "branch": "G", "department": "Gynaecology", "doctorId": "SYN-0005", "doctorName": "Dr Test Echo", "net": 2720, "patients": 2, "invoices": 2 },
+    { "date": "2026-10-12", "branch": "P", "department": "Paediatrics", "doctorId": "SYN-0006", "doctorName": "Dr Test Foxtrot", "net": 2420, "patients": 2, "invoices": 2 },
+    { "date": "2026-10-12", "branch": "P", "department": "General Practice", "doctorId": "SYN-0007", "doctorName": "Dr Test Golf", "net": 2107, "patients": 4, "invoices": 4 },
+    { "date": "2026-10-12", "branch": "P", "department": "Dentistry", "doctorId": "SYN-0008", "doctorName": "Dr Test Hotel", "net": 567, "patients": 1, "invoices": 1 },
+    { "date": "2026-10-12", "branch": "P", "department": "Chiropractic", "doctorId": "SYN-0009", "doctorName": "Dr Test India", "net": 2090, "patients": 3, "invoices": 3 }
+  ]
+}

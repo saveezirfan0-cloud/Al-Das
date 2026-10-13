@@ -51,6 +51,15 @@ const METRIC_LABEL: Record<string, string> = {
   queued: "Queued",
   events_sent: "Events sent to Meta",
   events_failed: "Events Meta refused",
+  messages: "Messages from allowed senders",
+  stored: "Attachments stored",
+  duplicate: "Attachments already in Pulse",
+  dropped_sender: "Messages dropped (sender not allowed or not verified by SPF / DKIM)",
+  refused_type: "Attachments refused (type)",
+  refused_size: "Attachments refused (too large)",
+  skipped_inline: "Pictures in the message body skipped",
+  infected: "Attachments blocked by the malware scan",
+  refused_training: "Messages refused (training workspace)",
 };
 
 function metricLabel(key: string): string {

@@ -8,10 +8,11 @@ export function GroupedBars({
   series,
   labels,
 }: {
-  series: Array<{ label: string; a: number; b: number }>;
+  /** b = null draws no second bar (for example, last year not on record) */
+  series: Array<{ label: string; a: number; b: number | null }>;
   labels: { a: string; b: string };
 }) {
-  const max = Math.max(1, ...series.flatMap((s) => [s.a, s.b]));
+  const max = Math.max(1, ...series.flatMap((s) => [s.a, s.b ?? 0]));
   return (
     <figure className="flex flex-col gap-2" aria-label={`${labels.a} and ${labels.b} by month`}>
       <div className="flex h-40 items-end gap-2 overflow-x-auto">
@@ -23,11 +24,13 @@ export function GroupedBars({
                 style={{ height: `${Math.max(2, (s.a / max) * 100)}%` }}
                 title={`${labels.a}: ${moneyCompact(s.a)}`}
               />
-              <div
-                className="w-3 rounded-t bg-emerald-500"
-                style={{ height: `${Math.max(2, (s.b / max) * 100)}%` }}
-                title={`${labels.b}: ${moneyCompact(s.b)}`}
-              />
+              {s.b !== null && (
+                <div
+                  className="w-3 rounded-t bg-emerald-500"
+                  style={{ height: `${Math.max(2, (s.b / max) * 100)}%` }}
+                  title={`${labels.b}: ${moneyCompact(s.b)}`}
+                />
+              )}
             </div>
             <span className="text-muted-foreground text-[10px]">{s.label.slice(2)}</span>
           </div>

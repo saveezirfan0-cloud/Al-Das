@@ -315,9 +315,31 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 18: finance upgrades, access", () => 
     await asServiceRole(c, () => q(block!));
     const first = await read();
     // finance.payment_links arrived with Phase 19a (migration 20261018000100 grants it); the cost and profit keys and
-    // the Cost / Payroll role arrived with F8 (20261021000100, tested in finance-blueprint.test.ts); this migration predates them.
+    // the Cost / Payroll role arrived with F8 (20261021000100, tested in finance-blueprint.test.ts); the flash keys arrived
+    // with Phase 20A (20261023000300, tested in finance-flash.test.ts), the payables, voucher and Tally keys with Phase 20D
+    // (20261024000100, tested in finance-payables.test.ts), the follow-up key with Phase 20I (20261026000100, tested in
+    // finance-followup.test.ts), finance.close.tasks with Phase 20G (20261029000100, tested in
+    // finance-close-timetable.test.ts), the bank keys with Phase 20C (20261028000100, tested in finance-bank.test.ts) and the
+    // invoice-change keys and the Operations role with Phase 20J (20261031000100, tested in
+    // finance-invoice-changes.test.ts) and the revenue-share keys with Phase 20F (20261101000100, tested in
+    // finance-revenue-share.test.ts) and finance.inbox.manage with Phase 20B (20261103000100, tested in
+    // finance-intake.test.ts) and finance.bank.ai with Phase 20H (20261104000100, tested in
+    // finance-bank-ai.test.ts) and the lab keys with Phase 20E (20261105000100, tested in finance-labs.test.ts);
+    // this migration predates them.
     const later = (p: string) =>
       p === "finance.payment_links" ||
+      p === "finance.close.tasks" ||
+      p === "finance.flash.view" ||
+      p === "finance.targets.manage" ||
+      p === "finance.followup.manage" ||
+      p === "finance.inbox.manage" ||
+      p.startsWith("finance.payables.") ||
+      p.startsWith("finance.vouchers.") ||
+      p === "finance.tally.export" ||
+      p.startsWith("finance.bank.") || // includes finance.bank.ai (20H)
+      p.startsWith("finance.changes.") ||
+      p.startsWith("finance.revshare.") ||
+      p.startsWith("finance.labs.") ||
       p.startsWith("finance.costs.") ||
       p.startsWith("finance.profit.");
     for (const preset of FINANCE_ROLES.filter((r) => first[r.name]))

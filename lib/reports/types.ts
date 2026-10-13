@@ -50,7 +50,7 @@ export type ReportContext = {
 };
 
 export type FilterKind = "channel" | "team" | "user";
-export const REPORT_GROUPS = ["Conversations", "People", "WhatsApp", "Enquiries", "Campaigns", "Appointments"] as const;
+export const REPORT_GROUPS = ["Conversations", "People", "WhatsApp", "Enquiries", "Campaigns", "Appointments", "Clinical"] as const;
 export type ReportGroup = (typeof REPORT_GROUPS)[number];
 
 export type ReportDef = {

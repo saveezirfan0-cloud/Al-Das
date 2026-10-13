@@ -76,6 +76,18 @@ describe("registry integrity", () => {
 
   it("natural keys are columns the mapper produces (or derives)", () => {
     for (const { mapper: m } of tables) {
+      if (m.junction) {
+        // Junction mappers build their row from the parent and the linked row (run-junction.ts).
+        const built = m.junction.build({
+          parent: { id: "parent-1", visit_date: "2026-09-01", contact_id: "contact-1" },
+          child: { id: "child-1", code: "i10" },
+          flagged: false,
+        });
+        expect(typeof built, m.key).toBe("object");
+        for (const k of m.naturalKey)
+          expect(k in (built as Record<string, unknown>), `${m.key}.${k}`).toBe(true);
+        continue;
+      }
       const out = mapRecord(m, rec({}));
       for (const k of m.naturalKey) expect(k in out.values, `${m.key}.${k}`).toBe(true);
     }

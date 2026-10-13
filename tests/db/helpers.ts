@@ -20,7 +20,7 @@ export async function resetDb(c: Client) {
   await c.query("truncate public.orgs cascade");
   await c.query("truncate public.scheduled_jobs, public.job_runs, public.dead_letters, public.flow_locks");
   await c.query("delete from auth.users");
-  for (const q of ["outbound", "outbound_priority", "flow_steps", "notifications", "meta_events", "webhooks_out", "kb_ingest", "ai_insights", "sms_outbound", "capi_events"]) {
+  for (const q of ["outbound", "outbound_priority", "flow_steps", "notifications", "meta_events", "webhooks_out", "kb_ingest", "ai_insights", "sms_outbound", "capi_events", "clinical"]) {
     await c.query(`delete from pgmq.q_${q}`);
     await c.query(`delete from pgmq.a_${q}`);
   }
@@ -475,10 +475,287 @@ export const PHASE19_SERVICE_ONLY_TABLES = [
 ] as const;
 
 /**
+ * One row in every Phase 20 table (20A flash report, 20I insurance follow-up, 20J invoice-change reviews, 20F revenue share, 20E labs), for an org, so the cross-org sweeps are not
+ * vacuous for them. Synthetic ids and amounts only. Service role only: none of them has a write policy.
+ */
+export async function seedPhase20Rows(c: Client, orgId: string, userId: string) {
+  const ids: Record<string, string> = {};
+  await asServiceRole(c, async () => {
+    const one = async (sql: string, params: unknown[]) =>
+      (await c.query<{ id: string }>(sql + " returning id::text", params)).rows[0].id;
+    ids.line = await one(
+      "insert into public.fin_ref_report_lines (org_id, code, label, match_kind, match_values) values ($1, 'SEED20', 'Seed line', 'branch', '{P}')",
+      [orgId],
+    );
+    ids.target = await one(
+      "insert into public.fin_ref_revenue_targets (org_id, month, line_code, daily_revenue) values ($1, '2026-10-01', 'SEED20', 1000)",
+      [orgId],
+    );
+    ids.claim20 = await one(
+      "insert into public.ins_claim_activities (org_id, claim_activity_number, invoice_no, cpt_code, payer_id, transaction_date, net) values ($1, 'CA-SEED-20', 'ADMC/C/20001', '99213', 'PAYER-SEED', '2026-07-01', 100)",
+      [orgId],
+    );
+    ids.followup = await one(
+      "insert into public.ins_claim_followups (org_id, claim_activity_id, stage, outcome, note, created_by) values ($1, $2, 90, 'contacted', 'Seed note', $3)",
+      [orgId, ids.claim20, userId],
+    );
+    ids.followupStage = await one(
+      "insert into public.ins_claim_followup_stages (org_id, claim_activity_id, stage, crossed_on) values ($1, $2, 90, '2026-09-29')",
+      [orgId, ids.claim20],
+    );
+    ids.invoice20 = await one(
+      "insert into public.fin_invoices (org_id, inv_display_number, transaction_date, net, total, record_hash) values ($1, 'SYN-SEED-20J', '2026-10-01', 100, 100, 'h')",
+      [orgId],
+    );
+    ids.changeReview = await one(
+      "insert into public.fin_invoice_change_reviews (org_id, change_key, invoice_id, kind, amount, change_date, decision, reason, reviewed_by) values ($1, md5('seed-20j'), $2, 'discount', 10, '2026-10-01', 'approved', 'Seed reason', $3)",
+      [orgId, ids.invoice20, userId],
+    );
+    // 20F: a doctor charge, a draft scheme version, a draft run and its line
+    ids.charge20 = await one(
+      "insert into public.fin_doctor_charges (org_id, month, doctor_dha_id, kind, amount, created_by) values ($1, '2026-09-01', 'SYN-SEED', 'lab', 10, $2)",
+      [orgId, userId],
+    );
+    ids.scheme20 = await one(
+      `insert into public.fin_revshare_schemes (org_id, doctor_dha_id, version, effective_from, rule, rule_hash, created_by)
+       values ($1, 'SYN-SEED', 1, '2026-01-01', '{"basis":"net_revenue","default_rate":0.3,"deductions":{"lab":1}}'::jsonb, '', $2)`,
+      [orgId, userId],
+    );
+    ids.run20 = await one(
+      "insert into public.fin_revshare_runs (org_id, month, snapshot, snapshot_hash, built_by) values ($1, '2026-09-01', '{}'::jsonb, '', $2)",
+      [orgId, userId],
+    );
+    ids.line20 = await one(
+      "insert into public.fin_revshare_lines (org_id, run_id, doctor_dha_id, scheme_id, scheme_version, payout) values ($1, $2, 'SYN-SEED', $3, 1, 100)",
+      [orgId, ids.run20, ids.scheme20],
+    );
+    // 20E: a provider, one of its tests, an open statement with one file, one line and one reason
+    ids.provider20 = await one(
+      "insert into public.fin_providers (org_id, name, kind) values ($1, 'Synthetic Lab', 'send_out_lab')",
+      [orgId],
+    );
+    ids.providerTest20 = await one(
+      "insert into public.fin_ref_provider_tests (org_id, provider_id, code, expected_days) values ($1, $2, '85025', 2)",
+      [orgId, ids.provider20],
+    );
+    ids.statement20 = await one(
+      "insert into public.fin_provider_statements (org_id, provider_id, month, created_by) values ($1, $2, '2026-09-01', $3)",
+      [orgId, ids.provider20, userId],
+    );
+    ids.providerFile20 = await one(
+      "insert into public.fin_provider_files (org_id, statement_id, kind, file_sha256) values ($1, $2, 'provider_invoice', encode(sha256(gen_random_uuid()::text::bytea), 'hex'))",
+      [orgId, ids.statement20],
+    );
+    ids.providerLine20 = await one(
+      "insert into public.fin_provider_lines (org_id, statement_id, file_id, row_no, service_date, code, amount) values ($1, $2, $3, 1, '2026-09-02', '85025', 10)",
+      [orgId, ids.statement20, ids.providerFile20],
+    );
+    ids.providerNote20 = await one(
+      "insert into public.fin_provider_notes (org_id, statement_id, item_key, reason_code) values ($1, $2, 'line|' || $3, 'provider_error')",
+      [orgId, ids.statement20, ids.providerLine20],
+    );
+    // 20C bank reconciliation, 20H AI review, 20G close timetable (the close steps and settlement rules are seeded for
+    // every new org by the orgs_seed_finance_phase20 trigger)
+    const sha = "encode(sha256(gen_random_uuid()::text::bytea), 'hex')";
+    ids.bankAccount = await one(
+      "insert into public.fin_bank_accounts (org_id, name, bank_name, last4) values ($1, 'Seed account', 'Seed Bank', '0001')",
+      [orgId],
+    );
+    ids.importFormat = await one(
+      "insert into public.fin_import_formats (org_id, kind, name, mapping, date_format) values ($1, 'bank_statement', 'Seed layout', '{}'::jsonb, 'YYYY-MM-DD')",
+      [orgId],
+    );
+    ids.bankImport = await one(
+      `insert into public.fin_bank_imports (org_id, kind, account_id, file_sha256) values ($1, 'bank_statement', $2, ${sha})`,
+      [orgId, ids.bankAccount],
+    );
+    ids.bankLine = await one(
+      "insert into public.fin_bank_lines (org_id, account_id, import_id, row_no, value_date, amount) values ($1, $2, $3, 1, '2026-09-02', 100)",
+      [orgId, ids.bankAccount, ids.bankImport],
+    );
+    ids.settlementImport = await one(
+      `insert into public.fin_bank_imports (org_id, kind, payment_mode, file_sha256) values ($1, 'settlement', 'Card', ${sha})`,
+      [orgId],
+    );
+    ids.settlementLine = await one(
+      "insert into public.fin_settlement_lines (org_id, import_id, row_no, payment_mode, txn_date, settlement_date, gross, net) values ($1, $2, 1, 'Card', '2026-09-01', '2026-09-03', 100, 98)",
+      [orgId, ids.settlementImport],
+    );
+    ids.bankRec = await one(
+      "insert into public.fin_bank_recs (org_id, account_id, month, period_start, period_end) values ($1, $2, '2026-09-01', '2026-09-01', '2026-09-30')",
+      [orgId, ids.bankAccount],
+    );
+    ids.bankMatch = await one(
+      "insert into public.fin_bank_matches (org_id, rec_id, bank_line_id, expected_key, expected_kind, expected_date, expected_amount, bank_amount, score, status) values ($1, $2, $3, 'SEED', 'collection', '2026-09-01', 100, 100, 90, 'matched')",
+      [orgId, ids.bankRec, ids.bankLine],
+    );
+    ids.bankNote = await one(
+      "insert into public.fin_bank_rec_notes (org_id, rec_id, item_key, reason_code) values ($1, $2, 'SEED2', 'in_transit')",
+      [orgId, ids.bankRec],
+    );
+    ids.aiReview = await one(
+      "insert into public.fin_bank_ai_reviews (org_id, rec_id, status, model, summary, item_count, suggestion_count) values ($1, $2, 'ok', 'test-model', 'Seed summary', 1, 1)",
+      [orgId, ids.bankRec],
+    );
+    ids.aiSuggestion = await one(
+      "insert into public.fin_bank_ai_suggestions (org_id, rec_id, review_id, item_key, reason_code, confidence) values ($1, $2, $3, 'SEED', 'needs_person', 'low')",
+      [orgId, ids.bankRec, ids.aiReview],
+    );
+    ids.closeTask = await one(
+      "insert into public.fin_close_tasks (org_id, month, step_code, due_wd) select $1, '2026-09-01', code, 5 from public.fin_close_steps where org_id = $1 order by code limit 1",
+      [orgId],
+    );
+    ids.holiday = await one(
+      "insert into public.fin_ref_holidays (org_id, holiday_on, name) values ($1, '2026-12-02', 'Seed holiday')",
+      [orgId],
+    );
+  });
+  return ids;
+}
+
+/** Phase 20 tables with a browser (select) policy. */
+export const PHASE20_TABLES = [
+  "fin_bank_accounts",
+  "fin_bank_ai_reviews",
+  "fin_bank_ai_suggestions",
+  "fin_bank_imports",
+  "fin_bank_lines",
+  "fin_bank_matches",
+  "fin_bank_rec_notes",
+  "fin_bank_recs",
+  "fin_close_steps",
+  "fin_close_tasks",
+  "fin_import_formats",
+  "fin_invoice_change_reviews",
+  "fin_ref_holidays",
+  "fin_ref_settlement_rules",
+  "fin_settlement_lines",
+  "fin_ref_report_lines",
+  "fin_ref_revenue_targets",
+  "fin_doctor_charges",
+  "fin_provider_files",
+  "fin_provider_lines",
+  "fin_provider_notes",
+  "fin_provider_statements",
+  "fin_providers",
+  "fin_ref_provider_tests",
+  "fin_revshare_lines",
+  "fin_revshare_runs",
+  "fin_revshare_schemes",
+  "ins_claim_followup_stages",
+  "ins_claim_followups",
+] as const;
+
+/**
+ * One row in every Phase 21 table for an org (visit diagnoses and the derived chronic conditions), so the cross-org
+ * sweeps are not vacuous for them. Service role only: neither table has a write policy. Synthetic data only.
+ */
+export async function seedPhase21Rows(c: Client, orgId: string) {
+  const ids: Record<string, string> = {};
+  await asServiceRole(c, async () => {
+    const one = async (sql: string, params: unknown[]) =>
+      (await c.query<{ id: string }>(sql + " returning id::text", params)).rows[0].id;
+    ids.contact = await one(
+      "insert into public.contacts (org_id, first_name, last_name, phone_e164) values ($1, 'Layla Demo-21', 'Synthetic', '+447700900021')",
+      [orgId],
+    );
+    ids.visit = await one(
+      "insert into public.visits (org_id, contact_id, external_id, visit_date) values ($1, $2, 'SYN-P21-V1', current_date - 30)",
+      [orgId, ids.contact],
+    );
+    ids.diagnosis = await one(
+      "insert into public.ref_diagnoses (org_id, code, chronic) values ($1, 'I10', true) on conflict (org_id, code) do update set chronic = true",
+      [orgId],
+    );
+    ids.visitDiagnosis = await one(
+      "insert into public.visit_diagnoses (org_id, visit_id, contact_id, ref_diagnosis_id, diagnosis_code, visit_date, source) values ($1, $2, $3, $4, 'I10', current_date - 30, 'unite')",
+      [orgId, ids.visit, ids.contact, ids.diagnosis],
+    );
+    ids.chronic = await one(
+      "insert into public.contact_chronic_conditions (org_id, contact_id, ref_diagnosis_id, source, noted_at, last_seen_on, evidence_visits) values ($1, $2, $3, 'visit_diagnoses', current_date - 30, current_date - 30, 1)",
+      [orgId, ids.contact, ids.diagnosis],
+    );
+  });
+  return ids;
+}
+
+/** Phase 21 tables with a (PHI-gated) select policy and no write policy. */
+export const PHASE21_TABLES = ["contact_chronic_conditions", "visit_diagnoses"] as const;
+
+/**
+ * One row in every Phase 20D (payables and vouchers) table for an org, so the cross-org sweeps are not vacuous for them.
+ * Synthetic names and amounts; the document row is a placeholder (no file). Service role only: none of these tables has a
+ * write policy. The voucher is made by fin_voucher_save, so the counter (service-only) and the trail get rows as well.
+ * `userId` must hold finance.vouchers.prepare (the org owner's Admin role does).
+ */
+export async function seedPhase20DRows(c: Client, orgId: string, userId: string) {
+  const ids: Record<string, string> = {};
+  await asServiceRole(c, async () => {
+    const one = async (sql: string, params: unknown[]) =>
+      (await c.query<{ id: string }>(sql + " returning id::text", params)).rows[0].id;
+    ids.document = await one(
+      "insert into public.fin_documents (org_id, kind, storage_path, mime_type, size_bytes, sha256, status, uploaded_by) values ($1::uuid, 'voucher_backup', $1::text || '/' || gen_random_uuid() || '.pdf', 'application/pdf', 100, encode(sha256(gen_random_uuid()::text::bytea), 'hex'), 'ready', $2)",
+      [orgId, userId],
+    );
+    ids.supplier = await one(
+      "insert into public.fin_suppliers (org_id, name, created_by) values ($1, 'Supplier Test Seed', $2)",
+      [orgId, userId],
+    );
+    ids.invoice = await one(
+      "insert into public.fin_supplier_invoices (org_id, supplier_id, invoice_number, invoice_date, category, net, vat, document_id) values ($1, $2, 'INV-SEED-1', '2026-10-01', 'Consumables', 100, 5, $3)",
+      [orgId, ids.supplier, ids.document],
+    );
+    const { rows } = await c.query<{ r: { id: string } }>(
+      "select public.fin_voucher_save($1, $2, null, $3::jsonb, $4::uuid[], $5::uuid[]) as r",
+      [
+        orgId,
+        userId,
+        JSON.stringify({
+          voucher_date: "2026-10-02",
+          payee_name: "Supplier Test Seed",
+          amount: 105,
+          category: "Consumables",
+          narration: "Seed voucher",
+        }),
+        [ids.invoice],
+        [ids.document],
+      ],
+    );
+    ids.voucher = rows[0].r.id;
+    await c.query(
+      "insert into public.fin_ref_tally_ledgers (org_id, kind, key, ledger_name) values ($1, 'category', 'Consumables', 'Seed Consumables')",
+      [orgId],
+    );
+    ids.export = await one(
+      "insert into public.fin_tally_exports (org_id, voucher_count, invoice_count, checksum, xml, exported_by) values ($1, 0, 1, encode(sha256('seed'::bytea), 'hex'), '<ENVELOPE/>', $2)",
+      [orgId, userId],
+    );
+  });
+  return ids;
+}
+
+/** Phase 20D tables with a browser (select) policy. fin_ref_approval_tiers is seeded for every org. */
+export const PHASE20D_TABLES = [
+  "fin_documents",
+  "fin_payment_vouchers",
+  "fin_ref_approval_tiers",
+  "fin_ref_tally_ledgers",
+  "fin_supplier_invoices",
+  "fin_suppliers",
+  "fin_tally_exports",
+  "fin_voucher_documents",
+  "fin_voucher_events",
+  "fin_voucher_invoices",
+] as const;
+
+/** Phase 20D service-only tables: RLS on, no policy (the per-org voucher number counter). */
+export const PHASE20D_SERVICE_ONLY_TABLES = ["fin_voucher_counters"] as const;
+
+/**
  * Phase 20a tables (enquiry tags, Sanoflow campaign archive): one synthetic row each, so the cross-org
  * sweeps are not vacuous for them. Service role, like the import that writes them.
  */
-export async function seedPhase20Rows(c: Client, orgId: string) {
+export async function seedPhase20aRows(c: Client, orgId: string) {
   const ids: Record<string, string> = {};
   await asServiceRole(c, async () => {
     const one = async (sql: string, params: unknown[]) =>
@@ -521,7 +798,7 @@ export async function seedPhase20Rows(c: Client, orgId: string) {
 }
 
 /** Phase 20a tables with a browser (select) policy. */
-export const PHASE20_TABLES = [
+export const PHASE20A_TABLES = [
   "campaign_archive",
   "campaign_archive_recipients",
   "enquiry_tags",

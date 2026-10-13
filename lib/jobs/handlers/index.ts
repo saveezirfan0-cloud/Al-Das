@@ -51,5 +51,6 @@ registerKind("waitlist.*", "appointments");
 registerKind("review.*", "appointments");
 registerKind("telehealth.*", "appointments");
 registerKind("flow.*", "flow_steps");
+registerKind("clinical.*", "clinical");
 
 export {};

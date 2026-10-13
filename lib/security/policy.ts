@@ -22,6 +22,8 @@ export const UNGUARDED_OK: Record<string, string> = {
     "Authorised by the provider's request signature (HMAC over the exact callback URL and form fields, constant-time compare) using the stored auth token; unknown or switched-off accounts give 404; failed signatures are rate limited per IP; each receipt is claimed once (integration_webhook_events).",
   "app/api/webhooks/integrations/esign/[accountId]/route.ts::POST":
     "Authorised by the provider's event hash (HMAC-SHA256 of the event time and type with the stored API key, constant-time compare); unknown or switched-off accounts give 404; failed hashes are rate limited per IP; each event is claimed once (integration_webhook_events) and moves a request forward only.",
+  "app/api/webhooks/integrations/finance_mailbox/[accountId]/route.ts::POST":
+    "Authorised by HTTP basic auth against the stored webhook password (constant-time compare); unknown or switched-off accounts give 404; bodies over 4.5 MB give 413; failed attempts are rate limited per IP and every account per minute; each message is claimed once by its MessageID (integration_webhook_events). Only attachments from allow-listed senders are kept (sender domain only), a training workspace stores nothing.",
   "app/api/webhooks/integrations/payments/[accountId]/route.ts::POST":
     "Authorised by the gateway's signature (Stripe-Signature with a 5 minute replay window, or the PayTabs HMAC) using the stored secret, constant-time compare; unknown or switched-off accounts give 404; failed signatures are rate limited per IP; each event is claimed once (integration_webhook_events) and amounts are checked against the stored request.",
 };

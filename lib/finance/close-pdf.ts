@@ -1,3 +1,9 @@
+import {
+  CONTROLS_SCOPE,
+  controlSections,
+  NOT_CAPTURED,
+  readControls,
+} from "@/lib/finance/close-controls";
 import { monthLabel, type ClosePack } from "@/lib/finance/close-pack";
 import type { SignOff } from "@/lib/finance/close-xlsx";
 
@@ -146,6 +152,41 @@ export async function closePackPdf(pack: ClosePack, sign: SignOff): Promise<Buff
     ],
     [330, 120],
   );
+
+  heading("Matters needing attention");
+  const controls = readControls(pack.controls);
+  if (!controls) para(NOT_CAPTURED);
+  else {
+    const matters = Array.isArray(pack.matters) ? pack.matters : [];
+    if (matters.length === 0) para("None found by the checks in Controls.");
+    for (const m of matters) para(`- ${m.text}`);
+  }
+
+  heading("Controls");
+  if (!controls) para(NOT_CAPTURED);
+  else {
+    para(
+      `Ages and workflow states as at ${controls.as_of}; payables as at ${controls.month_end}.`,
+      8,
+    );
+    for (const sec of controlSections(controls)) {
+      need(30);
+      y -= 2;
+      text(sec.title, MARGIN, 9.5, bold);
+      y -= 13;
+      for (const [k, v] of sec.rows) {
+        need(14);
+        let label = toWinAnsi(k);
+        while (label.length > 1 && widthOf(label, 8.5) > 290) label = label.slice(0, -2) + "~";
+        text(label, MARGIN, 8.5);
+        const value = toWinAnsi(v);
+        text(value, PAGE_W - MARGIN - widthOf(value, 8.5), 8.5);
+        y -= 12;
+      }
+      y -= 4;
+    }
+  }
+  for (const n of CONTROLS_SCOPE) para(n, 8);
 
   heading("By branch");
   table(

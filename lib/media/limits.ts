@@ -55,12 +55,25 @@ export const PATIENT_DOCUMENT_TYPES: Readonly<Record<string, string>> = {
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
 };
 
-export type Purpose = "library" | "template_header" | "patient_document";
+/** Finance evidence (supplier invoices, voucher backup, bank statements): PDFs, phone photos of paper invoices, spreadsheets, CSV. */
+export const FINANCE_DOCUMENT_MAX_BYTES = 20 * MB;
+export const FINANCE_DOCUMENT_TYPES: Readonly<Record<string, string>> = {
+  "application/pdf": "pdf",
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/heic": "heic",
+  "image/heif": "heif",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
+  "text/csv": "csv",
+};
+
+export type Purpose = "library" | "template_header" | "patient_document" | "finance_document";
 
 export type ValidationCode = "empty" | "unsupported_type" | "too_large" | "wrong_kind" | "bad_size";
 
 export type ValidationResult =
-  | { ok: true; kind: MediaKind | "patient_document"; extension: string; mime: string }
+  | { ok: true; kind: MediaKind | "patient_document" | "finance_document"; extension: string; mime: string }
   | { ok: false; code: ValidationCode; message: string };
 
 /** Normalises a declared content type: lower case, no parameters ("image/JPEG; charset=x" -> "image/jpeg"). */
@@ -125,6 +138,21 @@ export function validateMedia(
         `That file is ${formatBytes(file.size)}. Documents can be up to ${formatBytes(PATIENT_DOCUMENT_MAX_BYTES)}.`,
       );
     return { ok: true, kind: "patient_document", extension: ext, mime };
+  }
+
+  if (purpose === "finance_document") {
+    const ext = FINANCE_DOCUMENT_TYPES[mime];
+    if (!ext)
+      return fail(
+        "unsupported_type",
+        "Use a PDF, a photo (JPEG, PNG, WebP, HEIC), an Excel file or a CSV file.",
+      );
+    if (file.size > FINANCE_DOCUMENT_MAX_BYTES)
+      return fail(
+        "too_large",
+        `That file is ${formatBytes(file.size)}. Finance documents can be up to ${formatBytes(FINANCE_DOCUMENT_MAX_BYTES)}.`,
+      );
+    return { ok: true, kind: "finance_document", extension: ext, mime };
   }
 
   const kind = kindForMime(mime);

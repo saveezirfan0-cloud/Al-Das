@@ -34,6 +34,7 @@ const FEATURE_LABEL: Record<string, string> = {
   campaign_audience: "Campaign audiences",
   campaign_copy: "Template wording",
   intent: "Message labels",
+  bank_review: "Bank reconciliation reviews",
 };
 
 function Bar({

@@ -19,5 +19,8 @@ globalThis.fetch = ((input: Parameters<typeof fetch>[0], init?: Parameters<typeo
   // Phase 19b: the video-room and e-signature providers are tested with fakes and recorded responses; no test may reach them.
   if (/^https?:\/\/([a-z0-9-]+\.)*(daily\.co|hellosign\.com|dropboxsign\.com)([/:?#]|$)/i.test(url))
     throw new Error("Tests must never call a video or e-signature provider: use a fake client");
+  // Phase 20B: the finance mailbox is inbound only (the mail service posts to Pulse); no test may reach the mail service.
+  if (/^https?:\/\/([a-z0-9-]+\.)*postmarkapp\.com([/:?#]|$)/i.test(url))
+    throw new Error("Tests must never call the mail service: post a synthetic message to the route instead");
   return realFetch(input, init);
 }) as typeof fetch;

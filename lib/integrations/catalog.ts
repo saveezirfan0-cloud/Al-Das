@@ -15,6 +15,7 @@ export const INTEGRATION_KINDS = [
   "meta_capi",
   "telehealth",
   "esign",
+  "finance_mailbox",
 ] as const;
 export type IntegrationKind = (typeof INTEGRATION_KINDS)[number];
 
@@ -59,7 +60,9 @@ export type IntegrationDef = {
   movesMoney: boolean;
   /** True when switching it on sends patient-derived data to a third party (hashed ad identifiers, a signer's name and e-mail). */
   sharesData: boolean;
-  /** Typed in full to switch it on (only for integrations that contact patients, take money or share patient data). */
+  /** True when switching it on lets people outside the clinic put files into Pulse (the finance mailbox). */
+  acceptsFiles?: boolean;
+  /** Typed in full to switch it on (only for integrations that contact patients, take money, share patient data or accept files). */
   confirmWord: string | null;
   /** Permission to open its page and work with it (feeds, test, counters). Switching it on or off always needs integrations.manage. */
   viewPermission: "integrations.manage" | "integrations.calendar";
@@ -544,6 +547,52 @@ export const INTEGRATIONS: readonly IntegrationDef[] = [
     consequence:
       "This sends patient data to a third party. For every request the e-signature service receives the form itself and the signer's name and e-mail address, and it keeps its own copy of the signed document under its own terms and retention. Make sure your agreement with the service and its data location are approved. The title and message sent are fixed and generic.",
   },
+  {
+    kind: "finance_mailbox",
+    outbound: false,
+    title: "Finance mailbox",
+    description:
+      "Supplier invoices, bank statements and processor reports e-mailed to the accounts mailbox arrive in the Finance inbox. The mail service (Postmark inbound) forwards each message to Pulse; Pulse keeps only the PDF, JPEG, PNG, CSV and Excel attachments from the senders you allow, and nothing else of the message: no body, subject, sender name or file name. Patient reports (Diligence, remittance, lab) must not be sent here.",
+    contactsPatients: false,
+    movesMoney: false,
+    sharesData: false,
+    acceptsFiles: true,
+    confirmWord: "ACCEPT MAILBOX ATTACHMENTS",
+    viewPermission: "integrations.manage",
+    providers: [
+      {
+        id: "postmark",
+        label: "Postmark inbound webhook",
+        fields: [
+          {
+            key: "webhook_secret",
+            label: "Webhook password",
+            type: "password",
+            secret: true,
+            required: true,
+            max: 128,
+            pattern: "^[A-Za-z0-9_-]{24,128}$",
+            patternHint:
+              "Use 24 to 128 letters, digits, - or _ (for example from a password generator).",
+            help: "Put it in the webhook address you give Postmark (shown below once saved). Stored encrypted; never shown again.",
+          },
+        ],
+      },
+    ],
+    commonFields: [
+      {
+        key: "allowed_senders",
+        label: "Allowed senders",
+        type: "text",
+        required: true,
+        max: 2000,
+        placeholder: "accounts@supplier.example, supplier-two.example",
+        help: "E-mail addresses, or whole domains, separated by commas or spaces. Mail from anyone else is dropped (and counted).",
+      },
+    ],
+    consequence:
+      "Attachments (PDF, JPEG, PNG, CSV, Excel) e-mailed to the accounts mailbox by the allowed senders will be stored in Pulse as finance documents and appear in the Finance inbox. The rest of each message is discarded. Anyone who can send mail as an allowed sender can put a file there, so nothing is paid without the voucher approvals.",
+  },
 ];
 
 export function integrationDef(kind: IntegrationKind): IntegrationDef {
@@ -572,7 +621,7 @@ export function allFields(
 /** Does this integration need the typed confirmation to be switched on? */
 export function needsConfirmation(kind: IntegrationKind): boolean {
   const d = integrationDef(kind);
-  return d.contactsPatients || d.movesMoney || d.sharesData;
+  return d.contactsPatients || d.movesMoney || d.sharesData || d.acceptsFiles === true;
 }
 
 export type FieldValues = Record<string, string | number>;

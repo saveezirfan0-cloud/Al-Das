@@ -280,7 +280,8 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance blueprint (F8)", () => {
         ]),
       );
       void rows;
-      expect(preset.permissions).toEqual([
+      // finance.close.tasks (marking one's own close steps, no figures) arrived later with Phase 20G
+      expect(preset.permissions.filter((p) => p !== "finance.close.tasks")).toEqual([
         "finance.costs.manage",
         "finance.costs.view",
         "finance.costs.compensation",

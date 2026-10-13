@@ -1,0 +1,631 @@
+{
+  "_note": "Synthetic data only (Phase 20I). No real claim, payer, patient or amount.",
+  "today": "2026-10-26",
+  "settings": {
+    "bucketDays": [30, 60, 90, 120],
+    "stageDays": [60, 90, 120],
+    "acceptedStatuses": ["Approved", "Partially paid"]
+  },
+  "payers": [
+    {
+      "payerId": "PAY-A",
+      "payerName": "Synthetic Payer A"
+    },
+    {
+      "payerId": "PAY-B",
+      "payerName": "Synthetic Payer B"
+    }
+  ],
+  "claims": [
+    {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "claimActivityNumber": "CA-SYN-001",
+      "payerId": "PAY-A",
+      "branch": "P",
+      "transactionDate": "2026-10-10",
+      "net": 500,
+      "remitted": 0,
+      "rejected": 0,
+      "writeOff": null,
+      "writeOffStatus": null,
+      "claimStatus": null,
+      "resubmissionCount": 0,
+      "lastResubmissionDate": null
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000002",
+      "claimActivityNumber": "CA-SYN-002",
+      "payerId": "PAY-A",
+      "branch": "P",
+      "transactionDate": "2026-08-27",
+      "net": 300,
+      "remitted": 100,
+      "rejected": 0,
+      "writeOff": null,
+      "writeOffStatus": null,
+      "claimStatus": "Partially paid",
+      "resubmissionCount": 0,
+      "lastResubmissionDate": null
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000003",
+      "claimActivityNumber": "CA-SYN-003",
+      "payerId": "PAY-B",
+      "branch": "M",
+      "transactionDate": "2026-07-28",
+      "net": 1000,
+      "remitted": 0,
+      "rejected": 1000,
+      "writeOff": null,
+      "writeOffStatus": null,
+      "claimStatus": "Rejected",
+      "resubmissionCount": 1,
+      "lastResubmissionDate": "2026-09-16"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000004",
+      "claimActivityNumber": "CA-SYN-004",
+      "payerId": "PAY-B",
+      "branch": "G",
+      "transactionDate": "2026-06-28",
+      "net": 800,
+      "remitted": 200,
+      "rejected": 0,
+      "writeOff": 100,
+      "writeOffStatus": "Approved",
+      "claimStatus": null,
+      "resubmissionCount": 0,
+      "lastResubmissionDate": null
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000005",
+      "claimActivityNumber": "CA-SYN-005",
+      "payerId": "PAY-C",
+      "branch": null,
+      "transactionDate": "2026-05-01",
+      "net": 250,
+      "remitted": 0,
+      "rejected": 0,
+      "writeOff": null,
+      "writeOffStatus": null,
+      "claimStatus": null,
+      "resubmissionCount": 0,
+      "lastResubmissionDate": null
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000006",
+      "claimActivityNumber": "CA-SYN-006",
+      "payerId": "PAY-A",
+      "branch": "P",
+      "transactionDate": "2026-07-01",
+      "net": 400,
+      "remitted": 400,
+      "rejected": 0,
+      "writeOff": null,
+      "writeOffStatus": null,
+      "claimStatus": "Paid",
+      "resubmissionCount": 0,
+      "lastResubmissionDate": null
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000007",
+      "claimActivityNumber": "CA-SYN-007",
+      "payerId": "PAY-C",
+      "branch": "M",
+      "transactionDate": null,
+      "net": 150,
+      "remitted": 0,
+      "rejected": 0,
+      "writeOff": null,
+      "writeOffStatus": null,
+      "claimStatus": null,
+      "resubmissionCount": 0,
+      "lastResubmissionDate": null
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000008",
+      "claimActivityNumber": "CA-SYN-008",
+      "payerId": null,
+      "branch": "P",
+      "transactionDate": "2026-08-26",
+      "net": 120,
+      "remitted": 0,
+      "rejected": 0,
+      "writeOff": 120,
+      "writeOffStatus": "Pending",
+      "claimStatus": null,
+      "resubmissionCount": 0,
+      "lastResubmissionDate": null
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000009",
+      "claimActivityNumber": "CA-SYN-009",
+      "payerId": "PAY-A",
+      "branch": "G",
+      "transactionDate": "2026-09-26",
+      "net": 90,
+      "remitted": 0,
+      "rejected": 0,
+      "writeOff": null,
+      "writeOffStatus": null,
+      "claimStatus": "Approved",
+      "resubmissionCount": 0,
+      "lastResubmissionDate": null
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000010",
+      "claimActivityNumber": "CA-SYN-010",
+      "payerId": "PAY-B",
+      "branch": "P",
+      "transactionDate": "2026-07-29",
+      "net": 200,
+      "remitted": 50,
+      "rejected": 0,
+      "writeOff": 150,
+      "writeOffStatus": "approved",
+      "claimStatus": null,
+      "resubmissionCount": 0,
+      "lastResubmissionDate": null
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000011",
+      "claimActivityNumber": "CA-SYN-011",
+      "payerId": "PAY-A",
+      "branch": "M",
+      "transactionDate": "2026-06-27",
+      "net": 75.5,
+      "remitted": 0.5,
+      "rejected": 0,
+      "writeOff": null,
+      "writeOffStatus": null,
+      "claimStatus": null,
+      "resubmissionCount": 0,
+      "lastResubmissionDate": null
+    }
+  ],
+  "expected": {
+    "CA-SYN-001": {
+      "open": true,
+      "ageDays": 16,
+      "bucket": 0,
+      "stage": null,
+      "outstanding": 500,
+      "evidenced": false
+    },
+    "CA-SYN-002": {
+      "open": true,
+      "ageDays": 60,
+      "bucket": 1,
+      "stage": 60,
+      "outstanding": 200,
+      "evidenced": true
+    },
+    "CA-SYN-003": {
+      "open": true,
+      "ageDays": 90,
+      "bucket": 2,
+      "stage": 90,
+      "outstanding": 1000,
+      "evidenced": false
+    },
+    "CA-SYN-004": {
+      "open": true,
+      "ageDays": 120,
+      "bucket": 3,
+      "stage": 120,
+      "outstanding": 500,
+      "evidenced": true
+    },
+    "CA-SYN-005": {
+      "open": true,
+      "ageDays": 178,
+      "bucket": 4,
+      "stage": 120,
+      "outstanding": 250,
+      "evidenced": false
+    },
+    "CA-SYN-006": {
+      "open": false
+    },
+    "CA-SYN-007": {
+      "open": true,
+      "ageDays": null,
+      "bucket": null,
+      "stage": null,
+      "outstanding": 150,
+      "evidenced": false
+    },
+    "CA-SYN-008": {
+      "open": true,
+      "ageDays": 61,
+      "bucket": 2,
+      "stage": 60,
+      "outstanding": 120,
+      "evidenced": false
+    },
+    "CA-SYN-009": {
+      "open": true,
+      "ageDays": 30,
+      "bucket": 0,
+      "stage": null,
+      "outstanding": 90,
+      "evidenced": true
+    },
+    "CA-SYN-010": {
+      "open": false
+    },
+    "CA-SYN-011": {
+      "open": true,
+      "ageDays": 121,
+      "bucket": 4,
+      "stage": 120,
+      "outstanding": 75,
+      "evidenced": true
+    }
+  },
+  "tasks": {
+    "startDate": "2026-09-26",
+    "expectedStages": {
+      "CA-SYN-002": [60],
+      "CA-SYN-003": [60, 90],
+      "CA-SYN-004": [90, 120],
+      "CA-SYN-008": [60],
+      "CA-SYN-011": [120]
+    },
+    "expectedTopStage": {
+      "CA-SYN-002": 60,
+      "CA-SYN-003": 90,
+      "CA-SYN-004": 120,
+      "CA-SYN-008": 60,
+      "CA-SYN-011": 120
+    }
+  },
+  "sequences": [
+    {
+      "name": "paid in full on the first submission",
+      "claim": {
+        "transactionDate": "2026-06-01",
+        "initialNet": 500,
+        "initialRejected": 0,
+        "net": 500,
+        "remitted": 500,
+        "rejected": 0,
+        "resubmissionCount": 0,
+        "lastResubmissionDate": null,
+        "lastRemittanceDate": "2026-07-05"
+      },
+      "events": [
+        {
+          "observedAt": "2026-07-10T08:00:00Z",
+          "changedFields": {
+            "remitted": {
+              "old": 0,
+              "new": 500
+            },
+            "last_remittance_date": {
+              "old": null,
+              "new": "2026-07-05"
+            }
+          }
+        }
+      ],
+      "expected": {
+        "steps": [
+          {
+            "n": 1,
+            "mode": "first",
+            "claimed": 500,
+            "remittedInStep": 500,
+            "remittedCumulative": 500,
+            "rejected": 0,
+            "inferred": false,
+            "current": true
+          }
+        ],
+        "gaps": 0,
+        "complete": true,
+        "remittedExceedsClaimed": false
+      }
+    },
+    {
+      "name": "partly rejected, the balance resubmitted and paid",
+      "claim": {
+        "transactionDate": "2026-05-01",
+        "initialNet": 1000,
+        "initialRejected": 0,
+        "net": 400,
+        "remitted": 1000,
+        "rejected": 0,
+        "resubmissionCount": 1,
+        "lastResubmissionDate": "2026-07-01",
+        "lastRemittanceDate": "2026-08-02"
+      },
+      "events": [
+        {
+          "observedAt": "2026-06-10T08:00:00Z",
+          "changedFields": {
+            "remitted": {
+              "old": 0,
+              "new": 600
+            },
+            "rejected": {
+              "old": 0,
+              "new": 400
+            },
+            "last_remittance_date": {
+              "old": null,
+              "new": "2026-06-05"
+            }
+          }
+        },
+        {
+          "observedAt": "2026-07-10T08:00:00Z",
+          "changedFields": {
+            "resubmission_count": {
+              "old": 0,
+              "new": 1
+            },
+            "last_resubmission_date": {
+              "old": null,
+              "new": "2026-07-01"
+            },
+            "net": {
+              "old": 1000,
+              "new": 400
+            },
+            "rejected": {
+              "old": 400,
+              "new": 0
+            }
+          }
+        },
+        {
+          "observedAt": "2026-08-10T08:00:00Z",
+          "changedFields": {
+            "remitted": {
+              "old": 600,
+              "new": 1000
+            },
+            "last_remittance_date": {
+              "old": "2026-06-05",
+              "new": "2026-08-02"
+            }
+          }
+        }
+      ],
+      "expected": {
+        "steps": [
+          {
+            "n": 1,
+            "mode": "first",
+            "date": "2026-05-01",
+            "claimed": 1000,
+            "remittedInStep": 600,
+            "remittedCumulative": 600,
+            "rejected": 400,
+            "inferred": false,
+            "current": false
+          },
+          {
+            "n": 2,
+            "mode": "resubmission",
+            "date": "2026-07-01",
+            "claimed": 400,
+            "remittedInStep": 400,
+            "remittedCumulative": 1000,
+            "rejected": 0,
+            "inferred": false,
+            "current": true
+          }
+        ],
+        "gaps": 0,
+        "complete": true,
+        "remittedExceedsClaimed": false
+      }
+    },
+    {
+      "name": "correction: the whole amount re-sent and the RA repeats what was paid",
+      "claim": {
+        "transactionDate": "2026-04-01",
+        "initialNet": 800,
+        "initialRejected": 0,
+        "net": 800,
+        "remitted": 1300,
+        "rejected": 0,
+        "resubmissionCount": 1,
+        "lastResubmissionDate": "2026-06-01",
+        "lastRemittanceDate": "2026-07-03"
+      },
+      "events": [
+        {
+          "observedAt": "2026-05-10T08:00:00Z",
+          "changedFields": {
+            "remitted": {
+              "old": 0,
+              "new": 500
+            },
+            "rejected": {
+              "old": 0,
+              "new": 300
+            },
+            "last_remittance_date": {
+              "old": null,
+              "new": "2026-05-05"
+            }
+          }
+        },
+        {
+          "observedAt": "2026-06-10T08:00:00Z",
+          "changedFields": {
+            "resubmission_count": {
+              "old": 0,
+              "new": 1
+            },
+            "last_resubmission_date": {
+              "old": null,
+              "new": "2026-06-01"
+            }
+          }
+        },
+        {
+          "observedAt": "2026-07-10T08:00:00Z",
+          "changedFields": {
+            "remitted": {
+              "old": 500,
+              "new": 1300
+            },
+            "rejected": {
+              "old": 300,
+              "new": 0
+            },
+            "last_remittance_date": {
+              "old": "2026-05-05",
+              "new": "2026-07-03"
+            }
+          }
+        }
+      ],
+      "expected": {
+        "steps": [
+          {
+            "n": 1,
+            "mode": "first",
+            "claimed": 800,
+            "remittedInStep": 500,
+            "remittedCumulative": 500,
+            "rejected": 300,
+            "inferred": false,
+            "current": false
+          },
+          {
+            "n": 2,
+            "mode": "correction",
+            "date": "2026-06-01",
+            "claimed": 800,
+            "remittedInStep": 800,
+            "remittedCumulative": 1300,
+            "rejected": 0,
+            "inferred": false,
+            "current": true
+          }
+        ],
+        "gaps": 0,
+        "complete": true,
+        "remittedExceedsClaimed": true
+      }
+    },
+    {
+      "name": "first seen after two resubmissions",
+      "claim": {
+        "transactionDate": "2026-01-10",
+        "initialNet": 600,
+        "initialRejected": 600,
+        "net": 600,
+        "remitted": 600,
+        "rejected": 0,
+        "resubmissionCount": 2,
+        "lastResubmissionDate": "2026-03-01",
+        "lastRemittanceDate": "2026-03-20"
+      },
+      "events": [],
+      "expected": {
+        "steps": [
+          {
+            "n": 1,
+            "mode": "first",
+            "date": "2026-01-10",
+            "claimed": 600,
+            "remittedInStep": null,
+            "rejected": 600,
+            "inferred": false,
+            "current": false
+          },
+          {
+            "n": 2,
+            "mode": "unknown",
+            "claimed": null,
+            "inferred": true,
+            "current": false
+          },
+          {
+            "n": 3,
+            "mode": "unknown",
+            "date": "2026-03-01",
+            "claimed": 600,
+            "remittedInStep": null,
+            "remittedCumulative": 600,
+            "rejected": 0,
+            "inferred": false,
+            "current": true
+          }
+        ],
+        "gaps": 1,
+        "complete": false,
+        "remittedExceedsClaimed": false
+      }
+    },
+    {
+      "name": "two resubmissions between uploads",
+      "claim": {
+        "transactionDate": "2026-02-01",
+        "initialNet": 400,
+        "initialRejected": 0,
+        "net": 350,
+        "remitted": 0,
+        "rejected": 0,
+        "resubmissionCount": 2,
+        "lastResubmissionDate": "2026-03-05",
+        "lastRemittanceDate": null
+      },
+      "events": [
+        {
+          "observedAt": "2026-03-10T08:00:00Z",
+          "changedFields": {
+            "resubmission_count": {
+              "old": 0,
+              "new": 2
+            },
+            "last_resubmission_date": {
+              "old": null,
+              "new": "2026-03-05"
+            },
+            "net": {
+              "old": 400,
+              "new": 350
+            }
+          }
+        }
+      ],
+      "expected": {
+        "steps": [
+          {
+            "n": 1,
+            "mode": "first",
+            "claimed": 400,
+            "remittedInStep": 0,
+            "inferred": false,
+            "current": false
+          },
+          {
+            "n": 2,
+            "mode": "unknown",
+            "inferred": true,
+            "current": false
+          },
+          {
+            "n": 3,
+            "mode": "unknown",
+            "date": "2026-03-05",
+            "claimed": 350,
+            "remittedInStep": 0,
+            "inferred": false,
+            "current": true
+          }
+        ],
+        "gaps": 1,
+        "complete": false,
+        "remittedExceedsClaimed": false
+      }
+    }
+  ]
+}

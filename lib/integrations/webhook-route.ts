@@ -20,7 +20,7 @@ import { createAdminClient, type AdminClient } from "@/lib/supabase/admin";
  * The shared plumbing of every inbound integration webhook (CLAUDE.md Phase 19 conventions):
  *
  *   unknown or switched-off account  -> 404 (the same answer for both, so the URL reveals nothing)
- *   body over the cap                -> 413
+ *   body over the cap                -> 413 (256 KB, or the spec's own maxBytes)
  *   signature wrong                  -> 401 (failed attempts per IP are rate limited)
  *   too many calls for this account  -> 429
  *   each event: claim its idempotency key (integration_webhook_events) -> handle -> remember the outcome.
@@ -56,6 +56,8 @@ export type WebhookSpec = {
    * a successful answer is this plain text instead of the JSON summary.
    */
   successBody?: string;
+  /** A larger body cap for a provider that posts files (the finance mailbox); default MAX_INTEGRATION_WEBHOOK_BYTES. */
+  maxBytes?: number;
 };
 
 export async function receiveIntegrationWebhook(
@@ -95,11 +97,11 @@ export async function receiveIntegrationWebhook(
   );
   if (!perAccount.allowed) return tooManyRequests(perAccount);
 
+  const cap = spec.maxBytes ?? MAX_INTEGRATION_WEBHOOK_BYTES;
   const declared = Number(request.headers.get("content-length") ?? 0);
-  if (declared > MAX_INTEGRATION_WEBHOOK_BYTES)
-    return NextResponse.json({ error: "payload too large" }, { status: 413 });
+  if (declared > cap) return NextResponse.json({ error: "payload too large" }, { status: 413 });
   const raw = await request.text();
-  if (Buffer.byteLength(raw) > MAX_INTEGRATION_WEBHOOK_BYTES)
+  if (Buffer.byteLength(raw) > cap)
     return NextResponse.json({ error: "payload too large" }, { status: 413 });
 
   const secrets: Secrets = readSecrets(account);
