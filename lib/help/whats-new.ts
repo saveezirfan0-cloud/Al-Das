@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-11-09-accounting-assets",
+    date: "2026-11-09",
+    title: "Accounting: fixed assets, depreciation and schedules",
+    body: "Accounting now keeps a fixed asset register (medical equipment, IT, furniture, leasehold improvements and vehicles, optionally linked to the supplier bill) and works out monthly depreciation, straight line or reducing balance. Each month's depreciation is prepared for review, by you or automatically on the first working day, and posted as one journal by a different person with journal approval. Disposals book the gain or loss the same way. A new Schedules page spreads prepayments, accruals (optionally reversing on the 1st of the next month) and deferred revenue over their months. The register at any date, a 12-month depreciation forecast and the schedule status download as Excel. Leases are entered as schedules until the IFRS 16 decision.",
+  },
+  {
     id: "2026-11-08-chronic-recall-alignment",
     date: "2026-11-08",
     title: "Chronic recall: only chronic diagnoses count",

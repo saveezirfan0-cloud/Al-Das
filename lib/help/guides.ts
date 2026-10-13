@@ -658,6 +658,43 @@ export const GUIDES: readonly Guide[] = [
     ],
   },
   {
+    id: "accounting-assets",
+    title: "Fixed assets and depreciation",
+    pages: ["/accounting/assets", "/accounting/depreciation"],
+    purpose:
+      "Keep the fixed asset register and post each month's depreciation, with one person preparing and another posting.",
+    steps: [
+      "Add an asset with its class (medical, IT, furniture, leasehold improvements, vehicles), cost, in-service date and branch. From a bill, the cost and date come from the supplier invoice.",
+      "Depreciation is monthly from the month the asset goes into service, straight line or reducing balance, down to the residual value.",
+      "Depreciation: prepare a month to see each asset's charge. Pulse also prepares last month's run itself on the first working day.",
+      "Someone else with journal approval posts the run: one journal, depreciation expense against accumulated depreciation by class and branch.",
+      "Dispose of an asset with its date and proceeds; Pulse works out the gain or loss and another person posts it.",
+      "Download the register at any date, with the 12-month forecast and the schedules, as Excel.",
+    ],
+    watchOut: [
+      "Once depreciation is posted for an asset its cost, life and dates are locked; dispose of it and add it again if they were wrong.",
+      "Only the latest month can be prepared again once a later month is posted; it catches up on anything missed.",
+      "A run dated before the ledger start date waits ('Waiting for the ledger start date') and can be posted later.",
+    ],
+  },
+  {
+    id: "accounting-schedules",
+    title: "Prepayments, accruals and deferred revenue",
+    pages: ["/accounting/schedules"],
+    purpose:
+      "Spread a prepaid cost, an accrued cost or income received in advance evenly over the months it belongs to.",
+    steps: [
+      "Add a schedule: the kind, the two ledgers, the total, the first month and the number of months.",
+      "Tick 'reverse' on an accrual that is an estimate: each month's accrual is undone on the 1st of the next month when the real bill arrives.",
+      "Prepare the month's releases (Pulse also does it on the first working day); another person with journal approval posts them.",
+      "Cancel a schedule to stop further releases; what was released stays in the ledger.",
+    ],
+    watchOut: [
+      "The payment or bill itself is posted with the bill, not here: a schedule only moves the amount month by month.",
+      "Leases: enter them as a prepayment or accrual for now. IFRS 16 lease accounting waits for the reporting framework decision (OQ-125).",
+    ],
+  },
+  {
     id: "accounting-close",
     title: "Periods, entities and fiscal years",
     pages: ["/accounting/periods", "/accounting/entities"],

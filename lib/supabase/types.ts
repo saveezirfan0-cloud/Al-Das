@@ -108,6 +108,353 @@ export type Database = {
           },
         ];
       };
+      acc_asset_classes: {
+        Row: {
+          accum_account_id: string;
+          active: boolean;
+          code: string;
+          cost_account_id: string;
+          created_at: string;
+          disposal_account_id: string;
+          expense_account_id: string;
+          id: string;
+          life_months: number;
+          method: string;
+          name: string;
+          org_id: string;
+          residual_pct: number;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          accum_account_id: string;
+          active?: boolean;
+          code: string;
+          cost_account_id: string;
+          created_at?: string;
+          disposal_account_id: string;
+          expense_account_id: string;
+          id?: string;
+          life_months: number;
+          method?: string;
+          name: string;
+          org_id: string;
+          residual_pct?: number;
+          updated_at?: string;
+        };
+        Update: {
+          accum_account_id?: string;
+          active?: boolean;
+          code?: string;
+          cost_account_id?: string;
+          created_at?: string;
+          disposal_account_id?: string;
+          expense_account_id?: string;
+          id?: string;
+          life_months?: number;
+          method?: string;
+          name?: string;
+          org_id?: string;
+          residual_pct?: number;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "acc_asset_classes_accum_account_id_fkey";
+            columns: ["accum_account_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_accounts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_asset_classes_cost_account_id_fkey";
+            columns: ["cost_account_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_accounts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_asset_classes_disposal_account_id_fkey";
+            columns: ["disposal_account_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_accounts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_asset_classes_expense_account_id_fkey";
+            columns: ["expense_account_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_accounts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_asset_classes_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      acc_asset_run_lines: {
+        Row: {
+          amount: number;
+          asset_id: string | null;
+          branch_code: string | null;
+          created_at: string;
+          credit_account_id: string;
+          debit_account_id: string;
+          department: string | null;
+          id: string;
+          org_id: string;
+          run_id: string;
+          schedule_id: string | null;
+          version: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          amount: number;
+          asset_id?: string | null;
+          branch_code?: string | null;
+          created_at?: string;
+          credit_account_id: string;
+          debit_account_id: string;
+          department?: string | null;
+          id?: string;
+          org_id: string;
+          run_id: string;
+          schedule_id?: string | null;
+          version: number;
+        };
+        Update: {
+          amount?: number;
+          asset_id?: string | null;
+          branch_code?: string | null;
+          created_at?: string;
+          credit_account_id?: string;
+          debit_account_id?: string;
+          department?: string | null;
+          id?: string;
+          org_id?: string;
+          run_id?: string;
+          schedule_id?: string | null;
+          version?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "acc_asset_run_lines_asset_id_fkey";
+            columns: ["asset_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_assets";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_asset_run_lines_credit_account_id_fkey";
+            columns: ["credit_account_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_accounts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_asset_run_lines_debit_account_id_fkey";
+            columns: ["debit_account_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_accounts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_asset_run_lines_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_asset_run_lines_run_id_fkey";
+            columns: ["run_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_depreciation_runs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_asset_run_lines_schedule_id_fkey";
+            columns: ["schedule_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_schedules";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      acc_assets: {
+        Row: {
+          acquisition_date: string;
+          branch_code: string | null;
+          class_id: string;
+          code: string;
+          cost: number;
+          created_at: string;
+          created_by: string | null;
+          department: string | null;
+          description: string;
+          disposal_account_id: string | null;
+          disposal_accumulated: number | null;
+          disposal_date: string | null;
+          disposal_journal_id: string | null;
+          disposal_posted_accum: number | null;
+          disposal_posted_at: string | null;
+          disposal_posted_by: string | null;
+          disposal_prepared_at: string | null;
+          disposal_prepared_by: string | null;
+          disposal_proceeds: number | null;
+          disposal_sha256: string | null;
+          disposal_status: string | null;
+          entity_id: string;
+          id: string;
+          in_service_date: string;
+          life_months: number;
+          method: string;
+          opening_accumulated: number;
+          org_id: string;
+          residual: number;
+          status: string;
+          supplier_invoice_id: string | null;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          acquisition_date: string;
+          branch_code?: string | null;
+          class_id: string;
+          code: string;
+          cost: number;
+          created_at?: string;
+          created_by?: string | null;
+          department?: string | null;
+          description: string;
+          disposal_account_id?: string | null;
+          disposal_accumulated?: number | null;
+          disposal_date?: string | null;
+          disposal_journal_id?: string | null;
+          disposal_posted_accum?: number | null;
+          disposal_posted_at?: string | null;
+          disposal_posted_by?: string | null;
+          disposal_prepared_at?: string | null;
+          disposal_prepared_by?: string | null;
+          disposal_proceeds?: number | null;
+          disposal_sha256?: string | null;
+          disposal_status?: string | null;
+          entity_id: string;
+          id?: string;
+          in_service_date: string;
+          life_months: number;
+          method: string;
+          opening_accumulated?: number;
+          org_id: string;
+          residual?: number;
+          status?: string;
+          supplier_invoice_id?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          acquisition_date?: string;
+          branch_code?: string | null;
+          class_id?: string;
+          code?: string;
+          cost?: number;
+          created_at?: string;
+          created_by?: string | null;
+          department?: string | null;
+          description?: string;
+          disposal_account_id?: string | null;
+          disposal_accumulated?: number | null;
+          disposal_date?: string | null;
+          disposal_journal_id?: string | null;
+          disposal_posted_accum?: number | null;
+          disposal_posted_at?: string | null;
+          disposal_posted_by?: string | null;
+          disposal_prepared_at?: string | null;
+          disposal_prepared_by?: string | null;
+          disposal_proceeds?: number | null;
+          disposal_sha256?: string | null;
+          disposal_status?: string | null;
+          entity_id?: string;
+          id?: string;
+          in_service_date?: string;
+          life_months?: number;
+          method?: string;
+          opening_accumulated?: number;
+          org_id?: string;
+          residual?: number;
+          status?: string;
+          supplier_invoice_id?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "acc_assets_class_id_fkey";
+            columns: ["class_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_asset_classes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_assets_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_assets_disposal_account_id_fkey";
+            columns: ["disposal_account_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_accounts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_assets_disposal_journal_id_fkey";
+            columns: ["disposal_journal_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_journals";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_assets_disposal_posted_by_fkey";
+            columns: ["disposal_posted_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_assets_disposal_prepared_by_fkey";
+            columns: ["disposal_prepared_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_assets_entity_id_fkey";
+            columns: ["entity_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_entities";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_assets_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_assets_supplier_invoice_id_fkey";
+            columns: ["supplier_invoice_id"];
+            isOneToOne: false;
+            referencedRelation: "fin_supplier_invoices";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       acc_cost_centres: {
         Row: {
           active: boolean;
@@ -143,6 +490,109 @@ export type Database = {
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      acc_depreciation_runs: {
+        Row: {
+          created_at: string;
+          entity_id: string;
+          id: string;
+          journal_id: string | null;
+          kind: string;
+          line_count: number;
+          org_id: string;
+          period_month: string;
+          posted_at: string | null;
+          posted_by: string | null;
+          posted_sha256: string | null;
+          posted_version: number | null;
+          prepared_at: string;
+          prepared_by: string | null;
+          sha256: string;
+          status: string;
+          total: number;
+          updated_at: string;
+          version: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          entity_id: string;
+          id?: string;
+          journal_id?: string | null;
+          kind: string;
+          line_count?: number;
+          org_id: string;
+          period_month: string;
+          posted_at?: string | null;
+          posted_by?: string | null;
+          posted_sha256?: string | null;
+          posted_version?: number | null;
+          prepared_at?: string;
+          prepared_by?: string | null;
+          sha256: string;
+          status?: string;
+          total?: number;
+          updated_at?: string;
+          version?: number;
+        };
+        Update: {
+          created_at?: string;
+          entity_id?: string;
+          id?: string;
+          journal_id?: string | null;
+          kind?: string;
+          line_count?: number;
+          org_id?: string;
+          period_month?: string;
+          posted_at?: string | null;
+          posted_by?: string | null;
+          posted_sha256?: string | null;
+          posted_version?: number | null;
+          prepared_at?: string;
+          prepared_by?: string | null;
+          sha256?: string;
+          status?: string;
+          total?: number;
+          updated_at?: string;
+          version?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "acc_depreciation_runs_entity_id_fkey";
+            columns: ["entity_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_entities";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_depreciation_runs_journal_id_fkey";
+            columns: ["journal_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_journals";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_depreciation_runs_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_depreciation_runs_posted_by_fkey";
+            columns: ["posted_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_depreciation_runs_prepared_by_fkey";
+            columns: ["prepared_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
             referencedColumns: ["id"];
           },
         ];
@@ -733,6 +1183,113 @@ export type Database = {
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      acc_schedules: {
+        Row: {
+          auto_reverse: boolean;
+          branch_code: string | null;
+          bs_account_id: string;
+          created_at: string;
+          created_by: string | null;
+          department: string | null;
+          description: string;
+          entity_id: string;
+          id: string;
+          kind: string;
+          months: number;
+          org_id: string;
+          pl_account_id: string;
+          start_month: string;
+          status: string;
+          supplier_invoice_id: string | null;
+          total: number;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          auto_reverse?: boolean;
+          branch_code?: string | null;
+          bs_account_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          department?: string | null;
+          description: string;
+          entity_id: string;
+          id?: string;
+          kind: string;
+          months: number;
+          org_id: string;
+          pl_account_id: string;
+          start_month: string;
+          status?: string;
+          supplier_invoice_id?: string | null;
+          total: number;
+          updated_at?: string;
+        };
+        Update: {
+          auto_reverse?: boolean;
+          branch_code?: string | null;
+          bs_account_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          department?: string | null;
+          description?: string;
+          entity_id?: string;
+          id?: string;
+          kind?: string;
+          months?: number;
+          org_id?: string;
+          pl_account_id?: string;
+          start_month?: string;
+          status?: string;
+          supplier_invoice_id?: string | null;
+          total?: number;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "acc_schedules_bs_account_id_fkey";
+            columns: ["bs_account_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_accounts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_schedules_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_schedules_entity_id_fkey";
+            columns: ["entity_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_entities";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_schedules_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_schedules_pl_account_id_fkey";
+            columns: ["pl_account_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_accounts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_schedules_supplier_invoice_id_fkey";
+            columns: ["supplier_invoice_id"];
+            isOneToOne: false;
+            referencedRelation: "fin_supplier_invoices";
             referencedColumns: ["id"];
           },
         ];
@@ -18420,6 +18977,34 @@ export type Database = {
       };
     };
     Functions: {
+      acc_asset_disposal_cancel: {
+        Args: { p_asset_id: string; p_org_id: string; p_user_id: string };
+        Returns: Json;
+      };
+      acc_asset_disposal_post: {
+        Args: { p_asset_id: string; p_hash: string; p_org_id: string; p_user_id: string };
+        Returns: Json;
+      };
+      acc_asset_disposal_prepare: {
+        Args: { p_asset_id: string; p_data: Json; p_org_id: string; p_user_id: string };
+        Returns: Json;
+      };
+      acc_asset_run_post: {
+        Args: { p_hash: string; p_org_id: string; p_run_id: string; p_user_id: string };
+        Returns: Json;
+      };
+      acc_asset_run_prepare: {
+        Args: {
+          p_entity_id: string;
+          p_kind: string;
+          p_lines: Json;
+          p_month: string;
+          p_org_id: string;
+          p_user_id: string;
+        };
+        Returns: Json;
+      };
+      acc_assets_seed: { Args: { p_org_id: string }; Returns: Json };
       acc_day_book: {
         Args: { p_entity_id: string; p_from: string; p_org_id: string; p_to: string };
         Returns: Json;

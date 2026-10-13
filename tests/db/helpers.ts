@@ -827,6 +827,57 @@ export async function seedPhase22Rows(c: Client, orgId: string) {
   return ids;
 }
 
+/**
+ * One row in every Phase 22H (fixed assets and schedules) table for an org: the classes come from the orgs insert trigger;
+ * an asset and a schedule are added and a depreciation run is prepared through acc_asset_run_prepare (as the monthly job,
+ * no person), which writes its lines. Synthetic amounts only; service role only (no write policy on these tables).
+ */
+export async function seedPhase22HRows(c: Client, orgId: string) {
+  const ids: Record<string, string> = {};
+  await asServiceRole(c, async () => {
+    const one = async (sql: string, p: unknown[]) =>
+      (await c.query<{ id: string }>(sql, p)).rows[0].id;
+    const entity = await one(
+      "select id::text as id from public.acc_entities where org_id = $1 and is_default",
+      [orgId],
+    );
+    const cls = await one(
+      "select id::text as id from public.acc_asset_classes where org_id = $1 and code = 'MED'",
+      [orgId],
+    );
+    const acc = (code: string) =>
+      one("select id::text as id from public.acc_accounts where org_id = $1 and code = $2", [
+        orgId,
+        code,
+      ]);
+    ids.asset = await one(
+      `insert into public.acc_assets (org_id, entity_id, code, class_id, description, acquisition_date, in_service_date, cost, residual, life_months, method)
+       values ($1, $2, 'FA-SEED', $3, 'Seed asset', '2026-07-01', '2026-07-01', 1200, 0, 12, 'straight_line') returning id::text as id`,
+      [orgId, entity, cls],
+    );
+    ids.schedule = await one(
+      `insert into public.acc_schedules (org_id, entity_id, kind, description, pl_account_id, bs_account_id, total, start_month, months)
+       values ($1, $2, 'prepayment', 'Seed schedule', $3, $4, 120, '2026-07-01', 12) returning id::text as id`,
+      [orgId, entity, await acc("6200"), await acc("1400")],
+    );
+    const { rows } = await c.query<{ r: { id: string } }>(
+      "select public.acc_asset_run_prepare($1, null, 'depreciation', '2026-07-01', null, $2::jsonb) as r",
+      [orgId, JSON.stringify([{ asset_id: ids.asset, amount: 100 }])],
+    );
+    ids.run = rows[0].r.id;
+  });
+  return ids;
+}
+
+/** Phase 22H tables with a browser (select) policy; every one is seeded by the trigger and seedPhase22HRows. */
+export const PHASE22H_TABLES = [
+  "acc_asset_classes",
+  "acc_asset_run_lines",
+  "acc_assets",
+  "acc_depreciation_runs",
+  "acc_schedules",
+] as const;
+
 /** Phase 20a tables with a browser (select) policy. */
 export const PHASE20A_TABLES = [
   "campaign_archive",
