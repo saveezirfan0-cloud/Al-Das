@@ -1,7 +1,12 @@
 import { PageHeader } from "@/components/shell/page-header";
 import { can } from "@/lib/auth/can";
 import { requirePerm } from "@/lib/auth/session";
-import { COMPARABLE, retirementReadiness, type ScenarioKey } from "@/lib/parallel-run/diff";
+import {
+  COMPARABLE,
+  EXPECTED_DIFFERENCES,
+  retirementReadiness,
+  type ScenarioKey,
+} from "@/lib/parallel-run/diff";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import { ParallelRunReport, type ScenarioVM } from "./parallel-run-report";
@@ -66,6 +71,7 @@ export default async function ParallelRunPage() {
         diffsExplained: s.diffs_explained,
         makeOff: s.make_off,
         blockedReason: s.blocked_reason,
+        expected: EXPECTED_DIFFERENCES[s.scenario_key as ScenarioKey] ?? null,
         comparable,
         days,
         readiness: comparable

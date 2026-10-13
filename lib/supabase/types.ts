@@ -2536,6 +2536,7 @@ export type Database = {
           sms_opt_out_at: string | null;
           source: string;
           stop_marketing: boolean;
+          unite_last_visit_date: string | null;
           updated_at: string;
           wa_bsuid: string | null;
           wa_profile_name: string | null;
@@ -2573,6 +2574,7 @@ export type Database = {
           sms_opt_out_at?: string | null;
           source?: string;
           stop_marketing?: boolean;
+          unite_last_visit_date?: string | null;
           updated_at?: string;
           wa_bsuid?: string | null;
           wa_profile_name?: string | null;
@@ -2609,6 +2611,7 @@ export type Database = {
           sms_opt_out_at?: string | null;
           source?: string;
           stop_marketing?: boolean;
+          unite_last_visit_date?: string | null;
           updated_at?: string;
           wa_bsuid?: string | null;
           wa_profile_name?: string | null;
@@ -16593,39 +16596,12 @@ export type Database = {
           first_visit_date: string | null;
           last_visit_date: string | null;
           org_id: string | null;
+          pulse_last_visit_date: string | null;
+          unite_last_visit_date: string | null;
           visit_count: number | null;
         };
         ComputedFields: never;
-        Relationships: [
-          {
-            foreignKeyName: "visits_contact_id_fkey";
-            columns: ["contact_id"];
-            isOneToOne: false;
-            referencedRelation: "contacts";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "visits_contact_id_fkey";
-            columns: ["contact_id"];
-            isOneToOne: false;
-            referencedRelation: "v_birthday_today";
-            referencedColumns: ["contact_id"];
-          },
-          {
-            foreignKeyName: "visits_contact_id_fkey";
-            columns: ["contact_id"];
-            isOneToOne: false;
-            referencedRelation: "v_chronic_recall_eligibility";
-            referencedColumns: ["contact_id"];
-          },
-          {
-            foreignKeyName: "visits_org_id_fkey";
-            columns: ["org_id"];
-            isOneToOne: false;
-            referencedRelation: "orgs";
-            referencedColumns: ["id"];
-          },
-        ];
+        Relationships: [];
       };
       v_enquiry_facts: {
         Row: {

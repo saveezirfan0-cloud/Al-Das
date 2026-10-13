@@ -290,8 +290,9 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 21 clinical gaps", () => {
   it("keeps diagnoses and chronic conditions behind the clinical-visits permission and the org", async () => {
     await svc(() =>
       c.query(
+        // a chronic-flagged code (21B: a non-chronic one is refused); depression is not messageable
         "insert into public.contact_chronic_conditions (org_id, contact_id, ref_diagnosis_id, source) values ($1, $2, $3, 'airtable')",
-        [orgA, id.noor, id.uri],
+        [orgA, id.noor, id.dep],
       ),
     );
     const seen = async (user: string) => ({

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   COMPARABLE,
   diffSets,
+  EXPECTED_DIFFERENCES,
   hashRef,
   isIdentical,
   previousDay,
@@ -47,6 +48,13 @@ describe("parallel run diff", () => {
       "chronic_recall",
       "chronic_update",
     ]);
+  });
+
+  it("names the chronic recall differences expected by design (21B), for comparable scenarios only", () => {
+    for (const k of Object.keys(EXPECTED_DIFFERENCES))
+      expect(COMPARABLE.has(k as never), k).toBe(true);
+    expect(EXPECTED_DIFFERENCES.chronic_recall).toMatch(/60 days >/);
+    expect(EXPECTED_DIFFERENCES.chronic_recall).toMatch(/once per last-visit date/);
   });
 
   const day = (n: number, over: Partial<DayDiff> = {}): DayDiff => ({

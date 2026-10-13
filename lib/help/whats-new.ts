@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-11-08-chronic-recall-alignment",
+    date: "2026-11-08",
+    title: "Chronic recall: only chronic diagnoses count",
+    body: "Chronic recall now works the way the Airtable recall really did. Only diagnoses flagged Chronic in the Diagnosis list make a patient a chronic patient: the old patient-level list also held every ordinary diagnosis from visits, and those are no longer imported. Days since the last visit count from the later of the last visit in Pulse and the last visit date from Unite, so patients whose visits are not in Pulse yet are included. A patient who has booked no longer appears on the recall call list. The open clinical questions (the 60/90-day prescription filter, once ever or once per visit, consent, and when the call list starts) are listed for the clinical lead and stay as they are until decided. Chronic recall still sends nothing until its settings are signed off.",
+  },
+  {
     id: "2026-11-07-menu-tree",
     date: "2026-11-07",
     title: "A menu that opens up like a tree",
