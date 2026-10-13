@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { openCopilot, recordCalls } from "@/lib/ai/copilot/server";
 import { recordAudit } from "@/lib/audit";
 import { can } from "@/lib/auth/can";
 import { requireMember } from "@/lib/auth/session";
@@ -16,6 +17,7 @@ import {
   uuid,
   type ActionResult,
 } from "@/lib/finance/action-support";
+import { runBankAiReview } from "@/lib/finance/bank-ai-server";
 import { bankItemKey, isReasonCode, periodFor, runFigures } from "@/lib/finance/bank-recon";
 import { loadBankSettings, loadRun } from "@/lib/finance/bank-server";
 import { isImportKind, type AmountStyle, type DateFormat } from "@/lib/finance/import-kinds";
@@ -33,16 +35,19 @@ import type { Json } from "@/lib/supabase/types";
  * Bank and settlement reconciliation. Uploads, runs and decisions need finance.bank.manage; the sign-off needs
  * finance.bank.signoff and a different person from the preparer (the database enforces it too). Writes use the service
  * role after the check and are audited with ids, counts and codes only. A statement file is read once and never kept:
- * only its sha256 is stored.
+ * only its sha256 is stored. The AI reviewer (Phase 20H) also needs finance.bank.ai and the workspace AI gates; it only
+ * suggests, and a person's acceptance goes through the same decision path as any proposal.
  */
 
 const MANAGE = "finance.bank.manage";
 const SIGNOFF = "finance.bank.signoff";
+const AI = "finance.bank.ai";
 
 async function gate(perm: string) {
   const member = await requireMember();
   return can(member, perm) ? member : null;
 }
+type Member = NonNullable<Awaited<ReturnType<typeof gate>>>;
 
 const refresh = (recId?: string) => {
   revalidatePath("/finance/bank");
@@ -351,19 +356,32 @@ export async function decideMatch(values: Record<string, string>): Promise<Actio
   const member = await gate(MANAGE);
   if (!member) return fail(DENIED);
   const p = pairSchema.safeParse(values);
-  const accept = values.decision === "accept";
   if (!p.success || !["accept", "reject"].includes(values.decision ?? ""))
     return fail("Choose a proposed match.");
+  return applyMatchDecision(member, p.data, values.decision === "accept");
+}
+
+/**
+ * The one code path that saves a person's decision on a pair: a proposal on the run page, or an AI suggestion a person
+ * accepted (Phase 20H). It recomputes the run and refuses unless the run is open and the pair is still a candidate; the
+ * database guards (open run, unlocked month, each line and item matched once) apply to the insert. Callers have checked
+ * finance.bank.manage.
+ */
+async function applyMatchDecision(
+  member: Member,
+  pair: { rec_id: string; key: string; line_id: string },
+  accept: boolean,
+): Promise<ActionResult> {
   const admin = createAdminClient(member.userId);
-  const run = await loadRun(admin, member.orgId, p.data.rec_id, todayIn(member.org.timezone));
+  const run = await loadRun(admin, member.orgId, pair.rec_id, todayIn(member.org.timezone));
   if (!run) return fail("Reconciliation not found.");
   if (run.rec.status !== "open") return fail("This reconciliation is not open.");
   const pool = [
     ...run.result.proposals.map((x) => ({ item: x.item, candidates: x.candidates })),
     ...run.result.autoReady.map((x) => ({ item: x.item, candidates: [x.candidate] })),
   ];
-  const entry = pool.find((x) => x.item.key === p.data.key);
-  const candidate = entry?.candidates.find((c) => c.lineId === p.data.line_id);
+  const entry = pool.find((x) => x.item.key === pair.key);
+  const candidate = entry?.candidates.find((c) => c.lineId === pair.line_id);
   if (!entry || !candidate) return fail("That pair is no longer a candidate. Reload the page.");
   const { error } = await admin.from("fin_bank_matches").insert({
     org_id: member.orgId,
@@ -579,4 +597,133 @@ export async function signRun(values: Record<string, string>): Promise<ActionRes
   });
   refresh(p.data.rec_id);
   return { ok: true, message: "Signed." };
+}
+
+// ---- Phase 20H: the AI reviewer. It suggests; a person decides each suggestion. ----------------------------------
+
+/**
+ * Asks the AI to review an open reconciliation. Needs finance.bank.manage AND finance.bank.ai, then the workspace AI
+ * gates (master switch, per-person limit, daily cap, key). The model sees ids, amounts, dates, modes and reference tokens
+ * only; its answer is checked against each item's shortlist and stored as a draft review with pending suggestions.
+ */
+export async function askAiReview(values: Record<string, string>): Promise<ActionResult> {
+  const member = await gate(MANAGE);
+  if (!member || !can(member, AI)) return fail(DENIED);
+  const p = recOnly.safeParse(values);
+  if (!p.success) return fail("Choose a reconciliation.");
+  const admin = createAdminClient(member.userId);
+  const { data: rec } = await admin
+    .from("fin_bank_recs")
+    .select("id, status")
+    .eq("org_id", member.orgId)
+    .eq("id", p.data.rec_id)
+    .maybeSingle();
+  if (!rec) return fail("Reconciliation not found.");
+  if (rec.status !== "open") return fail("This reconciliation is not open.");
+  const opened = await openCopilot(member);
+  if (!opened.ok) return fail(opened.error);
+  const out = await runBankAiReview(
+    { admin, llm: opened.llm },
+    {
+      orgId: member.orgId,
+      userId: member.userId,
+      recId: rec.id,
+      today: todayIn(member.org.timezone),
+    },
+  );
+  await recordCalls(opened, member, "bank_review", out.calls);
+  if (out.reviewId)
+    await recordAudit(admin, {
+      orgId: member.orgId,
+      userId: member.userId,
+      action: "finance.bank.ai_reviewed",
+      entity: "fin_bank_ai_reviews",
+      entityId: out.reviewId,
+      diff: {
+        rec: rec.id,
+        status: out.ok ? "ok" : "rejected",
+        suggestions: out.ok ? out.suggestions : 0,
+        repaired: out.ok ? out.repaired : false,
+      },
+    });
+  refresh(rec.id);
+  if (!out.ok) return fail(out.error);
+  return {
+    ok: true,
+    message: `The AI made ${out.suggestions} suggestion(s). Check each one before accepting it.`,
+  };
+}
+
+const aiDecisionSchema = z.object({
+  rec_id: uuid,
+  suggestion_id: uuid,
+  decision: z.enum(["accept", "reject"]),
+});
+
+/**
+ * Records a person's decision on one AI suggestion. Accepting a suggested pair saves the match through the SAME path as
+ * accepting a proposal (applyMatchDecision): every 20C rule, audit and lock applies. Accepting "no match" changes nothing
+ * else (the reason is still given in the list). Rejecting only records the decision; the pair stays open to a person.
+ */
+export async function decideAiSuggestion(values: Record<string, string>): Promise<ActionResult> {
+  const member = await gate(MANAGE);
+  if (!member || !can(member, AI)) return fail(DENIED);
+  const p = aiDecisionSchema.safeParse(values);
+  if (!p.success) return fail("Choose a suggestion.");
+  const accept = p.data.decision === "accept";
+  const admin = createAdminClient(member.userId);
+  const { data: s } = await admin
+    .from("fin_bank_ai_suggestions")
+    .select("id, rec_id, item_key, candidate_line_id, decision")
+    .eq("org_id", member.orgId)
+    .eq("rec_id", p.data.rec_id)
+    .eq("id", p.data.suggestion_id)
+    .maybeSingle();
+  if (!s) return fail("Suggestion not found.");
+  if (s.decision !== "pending") return fail("This suggestion has already been decided.");
+  if (accept && s.candidate_line_id) {
+    const applied = await applyMatchDecision(
+      member,
+      { rec_id: s.rec_id, key: s.item_key, line_id: s.candidate_line_id },
+      true,
+    );
+    if (!applied.ok) return applied;
+  }
+  const { data, error } = await admin
+    .from("fin_bank_ai_suggestions")
+    .update({
+      decision: accept ? "accepted" : "rejected",
+      decided_by: member.userId,
+      decided_at: new Date().toISOString(),
+    })
+    .eq("org_id", member.orgId)
+    .eq("id", s.id)
+    .eq("decision", "pending")
+    .select("id");
+  if (error || !data?.length)
+    return fail(
+      dbMessage(
+        error,
+        accept && s.candidate_line_id
+          ? "The match was saved, but the suggestion could not be marked. Reload the page."
+          : "Could not save the decision (is the reconciliation still open?).",
+      ),
+    );
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: accept ? "finance.bank.ai_suggestion_accepted" : "finance.bank.ai_suggestion_rejected",
+    entity: "fin_bank_ai_suggestions",
+    entityId: s.id,
+    diff: { rec: s.rec_id, key: s.item_key, line: s.candidate_line_id },
+  });
+  refresh(s.rec_id);
+  return {
+    ok: true,
+    message: accept
+      ? s.candidate_line_id
+        ? "Suggestion accepted: the match is saved."
+        : "Suggestion accepted. Give the reason in the list below."
+      : "Suggestion rejected.",
+  };
 }

@@ -14,9 +14,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { readAiSettings } from "@/lib/ai/settings";
 import { can } from "@/lib/auth/can";
 import { requirePerm } from "@/lib/auth/session";
 import { todayIn } from "@/lib/finance/action-support";
+import {
+  AI_REASON_CODES,
+  suggestionQuality,
+  type AiReasonCode,
+  type SuggestionDecision,
+} from "@/lib/finance/bank-ai";
 import {
   AGE_BUCKETS,
   bankItemKey,
@@ -29,6 +36,8 @@ import { money } from "@/lib/finance/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import {
+  AiDecideButtons,
+  AskAiButton,
   DecideButtons,
   ReasonForm,
   ReopenButton,
@@ -111,6 +120,39 @@ export default async function BankRunPage({ params }: { params: Promise<{ id: st
     return l ? [l.valueDate, l.reference, l.description].filter(Boolean).join(" · ") : "";
   };
   const s = r.summary;
+
+  // Phase 20H: the latest AI review and every AI suggestion on this run (the quality line counts them all)
+  const [{ data: aiReviews }, { data: aiRows }] = await Promise.all([
+    admin
+      .from("fin_bank_ai_reviews")
+      .select("id, status, summary, reject_reason, item_count, suggestion_count, created_at")
+      .eq("org_id", member.orgId)
+      .eq("rec_id", rec.id)
+      .order("created_at", { ascending: false })
+      .limit(1),
+    admin
+      .from("fin_bank_ai_suggestions")
+      .select("id, review_id, item_key, candidate_line_id, reason_code, confidence, decision")
+      .eq("org_id", member.orgId)
+      .eq("rec_id", rec.id)
+      .order("created_at"),
+  ]);
+  const latestReview = aiReviews?.[0] ?? null;
+  const suggestions = aiRows ?? [];
+  const quality = suggestionQuality(
+    suggestions.map((x) => ({ reviewId: x.review_id, decision: x.decision as SuggestionDecision })),
+    latestReview?.id ?? null,
+  );
+  const latestSuggestions = suggestions.filter((x) => x.review_id === latestReview?.id);
+  const aiAllowed = can(member, "finance.bank.ai");
+  const aiBlocked = !open
+    ? "Only an open reconciliation can be reviewed."
+    : !aiAllowed
+      ? "Needs the permission AI review of bank reconciliation."
+      : !readAiSettings(member.org.settings).enabled
+        ? "AI is turned off for this workspace. An administrator can turn it on in Settings, AI & knowledge base."
+        : null;
+  const itemOf = (key: string) => r.items.find((i) => i.key === key) ?? null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -214,6 +256,139 @@ export default async function BankRunPage({ params }: { params: Promise<{ id: st
           </div>
         </CardContent>
       </Card>
+
+      {(manage || latestReview) && (
+        <Card>
+          <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-2">
+            <div className="flex flex-col gap-1.5">
+              <CardTitle className="text-base">AI review</CardTitle>
+              <CardDescription>
+                The AI sees ids, amounts, dates, payment modes and references only, and can only
+                suggest a bank line from Pulse&apos;s own candidates. Nothing changes until a person
+                accepts a suggestion.
+              </CardDescription>
+            </div>
+            {manage &&
+              (aiBlocked ? (
+                <div className="flex max-w-xs flex-col items-end gap-1">
+                  <Button size="sm" variant="outline" disabled>
+                    Ask AI to review
+                  </Button>
+                  <span className="text-muted-foreground text-right text-xs">{aiBlocked}</span>
+                </div>
+              ) : (
+                <AskAiButton recId={rec.id} />
+              ))}
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3 text-sm">
+            {suggestions.length > 0 && (
+              <p className="text-muted-foreground text-xs">
+                AI suggestions on this reconciliation: {quality.accepted} accepted,{" "}
+                {quality.rejected} rejected, {quality.pending} waiting for a decision
+                {quality.superseded
+                  ? `, ${quality.superseded} from earlier reviews never decided`
+                  : ""}
+                .
+              </p>
+            )}
+            {!latestReview ? (
+              <p className="text-muted-foreground text-sm">No AI review yet.</p>
+            ) : latestReview.status === "rejected" ? (
+              <Alert>
+                <AlertTitle>The last AI answer was rejected by the checks</AlertTitle>
+                <AlertDescription>
+                  Nothing was suggested ({latestReview.created_at.slice(0, 10)}).{" "}
+                  {latestReview.reject_reason}
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <>
+                <div className="rounded-md border border-dashed p-3">
+                  <div className="mb-1 flex items-center gap-2">
+                    <Badge variant="outline">AI draft, check before relying on it</Badge>
+                    <span className="text-muted-foreground text-xs">
+                      {latestReview.created_at.slice(0, 10)}; {latestReview.item_count} item(s)
+                      reviewed
+                    </span>
+                  </div>
+                  <p className="whitespace-pre-line">{latestReview.summary}</p>
+                </div>
+                {latestSuggestions.length > 0 && (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Open item</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                        <TableHead>AI suggests</TableHead>
+                        <TableHead>Why</TableHead>
+                        <TableHead />
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {latestSuggestions.map((x) => {
+                        const item = itemOf(x.item_key);
+                        const lineId = x.item_key.startsWith("bank|") ? x.item_key.slice(5) : null;
+                        const amount = item
+                          ? item.amount
+                          : lineId
+                            ? run.lines.get(lineId)?.amount
+                            : undefined;
+                        return (
+                          <TableRow key={x.id}>
+                            <TableCell>
+                              {item ? (
+                                <ItemCell item={item} />
+                              ) : lineId && run.lines.has(lineId) ? (
+                                <span className="text-xs">Bank credit: {lineText(lineId)}</span>
+                              ) : (
+                                <span className="text-muted-foreground text-xs">
+                                  No longer open
+                                </span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums">
+                              {amount === undefined ? "" : money(amount)}
+                            </TableCell>
+                            <TableCell className="text-xs">
+                              {x.candidate_line_id ? (
+                                <>
+                                  Match with {lineText(x.candidate_line_id) || "a bank line"}
+                                  {run.lines.get(x.candidate_line_id)
+                                    ? ` (${money(run.lines.get(x.candidate_line_id)!.amount)})`
+                                    : ""}
+                                </>
+                              ) : (
+                                "No match"
+                              )}
+                            </TableCell>
+                            <TableCell className="text-xs">
+                              {AI_REASON_CODES[x.reason_code as AiReasonCode] ?? x.reason_code};{" "}
+                              {x.confidence} confidence
+                            </TableCell>
+                            <TableCell>
+                              {x.decision !== "pending" ? (
+                                <Badge variant="secondary">
+                                  {x.decision === "accepted" ? "Accepted" : "Rejected"}
+                                </Badge>
+                              ) : editable && aiAllowed ? (
+                                <AiDecideButtons
+                                  recId={rec.id}
+                                  suggestionId={x.id}
+                                  pair={!!x.candidate_line_id}
+                                />
+                              ) : null}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {r.notReconciled.length > 0 && (
         <Alert>

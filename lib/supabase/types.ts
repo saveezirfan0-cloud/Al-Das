@@ -3627,6 +3627,156 @@ export type Database = {
           },
         ];
       };
+      fin_bank_ai_reviews: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          item_count: number;
+          model: string;
+          org_id: string;
+          rec_id: string;
+          reject_reason: string | null;
+          repaired: boolean;
+          status: string;
+          suggestion_count: number;
+          summary: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          item_count?: number;
+          model: string;
+          org_id: string;
+          rec_id: string;
+          reject_reason?: string | null;
+          repaired?: boolean;
+          status: string;
+          suggestion_count?: number;
+          summary?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          item_count?: number;
+          model?: string;
+          org_id?: string;
+          rec_id?: string;
+          reject_reason?: string | null;
+          repaired?: boolean;
+          status?: string;
+          suggestion_count?: number;
+          summary?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_bank_ai_reviews_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_bank_ai_reviews_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_bank_ai_reviews_rec_id_fkey";
+            columns: ["rec_id"];
+            isOneToOne: false;
+            referencedRelation: "fin_bank_recs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      fin_bank_ai_suggestions: {
+        Row: {
+          candidate_line_id: string | null;
+          confidence: string;
+          created_at: string;
+          decided_at: string | null;
+          decided_by: string | null;
+          decision: string;
+          id: string;
+          item_key: string;
+          org_id: string;
+          reason_code: string;
+          rec_id: string;
+          review_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          candidate_line_id?: string | null;
+          confidence: string;
+          created_at?: string;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          decision?: string;
+          id?: string;
+          item_key: string;
+          org_id: string;
+          reason_code: string;
+          rec_id: string;
+          review_id: string;
+        };
+        Update: {
+          candidate_line_id?: string | null;
+          confidence?: string;
+          created_at?: string;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          decision?: string;
+          id?: string;
+          item_key?: string;
+          org_id?: string;
+          reason_code?: string;
+          rec_id?: string;
+          review_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_bank_ai_suggestions_candidate_line_id_fkey";
+            columns: ["candidate_line_id"];
+            isOneToOne: false;
+            referencedRelation: "fin_bank_lines";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_bank_ai_suggestions_decided_by_fkey";
+            columns: ["decided_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_bank_ai_suggestions_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_bank_ai_suggestions_rec_id_fkey";
+            columns: ["rec_id"];
+            isOneToOne: false;
+            referencedRelation: "fin_bank_recs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_bank_ai_suggestions_review_id_fkey";
+            columns: ["review_id"];
+            isOneToOne: false;
+            referencedRelation: "fin_bank_ai_reviews";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       fin_bank_imports: {
         Row: {
           account_id: string | null;

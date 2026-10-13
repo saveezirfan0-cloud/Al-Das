@@ -4,6 +4,8 @@ import { ActionForm, RunButton, selectClass } from "@/components/finance/forms";
 import { Input } from "@/components/ui/input";
 
 import {
+  askAiReview,
+  decideAiSuggestion,
   decideMatch,
   markReviewed,
   reopenRun,
@@ -119,6 +121,40 @@ export function ReviewButton({ recId }: { recId: string }) {
 
 export function ReopenButton({ recId }: { recId: string }) {
   return <RunButton action={() => reopenRun({ rec_id: recId })}>Reopen</RunButton>;
+}
+
+export function AskAiButton({ recId }: { recId: string }) {
+  return <RunButton action={() => askAiReview({ rec_id: recId })}>Ask AI to review</RunButton>;
+}
+
+export function AiDecideButtons({
+  recId,
+  suggestionId,
+  pair,
+}: {
+  recId: string;
+  suggestionId: string;
+  pair: boolean;
+}) {
+  const ids = { rec_id: recId, suggestion_id: suggestionId };
+  return (
+    <div className="flex gap-1">
+      <RunButton
+        variant="default"
+        confirm={
+          pair
+            ? "Accept this match? It is saved exactly as if you accepted the proposal yourself."
+            : undefined
+        }
+        action={() => decideAiSuggestion({ ...ids, decision: "accept" })}
+      >
+        Accept
+      </RunButton>
+      <RunButton action={() => decideAiSuggestion({ ...ids, decision: "reject" })}>
+        Reject
+      </RunButton>
+    </div>
+  );
 }
 
 export function SignButton({ recId, hash }: { recId: string; hash: string }) {

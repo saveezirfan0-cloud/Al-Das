@@ -185,7 +185,8 @@ Send anonymised or synthetic copies where a file contains patient details; heade
 | 21, remaining | Item 1 (Unite visits sync: needs the endpoint, OQ-23 / OQ-26), item 4 (message-log importers), item 7 (labs, OQ-98), item 8 (screening eligibility views), item 9 (parallel run and switch-off) |
 | 20D | Built (see `docs/20_PHASE_20D_NOTES.md`): suppliers, supplier invoices with their documents (private `finance-documents` bucket, sha256, access log), payment vouchers with maker / Finance Manager / department head / CEO by the delegation-of-authority tiers and special categories, approvals bound to the content sha256, mandatory rejection remarks, Tier 1 bulk verification, month lock, approval certificate PDF, status and exception report, TallyPrime XML export (unverified against a real Tally, OQ-92), approval mode setting (OQ-90, default Pulse) |
 | 20C | Built on `claude/funny-clarke-6t7gee` (see `docs/20_PHASE_20C_NOTES.md`): generic statement import (column mapping per file layout), bank accounts, settlement rules per payment mode (working-day lags, fees), expected-vs-received matching with scores, insurance receipts against remittance batches, ageing with reasons, review and two-person sign-off. Waiting for bank and processor samples (D3, D4) to map the layouts |
-| 20B, 20E, 20F, 20H, 20J | In progress or not started |
+| 20H | Bank reconciliation part built on `claude/funny-clarke-6t7gee` (see `docs/20_PHASE_20H_NOTES.md`): "Ask AI to review" on an open bank reconciliation (`finance.bank.ai`, behind `openCopilot()` and `recordCalls()`), one suggestion per open item from the 20C shortlist only (or no match) with a reason code and confidence, a draft summary, Accept / Reject per suggestion (accepting uses the same path as accepting a proposal), quality line (accepted / rejected / waiting). Lab, referral and insurance reviews wait for 20E |
+| 20B, 20E, 20F, 20J | In progress or not started |
 
 ## 8. Things noticed in the current reports
 

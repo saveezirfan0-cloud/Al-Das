@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-11-04-bank-ai-review",
+    date: "2026-11-04",
+    title: "AI review of bank reconciliation",
+    body: "On an open bank reconciliation, Finance can press Ask AI to review. For each proposed match, missing receipt and unexplained bank credit the AI suggests one of Pulse's own candidates, or no match, with a reason and how sure it is, and writes a short summary marked as a draft. Nothing changes until a person accepts a suggestion; an accepted pair is saved exactly like a match you accept yourself, and the page counts how many suggestions were accepted and rejected. The AI sees ids, amounts, dates and references only, and needs AI switched on for the workspace.",
+  },
+  {
     id: "2026-10-30-billing-mix",
     date: "2026-10-30",
     title: "Billing mix and trends",
