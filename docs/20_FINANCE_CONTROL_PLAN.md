@@ -178,7 +178,8 @@ Send anonymised or synthetic copies where a file contains patient details; heade
 | Slice | Status |
 |---|---|
 | 20A | Built on `claude/funny-clarke-6t7gee` (see `docs/20_PHASE_20A_NOTES.md`): flash report, targets and lines, comparison with the same days of last month, Excel export |
-| 20B to 20J, 21 | Not started |
+| 20D | Built (see `docs/20_PHASE_20D_NOTES.md`): suppliers, supplier invoices with their documents (private `finance-documents` bucket, sha256, access log), payment vouchers with maker / Finance Manager / department head / CEO by the delegation-of-authority tiers and special categories, approvals bound to the content sha256, mandatory rejection remarks, Tier 1 bulk verification, month lock, approval certificate PDF, status and exception report, TallyPrime XML export (unverified against a real Tally, OQ-92), approval mode setting (OQ-90, default Pulse) |
+| 20B, 20C, 20E to 20J, 21 | Not started |
 
 ## 8. Things noticed in the current reports
 

@@ -77,7 +77,8 @@ export async function prepareLibraryUpload(
   const v = parsed.data;
   const check = validateMedia({ mime: v.mime_type, size: v.size }, "library");
   if (!check.ok) return fail(check.message);
-  if (check.kind === "patient_document") return fail("That type cannot go in the library.");
+  if (check.kind === "patient_document" || check.kind === "finance_document")
+    return fail("That type cannot go in the library.");
   const meta = assetMetaSchema.safeParse({
     name: v.name,
     folder_id: v.folder_id ?? null,

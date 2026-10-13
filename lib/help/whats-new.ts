@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-10-24-payment-vouchers",
+    date: "2026-10-24",
+    title: "Payment vouchers, supplier invoices and Tally export",
+    body: "Finance now keeps suppliers, supplier invoices and payment vouchers in Pulse with their documents attached, so nothing needs printing. A voucher goes from its maker to the Finance Manager, then to a department head or the CEO as the delegation of authority requires; every step is a different person, rejections need remarks, and the CEO can approve on a phone. Each voucher has an approval certificate, the Voucher report shows what is pending, approved and rejected and how long approval takes, and approved items export to TallyPrime as an import file.",
+  },
+  {
     id: "2026-10-23-daily-flash",
     date: "2026-10-23",
     title: "Daily flash report",

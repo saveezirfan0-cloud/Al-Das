@@ -73,6 +73,47 @@ describe("Finance navigation", () => {
     }
   });
 
+  it("payables and vouchers follow the zero-paper separation of duties", () => {
+    const money = [
+      "/finance/vouchers",
+      "/finance/vouchers/report",
+      "/finance/payables",
+      "/finance/suppliers",
+      "/finance/tally",
+    ];
+    // Finance (the makers) and the Finance Manager (the checker) see all of it, including the settings page
+    for (const r of ["Finance", "Finance Manager"]) {
+      expect(hrefs(member(role(r))), r).toEqual(
+        expect.arrayContaining([...money, "/finance/vouchers/settings"]),
+      );
+    }
+    // the CEO approves and reads, but neither exports to Tally nor edits the settings
+    const ceo = hrefs(member(role("CEO")));
+    expect(ceo).toEqual(
+      expect.arrayContaining([
+        "/finance/vouchers",
+        "/finance/vouchers/report",
+        "/finance/payables",
+      ]),
+    );
+    expect(ceo).not.toContain("/finance/tally");
+    expect(ceo).not.toContain("/finance/vouchers/settings");
+    // a department head sees the vouchers (to approve Tier 2) and nothing else in Finance
+    expect(hrefs(member(role("Department head"))).sort()).toEqual(
+      ["/finance/vouchers", "/finance/vouchers/report"].sort(),
+    );
+    expect(financeLanding(member(role("Department head")))).toBe("/finance/vouchers");
+    for (const r of ["Billing", "Insurance", "Medical Director", "Cost / Payroll"]) {
+      const h = hrefs(member(role(r)));
+      for (const page of [...money, "/finance/vouchers/settings"])
+        expect(h, `${r} ${page}`).not.toContain(page);
+    }
+    // only the Finance Manager edits the delegation of authority (Finance reaches the page for the Tally ledgers)
+    expect(role("Finance Manager")).toContain("finance.vouchers.settings");
+    expect(role("Finance")).not.toContain("finance.vouchers.settings");
+    expect(role("Finance")).not.toContain("finance.vouchers.check");
+  });
+
   it("the Medical Director sees revenue and scorecards only", () => {
     expect(hrefs(member(role("Medical Director"))).sort()).toEqual(
       [
