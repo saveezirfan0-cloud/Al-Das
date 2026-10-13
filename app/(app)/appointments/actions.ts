@@ -187,7 +187,7 @@ const listSchema = z.object({
   specialistId: uuid.optional(),
   serviceId: uuid.optional(),
   status: z.array(z.enum(APPOINTMENT_STATUSES)).max(5).optional(),
-  source: z.enum(["portal", "unite", "bot"]).optional(),
+  source: z.enum(["portal", "unite", "bot", "import"]).optional(),
   q: z.string().trim().max(100).optional(),
   sort: z
     .object({

@@ -77,17 +77,19 @@ export function rowMatches(row: Record<string, unknown>, match: Record<string, u
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export class SupabaseStore implements ImportStore {
   constructor(
-    private readonly admin: AdminClient,
+    protected readonly admin: AdminClient,
     readonly orgId: string,
+    /** external_refs.source this store reads and writes. */
+    protected readonly source: "airtable" | "sanoflow" = "airtable",
   ) {}
-  private get db(): any {
+  protected get db(): any {
     return this.admin as any;
   }
 
   async findRef(entity: string, externalId: string) {
     const r = await findExternalRef(this.admin, {
       orgId: this.orgId,
-      source: "airtable",
+      source: this.source,
       entity,
       externalId,
     });
@@ -96,7 +98,7 @@ export class SupabaseStore implements ImportStore {
       .from("external_refs")
       .select("local_table")
       .eq("org_id", this.orgId)
-      .eq("source", "airtable")
+      .eq("source", this.source)
       .eq("entity", entity)
       .eq("external_id", externalId)
       .maybeSingle();
@@ -104,7 +106,7 @@ export class SupabaseStore implements ImportStore {
   }
 
   async upsertRef(r: { entity: string; externalId: string; localTable: string; localId: string }) {
-    await upsertExternalRef(this.admin, { orgId: this.orgId, source: "airtable", ...r });
+    await upsertExternalRef(this.admin, { orgId: this.orgId, source: this.source, ...r });
   }
 
   async countRefs(entity: string) {
@@ -112,7 +114,7 @@ export class SupabaseStore implements ImportStore {
       .from("external_refs")
       .select("id", { count: "exact", head: true })
       .eq("org_id", this.orgId)
-      .eq("source", "airtable")
+      .eq("source", this.source)
       .eq("entity", entity);
     return count ?? 0;
   }
@@ -226,11 +228,11 @@ export class MemoryStore implements ImportStore {
  * run would create, update, link and leave unmatched.
  */
 export class DryRunStore implements ImportStore {
-  private overlayRefs = new Map<string, RefTarget>();
+  protected overlayRefs = new Map<string, RefTarget>();
   private overlayRows = new Map<string, StoreRow[]>();
   private patched = new Map<string, Record<string, unknown>>(); // `${table}|${id}` → merged values
-  private seq = 0;
-  constructor(private readonly inner: ImportStore) {}
+  protected seq = 0;
+  constructor(protected readonly inner: ImportStore) {}
   get orgId() {
     return this.inner.orgId;
   }

@@ -228,7 +228,10 @@ export function AppointmentsTable({
       locationId: filters.locationId === ALL ? undefined : filters.locationId,
       specialistId: filters.specialistId === ALL ? undefined : filters.specialistId,
       serviceId: filters.serviceId === ALL ? undefined : filters.serviceId,
-      source: filters.source === ALL ? undefined : (filters.source as "portal" | "unite" | "bot"),
+      source:
+        filters.source === ALL
+          ? undefined
+          : (filters.source as "portal" | "unite" | "bot" | "import"),
       status: filters.status.length ? filters.status : undefined,
       sort: { field, dir: s?.desc === false ? "asc" : "desc" },
     };
@@ -350,6 +353,7 @@ export function AppointmentsTable({
             <SelectItem value="portal">Portal</SelectItem>
             <SelectItem value="unite">Unite</SelectItem>
             <SelectItem value="bot">Bot</SelectItem>
+            <SelectItem value="import">Imported</SelectItem>
           </SelectContent>
         </Select>
         {dirty && (
