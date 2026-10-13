@@ -37,7 +37,6 @@ const STATE_VARIANT: Record<
 };
 
 const METRIC_LABEL: Record<string, string> = {
-  queued: "Queued",
   sent: "Sent",
   segments: "Message parts sent",
   delivered: "Delivered",
@@ -48,6 +47,10 @@ const METRIC_LABEL: Record<string, string> = {
   links_sent: "Payment links sent",
   create_failed: "Links the gateway refused",
   feed_fetches: "Calendar fetches",
+  attributions: "Ad clicks recorded",
+  queued: "Queued",
+  events_sent: "Events sent to Meta",
+  events_failed: "Events Meta refused",
 };
 
 function metricLabel(key: string): string {

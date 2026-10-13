@@ -175,6 +175,13 @@ export const PERMISSIONS = [
   },
   { key: "reports.view", group: "Reports", label: "View reports and dashboards" },
   {
+    key: "ads.view",
+    group: "Reports",
+    label: "View the ad attribution report",
+    description:
+      "Which Meta ads brought WhatsApp conversations, enquiries and bookings (counts per ad only; no patient is named). Needs the Meta ad attribution integration to be switched on.",
+  },
+  {
     key: "reports.export",
     group: "Reports",
     label: "Export reports",
@@ -522,6 +529,7 @@ export const SYSTEM_ROLES: readonly RolePreset[] = [
       "portal.*",
       "reports.view",
       "reports.export",
+      "ads.view",
       "ai.use",
       "ai.insights.view",
       "kb.manage",
@@ -599,6 +607,7 @@ export const SYSTEM_ROLES: readonly RolePreset[] = [
       "flows.ai",
       "campaigns.ai",
       "reports.view",
+      "ads.view",
     ],
   },
   ...FINANCE_ROLES,

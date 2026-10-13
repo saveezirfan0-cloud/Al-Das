@@ -213,6 +213,59 @@ export const GUIDES: readonly Guide[] = [
     ],
   },
   {
+    id: "review-requests",
+    title: "Google review requests",
+    pages: ["/settings/integrations/google_reviews"],
+    purpose:
+      "Send one WhatsApp message with your Google review link after a completed visit, to patients who agreed to receive messages.",
+    steps: [
+      "Choose the approved WhatsApp template and map its variables, with one of them set to the review link.",
+      "Paste each location's Google review link (g.page, google.com or maps.app.goo.gl) and save.",
+      "Set how long to wait after the visit, the sending hours and how often one person may be asked, then save.",
+      "Switch on with the typed words. Only visits that finish after that are asked.",
+      "To never ask a patient, open the patient and tick 'Do not ask for a Google review'.",
+    ],
+    watchOut: [
+      "Only patients who opted in to messages are asked, and a parent with several children is asked once. Pulse does not contact Google: the link is only text in the message.",
+      "Nobody is left out, or sent somewhere else, because of how their visit went: Google does not allow that.",
+      "Nothing is sent from a training workspace.",
+    ],
+  },
+  {
+    id: "ad-attribution-setup",
+    title: "Meta ad attribution",
+    pages: ["/settings/integrations/meta_capi"],
+    purpose:
+      "Record which Meta ad each WhatsApp conversation came from and, if you choose, tell Meta when an ad patient made contact, became an enquiry or booked.",
+    steps: [
+      "Start in 'Report only'. Switch on with the typed words and the Ad attribution report fills as ad conversations arrive.",
+      "To send events, enter the dataset ID and access token from Meta Events Manager, choose 'Report and send events', save and press Test connection.",
+      "Use the test event code from Events Manager first and check the events appear in its Test events view, then clear the code.",
+      "Leave 'Whose events may be sent' on opt-in unless your administrator has confirmed another basis.",
+    ],
+    watchOut: [
+      "Events carry only the event name, the ad click id and, if you choose, a hashed phone number: never a service, doctor, diagnosis or price.",
+      "Patients who asked to stop marketing are never included.",
+      "Check Meta's rules for health advertisers before sending events.",
+    ],
+  },
+  {
+    id: "ad-report",
+    title: "Ad attribution report",
+    pages: ["/reports/ads"],
+    purpose:
+      "See which Meta ads started WhatsApp conversations and how many became enquiries or bookings.",
+    steps: [
+      "Pick the period. Each row is one ad: its headline, conversations, patients, enquiries and bookings.",
+      "A booking counts for an ad when it was made after the click, for the same patient, inside the attribution window.",
+      "Events sent to Meta shows how many were sent, are waiting, failed, or were skipped and why.",
+    ],
+    watchOut: [
+      "Counts only: no patient is named here.",
+      "The report starts when ad attribution is switched on; earlier conversations are not included.",
+    ],
+  },
+  {
     id: "payment-links",
     title: "Payment links",
     pages: ["/finance/payment-links"],

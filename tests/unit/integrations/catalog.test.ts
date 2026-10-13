@@ -51,7 +51,9 @@ describe("catalogue", () => {
     const secretKeys = INTEGRATIONS.flatMap((i) =>
       i.providers.flatMap((p) => p.fields.filter((f) => f.secret).map((f) => f.key)),
     ).sort();
-    expect(secretKeys).toEqual(["auth_token", "secret_key", "server_key", "webhook_secret"].sort());
+    expect(secretKeys).toEqual(
+      ["access_token", "auth_token", "secret_key", "server_key", "webhook_secret"].sort(),
+    );
     for (const i of INTEGRATIONS)
       for (const f of allFields(i.kind, i.providers[0].id))
         if (f.secret) expect(f.type).toBe("password");

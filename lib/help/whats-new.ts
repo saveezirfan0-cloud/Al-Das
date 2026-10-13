@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-10-19-ad-attribution",
+    date: "2026-10-19",
+    title: "Meta ad attribution",
+    body: "A new Ad attribution report shows which Meta ads started WhatsApp conversations and how many became enquiries or bookings. Pulse can also tell Meta when an ad patient made contact, became an enquiry or booked, using only the event name and the ad click id, never a service, doctor or diagnosis. It starts in report-only mode, sends events only for patients who opted in, and is off until an administrator switches it on in Settings, Integrations.",
+  },
+  {
     id: "2026-10-19-review-requests",
     date: "2026-10-19",
     title: "Google review requests",

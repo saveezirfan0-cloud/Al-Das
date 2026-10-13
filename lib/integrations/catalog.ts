@@ -7,7 +7,13 @@
  * browser; every other field lives in integration_accounts.config and is shown as typed.
  */
 
-export const INTEGRATION_KINDS = ["calendar_ics", "sms", "payments", "google_reviews"] as const;
+export const INTEGRATION_KINDS = [
+  "calendar_ics",
+  "sms",
+  "payments",
+  "google_reviews",
+  "meta_capi",
+] as const;
 export type IntegrationKind = (typeof INTEGRATION_KINDS)[number];
 
 export function isIntegrationKind(value: string): value is IntegrationKind {
@@ -315,6 +321,96 @@ export const INTEGRATIONS: readonly IntegrationDef[] = [
     ],
     consequence:
       "Patients who opted in to messages will receive one WhatsApp message with your Google review link after a completed visit (at most once per person in the period you set). Staff can mark a patient 'do not ask'.",
+  },
+  {
+    kind: "meta_capi",
+    outbound: true,
+    title: "Meta ad attribution",
+    description:
+      "Records which Meta (Facebook or Instagram) ad each WhatsApp conversation came from, for a report of conversations, enquiries and bookings per ad. In 'send events' mode it also tells Meta when an ad patient made contact, became an enquiry or booked, so Meta can optimise your ads. Only event names and a hashed identifier are sent: never a service, doctor, diagnosis, price or message.",
+    contactsPatients: false,
+    movesMoney: false,
+    sharesData: true,
+    confirmWord: "SEND AD EVENTS TO META",
+    viewPermission: "integrations.manage",
+    providers: [
+      {
+        id: "meta_capi",
+        label: "Meta Conversions API (business messaging)",
+        fields: [
+          {
+            key: "dataset_id",
+            label: "Dataset ID",
+            type: "text",
+            max: 30,
+            pattern: "^\\d{5,25}$",
+            patternHint: "The dataset ID is a number from Meta Events Manager.",
+            help: "Only needed to send events. Events Manager, Data sources, your WhatsApp dataset.",
+          },
+          {
+            key: "access_token",
+            label: "Access token",
+            type: "password",
+            secret: true,
+            max: 400,
+            help: "A system user token with access to that dataset. Stored encrypted; never shown again.",
+          },
+        ],
+      },
+    ],
+    commonFields: [
+      {
+        key: "mode",
+        label: "What to do",
+        type: "select",
+        required: true,
+        default: "report_only",
+        options: [
+          {
+            value: "report_only",
+            label: "Report only: record which ad each conversation came from, send nothing",
+          },
+          { value: "send_events", label: "Report and send events to Meta" },
+        ],
+      },
+      {
+        key: "window_days",
+        label: "Attribution window (days after the click)",
+        type: "number",
+        min: 1,
+        max: 28,
+        default: 7,
+        help: "A booking or enquiry counts for an ad only this many days after the click.",
+      },
+      {
+        key: "include_phone",
+        label: "Also send a hashed phone number",
+        type: "select",
+        default: "no",
+        options: [
+          { value: "no", label: "No (the click id is enough)" },
+          { value: "yes", label: "Yes (SHA-256 of the number, to help Meta match)" },
+        ],
+      },
+      {
+        key: "graph_version",
+        label: "Graph API version (optional)",
+        type: "text",
+        max: 8,
+        pattern: "^v\\d{1,2}\\.\\d$",
+        patternHint: "Use a version such as v21.0, or leave it empty.",
+        help: "Leave empty to use the platform's default version.",
+      },
+      {
+        key: "test_event_code",
+        label: "Test event code (optional)",
+        type: "text",
+        max: 40,
+        help: "From Events Manager, Test events. While set, Meta shows the events in its test view and does not use them for ads. Clear it for real use.",
+      },
+    ],
+    consequence:
+      "Pulse will keep a record of which Meta ad each WhatsApp conversation came from. In 'send events' mode it also sends Meta the event name (Contact, Lead or Schedule), the ad click id and, if you choose, a hashed phone number, only for patients who opted in (or under the basis your administrator confirms). Meta's rules for health advertisers apply to you.",
   },
 ];
 

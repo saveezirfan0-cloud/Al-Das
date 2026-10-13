@@ -64,6 +64,10 @@ export function readinessProblems(input: ReadinessInput): string[] {
         problems.push("Map one variable of the payment template to the payment link.");
     }
   }
+  if (input.kind === "meta_capi" && input.config.mode === "send_events") {
+    if (!String(input.config.dataset_id ?? "").trim()) problems.push("Dataset ID is missing.");
+    if (!input.secretsStored.access_token) problems.push("Access token is missing.");
+  }
   if (input.kind === "google_reviews") {
     const r = input.reviews;
     const t = r?.template ?? null;

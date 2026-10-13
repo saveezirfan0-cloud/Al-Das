@@ -216,6 +216,8 @@ describe.skipIf(!TEST_DATABASE_URL)("jobs framework (db)", () => {
         "appointments_sweep",
         "campaign_fanout",
         "campaign_tick",
+        "capi_events",
+        "capi_sweep",
         "clinical_evaluate",
         "documents_maintenance",
         "fin_payment_expiry",

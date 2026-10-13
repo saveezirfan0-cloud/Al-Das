@@ -27,6 +27,7 @@ import { buildPaymentProvider } from "@/lib/integrations/payments/provider";
 import { loadPaymentTemplate } from "@/lib/integrations/payments/request-server";
 import { confirmationMatches, readinessProblems } from "@/lib/integrations/readiness";
 import { loadReadinessInput } from "@/lib/integrations/readiness-server";
+import { buildCapiClientFor } from "@/lib/integrations/capi/server";
 import { buildSmsProvider } from "@/lib/integrations/sms/provider";
 import { checkRateLimit, RATE_RULES, waitText } from "@/lib/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -161,6 +162,11 @@ export async function testIntegration(kindInput: string): Promise<ActionResult> 
       : provider.verify
         ? await provider.verify()
         : { ok: false, code: "unsupported" };
+  } else if (kind === "meta_capi") {
+    result = (await buildCapiClientFor(admin, account)?.verify()) ?? {
+      ok: false,
+      code: "incomplete",
+    };
   } else return { ok: false, error: "Nothing to test for this integration." };
 
   await recordAudit(admin, {

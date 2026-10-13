@@ -20,7 +20,7 @@ export async function resetDb(c: Client) {
   await c.query("truncate public.orgs cascade");
   await c.query("truncate public.scheduled_jobs, public.job_runs, public.dead_letters, public.flow_locks");
   await c.query("delete from auth.users");
-  for (const q of ["outbound", "outbound_priority", "flow_steps", "notifications", "meta_events", "webhooks_out", "kb_ingest", "ai_insights", "sms_outbound"]) {
+  for (const q of ["outbound", "outbound_priority", "flow_steps", "notifications", "meta_events", "webhooks_out", "kb_ingest", "ai_insights", "sms_outbound", "capi_events"]) {
     await c.query(`delete from pgmq.q_${q}`);
     await c.query(`delete from pgmq.a_${q}`);
   }
@@ -427,6 +427,15 @@ export async function seedPhase19Rows(c: Client, orgId: string, userId: string) 
       "insert into public.appointments (org_id, contact_id, starts_at, ends_at, status) values ($1, $2, now() - interval '1 day', now() - interval '23 hours', 'completed')",
       [orgId, ids.contact],
     );
+    // Phase 19b: ad attribution (a synthetic click id, no ad body or link) and one event row.
+    ids.attribution = await one(
+      "insert into public.ad_attributions (org_id, contact_id, waba_id, ctwa_clid, source_id, source_type, headline) values ($1, $2, '102290129340398', 'seed-click-' || gen_random_uuid()::text, '1202', 'ad', 'Seed headline')",
+      [orgId, ids.contact],
+    );
+    ids.capiEvent = await one(
+      "insert into public.capi_events (org_id, attribution_id, event_name, event_id, event_time, status) values ($1, $2, 'Contact', 'seed-event-' || gen_random_uuid()::text, now(), 'skipped')",
+      [orgId, ids.attribution],
+    );
     ids.reviewRequest = await one(
       "insert into public.review_requests (org_id, appointment_id, contact_id, recipient_contact_id, status, reason, run_at) values ($1, $2, $3, $3, 'skipped', 'no_opt_in', now())",
       [orgId, ids.appointment19b, ids.contact],
@@ -437,7 +446,9 @@ export async function seedPhase19Rows(c: Client, orgId: string, userId: string) 
 
 /** Phase 19 tables with a browser (select) policy. */
 export const PHASE19_TABLES = [
+  "ad_attributions",
   "calendar_feeds",
+  "capi_events",
   "fin_payment_requests",
   "integration_calls",
   "integration_usage_daily",

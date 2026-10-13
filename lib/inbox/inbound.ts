@@ -4,6 +4,7 @@ import { addTimelineEvent } from "@/lib/contacts/timeline";
 import { screenInboundMessage } from "@/lib/ai/intent/server";
 import { emit } from "@/lib/events/emit";
 import { matchOrCreateContact, rotateBsuid } from "@/lib/inbox/contacts";
+import { captureAttributionSafely } from "@/lib/integrations/capi/server";
 import { readInboxSettings } from "@/lib/inbox/settings";
 import { notify } from "@/lib/notify/dispatch-db";
 import { scheduleFirstEscalation } from "@/lib/notify/escalation-job";
@@ -191,6 +192,20 @@ export async function processInbound(
 
   if (event.media) {
     await enqueue("media_fetch", { message_id: message.id });
+  }
+
+  // Phase 19b: a click-to-WhatsApp referral carries the ad's click id. Recorded only while the Meta ad attribution integration is
+  // on (own switch); never fails the webhook.
+  if (event.referral) {
+    await captureAttributionSafely(admin, {
+      orgId,
+      contactId: contact.id,
+      conversationId: conversation.id,
+      channelId: channel.id,
+      wabaId: event.wabaId,
+      referral: event.referral,
+      at: event.timestamp,
+    });
   }
 
   if (opened) {

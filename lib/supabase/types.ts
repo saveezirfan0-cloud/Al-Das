@@ -57,6 +57,109 @@ export type Database = {
           },
         ];
       };
+      ad_attributions: {
+        Row: {
+          channel_id: string | null;
+          clicked_at: string;
+          contact_id: string | null;
+          conversation_id: string | null;
+          created_at: string;
+          ctwa_clid: string;
+          headline: string | null;
+          id: string;
+          org_id: string;
+          source_id: string | null;
+          source_type: string | null;
+          waba_id: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          channel_id?: string | null;
+          clicked_at?: string;
+          contact_id?: string | null;
+          conversation_id?: string | null;
+          created_at?: string;
+          ctwa_clid: string;
+          headline?: string | null;
+          id?: string;
+          org_id: string;
+          source_id?: string | null;
+          source_type?: string | null;
+          waba_id?: string | null;
+        };
+        Update: {
+          channel_id?: string | null;
+          clicked_at?: string;
+          contact_id?: string | null;
+          conversation_id?: string | null;
+          created_at?: string;
+          ctwa_clid?: string;
+          headline?: string | null;
+          id?: string;
+          org_id?: string;
+          source_id?: string | null;
+          source_type?: string | null;
+          waba_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ad_attributions_channel_id_fkey";
+            columns: ["channel_id"];
+            isOneToOne: false;
+            referencedRelation: "channels";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ad_attributions_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ad_attributions_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_birthday_today";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "ad_attributions_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_chronic_recall_eligibility";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "ad_attributions_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ad_attributions_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "mv_conversation_facts";
+            referencedColumns: ["conversation_id"];
+          },
+          {
+            foreignKeyName: "ad_attributions_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "v_sla_breaches_now";
+            referencedColumns: ["conversation_id"];
+          },
+          {
+            foreignKeyName: "ad_attributions_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       ai_message_intents: {
         Row: {
           conversation_id: string;
@@ -1174,6 +1277,73 @@ export type Database = {
             columns: ["template_id"];
             isOneToOne: false;
             referencedRelation: "wa_templates";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      capi_events: {
+        Row: {
+          attempts: number;
+          attribution_id: string;
+          created_at: string;
+          event_id: string;
+          event_name: string;
+          event_time: string;
+          id: string;
+          is_test: boolean;
+          org_id: string;
+          reason: string | null;
+          sent_at: string | null;
+          status: string;
+          subject_id: string | null;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          attempts?: number;
+          attribution_id: string;
+          created_at?: string;
+          event_id: string;
+          event_name: string;
+          event_time: string;
+          id?: string;
+          is_test?: boolean;
+          org_id: string;
+          reason?: string | null;
+          sent_at?: string | null;
+          status?: string;
+          subject_id?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          attempts?: number;
+          attribution_id?: string;
+          created_at?: string;
+          event_id?: string;
+          event_name?: string;
+          event_time?: string;
+          id?: string;
+          is_test?: boolean;
+          org_id?: string;
+          reason?: string | null;
+          sent_at?: string | null;
+          status?: string;
+          subject_id?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "capi_events_attribution_id_fkey";
+            columns: ["attribution_id"];
+            isOneToOne: false;
+            referencedRelation: "ad_attributions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "capi_events_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
             referencedColumns: ["id"];
           },
         ];
@@ -13508,6 +13678,10 @@ export type Database = {
     Functions: {
       accept_slot_offer: {
         Args: { p_now?: string; p_offer_id: string; p_org_id: string };
+        Returns: Json;
+      };
+      ad_attribution_report: {
+        Args: { p_org: string; p_since: string; p_window_days?: number };
         Returns: Json;
       };
       ai_add_conversation_tags: {

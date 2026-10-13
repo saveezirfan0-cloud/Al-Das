@@ -1,3 +1,4 @@
+import { sweepCapi } from "@/lib/integrations/capi/server";
 import { sweepReviewRequests } from "@/lib/integrations/reviews/server";
 import { registerTask } from "@/lib/jobs/tasks";
 
@@ -13,6 +14,17 @@ registerTask("review_requests_sweep", {
   async run(admin, log) {
     const r = await sweepReviewRequests(admin);
     log.info("review requests sweep", r);
+    return r;
+  },
+});
+
+// Meta Conversions API: Lead (enquiries) and Schedule (bookings) for patients who came from an ad, and any Contact event that was never
+// queued. Only things created after the integration was switched on, in the last 48 hours.
+registerTask("capi_sweep", {
+  name: "capi.sweep",
+  async run(admin, log) {
+    const r = await sweepCapi(admin);
+    log.info("capi sweep", r);
     return r;
   },
 });

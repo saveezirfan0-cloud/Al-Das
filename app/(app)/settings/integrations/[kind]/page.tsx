@@ -19,12 +19,15 @@ import { readinessProblems } from "@/lib/integrations/readiness";
 import { loadReadinessInput } from "@/lib/integrations/readiness-server";
 import { readReviewConfig, REVIEW_VALUE_SOURCES } from "@/lib/integrations/reviews/config";
 import { loadReviewStats, loadReviewTemplate } from "@/lib/integrations/reviews/server";
+import { readCapiConfig } from "@/lib/integrations/capi/config";
+import { CONSENT_BASIS_PHRASE } from "@/lib/integrations/capi/consent";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { templateVariables } from "@/lib/whatsapp/templates";
 import type { MetaTemplateComponent } from "@/lib/whatsapp/types";
 
 import { savePaymentTemplate } from "../actions";
 import { CalendarFeeds } from "../calendar-feeds";
+import { CapiPanel } from "../capi-panel";
 import { IntegrationPanel } from "../integration-panel";
 import { saveReviewTemplate } from "../review-actions";
 import { ReviewLinks } from "../review-links";
@@ -124,6 +127,21 @@ export default async function IntegrationPage({ params }: { params: Promise<{ ki
     );
   }
 
+  // meta ad attribution: who may be included
+  let capiPanel: React.ReactNode = null;
+  if (kind === "meta_capi") {
+    const cfg = readCapiConfig(view.config);
+    capiPanel = (
+      <CapiPanel
+        basis={cfg.consentBasis}
+        basisAt={cfg.consentBasisAt}
+        phrase={CONSENT_BASIS_PHRASE}
+        canManage={canManage}
+        exists={view.exists}
+      />
+    );
+  }
+
   // calendar: feeds, doctors, people
   let calendarPanel: React.ReactNode = null;
   if (kind === "calendar_ics" && can(member, "integrations.calendar")) {
@@ -202,6 +220,7 @@ export default async function IntegrationPage({ params }: { params: Promise<{ ki
       />
       {paymentPanel}
       {reviewsPanel}
+      {capiPanel}
       {calendarPanel}
     </div>
   );
