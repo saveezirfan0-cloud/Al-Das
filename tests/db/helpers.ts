@@ -594,7 +594,7 @@ export async function seedPhase20Rows(c: Client, orgId: string, userId: string) 
       [orgId, ids.bankRec],
     );
     ids.aiReview = await one(
-      "insert into public.fin_bank_ai_reviews (org_id, rec_id, status, model, reject_reason, suggestion_count) values ($1, $2, 'rejected', 'test-model', 'seed', 0)",
+      "insert into public.fin_bank_ai_reviews (org_id, rec_id, status, model, summary, item_count, suggestion_count) values ($1, $2, 'ok', 'test-model', 'Seed summary', 1, 1)",
       [orgId, ids.bankRec],
     );
     ids.aiSuggestion = await one(
