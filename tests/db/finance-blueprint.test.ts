@@ -855,6 +855,122 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance blueprint (F8)", () => {
     });
   });
 
+  describe("insurance overview", () => {
+    it("counts claims by evidence, allocates payments, ages the balance and keeps the old view in step", async () => {
+      await svc(async () => {
+        await q("delete from public.ins_claim_activities where org_id = $1", [orgA]);
+        await q(
+          "update public.fin_ref_finance_settings set accepted_claim_statuses = array['Approved'] where org_id = $1",
+          [orgA],
+        );
+        const claim = async (
+          n: string,
+          f: {
+            remitted?: number;
+            rejected?: number;
+            status?: string | null;
+            days?: number;
+            resub?: number;
+            first?: number | null;
+            payer?: string;
+          },
+        ) =>
+          (
+            await q(
+              `insert into public.ins_claim_activities (org_id, claim_activity_number, invoice_no, transaction_date, first_remittance_date, cpt_code, net, initial_net, remitted, rejected, resubmission_count, claim_status, payer_id, match_reason, match_status)
+               values ($1, $2, 'IO/1', current_date - $3::int, case when $4::int is null then null else current_date - $3::int + $4::int end, '99213', 100, 100, $5, $6, $7, $8, $9, 'ok', 'unmatched') returning id`,
+              [
+                orgA,
+                n,
+                f.days ?? 10,
+                f.first ?? null,
+                f.remitted ?? 0,
+                f.rejected ?? 0,
+                f.resub ?? 0,
+                f.status ?? null,
+                f.payer ?? "PAY1",
+              ],
+            )
+          ).rows[0].id as string;
+        const paid = await claim("IO-PAID", { remitted: 60, first: 20, days: 100 });
+        await claim("IO-STATUS", { status: "approved", days: 40 });
+        await claim("IO-OPEN", { status: "Under process", days: 5 });
+        await claim("IO-NONE", { days: 5 });
+        await claim("IO-REJ", { rejected: 100, resub: 1, days: 70, payer: "PAY2" });
+        const batch = (
+          await q(
+            "insert into public.ins_remittance_batches (org_id, remittance_ref, paid_on) values ($1, 'IO', current_date) returning id",
+            [orgA],
+          )
+        ).rows[0].id as string;
+        await q(
+          "insert into public.ins_remittance_lines (org_id, batch_id, row_no, line_key, paid_amount, claim_activity_id, match_status) values ($1, $2, 1, 'io1', 60, $3, 'matched')",
+          [orgA, batch, paid],
+        );
+
+        const r = (
+          await q(
+            "select public.fin_insurance_overview($1, current_date - 200, current_date) as r",
+            [orgA],
+          )
+        ).rows[0].r;
+        expect(r.totals).toMatchObject({
+          submitted: 5,
+          accepted: 2,
+          rejected: 1,
+          pending: 2,
+          no_status: 1,
+          resubmitted: 1,
+        });
+        expect(Number(r.totals.claimed)).toBe(500);
+        expect(Number(r.totals.accepted_amount)).toBe(200); // remitted claim + approved-status claim
+        expect(Number(r.totals.paid_allocated)).toBe(60);
+        expect(Number(r.totals.rejected_amount)).toBe(100);
+        expect(Number(r.totals.avg_days_to_pay)).toBe(20);
+        // outstanding: 40 + 100 + 100 + 100 + 100 = 440 (the approved-status claim is still owed in full: no remitted amount)
+        expect(Number(r.totals.outstanding)).toBe(440);
+        const age = Object.fromEntries(
+          (r.ageing as Array<{ bucket: string; claims: number }>).map((a) => [a.bucket, a.claims]),
+        );
+        expect(age).toEqual({ "0-30": 2, "31-60": 1, "61-90": 1, "90+": 1 });
+        expect(r.payers.map((p: { payer_id: string }) => p.payer_id)).toEqual(["PAY1", "PAY2"]);
+        // a narrower window leaves older claims out
+        const narrow = (
+          await q(
+            "select public.fin_insurance_overview($1, current_date - 30, current_date) as r",
+            [orgA],
+          )
+        ).rows[0].r;
+        expect(narrow.totals.submitted).toBe(2);
+      });
+      // the claims-status view agrees with the same rule (checked as a member who may read it)
+      await asRole("fin", async () => {
+        const { rows } = await q(
+          "select sum(submitted) as s, sum(accepted) as a, sum(rejected) as r, sum(pending) as p from public.v_fin_claims_status",
+        );
+        expect(rows[0]).toMatchObject({ s: "5", a: "2", r: "1", p: "2" });
+      });
+    });
+    it("is invisible to browsers and empty for an organisation with no claims", async () => {
+      await asRole("fin", async () => {
+        await expect(
+          q("select public.fin_insurance_overview($1, current_date - 1, current_date)", [orgA]),
+        ).rejects.toThrow();
+      });
+      await svc(async () => {
+        const r = (
+          await q(
+            "select public.fin_insurance_overview($1, current_date - 200, current_date) as r",
+            [orgB],
+          )
+        ).rows[0].r;
+        expect(r.totals.submitted).toBe(0);
+        expect(r.ageing).toEqual([]);
+        expect(r.payers).toEqual([]);
+      });
+    });
+  });
+
   describe("freshness view", () => {
     it("carries coverage dates and the escalated count for Finance only", async () => {
       await asRole("fin", async () => {

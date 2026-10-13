@@ -14691,6 +14691,10 @@ export type Database = {
       fin_escalate_exceptions: { Args: { p_org_id: string }; Returns: number };
       fin_forecast_history: { Args: { p_mature_days?: number; p_org_id: string }; Returns: Json };
       fin_forecast_outstanding: { Args: { p_org_id: string }; Returns: Json };
+      fin_insurance_overview: {
+        Args: { p_from: string; p_org_id: string; p_to: string };
+        Returns: Json;
+      };
       fin_invoice_number_gaps: {
         Args: { p_from?: string; p_org_id: string };
         Returns: {

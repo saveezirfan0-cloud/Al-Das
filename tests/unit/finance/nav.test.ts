@@ -74,6 +74,14 @@ describe("Finance navigation", () => {
     );
   });
 
+  it("the insurance overview needs claim access, so Insurance sees it and Billing and the Medical Director do not", () => {
+    expect(hrefs(member(role("Insurance")))).toContain("/finance/insurance");
+    expect(hrefs(member(role("Finance")))).toContain("/finance/insurance");
+    expect(hrefs(member(role("CEO")))).toContain("/finance/insurance");
+    for (const name of ["Billing", "Medical Director", "Cost / Payroll"])
+      expect(hrefs(member(role(name))), name).not.toContain("/finance/insurance");
+  });
+
   it("cost and profit pages follow the blueprint's separation of duties", () => {
     // Cost / Payroll: costs only, no revenue, branch, doctor or profit pages
     expect(hrefs(member(role("Cost / Payroll")))).toEqual(["/finance/costs"]);
@@ -89,7 +97,14 @@ describe("Finance navigation", () => {
     }
     // Finance sees all of it
     const fin = hrefs(member(role("Finance")));
-    expect(fin).toEqual(expect.arrayContaining(["/finance/costs", "/finance/profitability", "/finance/doctors", "/finance/branches"]));
+    expect(fin).toEqual(
+      expect.arrayContaining([
+        "/finance/costs",
+        "/finance/profitability",
+        "/finance/doctors",
+        "/finance/branches",
+      ]),
+    );
   });
 
   it("the sign-offs are split: finance and CEO presets each hold only their own key", () => {
