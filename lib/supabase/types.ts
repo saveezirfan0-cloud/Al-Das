@@ -14735,6 +14735,10 @@ export type Database = {
       };
       fin_backfill_patient_refs: { Args: { p_limit?: number; p_org_id: string }; Returns: number };
       fin_batch_mark_failed: { Args: { p_batch_id: string; p_error: string }; Returns: undefined };
+      fin_billing_mix: {
+        Args: { p_branch?: string; p_from: string; p_org_id: string; p_to: string };
+        Returns: Json;
+      };
       fin_capture_enqueue_ticks: { Args: Record<PropertyKey, never>; Returns: number };
       fin_capture_release_lease: {
         Args: { p_holder: string; p_org_id: string };
@@ -14861,6 +14865,16 @@ export type Database = {
           p_dimension: string;
           p_from: string;
           p_limit?: number;
+          p_org_id: string;
+          p_to: string;
+        };
+        Returns: Json;
+      };
+      fin_revenue_trend: {
+        Args: {
+          p_branch?: string;
+          p_from: string;
+          p_grain?: string;
           p_org_id: string;
           p_to: string;
         };

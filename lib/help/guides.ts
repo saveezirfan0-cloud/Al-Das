@@ -183,6 +183,24 @@ export const GUIDES: readonly Guide[] = [
     ],
   },
   {
+    id: "finance-analytics",
+    title: "Billing mix and trends",
+    pages: ["/finance/analytics"],
+    purpose:
+      "How each doctor bills (consultation, lab, radiology, procedures; insurance or self-pay) compared with the clinic as a whole, and revenue by week or month next to the same period last year.",
+    steps: [
+      "Pick the dates (the last twelve months by default) and, if you want, one branch code.",
+      "Doctor billing mix shows each doctor's revenue, patients, revenue per patient and the share of each service category, with the category where the doctor differs most from the clinic.",
+      "Seasonality shows each month or week against the same one last year; choose Week to see shorter patterns.",
+      "Mix CSV and Trend CSV download the same figures, with every category's share.",
+    ],
+    watchOut: [
+      "Unmapped means billed items without a service category. Finance fixes that under Reference data, then the mix is complete.",
+      "Last year is only compared when the invoices on record reach back that far.",
+      "These are activity measures, not a judgement of clinical quality.",
+    ],
+  },
+  {
     id: "finance-workflows",
     title: "Finance workflows",
     pages: [

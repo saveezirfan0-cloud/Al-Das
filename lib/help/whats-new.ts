@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-10-30-billing-mix",
+    date: "2026-10-30",
+    title: "Billing mix and trends",
+    body: "Finance has a new Billing mix and trends page. For each doctor it shows revenue, patients, revenue per patient, how the bills split between consultation, lab, radiology, procedures and other services, and how much is insurance or self-pay, next to the clinic as a whole. A seasonality view puts each month or week beside the same one last year. Finance, the CEO and the Medical Director can open it and download both tables.",
+  },
+  {
     id: "2026-10-23-daily-flash",
     date: "2026-10-23",
     title: "Daily flash report",

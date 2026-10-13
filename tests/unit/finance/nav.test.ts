@@ -76,6 +76,7 @@ describe("Finance navigation", () => {
   it("the Medical Director sees revenue and scorecards only", () => {
     expect(hrefs(member(role("Medical Director"))).sort()).toEqual(
       [
+        "/finance/analytics",
         "/finance/branches",
         "/finance/doctors",
         "/finance/flash",
@@ -84,6 +85,13 @@ describe("Finance navigation", () => {
         "/finance/summary",
       ].sort(),
     );
+  });
+
+  it("billing mix and trends follow revenue access: Finance, the CEO and the Medical Director, not Billing, Insurance or Cost / Payroll", () => {
+    for (const r of ["Finance", "CEO", "Medical Director"])
+      expect(hrefs(member(role(r))), r).toContain("/finance/analytics");
+    for (const r of ["Billing", "Insurance", "Cost / Payroll"])
+      expect(hrefs(member(role(r))), r).not.toContain("/finance/analytics");
   });
 
   it("the insurance overview needs claim access, so Insurance sees it and Billing and the Medical Director do not", () => {

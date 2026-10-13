@@ -74,6 +74,12 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
     permissions: ["finance.revenue.view"],
   },
   {
+    href: "/finance/analytics",
+    label: "Billing mix and trends",
+    section: "Overview",
+    permissions: ["finance.revenue.view"],
+  },
+  {
     href: "/finance/profitability",
     label: "Profitability",
     section: "Overview",

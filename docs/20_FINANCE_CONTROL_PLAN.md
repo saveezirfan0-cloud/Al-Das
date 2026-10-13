@@ -178,6 +178,7 @@ Send anonymised or synthetic copies where a file contains patient details; heade
 | Slice | Status |
 |---|---|
 | 20A | Built on `claude/funny-clarke-6t7gee` (see `docs/20_PHASE_20A_NOTES.md`): flash report, targets and lines, comparison with the same days of last month, Excel export |
+| 20K | Built on `claude/funny-clarke-6t7gee` (see `docs/20_PHASE_20K_NOTES.md`): doctor billing mix (service categories, insurance vs self-pay, revenue per patient, difference from the clinic), seasonality by week or month against last year, CSV export |
 | 20B to 20J, 21 | Not started |
 
 ## 8. Things noticed in the current reports
