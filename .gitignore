@@ -53,3 +53,8 @@ playwright-report
 supabase/test/ext-stubs/pgmq--*.sql
 docs/audit/import-report-*.md
 build.log
+
+# Phase 22J: the Tally connector's settings (device token) on a Tally PC
+/connector/tally-bridge/bridge.config.json
+/connector/tally-bridge/bridge.config.json.tmp
+/connector/tally-bridge/logs/

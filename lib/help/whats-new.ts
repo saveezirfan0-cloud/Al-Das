@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-11-09-accounting-tally-bridge",
+    date: "2026-11-09",
+    title: "Accounting: the Tally bridge",
+    body: "Until the ledger start Pulse can now keep TallyPrime in step by itself. A small connector installed on the Tally PC sends Pulse's approved items to Tally as vouchers (bills, payment vouchers, sales documents, receipts, bank entries, depreciation and Unite revenue as one voucher per day and branch) and copies what is entered in Tally back into Pulse's ledger every 15 minutes. Every voucher carries a Pulse id, so nothing is ever sent twice; a changed item is reversed in Tally and sent again, and nothing in Tally is ever deleted. A daily check compares Tally's balances with Pulse's ledger. Set it up under Accounting, Setup, Tally bridge; from the ledger start pushing stops by itself.",
+  },
+  {
     id: "2026-11-09-accounting-receivables",
     date: "2026-11-09",
     title: "Accounting: sales invoices, receipts and statements",

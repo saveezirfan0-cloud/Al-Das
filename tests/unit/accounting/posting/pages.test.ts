@@ -52,7 +52,7 @@ describe("posting pages", () => {
       "/accounting/posting-preview",
     ])
       expect(guideForPath(p).id).toBe("accounting-posting");
-    expect(WHATS_NEW[0].id).toBe("2026-11-09-accounting-posting-engine");
+    expect(WHATS_NEW.some((e) => e.id === "2026-11-09-accounting-posting-engine")).toBe(true);
   });
 
   it("every reason the engine records has a sentence, and so do the ledger-start codes", () => {

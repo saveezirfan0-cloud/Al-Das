@@ -1335,3 +1335,60 @@ export const PHASE22I_TABLES = ["acc_tally_imports", "acc_tally_reconciliations"
 
 /** Phase 22I service-only tables: RLS on, no policy (the sanitised rows staged between the dry run and the commit). */
 export const PHASE22I_SERVICE_ONLY_TABLES = ["acc_tally_staged"] as const;
+
+/**
+ * One row in every Phase 22J (Tally bridge) table for an org: settings, a connector waiting for its pairing code, a pushed
+ * voucher, its job, a log row and a cursor. Synthetic values only (fake company "Demo Clinic"); service role.
+ */
+export async function seedPhase22JRows(c: Client, orgId: string) {
+  const ids: Record<string, string> = {};
+  await asServiceRole(c, async () => {
+    const one = async (sql: string, p: unknown[]) =>
+      (await c.query<{ id: string }>(sql, p)).rows[0].id;
+    await c.query(
+      "insert into public.acc_tally_bridge_settings (org_id, pull_enabled) values ($1, true) on conflict (org_id) do nothing",
+      [orgId],
+    );
+    ids.device = await one(
+      `insert into public.acc_tally_devices (org_id, label, status, pairing_sha256, pairing_expires_at)
+       values ($1, 'Sweep PC', 'pairing', encode(sha256(gen_random_uuid()::text::bytea), 'hex'), now() + interval '30 minutes')
+       returning id::text as id`,
+      [orgId],
+    );
+    ids.push = await one(
+      `insert into public.acc_tally_push (org_id, source_kind, source_id, version, remote_id, voucher_date, voucher_type, amount,
+                                          journal_sha256, content, status)
+       values ($1, 'voucher', gen_random_uuid()::text, 1, 'pulse-' || replace(gen_random_uuid()::text, '-', '') || '-pv-sweep-1',
+               '2026-07-31', 'payment', 10, $2,
+               '{"narration":"Pulse: sweep","entries":[{"ledger":"Bank - Demo Main","side":"credit","cents":1000},{"ledger":"Supplier Demo B","side":"debit","cents":1000}]}'::jsonb,
+               'ready')
+       returning id::text as id`,
+      [orgId, "2".repeat(64)],
+    );
+    ids.job = await one(
+      "insert into public.acc_tally_jobs (org_id, kind, push_id) values ($1, 'import_voucher', $2) returning id::text as id",
+      [orgId, ids.push],
+    );
+    await c.query(
+      "insert into public.acc_tally_sync_log (org_id, direction, outcome, code) values ($1, 'pull', 'unchanged', 'masters')",
+      [orgId],
+    );
+    await c.query(
+      "insert into public.acc_tally_cursors (org_id, cursor, alter_id) values ($1, 'masters', 1) on conflict do nothing",
+      [orgId],
+    );
+  });
+  return ids;
+}
+
+/** Phase 22J tables with a browser (select) policy (accounting.import; settings also accounting.settings.manage). */
+export const PHASE22J_TABLES = [
+  "acc_tally_bridge_settings",
+  "acc_tally_cursors",
+  "acc_tally_jobs",
+  "acc_tally_push",
+  "acc_tally_sync_log",
+] as const;
+
+/** Phase 22J service-only tables: RLS on, no policy (the connectors' pairing-code and token hashes). */
+export const PHASE22J_SERVICE_ONLY_TABLES = ["acc_tally_devices"] as const;
