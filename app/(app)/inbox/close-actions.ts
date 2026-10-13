@@ -7,6 +7,7 @@ import { can } from "@/lib/auth/can";
 import { requirePerm, type CurrentMember } from "@/lib/auth/session";
 import { loadPipelines } from "@/lib/enquiries/server";
 import { readEnquirySettings } from "@/lib/enquiries/settings";
+import { canSeeEnquiry, enquiryViewer, visibleEnquiryIds } from "@/lib/enquiries/visibility";
 import { closeWithEnquiry } from "@/lib/inbox/close";
 import { closeEnquiryPartSchema } from "@/lib/inbox/close-enquiry";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -71,6 +72,16 @@ export async function loadCloseEnquiryOptions(
       .limit(10),
     admin.from("orgs").select("settings").eq("id", member.orgId).single(),
   ]);
+  // Phase 20c: a restricted enquiry view only lists the enquiries this person may see.
+  const open = enquiries ?? [];
+  const visible = new Set(
+    await visibleEnquiryIds(
+      admin,
+      member.orgId,
+      await enquiryViewer(admin, member),
+      open.map((e) => e.id),
+    ),
+  );
   return {
     ok: true,
     data: {
@@ -81,7 +92,7 @@ export async function loadCloseEnquiryOptions(
           name: p.name,
           stages: p.stages.map((s) => ({ id: s.id, name: s.name })),
         })),
-      enquiries: enquiries ?? [],
+      enquiries: open.filter((e) => visible.has(e.id)),
       lostReasons: readEnquirySettings(org?.settings).lost_reasons,
     },
   };
@@ -113,8 +124,19 @@ export async function closeConversationWithEnquiry(
     return { ok: false, error: "You cannot link enquiries to patients." };
 
   // History (record_history) names the person: the admin client carries their id.
+  const admin = createAdminClient(member.userId);
+  if (
+    v.enquiry.mode === "update" &&
+    !(await canSeeEnquiry(
+      admin,
+      member.orgId,
+      await enquiryViewer(admin, member),
+      v.enquiry.enquiry_id,
+    ))
+  )
+    return { ok: false, error: "Enquiry not found." };
   const r = await closeWithEnquiry(
-    createAdminClient(member.userId),
+    admin,
     { orgId: member.orgId, userId: member.userId },
     conversation,
     { category_id: v.category_id, summary: v.summary, enquiry: v.enquiry },

@@ -569,6 +569,49 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 20c routing, presence, enquiry view a
       });
     });
 
+    it("hides the tags of enquiries outside the view and refuses tagging them", async () => {
+      await asServiceRole(c, async () => {
+        const tag = await one(
+          "insert into public.tags (org_id, name, scope) values ($1, 'VIP 20c', 'enquiry')",
+          [orgA],
+        );
+        e.tag = tag;
+        for (const id of [e.carol, e.dave])
+          await c.query(
+            "insert into public.enquiry_tags (org_id, enquiry_id, tag_id) values ($1, $2, $3)",
+            [orgA, id, tag],
+          );
+      });
+      await asUser(c, carol, async () => {
+        const { rows } = await c.query<{ enquiry_id: string }>(
+          "select enquiry_id::text from public.enquiry_tags where tag_id = $1",
+          [e.tag],
+        );
+        expect(rows.map((r) => r.enquiry_id)).toEqual([e.carol]);
+        const del = await c.query("delete from public.enquiry_tags where enquiry_id = $1", [
+          e.dave,
+        ]);
+        expect(del.rowCount).toBe(0);
+        await expect(
+          c.query(
+            "insert into public.enquiry_tags (org_id, enquiry_id, tag_id) values ($1, $2, $3)",
+            [orgA, e.system, e.tag],
+          ),
+        ).rejects.toThrow(/row-level security|does not belong/); // the parent check cannot see it either
+      });
+      expect(
+        await asUser(
+          c,
+          alice,
+          async () =>
+            (await c.query("select 1 from public.enquiry_tags where tag_id = $1", [e.tag]))
+              .rowCount,
+        ),
+      ).toBe(2);
+      await asServiceRole(c, () => c.query("delete from public.tags where id = $1", [e.tag]));
+      delete e.tag;
+    });
+
     it("a suspended member sees nothing", async () => {
       await asServiceRole(c, () =>
         c.query(
