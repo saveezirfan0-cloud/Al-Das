@@ -9,7 +9,7 @@ _Written 13 Oct 2026 on `claude/funny-clarke-6t7gee`. Owner request (13 Oct): "r
 3. **Posted means permanent.** A posted journal is never updated or deleted; it is corrected by a reversal. Numbers are gap-free per series and fiscal year. A locked period refuses postings (one lock with `fin_period_closes`).
 4. **Maker, checker as elsewhere in Phase 20.** A manual journal is prepared by one person and posted by another (`accounting.journals.approve`), enforced in SQL. Automatic postings come from items that were already approved upstream.
 5. **No patient identity in the ledger.** Lines carry accounts, amounts, dates and dimensions (entity, branch, department, doctor, payer, supplier, customer). The patient's balance stays in the Unite mirror (PIN only), and the ledger holds control accounts.
-6. **Tally is a one-way door.** The Tally masters and opening balances are imported once (XML or CSV, dry run plus reconciliation report). The Tally XML export stays for the parallel run and is retired after cut-over.
+6. **Tally stays connected until cut-over, then retires.** Everything in Tally is imported (groups, ledgers, opening balances and the full voucher history), idempotent on Tally's GUID, with a dry run and a reconciliation report. While both run, a small on-premise **Tally connector** (22J) keeps them in step through Tally's XML/HTTP interface: Pulse pushes its posted journals to Tally and pulls masters and vouchers entered in Tally, each matched by GUID, so neither side holds a duplicate. The connector only makes outbound HTTPS calls to Pulse, so Tally is never exposed to the internet. After cut-over the connector is switched off and Tally is kept read-only for the record.
 
 ## 2. What Tally does and where it lands in Pulse
 
@@ -93,15 +93,20 @@ Accounting menu:
 | 22F | Banking and cash: GL bank accounts linked to 20C, transfers (Contra), bank charges, petty cash, cheque numbers | | |
 | 22G | Statements and budgets: P&L, balance sheet, cash flow (indirect), comparatives, branch and doctor views, budget against actual, VAT 201, ratios, Excel and PDF | | |
 | 22H | Fixed assets and depreciation, prepayments and accruals | | |
-| 22I | Tally import (groups, ledgers, opening balances, optional voucher history) and opening balance entry, with dry run and reconciliation report; year-end close | | |
+| 22I | Tally import (groups, ledgers, opening balances and the full voucher history, by GUID) and opening balance entry, with dry run and reconciliation report; year-end close | | |
+| 22J | Tally connector: an on-premise agent (outbound HTTPS only) that talks to Tally on the clinic's machine (XML over HTTP, port 9000): pushes Pulse's posted journals as Tally vouchers, pulls masters and vouchers changed in Tally (by AlterID), each matched by GUID; a sync log with errors per voucher; switched off at cut-over | | |
 
-22A, 22B and 22C run in parallel; 22D to 22I start from 22A.
+22A, 22B and 22C run in parallel; 22D to 22J start from 22A.
 
-## 7. Open questions (new)
+## 7. Decisions and open questions
 
-- **OQ-116 Legal entities.** Is Al Das one legal entity (one TRN), or are the leased unit, Chiro or any branch separate companies with their own books? Pulse supports several entities in one workspace.
-- **OQ-117 Fiscal year and cut-over.** Fiscal year start (assumed 1 January) and the date Pulse becomes the book of record (opening balances from Tally at that date).
-- **OQ-118 Chart of accounts.** Keep Tally's ledger names one for one (default: imported as they are), or adopt the Pulse clinic chart and map?
+Decided by the owner on 13 Oct 2026:
+- **One legal entity, three branches** (Golden Mile, Meadows, Palm Jumeirah). Pulse keeps the entities table (one row) so a second company could be added later without redesign; entity pickers stay hidden while there is one.
+- **Fiscal year July to June**, with calendar year as a setting per entity.
+- **Bring everything in from Tally** (ledgers as they are, opening balances, voucher history), and **keep Tally connected through its API** until cut-over (22J).
+
+Still open:
+- **OQ-117 Cut-over date.** The date Pulse becomes the book of record; until then Tally is the book of record and Pulse mirrors it through the connector.
 - **OQ-119 Branch-level access.** Should an accountant be limited to one entity or branch? (Default: no; access is by role.)
 - **OQ-120 VAT treatment per service category.** Which categories are zero-rated, exempt or standard-rated (the clinic's tax adviser to confirm).
 - **OQ-121 Personal digital certificates.** Do the CEO and Finance Manager have a certificate that can be exported as a .p12 file (soft certificate)? A USB token (the Tally DSC) cannot be used by a web application; then Pulse seals with the organisation certificate and records the approver.

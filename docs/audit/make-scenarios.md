@@ -15,6 +15,8 @@ Re-pull everything with `scripts/export-make.ts`.
 ---
 
 > **Live check, 13 Oct 2026:** read through the connected Make account. 49 scenarios, 7 active (the seven below), and none edited since the 8 Oct read, so this inventory is current.
+>
+> Also found on 13 Oct (blueprints and execution counts only; no records or execution bundles read): every scenario hard-codes the three Unite clinic_ids, one router route per branch (no mapping table); `getclinics` returns exactly three clinics; `/gateway/authorize` alone issues a fresh token each run (the refresh branch has not fired since 1 Oct) and tokens stay usable well beyond 240 seconds; `GetMedicalRecordsDetails` carries only `visitdetails[].clinicname` (no clinic_id). Inactive `med-chronic-unite` (4354177) treats medication lines with 60 or 90 dosage days as chronic medication (relevant to OQ-104), while inactive `Update Chronic` (4210055) marks any patient with any new diagnosis as chronic and must not be copied. `medical records sync` (6251023) has been off since 21 Sep, so the active Acute MRD Sync reads a table that is no longer refreshed. **Hygiene at cut-over:** the Token blueprint holds three Unite app_id/app_key pairs and several scenarios a Sanoflow token in plain text, and the designer samples of 3576553, 3882448 and 4354177 hold real patient details; rotate the credentials and clear the samples or delete those scenarios.
 
 ## 1. Active scenarios (must be replaced natively)
 
