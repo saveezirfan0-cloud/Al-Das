@@ -294,6 +294,7 @@ export async function runRecovery(
       clinicName: opts.clinicName,
       actorId: opts.actorId,
       target: targets.get(plan.patientPin) ?? null,
+      now,
     });
     if (outcome === "queued") summary.queued++;
     else if (outcome === "failed") summary.failed++;
@@ -314,6 +315,8 @@ async function sendOne(
     clinicName: string;
     actorId: string | null;
     target: RecoveryTarget | null;
+    /** The run's clock: the gap to the next reminder is measured from this, the same clock the planner uses. */
+    now: Date;
   },
 ): Promise<"queued" | "failed" | SkipReason | "already_sent"> {
   const { plan, target } = a;
@@ -334,6 +337,7 @@ async function sendOne(
         balance: plan.balance,
         template_id: a.templateId,
         created_by: a.actorId,
+        created_at: a.now.toISOString(),
       },
       { onConflict: "org_id,invoice_id,sequence_no", ignoreDuplicates: true },
     )
