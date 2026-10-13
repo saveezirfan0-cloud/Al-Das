@@ -178,7 +178,9 @@ Send anonymised or synthetic copies where a file contains patient details; heade
 | Slice | Status |
 |---|---|
 | 20A | Built on `claude/funny-clarke-6t7gee` (see `docs/20_PHASE_20A_NOTES.md`): flash report, targets and lines, comparison with the same days of last month, Excel export |
-| 20B to 20J, 21 | Not started |
+| 21, part 1 | Built (see `docs/21_PHASE_21A_NOTES.md`): item 2 (`visit_diagnoses` and a signed-off rule that derives `contact_chronic_conditions`, plus the Airtable import of visit diagnoses and Unite's chronic list; chronic recall now selects patients once OQ-01 and OQ-102 are signed), item 3 (antibiotic / probiotic sequences created once and scheduled in `scheduled_jobs`; nothing is sent while the clinical messaging gate is off), item 5 (Data quality, Unclassified medications with an audited classify action, Clinical feedback), item 6 (Appointment reminders, Recall performance and Clinical operations reports, and the same KPIs on the Management dashboard and digest). Parallel-run seed rows corrected. Two Airtable lab automations ("Lab Result Ready", "Lab Follow Up") stay with item 7 (OQ-98) |
+| 21, remaining | Item 1 (Unite visits sync: needs the endpoint, OQ-23 / OQ-26), item 4 (message-log importers), item 7 (labs, OQ-98), item 8 (screening eligibility views), item 9 (parallel run and switch-off) |
+| 20B to 20J | Not started |
 
 ## 8. Things noticed in the current reports
 

@@ -2178,25 +2178,40 @@ export type Database = {
       contact_chronic_conditions: {
         Row: {
           contact_id: string;
+          created_at: string;
+          evidence_visits: number | null;
+          id: string;
+          last_seen_on: string | null;
           noted_at: string | null;
           org_id: string;
           ref_diagnosis_id: string;
           source: string;
+          updated_at: string;
         };
         ComputedFields: never;
         Insert: {
           contact_id: string;
+          created_at?: string;
+          evidence_visits?: number | null;
+          id?: string;
+          last_seen_on?: string | null;
           noted_at?: string | null;
           org_id: string;
           ref_diagnosis_id: string;
           source?: string;
+          updated_at?: string;
         };
         Update: {
           contact_id?: string;
+          created_at?: string;
+          evidence_visits?: number | null;
+          id?: string;
+          last_seen_on?: string | null;
           noted_at?: string | null;
           org_id?: string;
           ref_diagnosis_id?: string;
           source?: string;
+          updated_at?: string;
         };
         Relationships: [
           {
@@ -9280,6 +9295,7 @@ export type Database = {
           probiotic_start_date: string | null;
           requires_probiotics: boolean;
           status: Database["public"]["Enums"]["sequence_status"];
+          step_outcomes: NonNullable<Json>;
           updated_at: string;
         };
         ComputedFields: never;
@@ -9301,6 +9317,7 @@ export type Database = {
           probiotic_start_date?: string | null;
           requires_probiotics?: boolean;
           status?: Database["public"]["Enums"]["sequence_status"];
+          step_outcomes?: NonNullable<Json>;
           updated_at?: string;
         };
         Update: {
@@ -9321,6 +9338,7 @@ export type Database = {
           probiotic_start_date?: string | null;
           requires_probiotics?: boolean;
           status?: Database["public"]["Enums"]["sequence_status"];
+          step_outcomes?: NonNullable<Json>;
           updated_at?: string;
         };
         Relationships: [
@@ -12228,6 +12246,99 @@ export type Database = {
           },
         ];
       };
+      visit_diagnoses: {
+        Row: {
+          contact_id: string | null;
+          created_at: string;
+          diagnosis_code: string;
+          id: string;
+          is_primary: boolean;
+          org_id: string;
+          ref_diagnosis_id: string | null;
+          source: string;
+          updated_at: string;
+          visit_date: string;
+          visit_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          contact_id?: string | null;
+          created_at?: string;
+          diagnosis_code: string;
+          id?: string;
+          is_primary?: boolean;
+          org_id: string;
+          ref_diagnosis_id?: string | null;
+          source?: string;
+          updated_at?: string;
+          visit_date: string;
+          visit_id: string;
+        };
+        Update: {
+          contact_id?: string | null;
+          created_at?: string;
+          diagnosis_code?: string;
+          id?: string;
+          is_primary?: boolean;
+          org_id?: string;
+          ref_diagnosis_id?: string | null;
+          source?: string;
+          updated_at?: string;
+          visit_date?: string;
+          visit_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "visit_diagnoses_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "visit_diagnoses_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_birthday_today";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "visit_diagnoses_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_chronic_recall_eligibility";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "visit_diagnoses_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "visit_diagnoses_ref_diagnosis_id_fkey";
+            columns: ["ref_diagnosis_id"];
+            isOneToOne: false;
+            referencedRelation: "ref_diagnoses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "visit_diagnoses_visit_id_fkey";
+            columns: ["visit_id"];
+            isOneToOne: false;
+            referencedRelation: "v_visit_data_quality";
+            referencedColumns: ["visit_id"];
+          },
+          {
+            foreignKeyName: "visit_diagnoses_visit_id_fkey";
+            columns: ["visit_id"];
+            isOneToOne: false;
+            referencedRelation: "visits";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       visit_rule_evaluations: {
         Row: {
           age_at_visit: number | null;
@@ -13321,8 +13432,11 @@ export type Database = {
           location_id: string | null;
           org_id: string | null;
           patients_contacted: number | null;
+          reminders_delivered: number | null;
           reminders_excluded: number | null;
           reminders_failed: number | null;
+          reminders_read: number | null;
+          reminders_replied: number | null;
           reminders_sent: number | null;
           sent_day: string | null;
           specialist_id: string | null;
@@ -14357,15 +14471,37 @@ export type Database = {
           },
         ];
       };
+      v_unknown_diagnosis_codes: {
+        Row: {
+          diagnosis_code: string | null;
+          first_seen: string | null;
+          last_seen: string | null;
+          org_id: string | null;
+          visit_count: number | null;
+        };
+        ComputedFields: never;
+        Relationships: [
+          {
+            foreignKeyName: "visit_diagnoses_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       v_visit_data_quality: {
         Row: {
           contact_id: string | null;
+          doctor_name: string | null;
           external_id: string | null;
+          is_test_record: boolean | null;
           missing_bp: boolean | null;
           missing_pulse: boolean | null;
           missing_spo2: boolean | null;
           missing_temp: boolean | null;
           org_id: string | null;
+          source: string | null;
           unmatched_patient: boolean | null;
           visit_date: string | null;
           visit_id: string | null;
@@ -14373,24 +14509,30 @@ export type Database = {
         ComputedFields: never;
         Insert: {
           contact_id?: string | null;
+          doctor_name?: string | null;
           external_id?: string | null;
+          is_test_record?: boolean | null;
           missing_bp?: never;
           missing_pulse?: never;
           missing_spo2?: never;
           missing_temp?: never;
           org_id?: string | null;
+          source?: string | null;
           unmatched_patient?: never;
           visit_date?: string | null;
           visit_id?: string | null;
         };
         Update: {
           contact_id?: string | null;
+          doctor_name?: string | null;
           external_id?: string | null;
+          is_test_record?: boolean | null;
           missing_bp?: never;
           missing_pulse?: never;
           missing_spo2?: never;
           missing_temp?: never;
           org_id?: string | null;
+          source?: string | null;
           unmatched_patient?: never;
           visit_date?: string | null;
           visit_id?: string | null;
@@ -14628,9 +14770,43 @@ export type Database = {
         Args: { p_at?: string; p_channel_id: string; p_limit: number };
         Returns: boolean;
       };
+      clinical_apply_chronic_conditions: {
+        Args: { p_contacts?: string[]; p_org: string; p_rows: Json };
+        Returns: Json;
+      };
+      clinical_chronic_facts: {
+        Args: { p_contacts?: string[]; p_org: string };
+        Returns: {
+          chronic: boolean;
+          contact_id: string;
+          first_visit_date: string;
+          last_visit_date: string;
+          ref_diagnosis_id: string;
+          visit_count: number;
+        }[];
+      };
+      clinical_create_sequence: {
+        Args: { p_org: string; p_prescription: string; p_sequence: Json; p_steps: Json };
+        Returns: Json;
+      };
+      clinical_prescriptions_needing_sequence: {
+        Args: { p_limit?: number; p_org: string };
+        Returns: {
+          duration_days: number;
+          external_key: string;
+          prescription_id: string;
+          requires_probiotics: boolean;
+          start_date: string;
+        }[];
+      };
+      clinical_resolve_visit_diagnoses: { Args: { p_org: string }; Returns: number };
       clinical_setting: { Args: { p_key: string; p_org: string }; Returns: string };
       clinical_setting_bool: { Args: { p_key: string; p_org: string }; Returns: boolean };
       clinical_setting_num: { Args: { p_key: string; p_org: string }; Returns: number };
+      clinical_store_visit_diagnoses: {
+        Args: { p_codes: Json; p_org: string; p_source?: string; p_visit: string };
+        Returns: Json;
+      };
       complete_scheduled_job: { Args: { p_id: string }; Returns: undefined };
       contact_duplicate_candidates: {
         Args: { p_limit?: number; p_org_id: string };
@@ -15202,6 +15378,34 @@ export type Database = {
           total: number;
         }[];
       };
+      report_clinical_data_quality: {
+        Args: { p_from: string; p_org: string; p_to: string };
+        Returns: {
+          incomplete_vitals: number;
+          unclassified_medication_codes: number;
+          unknown_diagnosis_codes: number;
+          unmatched_patients: number;
+          visits: number;
+        }[];
+      };
+      report_clinical_followup_load: {
+        Args: { p_org: string; p_today: string };
+        Returns: {
+          doctor_alerts_pending: number;
+          high_priority: number;
+          open_items: number;
+          overdue: number;
+          trigger_category: string;
+        }[];
+      };
+      report_clinical_red_flags: {
+        Args: { p_from: string; p_org: string; p_to: string };
+        Returns: {
+          needs_review: number;
+          red_flags: number;
+          replies: number;
+        }[];
+      };
       report_conversations_by_channel: {
         Args: {
           p_channels?: string[];
@@ -15336,6 +15540,45 @@ export type Database = {
           inbound_messages: number;
         }[];
       };
+      report_recall_week: {
+        Args: { p_org: string; p_week_start: string };
+        Returns: {
+          booked: number;
+          failed: number;
+          programme_key: string;
+          programme_name: string;
+          replied: number;
+          send_mode: string;
+          sent: number;
+          unique_contacts: number;
+        }[];
+      };
+      report_reminder_stats_by_day: {
+        Args: { p_from: string; p_org: string; p_to: string };
+        Returns: {
+          day: string;
+          reminders_delivered: number;
+          reminders_failed: number;
+          reminders_read: number;
+          reminders_replied: number;
+          reminders_sent: number;
+        }[];
+      };
+      report_reminder_stats_by_specialist: {
+        Args: { p_from: string; p_org: string; p_to: string };
+        Returns: {
+          appointments: number;
+          contacted: number;
+          reminders_delivered: number;
+          reminders_excluded: number;
+          reminders_failed: number;
+          reminders_read: number;
+          reminders_replied: number;
+          reminders_sent: number;
+          specialist_id: string;
+          specialist_name: string;
+        }[];
+      };
       report_response_summary: {
         Args: {
           p_channels?: string[];
@@ -15409,6 +15652,8 @@ export type Database = {
       review_request_stats: { Args: { p_org: string; p_since: string }; Returns: Json };
       security_maintenance: { Args: { p_now?: string }; Returns: Json };
       seed_clinical_settings: { Args: { p_org: string }; Returns: undefined };
+      seed_clinical_settings_phase21: { Args: { p_org: string }; Returns: undefined };
+      seed_clinical_settings_phase6: { Args: { p_org: string }; Returns: undefined };
       seed_condition_groups: { Args: { p_org: string }; Returns: undefined };
       seed_finance_reference: { Args: { p_org_id: string }; Returns: undefined };
       seed_finance_roles: { Args: { p_org_id: string; p_roles: Json }; Returns: number };

@@ -51,9 +51,15 @@ export function mapperFieldIds(mapper: TableMapper): string[] {
     ...(mapper.links ?? []).map((l) => l.fieldId),
     ...(mapper.extraFieldIds ?? []),
     ...(mapper.testFlagFieldId ? [mapper.testFlagFieldId] : []),
+    ...(mapper.junction
+      ? [
+          mapper.junction.link.fieldId,
+          ...(mapper.junction.flagLink ? [mapper.junction.flagLink.fieldId] : []),
+        ]
+      : []),
   ];
 }
 
-export function entityOf(m: { baseId: string; tableId: string }): string {
-  return `${m.baseId}.${m.tableId}`;
+export function entityOf(m: { baseId: string; tableId: string; entitySuffix?: string }): string {
+  return `${m.baseId}.${m.tableId}${m.entitySuffix ? `#${m.entitySuffix}` : ""}`;
 }

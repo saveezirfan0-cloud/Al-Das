@@ -153,6 +153,38 @@ export const GUIDES: readonly Guide[] = [
     watchOut: ["Numbers use the clinic's time zone, not yours."],
   },
   {
+    id: "clinical-data-quality",
+    title: "Clinical data quality",
+    pages: ["/portal/data-quality", "/portal/unclassified-medications"],
+    purpose:
+      "Find the visits and medicines the clinical rules cannot judge yet, so follow-ups and antibiotic check-ins are not missed.",
+    steps: [
+      "Data quality lists visits with a missing temperature, blood pressure, oxygen or pulse, and visits with no matched patient. Fix the record in Unite; the next sync updates it.",
+      "Codes at the bottom are diagnoses Pulse does not know. Add them under Portal, Diagnoses (ICD-10) with the chronic flag; visits are linked the next night.",
+      "Unclassified medications lists Unite medicine codes with no class. Choose the class, tick that you checked the drug, then Save.",
+      "For an antibiotic, tick 'Probiotics afterwards by default' only if the clinic's rule says so for that drug.",
+    ],
+    watchOut: [
+      "The suggestion beside each medicine is the old automatic guess. It can be wrong; a person always decides.",
+      "Classifying a medicine as an antibiotic lets Pulse plan its check-ins. Nothing reaches a patient while clinical messaging is switched off.",
+    ],
+  },
+  {
+    id: "clinical-feedback",
+    title: "Clinical feedback",
+    pages: ["/portal/clinical-feedback"],
+    purpose: "See what patients answered to clinical check-ins and which answers raised a red flag.",
+    steps: [
+      "Use 'Needing a person' to see replies the system could not judge on its own.",
+      "A red flag means the doctor and the care coordinators were both alerted. The call itself is in the Follow-Up Queue.",
+      "Open 'Show reply' only when you need the patient's own words.",
+    ],
+    watchOut: [
+      "Replies are health information. Never copy them into chats, e-mails or tasks.",
+      "While the thresholds are not signed off, every reply goes to a person.",
+    ],
+  },
+  {
     id: "finance",
     title: "Finance",
     pages: ["/finance"],

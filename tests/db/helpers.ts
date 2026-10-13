@@ -20,7 +20,7 @@ export async function resetDb(c: Client) {
   await c.query("truncate public.orgs cascade");
   await c.query("truncate public.scheduled_jobs, public.job_runs, public.dead_letters, public.flow_locks");
   await c.query("delete from auth.users");
-  for (const q of ["outbound", "outbound_priority", "flow_steps", "notifications", "meta_events", "webhooks_out", "kb_ingest", "ai_insights", "sms_outbound", "capi_events"]) {
+  for (const q of ["outbound", "outbound_priority", "flow_steps", "notifications", "meta_events", "webhooks_out", "kb_ingest", "ai_insights", "sms_outbound", "capi_events", "clinical"]) {
     await c.query(`delete from pgmq.q_${q}`);
     await c.query(`delete from pgmq.a_${q}`);
   }
@@ -473,3 +473,39 @@ export const PHASE19_SERVICE_ONLY_TABLES = [
   "integration_webhook_events",
   "telehealth_rooms",
 ] as const;
+
+/**
+ * One row in every Phase 21 table for an org (visit diagnoses and the derived chronic conditions), so the cross-org
+ * sweeps are not vacuous for them. Service role only: neither table has a write policy. Synthetic data only.
+ */
+export async function seedPhase21Rows(c: Client, orgId: string) {
+  const ids: Record<string, string> = {};
+  await asServiceRole(c, async () => {
+    const one = async (sql: string, params: unknown[]) =>
+      (await c.query<{ id: string }>(sql + " returning id::text", params)).rows[0].id;
+    ids.contact = await one(
+      "insert into public.contacts (org_id, first_name, last_name, phone_e164) values ($1, 'Layla Demo-21', 'Synthetic', '+447700900021')",
+      [orgId],
+    );
+    ids.visit = await one(
+      "insert into public.visits (org_id, contact_id, external_id, visit_date) values ($1, $2, 'SYN-P21-V1', current_date - 30)",
+      [orgId, ids.contact],
+    );
+    ids.diagnosis = await one(
+      "insert into public.ref_diagnoses (org_id, code, chronic) values ($1, 'I10', true) on conflict (org_id, code) do update set chronic = true",
+      [orgId],
+    );
+    ids.visitDiagnosis = await one(
+      "insert into public.visit_diagnoses (org_id, visit_id, contact_id, ref_diagnosis_id, diagnosis_code, visit_date, source) values ($1, $2, $3, $4, 'I10', current_date - 30, 'unite')",
+      [orgId, ids.visit, ids.contact, ids.diagnosis],
+    );
+    ids.chronic = await one(
+      "insert into public.contact_chronic_conditions (org_id, contact_id, ref_diagnosis_id, source, noted_at, last_seen_on, evidence_visits) values ($1, $2, $3, 'visit_diagnoses', current_date - 30, current_date - 30, 1)",
+      [orgId, ids.contact, ids.diagnosis],
+    );
+  });
+  return ids;
+}
+
+/** Phase 21 tables with a (PHI-gated) select policy and no write policy. */
+export const PHASE21_TABLES = ["contact_chronic_conditions", "visit_diagnoses"] as const;

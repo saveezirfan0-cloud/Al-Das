@@ -139,6 +139,93 @@ export function canSendProbiotic(status: SequenceStatus): boolean {
   return status !== "halted_clinical" && status !== "awaiting_clarification";
 }
 
+// ---------------------------------------------------------------------------
+// Phase 21: scheduling the sequence (one scheduled_jobs row per step)
+// ---------------------------------------------------------------------------
+
+/** The patient-facing steps carry a template key; NO_REPLY_CHECK is internal (a nurse call task). */
+export type SequenceStep = "ABX_DAY3" | "NO_REPLY_CHECK" | "PROBIOTIC_START" | "TREATMENT_OUTCOME";
+export const SEQUENCE_STEPS: readonly SequenceStep[] = [
+  "ABX_DAY3",
+  "NO_REPLY_CHECK",
+  "PROBIOTIC_START",
+  "TREATMENT_OUTCOME",
+];
+export const STEP_TEMPLATE: Record<SequenceStep, string | null> = {
+  ABX_DAY3: "ABX_DAY3",
+  NO_REPLY_CHECK: null,
+  PROBIOTIC_START: "PROBIOTIC_START",
+  TREATMENT_OUTCOME: "TREATMENT_OUTCOME",
+};
+
+export type PlannedStep = { step: SequenceStep; date: string };
+export type StepSkip = { step: SequenceStep; reason: "no_date" | "date_passed" };
+
+/**
+ * Which steps to schedule for a plan, on which local day. A step with no date (an unsigned setting, no
+ * probiotics, no duration) is not scheduled; a step whose day has already passed is skipped, never sent
+ * late (the same rule as appointment reminders). Today itself still counts.
+ */
+export function sequenceSchedule(
+  plan: SequencePlan,
+  today: string,
+): { steps: PlannedStep[]; skipped: StepSkip[] } {
+  const steps: PlannedStep[] = [];
+  const skipped: StepSkip[] = [];
+  if (!plan.applicable) return { steps, skipped };
+  const dates: Record<SequenceStep, string | null> = {
+    ABX_DAY3: plan.day3CheckDate,
+    NO_REPLY_CHECK: plan.endDate ? addDays(plan.endDate, 1) : null,
+    PROBIOTIC_START: plan.probioticStartDate,
+    TREATMENT_OUTCOME: plan.probioticEndDate,
+  };
+  for (const step of SEQUENCE_STEPS) {
+    const date = dates[step];
+    if (!date) skipped.push({ step, reason: "no_date" });
+    else if (date < today) skipped.push({ step, reason: "date_passed" });
+    else steps.push({ step, date });
+  }
+  return { steps, skipped };
+}
+
+export type StepDecision =
+  | { action: "dispatch"; templateKey: string; nextStatus: SequenceStatus }
+  | { action: "nurse_task"; reason: string }
+  | { action: "skip"; reason: string };
+
+/**
+ * What a due step may do, given the sequence's status now. The clinical messaging gate is applied
+ * afterwards by dispatchClinicalMessage (decideClinicalSend): with the gate off a "dispatch" only logs
+ * a suppressed would-send row and the status does not move.
+ */
+export function decideSequenceStep(
+  step: SequenceStep,
+  seq: { status: SequenceStatus; endDate: string | null },
+  today: string,
+): StepDecision {
+  switch (step) {
+    case "ABX_DAY3":
+      return seq.status === "not_started"
+        ? { action: "dispatch", templateKey: "ABX_DAY3", nextStatus: "awaiting_day3_reply" }
+        : { action: "skip", reason: `status_${seq.status}` };
+    case "NO_REPLY_CHECK": {
+      const r = noReplyCheck(seq, today);
+      return r.raiseNurseCallTask
+        ? { action: "nurse_task", reason: "no_reply_by_end_date" }
+        : { action: "skip", reason: "not_waiting_for_a_reply" };
+    }
+    case "PROBIOTIC_START":
+      if (!canSendProbiotic(seq.status)) return { action: "skip", reason: `status_${seq.status}` };
+      if (["probiotic_sent", "outcome_sent", "complete"].includes(seq.status))
+        return { action: "skip", reason: `status_${seq.status}` };
+      return { action: "dispatch", templateKey: "PROBIOTIC_START", nextStatus: "probiotic_sent" };
+    case "TREATMENT_OUTCOME":
+      return seq.status === "probiotic_sent"
+        ? { action: "dispatch", templateKey: "TREATMENT_OUTCOME", nextStatus: "outcome_sent" }
+        : { action: "skip", reason: `status_${seq.status}` };
+  }
+}
+
 /**
  * R-17: no reply by the antibiotic end date. The sequence proceeds, but silence is never read as
  * improvement: a nurse call task is raised.

@@ -25,6 +25,7 @@ import {
   PHASE18_TABLES,
   PHASE19_SERVICE_ONLY_TABLES,
   PHASE19_TABLES,
+  PHASE21_TABLES,
   resetDb,
   seedPhase13Rows,
   seedPhase14Rows,
@@ -32,6 +33,7 @@ import {
   seedPhase17Rows,
   seedPhase18Rows,
   seedPhase19Rows,
+  seedPhase21Rows,
   seedSecurityRows,
   TEST_DATABASE_URL,
 } from "./helpers";
@@ -471,6 +473,8 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
     await seedPhase17Rows(c, orgA, alice);
     // Phase 19 tables likewise.
     await seedPhase19Rows(c, orgA, alice);
+    // Phase 21 tables likewise.
+    await seedPhase21Rows(c, orgA);
   });
   afterAll(async () => {
     await resetDb(c);
@@ -481,14 +485,14 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
     expect(orgTables.length).toBeGreaterThanOrEqual(25);
   });
 
-  it("sweeps every Phase 13, 14, 15, 16, 17, 18 and 19 table (a new table must be added to PHASE13_TABLES / PHASE14_TABLES / PHASE15_TABLES / PHASE16_TABLES / PHASE17_TABLES / PHASE18_TABLES / PHASE19_TABLES and seeded)", () => {
-    for (const t of [...PHASE19_TABLES, ...PHASE18_TABLES, ...PHASE17_TABLES, ...PHASE16_TABLES, ...PHASE15_TABLES, ...PHASE14_TABLES, ...PHASE13_TABLES])
+  it("sweeps every Phase 13, 14, 15, 16, 17, 18, 19 and 21 table (a new table must be added to PHASE13_TABLES / PHASE14_TABLES / PHASE15_TABLES / PHASE16_TABLES / PHASE17_TABLES / PHASE18_TABLES / PHASE19_TABLES / PHASE21_TABLES and seeded)", () => {
+    for (const t of [...PHASE21_TABLES, ...PHASE19_TABLES, ...PHASE18_TABLES, ...PHASE17_TABLES, ...PHASE16_TABLES, ...PHASE15_TABLES, ...PHASE14_TABLES, ...PHASE13_TABLES])
       expect(orgTables, `${t} is not in the org sweep`).toContain(t);
   });
 
-  it("really holds org A rows in the Phase 13, 14, 15, 16, 17, 18 and 19 tables, visible to org A's admin (control for the leak sweep)", async () => {
+  it("really holds org A rows in the Phase 13, 14, 15, 16, 17, 18, 19 and 21 tables, visible to org A's admin (control for the leak sweep)", async () => {
     await asUser(c, alice, async () => {
-      for (const t of [...PHASE19_TABLES, ...PHASE18_TABLES, ...PHASE17_TABLES, ...PHASE16_TABLES, ...PHASE15_TABLES, ...PHASE14_TABLES, ...PHASE13_TABLES]) {
+      for (const t of [...PHASE21_TABLES, ...PHASE19_TABLES, ...PHASE18_TABLES, ...PHASE17_TABLES, ...PHASE16_TABLES, ...PHASE15_TABLES, ...PHASE14_TABLES, ...PHASE13_TABLES]) {
         const { rows } = await c.query<{ n: string }>(
           `select count(*)::text as n from public.${t} where org_id = $1`,
           [orgA],

@@ -1,5 +1,7 @@
 export * from "@/lib/clinical/age";
 export * from "@/lib/clinical/category";
+export * from "@/lib/clinical/chronic";
+export * from "@/lib/clinical/medication-class";
 export * from "@/lib/clinical/department";
 export * from "@/lib/clinical/evaluate";
 export * from "@/lib/clinical/feedback";
