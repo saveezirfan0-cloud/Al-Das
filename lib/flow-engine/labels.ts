@@ -13,6 +13,10 @@ export const TRIGGER_LABELS: Record<string, string> = {
   appointment_updated: "Appointment updated",
   appointment_status_changed: "Appointment status changed",
   conversation_ai_tagged: "AI tag added to a conversation (needs clinical sign-off)",
+  message_received: "Message received (conversation already open)",
+  window_closing: "24-hour window about to close",
+  wa_flow_completed: "WhatsApp Flow form submitted",
+  segment_joined: "Contact added to a segment (drip)",
 };
 
 export const RUN_STATUS_LABELS: Record<string, string> = {

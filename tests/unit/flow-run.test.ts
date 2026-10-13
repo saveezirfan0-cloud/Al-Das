@@ -328,7 +328,7 @@ describe("question → reply", () => {
     expect(run(h, id).context.vars.answer).toBeUndefined();
   });
 
-  it("unmatched text without a fallback keeps waiting", async () => {
+  it("unmatched text without a fallback ends the run with a clear error (never waits silently)", async () => {
     const h = harness();
     const noFallback = graph(
       g.nodes.filter((n) => n.id !== "fb"),
@@ -338,10 +338,14 @@ describe("question → reply", () => {
     const id = await start(h);
     await h.drain();
     expect(await resumeFromReply(h.deps, id, { kind: "text", text: "???" })).toEqual({
-      resumed: false,
-      reason: "unmatched_reply",
+      resumed: true,
+      reason: "no_valid_answer",
+      invalid: true,
     });
-    expect(run(h, id).status).toBe("waiting");
+    expect(run(h, id).status).toBe("failed");
+    expect(run(h, id).error).toMatch(/did not fit/);
+    // The conversation goes back to people.
+    expect(h.store.conversations.get(CONV)!.bot_active).toBe(false);
   });
 
   it("times out through the fallback edge; stale tokens are ignored", async () => {

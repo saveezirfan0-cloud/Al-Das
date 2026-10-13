@@ -426,6 +426,7 @@ export function ContactsWorkspace({ bootstrap }: { bootstrap: ContactsBootstrap 
         initialFilter={segmentDraft.filter ?? null}
         fields={bootstrap.fields}
         options={optionSources}
+        dripFlows={bootstrap.can.drip ? bootstrap.dripFlows : null}
         onSaved={(seg) => {
           setSegments((prev) => {
             const others = prev.filter((s) => s.id !== seg.id);

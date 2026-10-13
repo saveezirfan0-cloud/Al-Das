@@ -5,11 +5,19 @@ import { z } from "zod";
 
 import { FLOW_TRIGGERABLE_TAGS } from "@/lib/ai/copilot/settings";
 import { recordAudit } from "@/lib/audit";
+import { can } from "@/lib/auth/can";
 import { requirePerm } from "@/lib/auth/session";
 import { isValidCron } from "@/lib/cron";
 import { hasErrors, validateGraph, type GraphIssue } from "@/lib/flow-engine/graph";
 import { starterFlow } from "@/lib/flow-engine/starter-flows";
-import { graphSchema, TRIGGER_TYPES, triggerConditionsSchema } from "@/lib/flow-engine/types";
+import { DEBOUNCE_SECONDS, WINDOW_LEAD_MINUTES } from "@/lib/flow-engine/triggers";
+import {
+  CONDITION_TRIGGER_TYPES,
+  graphSchema,
+  TRIGGER_TYPES,
+  triggerConditionsSchema,
+  type TriggerType,
+} from "@/lib/flow-engine/types";
 import { newWebhookToken } from "@/lib/flow-engine/webhook-token";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/types";
@@ -96,15 +104,28 @@ function cleanTriggerConfig(
   const value: Record<string, unknown> = {};
   const cond = triggerConditionsSchema.safeParse(raw.conditions ?? {});
   if (!cond.success) return { ok: false, error: "Trigger conditions are invalid" };
-  if (
-    [
-      "conversation_opened",
-      "conversation_closed",
-      "conversation_waiting",
-      "template_button",
-    ].includes(type)
-  )
-    value.conditions = cond.data;
+  if (CONDITION_TRIGGER_TYPES.includes(type as TriggerType)) value.conditions = cond.data;
+  const intIn = (v: unknown, r: { min: number; max: number }) =>
+    typeof v === "number" && Number.isInteger(v) && v >= r.min && v <= r.max;
+  if (type === "message_received" && raw.debounce_seconds !== undefined) {
+    if (!intIn(raw.debounce_seconds, DEBOUNCE_SECONDS))
+      return {
+        ok: false,
+        error: `The quiet period must be ${DEBOUNCE_SECONDS.min} to ${DEBOUNCE_SECONDS.max} seconds`,
+      };
+    value.debounce_seconds = raw.debounce_seconds;
+  }
+  if (type === "window_closing") {
+    const m = raw.minutes_before ?? WINDOW_LEAD_MINUTES.default;
+    if (!intIn(m, WINDOW_LEAD_MINUTES))
+      return {
+        ok: false,
+        error: `Minutes before the window closes must be ${WINDOW_LEAD_MINUTES.min} to ${WINDOW_LEAD_MINUTES.max}`,
+      };
+    value.minutes_before = m;
+  }
+  if (type === "wa_flow_completed" && typeof raw.flow_token === "string" && raw.flow_token.trim())
+    value.flow_token = raw.flow_token.trim().slice(0, 200);
   if (type === "template_button") {
     if (typeof raw.template_id === "string" && raw.template_id) value.template_id = raw.template_id;
     if (typeof raw.button_text === "string" && raw.button_text.trim())
@@ -215,6 +236,15 @@ export async function publishFlow(id: string): Promise<ActionResult<{ version: n
     !isValidCron(String((flow.trigger_config as Record<string, unknown>).cron ?? ""))
   )
     return { ok: false, error: "Set a valid schedule for the recurring trigger first." };
+  // A step that takes money needs the same right as sending a payment link by hand (Phase 19a).
+  if (
+    check.graph.nodes.some((n) => n.type === "payment_link") &&
+    !can(member, "finance.payment_links")
+  )
+    return {
+      ok: false,
+      error: "Only someone who may send payment links can publish a flow with a Payment link step.",
+    };
   const version = flow.version + 1;
   const { error: vErr } = await admin.from("flow_versions").insert({
     flow_id: flow.id,

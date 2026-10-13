@@ -23,6 +23,7 @@ import type {
   TemplateView,
 } from "@/lib/flow-engine/deps";
 import { advance, resumeFromReply, resumeFromTimer, startRun } from "@/lib/flow-engine/run";
+import { windowLeadMinutes } from "@/lib/flow-engine/triggers";
 import { triggerConditionsSchema, type FlowGraph, type Outcome } from "@/lib/flow-engine/types";
 import type { SendSpec } from "@/lib/inbox/send";
 
@@ -77,7 +78,7 @@ export type SimResult = {
   inboundUsed: number;
   /** Sample messages the flow never reached. */
   inboundUnused: number;
-  /** Answers a question did not understand (the bot kept waiting). */
+  /** Answers a question could not accept (it asked again, took its fallback output, or stopped). */
   unmatchedReplies: number;
 };
 
@@ -217,6 +218,12 @@ class SimStore implements FlowStore {
   async getFirstInboundText() {
     return null;
   }
+  async hasRunSince() {
+    return false;
+  }
+  async getSegmentDrip() {
+    return null;
+  }
 }
 
 function nestedFlow(id: string, graph: FlowGraph): FlowView {
@@ -311,16 +318,42 @@ class SimActions implements FlowActions {
   }
 }
 
-function simCrm(actions: SimActions): CrmPort {
+function simCrm(actions: SimActions, lastSample: () => string | null): CrmPort {
   const stub = (label: string) => async () => {
     actions.record(`Would ${label} (not done in a dry run)`);
     return { id: "sim" };
   };
   return {
-    createEnquiry: stub("create an enquiry"),
+    createEnquiry: stub("create an enquiry, or move the patient's open one"),
+    updateEnquiry: async (_run, input) => {
+      actions.record(`Would update the enquiry's ${String(input.action)} (not done in a dry run)`);
+      return { id: "sim" };
+    },
     addTask: stub("add a task"),
     upsertPortalRecord: stub("save a portal record"),
     bookAppointment: stub("book an appointment"),
+    setConversationLabel: async (_run, input) => {
+      actions.record(`Would ${input.on ? "add" : "remove"} a conversation label`);
+      return { changed: true };
+    },
+    createPaymentLink: async () => {
+      actions.record(
+        "Would create a payment link and send the payment template (not done in a dry run)",
+      );
+      return { ok: true, requestId: "sim" };
+    },
+    sendMetaEvent: async (_run, input) => {
+      actions.record(
+        `Would report a ${input.event_name} event to Meta if the patient came from an ad and consent allows (not sent in a dry run)`,
+      );
+      return { status: "dry_run" };
+    },
+    lastInbound: async () => {
+      const body = lastSample();
+      return body === null ? null : { messageId: "sim-message", body };
+    },
+    // The model is never called in a dry run: the router takes its Else output.
+    intentsFor: async () => null,
   };
 }
 
@@ -387,6 +420,17 @@ const CONVERSATION_TRIGGERS = new Set([
   "conversation_waiting",
   "template_button",
   "shortcut",
+  "message_received",
+  "window_closing",
+  "wa_flow_completed",
+]);
+
+/** Conversation triggers that do not start from a patient's message (no sample message is consumed). */
+const NO_MESSAGE_TRIGGERS = new Set([
+  "shortcut",
+  "conversation_closed",
+  "window_closing",
+  "wa_flow_completed",
 ]);
 
 function sampleTrigger(triggerType: string, now: Date): Record<string, unknown> {
@@ -445,7 +489,8 @@ function describe(
           : step.status === "ok"
             ? " The patient answered."
             : "";
-      out.detail = `Would ask: "${(sent[sent.length - 1]?.text ?? "").slice(0, 160)}" and wait for the answer.${answered}`;
+      const invalid = step.output?.invalid_answer === true ? " The answer did not fit." : "";
+      out.detail = `Would ask: "${(sent[sent.length - 1]?.text ?? "").slice(0, 160)}" and wait for the answer.${answered}${invalid}`;
       break;
     }
     case "template":
@@ -467,6 +512,14 @@ function describe(
       break;
     case "run_flow":
       out.detail = "Would run another flow (not simulated), then continue.";
+      break;
+    case "ai_router":
+      out.detail =
+        outcome.kind === "end"
+          ? "The last message reads like a possible emergency: the flow stops and a person takes over."
+          : outcome.kind === "next" && outcome.handle?.startsWith("intent:")
+            ? `Routed on the label "${outcome.handle.slice("intent:".length)}".`
+            : "The AI is not asked in a dry run, so the router takes its Else output.";
       break;
     default:
       out.detail = sim.effects.get(step.node_id) ?? "Done.";
@@ -499,6 +552,15 @@ export async function simulateFlow(input: SimInput): Promise<SimResult> {
     has_phone: true,
     custom: {},
   };
+  // window_closing starts near the end of the 24-hour window, so a long wait in it is shown closing the window.
+  const lastInboundAt =
+    input.triggerType === "window_closing"
+      ? new Date(
+          clock.now.getTime() -
+            24 * 3_600_000 +
+            windowLeadMinutes(input.triggerConfig ?? {}) * 60_000,
+        )
+      : clock.now;
   const conversation: ConversationView | null = hasConversation
     ? {
         id: CONV,
@@ -508,7 +570,7 @@ export async function simulateFlow(input: SimInput): Promise<SimResult> {
         status: "open",
         bot_active: false,
         flow_run_id: null,
-        last_inbound_at: clock.now.toISOString(),
+        last_inbound_at: lastInboundAt.toISOString(),
         opened_at: clock.now.toISOString(),
         ad_referral: null,
         assignee_user_id: null,
@@ -547,6 +609,8 @@ export async function simulateFlow(input: SimInput): Promise<SimResult> {
   };
   const store = new SimStore(flow, contact, conversation, templates, nested);
   const actions = new SimActions();
+  let next = 0;
+  let unmatched = 0;
   const queue: string[] = [];
   const timers: Array<{ runId: string; token: string; runAt: Date }> = [];
   let counter = 0;
@@ -560,16 +624,17 @@ export async function simulateFlow(input: SimInput): Promise<SimResult> {
       async scheduleResume(i) {
         timers.push({ runId: i.runId, token: i.token, runAt: i.runAt });
       },
+      async scheduleTrigger() {
+        // Later trigger checks (window closing) are not part of a single dry run.
+      },
     },
     lock: new SimLock(),
-    crm: simCrm(actions),
+    crm: simCrm(actions, () => (next > 0 ? (inbound[next - 1] ?? null) : null)),
     now: () => clock.now,
     uuid: () => `00000000-0000-4000-8000-${String(++counter + 5000).padStart(12, "0")}`,
     timezone: input.timezone ?? "Asia/Dubai",
   };
 
-  let next = 0;
-  let unmatched = 0;
   const done = (status: SimResult["status"], reason: string): SimResult => ({
     status,
     reason,
@@ -583,11 +648,7 @@ export async function simulateFlow(input: SimInput): Promise<SimResult> {
   // --- does the trigger fire? -------------------------------------------------------------------------------------------
   if (hasConversation) {
     const first = inbound[0];
-    if (
-      input.triggerType !== "shortcut" &&
-      input.triggerType !== "conversation_closed" &&
-      first === undefined
-    )
+    if (!NO_MESSAGE_TRIGGERS.has(input.triggerType) && first === undefined)
       return done(
         "not_started",
         "Add at least one sample message from the patient to start this flow.",
@@ -609,7 +670,7 @@ export async function simulateFlow(input: SimInput): Promise<SimResult> {
         "not_started",
         "The first sample message does not match the trigger's conditions, so the flow would not start.",
       );
-    if (input.triggerType !== "shortcut" && input.triggerType !== "conversation_closed") next = 1; // the first message opened the conversation
+    if (!NO_MESSAGE_TRIGGERS.has(input.triggerType)) next = 1; // the first message started the flow
   }
 
   const started = await startRun(deps, {
@@ -669,7 +730,7 @@ export async function simulateFlow(input: SimInput): Promise<SimResult> {
           text: message,
           optionId: byId?.id ?? null,
         });
-        if (!r.resumed && r.reason === "unmatched_reply") unmatched += 1; // the engine keeps waiting for a valid answer
+        if (r.invalid) unmatched += 1; // re-asked, took the fallback output, or ended the run
         continue;
       }
       if (w.kind === "child") {
