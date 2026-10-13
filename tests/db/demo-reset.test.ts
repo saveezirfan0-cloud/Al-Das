@@ -209,6 +209,8 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)("demo rese
       "notification_preferences",
       "push_subscriptions",
       "notification_digest_log",
+      "acc_accounts",
+      "acc_entities",
     ];
     expect(await tablesWithRowsForOrg(orgId, KEEP)).toEqual({});
     expect(await countOf("roles", orgId)).toBe(SYSTEM_ROLES.length);
