@@ -227,6 +227,12 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
     permissions: ["finance.bank.view"],
   },
   {
+    href: "/finance/labs",
+    label: "Labs and referrals",
+    section: "Money",
+    permissions: ["finance.labs.view"],
+  },
+  {
     href: "/finance/close",
     label: "Month-end close",
     section: "Money",
@@ -297,6 +303,12 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
     label: "Bank accounts and rules",
     section: "Setup",
     permissions: ["finance.bank.manage"],
+  },
+  {
+    href: "/finance/labs/settings",
+    label: "Lab providers and tests",
+    section: "Setup",
+    permissions: ["finance.labs.manage"],
   },
 ];
 

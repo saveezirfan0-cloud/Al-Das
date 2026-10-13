@@ -15,6 +15,7 @@ import {
 import { can } from "@/lib/auth/can";
 import { requirePerm } from "@/lib/auth/session";
 import { todayIn } from "@/lib/finance/action-support";
+import { BANK_IMPORT_KINDS } from "@/lib/finance/import-kinds";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import { ImportForm, NewRunForm, RemoveImportButton } from "./forms";
@@ -47,6 +48,7 @@ export default async function BankPage() {
     admin
       .from("fin_import_formats")
       .select("id, kind, name")
+      .in("kind", [...BANK_IMPORT_KINDS])
       .eq("org_id", member.orgId)
       .eq("active", true)
       .order("name"),

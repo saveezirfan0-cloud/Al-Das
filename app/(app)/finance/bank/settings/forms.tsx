@@ -8,7 +8,7 @@ import {
   AMOUNT_STYLES,
   DATE_FORMATS,
   fieldsFor,
-  IMPORT_KIND_KEYS,
+  BANK_IMPORT_KINDS,
   IMPORT_KINDS,
   type AmountStyle,
   type ImportKind,
@@ -121,10 +121,8 @@ export function AccountButton({ account }: { account?: AccountView }) {
   );
 }
 
-function FormatFields({ format }: { format?: FormatView }) {
-  const [kind, setKind] = React.useState<ImportKind>(
-    (format?.kind as ImportKind) ?? "bank_statement",
-  );
+function FormatFields({ format, kinds }: { format?: FormatView; kinds: readonly ImportKind[] }) {
+  const [kind, setKind] = React.useState<ImportKind>((format?.kind as ImportKind) ?? kinds[0]);
   const [style, setStyle] = React.useState<AmountStyle>(
     (format?.amount_style as AmountStyle) ?? "signed",
   );
@@ -139,7 +137,7 @@ function FormatFields({ format }: { format?: FormatView }) {
           disabled={!!format}
           onChange={(e) => setKind(e.target.value as ImportKind)}
         >
-          {IMPORT_KIND_KEYS.map((k) => (
+          {kinds.map((k) => (
             <option key={k} value={k}>
               {IMPORT_KINDS[k].label}
             </option>
@@ -203,19 +201,33 @@ function FormatFields({ format }: { format?: FormatView }) {
   );
 }
 
-export function FormatButton({ format }: { format?: FormatView }) {
+/**
+ * Add or edit a file layout. Shared with the labs settings page (20E), which passes its own kinds and its own action
+ * (finance.labs.manage); the default is the bank kinds and the bank action (finance.bank.manage).
+ */
+export function FormatButton({
+  format,
+  kinds = BANK_IMPORT_KINDS,
+  action = saveFormat,
+  description = "Map each field to the header of its column. Set this up once per bank or processor when the first sample file arrives.",
+}: {
+  format?: FormatView;
+  kinds?: readonly ImportKind[];
+  action?: (values: Record<string, string>) => Promise<{ ok: true } | { ok: false; error: string }>;
+  description?: string;
+}) {
   return (
     <FormSheet
       trigger={format ? "Edit" : "Add layout"}
       title={format ? `Edit ${format.name}` : "Add a file layout"}
-      description="Map each field to the header of its column. Set this up once per bank or processor when the first sample file arrives."
+      description={description}
       variant={format ? "ghost" : "outline"}
       size="sm"
     >
       {(close) => (
-        <ActionForm action={saveFormat} submitLabel="Save layout" onDone={close}>
+        <ActionForm action={action} submitLabel="Save layout" onDone={close}>
           <input type="hidden" name="id" value={format?.id ?? ""} />
-          <FormatFields format={format} />
+          <FormatFields format={format} kinds={kinds} />
         </ActionForm>
       )}
     </FormSheet>

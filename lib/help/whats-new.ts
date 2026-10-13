@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-11-05-labs-and-referrals",
+    date: "2026-11-05",
+    title: "Lab and referral reconciliation",
+    body: "Finance has a new Labs and referrals page. Upload each lab's, hospital's and radiology provider's monthly file and Pulse checks every test against what Unite billed for the same patient, day and test code: tests done but never billed, tests billed that the lab has no record of, prices that differ from the agreed price and results that came back late. Once reviewed, a second person posts each doctor's share of the cost (including the in-house lab's fixed monthly fee) to the doctor charges used by the revenue share. Patient names in the files are never read.",
+  },
+  {
     id: "2026-11-04-bank-ai-review",
     date: "2026-11-04",
     title: "AI review of bank reconciliation",

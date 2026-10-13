@@ -151,6 +151,22 @@ describe("Finance navigation", () => {
     expect(badgesNeeded(member(["finance.payables.manage"]))).not.toContain("inbox");
   });
 
+  it("lab and referral reconciliation: Finance and the Finance Manager run it, the CEO reads it, nobody else sees it", () => {
+    for (const r of ["Finance", "Finance Manager"]) {
+      expect(hrefs(member(role(r))), r).toEqual(
+        expect.arrayContaining(["/finance/labs", "/finance/labs/settings"]),
+      );
+      expect(role(r), r).toEqual(expect.arrayContaining(["finance.labs.view", "finance.labs.manage"]));
+    }
+    expect(hrefs(member(role("CEO")))).toContain("/finance/labs");
+    expect(hrefs(member(role("CEO")))).not.toContain("/finance/labs/settings");
+    expect(role("CEO")).not.toContain("finance.labs.manage");
+    for (const r of ["Billing", "Insurance", "Medical Director", "Cost / Payroll", "Operations"]) {
+      expect(hrefs(member(role(r))).filter((h) => h.startsWith("/finance/labs")), r).toEqual([]);
+      expect(role(r).filter((p) => p.startsWith("finance.labs.")), r).toEqual([]);
+    }
+  });
+
   it("the Medical Director sees revenue and scorecards only", () => {
     expect(hrefs(member(role("Medical Director"))).sort()).toEqual(
       [

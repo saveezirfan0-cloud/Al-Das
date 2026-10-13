@@ -335,6 +335,24 @@ export const GUIDES: readonly Guide[] = [
     ],
   },
   {
+    id: "finance-labs",
+    title: "Labs and referrals",
+    pages: ["/finance/labs", "/finance/labs/settings"],
+    purpose:
+      "Checks every lab test and referral on a provider's monthly file against what Unite billed (patient PIN, day and test code) before its cost is charged to the doctor: tests done but not billed, tests billed that the lab has no record of, price differences and late results.",
+    steps: [
+      "Once, in Providers, tests and layouts: add the in-house lab (its monthly fee and how to share it), each send-out lab, hospital and radiology provider, each provider's tests (expected days and agreed price), and a file layout per provider (the header of each column in their file).",
+      "Each month, upload each provider's file (one per branch is fine) for the month of service. Names and ID numbers in the file are never read; the same file twice is refused.",
+      "Open the statement: give a reason for every line not matched to Unite and every billed test missing from the lab's file (one reason can cover a whole list), check price differences and late results, then mark it reviewed.",
+      "A second person posts it: each doctor's cost becomes a lab or referral charge for the month, deducted in the revenue share.",
+    ],
+    watchOut: [
+      "A line is matched only when it is the only candidate both ways; Pulse never picks between two that fit.",
+      "Posting again, or reopening, replaces only this statement's charges. Once the month's revenue share is verified or the month is locked, the charges cannot change.",
+      "Unite PINs are shown masked; never type patient details into a note.",
+    ],
+  },
+  {
     id: "finance-invoice-changes",
     title: "Invoice changes",
     pages: ["/finance/invoice-changes"],

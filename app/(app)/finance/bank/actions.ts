@@ -20,7 +20,7 @@ import {
 import { runBankAiReview } from "@/lib/finance/bank-ai-server";
 import { bankItemKey, isReasonCode, periodFor, runFigures } from "@/lib/finance/bank-recon";
 import { loadBankSettings, loadRun } from "@/lib/finance/bank-server";
-import { isImportKind, type AmountStyle, type DateFormat } from "@/lib/finance/import-kinds";
+import { isBankImportKind, type AmountStyle, type DateFormat } from "@/lib/finance/import-kinds";
 import {
   MAX_IMPORT_BYTES,
   parseBankStatement,
@@ -55,7 +55,7 @@ const refresh = (recId?: string) => {
 };
 
 const importSchema = z.object({
-  kind: z.string().refine(isImportKind, "Choose what you are importing."),
+  kind: z.string().refine(isBankImportKind, "Choose what you are importing."),
   format_id: uuid,
   account_id: z.string().optional(),
   payment_mode: z.string().trim().max(60).optional(),
