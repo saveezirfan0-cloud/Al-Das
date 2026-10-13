@@ -689,10 +689,17 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance payables and vouchers (Phase 20D)",
         );
       return id;
     });
+    // Later Phase 20 keys reach an existing workspace's Finance Manager through the sync migration, so run it too: the
+    // result must be exactly the code presets.
+    const sync = fs.readFileSync(
+      path.join(__dirname, "../../supabase/migrations/20261102000100_finance_manager_sync.sql"),
+      "utf8",
+    );
     const run = () =>
       svc(async () => {
         await q(grant!);
         for (const s of roleInserts) await q(s);
+        await q(sync);
       });
     await run();
     await run(); // idempotent
