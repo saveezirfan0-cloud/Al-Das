@@ -81,4 +81,6 @@ google-chrome --remote-debugging-port=9222 --user-data-dir=$HOME/.rea-sanoflow h
 # log in yourself in that window, open the screen you want studied
 ```
 
+**Scripted capture:** `node tools/rea-sanoflow.mjs` does the whole pass on your machine. It clones and builds REA if needed, opens a debug Chrome on loopback with its own profile and waits while you log in yourself. It then visits each route and writes `sanoflow-rea-shapes.json` outside the repo: request paths with no query and with id segments collapsed, plus JSON and WebSocket shapes (key paths and types, never values; keys that look like ids, numbers or e-mails are collapsed). The script refuses an `--out` folder inside a git work tree, and it will not write the summary if the file contains anything e-mail- or phone-like. Commit only that summary file, to `docs/audit/`. Delete `raw/` and `chrome-profile/` afterwards: they hold live data and your Sanoflow session.
+
 Then in Claude Code: `list_browser_targets` → `inspect_web_page` (DOM, accessibility tree, network metadata, no bodies by default) → `observe_web_session` while you click through a flow edit → `analyze_web_bundle` for any script you select. Keep evidence bundles **outside the repo** (they can hold patient data from the live workspace) and copy only behaviour notes into `docs/audit/`.
