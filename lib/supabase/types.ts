@@ -108,6 +108,186 @@ export type Database = {
           },
         ];
       };
+      acc_allocations: {
+        Row: {
+          allocated_by: string | null;
+          amount: number;
+          created_at: string;
+          id: string;
+          invoice_id: string;
+          org_id: string;
+          receipt_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          allocated_by?: string | null;
+          amount: number;
+          created_at?: string;
+          id?: string;
+          invoice_id: string;
+          org_id: string;
+          receipt_id: string;
+        };
+        Update: {
+          allocated_by?: string | null;
+          amount?: number;
+          created_at?: string;
+          id?: string;
+          invoice_id?: string;
+          org_id?: string;
+          receipt_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "acc_allocations_allocated_by_fkey";
+            columns: ["allocated_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_allocations_invoice_id_fkey";
+            columns: ["invoice_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_sales_invoices";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_allocations_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_allocations_receipt_id_fkey";
+            columns: ["receipt_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_receipts";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      acc_ar_number_series: {
+        Row: {
+          created_at: string;
+          doc_kind: string;
+          entity_id: string;
+          fiscal_year_id: string;
+          id: string;
+          next_number: number;
+          org_id: string;
+          prefix: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          doc_kind: string;
+          entity_id: string;
+          fiscal_year_id: string;
+          id?: string;
+          next_number?: number;
+          org_id: string;
+          prefix: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          doc_kind?: string;
+          entity_id?: string;
+          fiscal_year_id?: string;
+          id?: string;
+          next_number?: number;
+          org_id?: string;
+          prefix?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "acc_ar_number_series_entity_id_fkey";
+            columns: ["entity_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_entities";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_ar_number_series_fiscal_year_id_fkey";
+            columns: ["fiscal_year_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_fiscal_years";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_ar_number_series_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      acc_ar_settings: {
+        Row: {
+          created_at: string;
+          credit_note_days: number;
+          credit_note_prefix: string;
+          invoice_prefix: string;
+          issue_approval_threshold: number;
+          org_id: string;
+          payment_instructions: string | null;
+          receipt_prefix: string;
+          seller_address: string | null;
+          simplified_invoice_limit: number;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          credit_note_days?: number;
+          credit_note_prefix?: string;
+          invoice_prefix?: string;
+          issue_approval_threshold?: number;
+          org_id: string;
+          payment_instructions?: string | null;
+          receipt_prefix?: string;
+          seller_address?: string | null;
+          simplified_invoice_limit?: number;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          credit_note_days?: number;
+          credit_note_prefix?: string;
+          invoice_prefix?: string;
+          issue_approval_threshold?: number;
+          org_id?: string;
+          payment_instructions?: string | null;
+          receipt_prefix?: string;
+          seller_address?: string | null;
+          simplified_invoice_limit?: number;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "acc_ar_settings_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: true;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_ar_settings_updated_by_fkey";
+            columns: ["updated_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       acc_cost_centres: {
         Row: {
           active: boolean;
@@ -143,6 +323,95 @@ export type Database = {
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      acc_customers: {
+        Row: {
+          active: boolean;
+          address_line1: string | null;
+          address_line2: string | null;
+          city: string | null;
+          connected_person: boolean;
+          country: string;
+          created_at: string;
+          created_by: string | null;
+          credit_terms_days: number;
+          email: string | null;
+          emirate: string | null;
+          id: string;
+          kind: string;
+          name: string;
+          org_id: string;
+          payer_id: string | null;
+          receivable_account_id: string | null;
+          trn: string | null;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          active?: boolean;
+          address_line1?: string | null;
+          address_line2?: string | null;
+          city?: string | null;
+          connected_person?: boolean;
+          country?: string;
+          created_at?: string;
+          created_by?: string | null;
+          credit_terms_days?: number;
+          email?: string | null;
+          emirate?: string | null;
+          id?: string;
+          kind: string;
+          name: string;
+          org_id: string;
+          payer_id?: string | null;
+          receivable_account_id?: string | null;
+          trn?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          active?: boolean;
+          address_line1?: string | null;
+          address_line2?: string | null;
+          city?: string | null;
+          connected_person?: boolean;
+          country?: string;
+          created_at?: string;
+          created_by?: string | null;
+          credit_terms_days?: number;
+          email?: string | null;
+          emirate?: string | null;
+          id?: string;
+          kind?: string;
+          name?: string;
+          org_id?: string;
+          payer_id?: string | null;
+          receivable_account_id?: string | null;
+          trn?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "acc_customers_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_customers_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_customers_receivable_account_id_fkey";
+            columns: ["receivable_account_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_accounts";
             referencedColumns: ["id"];
           },
         ];
@@ -733,6 +1002,450 @@ export type Database = {
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      acc_receipts: {
+        Row: {
+          account_id: string;
+          amount: number;
+          amount_allocated: number;
+          created_at: string;
+          customer_id: string;
+          entity_id: string;
+          id: string;
+          journal_id: string | null;
+          mode: string;
+          notes: string | null;
+          number: string;
+          org_id: string;
+          posting_status: string;
+          prepared_by: string | null;
+          receipt_date: string;
+          receivable_account_id: string;
+          reference: string | null;
+          status: string;
+          updated_at: string;
+          void_reason: string | null;
+          voided_at: string | null;
+          voided_by: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          account_id: string;
+          amount: number;
+          amount_allocated?: number;
+          created_at?: string;
+          customer_id: string;
+          entity_id: string;
+          id?: string;
+          journal_id?: string | null;
+          mode: string;
+          notes?: string | null;
+          number: string;
+          org_id: string;
+          posting_status?: string;
+          prepared_by?: string | null;
+          receipt_date: string;
+          receivable_account_id: string;
+          reference?: string | null;
+          status?: string;
+          updated_at?: string;
+          void_reason?: string | null;
+          voided_at?: string | null;
+          voided_by?: string | null;
+        };
+        Update: {
+          account_id?: string;
+          amount?: number;
+          amount_allocated?: number;
+          created_at?: string;
+          customer_id?: string;
+          entity_id?: string;
+          id?: string;
+          journal_id?: string | null;
+          mode?: string;
+          notes?: string | null;
+          number?: string;
+          org_id?: string;
+          posting_status?: string;
+          prepared_by?: string | null;
+          receipt_date?: string;
+          receivable_account_id?: string;
+          reference?: string | null;
+          status?: string;
+          updated_at?: string;
+          void_reason?: string | null;
+          voided_at?: string | null;
+          voided_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "acc_receipts_account_id_fkey";
+            columns: ["account_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_accounts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_receipts_customer_id_fkey";
+            columns: ["customer_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_customers";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_receipts_entity_id_fkey";
+            columns: ["entity_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_entities";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_receipts_journal_id_fkey";
+            columns: ["journal_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_journals";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_receipts_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_receipts_prepared_by_fkey";
+            columns: ["prepared_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_receipts_receivable_account_id_fkey";
+            columns: ["receivable_account_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_accounts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_receipts_voided_by_fkey";
+            columns: ["voided_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      acc_sales_invoice_lines: {
+        Row: {
+          branch_code: string | null;
+          cost_centre_id: string | null;
+          created_at: string;
+          department: string | null;
+          description: string;
+          discount: number;
+          gross: number;
+          id: string;
+          income_account_id: string;
+          invoice_id: string;
+          line_no: number;
+          line_total: number;
+          net: number;
+          org_id: string;
+          quantity: number;
+          tax_code_id: string;
+          unit_price: number;
+          vat_amount: number;
+          vat_rate: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          branch_code?: string | null;
+          cost_centre_id?: string | null;
+          created_at?: string;
+          department?: string | null;
+          description: string;
+          discount?: number;
+          gross: number;
+          id?: string;
+          income_account_id: string;
+          invoice_id: string;
+          line_no: number;
+          line_total: number;
+          net: number;
+          org_id: string;
+          quantity: number;
+          tax_code_id: string;
+          unit_price: number;
+          vat_amount: number;
+          vat_rate: number;
+        };
+        Update: {
+          branch_code?: string | null;
+          cost_centre_id?: string | null;
+          created_at?: string;
+          department?: string | null;
+          description?: string;
+          discount?: number;
+          gross?: number;
+          id?: string;
+          income_account_id?: string;
+          invoice_id?: string;
+          line_no?: number;
+          line_total?: number;
+          net?: number;
+          org_id?: string;
+          quantity?: number;
+          tax_code_id?: string;
+          unit_price?: number;
+          vat_amount?: number;
+          vat_rate?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "acc_sales_invoice_lines_cost_centre_id_fkey";
+            columns: ["cost_centre_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_cost_centres";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_sales_invoice_lines_income_account_id_fkey";
+            columns: ["income_account_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_accounts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_sales_invoice_lines_invoice_id_fkey";
+            columns: ["invoice_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_sales_invoices";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_sales_invoice_lines_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_sales_invoice_lines_tax_code_id_fkey";
+            columns: ["tax_code_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_tax_codes";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      acc_sales_invoices: {
+        Row: {
+          amount_credited: number;
+          amount_paid: number;
+          approval_required: boolean;
+          approved_by: string | null;
+          content_sha256: string | null;
+          created_at: string;
+          credit_reason: string | null;
+          currency: string;
+          customer_id: string;
+          discount_total: number;
+          due_date: string | null;
+          einvoice_status: string;
+          entity_id: string;
+          event_date: string | null;
+          id: string;
+          invoice_date: string;
+          invoice_form: string | null;
+          issued_at: string | null;
+          issued_by: string | null;
+          journal_id: string | null;
+          kind: string;
+          net_total: number;
+          notes: string | null;
+          number: string | null;
+          org_id: string;
+          original_invoice_id: string | null;
+          posting_status: string;
+          prepared_by: string | null;
+          receivable_account_id: string | null;
+          reference: string | null;
+          status: string;
+          subtotal: number;
+          supply_date: string | null;
+          total: number;
+          updated_at: string;
+          vat_total: number;
+          void_credit_note_id: string | null;
+          void_reason: string | null;
+          voided_at: string | null;
+          voided_by: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          amount_credited?: number;
+          amount_paid?: number;
+          approval_required?: boolean;
+          approved_by?: string | null;
+          content_sha256?: string | null;
+          created_at?: string;
+          credit_reason?: string | null;
+          currency?: string;
+          customer_id: string;
+          discount_total?: number;
+          due_date?: string | null;
+          einvoice_status?: string;
+          entity_id: string;
+          event_date?: string | null;
+          id?: string;
+          invoice_date: string;
+          invoice_form?: string | null;
+          issued_at?: string | null;
+          issued_by?: string | null;
+          journal_id?: string | null;
+          kind?: string;
+          net_total?: number;
+          notes?: string | null;
+          number?: string | null;
+          org_id: string;
+          original_invoice_id?: string | null;
+          posting_status?: string;
+          prepared_by?: string | null;
+          receivable_account_id?: string | null;
+          reference?: string | null;
+          status?: string;
+          subtotal?: number;
+          supply_date?: string | null;
+          total?: number;
+          updated_at?: string;
+          vat_total?: number;
+          void_credit_note_id?: string | null;
+          void_reason?: string | null;
+          voided_at?: string | null;
+          voided_by?: string | null;
+        };
+        Update: {
+          amount_credited?: number;
+          amount_paid?: number;
+          approval_required?: boolean;
+          approved_by?: string | null;
+          content_sha256?: string | null;
+          created_at?: string;
+          credit_reason?: string | null;
+          currency?: string;
+          customer_id?: string;
+          discount_total?: number;
+          due_date?: string | null;
+          einvoice_status?: string;
+          entity_id?: string;
+          event_date?: string | null;
+          id?: string;
+          invoice_date?: string;
+          invoice_form?: string | null;
+          issued_at?: string | null;
+          issued_by?: string | null;
+          journal_id?: string | null;
+          kind?: string;
+          net_total?: number;
+          notes?: string | null;
+          number?: string | null;
+          org_id?: string;
+          original_invoice_id?: string | null;
+          posting_status?: string;
+          prepared_by?: string | null;
+          receivable_account_id?: string | null;
+          reference?: string | null;
+          status?: string;
+          subtotal?: number;
+          supply_date?: string | null;
+          total?: number;
+          updated_at?: string;
+          vat_total?: number;
+          void_credit_note_id?: string | null;
+          void_reason?: string | null;
+          voided_at?: string | null;
+          voided_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "acc_sales_invoices_approved_by_fkey";
+            columns: ["approved_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_sales_invoices_customer_id_fkey";
+            columns: ["customer_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_customers";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_sales_invoices_entity_id_fkey";
+            columns: ["entity_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_entities";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_sales_invoices_issued_by_fkey";
+            columns: ["issued_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_sales_invoices_journal_id_fkey";
+            columns: ["journal_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_journals";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_sales_invoices_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_sales_invoices_original_invoice_id_fkey";
+            columns: ["original_invoice_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_sales_invoices";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_sales_invoices_prepared_by_fkey";
+            columns: ["prepared_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_sales_invoices_receivable_account_id_fkey";
+            columns: ["receivable_account_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_accounts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_sales_invoices_void_credit_note_id_fkey";
+            columns: ["void_credit_note_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_sales_invoices";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_sales_invoices_voided_by_fkey";
+            columns: ["voided_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
             referencedColumns: ["id"];
           },
         ];
@@ -18637,6 +19350,15 @@ export type Database = {
       };
     };
     Functions: {
+      acc_ar_open_items: {
+        Args: { p_as_of: string; p_customer_id: string; p_org_id: string };
+        Returns: Json;
+      };
+      acc_ar_retry_postings: { Args: { p_org_id: string }; Returns: Json };
+      acc_ar_statement: {
+        Args: { p_customer_id: string; p_from: string; p_org_id: string; p_to: string };
+        Returns: Json;
+      };
       acc_day_book: {
         Args: { p_entity_id: string; p_from: string; p_org_id: string; p_to: string };
         Returns: Json;
@@ -18696,6 +19418,24 @@ export type Database = {
         Args: { p_hash?: string; p_journal_id: string; p_org_id: string; p_user_id: string };
         Returns: Json;
       };
+      acc_receipt_allocate: {
+        Args: { p_allocations: Json; p_org_id: string; p_receipt_id: string; p_user_id: string };
+        Returns: Json;
+      };
+      acc_receipt_save: {
+        Args: { p_allocations: Json; p_org_id: string; p_receipt: Json; p_user_id: string };
+        Returns: Json;
+      };
+      acc_receipt_void: {
+        Args: {
+          p_date: string;
+          p_org_id: string;
+          p_reason: string;
+          p_receipt_id: string;
+          p_user_id: string;
+        };
+        Returns: Json;
+      };
       acc_reverse_journal: {
         Args: {
           p_date: string;
@@ -18707,7 +19447,36 @@ export type Database = {
         Returns: Json;
       };
       acc_run_auto_reversals: { Args: { p_org_id: string; p_today: string }; Returns: Json };
+      acc_sales_doc_discard: {
+        Args: { p_doc_id: string; p_org_id: string; p_user_id: string };
+        Returns: Json;
+      };
+      acc_sales_doc_issue: {
+        Args: { p_doc_id: string; p_hash: string; p_org_id: string; p_user_id: string };
+        Returns: Json;
+      };
+      acc_sales_doc_save: {
+        Args: {
+          p_doc_id: string;
+          p_header: Json;
+          p_lines: Json;
+          p_org_id: string;
+          p_user_id: string;
+        };
+        Returns: Json;
+      };
+      acc_sales_invoice_void: {
+        Args: {
+          p_date: string;
+          p_invoice_id: string;
+          p_org_id: string;
+          p_reason: string;
+          p_user_id: string;
+        };
+        Returns: Json;
+      };
       acc_seed_chart: { Args: { p_org_id: string }; Returns: Json };
+      acc_seed_receivables: { Args: { p_org_id: string }; Returns: number };
       acc_set_period_status: {
         Args: { p_org_id: string; p_period_id: string; p_status: string; p_user_id: string };
         Returns: Json;

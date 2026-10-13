@@ -696,6 +696,47 @@ export const GUIDES: readonly Guide[] = [
     ],
   },
   {
+    id: "accounting-sales",
+    title: "Sales invoices, credit notes and customers",
+    pages: [
+      "/accounting/sales-invoices",
+      "/accounting/credit-notes",
+      "/accounting/customers",
+      "/accounting/receivables-settings",
+    ],
+    purpose:
+      "Tax invoices Pulse issues to insurers, corporates, tenants and other businesses, and the credit notes against them. Patient invoices are issued by Unite, not here.",
+    steps: [
+      "Customers: add the business with its TRN (blank when not VAT registered), address, credit terms, and for an insurer its payer.",
+      "Sales invoices, New invoice: choose the customer, add a line per item with its income account and VAT code, and save the draft.",
+      "Open the draft and press Issue: it gets its number (for example SI/2026-27/00001) and is posted to the ledger. Above the approval limit someone else with the journal approval permission presses Approve and issue.",
+      "PDF downloads the tax invoice. A customer without a TRN gets a simplified tax invoice up to AED 10,000; everyone else a full one.",
+      "To reduce an invoice, open it and press Credit note; to cancel it entirely, press Void (a credit note in full).",
+    ],
+    watchOut: [
+      "VAT is worked out per line and rounded to the fil; the VAT code is never guessed (the tax adviser decides which service is zero-rated or 5%).",
+      "Issue a credit note within 14 days of the event (the FTA rule); Pulse warns when it is later.",
+      "An issued invoice never changes. Before the ledger start date it is issued but waits: Tally holds the books for that date.",
+    ],
+  },
+  {
+    id: "accounting-receivables",
+    title: "Receipts, ageing and statements",
+    pages: ["/accounting/receipts", "/accounting/receivables-ageing", "/accounting/statements"],
+    purpose:
+      "Record money received from customers, see who owes what and for how long, and send statements and balance-confirmation letters.",
+    steps: [
+      "Receipts, New receipt: choose the customer, the date, the amount and the bank or cash account. Pulse allocates it to the oldest open invoice first; change the amounts to allocate by hand. Anything left stays on account.",
+      "Open a receipt to change its allocation, or Void it (a bounced cheque): its journal is reversed and the invoices are open again.",
+      "Receivables ageing shows each customer's open amounts as at a date: current, 1-30, 31-60, 61-90, 91-120 and over 120 days past due.",
+      "Statements: choose the customer and dates; download it as PDF or Excel, or a balance-confirmation letter for the auditors.",
+    ],
+    watchOut: [
+      "Insurance remittances are matched in Finance, Remittances, not recorded here.",
+      "Only Pulse's own sales invoices are aged here; insurance claims from Unite are aged in Finance.",
+    ],
+  },
+  {
     id: "accounting-close",
     title: "Periods, entities and fiscal years",
     pages: ["/accounting/periods", "/accounting/entities"],

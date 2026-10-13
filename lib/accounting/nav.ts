@@ -19,6 +19,15 @@ const JOURNALS = [
   "accounting.journals.approve",
 ] as const;
 
+/** Who reads receivables (mirrors app.acc_can_read_receivables in migration 20261109000200). */
+export const RECEIVABLES_READ = [
+  "accounting.sales.manage",
+  "accounting.receipts.manage",
+  "accounting.ledger.view",
+  "accounting.reports.view",
+  "accounting.journals.approve",
+] as const;
+
 export const ACCOUNTING_NAV: readonly AccountingNavEntry[] = [
   {
     href: "/accounting/dashboard",
@@ -46,6 +55,42 @@ export const ACCOUNTING_NAV: readonly AccountingNavEntry[] = [
     permissions: ["accounting.ledger.view"],
   },
   {
+    href: "/accounting/sales-invoices",
+    label: "Sales invoices",
+    section: "Sales & receivables",
+    permissions: RECEIVABLES_READ,
+  },
+  {
+    href: "/accounting/credit-notes",
+    label: "Credit notes",
+    section: "Sales & receivables",
+    permissions: RECEIVABLES_READ,
+  },
+  {
+    href: "/accounting/receipts",
+    label: "Receipts",
+    section: "Sales & receivables",
+    permissions: RECEIVABLES_READ,
+  },
+  {
+    href: "/accounting/customers",
+    label: "Customers",
+    section: "Sales & receivables",
+    permissions: RECEIVABLES_READ,
+  },
+  {
+    href: "/accounting/receivables-ageing",
+    label: "Receivables ageing",
+    section: "Sales & receivables",
+    permissions: RECEIVABLES_READ,
+  },
+  {
+    href: "/accounting/statements",
+    label: "Statements",
+    section: "Sales & receivables",
+    permissions: RECEIVABLES_READ,
+  },
+  {
     href: "/accounting/trial-balance",
     label: "Trial balance",
     section: "Reports",
@@ -68,6 +113,12 @@ export const ACCOUNTING_NAV: readonly AccountingNavEntry[] = [
     label: "Tax codes",
     section: "Setup",
     permissions: ["accounting.coa.manage", "accounting.tax.manage", "accounting.view"],
+  },
+  {
+    href: "/accounting/receivables-settings",
+    label: "Sales settings",
+    section: "Setup",
+    permissions: ["accounting.settings.manage"],
   },
   {
     href: "/accounting/cost-centres",
