@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SYNTHETIC fixture written by hand for the Pulse Tally import tests. Fake company "Demo Clinic"; no real names. -->
+<ENVELOPE>
+  <HEADER>
+    <TALLYREQUEST>Import Data</TALLYREQUEST>
+  </HEADER>
+  <BODY>
+    <IMPORTDATA>
+      <REQUESTDESC>
+        <REPORTNAME>All Masters</REPORTNAME>
+        <STATICVARIABLES>
+          <SVCURRENTCOMPANY>Demo Clinic LLC</SVCURRENTCOMPANY>
+        </STATICVARIABLES>
+      </REQUESTDESC>
+      <REQUESTDATA>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <GROUP NAME="Current Assets" RESERVEDNAME="Current Assets">
+            <GUID>demo-guid-grp-ca</GUID>
+            <PARENT>&#4; Primary</PARENT>
+            <ISREVENUE>No</ISREVENUE>
+            <AFFECTSGROSSPROFIT>No</AFFECTSGROSSPROFIT>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ALTERID>1</ALTERID>
+          </GROUP>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <GROUP NAME="Sundry Debtors" RESERVEDNAME="Sundry Debtors">
+            <GUID>demo-guid-grp-debtors</GUID>
+            <PARENT>Current Assets</PARENT>
+            <ISREVENUE>No</ISREVENUE>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ALTERID>2</ALTERID>
+          </GROUP>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <GROUP NAME="Insurance Receivables" ACTION="Create">
+            <GUID>demo-guid-grp-insrec</GUID>
+            <NAME.LIST TYPE="String"><NAME>Insurance Receivables</NAME></NAME.LIST>
+            <PARENT>Sundry Debtors</PARENT>
+            <ISBILLWISEON>Yes</ISBILLWISEON>
+            <ALTERID>3</ALTERID>
+          </GROUP>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <GROUP NAME="Demo Primary Income" ACTION="Create">
+            <GUID>demo-guid-grp-dpi</GUID>
+            <PARENT/>
+            <ISREVENUE>Yes</ISREVENUE>
+            <AFFECTSGROSSPROFIT>No</AFFECTSGROSSPROFIT>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <ALTERID>4</ALTERID>
+          </GROUP>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <GROUP NAME="Bank Accounts"><GUID>demo-guid-grp-bank</GUID><PARENT>Current Assets</PARENT><ALTERID>5</ALTERID></GROUP>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <GROUP NAME="Cash-in-Hand"><GUID>demo-guid-grp-cash</GUID><PARENT>Current Assets</PARENT><ALTERID>6</ALTERID></GROUP>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <GROUP NAME="Capital Account"><GUID>demo-guid-grp-cap</GUID><PARENT>&#4; Primary</PARENT><ISREVENUE>No</ISREVENUE><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><ALTERID>7</ALTERID></GROUP>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <GROUP NAME="Current Liabilities"><GUID>demo-guid-grp-cl</GUID><PARENT>&#4; Primary</PARENT><ISREVENUE>No</ISREVENUE><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><ALTERID>8</ALTERID></GROUP>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <GROUP NAME="Sundry Creditors"><GUID>demo-guid-grp-cred</GUID><PARENT>Current Liabilities</PARENT><ALTERID>9</ALTERID></GROUP>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <GROUP NAME="Duties &amp; Taxes"><GUID>demo-guid-grp-tax</GUID><PARENT>Current Liabilities</PARENT><ALTERID>10</ALTERID></GROUP>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <GROUP NAME="Sales Accounts"><GUID>demo-guid-grp-sales</GUID><PARENT>&#4; Primary</PARENT><ISREVENUE>Yes</ISREVENUE><AFFECTSGROSSPROFIT>Yes</AFFECTSGROSSPROFIT><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><ALTERID>11</ALTERID></GROUP>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <GROUP NAME="Indirect Expenses"><GUID>demo-guid-grp-iexp</GUID><PARENT>&#4; Primary</PARENT><ISREVENUE>Yes</ISREVENUE><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><ALTERID>12</ALTERID></GROUP>
+        </TALLYMESSAGE>
+
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Bank - Demo Main" ACTION="Create">
+            <GUID>demo-guid-led-bank</GUID>
+            <PARENT>Bank Accounts</PARENT>
+            <OPENINGBALANCE>-50000.00</OPENINGBALANCE>
+            <ALTERID>20</ALTERID>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Cash - Demo" ACTION="Create">
+            <GUID>demo-guid-led-cash</GUID>
+            <PARENT>Cash-in-Hand</PARENT>
+            <OPENINGBALANCE>-2000.00</OPENINGBALANCE>
+            <ALTERID>21</ALTERID>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Insurer Demo A" ACTION="Create">
+            <GUID>demo-guid-led-insa</GUID>
+            <NAME.LIST><NAME>Insurer Demo A</NAME></NAME.LIST>
+            <PARENT>Insurance Receivables</PARENT>
+            <ISBILLWISEON>Yes</ISBILLWISEON>
+            <OPENINGBALANCE>-125000.00</OPENINGBALANCE>
+            <BILLALLOCATIONS.LIST>
+              <NAME>CLM-DEMO-0001</NAME>
+              <BILLDATE>20260601</BILLDATE>
+              <OPENINGBALANCE>-125000.00</OPENINGBALANCE>
+            </BILLALLOCATIONS.LIST>
+            <ALTERID>22</ALTERID>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Supplier Demo B" ACTION="Create">
+            <GUID>demo-guid-led-supb</GUID>
+            <PARENT>Sundry Creditors</PARENT>
+            <OPENINGBALANCE>30000.00</OPENINGBALANCE>
+            <ALTERID>23</ALTERID>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Owner Capital Demo" ACTION="Create">
+            <GUID>demo-guid-led-capital</GUID>
+            <PARENT>Capital Account</PARENT>
+            <OPENINGBALANCE>100000.00</OPENINGBALANCE>
+            <ALTERID>24</ALTERID>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Profit &amp; Loss A/c" RESERVEDNAME="Profit &amp; Loss A/c">
+            <GUID>demo-guid-led-pl</GUID>
+            <PARENT>&#4; Primary</PARENT>
+            <OPENINGBALANCE>47000.00</OPENINGBALANCE>
+            <ALTERID>25</ALTERID>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Consultation Fees Demo"><GUID>demo-guid-led-fees</GUID><PARENT>Sales Accounts</PARENT><OPENINGBALANCE></OPENINGBALANCE><ALTERID>26</ALTERID></LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Rent Demo"><GUID>demo-guid-led-rent</GUID><PARENT>Indirect Expenses</PARENT><ISCOSTCENTRESON>Yes</ISCOSTCENTRESON><ALTERID>27</ALTERID></LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="VAT Output Demo"><GUID>demo-guid-led-vat</GUID><PARENT>Duties &amp; Taxes</PARENT><OPENINGBALANCE>0</OPENINGBALANCE><ALTERID>28</ALTERID></LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Demo Other Income"><GUID>demo-guid-led-oinc</GUID><PARENT>Demo Primary Income</PARENT><ALTERID>29</ALTERID></LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="USD Supplier Demo"><GUID>demo-guid-led-usd</GUID><PARENT>Sundry Creditors</PARENT><CURRENCYNAME>$</CURRENCYNAME><ALTERID>30</ALTERID></LEDGER>
+        </TALLYMESSAGE>
+
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <COSTCENTRE NAME="Branch Demo North"><GUID>demo-guid-cc-n</GUID><CATEGORY>Branches</CATEGORY><PARENT>&#4; Not Applicable</PARENT><ALTERID>40</ALTERID></COSTCENTRE>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <COSTCENTRE NAME="Branch Demo South"><GUID>demo-guid-cc-s</GUID><CATEGORY>Branches</CATEGORY><ALTERID>41</ALTERID></COSTCENTRE>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <COSTCENTRE NAME="Dr Demo One"><GUID>demo-guid-cc-d1</GUID><CATEGORY>Doctors</CATEGORY><ALTERID>42</ALTERID></COSTCENTRE>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <CURRENCY NAME="$"><GUID>demo-guid-cur-usd</GUID><MAILINGNAME>US Dollar</MAILINGNAME><ISOCURRENCYCODE>USD</ISOCURRENCYCODE></CURRENCY>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHERTYPE NAME="Receipt" RESERVEDNAME="Receipt"><GUID>demo-guid-vt-rct</GUID><PARENT>Receipt</PARENT></VOUCHERTYPE>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHERTYPE NAME="Insurance Receipt"><GUID>demo-guid-vt-insrct</GUID><PARENT>Receipt</PARENT></VOUCHERTYPE>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHERTYPE NAME="Cash Sales"><GUID>demo-guid-vt-cashsales</GUID><PARENT>Sales</PARENT></VOUCHERTYPE>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHERTYPE NAME="Memo Demo"><GUID>demo-guid-vt-memo</GUID><PARENT>Memorandum</PARENT></VOUCHERTYPE>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <UNIT NAME="Nos"><GUID>demo-guid-unit</GUID></UNIT>
+        </TALLYMESSAGE>
+      </REQUESTDATA>
+    </IMPORTDATA>
+  </BODY>
+</ENVELOPE>

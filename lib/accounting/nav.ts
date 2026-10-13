@@ -204,6 +204,12 @@ export const ACCOUNTING_NAV: readonly AccountingNavEntry[] = [
     permissions: ["accounting.periods.manage", "accounting.view"],
   },
   {
+    href: "/accounting/year-end",
+    label: "Year-end close",
+    section: "Close",
+    permissions: ["accounting.periods.manage", "accounting.view"],
+  },
+  {
     href: "/accounting/entities",
     label: "Entities and fiscal years",
     section: "Setup",
@@ -248,6 +254,24 @@ export const ACCOUNTING_NAV: readonly AccountingNavEntry[] = [
     label: "Report settings",
     section: "Setup",
     permissions: ["accounting.settings.manage", "accounting.reports.view"],
+  },
+  {
+    href: "/accounting/tally-import",
+    label: "Tally import",
+    section: "Setup",
+    permissions: ["accounting.import"],
+  },
+  {
+    href: "/accounting/opening-balances",
+    label: "Opening balances",
+    section: "Setup",
+    permissions: ["accounting.import"],
+  },
+  {
+    href: "/accounting/tally-reconciliation",
+    label: "Tally reconciliation",
+    section: "Setup",
+    permissions: ["accounting.import"],
   },
 ];
 

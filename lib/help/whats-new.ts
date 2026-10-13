@@ -27,6 +27,12 @@ export const WHATS_NEW: readonly WhatsNewEntry[] = [
     body: "Accounting now has its reports: the profit and loss in Tally's layout (gross and net profit, by month, branch, department or doctor, compared with the previous period or last year), the balance sheet, the cash flow statement reconciled to cash and bank, ratios, exception lists to check before closing a month, a VAT return working paper with the VAT 201 boxes and the lines behind each box, and a corporate tax bridge. Budgets can be typed in a monthly grid or imported from a CSV, are approved by a second person and compared with the actuals. Every report downloads as Excel or PDF and says Provisional until its months are closed. Nothing is filed with the FTA from Pulse.",
   },
   {
+    id: "2026-11-09-tally-import-year-end",
+    date: "2026-11-09",
+    title: "Accounting: Tally import, opening balances and the year-end close",
+    body: "Accounting, Setup now has a Tally import: upload TallyPrime's All Masters and Day Book XML exports and Pulse shows a dry run first (groups mapped onto Pulse's, new ledgers, the opening trial balance, vouchers per month and anything it refuses, with the reason), then imports groups, ledgers, opening balances and every voucher. Importing again never posts anything twice, and a voucher altered in Tally is reversed and posted again. Tally reconciliation compares Pulse's trial balance with Tally's Excel trial balance ledger by ledger. Opening balances can also be typed in for checking and posting by someone else. Accounting, Close has the Year-end close: it moves the year's income and expenses to retained earnings and closes the year; re-opening reverses it.",
+  },
+  {
     id: "2026-11-08-chronic-recall-alignment",
     date: "2026-11-08",
     title: "Chronic recall: only chronic diagnoses count",

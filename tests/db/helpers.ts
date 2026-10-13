@@ -1247,3 +1247,40 @@ export const PHASE22F_TABLES = [
   "acc_petty_cash_expenses",
   "acc_petty_cash_floats",
 ] as const;
+
+/**
+ * One row in every Phase 22I (Tally import) table for an org: an import, one staged row and one reconciliation. Synthetic
+ * values only; service role (no write policy on any of them).
+ */
+export async function seedPhase22IRows(c: Client, orgId: string) {
+  const ids: Record<string, string> = {};
+  await asServiceRole(c, async () => {
+    const entity = (
+      await c.query<{ id: string }>("select id::text from public.acc_entities where org_id = $1 and is_default", [orgId])
+    ).rows[0].id;
+    ids.import = (
+      await c.query<{ id: string }>(
+        "insert into public.acc_tally_imports (org_id, entity_id, file_sha256) values ($1, $2, $3) returning id::text as id",
+        [orgId, entity, ["0".repeat(64)]],
+      )
+    ).rows[0].id;
+    await c.query(
+      `insert into public.acc_tally_staged (org_id, import_id, seq, kind, guid, alter_id, payload)
+       values ($1, $2, 1, 'cost_centre', null, null, '{"name":"Sweep centre"}')`,
+      [orgId, ids.import],
+    );
+    ids.reconciliation = (
+      await c.query<{ id: string }>(
+        "insert into public.acc_tally_reconciliations (org_id, entity_id, as_at, file_sha256, compared, differences, reconciled) values ($1, $2, '2026-07-31', $3, 0, 0, true) returning id::text as id",
+        [orgId, entity, "1".repeat(64)],
+      )
+    ).rows[0].id;
+  });
+  return ids;
+}
+
+/** Phase 22I tables with a browser (select) policy (accounting.import). */
+export const PHASE22I_TABLES = ["acc_tally_imports", "acc_tally_reconciliations"] as const;
+
+/** Phase 22I service-only tables: RLS on, no policy (the sanitised rows staged between the dry run and the commit). */
+export const PHASE22I_SERVICE_ONLY_TABLES = ["acc_tally_staged"] as const;
