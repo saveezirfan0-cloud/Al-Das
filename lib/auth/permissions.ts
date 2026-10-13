@@ -349,6 +349,39 @@ export const PERMISSIONS = [
       "Ask a patient to pay an invoice by sending a payment link in WhatsApp, and see the status the payment gateway reports. Pulse never marks the invoice as paid in Unite.",
   },
   {
+    key: "finance.costs.manage",
+    group: "Finance",
+    label: "Maintain service costs and overheads",
+    description:
+      "Upload and edit the service cost table and overhead pools. Does not include revenue detail, profit or doctor compensation.",
+  },
+  {
+    key: "finance.costs.view",
+    group: "Finance",
+    label: "View service costs and overheads",
+    description: "Read the cost inputs. Does not include doctor compensation, revenue detail or profit.",
+  },
+  {
+    key: "finance.costs.compensation",
+    group: "Finance",
+    label: "Doctor compensation",
+    description:
+      "See and upload doctor compensation. Held separately because it is confidential; grant it only to named people.",
+  },
+  {
+    key: "finance.profit.view",
+    group: "Finance",
+    label: "Profitability",
+    description:
+      "See contribution margin and estimated profitability by branch, doctor, department and month. Figures are provisional until Finance approves a month.",
+  },
+  {
+    key: "finance.profit.approve",
+    group: "Finance",
+    label: "Approve a cost month",
+    description: "Approve a month's costs so its profit figures stop being provisional, or reopen it. Audited.",
+  },
+  {
     key: "portal.recall_sends.write",
     group: "Portal",
     label: "Edit recall call-list entries",
@@ -432,6 +465,11 @@ export const FINANCE_ROLES: readonly RolePreset[] = [
       "finance.cashup.manage",
       "finance.revenue.view",
       "finance.export.run",
+      "finance.costs.manage",
+      "finance.costs.view",
+      "finance.costs.compensation",
+      "finance.profit.view",
+      "finance.profit.approve",
     ],
   },
   {
@@ -476,6 +514,7 @@ export const FINANCE_ROLES: readonly RolePreset[] = [
       "finance.revenue.view",
       "finance.close.view",
       "finance.close.signoff.ceo",
+      "finance.profit.view",
     ],
   },
   {
@@ -487,6 +526,12 @@ export const FINANCE_ROLES: readonly RolePreset[] = [
       "finance.scorecards.view",
       "finance.revenue.view",
     ],
+  },
+  {
+    name: "Cost / Payroll",
+    description:
+      "Service costs, overheads and (when authorised) doctor compensation. No access to revenue detail or the consolidated P&L.",
+    permissions: ["finance.costs.manage", "finance.costs.view", "finance.costs.compensation"],
   },
 ];
 

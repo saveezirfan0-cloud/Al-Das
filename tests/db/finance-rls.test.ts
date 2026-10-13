@@ -126,7 +126,7 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance row level security", () => {
         ).toBe(3);
         expect(
           await count(c, "select 1 from public.fin_ref_exception_rules where org_id = $1", [org]),
-        ).toBe(10);
+        ).toBe(14);
         const { rows } = await q(
           "select enabled from public.fin_capture_settings where org_id = $1",
           [org],

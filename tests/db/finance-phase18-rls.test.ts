@@ -314,10 +314,15 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 18: finance upgrades, access", () => 
       );
     await asServiceRole(c, () => q(block!));
     const first = await read();
-    // finance.payment_links arrived with Phase 19a (migration 20261018000100 grants it); this migration predates it.
-    for (const preset of FINANCE_ROLES)
+    // finance.payment_links arrived with Phase 19a (migration 20261018000100 grants it); the cost and profit keys and
+    // the Cost / Payroll role arrived with F8 (20261021000100, tested in finance-blueprint.test.ts); this migration predates them.
+    const later = (p: string) =>
+      p === "finance.payment_links" ||
+      p.startsWith("finance.costs.") ||
+      p.startsWith("finance.profit.");
+    for (const preset of FINANCE_ROLES.filter((r) => first[r.name]))
       expect([...first[preset.name]].sort(), preset.name).toEqual(
-        preset.permissions.filter((p) => p !== "finance.payment_links").sort(),
+        preset.permissions.filter((p) => !later(p)).sort(),
       );
     expect(first["Custom finance"]).toEqual(["finance.view"]);
     await asServiceRole(c, () => q(block!));
