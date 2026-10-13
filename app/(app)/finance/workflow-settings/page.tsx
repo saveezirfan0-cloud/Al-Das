@@ -19,6 +19,7 @@ import { createClient } from "@/lib/supabase/server";
 
 import {
   BlueprintSettingsForm,
+  ChangeReviewSettingsForm,
   CodeForm,
   FollowupSettingsForm,
   PriceImport,
@@ -55,21 +56,27 @@ export default async function WorkflowSettingsPage({
     .order("effective_from", { ascending: false })
     .limit(PAGE);
   if (payerFilter) priceQuery = priceQuery.eq("payer_id", payerFilter);
-  const [{ data: codes }, { data: prices, count }, { data: roles }] = await Promise.all([
-    supabase
-      .from("fin_ref_denial_codes")
-      .select(
-        "code, is_family, description, category, default_owner_role, resubmit_days, appealable, active, is_placeholder",
-      )
-      .order("code"),
-    priceQuery,
-    supabase.from("roles").select("name").eq("org_id", member.orgId).order("name"),
-  ]);
+  const [{ data: codes }, { data: prices, count }, { data: roles }, { data: changeRow }] =
+    await Promise.all([
+      supabase
+        .from("fin_ref_denial_codes")
+        .select(
+          "code, is_family, description, category, default_owner_role, resubmit_days, appealable, active, is_placeholder",
+        )
+        .order("code"),
+      priceQuery,
+      supabase.from("roles").select("name").eq("org_id", member.orgId).order("name"),
+      supabase
+        .from("fin_ref_finance_settings")
+        .select("change_review_start_date, change_review_min_amount, change_bulk_approve_max")
+        .eq("org_id", member.orgId)
+        .maybeSingle(),
+    ]);
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Workflow settings"
-        description="The numbers and lists behind pre-authorisations, ready-to-bill, denials, remittance, scorecards, the forecast and the cash-up. Every rule reads its thresholds from here."
+        description="The numbers and lists behind pre-authorisations, ready-to-bill, denials, remittance, scorecards, the forecast, the cash-up and invoice-change review. Every rule reads its thresholds from here."
       />
       <Card>
         <CardHeader>
@@ -109,6 +116,25 @@ export default async function WorkflowSettingsPage({
         </CardHeader>
         <CardContent>
           <FollowupSettingsForm s={followup} roles={(roles ?? []).map((r) => r.name)} />
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Invoice-change review</CardTitle>
+          <CardDescription>
+            Who may discount, cancel, refund or credit a Unite invoice, and up to what amount, is
+            not agreed yet, so by default every change needs an approval in Invoice changes. The
+            unapproved-changes measure counts from the date set here.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ChangeReviewSettingsForm
+            s={{
+              startDate: changeRow?.change_review_start_date ?? null,
+              minAmount: Number(changeRow?.change_review_min_amount ?? 0),
+              bulkMax: Number(changeRow?.change_bulk_approve_max ?? 0),
+            }}
+          />
         </CardContent>
       </Card>
       <Card>

@@ -475,7 +475,7 @@ export const PHASE19_SERVICE_ONLY_TABLES = [
 ] as const;
 
 /**
- * One row in every Phase 20 table (20A flash report, 20I insurance follow-up), for an org, so the cross-org sweeps are not
+ * One row in every Phase 20 table (20A flash report, 20I insurance follow-up, 20J invoice-change reviews), for an org, so the cross-org sweeps are not
  * vacuous for them. Synthetic ids and amounts only. Service role only: none of them has a write policy.
  */
 export async function seedPhase20Rows(c: Client, orgId: string, userId: string) {
@@ -503,12 +503,21 @@ export async function seedPhase20Rows(c: Client, orgId: string, userId: string) 
       "insert into public.ins_claim_followup_stages (org_id, claim_activity_id, stage, crossed_on) values ($1, $2, 90, '2026-09-29')",
       [orgId, ids.claim20],
     );
+    ids.invoice20 = await one(
+      "insert into public.fin_invoices (org_id, inv_display_number, transaction_date, net, total, record_hash) values ($1, 'SYN-SEED-20J', '2026-10-01', 100, 100, 'h')",
+      [orgId],
+    );
+    ids.changeReview = await one(
+      "insert into public.fin_invoice_change_reviews (org_id, change_key, invoice_id, kind, amount, change_date, decision, reason, reviewed_by) values ($1, md5('seed-20j'), $2, 'discount', 10, '2026-10-01', 'approved', 'Seed reason', $3)",
+      [orgId, ids.invoice20, userId],
+    );
   });
   return ids;
 }
 
 /** Phase 20 tables with a browser (select) policy. */
 export const PHASE20_TABLES = [
+  "fin_invoice_change_reviews",
   "fin_ref_report_lines",
   "fin_ref_revenue_targets",
   "ins_claim_followup_stages",

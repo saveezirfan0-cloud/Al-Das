@@ -4816,6 +4816,98 @@ export type Database = {
           },
         ];
       };
+      fin_invoice_change_reviews: {
+        Row: {
+          amount: number;
+          bulk: boolean;
+          change_date: string;
+          change_key: string;
+          decision: string;
+          id: string;
+          invoice_id: string;
+          kind: string;
+          month_locked: boolean;
+          org_id: string;
+          reason: string;
+          reviewed_at: string;
+          reviewed_by: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          amount: number;
+          bulk?: boolean;
+          change_date: string;
+          change_key: string;
+          decision: string;
+          id?: string;
+          invoice_id: string;
+          kind: string;
+          month_locked?: boolean;
+          org_id: string;
+          reason: string;
+          reviewed_at?: string;
+          reviewed_by?: string | null;
+        };
+        Update: {
+          amount?: number;
+          bulk?: boolean;
+          change_date?: string;
+          change_key?: string;
+          decision?: string;
+          id?: string;
+          invoice_id?: string;
+          kind?: string;
+          month_locked?: boolean;
+          org_id?: string;
+          reason?: string;
+          reviewed_at?: string;
+          reviewed_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_invoice_change_reviews_invoice_id_fkey";
+            columns: ["invoice_id"];
+            isOneToOne: false;
+            referencedRelation: "fin_invoices";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_invoice_change_reviews_invoice_id_fkey";
+            columns: ["invoice_id"];
+            isOneToOne: false;
+            referencedRelation: "v_fin_billing_readiness";
+            referencedColumns: ["invoice_id"];
+          },
+          {
+            foreignKeyName: "fin_invoice_change_reviews_invoice_id_fkey";
+            columns: ["invoice_id"];
+            isOneToOne: false;
+            referencedRelation: "v_fin_invoice_list";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_invoice_change_reviews_invoice_id_fkey";
+            columns: ["invoice_id"];
+            isOneToOne: false;
+            referencedRelation: "v_ins_invoice_match";
+            referencedColumns: ["invoice_id"];
+          },
+          {
+            foreignKeyName: "fin_invoice_change_reviews_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_invoice_change_reviews_reviewed_by_fkey";
+            columns: ["reviewed_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       fin_invoice_lines: {
         Row: {
           actual_cost_price: number | null;
@@ -6550,6 +6642,9 @@ export type Database = {
           bank_date_window_days: number;
           bank_weekend_days: number[];
           cashup_variance_tolerance: number;
+          change_bulk_approve_max: number;
+          change_review_min_amount: number;
+          change_review_start_date: string | null;
           close_deadline_wd: number;
           close_inputs_wd: number;
           close_item_max_age_days: number;
@@ -6618,6 +6713,9 @@ export type Database = {
           bank_date_window_days?: number;
           bank_weekend_days?: number[];
           cashup_variance_tolerance?: number;
+          change_bulk_approve_max?: number;
+          change_review_min_amount?: number;
+          change_review_start_date?: string | null;
           close_deadline_wd?: number;
           close_inputs_wd?: number;
           close_item_max_age_days?: number;
@@ -6685,6 +6783,9 @@ export type Database = {
           bank_date_window_days?: number;
           bank_weekend_days?: number[];
           cashup_variance_tolerance?: number;
+          change_bulk_approve_max?: number;
+          change_review_min_amount?: number;
+          change_review_start_date?: string | null;
           close_deadline_wd?: number;
           close_inputs_wd?: number;
           close_item_max_age_days?: number;
@@ -16902,6 +17003,10 @@ export type Database = {
       fin_forecast_history: { Args: { p_mature_days?: number; p_org_id: string }; Returns: Json };
       fin_forecast_outstanding: { Args: { p_org_id: string }; Returns: Json };
       fin_insurance_overview: {
+        Args: { p_from: string; p_org_id: string; p_to: string };
+        Returns: Json;
+      };
+      fin_invoice_changes: {
         Args: { p_from: string; p_org_id: string; p_to: string };
         Returns: Json;
       };

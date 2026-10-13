@@ -398,6 +398,20 @@ export const PERMISSIONS = [
       "Record what was done about an unpaid insurance claim (payer contacted, payment promised, resubmitted, disputed, write-off proposed) and the next action date. Reading the follow-up list and the receivables report needs View insurance claims. Audited.",
   },
   {
+    key: "finance.changes.view",
+    group: "Finance",
+    label: "View the invoice-change register",
+    description:
+      "Read the Unite invoice changes Pulse has seen (discounts, cancellations, credit notes, write-offs, reduced amounts, refunds), their review and the unapproved-changes measure, and download them as CSV.",
+  },
+  {
+    key: "finance.changes.review",
+    group: "Finance",
+    label: "Review invoice changes",
+    description:
+      "Approve, reject or explain a Unite invoice change with a reason, and bulk-approve small ones up to the amount Finance sets. Needs View the invoice-change register to open the page. Audited.",
+  },
+  {
     key: "finance.flash.view",
     group: "Finance",
     label: "Daily flash report",
@@ -576,6 +590,8 @@ const FINANCE_PRESET: readonly string[] = [
   "finance.flash.view",
   "finance.targets.manage",
   "finance.followup.manage",
+  "finance.changes.view",
+  "finance.changes.review",
   "finance.bank.view",
   "finance.bank.manage",
   "finance.bank.signoff",
@@ -653,6 +669,7 @@ export const FINANCE_ROLES: readonly RolePreset[] = [
       "finance.payables.view",
       "finance.vouchers.approve_ceo",
       "finance.bank.view",
+      "finance.changes.view",
     ],
   },
   {
@@ -682,6 +699,12 @@ export const FINANCE_ROLES: readonly RolePreset[] = [
     description:
       "Approves Tier 2 payment vouchers for their department after the Finance Manager has verified them.",
     permissions: ["finance.vouchers.approve_dept"],
+  },
+  {
+    name: "Operations",
+    description:
+      "Owns Unite invoice changes: reviews discounts, cancellations, credit notes, write-offs and refunds in the invoice-change register.",
+    permissions: ["finance.changes.view", "finance.changes.review"],
   },
 ];
 

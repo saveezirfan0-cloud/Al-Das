@@ -153,6 +153,12 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
     permissions: ["finance.claims.view"],
   },
   {
+    href: "/finance/invoice-changes",
+    label: "Invoice changes",
+    section: "Billing and claims",
+    permissions: ["finance.changes.view"],
+  },
+  {
     href: "/finance/exceptions",
     label: "Exceptions",
     section: "Billing and claims",

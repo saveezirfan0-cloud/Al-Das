@@ -132,8 +132,8 @@ const PHASE19_SERVICE_FUNCTIONS = ["calendar_feed_touch", "integration_call_stat
 
 /**
  * Phase 20 SECURITY DEFINER functions that only server code (service role) may run: the flash report (20A), payables
- * and vouchers (20D), bank reconciliation (20C), insurance follow-up (20I) and the billing mix and trend (20K). The pages,
- * routes and jobs run can() first.
+ * and vouchers (20D), bank reconciliation (20C), insurance follow-up (20I), the invoice-change register (20J) and the
+ * billing mix and trend (20K). The pages, routes, actions and jobs run can() first.
  */
 const PHASE20_SERVICE_FUNCTIONS = [
   "fin_bank_collections",
@@ -144,6 +144,7 @@ const PHASE20_SERVICE_FUNCTIONS = [
   "fin_followup_create_tasks",
   "fin_followup_open_claims",
   "fin_followup_worklist",
+  "fin_invoice_changes",
   "fin_receivables_by_payer_age",
   "fin_revenue_trend",
   "fin_seed_settlement_rules",

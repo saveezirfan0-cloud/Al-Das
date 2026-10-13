@@ -315,6 +315,24 @@ export const GUIDES: readonly Guide[] = [
     ],
   },
   {
+    id: "finance-invoice-changes",
+    title: "Invoice changes",
+    pages: ["/finance/invoice-changes"],
+    purpose:
+      "Review every discount, cancellation, credit note, write-off, reduced amount and refund on a Unite invoice, so no change goes without an approval.",
+    steps: [
+      "Choose a period. Unreviewed changes come first; the boxes at the top total each kind of change.",
+      "Open a change to see the invoice, amount, date and the Unite user who made it, then record Approved, Not approved or No approval needed, with a reason.",
+      "Small changes up to the limit finance sets can be approved together with one reason.",
+      "The line at the top counts the changes still without an approval since the start date finance sets (target: zero). Download the list as CSV.",
+    ],
+    watchOut: [
+      "Pulse never changes anything in Unite: a review is a record of the decision only.",
+      "Changes are worked out from what Unite sends Pulse, so a change made and undone between two deliveries is not seen.",
+      "Write no patient names, card or phone numbers in a reason.",
+    ],
+  },
+  {
     id: "finance-workflows",
     title: "Finance workflows",
     pages: [

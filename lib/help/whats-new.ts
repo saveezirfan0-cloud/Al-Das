@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-10-31-invoice-changes",
+    date: "2026-10-31",
+    title: "Invoice changes and their approval",
+    body: "Finance has a new Invoice changes page: every discount, cancellation, credit note, write-off, reduced amount and refund on a Unite invoice, with the Unite user who made it. Operations and finance record a decision on each (approved, not approved, or no approval needed) with a reason, and can approve small changes together up to a limit finance sets. A line at the top counts the changes still without an approval, with a target of zero, and the list downloads as CSV. Pulse still never changes anything in Unite.",
+  },
+  {
     id: "2026-10-30-billing-mix",
     date: "2026-10-30",
     title: "Billing mix and trends",
