@@ -57,7 +57,7 @@ function Tone({ v, children }: { v: number | null; children: React.ReactNode }) 
     <span
       className={cn(
         "tabular-nums",
-        t === "good" && "text-emerald-600",
+        t === "good" && "text-emerald-600 dark:text-emerald-400",
         t === "bad" && "text-destructive",
       )}
     >

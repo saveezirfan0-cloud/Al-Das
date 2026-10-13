@@ -276,7 +276,7 @@ export function CodeForm({ row }: { row?: CodeRow }) {
         <Check name="appealable" label="Normally appealable" checked={row?.appealable ?? true} />
         <Check name="active" label="Active" checked={row?.active ?? true} />
         {row?.is_placeholder && (
-          <span className="text-xs text-amber-600">
+          <span className="text-xs text-amber-600 dark:text-amber-400">
             Starter placeholder: replace with the payer&apos;s real list
           </span>
         )}

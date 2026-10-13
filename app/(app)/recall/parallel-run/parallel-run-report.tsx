@@ -100,7 +100,7 @@ export function ParallelRunReport({
                   {s.comparable ? (
                     <span className="inline-flex items-center gap-1">
                       {s.days.length >= 7 ? (
-                        <CheckCircle2 className="size-4 text-emerald-600" />
+                        <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
                       ) : (
                         <Circle className="text-muted-foreground size-4" />
                       )}{" "}
@@ -172,7 +172,7 @@ export function ParallelRunReport({
                         <TableCell className="tabular-nums">{d.only_in_native.length}</TableCell>
                         <TableCell>
                           {!differs ? (
-                            <span className="text-emerald-700 text-sm">Identical</span>
+                            <span className="text-emerald-700 dark:text-emerald-300 text-sm">Identical</span>
                           ) : (
                             <div className="flex items-center gap-1.5">
                               <Input

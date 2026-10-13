@@ -7,7 +7,7 @@ import {
   visibleSettingsPages,
 } from "@/components/shell/settings-pages";
 import type { MemberLike } from "@/lib/auth/can";
-import { rankQuickLinks } from "@/lib/shell/quick-links";
+import { pushRecent, rankQuickLinks, withRecentFirst } from "@/lib/shell/quick-links";
 
 const member = (permissions: string[]): MemberLike => ({
   userId: "u",
@@ -94,6 +94,44 @@ describe("quick links", () => {
       { href: "/b", label: "Patient list" },
     ];
     expect(rankQuickLinks("patient", mixed)[0].href).toBe("/b");
+  });
+});
+
+describe("recent pages", () => {
+  it("puts the newest first, drops repeats and caps the list", () => {
+    expect(pushRecent([], "/inbox")).toEqual(["/inbox"]);
+    expect(pushRecent(["/tasks", "/inbox", "/contacts"], "/inbox")).toEqual([
+      "/inbox",
+      "/tasks",
+      "/contacts",
+    ]);
+    expect(pushRecent(["/a", "/b", "/c", "/d", "/e"], "/f")).toEqual([
+      "/f",
+      "/a",
+      "/b",
+      "/c",
+      "/d",
+    ]);
+    expect(pushRecent(["/a", "/b"], "/c", 2)).toEqual(["/c", "/a"]);
+  });
+
+  it("lists recent links first in recent order and keeps the rest in their own order", () => {
+    const links = [
+      { href: "/inbox", label: "Inbox" },
+      { href: "/tasks", label: "Tasks" },
+      { href: "/contacts", label: "Contacts" },
+    ];
+    const { recent, rest } = withRecentFirst(links, ["/contacts", "/inbox"]);
+    expect(recent.map((l) => l.href)).toEqual(["/contacts", "/inbox"]);
+    expect(rest.map((l) => l.href)).toEqual(["/tasks"]);
+  });
+
+  it("hides remembered pages the member can no longer open", () => {
+    const links = [{ href: "/inbox", label: "Inbox" }];
+    const { recent, rest } = withRecentFirst(links, ["/settings/users", "/inbox"]);
+    expect(recent.map((l) => l.href)).toEqual(["/inbox"]);
+    expect(rest).toEqual([]);
+    expect(withRecentFirst(links, []).recent).toEqual([]);
   });
 });
 

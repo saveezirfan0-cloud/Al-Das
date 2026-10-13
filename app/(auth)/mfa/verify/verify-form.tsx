@@ -57,7 +57,7 @@ export function VerifyForm({ next }: { next?: string }) {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <ShieldCheck className="size-5" /> Two-step verification
+          <ShieldCheck className="size-5" aria-hidden /> Two-step verification
         </CardTitle>
         <CardDescription>Enter the 6-digit code from your authenticator app.</CardDescription>
       </CardHeader>
@@ -77,9 +77,13 @@ export function VerifyForm({ next }: { next?: string }) {
               onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
             />
           </div>
-          {error && <p className="text-destructive text-sm">{error}</p>}
+          {error && (
+            <p className="text-destructive text-sm" role="alert">
+              {error}
+            </p>
+          )}
           <Button type="submit" disabled={busy || code.length !== 6}>
-            {busy && <Loader2 className="animate-spin" />} Verify
+            {busy && <Loader2 className="animate-spin" aria-hidden />} Verify
           </Button>
         </form>
         <form action="/auth/signout" method="post" className="mt-3">

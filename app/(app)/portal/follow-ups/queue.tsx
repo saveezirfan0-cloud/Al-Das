@@ -149,7 +149,14 @@ export function FollowUpQueue({
                 <tr
                   key={i.id}
                   className="hover:bg-accent/40 cursor-pointer"
+                  tabIndex={0}
                   onClick={() => setOpenId(i.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && e.target === e.currentTarget) {
+                      e.preventDefault();
+                      setOpenId(i.id);
+                    }
+                  }}
                 >
                   <td className="px-3 py-2">
                     <Badge variant={i.priority === "high" ? "destructive" : "secondary"}>
@@ -164,7 +171,7 @@ export function FollowUpQueue({
                       </Badge>
                     )}
                   </td>
-                  <td className={cn("px-3 py-2", overdue && "font-medium text-red-600")}>
+                  <td className={cn("px-3 py-2", overdue && "font-medium text-red-600 dark:text-red-400")}>
                     {i.dueDate ?? "—"}
                     {overdue && " (overdue)"}
                   </td>

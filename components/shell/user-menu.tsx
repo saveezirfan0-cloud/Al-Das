@@ -2,7 +2,17 @@
 
 import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
-import { Bell, Building2, Download, LogOut, Settings, UserRound } from "lucide-react";
+import {
+  Bell,
+  Building2,
+  Download,
+  LogOut,
+  Monitor,
+  Moon,
+  Settings,
+  Sun,
+  UserRound,
+} from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -16,6 +26,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  applyTheme,
+  DARK_QUERY,
+  parseThemePref,
+  THEME_STORAGE_KEY,
+  type ThemePref,
+} from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 import { setPresence, switchOrg } from "./actions";
@@ -36,7 +53,7 @@ export type UserMenuProps = {
 export const PRESENCE_COLOR: Record<Presence, string> = {
   online: "bg-emerald-500",
   away: "bg-amber-500",
-  offline: "bg-neutral-400",
+  offline: "bg-neutral-500", // neutral-400 is under 3:1 on a white background
 };
 
 export function initials(name: string, email: string) {
@@ -70,6 +87,25 @@ export function UserMenu({
   const [presence, setLocalPresence] = useState<Presence>(initialPresence);
   const [, startTransition] = useTransition();
   const { canInstall, install } = usePwaInstall();
+  // Read after mount so the server render and the first client render agree.
+  const [theme, setTheme] = useState<ThemePref>("light");
+
+  useEffect(() => {
+    try {
+      setTheme(parseThemePref(localStorage.getItem(THEME_STORAGE_KEY)));
+    } catch {
+      // Storage blocked: stay on the default.
+    }
+  }, []);
+
+  // "Match system" follows the OS live while the app is open.
+  useEffect(() => {
+    if (theme !== "system") return;
+    const query = window.matchMedia(DARK_QUERY);
+    const follow = () => applyTheme("system");
+    query.addEventListener("change", follow);
+    return () => query.removeEventListener("change", follow);
+  }, [theme]);
 
   // Coming back to the app marks you online; leaving it does not (the user picks Away).
   useEffect(() => {
@@ -85,6 +121,12 @@ export function UserMenu({
     const next = value as Presence;
     setLocalPresence(next);
     startTransition(() => setPresence(next));
+  }
+
+  function changeTheme(value: string) {
+    const next = parseThemePref(value);
+    setTheme(next);
+    applyTheme(next);
   }
 
   return (
@@ -117,6 +159,19 @@ export function UserMenu({
           </DropdownMenuRadioItem>
           <DropdownMenuRadioItem value="offline">
             <PresenceDot presence="offline" /> Appear offline
+          </DropdownMenuRadioItem>
+        </DropdownMenuRadioGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel className="text-muted-foreground text-xs">Appearance</DropdownMenuLabel>
+        <DropdownMenuRadioGroup value={theme} onValueChange={changeTheme}>
+          <DropdownMenuRadioItem value="light">
+            <Sun aria-hidden /> Light
+          </DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="dark">
+            <Moon aria-hidden /> Dark
+          </DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="system">
+            <Monitor aria-hidden /> Match system
           </DropdownMenuRadioItem>
         </DropdownMenuRadioGroup>
         {orgs.length > 1 && (
