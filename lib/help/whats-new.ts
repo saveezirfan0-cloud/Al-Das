@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-11-03-finance-inbox",
+    date: "2026-11-03",
+    title: "Finance inbox",
+    body: "Finance has an inbox for supplier invoices, bank statements and processor reports. Once an administrator switches on the Finance mailbox, attachments e-mailed to the accounts mailbox by the allowed senders arrive there by themselves; paper invoices can be photographed and dropped on the page, several files at once. Label each file, turn an invoice into a supplier invoice with one click, or discard what does not belong. Patient reports keep their own upload pages.",
+  },
+  {
     id: "2026-10-30-billing-mix",
     date: "2026-10-30",
     title: "Billing mix and trends",

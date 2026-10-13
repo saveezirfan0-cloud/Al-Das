@@ -7,7 +7,7 @@ import { canAny, type MemberLike } from "@/lib/auth/can";
  */
 
 export type FinanceBadge =
-  "exceptions" | "preauth" | "denials" | "notReady" | "remittance" | "close";
+  "exceptions" | "preauth" | "denials" | "notReady" | "remittance" | "close" | "inbox";
 
 export type FinanceNavEntry = {
   href: string;
@@ -188,6 +188,13 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
     label: "Voucher report",
     section: "Money",
     permissions: VOUCHERS,
+  },
+  {
+    href: "/finance/inbox",
+    label: "Finance inbox",
+    section: "Money",
+    permissions: ["finance.inbox.manage"],
+    badge: "inbox",
   },
   {
     href: "/finance/payables",

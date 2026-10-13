@@ -123,6 +123,20 @@ describe("Finance navigation", () => {
     expect(role("Finance")).not.toContain("finance.vouchers.check");
   });
 
+  it("the Finance inbox is for Finance and the Finance Manager only, next to Supplier invoices, with a badge", () => {
+    for (const r of ["Finance", "Finance Manager"])
+      expect(hrefs(member(role(r))), r).toContain("/finance/inbox");
+    for (const r of ["CEO", "Department head", "Billing", "Insurance", "Medical Director", "Cost / Payroll"])
+      expect(hrefs(member(role(r))), r).not.toContain("/finance/inbox");
+    // its own key: neither payables nor voucher rights imply it, and it implies nothing else
+    expect(hrefs(member(["finance.payables.manage"]))).not.toContain("/finance/inbox");
+    expect(hrefs(member(["finance.inbox.manage"]))).toEqual(["/finance/inbox"]);
+    const money = FINANCE_NAV.filter((e) => e.section === "Money").map((e) => e.href);
+    expect(money.indexOf("/finance/inbox") + 1).toBe(money.indexOf("/finance/payables"));
+    expect(badgesNeeded(member(["finance.inbox.manage"]))).toEqual(["inbox"]);
+    expect(badgesNeeded(member(["finance.payables.manage"]))).not.toContain("inbox");
+  });
+
   it("the Medical Director sees revenue and scorecards only", () => {
     expect(hrefs(member(role("Medical Director"))).sort()).toEqual(
       [

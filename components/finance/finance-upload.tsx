@@ -17,10 +17,11 @@ import {
   FINANCE_DOCUMENT_TYPES,
   formatBytes,
 } from "@/lib/media/limits";
+import type { ActionResult } from "@/lib/finance/action-support";
 import { FINANCE_DOCUMENT_BUCKET } from "@/lib/media/paths";
 
 /**
- * Attach a finance document (supplier invoice, voucher backup): a PDF, an Excel file or a phone photo of a paper invoice.
+ * Attach a finance document (supplier invoice, voucher backup): a PDF, an Excel or CSV file or a phone photo of a paper invoice.
  * prepare -> upload straight to private storage through a signed URL -> finalise (the server checks the stored file, takes
  * its sha256 and runs the malware-scan hook). The file name is never sent to the server.
  */
@@ -33,7 +34,60 @@ export type UploadedDocument = {
   scan: string;
 };
 
-const ACCEPT = [...Object.keys(FINANCE_DOCUMENT_TYPES), ".heic", ".heif", ".xlsx"].join(",");
+export const FINANCE_UPLOAD_ACCEPT = [
+  ...Object.keys(FINANCE_DOCUMENT_TYPES),
+  ".heic",
+  ".heif",
+  ".xlsx",
+  ".csv",
+].join(",");
+
+/** The three server actions an upload goes through (the 20D payables ones, or the Finance inbox's). */
+export type FinanceUploadActions = {
+  prepare: (input: {
+    mime: string;
+    size: number;
+  }) => Promise<ActionResult<{ documentId: string; path: string; token: string }>>;
+  finalize: (input: { id: string }) => Promise<ActionResult<UploadedDocument>>;
+  abandon: (input: { id: string }) => Promise<ActionResult>;
+};
+
+/**
+ * Uploads one file: size check, prepare, straight to private storage through the signed URL, finalise. Throws with a
+ * sentence for the person; a half-done upload is abandoned so it never lingers.
+ */
+export async function uploadFinanceFile(
+  file: File,
+  actions: FinanceUploadActions,
+): Promise<{ doc: UploadedDocument; message?: string }> {
+  if (file.size > FINANCE_DOCUMENT_MAX_BYTES)
+    throw new Error(
+      `That file is ${formatBytes(file.size)}; the limit is ${formatBytes(FINANCE_DOCUMENT_MAX_BYTES)}.`,
+    );
+  // Windows often calls a .csv file "application/vnd.ms-excel"; the server checks the content anyway
+  const mime = /\.csv$/i.test(file.name)
+    ? "text/csv"
+    : file.type || (/\.hei[cf]$/i.test(file.name) ? "image/heic" : "application/octet-stream");
+  let documentId: string | null = null;
+  try {
+    const prep = await actions.prepare({ mime, size: file.size });
+    if (!prep.ok || !prep.data) throw new Error(prep.ok ? "Upload failed" : prep.error);
+    documentId = prep.data.documentId;
+    // the storage client loads only when someone actually uploads (keeps it out of the pages' first load)
+    const { createClient } = await import("@/lib/supabase/client");
+    const { error } = await createClient()
+      .storage.from(FINANCE_DOCUMENT_BUCKET)
+      .uploadToSignedUrl(prep.data.path, prep.data.token, file, { contentType: mime });
+    if (error) throw new Error("The upload did not finish. Please try again.");
+    const done = await actions.finalize({ id: documentId });
+    if (!done.ok || !done.data) throw new Error(done.ok ? "Upload failed" : done.error);
+    documentId = null;
+    return { doc: done.data, message: done.message };
+  } catch (err) {
+    if (documentId) await actions.abandon({ id: documentId }).catch(() => undefined);
+    throw err instanceof Error ? err : new Error("Upload failed");
+  }
+}
 
 export function FinanceUploadButton({
   kind,
@@ -50,33 +104,16 @@ export function FinanceUploadButton({
   const [busy, setBusy] = React.useState(false);
 
   async function onFile(file: File) {
-    if (file.size > FINANCE_DOCUMENT_MAX_BYTES) {
-      toast.error(
-        `That file is ${formatBytes(file.size)}; the limit is ${formatBytes(FINANCE_DOCUMENT_MAX_BYTES)}.`,
-      );
-      return;
-    }
-    const mime =
-      file.type || (/\.hei[cf]$/i.test(file.name) ? "image/heic" : "application/octet-stream");
     setBusy(true);
-    let documentId: string | null = null;
     try {
-      const prep = await prepareFinanceUpload({ kind, mime, size: file.size });
-      if (!prep.ok || !prep.data) throw new Error(prep.ok ? "Upload failed" : prep.error);
-      documentId = prep.data.documentId;
-      // the storage client loads only when someone actually uploads (keeps it out of the pages' first load)
-      const { createClient } = await import("@/lib/supabase/client");
-      const { error } = await createClient()
-        .storage.from(FINANCE_DOCUMENT_BUCKET)
-        .uploadToSignedUrl(prep.data.path, prep.data.token, file, { contentType: mime });
-      if (error) throw new Error("The upload did not finish. Please try again.");
-      const done = await finalizeFinanceUpload({ id: documentId });
-      if (!done.ok || !done.data) throw new Error(done.ok ? "Upload failed" : done.error);
-      documentId = null;
-      onUploaded(done.data);
-      toast.success(done.message ?? "Attached.");
+      const { doc, message } = await uploadFinanceFile(file, {
+        prepare: (i) => prepareFinanceUpload({ ...i, kind }),
+        finalize: finalizeFinanceUpload,
+        abandon: abandonFinanceUpload,
+      });
+      onUploaded(doc);
+      toast.success(message ?? "Attached.");
     } catch (err) {
-      if (documentId) await abandonFinanceUpload({ id: documentId }).catch(() => undefined);
       toast.error(err instanceof Error ? err.message : "Upload failed");
     } finally {
       setBusy(false);
@@ -89,7 +126,7 @@ export function FinanceUploadButton({
       <input
         ref={input}
         type="file"
-        accept={ACCEPT}
+        accept={FINANCE_UPLOAD_ACCEPT}
         className="hidden"
         onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])}
       />
@@ -107,7 +144,16 @@ export function FinanceUploadButton({
 }
 
 /** Opens a stored document in a new tab through a 60-second link (the open is logged). */
-export function OpenDocumentButton({ id, label = "Open" }: { id: string; label?: string }) {
+export function OpenDocumentButton({
+  id,
+  label = "Open",
+  open = openFinanceDocument,
+}: {
+  id: string;
+  label?: string;
+  /** The server action that hands out the link (default: the payables one). */
+  open?: (input: { id: string }) => Promise<ActionResult<{ url: string }>>;
+}) {
   const [busy, setBusy] = React.useState(false);
   return (
     <Button
@@ -119,7 +165,7 @@ export function OpenDocumentButton({ id, label = "Open" }: { id: string; label?:
         setBusy(true);
         // open the tab synchronously so the browser does not block it as a pop-up
         const tab = window.open("about:blank", "_blank");
-        const res = await openFinanceDocument({ id });
+        const res = await open({ id });
         setBusy(false);
         if (res.ok && res.data && tab) tab.location.href = res.data.url;
         else {
@@ -133,6 +179,13 @@ export function OpenDocumentButton({ id, label = "Open" }: { id: string; label?:
   );
 }
 
+const CHIP_LABEL: Record<string, string> = {
+  supplier_invoice: "Supplier invoice",
+  bank_statement: "Bank statement",
+  processor_report: "Processor report",
+  unclassified: "Document",
+};
+
 /** One attached document: kind, size, a short fingerprint, its scan state and an Open button. */
 export function DocumentChip({
   doc,
@@ -143,9 +196,7 @@ export function DocumentChip({
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-md border px-2 py-1 text-xs">
-      <span className="font-medium">
-        {doc.kind === "supplier_invoice" ? "Supplier invoice" : "Backup"}
-      </span>
+      <span className="font-medium">{CHIP_LABEL[doc.kind] ?? "Backup"}</span>
       <span className="text-muted-foreground">{formatBytes(doc.size)}</span>
       <span className="text-muted-foreground font-mono" title={doc.sha256}>
         {doc.sha256.slice(0, 12)}…

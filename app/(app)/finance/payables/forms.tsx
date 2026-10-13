@@ -94,14 +94,18 @@ export type InvoiceOptions = {
 
 function InvoiceForm({
   invoice,
+  document,
   options,
   onDone,
 }: {
   invoice?: InvoiceView;
+  document?: UploadedDocument;
   options: InvoiceOptions;
   onDone: () => void;
 }) {
-  const [doc, setDoc] = React.useState<UploadedDocument | null>(invoice?.document ?? null);
+  const [doc, setDoc] = React.useState<UploadedDocument | null>(
+    invoice?.document ?? document ?? null,
+  );
   const [category, setCategory] = React.useState(invoice?.category ?? "");
   return (
     <ActionForm action={saveSupplierInvoice} submitLabel="Save invoice" onDone={onDone}>
@@ -226,20 +230,27 @@ function InvoiceForm({
 
 export function InvoiceButton({
   invoice,
+  document,
+  trigger,
   options,
 }: {
   invoice?: InvoiceView;
+  /** A new invoice for a document already in Pulse (the Finance inbox's "Make a supplier invoice"). */
+  document?: UploadedDocument;
+  trigger?: string;
   options: InvoiceOptions;
 }) {
   return (
     <FormSheet
-      trigger={invoice ? "Edit" : "Add invoice"}
+      trigger={trigger ?? (invoice ? "Edit" : "Add invoice")}
       title={invoice ? "Edit supplier invoice" : "Add a supplier invoice"}
       description="The document is stored in Pulse and travels with any voucher that pays it."
-      variant={invoice ? "ghost" : "default"}
+      variant={invoice ? "ghost" : document ? "outline" : "default"}
       size="sm"
     >
-      {(close) => <InvoiceForm invoice={invoice} options={options} onDone={close} />}
+      {(close) => (
+        <InvoiceForm invoice={invoice} document={document} options={options} onDone={close} />
+      )}
     </FormSheet>
   );
 }

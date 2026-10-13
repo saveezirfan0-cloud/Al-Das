@@ -36,15 +36,17 @@ describe("catalogue", () => {
     expect(isIntegrationKind("unite")).toBe(false);
   });
 
-  it("requires typed confirmation for everything that messages patients, takes money or shares patient data, and nothing else", () => {
+  it("requires typed confirmation for everything that messages patients, takes money, shares patient data or accepts files, and nothing else", () => {
     for (const i of INTEGRATIONS) {
-      const expected = i.contactsPatients || i.movesMoney || i.sharesData;
+      const expected =
+        i.contactsPatients || i.movesMoney || i.sharesData || i.acceptsFiles === true;
       expect(needsConfirmation(i.kind), i.kind).toBe(expected);
       expect(i.confirmWord !== null, i.kind).toBe(expected);
     }
     expect(integrationDef("sms").confirmWord).toBe("ENABLE SMS");
     expect(integrationDef("payments").confirmWord).toBe("ENABLE PAYMENTS");
     expect(integrationDef("calendar_ics").confirmWord).toBeNull();
+    expect(integrationDef("finance_mailbox").confirmWord).toBe("ACCEPT MAILBOX ATTACHMENTS");
   });
 
   it("marks every credential as secret and keeps identifiers out of the encrypted blob", () => {
@@ -60,6 +62,8 @@ describe("catalogue", () => {
         "auth_token",
         "secret_key",
         "server_key",
+        // Stripe's signing secret and the finance mailbox's webhook password
+        "webhook_secret",
         "webhook_secret",
       ].sort(),
     );

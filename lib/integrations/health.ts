@@ -69,4 +69,6 @@ export const CALL_PROVIDERS: Record<IntegrationKind, readonly string[]> = {
   meta_capi: ["meta_capi"],
   telehealth: ["daily"],
   esign: ["dropbox_sign"],
+  // Inbound only: the mail service posts to Pulse; Pulse never calls it.
+  finance_mailbox: [],
 };

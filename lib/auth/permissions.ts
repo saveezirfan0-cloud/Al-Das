@@ -472,6 +472,13 @@ export const PERMISSIONS = [
       "Map Pulse categories, suppliers, banks and branches to Tally ledgers, and export approved vouchers and supplier invoices as a TallyPrime import file. One-way, audited.",
   },
   {
+    key: "finance.inbox.manage",
+    group: "Finance",
+    label: "Finance inbox",
+    description:
+      "See the documents e-mailed to the accounts mailbox or dropped on the Finance inbox (supplier invoices, bank statements, processor reports), label them, turn one into a supplier invoice or discard it. Audited.",
+  },
+  {
     key: "portal.recall_sends.write",
     group: "Portal",
     label: "Edit recall call-list entries",
@@ -561,6 +568,7 @@ const FINANCE_PRESET: readonly string[] = [
   "finance.vouchers.prepare",
   "finance.vouchers.pay",
   "finance.tally.export",
+  "finance.inbox.manage",
 ];
 
 /**

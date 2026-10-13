@@ -155,7 +155,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: "Finance",
     icon: "finance",
     group: "Insight & back office",
-    keywords: ["invoices", "insurance", "claims", "denials", "pre-authorisation", "remittance", "forecast", "cash-up", "month-end", "revenue", "flash", "daily summary", "targets", "arpp", "follow-up", "receivables", "ageing", "arp", "billing mix", "seasonality", "trends", "close timetable", "working day", "vouchers", "payment voucher", "suppliers", "supplier invoices", "payables", "approvals", "tally"],
+    keywords: ["invoices", "insurance", "claims", "denials", "pre-authorisation", "remittance", "forecast", "cash-up", "month-end", "revenue", "flash", "daily summary", "targets", "arpp", "follow-up", "receivables", "ageing", "arp", "billing mix", "seasonality", "trends", "close timetable", "working day", "vouchers", "payment voucher", "suppliers", "supplier invoices", "payables", "approvals", "tally", "finance inbox", "accounts mailbox", "bank statement", "processor report"],
     permissions: [
       "finance.view",
       "finance.invoices.view",
@@ -190,6 +190,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
       "finance.close.tasks",
       "finance.payables.view",
       "finance.payables.manage",
+      "finance.inbox.manage",
       "finance.vouchers.prepare",
       "finance.vouchers.check",
       "finance.vouchers.approve_dept",

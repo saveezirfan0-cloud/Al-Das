@@ -136,6 +136,12 @@ export function createFakeAdmin(seed: Record<string, Row[]> = {}, options: FakeA
         filters.push((r) => (v === null ? r[c] === null || r[c] === undefined : r[c] === v));
         return builder;
       },
+      not(c: string, operator: string, v: unknown) {
+        // only `.not(col, "is", null)` is needed so far
+        if (operator !== "is" || v !== null) throw new Error(`fake admin: unsupported not(${operator})`);
+        filters.push((r) => r[c] !== null && r[c] !== undefined);
+        return builder;
+      },
       ilike(c: string, pattern: string) {
         // Enough for the app's uses: LIKE-escaped exact matches and %-wildcards, case-insensitive.
         let source = "";

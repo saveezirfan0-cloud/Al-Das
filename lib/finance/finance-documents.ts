@@ -27,7 +27,9 @@ export const FINANCE_DOCUMENT_KINDS = [
   "supplier_invoice",
   "voucher_backup",
   "bank_statement",
+  "processor_report",
   "other",
+  "unclassified",
 ] as const;
 export type FinanceDocumentKind = (typeof FINANCE_DOCUMENT_KINDS)[number];
 
@@ -35,7 +37,9 @@ export const KIND_LABEL: Record<FinanceDocumentKind, string> = {
   supplier_invoice: "Supplier invoice",
   voucher_backup: "Voucher backup",
   bank_statement: "Bank statement",
+  processor_report: "Processor report",
   other: "Other",
+  unclassified: "Not labelled",
 };
 
 type Result<T> = { ok: true; data: T; message?: string } | { ok: false; error: string };
@@ -43,7 +47,7 @@ type Result<T> = { ok: true; data: T; message?: string } | { ok: false; error: s
 export async function prepareFinanceDocument(
   admin: AdminClient,
   member: Pick<CurrentMember, "orgId" | "userId">,
-  input: { kind: FinanceDocumentKind; mime: string; size: number },
+  input: { kind: FinanceDocumentKind; mime: string; size: number; inbox?: boolean },
 ): Promise<Result<{ documentId: string; path: string; token: string }>> {
   const check = validateMedia({ mime: input.mime, size: input.size }, "finance_document");
   if (!check.ok) return { ok: false, error: check.message };
@@ -58,6 +62,8 @@ export async function prepareFinanceDocument(
     mime_type: check.mime,
     size_bytes: input.size,
     uploaded_by: member.userId,
+    // dropped on the Finance inbox (20B): it waits there until it is made a supplier invoice, labelled or discarded
+    inbox_at: input.inbox ? new Date().toISOString() : null,
   });
   if (error) return { ok: false, error: "Could not start the upload." };
   const signed = await admin.storage.from(FINANCE_DOCUMENT_BUCKET).createSignedUploadUrl(path);
@@ -209,21 +215,26 @@ export async function abandonFinanceDocument(
   return true;
 }
 
-/** A 60-second link to one ready document. Every call is written to the access log (ids only). */
+/**
+ * A 60-second link to one ready document. Every call is written to the access log (ids only). `inboxOnly` limits it to
+ * documents that came in through the Finance inbox (for a caller who holds only finance.inbox.manage).
+ */
 export async function signedFinanceDocumentUrl(
   admin: AdminClient,
   member: CurrentMember,
   id: string,
   mode: "view" | "download",
+  opts: { inboxOnly?: boolean } = {},
 ): Promise<Result<{ url: string }>> {
   const { data: doc } = await admin
     .from("fin_documents")
-    .select("id, kind, status, scan_status, storage_path")
+    .select("id, kind, status, scan_status, storage_path, inbox_at")
     .eq("id", id)
     .eq("org_id", member.orgId)
     .maybeSingle();
   if (
     !doc ||
+    (opts.inboxOnly && !doc.inbox_at) ||
     doc.status !== "ready" ||
     !isFinanceDocumentPathFor(doc.storage_path, member.orgId, doc.id)
   )
@@ -248,4 +259,59 @@ export async function signedFinanceDocumentUrl(
     detail: { kind: doc.kind },
   });
   return { ok: true, data: { url: data.signedUrl } };
+}
+
+/**
+ * Discards a document waiting in the Finance inbox (20B): the file first, then the row. Refused for anything linked to a
+ * supplier invoice or a voucher (routed_at set by the database when it is linked) and for documents that did not come in
+ * through the inbox. The row is first claimed (status 'rejected', fingerprint cleared) so a link made at the same moment is
+ * refused by the database; if the file cannot be removed the claim is undone and nothing changes.
+ */
+export async function discardInboxDocument(
+  admin: AdminClient,
+  member: Pick<CurrentMember, "orgId">,
+  id: string,
+): Promise<Result<{ kind: string }>> {
+  const { data: doc } = await admin
+    .from("fin_documents")
+    .select("id, kind, sha256, storage_path, status, inbox_at, routed_at")
+    .eq("id", id)
+    .eq("org_id", member.orgId)
+    .maybeSingle();
+  if (
+    !doc ||
+    doc.status !== "ready" ||
+    !doc.inbox_at ||
+    doc.routed_at ||
+    !isFinanceDocumentPathFor(doc.storage_path, member.orgId, doc.id)
+  )
+    return {
+      ok: false,
+      error:
+        "Only a document waiting in the inbox (not on an invoice or voucher) can be discarded.",
+    };
+  const { data: claimed } = await admin
+    .from("fin_documents")
+    .update({ status: "rejected", sha256: null })
+    .eq("id", doc.id)
+    .eq("org_id", member.orgId)
+    .eq("status", "ready")
+    .is("routed_at", null)
+    .select("id");
+  if (!claimed?.length)
+    return {
+      ok: false,
+      error:
+        "Only a document waiting in the inbox (not on an invoice or voucher) can be discarded.",
+    };
+  if (!(await removeObjects(admin, FINANCE_DOCUMENT_BUCKET, [doc.storage_path]))) {
+    await admin
+      .from("fin_documents")
+      .update({ status: "ready", sha256: doc.sha256 })
+      .eq("id", doc.id)
+      .eq("status", "rejected");
+    return { ok: false, error: "The file could not be removed. Try again." };
+  }
+  await admin.from("fin_documents").delete().eq("id", doc.id).eq("status", "rejected");
+  return { ok: true, data: { kind: doc.kind } };
 }

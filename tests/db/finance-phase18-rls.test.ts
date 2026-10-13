@@ -319,13 +319,15 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 18: finance upgrades, access", () => 
     // with Phase 20A (20261023000100, tested in finance-flash.test.ts), the payables, voucher and Tally keys with Phase 20D
     // (20261024000100, tested in finance-payables.test.ts), the follow-up key with Phase 20I (20261026000100, tested in
     // finance-followup.test.ts) and finance.close.tasks with Phase 20G (20261029000100, tested in
-    // finance-close-timetable.test.ts); this migration predates them.
+    // finance-close-timetable.test.ts) and finance.inbox.manage with Phase 20B (20261103000100, tested in
+    // finance-intake.test.ts); this migration predates them.
     const later = (p: string) =>
       p === "finance.payment_links" ||
       p === "finance.close.tasks" ||
       p === "finance.flash.view" ||
       p === "finance.targets.manage" ||
       p === "finance.followup.manage" ||
+      p === "finance.inbox.manage" ||
       p.startsWith("finance.payables.") ||
       p.startsWith("finance.vouchers.") ||
       p === "finance.tally.export" ||

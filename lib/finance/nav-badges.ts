@@ -68,6 +68,16 @@ export async function loadFinanceBadges(
           .is("reviewed_at", null)
           .or("match_status.neq.matched,short_amount.gt.0"),
       );
+    if (b === "inbox")
+      count(
+        "inbox",
+        supabase
+          .from("fin_documents")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "ready")
+          .not("inbox_at", "is", null)
+          .is("routed_at", null),
+      );
     if (b === "close") {
       // months waiting for THIS member's signature
       const waiting: string[] = [];

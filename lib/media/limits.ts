@@ -55,7 +55,7 @@ export const PATIENT_DOCUMENT_TYPES: Readonly<Record<string, string>> = {
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
 };
 
-/** Finance evidence (supplier invoices, voucher backup): PDFs, phone photos of paper invoices, spreadsheets. */
+/** Finance evidence (supplier invoices, voucher backup, bank statements): PDFs, phone photos of paper invoices, spreadsheets, CSV. */
 export const FINANCE_DOCUMENT_MAX_BYTES = 20 * MB;
 export const FINANCE_DOCUMENT_TYPES: Readonly<Record<string, string>> = {
   "application/pdf": "pdf",
@@ -65,6 +65,7 @@ export const FINANCE_DOCUMENT_TYPES: Readonly<Record<string, string>> = {
   "image/heic": "heic",
   "image/heif": "heif",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
+  "text/csv": "csv",
 };
 
 export type Purpose = "library" | "template_header" | "patient_document" | "finance_document";
@@ -142,7 +143,10 @@ export function validateMedia(
   if (purpose === "finance_document") {
     const ext = FINANCE_DOCUMENT_TYPES[mime];
     if (!ext)
-      return fail("unsupported_type", "Use a PDF, a photo (JPEG, PNG, WebP, HEIC) or an Excel file.");
+      return fail(
+        "unsupported_type",
+        "Use a PDF, a photo (JPEG, PNG, WebP, HEIC), an Excel file or a CSV file.",
+      );
     if (file.size > FINANCE_DOCUMENT_MAX_BYTES)
       return fail(
         "too_large",
