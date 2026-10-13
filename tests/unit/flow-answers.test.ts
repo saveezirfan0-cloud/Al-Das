@@ -9,12 +9,12 @@ import {
 import { parseWaFlowReply, WA_FLOW_LIMITS } from "@/lib/flow-engine/wa-flow";
 
 describe("question answer checks", () => {
-  it("text: anything non-empty, trimmed, capped", () => {
+  it("text: anything (as before Phase 20b, a voice note gives an empty answer), trimmed, capped not refused", () => {
     expect(checkAnswer({ type: "text" }, "  hello ")).toEqual({ ok: true, value: "hello" });
-    expect(checkAnswer({ type: "text" }, "   ")).toMatchObject({ ok: false, reason: "empty" });
-    expect(checkAnswer({ type: "text" }, "x".repeat(MAX_ANSWER_CHARS + 1))).toMatchObject({
-      ok: false,
-      reason: "too_long",
+    expect(checkAnswer({ type: "text" }, "   ")).toEqual({ ok: true, value: "" });
+    expect(checkAnswer({ type: "text" }, "x".repeat(MAX_ANSWER_CHARS + 1))).toEqual({
+      ok: true,
+      value: "x".repeat(MAX_ANSWER_CHARS),
     });
   });
 

@@ -10,7 +10,7 @@ import {
 
 /**
  * Phase 20d retry-on-fail for template messages outside campaigns. Called for every `message.failed` (outbound
- * job and status webhook) and by the appointment-reminder listener; idempotent: a failed message gets at most one
+ * job and status webhook); idempotent: a failed message gets at most one
  * retry (messages.retry_of_message_id is unique), so two callers, a replayed event or a retried job queue nothing
  * twice. The copy goes through queueOutbound like any other send, so every send-time guard (window, opt-out,
  * training, rate limit, TTL) runs again when it is actually sent.
@@ -18,7 +18,10 @@ import {
 
 export type RetryOutcome =
   | { status: "queued" | "exists"; retryMessageId: string }
-  | { status: "skipped"; reason: RetrySkipReason | "not_found" | "not_failed" };
+  | {
+      status: "skipped";
+      reason: RetrySkipReason | "not_found" | "not_failed" | "appointment_message";
+    };
 
 export async function maybeRetryTemplateMessage(
   admin: AdminClient,
@@ -39,6 +42,22 @@ export async function maybeRetryTemplateMessage(
     .maybeSingle();
   if (!msg || msg.direction !== "out") return { status: "skipped", reason: "not_found" };
   if (msg.status !== "failed") return { status: "skipped", reason: "not_failed" };
+  // Appointment reminders and waiting-list offers are never re-sent: the visit or slot may have changed during the
+  // delay, and a failed reminder already has its own path (call task, SMS fallback).
+  const [{ count: reminders }, { count: offers }] = await Promise.all([
+    admin
+      .from("appointment_reminders")
+      .select("id", { count: "exact", head: true })
+      .eq("org_id", orgId)
+      .eq("message_id", msg.id),
+    admin
+      .from("slot_offers")
+      .select("id", { count: "exact", head: true })
+      .eq("org_id", orgId)
+      .eq("message_id", msg.id),
+  ]);
+  if ((reminders ?? 0) > 0 || (offers ?? 0) > 0)
+    return { status: "skipped", reason: "appointment_message" };
 
   const spec = sendSpecSchema.safeParse((msg.payload as { send?: unknown } | null)?.send);
   const isTemplate = spec.success && spec.data.type === "template";

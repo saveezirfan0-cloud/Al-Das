@@ -665,10 +665,25 @@ describe.skipIf(!withApi)("flow parity with the real adapters", () => {
       [off.id],
     );
     expect(s1!.output).toMatchObject({ intent: null, ai: "off" });
-    // A label the intent pipeline already stored is used as it is (no model call here).
+    // A label the intent pipeline already stored (no model call here) routes only with the clinical lead's signed
+    // setting for that label; without it, Else.
     await q(
       "insert into public.ai_message_intents (org_id, conversation_id, message_id, source, intents, topic) values ($1, $2, $3, 'model', '{price}', 'price')",
       [org, conv, msg],
+    );
+    const unsigned = await runToEnd(flow);
+    const [s0] = await q<{ output: { intent: string | null } }>(
+      "select output from public.flow_run_steps where run_id = $1 and node_id = 'r'",
+      [unsigned.id],
+    );
+    expect(s0!.output.intent).toBeNull();
+    await q(
+      `update public.orgs set settings = settings
+         || jsonb_build_object('ai', coalesce(settings -> 'ai', '{}'::jsonb) || '{"enabled": true}'::jsonb)
+         || jsonb_build_object('ai_copilot', jsonb_build_object('intent_detection', true, 'tag_flows',
+              jsonb_build_object('enabled', true, 'tags', '["price"]'::jsonb, 'signed_by', $2::text, 'signed_at', now()::text)))
+       where id = $1`,
+      [org, owner],
     );
     const on = await runToEnd(flow);
     const [s2] = await q<{ output: { intent: string | null } }>(
@@ -681,7 +696,7 @@ describe.skipIf(!withApi)("flow parity with the real adapters", () => {
         "select body from public.messages where conversation_id = $1 and body like 'route=%' order by at",
         [conv],
       ),
-    ).toEqual([{ body: "route=else" }, { body: "route=price" }]);
+    ).toEqual([{ body: "route=else" }, { body: "route=else" }, { body: "route=price" }]);
   });
 
   it("the drip job starts the segment's flow through the real store", async () => {

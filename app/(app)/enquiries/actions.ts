@@ -921,7 +921,7 @@ export async function setEnquiryTags(enquiryId: string, tagIds: string[]): Promi
     .eq("org_id", member.orgId)
     .is("deleted_at", null)
     .maybeSingle();
-  if (!enquiry) return fail("Enquiry not found");
+  if (!enquiry || !(await mayTouch(member, enquiry.id))) return fail("Enquiry not found");
   const want = [...new Set(parsed.data.tags)];
   if (want.length) {
     const { count } = await admin

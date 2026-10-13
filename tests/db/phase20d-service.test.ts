@@ -214,6 +214,12 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)(
         expect(r).toMatchObject({ last_run_outcome: "skipped:template_not_approved", runs: 4 });
       });
 
+      it("is not blocked by a paused previous run (a budget stop is never resumed by itself)", async () => {
+        await q("update public.campaigns set status = 'paused' where recurrence_id = $1", [rec]);
+        expect((await runRecurrence(admin, rec, await nextRunAt(), log)).outcome).toBe("started");
+        expect(await campaigns()).toHaveLength(3);
+      });
+
       it("ignores a paused series", async () => {
         await q("update public.campaign_recurrences set status = 'paused' where id = $1", [rec]);
         expect((await runRecurrence(admin, rec, await nextRunAt(), log)).outcome).toBe("inactive");
@@ -461,7 +467,7 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)(
 
     // -----------------------------------------------------------------------------------------------------------------
     describe("appointment reminder with retry on fail", () => {
-      it("follows the retry instead of failing the reminder, and fails it once retries cannot help", async () => {
+      it("never re-sends a reminder (the visit may change during the delay): it fails at once with the call task", async () => {
         const loc = await one(
           "insert into public.locations (org_id, name) values ($1, 'Retry Clinic')",
           [org],
@@ -488,13 +494,13 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)(
         );
         const { emit } = await import("@/lib/events/emit");
         await import("@/lib/jobs/handlers/appointments"); // registers the reminder listener
-        const reminderRow = async () =>
+        const reminderStatus = async () =>
           (
-            await q<{ status: string; message_id: string }>(
-              "select status, message_id::text from public.appointment_reminders where id = $1",
+            await q<{ status: string }>(
+              "select status from public.appointment_reminders where id = $1",
               [reminder],
             )
-          )[0]!;
+          )[0]!.status;
         const callTasks = async () =>
           Number(
             (
@@ -506,22 +512,16 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)(
           );
 
         await emit(org, "message.failed", { message_id: failed, code: 131000 });
-        const retryId = (
-          await q<{ id: string }>(
-            "select id::text from public.messages where retry_of_message_id = $1",
-            [failed],
-          )
-        )[0]!.id;
-        expect(await reminderRow()).toEqual({ status: "sent", message_id: retryId });
-        expect(await callTasks()).toBe(0);
-
-        // The copy fails with a permanent error: no retry, so the reminder fails and reception gets the call task.
-        await q("update public.messages set status = 'failed', error_code = 131026 where id = $1", [
-          retryId,
+        const copies = await q("select id from public.messages where retry_of_message_id = $1", [
+          failed,
         ]);
-        await emit(org, "message.failed", { message_id: retryId, code: 131026 });
-        expect((await reminderRow()).status).toBe("failed");
+        expect(copies).toHaveLength(0);
+        expect(await reminderStatus()).toBe("failed");
         expect(await callTasks()).toBe(1);
+        expect(await maybeRetryTemplateMessage(admin, org, failed)).toEqual({
+          status: "skipped",
+          reason: "appointment_message",
+        });
       });
     });
 

@@ -58,11 +58,11 @@ function parseDate(raw: string): string | null {
 /** Checks one free-text reply against the node's rule and returns the value to store (normalised where it helps). */
 export function checkAnswer(rule: AnswerRule, raw: string): AnswerCheck {
   const text = raw.trim();
+  // A plain text question accepts any reply, as before Phase 20b (a voice note or photo gives ""), capped not refused.
+  if (rule.type === "text") return { ok: true, value: text.slice(0, MAX_ANSWER_CHARS) };
   if (!text) return { ok: false, reason: "empty" };
   if (text.length > MAX_ANSWER_CHARS) return { ok: false, reason: "too_long" };
   switch (rule.type) {
-    case "text":
-      return { ok: true, value: text };
     case "number": {
       const s = asciiDigits(text).replace(/[\s,]/g, "");
       if (!/^-?\d+(\.\d+)?$/.test(s)) return { ok: false, reason: "not_a_number" };

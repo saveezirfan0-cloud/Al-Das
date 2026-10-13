@@ -91,7 +91,8 @@ export async function runRecurrence(
       .from("campaigns")
       .select("id", { count: "exact", head: true })
       .eq("recurrence_id", rec.id)
-      .in("status", ["preparing", "scheduled", "queued", "sending", "paused"]),
+      // A paused run (budget stop, guardrail) never blocks the series: it may never be resumed.
+      .in("status", ["preparing", "scheduled", "queued", "sending"]),
     admin.rpc("campaign_budget_status", { p_org: rec.org_id }),
     template
       ? checkMediaReferences(

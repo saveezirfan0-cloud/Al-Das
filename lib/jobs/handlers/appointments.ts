@@ -16,7 +16,6 @@ import { queueSmsFallback } from "@/lib/integrations/sms/fallback";
 import { processReviewRequest } from "@/lib/integrations/reviews/server";
 import { cleanupRoom } from "@/lib/integrations/telehealth/server";
 import { redactText } from "@/lib/redact";
-import { maybeRetryTemplateMessage } from "@/lib/templates/retry";
 import { registerHandler } from "@/lib/jobs/registry";
 import { registerTask } from "@/lib/jobs/tasks";
 import { PermanentJobError, type JobLogger } from "@/lib/jobs/types";
@@ -382,18 +381,6 @@ on("message.failed", async (event) => {
   if (typeof messageId !== "string") return;
   const { createAdminClient } = await import("@/lib/supabase/admin");
   const admin = createAdminClient();
-  // Phase 20d: when the reminder's template retries on failure, the reminder follows the retry and is only failed
-  // (call task, SMS fallback) once the retries are used up. Same idempotent call as the generic listener.
-  const retry = await maybeRetryTemplateMessage(admin, event.orgId, messageId).catch(() => null);
-  if (retry && retry.status !== "skipped") {
-    await admin
-      .from("appointment_reminders")
-      .update({ message_id: retry.retryMessageId })
-      .eq("message_id", messageId)
-      .eq("org_id", event.orgId)
-      .eq("status", "sent");
-    return;
-  }
   const { data: failed } = await admin
     .from("appointment_reminders")
     .update({

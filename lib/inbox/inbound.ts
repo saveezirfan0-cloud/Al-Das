@@ -162,6 +162,20 @@ export async function processInbound(
         .select("id")
         .eq("wa_message_id", event.waMessageId)
         .single();
+      // A retried job after a crash between the message insert and routing: route the conversation if it is open,
+      // unowned and was never assigned (someone unassigning it on purpose leaves an assignment event).
+      if (
+        settings.default_team_id &&
+        conversation.status !== "closed" &&
+        !conversation.assignee_team_id &&
+        !conversation.assignee_user_id
+      ) {
+        const { count } = await admin
+          .from("conversation_assignment_events")
+          .select("id", { count: "exact", head: true })
+          .eq("conversation_id", conversation.id);
+        if (!count) await routeConversation(admin, orgId, conversation.id, settings);
+      }
       return { outcome: "duplicate", messageId: dup.data?.id ?? "" };
     }
     throw new Error(`message insert failed: ${msgErr.message}`);

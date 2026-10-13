@@ -460,8 +460,8 @@ function withoutAsk(context: RunContext, nodeId: string): RunContext {
  * Choice questions match an option (tapped id, title, or its number); free-text questions check the answer type
  * (lib/flow-engine/answers.ts). An answer that does not fit is asked again up to the node's `reask_max` (each re-ask is one
  * more step on the same node, so it counts against the 200-step cap and is replay-safe like any send), then follows the
- * fallback output. With no fallback output the run ends with a clear error and the conversation goes back to people: it
- * never waits silently.
+ * fallback output. With re-asks used up and no fallback output the run ends with a clear error and the conversation goes
+ * back to people. With neither re-asks nor a fallback output it keeps waiting (the pre-20b behaviour).
  */
 export async function resumeFromReply(
   deps: FlowDeps,
@@ -496,6 +496,10 @@ export async function resumeFromReply(
     }
 
     if (!accepted) {
+      // A question with no re-ask and no fallback output keeps waiting, exactly as before Phase 20b (published flows
+      // are unchanged); the timeout, if any, still applies.
+      if (!(cfg?.reask_max ?? 0) && !nextEdge(graph, w.node_id, "fallback"))
+        return { resumed: false, reason: "unmatched_reply" };
       const asked = fresh.context.asks?.[w.node_id] ?? 0;
       await deps.store.finishWaitingStep(fresh.id, w.node_id, {
         answer_kind: reply.kind,

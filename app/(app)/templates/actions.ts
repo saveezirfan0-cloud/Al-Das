@@ -385,14 +385,23 @@ export async function deleteTemplate(id: string): Promise<ActionResult> {
     .from("campaigns")
     .select("id", { count: "exact", head: true })
     .eq("template_id", id);
-  if ((count ?? 0) > 0) {
-    await admin
+  let kept = (count ?? 0) > 0;
+  if (!kept) {
+    // Still referenced elsewhere (a recurring campaign series): the row is kept, archived, like for campaigns.
+    const { error } = await admin
+      .from("wa_templates")
+      .delete()
+      .eq("id", id)
+      .eq("org_id", member.orgId);
+    kept = !!error;
+  }
+  if (kept) {
+    const { error } = await admin
       .from("wa_templates")
       .update({ archived_at: new Date().toISOString(), status: "DELETED" })
       .eq("id", id)
       .eq("org_id", member.orgId);
-  } else {
-    await admin.from("wa_templates").delete().eq("id", id).eq("org_id", member.orgId);
+    if (error) return fail("The template was deleted on Meta but could not be updated here.");
   }
   await recordAudit(admin, {
     orgId: member.orgId,
@@ -405,10 +414,9 @@ export async function deleteTemplate(id: string): Promise<ActionResult> {
   revalidatePath("/templates");
   return {
     ok: true,
-    message:
-      (count ?? 0) > 0
-        ? "Deleted on Meta; kept as archived because campaigns use it."
-        : "Template deleted.",
+    message: kept
+      ? "Deleted on Meta; kept as archived because campaigns use it."
+      : "Template deleted.",
   };
 }
 

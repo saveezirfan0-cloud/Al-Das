@@ -15,7 +15,8 @@ Retry rounds, CSV audience and test send were already built (re-checked) and are
     again after 10 minutes, then 1 hour (at most 2 retries per chain, `TEMPLATE_RETRY_DELAYS_SECONDS`). Rules are pure
     in `lib/templates/delivery.ts` (`templateRetryDecision`); the work is `lib/templates/retry.ts`
     (`maybeRetryTemplateMessage`), called from a `message.failed` listener in `lib/jobs/handlers/outbound.ts` (outbound
-    job and status webhook both emit it) and from the appointment-reminder listener. Idempotent: the copy carries
+    job and status webhook both emit it). Appointment reminders and waiting-list offers are never retried (the visit
+    or slot may change during the delay; a failed reminder keeps its call task and SMS fallback). Idempotent: the copy carries
     `messages.retry_of_message_id` (partial unique index), so a second caller gets `exists`. The copy goes through
     `queueOutbound` on the bulk lane with a durable pgmq delay, so every send-time guard runs again (training,
     opt-out, window, rate limit, TTL). Campaign messages are never retried here (they have retry rounds).

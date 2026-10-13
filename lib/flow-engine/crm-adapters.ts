@@ -1,7 +1,7 @@
 import "server-only";
 
 import { processIntentJob } from "@/lib/ai/intent/job";
-import { readCopilotSettings } from "@/lib/ai/copilot/settings";
+import { readCopilotSettings, tagMayStartFlows } from "@/lib/ai/copilot/settings";
 import { readAiSettings } from "@/lib/ai/settings";
 import type { MemberLike } from "@/lib/auth/can";
 import { createAppointment } from "@/lib/appointments/service";
@@ -406,18 +406,23 @@ export function createCrmAdapters(
           .maybeSingle();
         return data ? (data.intents as string[]) : null;
       };
-      const existing = await read();
-      if (existing) return existing;
       const { data: org } = await admin
         .from("orgs")
         .select("settings")
         .eq("id", run.org_id)
         .maybeSingle();
       const ai = readAiSettings(org?.settings);
-      if (!ai.enabled || !readCopilotSettings(org?.settings).intent_detection) return null;
+      const copilot = readCopilotSettings(org?.settings);
+      // Like AI tags starting flows: a label may choose the patient's path only with the clinical lead's signed
+      // setting for that label. Emergency is always kept (it stops the run, never routes).
+      const signed = (labels: string[] | null) =>
+        labels && labels.filter((l) => l === "emergency" || tagMayStartFlows(ai, copilot, l));
+      const existing = await read();
+      if (existing) return signed(existing);
+      if (!ai.enabled || !copilot.intent_detection) return null;
       // The existing pipeline: wording check, master switch, daily cap, provider, usage row, closed-enum parse, labels only.
       await s.processIntentJob(admin, messageId);
-      return read();
+      return signed(await read());
     },
   };
 }

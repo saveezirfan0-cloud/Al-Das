@@ -44,7 +44,7 @@ Both log tables have RLS, a SELECT policy only (`reports.view`; a member also se
 
 ### Presence auto-away
 
-- The browser shell (`components/shell/shell-data.tsx`, client only, no layout query) calls `public.presence_heartbeat(org)` at most once a minute, and only while the tab is visible and there was input in the last 2 minutes (pure rule: `heartbeatDue()` in `lib/presence/idle.ts`). The RPC writes at most once per 30 s, brings back someone the sweep set away, and never overrides a status the person picked. The user menu repaints from the returned value.
+- The browser shell (`components/shell/shell-data.tsx`, client only, no layout query) calls `public.presence_heartbeat(org)` at most once a minute, and only while the tab is visible and there was input in the last 2 minutes (pure rule: `heartbeatDue()` in `lib/presence/idle.ts`). The RPC writes at most once per 30 s, brings back someone the sweep set away, and never overrides a status the person picked. The user menu repaints from the returned value. Heartbeats run even while auto-away is off, so `last_seen_at` is fresh the moment someone turns it on (otherwise everyone would turn away at once); the cost is one small write per active person per minute.
 - Routing treats `presence = 'online'` with no heartbeat for `auto_away_minutes` as away at once (`app.presence_is_online`; the TS mirror is `isPresenceOnline`).
 - `pg_cron` runs `public.presence_auto_away_sweep()` every minute as plain SQL (`pulse:presence_auto_away`). It marks those members `away` with `presence_auto = true`, and the presence log records `auto_away`. No in-memory timers on the server.
 - `set_presence` is unchanged in signature. It now also clears `presence_auto` and counts going online as being seen.
