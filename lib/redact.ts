@@ -42,6 +42,11 @@ const STATEMENT_PATTERNS: Array<[RegExp, string | ((m: string) => string)]> = [
   [/\b\d{4,6}(?:[ -]?[X*•]{2,6}){1,3}[ -]?\d{4}\b/gi, lastFour],
   // Card and account numbers: 12 to 19 digits, optionally separated by single spaces or dashes.
   [/\b\d(?:[ -]?\d){11,18}\b/g, lastFour],
+  // UAE numbers written without "+": 971 / 00971 then the 8 or 9 digit national number (9714 123 4567, 971501234567).
+  [/(?<!\d)(?:00)?971[ -]?\d(?:[ -]?\d){7,8}(?!\d)/g, (m) => redactPhone(m)],
+  // Local numbers with the trunk 0: mobiles (050 123 4567, 0501234567) and landlines (04 123 4567). Letters may touch
+  // them ("MOB0501234567"); other digits may not, so longer numbers and references are left to the rules above.
+  [/(?<!\d)0\d(?:[ -]?\d){7,9}(?!\d)/g, (m) => redactPhone(m)],
   // International phone numbers and e-mail addresses.
   [/\+\d[\d\s().-]{7,}\d/g, (m) => redactPhone(m)],
   [/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[email]"],
@@ -49,8 +54,9 @@ const STATEMENT_PATTERNS: Array<[RegExp, string | ((m: string) => string)]> = [
 
 /**
  * Bank statement and settlement text (description, reference) before it is stored: masks IBANs, card and account numbers
- * (keeping the last 4 digits), international phone numbers and e-mail addresses. Shorter references (up to 11 digits,
- * such as a remittance or batch number) are kept so they can still be matched. Whitespace is collapsed.
+ * (keeping the last 4 digits), phone numbers (international, UAE without "+", and local ones starting with 0) and e-mail
+ * addresses. Shorter references (up to 11 digits, such as a remittance or batch number, unless they start with 0 and look
+ * like a local phone number) are kept so they can still be matched. Whitespace is collapsed.
  */
 export function redactStatementText(input: string | null | undefined, maxLength = 200): string | null {
   if (input == null) return null;

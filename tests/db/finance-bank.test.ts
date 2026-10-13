@@ -315,6 +315,44 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance bank reconciliation (Phase 20C)", (
       expect(Number(rows[0].sum_debits)).toBe(51 + 53 + 55 + 57 + 59);
     });
 
+    it("never keeps the uploaded file's name (it can carry a person's name): the extension at most", async () => {
+      const id = (
+        await svc(() =>
+          q(
+            "select public.fin_bank_import($1, 'bank_statement', $2, null, null, 'Statement for Layla Demo-07.CSV', $3, $4::jsonb, $5) as id",
+            [orgA, accA, sha("a-name"), JSON.stringify(bankRows(25, 1)), users.fin],
+          ),
+        )
+      ).rows[0].id as string;
+      const names = await svc(() =>
+        q("select file_name from public.fin_bank_imports where org_id = $1 order by imported_at", [
+          orgA,
+        ]),
+      );
+      expect(names.rows.map((r) => r.file_name)).not.toContain("statement.csv");
+      expect(JSON.stringify(names.rows)).not.toMatch(/Layla|Statement/);
+      expect(
+        (await svc(() => q("select file_name from public.fin_bank_imports where id = $1", [id])))
+          .rows[0].file_name,
+      ).toBe("csv");
+      // and no path writes a name past the trigger
+      expect(
+        await err(
+          svc(() =>
+            q("update public.fin_bank_imports set file_name = 'Layla Demo-07.csv' where id = $1", [
+              id,
+            ]),
+          ),
+        ),
+      ).toBeNull();
+      expect(
+        (await svc(() => q("select file_name from public.fin_bank_imports where id = $1", [id])))
+          .rows[0].file_name,
+      ).toBe("csv");
+      await svc(() => q("delete from public.fin_bank_lines where import_id = $1", [id]));
+      await svc(() => q("delete from public.fin_bank_imports where id = $1", [id]));
+    });
+
     it("refuses the same file twice and dates that overlap an earlier statement of the account", async () => {
       expect(
         await err(svc(() => importRows(orgA, accA, bankRows(20, 2), sha("a-oct-1")))),

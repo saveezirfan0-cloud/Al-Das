@@ -10,6 +10,7 @@ import {
   dueOn,
   isWorkingDay,
   monthKpis,
+  reminderMonths,
   remindersByRecipient,
   tasksToRemind,
   workingDay,
@@ -72,7 +73,7 @@ export type CloseJobTotals = { close_tasks_created: number; close_reminders: num
 /**
  * The daily part of finance_workflows. OFF until a start month is set. From working day 1 of a month it makes the
  * previous month's close tasks (idempotent), and on working days it sends ONE notification per person for their steps
- * that are due today or overdue. Each task is claimed for the day in the database first, so a retry never notifies twice.
+ * that are due today or overdue, in that close month and in the two before it while they are not locked. Each task is claimed for the day in the database first, so a retry never notifies twice.
  */
 export async function runCloseTimetable(
   admin: AdminClient,
@@ -93,18 +94,30 @@ export async function runCloseTimetable(
   totals.close_tasks_created += Number(gen.data ?? 0);
 
   if (!isWorkingDay(today, cal)) return;
+  // this close month and the two before it while they are not locked (a late step of last month's close still counts)
+  const months = reminderMonths(today, cal.startMonth);
+  const { data: locks, error: lockError } = await admin
+    .from("fin_period_closes")
+    .select("month")
+    .eq("org_id", org.id)
+    .in("month", months)
+    .not("locked_at", "is", null);
+  if (lockError) throw new Error(`close locks: ${lockError.code ?? "unknown"}`);
+  const locked = new Set((locks ?? []).map((l) => l.month));
+  const open = months.filter((m) => !locked.has(m));
+  if (open.length === 0) return;
   const { data: tasks, error } = await admin
     .from("fin_close_tasks")
-    .select("id, status, due_wd")
+    .select("id, month, status, due_wd")
     .eq("org_id", org.id)
-    .eq("month", month)
+    .in("month", open)
     .neq("status", "done");
   if (error) throw new Error(`close tasks: ${error.code ?? "unknown"}`);
   const ids = tasksToRemind(
     (tasks ?? []).map((t) => ({
       id: t.id,
       status: t.status as TaskStatus,
-      dueOn: dueOn(month, t.due_wd, cal),
+      dueOn: dueOn(t.month, t.due_wd, cal),
     })),
     today,
   );

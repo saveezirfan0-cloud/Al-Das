@@ -92,6 +92,21 @@ export function closeMonthFor(today: string): string {
   return addMonths(today, -1);
 }
 
+/** How many close months before the current one still get reminders while they are not locked. */
+export const REMINDER_EARLIER_MONTHS = 2;
+
+/**
+ * The close months whose open steps are reminded on `today`: the current close month and the two before it (a late step
+ * of September's close, say working day 23 on 2 November, still matters while September is not locked), never one
+ * before the timetable's start month. The caller drops the locked ones; the claim in the database refuses them too.
+ */
+export function reminderMonths(today: string, startMonth: string): string[] {
+  const current = closeMonthFor(today);
+  return Array.from({ length: REMINDER_EARLIER_MONTHS + 1 }, (_, i) =>
+    addMonths(current, -i),
+  ).filter((m) => m >= startMonth);
+}
+
 /** Due date of a step due on working day `wd` for close month `closeMonth`. */
 export function dueOn(closeMonth: string, wd: number, cal: WorkCalendar): string | null {
   return workingDay(addMonths(closeMonth, 1), wd, cal);

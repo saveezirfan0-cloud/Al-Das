@@ -54,7 +54,7 @@ const METRIC_LABEL: Record<string, string> = {
   messages: "Messages from allowed senders",
   stored: "Attachments stored",
   duplicate: "Attachments already in Pulse",
-  dropped_sender: "Messages dropped (sender not allowed)",
+  dropped_sender: "Messages dropped (sender not allowed or not verified by SPF / DKIM)",
   refused_type: "Attachments refused (type)",
   refused_size: "Attachments refused (too large)",
   skipped_inline: "Pictures in the message body skipped",

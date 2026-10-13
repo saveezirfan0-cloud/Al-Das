@@ -8,9 +8,11 @@ import { sniffMime } from "@/lib/media/sniff";
  * The finance mailbox (Phase 20B), pure part: reading a Postmark inbound message, the sender allow-list and what an
  * attachment really is. The server part (lib/finance/mailbox-server.ts) stores what passes.
  *
- * Only three things of a message are ever read: its MessageID (the idempotency key), the sender's address (to check the
- * allow-list; only its domain is kept) and the attachments. The schema below drops everything else (body, subject, names,
- * headers) before any code sees it. An attachment's declared type is ignored: its bytes decide.
+ * Only four things of a message are ever read: its MessageID (the idempotency key), the sender's address (to check the
+ * allow-list; only its domain is kept), the receiving server's SPF and DKIM verdicts (to know the address is not forged;
+ * reduced to one yes/no at once) and the attachments. The schema below drops everything else (body, subject, names, other
+ * headers) before any code sees it, and no header is ever stored or logged. An attachment's declared type is ignored: its
+ * bytes decide.
  */
 
 export const MAILBOX_KIND = "finance_mailbox" as const;
@@ -28,11 +30,31 @@ const attachmentSchema = z.object({
   ContentID: z.string().max(1000).optional().default(""),
 });
 
-/** Postmark's inbound JSON, cut down to the fields Pulse uses. Unknown keys (TextBody, HtmlBody, Subject, Headers...) are dropped. */
+/** The two authentication headers read from Postmark's `Headers` list (every other header is dropped by the schema). */
+const AUTH_HEADERS = ["received-spf", "x-spam-tests"] as const;
+
+const headerSchema = z.object({ Name: z.string().max(200), Value: z.string().max(4000) });
+
+/** Postmark's inbound JSON, cut down to the fields Pulse uses. Unknown keys (TextBody, HtmlBody, Subject...) are dropped. */
 const inboundSchema = z.object({
   MessageID: z.string().trim().min(1).max(200),
   From: z.string().max(2000).optional().default(""),
   FromFull: z.object({ Email: z.string().max(400).optional() }).optional(),
+  // only the authentication headers survive, and only until senderAuthenticated() has read them
+  Headers: z
+    .array(z.unknown())
+    .max(500)
+    .optional()
+    .default([])
+    .transform((list) =>
+      list.flatMap((h) => {
+        const p = headerSchema.safeParse(h);
+        return p.success &&
+          (AUTH_HEADERS as readonly string[]).includes(p.data.Name.trim().toLowerCase())
+          ? [p.data]
+          : [];
+      }),
+    ),
   Attachments: z.array(attachmentSchema).max(100).optional().default([]),
 });
 
@@ -50,6 +72,8 @@ export type InboundMessage = {
   messageId: string;
   /** Lower-case sender address, or null when there is none that looks like an address. */
   senderEmail: string | null;
+  /** Whether the receiving server vouched for the sender's domain (SPF or DKIM, aligned); see senderAuthenticated(). */
+  senderAuthenticated: boolean;
   attachments: InboundAttachment[];
 };
 
@@ -59,9 +83,11 @@ const DOMAIN = /^([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9-]{2,63}$/;
 /** Parses the provider's JSON. Throws on anything that is not a Postmark inbound message (the route answers 400). */
 export function parsePostmarkInbound(raw: string): InboundMessage {
   const parsed = inboundSchema.parse(JSON.parse(raw));
+  const senderEmail = senderAddress(parsed.FromFull?.Email ?? "", parsed.From);
   return {
     messageId: parsed.MessageID,
-    senderEmail: senderAddress(parsed.FromFull?.Email ?? "", parsed.From),
+    senderEmail,
+    senderAuthenticated: senderAuthenticated(senderEmail, parsed.Headers),
     attachments: parsed.Attachments.map((a) => ({
       name: a.Name,
       contentType: a.ContentType,
@@ -82,6 +108,65 @@ export function senderAddress(fullEmail: string, fromHeader: string): string | n
 
 export function domainOf(email: string): string {
   return email.slice(email.lastIndexOf("@") + 1);
+}
+
+/**
+ * Relaxed alignment without a public-suffix list: the same domain, or one is a subdomain of the other, and the shorter one
+ * has at least two labels (so "example" alone never aligns with everything under it).
+ */
+function aligned(a: string, b: string): boolean {
+  const [x, y] = [a.toLowerCase().replace(/\.$/, ""), b.toLowerCase().replace(/\.$/, "")];
+  if (!DOMAIN.test(x) || !DOMAIN.test(y)) return false;
+  if (x === y) return true;
+  const [short, long] = x.length <= y.length ? [x, y] : [y, x];
+  return short.includes(".") && long.endsWith(`.${short}`);
+}
+
+/** The first header of that name: the one the receiving server added on top. The sender can only add lower ones. */
+function topHeader(
+  headers: readonly { Name: string; Value: string }[],
+  name: string,
+): string | null {
+  return headers.find((h) => h.Name.trim().toLowerCase() === name)?.Value ?? null;
+}
+
+/**
+ * Whether the From address is vouched for by the receiving mail service (Postmark inbound), so a forged From is not
+ * enough to get a file into the inbox. True when either:
+ *   - SPF: the topmost `Received-SPF` header says Pass for identity=mailfrom and its envelope-from domain is aligned with
+ *     the From domain (same domain or a subdomain either way, e.g. a bounce domain), or
+ *   - DKIM: the topmost `X-Spam-Tests` (Postmark's SpamAssassin result; SpamAssassin replaces any such header the sender
+ *     wrote) lists DKIM_VALID_AU, a valid signature whose d= is the author's (From) domain. DKIM_VALID alone is a
+ *     signature by some other domain: not enough.
+ * A header the sender wrote (lower in the list) is never read, and neither is Authentication-Results, which Postmark's
+ * documentation does not show it adding (a sender could write one). Header names follow Postmark's inbound documentation;
+ * not yet verified against a live Postmark message.
+ */
+export function senderAuthenticated(
+  senderEmail: string | null,
+  headers: readonly { Name: string; Value: string }[] | undefined,
+): boolean {
+  if (!senderEmail || !headers?.length) return false;
+  const fromDomain = domainOf(senderEmail.toLowerCase());
+
+  const spf = topHeader(headers, "received-spf");
+  if (spf) {
+    const result = /^\s*([a-z]+)/i.exec(spf)?.[1]?.toLowerCase();
+    const identity = /\bidentity=([a-z_]+)/i.exec(spf)?.[1]?.toLowerCase();
+    const envelope = /\benvelope-from=<?([^\s;<>]+)>?/i.exec(spf)?.[1]?.toLowerCase() ?? "";
+    if (
+      result === "pass" &&
+      (identity === undefined || identity === "mailfrom") &&
+      envelope.includes("@") &&
+      aligned(domainOf(envelope), fromDomain)
+    )
+      return true;
+  }
+
+  const tests = topHeader(headers, "x-spam-tests");
+  if (tests && tests.split(",").some((t) => t.trim().toUpperCase() === "DKIM_VALID_AU"))
+    return true;
+  return false;
 }
 
 export type AllowEntry = { kind: "address" | "domain"; value: string };

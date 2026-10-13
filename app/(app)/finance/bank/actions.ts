@@ -186,7 +186,8 @@ export async function importStatement(fd: FormData): Promise<ActionResult<Import
       p_account_id: accountId as string,
       p_payment_mode: mode as string,
       p_format_id: format.id,
-      p_file_name: file.name.slice(0, 200),
+      // the extension only: a file name can carry a person's name (the database keeps the extension at most, too)
+      p_file_name: /\.(csv|xlsx)$/i.exec(file.name)?.[0].toLowerCase() ?? "",
       p_sha256: sha,
       p_rows: result.rows as unknown as Json,
       p_user: member.userId,

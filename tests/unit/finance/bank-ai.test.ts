@@ -133,6 +133,16 @@ describe("what the model sees", () => {
     expect(data).toContain('"references":["DEMO-07","4455"]');
     expect(referenceTokens("RA-55501 / TBY-7781 daman")).toEqual(["RA-55501", "TBY-7781"]);
     expect(referenceTokens(null)).toEqual([]);
+    // a phone number that got past the statement masking never reaches the model (synthetic 900-block numbers)
+    expect(
+      referenceTokens(
+        "MOB 0509000001 0509000001X 050-900-0002 971509000003 00971509000004 MOB0509000005 INV-2026-0042",
+      ),
+    ).toEqual(["INV-2026-0042"]);
+    expect(referenceTokens("04-900-0006 / 97149000007 / RA-55501 / FT2628312345")).toEqual([
+      "RA-55501",
+      "FT2628312345",
+    ]);
   });
 
   it("is capped: at most the item limit and the candidate limit", () => {
