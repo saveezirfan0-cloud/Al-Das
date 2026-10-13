@@ -27,6 +27,12 @@ export const ACCOUNTING_NAV: readonly AccountingNavEntry[] = [
     permissions: ["accounting.view"],
   },
   {
+    href: "/accounting/waiting",
+    label: "Waiting to post",
+    section: "Overview",
+    permissions: ["accounting.ledger.view", "accounting.journals.approve"],
+  },
+  {
     href: "/accounting/accounts",
     label: "Chart of accounts",
     section: "Ledger",
@@ -52,6 +58,12 @@ export const ACCOUNTING_NAV: readonly AccountingNavEntry[] = [
     permissions: ["accounting.reports.view"],
   },
   {
+    href: "/accounting/posting-preview",
+    label: "Posting preview",
+    section: "Reports",
+    permissions: ["accounting.reports.view", "accounting.ledger.view"],
+  },
+  {
     href: "/accounting/periods",
     label: "Periods",
     section: "Close",
@@ -74,6 +86,12 @@ export const ACCOUNTING_NAV: readonly AccountingNavEntry[] = [
     label: "Cost centres",
     section: "Setup",
     permissions: ["accounting.coa.manage", "accounting.view"],
+  },
+  {
+    href: "/accounting/posting-rules",
+    label: "Posting rules",
+    section: "Setup",
+    permissions: ["accounting.settings.manage", "accounting.view"],
   },
 ];
 

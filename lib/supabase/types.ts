@@ -156,6 +156,7 @@ export type Database = {
           fiscal_year_start_month: number;
           id: string;
           is_default: boolean;
+          ledger_start_date: string | null;
           name: string;
           org_id: string;
           trn: string | null;
@@ -170,6 +171,7 @@ export type Database = {
           fiscal_year_start_month?: number;
           id?: string;
           is_default?: boolean;
+          ledger_start_date?: string | null;
           name: string;
           org_id: string;
           trn?: string | null;
@@ -183,6 +185,7 @@ export type Database = {
           fiscal_year_start_month?: number;
           id?: string;
           is_default?: boolean;
+          ledger_start_date?: string | null;
           name?: string;
           org_id?: string;
           trn?: string | null;
@@ -730,6 +733,292 @@ export type Database = {
           },
           {
             foreignKeyName: "acc_periods_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      acc_posting_cursors: {
+        Row: {
+          cursor_at: string | null;
+          cursor_id: string | null;
+          org_id: string;
+          source_kind: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          cursor_at?: string | null;
+          cursor_id?: string | null;
+          org_id: string;
+          source_kind: string;
+          updated_at?: string;
+        };
+        Update: {
+          cursor_at?: string | null;
+          cursor_id?: string | null;
+          org_id?: string;
+          source_kind?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "acc_posting_cursors_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      acc_posting_preview: {
+        Row: {
+          account_id: string;
+          credit: number;
+          debit: number;
+          entity_id: string;
+          month: string;
+          org_id: string;
+          source_id: string;
+          source_kind: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          account_id: string;
+          credit?: number;
+          debit?: number;
+          entity_id: string;
+          month: string;
+          org_id: string;
+          source_id: string;
+          source_kind: string;
+        };
+        Update: {
+          account_id?: string;
+          credit?: number;
+          debit?: number;
+          entity_id?: string;
+          month?: string;
+          org_id?: string;
+          source_id?: string;
+          source_kind?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "acc_posting_preview_account_id_fkey";
+            columns: ["account_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_accounts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_posting_preview_entity_id_fkey";
+            columns: ["entity_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_entities";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_posting_preview_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      acc_posting_rules: {
+        Row: {
+          account_id: string | null;
+          active: boolean;
+          created_at: string;
+          id: string;
+          key: string;
+          kind: string;
+          note: string | null;
+          org_id: string;
+          origin: string;
+          qualifier: string;
+          tax_code_id: string | null;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          account_id?: string | null;
+          active?: boolean;
+          created_at?: string;
+          id?: string;
+          key?: string;
+          kind: string;
+          note?: string | null;
+          org_id: string;
+          origin?: string;
+          qualifier?: string;
+          tax_code_id?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          account_id?: string | null;
+          active?: boolean;
+          created_at?: string;
+          id?: string;
+          key?: string;
+          kind?: string;
+          note?: string | null;
+          org_id?: string;
+          origin?: string;
+          qualifier?: string;
+          tax_code_id?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "acc_posting_rules_account_id_fkey";
+            columns: ["account_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_accounts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_posting_rules_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_posting_rules_tax_code_id_fkey";
+            columns: ["tax_code_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_tax_codes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_posting_rules_updated_by_fkey";
+            columns: ["updated_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      acc_posting_settings: {
+        Row: {
+          denial_allowance_enabled: boolean;
+          org_id: string;
+          package_invoices: string;
+          paused_sources: string[];
+          rounding_tolerance: number;
+          updated_at: string;
+          updated_by: string | null;
+          vat_tolerance: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          denial_allowance_enabled?: boolean;
+          org_id: string;
+          package_invoices?: string;
+          paused_sources?: string[];
+          rounding_tolerance?: number;
+          updated_at?: string;
+          updated_by?: string | null;
+          vat_tolerance?: number;
+        };
+        Update: {
+          denial_allowance_enabled?: boolean;
+          org_id?: string;
+          package_invoices?: string;
+          paused_sources?: string[];
+          rounding_tolerance?: number;
+          updated_at?: string;
+          updated_by?: string | null;
+          vat_tolerance?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "acc_posting_settings_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: true;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_posting_settings_updated_by_fkey";
+            columns: ["updated_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      acc_posting_status: {
+        Row: {
+          amount: number | null;
+          attempts: number;
+          content_sha256: string | null;
+          detail: string | null;
+          first_seen_at: string;
+          journal_id: string | null;
+          last_attempt_at: string;
+          org_id: string;
+          reason: string | null;
+          source_date: string | null;
+          source_id: string;
+          source_kind: string;
+          state: string;
+          updated_at: string;
+          version: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          amount?: number | null;
+          attempts?: number;
+          content_sha256?: string | null;
+          detail?: string | null;
+          first_seen_at?: string;
+          journal_id?: string | null;
+          last_attempt_at?: string;
+          org_id: string;
+          reason?: string | null;
+          source_date?: string | null;
+          source_id: string;
+          source_kind: string;
+          state: string;
+          updated_at?: string;
+          version?: number;
+        };
+        Update: {
+          amount?: number | null;
+          attempts?: number;
+          content_sha256?: string | null;
+          detail?: string | null;
+          first_seen_at?: string;
+          journal_id?: string | null;
+          last_attempt_at?: string;
+          org_id?: string;
+          reason?: string | null;
+          source_date?: string | null;
+          source_id?: string;
+          source_kind?: string;
+          state?: string;
+          updated_at?: string;
+          version?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "acc_posting_status_journal_id_fkey";
+            columns: ["journal_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_journals";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_posting_status_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
@@ -18479,6 +18768,35 @@ export type Database = {
         Args: { p_hash?: string; p_journal_id: string; p_org_id: string; p_user_id: string };
         Returns: Json;
       };
+      acc_posting_apply: {
+        Args: { p_items: Json; p_kind: string; p_org_id: string; p_today: string };
+        Returns: Json;
+      };
+      acc_posting_candidates: {
+        Args: {
+          p_after: string;
+          p_after_id: string;
+          p_kind: string;
+          p_limit: number;
+          p_org_id: string;
+          p_settle_seconds?: number;
+        };
+        Returns: Json;
+      };
+      acc_posting_context: { Args: { p_org_id: string }; Returns: Json };
+      acc_posting_load: {
+        Args: { p_ids: string[]; p_kind: string; p_org_id: string };
+        Returns: Json;
+      };
+      acc_posting_needed_keys: { Args: { p_org_id: string }; Returns: Json };
+      acc_posting_preview_report: {
+        Args: { p_entity_id: string; p_from: string; p_org_id: string; p_to: string };
+        Returns: Json;
+      };
+      acc_posting_set_cursor: {
+        Args: { p_at: string; p_id: string; p_kind: string; p_org_id: string };
+        Returns: undefined;
+      };
       acc_reverse_journal: {
         Args: {
           p_date: string;
@@ -18491,6 +18809,11 @@ export type Database = {
       };
       acc_run_auto_reversals: { Args: { p_org_id: string; p_today: string }; Returns: Json };
       acc_seed_chart: { Args: { p_org_id: string }; Returns: Json };
+      acc_seed_posting_rules: { Args: { p_org_id: string }; Returns: Json };
+      acc_set_ledger_start: {
+        Args: { p_date: string; p_entity_id: string; p_org_id: string; p_user_id: string };
+        Returns: Json;
+      };
       acc_set_period_status: {
         Args: { p_org_id: string; p_period_id: string; p_status: string; p_user_id: string };
         Returns: Json;

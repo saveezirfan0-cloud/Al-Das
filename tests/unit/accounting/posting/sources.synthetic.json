@@ -1,0 +1,160 @@
+{
+  "_comment": "Synthetic sub-ledger records in the shapes acc_posting_load returns (Phase 22D). Made-up ids and amounts; no patient data exists in these shapes.",
+  "selfPayInvoice": {
+    "id": "SYN-INV-0001",
+    "date": "2027-07-05",
+    "branch": "P",
+    "department": "General Practice",
+    "doctor": "DHA-SYN-1",
+    "inv_type": "SELF PAID",
+    "is_package": false,
+    "is_deleted": false,
+    "total": 252.5,
+    "write_off": 0,
+    "credit_note": 0,
+    "lines": [
+      { "category": "Consultation", "discount": 20, "net": 200, "vat": 0 },
+      { "category": "Cosmetic", "discount": 0, "net": 50, "vat": 2.5 }
+    ],
+    "claims": []
+  },
+  "insuranceInvoice": {
+    "id": "SYN-INV-0002",
+    "date": "2027-07-06",
+    "branch": "G",
+    "department": "Dermatology",
+    "doctor": "DHA-UNKNOWN",
+    "inv_type": "INSURANCE",
+    "is_package": false,
+    "is_deleted": false,
+    "total": 500,
+    "write_off": 10,
+    "credit_note": 0,
+    "lines": [{ "category": "Consultation", "discount": 0, "net": 500, "vat": 0 }],
+    "claims": [
+      { "payer_id": "PAYER-SYN-1", "amount": 300 },
+      { "payer_id": "PAYER-SYN-2", "amount": 150 }
+    ]
+  },
+  "cashPayment": {
+    "id": "00000000-0000-4000-8000-000000000101",
+    "part": "payment",
+    "invoice": "SYN-INV-0001",
+    "inv_type": "SELF PAID",
+    "branch": "P",
+    "is_current": true,
+    "invoice_deleted": false,
+    "mode": "CASH",
+    "paid": 252.5,
+    "advance": 47.5,
+    "refund": 0,
+    "date": "2027-07-05"
+  },
+  "cardRefund": {
+    "id": "refund:00000000-0000-4000-8000-000000000102",
+    "part": "refund",
+    "invoice": "SYN-INV-0003",
+    "inv_type": "SELF PAID",
+    "branch": "G",
+    "is_current": true,
+    "invoice_deleted": false,
+    "mode": "CARD",
+    "paid": 100,
+    "advance": 0,
+    "refund": 40,
+    "date": "2027-07-09"
+  },
+  "remittance": {
+    "id": "00000000-0000-4000-8000-000000000201",
+    "payer_id": "PAYER-SYN-1",
+    "date": "2027-08-01",
+    "bank_account_id": null,
+    "lines": [
+      { "payer_id": "PAYER-SYN-1", "paid": 280 },
+      { "payer_id": "PAYER-SYN-2", "paid": 150 }
+    ]
+  },
+  "denial": {
+    "id": "00000000-0000-4000-8000-000000000301",
+    "status": "written_off",
+    "payer_id": "PAYER-SYN-1",
+    "amount": 20,
+    "date": "2027-08-10"
+  },
+  "supplierInvoice": {
+    "id": "00000000-0000-4000-8000-000000000401",
+    "number": "SUP-77",
+    "supplier_id": "00000000-0000-4000-8000-000000000499",
+    "date": "2027-07-03",
+    "category": "Rent",
+    "net": 1000,
+    "vat": 50,
+    "currency": "AED",
+    "branch": "M",
+    "doctor": null,
+    "status": "open"
+  },
+  "voucher": {
+    "id": "00000000-0000-4000-8000-000000000501",
+    "voucher_no": "PV-2027-0001",
+    "status": "paid",
+    "date": "2027-07-20",
+    "amount": 600,
+    "currency": "AED",
+    "supplier_id": "00000000-0000-4000-8000-000000000499",
+    "category": "Rent",
+    "branch": null,
+    "pay_from": null,
+    "method": "bank_transfer"
+  },
+  "revshareRun": {
+    "id": "00000000-0000-4000-8000-000000000601",
+    "part": "run",
+    "month": "2027-07-01",
+    "status": "approved",
+    "lines": [
+      { "doctor": "DHA-SYN-1", "payout": 1200.4 },
+      { "doctor": "DHA-SYN-2", "payout": 800 }
+    ]
+  },
+  "revsharePayout": {
+    "id": "payout:00000000-0000-4000-8000-000000000602",
+    "part": "payout",
+    "month": "2027-07-01",
+    "status": "posted",
+    "doctor": "DHA-SYN-1",
+    "payout": 1200.4,
+    "paid_on": "2027-08-05"
+  },
+  "labStatement": {
+    "id": "00000000-0000-4000-8000-000000000701",
+    "month": "2027-07-01",
+    "status": "posted",
+    "provider_kind": "send_out_lab",
+    "allocation": [
+      { "doctor": "DHA-SYN-1", "branch": "P", "cost": 300 },
+      { "doctor": "DHA-SYN-2", "branch": "G", "cost": 125.5 },
+      { "doctor": null, "branch": null, "cost": 20 }
+    ]
+  },
+  "cashup": {
+    "id": "00000000-0000-4000-8000-000000000801",
+    "branch": "P",
+    "date": "2027-07-05",
+    "status": "submitted",
+    "lines": [
+      { "mode": "CASH", "variance": -12.5 },
+      { "mode": "CARD", "variance": 0 }
+    ]
+  },
+  "settlement": {
+    "id": "00000000-0000-4000-8000-000000000901",
+    "matched": true,
+    "kind": "payout",
+    "mode": "TABBY",
+    "date": "2027-07-12",
+    "bank_account_id": "00000000-0000-4000-8000-000000000999",
+    "bank_amount": 1879,
+    "gross": 2000
+  }
+}

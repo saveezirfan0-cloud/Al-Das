@@ -6,7 +6,7 @@ import { ActionForm, Field, FormSheet, selectClass } from "@/components/finance/
 import { Input } from "@/components/ui/input";
 import { MONTH_NAMES } from "@/lib/accounting/numbering";
 
-import { saveBranchMapping, saveEntity } from "./actions";
+import { saveBranchMapping, saveEntity, setLedgerStart } from "./actions";
 
 export type EntityFormView = {
   id: string;
@@ -129,5 +129,47 @@ export function BranchForm({
         ))}
       </select>
     </ActionForm>
+  );
+}
+
+/** The ledger start (Phase 22D): typed confirmation; the database refuses a move that would post anything twice. */
+export function LedgerStartButton({
+  entityId,
+  current,
+}: {
+  entityId: string;
+  current: string | null;
+}) {
+  const router = useRouter();
+  return (
+    <FormSheet
+      trigger={current ? "Ledger start" : "Set ledger start"}
+      title="Ledger start"
+      description="The first day Pulse is the book of record. Before it Tally is, and Pulse only previews its postings (nothing is posted twice). Once Pulse has posted, the date cannot be cleared, moved earlier, or moved past its first journal."
+      variant="outline"
+      size="sm"
+    >
+      {(close) => (
+        <ActionForm
+          action={setLedgerStart}
+          submitLabel="Save the ledger start"
+          onDone={() => {
+            close();
+            router.refresh();
+          }}
+        >
+          <input type="hidden" name="entity_id" value={entityId} />
+          <Field
+            label="Ledger start date"
+            hint="Best a fiscal-year or quarter start after the last Tally month (OQ-117)."
+          >
+            <Input type="date" name="date" defaultValue={current ?? ""} required />
+          </Field>
+          <Field label="Type START to confirm">
+            <Input name="confirm" autoComplete="off" required />
+          </Field>
+        </ActionForm>
+      )}
+    </FormSheet>
   );
 }

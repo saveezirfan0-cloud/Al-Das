@@ -31,6 +31,7 @@ import "@/lib/jobs/handlers/flow-steps";
 import "@/lib/jobs/handlers/flow-recurring";
 import "@/lib/jobs/handlers/recall-run";
 import "@/lib/jobs/handlers/parallel-run";
+import "@/lib/jobs/handlers/accounting-post";
 import "@/lib/recall/listeners";
 import "@/lib/flow-engine/listeners";
 

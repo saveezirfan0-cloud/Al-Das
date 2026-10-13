@@ -674,6 +674,25 @@ export const GUIDES: readonly Guide[] = [
       "Audit adjustments after the year end go into the year's adjustment period (people who manage periods only), so the last month stays closed.",
     ],
   },
+  {
+    id: "accounting-posting",
+    title: "Posting engine: rules, waiting items and the preview",
+    pages: ["/accounting/posting-rules", "/accounting/waiting", "/accounting/posting-preview"],
+    purpose:
+      "Pulse turns Unite invoices and payments, remittances, final denials, supplier bills, paid vouchers, the doctor revenue share, lab statements, cash-ups and card settlements into journals by itself, using the posting rules.",
+    steps: [
+      "Posting rules: each kind of amount (revenue per service category, VAT code per service category, payment modes, receivables, expenses, bank, ...) points at an account. '*' means any; the most specific rule wins. Not mapped yet lists what the finance records use today and has no rule.",
+      "The VAT code of each service category is the tax adviser's decision; an invoice with a category that has none waits instead of guessing.",
+      "Waiting to post: every item the engine could not post, with the reason (no rule, no VAT code, closed period, before the ledger start, ...). Fix the reason and it posts on the next run (every 15 minutes), or press Try again.",
+      "Ledger start (Entities and fiscal years): the first day Pulse is the book of record. Before it Tally is, and Pulse only previews. Type START to set it.",
+      "Posting preview: during the parallel run, what Pulse would post per account and month against the ledger (the Tally mirror). Work the differences down before the ledger start.",
+    ],
+    watchOut: [
+      "Once Pulse has posted, the ledger start cannot be cleared, moved earlier or moved past its first journal: nothing is ever posted twice.",
+      "A changed source (an amended Unite invoice) is reversed and posted again; a deleted or reopened one is reversed. Journals never change.",
+      "Journals carry ids (an invoice number), amounts and dimensions; never a patient's name or PIN.",
+    ],
+  },
 ];
 
 export const FALLBACK_GUIDE: Guide = {

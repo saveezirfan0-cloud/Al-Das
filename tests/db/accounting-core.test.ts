@@ -152,6 +152,14 @@ describe.skipIf(!TEST_DATABASE_URL)("Accounting ledger core (Phase 22A)", () => 
       users[n] = await createAuthUser(c, `${n}-acc@example.test`);
     orgA = await createOrg(c, "Org A", "org-a", users.alice);
     orgB = await createOrg(c, "Org B", "org-b", users.bob);
+    // Phase 22D: nothing posts before an entity's ledger start (Tally is the book of record until then); these tests
+    // exercise the ledger itself, so the books start long before any date they use
+    await svc(() =>
+      q(
+        "update public.acc_entities set ledger_start_date = '2000-01-01' where org_id in ($1, $2)",
+        [orgA, orgB],
+      ),
+    );
     await svc(async () => {
       for (const r of [...FINANCE_ROLES, ...ACCOUNTING_ROLES])
         await q(
@@ -730,7 +738,10 @@ describe.skipIf(!TEST_DATABASE_URL)("Accounting ledger core (Phase 22A)", () => 
         )
       ).id;
       await svc(() =>
-        q("update public.acc_entities set fiscal_year_start_month = 1 where org_id = $1", [orgC]),
+        q(
+          "update public.acc_entities set fiscal_year_start_month = 1, ledger_start_date = '2000-01-01' where org_id = $1",
+          [orgC],
+        ),
       );
       const x = await postSource("voucher", "CAL-1", 1, "2027-06-30", pair("6200", "9000", 1), {
         org: orgC,

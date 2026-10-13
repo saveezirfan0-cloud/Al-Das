@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-11-09-accounting-posting-engine",
+    date: "2026-11-09",
+    title: "Accounting: journals from the finance records",
+    body: "Pulse now writes the journals itself: Unite invoices (revenue by service category, the insurer's and the patient's share, discounts and VAT), payments and refunds, insurance remittances, final denials, supplier bills, paid vouchers, the doctor revenue share and its payouts, lab statements, cash-up differences and card, Tabby and EPG settlements with their fees. Where each amount goes is set under Accounting, Posting rules, which also lists what is not mapped yet; a service category without a VAT code waits rather than guessing. Until the ledger start date (Entities and fiscal years) Tally stays the book of record: Pulse only previews what it would post, and Posting preview compares that with the Tally figures month by month. Anything that cannot post is listed under Waiting to post with the reason.",
+  },
+  {
     id: "2026-11-08-chronic-recall-alignment",
     date: "2026-11-08",
     title: "Chronic recall: only chronic diagnoses count",

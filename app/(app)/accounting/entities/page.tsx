@@ -16,7 +16,7 @@ import { can, canAny, ForbiddenError } from "@/lib/auth/can";
 import { requireMember } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-import { BranchForm, EntityButton } from "./forms";
+import { BranchForm, EntityButton, LedgerStartButton } from "./forms";
 
 export const metadata = { title: "Entities and fiscal years" };
 export const dynamic = "force-dynamic";
@@ -27,19 +27,22 @@ export default async function EntitiesPage() {
     throw new ForbiddenError("accounting.view");
   const manage = can(member, "accounting.settings.manage");
   const admin = createAdminClient(); // service role AFTER the permission check
-  const [entities, { data: years }, { data: branches }, { data: mapped }] = await Promise.all([
-    loadEntities(admin, member.orgId),
-    admin
-      .from("acc_fiscal_years")
-      .select("id, entity_id, label, start_date, end_date, status")
-      .eq("org_id", member.orgId)
-      .order("start_date", { ascending: false }),
-    admin.from("fin_ref_branches").select("code, name").eq("org_id", member.orgId).order("code"),
-    admin
-      .from("acc_entity_branches")
-      .select("branch_code, entity_id, emirate")
-      .eq("org_id", member.orgId),
-  ]);
+  const [entities, { data: years }, { data: branches }, { data: mapped }, { data: starts }] =
+    await Promise.all([
+      loadEntities(admin, member.orgId),
+      admin
+        .from("acc_fiscal_years")
+        .select("id, entity_id, label, start_date, end_date, status")
+        .eq("org_id", member.orgId)
+        .order("start_date", { ascending: false }),
+      admin.from("fin_ref_branches").select("code, name").eq("org_id", member.orgId).order("code"),
+      admin
+        .from("acc_entity_branches")
+        .select("branch_code, entity_id, emirate")
+        .eq("org_id", member.orgId),
+      admin.from("acc_entities").select("id, ledger_start_date").eq("org_id", member.orgId),
+    ]);
+  const ledgerStart = new Map((starts ?? []).map((e) => [e.id, e.ledger_start_date]));
   const mapping = new Map((mapped ?? []).map((m) => [m.branch_code, m]));
   const withYears = new Set((years ?? []).map((y) => y.entity_id));
   const name = new Map(entities.map((e) => [e.id, e.name]));
@@ -65,6 +68,7 @@ export default async function EntitiesPage() {
                 <TableHead>TRN</TableHead>
                 <TableHead>Currency</TableHead>
                 <TableHead>Fiscal year starts</TableHead>
+                <TableHead>Ledger start</TableHead>
                 <TableHead />
               </TableRow>
             </TableHeader>
@@ -82,7 +86,17 @@ export default async function EntitiesPage() {
                   <TableCell className="font-mono text-xs">{e.trn ?? "-"}</TableCell>
                   <TableCell>{e.base_currency}</TableCell>
                   <TableCell>{MONTH_NAMES[e.fiscal_year_start_month - 1]}</TableCell>
-                  <TableCell className="text-right">
+                  <TableCell>
+                    {ledgerStart.get(e.id) ?? (
+                      <span className="text-muted-foreground">
+                        not set (Tally is the book of record)
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right whitespace-nowrap">
+                    {manage && (
+                      <LedgerStartButton entityId={e.id} current={ledgerStart.get(e.id) ?? null} />
+                    )}
                     {manage && <EntityButton entity={{ ...e, hasYears: withYears.has(e.id) }} />}
                   </TableCell>
                 </TableRow>

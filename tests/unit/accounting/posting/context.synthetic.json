@@ -1,0 +1,255 @@
+{
+  "_comment": "Synthetic posting context (Phase 22D): the 22A default chart's codes and the seeded rules, plus VAT codes for two made-up service categories. No real data.",
+  "rules": [
+    {
+      "kind": "revenue",
+      "key": "Consultation",
+      "qualifier": "*",
+      "account": "4100",
+      "tax_code": null
+    },
+    {
+      "kind": "revenue",
+      "key": "Consultation",
+      "qualifier": "P",
+      "account": "4105",
+      "tax_code": null
+    },
+    { "kind": "revenue", "key": "Cosmetic", "qualifier": "*", "account": "4190", "tax_code": null },
+    {
+      "kind": "revenue",
+      "key": "Laboratory",
+      "qualifier": "*",
+      "account": "4120",
+      "tax_code": null
+    },
+    {
+      "kind": "service_tax",
+      "key": "Consultation",
+      "qualifier": "*",
+      "account": null,
+      "tax_code": "ZR"
+    },
+    {
+      "kind": "service_tax",
+      "key": "Consultation",
+      "qualifier": "corporate",
+      "account": null,
+      "tax_code": "VAT5"
+    },
+    {
+      "kind": "service_tax",
+      "key": "Cosmetic",
+      "qualifier": "*",
+      "account": null,
+      "tax_code": "VAT5"
+    },
+    {
+      "kind": "receivable",
+      "key": "insurance",
+      "qualifier": "*",
+      "account": "1200",
+      "tax_code": null
+    },
+    {
+      "kind": "receivable",
+      "key": "insurance",
+      "qualifier": "PAYER-SYN-2",
+      "account": "1201",
+      "tax_code": null
+    },
+    {
+      "kind": "receivable",
+      "key": "self_pay",
+      "qualifier": "*",
+      "account": "1210",
+      "tax_code": null
+    },
+    {
+      "kind": "receivable",
+      "key": "corporate",
+      "qualifier": "*",
+      "account": "1220",
+      "tax_code": null
+    },
+    {
+      "kind": "patient_advance",
+      "key": "*",
+      "qualifier": "*",
+      "account": "2330",
+      "tax_code": null
+    },
+    {
+      "kind": "payment_mode",
+      "key": "CASH",
+      "qualifier": "P",
+      "account": "1100-P",
+      "tax_code": null
+    },
+    {
+      "kind": "payment_mode",
+      "key": "CASH",
+      "qualifier": "G",
+      "account": "1100-G",
+      "tax_code": null
+    },
+    {
+      "kind": "payment_mode",
+      "key": "CARD",
+      "qualifier": "*",
+      "account": "1300",
+      "tax_code": null
+    },
+    {
+      "kind": "payment_mode",
+      "key": "TABBY",
+      "qualifier": "*",
+      "account": "1310",
+      "tax_code": null
+    },
+    { "kind": "discount", "key": "*", "qualifier": "*", "account": "6600", "tax_code": null },
+    { "kind": "write_off", "key": "*", "qualifier": "*", "account": "6610", "tax_code": null },
+    { "kind": "credit_note", "key": "*", "qualifier": "*", "account": "4990", "tax_code": null },
+    { "kind": "rounding", "key": "*", "qualifier": "*", "account": "6900", "tax_code": null },
+    { "kind": "vat_output", "key": "*", "qualifier": "*", "account": "2200", "tax_code": null },
+    { "kind": "vat_input", "key": "*", "qualifier": "*", "account": "2210", "tax_code": null },
+    { "kind": "expense", "key": "Rent", "qualifier": "*", "account": "6200", "tax_code": null },
+    {
+      "kind": "expense",
+      "key": "Entertainment",
+      "qualifier": "*",
+      "account": "6990",
+      "tax_code": "BLK5"
+    },
+    {
+      "kind": "expense",
+      "key": "Software",
+      "qualifier": "*",
+      "account": "6995",
+      "tax_code": "RC5"
+    },
+    { "kind": "expense", "key": "Training", "qualifier": "*", "account": "6996", "tax_code": "EX" },
+    { "kind": "payable", "key": "*", "qualifier": "*", "account": "2100", "tax_code": null },
+    { "kind": "bank", "key": "*", "qualifier": "*", "account": "1150", "tax_code": null },
+    { "kind": "bank", "key": "cash", "qualifier": "P", "account": "1100-P", "tax_code": null },
+    {
+      "kind": "revshare_expense",
+      "key": "*",
+      "qualifier": "*",
+      "account": "5110",
+      "tax_code": null
+    },
+    {
+      "kind": "revshare_payable",
+      "key": "*",
+      "qualifier": "*",
+      "account": "2110",
+      "tax_code": null
+    },
+    { "kind": "provider_cost", "key": "*", "qualifier": "*", "account": "5100", "tax_code": null },
+    {
+      "kind": "provider_cost_offset",
+      "key": "*",
+      "qualifier": "*",
+      "account": "5100",
+      "tax_code": null
+    },
+    {
+      "kind": "provider_cost_offset",
+      "key": "hospital",
+      "qualifier": "*",
+      "account": "2300",
+      "tax_code": null
+    },
+    {
+      "kind": "cashup_over_short",
+      "key": "*",
+      "qualifier": "*",
+      "account": "6920",
+      "tax_code": null
+    },
+    { "kind": "bank_charges", "key": "*", "qualifier": "*", "account": "6500", "tax_code": null },
+    {
+      "kind": "bank_charges",
+      "key": "TABBY",
+      "qualifier": "*",
+      "account": "6500",
+      "tax_code": "VAT5"
+    },
+    {
+      "kind": "denial_writeoff",
+      "key": "*",
+      "qualifier": "*",
+      "account": "6620",
+      "tax_code": null
+    },
+    {
+      "kind": "denial_allowance",
+      "key": "*",
+      "qualifier": "*",
+      "account": "1290",
+      "tax_code": null
+    }
+  ],
+  "tax_codes": [
+    {
+      "code": "VAT5",
+      "kind": "standard",
+      "rate": 5,
+      "active": true,
+      "output_account": "2200",
+      "input_account": "2210"
+    },
+    {
+      "code": "ZR",
+      "kind": "zero",
+      "rate": 0,
+      "active": true,
+      "output_account": null,
+      "input_account": null
+    },
+    {
+      "code": "EX",
+      "kind": "exempt",
+      "rate": 0,
+      "active": true,
+      "output_account": null,
+      "input_account": null
+    },
+    {
+      "code": "OOS",
+      "kind": "out_of_scope",
+      "rate": 0,
+      "active": true,
+      "output_account": null,
+      "input_account": null
+    },
+    {
+      "code": "RC5",
+      "kind": "reverse_charge",
+      "rate": 5,
+      "active": true,
+      "output_account": "2200",
+      "input_account": "2210"
+    },
+    {
+      "code": "BLK5",
+      "kind": "blocked",
+      "rate": 5,
+      "active": true,
+      "output_account": null,
+      "input_account": null
+    }
+  ],
+  "settings": {
+    "denial_allowance_enabled": false,
+    "package_invoices": "hold",
+    "rounding_tolerance": 1,
+    "vat_tolerance": 0.05,
+    "paused_sources": []
+  },
+  "entities": [],
+  "branches": ["G", "M", "P"],
+  "doctors": ["DHA-SYN-1", "DHA-SYN-2"],
+  "payers": ["PAYER-SYN-1", "PAYER-SYN-2"]
+}
