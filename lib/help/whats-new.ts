@@ -9,6 +9,12 @@ export const WHATS_NEW: readonly WhatsNewEntry[] = [
     body: "Accounting can now invoice insurers, corporates, tenants and other businesses (patients are still invoiced in Unite). Add the customer, raise a sales invoice with VAT worked out per line, and issue it: it gets its own number and is posted to the ledger. Above the approval limit a second person with the approval permission issues it. Download the tax invoice as PDF, raise a credit note against it or void it. Record what customers pay: Pulse allocates each receipt to the oldest invoice first and you can change it. Receivables ageing shows who owes what and for how long, and each customer's statement downloads as PDF or Excel, with a balance-confirmation letter for the auditors.",
   },
   {
+    id: "2026-11-09-accounting-posting-engine",
+    date: "2026-11-09",
+    title: "Accounting: journals from the finance records",
+    body: "Pulse now writes the journals itself: Unite invoices (revenue by service category, the insurer's and the patient's share, discounts and VAT), payments and refunds, insurance remittances, final denials, supplier bills, paid vouchers, the doctor revenue share and its payouts, lab statements, cash-up differences and card, Tabby and EPG settlements with their fees. Where each amount goes is set under Accounting, Posting rules, which also lists what is not mapped yet; a service category without a VAT code waits rather than guessing. Until the ledger start date (Entities and fiscal years) Tally stays the book of record: Pulse only previews what it would post, and Posting preview compares that with the Tally figures month by month. Anything that cannot post is listed under Waiting to post with the reason.",
+  },
+  {
     id: "2026-11-08-chronic-recall-alignment",
     date: "2026-11-08",
     title: "Chronic recall: only chronic diagnoses count",

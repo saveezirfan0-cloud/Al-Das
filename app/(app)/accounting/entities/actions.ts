@@ -12,6 +12,7 @@ import {
   DENIED,
   fail,
   firstIssue,
+  isoDate,
   optionalText,
   uuid,
   type ActionResult,
@@ -121,4 +122,44 @@ export async function saveBranchMapping(values: Record<string, string>): Promise
   });
   revalidatePath("/accounting/entities");
   return { ok: true, message: "Branch saved." };
+}
+
+const ledgerStartSchema = z.object({
+  entity_id: uuid,
+  date: isoDate,
+  confirm: z.string().trim().default(""),
+});
+
+/**
+ * The ledger start (Phase 22D): the first day Pulse is the book of record (OQ-117). Typed confirmation (START); the
+ * database checks the permission again and refuses clearing it, moving it earlier or past the first Pulse journal once
+ * Pulse has posted. Audited.
+ */
+export async function setLedgerStart(values: Record<string, string>): Promise<ActionResult> {
+  const member = await gate("accounting.settings.manage");
+  if (!member) return fail(DENIED);
+  const p = ledgerStartSchema.safeParse(values);
+  if (!p.success) return fail(firstIssue(p.error));
+  if (p.data.confirm !== "START") return fail("Type START to confirm the ledger start.");
+  const admin = createAdminClient(member.userId); // service role AFTER the permission check
+  const { data, error } = await admin.rpc("acc_set_ledger_start", {
+    p_org_id: member.orgId,
+    p_entity_id: p.data.entity_id,
+    p_user_id: member.userId,
+    p_date: p.data.date,
+  });
+  if (error || !data) return fail(rpcErrorMessage(error, "The ledger start could not be saved."));
+  const r = data as { previous: string | null; ledger_start_date: string };
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "accounting.ledger_start.set",
+    entity: "acc_entities",
+    entityId: p.data.entity_id,
+    diff: { from: r.previous, to: r.ledger_start_date },
+  });
+  revalidatePath("/accounting/entities");
+  revalidatePath("/accounting/posting-rules");
+  revalidatePath("/accounting/posting-preview");
+  return { ok: true, message: `Ledger start set to ${r.ledger_start_date}.` };
 }

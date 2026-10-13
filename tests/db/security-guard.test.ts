@@ -30,6 +30,7 @@ import {
   PHASE20D_SERVICE_ONLY_TABLES,
   PHASE20D_TABLES,
   PHASE21_TABLES,
+  PHASE22_SERVICE_ONLY_TABLES,
   PHASE22_TABLES,
   PHASE22C_SERVICE_ONLY_TABLES,
   PHASE22C_TABLES,
@@ -94,6 +95,8 @@ const SERVICE_ONLY = new Set([
   "rate_limit_hits",
   "scheduled_jobs",
   "webhook_events_in",
+  // Phase 22D: where the posting runner got to per org and source kind; only the runner (service role) reads or moves it
+  "acc_posting_cursors",
 ]);
 
 /** SECURITY DEFINER functions in `public` that signed-in users may call directly (each uses auth.uid() inside). */
@@ -207,6 +210,16 @@ const PHASE22_SERVICE_FUNCTIONS = [
   "acc_seed_chart",
   "acc_set_period_status",
   "acc_trial_balance",
+  // Phase 22D: the ledger start, the default rules and the posting runner
+  "acc_posting_apply",
+  "acc_posting_candidates",
+  "acc_posting_context",
+  "acc_posting_load",
+  "acc_posting_needed_keys",
+  "acc_posting_preview_report",
+  "acc_posting_set_cursor",
+  "acc_seed_posting_rules",
+  "acc_set_ledger_start",
 ];
 /** Phase 22C: an approval step and its personal signature in one transaction (server actions after can()). */
 const PHASE22C_SERVICE_FUNCTIONS = ["fin_close_sign_signed", "fin_voucher_act_signed"];
@@ -790,6 +803,7 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
         ...PHASE19_SERVICE_ONLY_TABLES,
         ...PHASE20D_SERVICE_ONLY_TABLES,
         ...PHASE22C_SERVICE_ONLY_TABLES,
+        ...PHASE22_SERVICE_ONLY_TABLES,
       ]) {
         const { rows } = await c
           .query<{ n: string }>(`select count(*)::text as n from public.${t}`)

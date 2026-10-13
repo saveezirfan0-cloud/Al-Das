@@ -812,6 +812,11 @@ export async function seedPhase22Rows(c: Client, orgId: string) {
         [orgId],
       )
     ).rows[0].id;
+    // Phase 22D: Pulse posts from the ledger start on (before it Tally is the book of record)
+    await c.query(
+      "update public.acc_entities set ledger_start_date = '2026-07-01' where org_id = $1 and is_default",
+      [orgId],
+    );
     const { rows } = await c.query<{ r: { id: string } }>(
       "select public.acc_post_from_source($1, null, 'voucher', 'SEED-22A', 1, '2026-07-01', 'journal', 'Seed journal', $2::jsonb) as r",
       [
@@ -823,6 +828,25 @@ export async function seedPhase22Rows(c: Client, orgId: string) {
       ],
     );
     ids.journal = rows[0].r.id;
+    // Phase 22D: a posting setting, and one item the engine previewed (dated before the ledger start), which fills the
+    // status and preview tables; the posting rules come from the orgs insert trigger
+    await c.query("insert into public.acc_posting_settings (org_id) values ($1) on conflict do nothing", [orgId]);
+    await c.query("select public.acc_posting_apply($1, 'cashup', $2::jsonb, '2026-06-30')", [
+      orgId,
+      JSON.stringify([
+        {
+          source_id: "SEED-22D",
+          action: "post",
+          date: "2026-06-30",
+          voucher_type: "journal",
+          narration: "Seed preview",
+          lines: [
+            { account_code: "6920", debit: 1 },
+            { account_code: "9000", credit: 1 },
+          ],
+        },
+      ]),
+    ]);
   });
   return ids;
 }
@@ -962,4 +986,12 @@ export const PHASE22_TABLES = [
   "acc_number_series",
   "acc_periods",
   "acc_tax_codes",
+  // Phase 22D (posting engine)
+  "acc_posting_preview",
+  "acc_posting_rules",
+  "acc_posting_settings",
+  "acc_posting_status",
 ] as const;
+
+/** Phase 22D service-only tables: RLS on, no policy (the runner's cursors). */
+export const PHASE22_SERVICE_ONLY_TABLES = ["acc_posting_cursors"] as const;

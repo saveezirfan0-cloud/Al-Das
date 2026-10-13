@@ -57,6 +57,20 @@ export const ACCOUNTING_ERRORS: Record<string, string> = {
   invalid: "Check the form and try again.",
   // Phase 22E receivables (lib/accounting/sales.ts)
   ...SALES_ERRORS,
+  // Phase 22D: the ledger start and the posting engine (migration 20261109000100, lib/accounting/posting)
+  before_ledger_start:
+    "This is dated before the ledger start. Until then Tally is the book of record, so Pulse does not post it.",
+  ledger_start_in_use:
+    "Pulse has already posted journals: the ledger start cannot be cleared, moved earlier, or moved past the first one.",
+  no_rule: "A posting rule is missing. Add it under Posting rules.",
+  no_tax_code:
+    "A service category has no VAT code yet. The tax adviser decides it (OQ-120); add it under Posting rules.",
+  vat_mismatch: "The VAT on the item does not fit its tax code.",
+  claims_exceed_invoice: "The claims matched to this invoice add up to more than the invoice.",
+  package_deferral: "Package invoices are held until packages are set up (OQ-127).",
+  no_date: "The item has no date.",
+  foreign_currency: "The item is in a foreign currency; it is not posted automatically.",
+  error: "Something went wrong. It will be tried again.",
 };
 
 export function accountingErrorMessage(code: string | null | undefined, fallback: string): string {
