@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-11-09-accounting-receivables",
+    date: "2026-11-09",
+    title: "Accounting: sales invoices, receipts and statements",
+    body: "Accounting can now invoice insurers, corporates, tenants and other businesses (patients are still invoiced in Unite). Add the customer, raise a sales invoice with VAT worked out per line, and issue it: it gets its own number and is posted to the ledger. Above the approval limit a second person with the approval permission issues it. Download the tax invoice as PDF, raise a credit note against it or void it. Record what customers pay: Pulse allocates each receipt to the oldest invoice first and you can change it. Receivables ageing shows who owes what and for how long, and each customer's statement downloads as PDF or Excel, with a balance-confirmation letter for the auditors.",
+  },
+  {
     id: "2026-11-08-chronic-recall-alignment",
     date: "2026-11-08",
     title: "Chronic recall: only chronic diagnoses count",

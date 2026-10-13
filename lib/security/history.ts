@@ -21,6 +21,8 @@ export const HISTORY_TABLES = {
   fin_period_closes: "Month-end close",
   acc_accounts: "Account",
   acc_journals: "Journal",
+  acc_sales_invoices: "Sales invoice",
+  acc_receipts: "Receipt",
 } as const;
 
 export type HistoryTable = keyof typeof HISTORY_TABLES;
@@ -43,6 +45,8 @@ export const HISTORY_PERMISSION: Partial<Record<HistoryTable, string>> = {
   fin_period_closes: "finance.close.view",
   acc_accounts: "accounting.view",
   acc_journals: "accounting.ledger.view",
+  acc_sales_invoices: "accounting.sales.manage",
+  acc_receipts: "accounting.receipts.manage",
 };
 
 export type HistoryChange = { field: string; label: string; from: string; to: string };

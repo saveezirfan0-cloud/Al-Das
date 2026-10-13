@@ -1,3 +1,5 @@
+import { SALES_ERRORS } from "@/lib/accounting/sales";
+
 /**
  * The stable codes the accounting functions put in the error HINT (migration 20261108000100), as sentences for people.
  * Unknown codes fall back to the caller's sentence; the database message itself is never shown.
@@ -53,6 +55,8 @@ export const ACCOUNTING_ERRORS: Record<string, string> = {
   fy_in_use: "The fiscal year start cannot change once a fiscal year exists.",
   period_status: "That period change is not possible (close a period before locking it).",
   invalid: "Check the form and try again.",
+  // Phase 22E receivables (lib/accounting/sales.ts)
+  ...SALES_ERRORS,
 };
 
 export function accountingErrorMessage(code: string | null | undefined, fallback: string): string {

@@ -827,6 +827,77 @@ export async function seedPhase22Rows(c: Client, orgId: string) {
   return ids;
 }
 
+/**
+ * One row in every Phase 22E (receivables) table for an org: a customer, an issued invoice (which creates its number
+ * series and journal), a receipt allocated to it. The settings row comes from the orgs insert trigger. Synthetic data
+ * only; needs a user who holds the sales and receipts keys (the org's admin, '*', does).
+ */
+export async function seedPhase22ERows(c: Client, orgId: string, userId: string) {
+  const ids: Record<string, string> = {};
+  await asServiceRole(c, async () => {
+    ids.customer = (
+      await c.query<{ id: string }>(
+        "insert into public.acc_customers (org_id, kind, name) values ($1, 'corporate', 'Seed Corporate') returning id::text as id",
+        [orgId],
+      )
+    ).rows[0].id;
+    const ref = (
+      await c.query<{ income: string; tax: string; bank: string }>(
+        `select (select id::text from public.acc_accounts where org_id = $1 and code = '4190') as income,
+                (select id::text from public.acc_tax_codes where org_id = $1 and code = 'ZR') as tax,
+                (select id::text from public.acc_accounts where org_id = $1 and code = '1150') as bank`,
+        [orgId],
+      )
+    ).rows[0];
+    const { rows } = await c.query<{ r: { id: string } }>(
+      "select public.acc_sales_doc_save($1, $2, null, $3::jsonb, $4::jsonb) as r",
+      [
+        orgId,
+        userId,
+        JSON.stringify({ customer_id: ids.customer, invoice_date: "2026-07-01", expected_total: 10 }),
+        JSON.stringify([
+          {
+            description: "Seed line",
+            quantity: 1,
+            unit_price: 10,
+            income_account_id: ref.income,
+            tax_code_id: ref.tax,
+          },
+        ]),
+      ],
+    );
+    ids.invoice = rows[0].r.id;
+    await c.query("select public.acc_sales_doc_issue($1, $2, $3, null)", [orgId, ids.invoice, userId]);
+    const r = await c.query<{ r: { id: string } }>(
+      "select public.acc_receipt_save($1, $2, $3::jsonb, null) as r",
+      [
+        orgId,
+        userId,
+        JSON.stringify({
+          customer_id: ids.customer,
+          receipt_date: "2026-07-02",
+          account_id: ref.bank,
+          amount: 10,
+          mode: "bank_transfer",
+        }),
+      ],
+    );
+    ids.receipt = r.rows[0].r.id;
+  });
+  return ids;
+}
+
+/** Phase 22E tables with a browser (select) policy; every one is seeded by seedPhase22ERows (settings by the trigger). */
+export const PHASE22E_TABLES = [
+  "acc_allocations",
+  "acc_ar_number_series",
+  "acc_ar_settings",
+  "acc_customers",
+  "acc_receipts",
+  "acc_sales_invoice_lines",
+  "acc_sales_invoices",
+] as const;
+
 /** Phase 20a tables with a browser (select) policy. */
 export const PHASE20A_TABLES = [
   "campaign_archive",
