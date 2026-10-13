@@ -139,8 +139,8 @@ These are the most valuable things to do before any client sees the product, bec
 |---|---|
 | Appointments | Google Calendar sync not built. (The double-booking race is closed: `book_appointment` / `move_appointment` re-check under a per-specialist advisory lock) |
 | Inbox | Presence has no inactivity timeout (round-robin depends on people setting Away). Create enquiry and Book appointment buttons in the contact sidebar need checking now that the modules exist |
-| Flows | Question node does not re-ask on an unmatched answer. A crash between "queued" and "step recorded" can resend once on replay. Outbound webhooks node and CRM nodes are wired, but untested live |
-| Campaigns | One audience snapshot per campaign (no recurring); no A/B; no carousel |
+| Flows | Question node does not re-ask on an unmatched answer. A crash between "queued" and "step recorded" can resend once on replay. Outbound webhooks node is wired, but untested live. **CRM nodes (Create/update enquiry, Add task, Portal record, Book appointment) are NOT wired: `registerCrmAdapter` is never called, so they fail closed at run time (docs/20 §4 G0)** |
+| Campaigns | One audience snapshot per campaign (no recurring); no A/B; carousel templates can be authored but not sent with values |
 | Templates | Positional variables only in the builder; no OTP or catalogue templates |
 | Portal | No bulk edit; no per-object custom fields or tags |
 | Reports | Scheduled email digests, AI tags. (WhatsApp cost is built; its Meta response parser is unverified live, OQ-62) |

@@ -112,6 +112,7 @@ Captures Unite invoices, matches them to Diligence claim files, and routes excep
 - Every schema change is a new migration. Never edit applied migrations. Regenerate types after migrating.
 - Navigation: sidebar entries live in `components/shell/nav.ts` (with `group` and search `keywords`); Settings pages live in `components/shell/settings-pages.ts`, which feeds both the Settings menu and Ctrl+K quick search. A new page is added there, gated by its permission. Status, gaps and roadmap: `docs/09_STATUS_AND_ROADMAP.md`.
 - Back-office objects: core entities merge into core tables; everything else becomes a real table registered in `portal_objects`.
+- Sanoflow parity work follows docs/20 and docs/21; docs/audit/sanoflow-surface.json is behaviour evidence only (rule 14).
 
 ## Security & access (Phase 15, docs/12_PHASE_15_NOTES.md)
 - **Permissions:** `security.manage` (MFA by role, access review, retention and alert settings) and `privacy.manage` (patient export and erasure, always two people). Admin (`*`) only by default.
