@@ -15,13 +15,14 @@ import { takeOverFromBot } from "@/lib/flow-engine/takeover";
 import { addTimelineEvent } from "@/lib/contacts/timeline";
 import { contactDisplayName } from "@/lib/inbox/contact-name";
 import { parseMentions } from "@/lib/inbox/mentions";
+import { closeConversationRecord } from "@/lib/inbox/close";
 import { addNote, queueOutbound, type SendSpec } from "@/lib/inbox/send";
 import { readInboxSettings } from "@/lib/inbox/settings";
 import { enqueue } from "@/lib/jobs/enqueue";
 import { MEDIA_BUCKET, extensionFor } from "@/lib/jobs/handlers/media-fetch";
 import { notify } from "@/lib/notify/dispatch-db";
 import { isMediaPathFor, parseMediaPath } from "@/lib/inbox/media-path";
-import { headerAssetId } from "@/lib/media/header";
+import { headerMediaSlots, slotAssetId } from "@/lib/media/header";
 import { LIBRARY_BUCKET, isLibraryPathFor } from "@/lib/media/paths";
 import { checkMediaReferences } from "@/lib/media/resolve";
 import { validateMedia } from "@/lib/media/limits";
@@ -293,8 +294,12 @@ export async function sendTemplateMessage(
   if (preview.missing.length) return { ok: false, error: `Fill in: ${preview.missing.join(", ")}` };
   // A Media Library file in the header ("media:<id>"): the template's own file is always allowed; any other file
   // needs access to the library, and it must be usable as this header (same organisation, finished, not blocked).
-  const headerRef = headerAssetId(parsed.data.values);
-  if (headerRef) {
+  // Carousel cards (Phase 20d) have a header each; every slot is checked the same way.
+  const slots = headerMediaSlots(tpl.components as unknown as MetaTemplateComponent[]);
+  const refs = slots
+    .map((s) => ({ key: s.key, ref: slotAssetId(s.key, parsed.data.values) }))
+    .filter((s): s is { key: string; ref: string } => !!s.ref);
+  if (refs.length) {
     const { data: own } = await admin
       .from("wa_templates")
       .select("variable_map")
@@ -302,7 +307,8 @@ export async function sendTemplateMessage(
       .eq("org_id", member.orgId)
       .maybeSingle();
     const ownMap = (own?.variable_map ?? {}) as Record<string, string>;
-    if (headerAssetId(ownMap) !== headerRef && !canAny(member, ["media.view", "media.manage"]))
+    const foreign = refs.some((s) => slotAssetId(s.key, ownMap) !== s.ref);
+    if (foreign && !canAny(member, ["media.view", "media.manage"]))
       return { ok: false, error: "You don't have access to the Media Library." };
     const problem = await checkMediaReferences(
       admin,
@@ -574,36 +580,15 @@ export async function closeConversation(input: z.input<typeof closeSchema>): Pro
     return { ok: false, error: "Pick a category to close this conversation." };
   if (settings.require_summary_on_close && !parsed.data.summary)
     return { ok: false, error: "Write a short summary to close this conversation." };
-  const { error: upErr } = await admin
-    .from("conversations")
-    .update({
-      status: "closed",
-      closed_at: new Date().toISOString(),
-      closed_by: member.userId,
-      category_id: parsed.data.category_id,
-      summary: parsed.data.summary || null,
-      bot_active: false,
-    })
-    .eq("id", conversation.id);
-  if (upErr) return { ok: false, error: "Could not close the conversation." };
-  await takeOverFromBot(admin, conversation.id, "Conversation closed");
-  await emit(member.orgId, "conversation.closed", {
-    conversation_id: conversation.id,
-    category_id: parsed.data.category_id,
-    by: member.userId,
-  });
-  await addTimelineEvent(admin, {
+  const closed = await closeConversationRecord(admin, {
     orgId: member.orgId,
+    userId: member.userId,
+    conversationId: conversation.id,
     contactId: conversation.contact_id,
-    type: "conversation.closed",
-    actorType: "user",
-    actorId: member.userId,
-    payload: {
-      conversation_id: conversation.id,
-      category_id: parsed.data.category_id,
-      summary: parsed.data.summary || null,
-    },
+    categoryId: parsed.data.category_id,
+    summary: parsed.data.summary || null,
   });
+  if (!closed) return { ok: false, error: "Could not close the conversation." };
   refresh();
   return { ok: true, message: "Conversation closed.", data: undefined };
 }

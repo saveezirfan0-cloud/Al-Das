@@ -9,6 +9,7 @@ import {
   uniteAppointmentsReport,
   whatsappUsageReport,
 } from "@/lib/reports/queries";
+import { templatePerformanceReport } from "@/lib/reports/template-performance";
 import type { ReportDef } from "@/lib/reports/types";
 
 /**
@@ -51,6 +52,15 @@ export const REPORTS: readonly ReportDef[] = [
     filters: ["channel"],
     requires: ["mv_message_usage_daily"],
     run: whatsappUsageReport,
+  },
+  {
+    key: "template-performance",
+    title: "Template performance",
+    description: "Per template: sent, delivered, read, replied, button clicks and failed.",
+    group: "WhatsApp",
+    filters: ["channel"],
+    requires: ["v_template_message_facts"],
+    run: templatePerformanceReport,
   },
   {
     key: "enquiry-funnel",

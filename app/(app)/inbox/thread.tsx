@@ -594,6 +594,7 @@ export function Thread(props: InboxProps & { selected: ConversationDetail; onBac
         categories={props.categories}
         settings={props.settings}
         aiAvailable={props.ai.available}
+        enquiriesManage={perms.enquiriesManage}
       />
     </div>
   );

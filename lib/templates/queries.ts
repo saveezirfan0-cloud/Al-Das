@@ -45,6 +45,9 @@ export type TemplateListRow = Pick<
   | "created_by"
   | "gallery_key"
   | "submitted_at"
+  | "retry_on_fail"
+  | "sms_fallback"
+  | "ttl_seconds"
 > & {
   components: MetaTemplateComponent[];
   variable_map: Record<string, string>;
@@ -52,7 +55,7 @@ export type TemplateListRow = Pick<
 };
 
 const SELECT =
-  "id, name, language, category, status, type, waba_id, channel_id, rejected_reason, quality, archived_at, updated_at, meta_template_id, created_by, gallery_key, submitted_at, components, variable_map";
+  "id, name, language, category, status, type, waba_id, channel_id, rejected_reason, quality, archived_at, updated_at, meta_template_id, created_by, gallery_key, submitted_at, retry_on_fail, sms_fallback, ttl_seconds, components, variable_map";
 
 export function toTemplateRow(r: Record<string, unknown>): TemplateListRow {
   const components = (r.components ?? []) as MetaTemplateComponent[];

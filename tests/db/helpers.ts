@@ -526,3 +526,41 @@ export const PHASE20_TABLES = [
   "campaign_archive_recipients",
   "enquiry_tags",
 ] as const;
+
+/**
+ * Phase 20d tables (recurring campaigns, monthly campaign budget): one synthetic row each, so the cross-org sweeps are
+ * not vacuous for them. Service role, like the server actions and jobs that write them. `suffix` keeps the channel's
+ * globally unique phone_number_id distinct when several orgs are seeded.
+ */
+export async function seedPhase20dRows(c: Client, orgId: string, suffix = "a") {
+  const ids: Record<string, string> = {};
+  await asServiceRole(c, async () => {
+    const one = async (sql: string, params: unknown[]) =>
+      (await c.query<{ id: string }>(sql + " returning id::text", params)).rows[0].id;
+    ids.channel = await one(
+      "insert into public.channels (org_id, name, waba_id, phone_number_id) values ($1, 'Sweep 20d', $2, $3)",
+      [orgId, `waba-20d-${suffix}`, `pn-20d-${suffix}`],
+    );
+    ids.template = await one(
+      "insert into public.wa_templates (org_id, channel_id, waba_id, name, language, status, category) values ($1, $2, $3, 'sweep_20d', 'en', 'APPROVED', 'UTILITY')",
+      [orgId, ids.channel, `waba-20d-${suffix}`],
+    );
+    ids.segment = await one(
+      "insert into public.segments (org_id, name, kind) values ($1, 'Sweep 20d', 'static')",
+      [orgId],
+    );
+    ids.recurrence = await one(
+      `insert into public.campaign_recurrences (org_id, name, channel_id, template_id, segment_id, cron, timezone, next_run_at)
+       values ($1, 'Sweep recurring', $2, $3, $4, '0 10 * * 1', 'Asia/Dubai', now() + interval '1 day')`,
+      [orgId, ids.channel, ids.template, ids.segment],
+    );
+    await c.query(
+      "insert into public.campaign_budget_months (org_id, month, used) values ($1, date_trunc('month', now())::date, 3) on conflict do nothing",
+      [orgId],
+    );
+  });
+  return ids;
+}
+
+/** Phase 20d tables with a browser (select) policy. */
+export const PHASE20D_TABLES = ["campaign_budget_months", "campaign_recurrences"] as const;

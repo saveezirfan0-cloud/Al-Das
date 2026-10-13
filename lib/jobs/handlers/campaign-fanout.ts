@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { refreshCampaign, runFanout, runRetryRound, startCampaign } from "@/lib/campaigns/engine";
+import { runRecurrence } from "@/lib/campaigns/recurring";
 import { registerHandler } from "@/lib/jobs/registry";
 import { PermanentJobError } from "@/lib/jobs/types";
 
@@ -9,6 +10,7 @@ import { PermanentJobError } from "@/lib/jobs/types";
  *   { op: 'fanout' | 'stats', campaign_id }                   pushed by the app and the tick
  *   { kind: 'campaign.start' | 'campaign.retry_round', payload: { campaign_id, round? } }
  *                                                             pushed by the scheduler from scheduled_jobs
+ *   { kind: 'campaign.recurrence', payload: { recurrence_id, run_at } }   one run of a recurring campaign
  * 'start' also exists as an op for "send now". Every op is idempotent: it re-reads the
  * campaign and does nothing when the state already moved on.
  */
@@ -18,6 +20,11 @@ const job = z.union([
   z.object({
     kind: z.enum(["campaign.start", "campaign.retry_round"]),
     payload: z.object({ campaign_id: uuid, round: z.number().int().min(1).max(3).optional() }),
+  }),
+  // Phase 20d: one run of a recurring campaign (lib/campaigns/recurring.ts).
+  z.object({
+    kind: z.literal("campaign.recurrence"),
+    payload: z.object({ recurrence_id: uuid, run_at: z.string().datetime({ offset: true }) }),
   }),
 ]);
 
@@ -35,7 +42,13 @@ registerHandler({
     const p = parsed.data;
 
     if ("kind" in p) {
-      if (p.kind === "campaign.start") {
+      if (p.kind === "campaign.recurrence") {
+        const r = await runRecurrence(admin, p.payload.recurrence_id, p.payload.run_at, log);
+        log.info("recurring campaign run", {
+          recurrenceId: p.payload.recurrence_id,
+          outcome: r.outcome,
+        });
+      } else if (p.kind === "campaign.start") {
         const started = await startCampaign(admin, p.payload.campaign_id);
         log.info("scheduled campaign start", { campaignId: p.payload.campaign_id, started });
       } else {

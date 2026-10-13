@@ -26,6 +26,7 @@ import {
   PHASE19_SERVICE_ONLY_TABLES,
   PHASE19_TABLES,
   PHASE20_TABLES,
+  PHASE20D_TABLES,
   resetDb,
   seedPhase13Rows,
   seedPhase14Rows,
@@ -34,6 +35,7 @@ import {
   seedPhase18Rows,
   seedPhase19Rows,
   seedPhase20Rows,
+  seedPhase20dRows,
   seedSecurityRows,
   TEST_DATABASE_URL,
 } from "./helpers";
@@ -475,6 +477,8 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
     await seedPhase19Rows(c, orgA, alice);
     // Phase 20a tables likewise.
     await seedPhase20Rows(c, orgA);
+    // Phase 20d tables likewise.
+    await seedPhase20dRows(c, orgA);
   });
   afterAll(async () => {
     await resetDb(c);
@@ -486,13 +490,13 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
   });
 
   it("sweeps every Phase 13 to 20 table (a new table must be added to PHASE13_TABLES … PHASE20_TABLES and seeded)", () => {
-    for (const t of [...PHASE20_TABLES, ...PHASE19_TABLES, ...PHASE18_TABLES, ...PHASE17_TABLES, ...PHASE16_TABLES, ...PHASE15_TABLES, ...PHASE14_TABLES, ...PHASE13_TABLES])
+    for (const t of [...PHASE20D_TABLES, ...PHASE20_TABLES, ...PHASE19_TABLES, ...PHASE18_TABLES, ...PHASE17_TABLES, ...PHASE16_TABLES, ...PHASE15_TABLES, ...PHASE14_TABLES, ...PHASE13_TABLES])
       expect(orgTables, `${t} is not in the org sweep`).toContain(t);
   });
 
   it("really holds org A rows in the Phase 13 to 20 tables, visible to org A's admin (control for the leak sweep)", async () => {
     await asUser(c, alice, async () => {
-      for (const t of [...PHASE20_TABLES, ...PHASE19_TABLES, ...PHASE18_TABLES, ...PHASE17_TABLES, ...PHASE16_TABLES, ...PHASE15_TABLES, ...PHASE14_TABLES, ...PHASE13_TABLES]) {
+      for (const t of [...PHASE20D_TABLES, ...PHASE20_TABLES, ...PHASE19_TABLES, ...PHASE18_TABLES, ...PHASE17_TABLES, ...PHASE16_TABLES, ...PHASE15_TABLES, ...PHASE14_TABLES, ...PHASE13_TABLES]) {
         const { rows } = await c.query<{ n: string }>(
           `select count(*)::text as n from public.${t} where org_id = $1`,
           [orgA],
