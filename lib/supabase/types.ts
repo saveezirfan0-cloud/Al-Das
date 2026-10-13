@@ -2669,6 +2669,64 @@ export type Database = {
           },
         ];
       };
+      conversation_assignment_events: {
+        Row: {
+          actor_id: string | null;
+          at: string;
+          conversation_id: string;
+          from_team_id: string | null;
+          from_user_id: string | null;
+          id: number;
+          kind: string;
+          org_id: string;
+          source: string;
+          to_team_id: string | null;
+          to_user_id: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          actor_id?: string | null;
+          at?: string;
+          conversation_id: string;
+          from_team_id?: string | null;
+          from_user_id?: string | null;
+          id?: never;
+          kind: string;
+          org_id: string;
+          source: string;
+          to_team_id?: string | null;
+          to_user_id?: string | null;
+        };
+        Update: {
+          actor_id?: string | null;
+          at?: string;
+          conversation_id?: string;
+          from_team_id?: string | null;
+          from_user_id?: string | null;
+          id?: never;
+          kind?: string;
+          org_id?: string;
+          source?: string;
+          to_team_id?: string | null;
+          to_user_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "conversation_assignment_events_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "conversation_assignment_events_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       conversation_labels: {
         Row: {
           added_at: string;
@@ -2743,6 +2801,7 @@ export type Database = {
           ai_tags: string[];
           assignee_team_id: string | null;
           assignee_user_id: string | null;
+          auto_reply_sent_at: string | null;
           bot_active: boolean;
           campaign_only: boolean;
           category_id: string | null;
@@ -2773,6 +2832,7 @@ export type Database = {
           ai_tags?: string[];
           assignee_team_id?: string | null;
           assignee_user_id?: string | null;
+          auto_reply_sent_at?: string | null;
           bot_active?: boolean;
           campaign_only?: boolean;
           category_id?: string | null;
@@ -2802,6 +2862,7 @@ export type Database = {
           ai_tags?: string[];
           assignee_team_id?: string | null;
           assignee_user_id?: string | null;
+          auto_reply_sent_at?: string | null;
           bot_active?: boolean;
           campaign_only?: boolean;
           category_id?: string | null;
@@ -8197,13 +8258,56 @@ export type Database = {
           },
         ];
       };
+      member_presence_events: {
+        Row: {
+          at: string;
+          id: number;
+          org_id: string;
+          presence: string;
+          previous: string | null;
+          source: string;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          at?: string;
+          id?: never;
+          org_id: string;
+          presence: string;
+          previous?: string | null;
+          source: string;
+          user_id: string;
+        };
+        Update: {
+          at?: string;
+          id?: never;
+          org_id?: string;
+          presence?: string;
+          previous?: string | null;
+          source?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "member_presence_events_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       memberships: {
         Row: {
           created_at: string;
+          enquiry_scope: string;
           id: string;
+          last_seen_at: string | null;
+          max_open_conversations: number | null;
           org_id: string;
           presence: string;
           presence_at: string | null;
+          presence_auto: boolean;
           role_id: string;
           status: string;
           updated_at: string;
@@ -8212,10 +8316,14 @@ export type Database = {
         ComputedFields: never;
         Insert: {
           created_at?: string;
+          enquiry_scope?: string;
           id?: string;
+          last_seen_at?: string | null;
+          max_open_conversations?: number | null;
           org_id: string;
           presence?: string;
           presence_at?: string | null;
+          presence_auto?: boolean;
           role_id: string;
           status?: string;
           updated_at?: string;
@@ -8223,10 +8331,14 @@ export type Database = {
         };
         Update: {
           created_at?: string;
+          enquiry_scope?: string;
           id?: string;
+          last_seen_at?: string | null;
+          max_open_conversations?: number | null;
           org_id?: string;
           presence?: string;
           presence_at?: string | null;
+          presence_auto?: boolean;
           role_id?: string;
           status?: string;
           updated_at?: string;
@@ -11900,37 +12012,53 @@ export type Database = {
       };
       teams: {
         Row: {
+          auto_reply_text: string | null;
           created_at: string;
           description: string | null;
+          fallback_team_id: string | null;
           id: string;
           lead_user_id: string | null;
           name: string;
+          office_hours: Json | null;
           org_id: string;
           round_robin: boolean;
           updated_at: string;
         };
         ComputedFields: never;
         Insert: {
+          auto_reply_text?: string | null;
           created_at?: string;
           description?: string | null;
+          fallback_team_id?: string | null;
           id?: string;
           lead_user_id?: string | null;
           name: string;
+          office_hours?: Json | null;
           org_id: string;
           round_robin?: boolean;
           updated_at?: string;
         };
         Update: {
+          auto_reply_text?: string | null;
           created_at?: string;
           description?: string | null;
+          fallback_team_id?: string | null;
           id?: string;
           lead_user_id?: string | null;
           name?: string;
+          office_hours?: Json | null;
           org_id?: string;
           round_robin?: boolean;
           updated_at?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "teams_fallback_team_id_fkey";
+            columns: ["fallback_team_id"];
+            isOneToOne: false;
+            referencedRelation: "teams";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "teams_lead_user_id_fkey";
             columns: ["lead_user_id"];
@@ -13477,6 +13605,23 @@ export type Database = {
           },
         ];
       };
+      v_assignment_events: {
+        Row: {
+          at: string | null;
+          conversation_id: string | null;
+          day: string | null;
+          from_team_id: string | null;
+          from_user_id: string | null;
+          id: number | null;
+          kind: string | null;
+          org_id: string | null;
+          source: string | null;
+          to_team_id: string | null;
+          to_user_id: string | null;
+        };
+        ComputedFields: never;
+        Relationships: [];
+      };
       v_birthday_today: {
         Row: {
           age_today: number | null;
@@ -13607,6 +13752,24 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      v_conversation_engagement: {
+        Row: {
+          ai_assisted: boolean | null;
+          assignee_team_id: string | null;
+          assignee_user_id: string | null;
+          automated_reply: boolean | null;
+          bot_engaged: boolean | null;
+          channel_id: string | null;
+          closed_at: string | null;
+          closed_day: string | null;
+          conversation_id: string | null;
+          human_replied: boolean | null;
+          org_id: string | null;
+          status: string | null;
+        };
+        ComputedFields: never;
+        Relationships: [];
       };
       v_enquiry_facts: {
         Row: {
@@ -14274,6 +14437,19 @@ export type Database = {
           },
         ];
       };
+      v_presence_events: {
+        Row: {
+          at: string | null;
+          id: number | null;
+          org_id: string | null;
+          presence: string | null;
+          previous: string | null;
+          source: string | null;
+          user_id: string | null;
+        };
+        ComputedFields: never;
+        Relationships: [];
+      };
       v_recall_call_list: {
         Row: {
           assigned_user_id: string | null;
@@ -14810,6 +14986,10 @@ export type Database = {
       };
       dearmor: { Args: { "": string }; Returns: string };
       demo_wipe_org: { Args: { p_org_id: string }; Returns: Json };
+      enquiry_ids_visible_to: {
+        Args: { p_ids: string[]; p_org_id: string; p_user_id: string };
+        Returns: string[];
+      };
       enquiries_count: {
         Args: { p_org_id: string; p_params: Json; p_q?: string; p_where: string };
         Returns: number;
@@ -15208,6 +15388,10 @@ export type Database = {
       };
       pgp_armor_headers: { Args: { "": string }; Returns: Record<string, unknown>[] };
       pick_round_robin_assignee: { Args: { p_org_id: string; p_team_id: string }; Returns: string };
+      pick_round_robin_assignee_capped: {
+        Args: { p_org_id: string; p_team_id: string };
+        Returns: string;
+      };
       portal_count: {
         Args: { p_object_key: string; p_org_id: string; p_params: Json; p_where: string };
         Returns: number;
@@ -15237,6 +15421,8 @@ export type Database = {
           total: number;
         }[];
       };
+      presence_auto_away_sweep: { Args: Record<PropertyKey, never>; Returns: number };
+      presence_heartbeat: { Args: { p_org_id: string }; Returns: string };
       rate_limit_hit: {
         Args: { p_key: string; p_limit: number; p_window_seconds: number };
         Returns: {
@@ -15249,6 +15435,24 @@ export type Database = {
       reconcile_snapshot: { Args: { p_org_id: string }; Returns: Json };
       refresh_metrics: { Args: { p_name?: string }; Returns: string[] };
       release_flow_lock: { Args: { p_key: string; p_owner: string }; Returns: undefined };
+      report_ai_engagement: {
+        Args: {
+          p_channels?: string[];
+          p_from: string;
+          p_org: string;
+          p_teams?: string[];
+          p_to: string;
+        };
+        Returns: {
+          ai_assisted: number;
+          bot_engaged: number;
+          closed: number;
+          closed_without_human: number;
+          closed_without_reply: number;
+          engaged: number;
+          handled_by_automation: number;
+        }[];
+      };
       report_agents: {
         Args: {
           p_from: string;
@@ -15265,6 +15469,25 @@ export type Database = {
           messages_sent: number;
           name: string;
           user_id: string;
+        }[];
+      };
+      report_assignment_close: {
+        Args: {
+          p_from: string;
+          p_org: string;
+          p_teams?: string[];
+          p_to: string;
+          p_users?: string[];
+        };
+        Returns: {
+          closed: number;
+          first_avg_seconds: number | null;
+          first_median_seconds: number | null;
+          is_total: boolean;
+          last_avg_seconds: number | null;
+          last_median_seconds: number | null;
+          user_id: string | null;
+          with_assignment: number;
         }[];
       };
       report_appointments_by_day: {
@@ -15417,6 +15640,19 @@ export type Database = {
           created: number;
         }[];
       };
+      report_enquiry_cohorts: {
+        Args: { p_from: string; p_org: string; p_to: string; p_users?: string[] };
+        Returns: {
+          created: number;
+          disqualified: number;
+          lost: number;
+          median_days_to_close: number | null;
+          month: string;
+          open: number;
+          won: number;
+          won_value: number;
+        }[];
+      };
       report_enquiry_funnel: {
         Args: {
           p_from: string;
@@ -15462,6 +15698,28 @@ export type Database = {
           hour: number;
           inbound_messages: number;
         }[];
+      };
+      report_owner_removed: {
+        Args: {
+          p_from: string;
+          p_org: string;
+          p_teams?: string[];
+          p_to: string;
+          p_users?: string[];
+        };
+        Returns: {
+          by_routing_or_system: number;
+          by_staff: number;
+          is_total: boolean;
+          reassigned: number;
+          removed: number;
+          unassigned: number;
+          user_id: string | null;
+        }[];
+      };
+      report_presence_events: {
+        Args: { p_from: string; p_org: string; p_to: string; p_users?: string[] };
+        Returns: Json;
       };
       report_response_summary: {
         Args: {
@@ -15545,6 +15803,15 @@ export type Database = {
       seed_recall_programmes: { Args: { p_org: string }; Returns: undefined };
       seed_reminder_exclusions: { Args: { p_org: string }; Returns: undefined };
       seed_unite_appointment_status_map: { Args: { p_org: string }; Returns: undefined };
+      route_conversation: {
+        Args: {
+          p_conversation_id: string;
+          p_org_id: string;
+          p_round_robin: boolean;
+          p_team_id: string;
+        };
+        Returns: Json;
+      };
       set_presence: { Args: { p_org_id: string; p_presence: string }; Returns: undefined };
       show_limit: { Args: Record<PropertyKey, never>; Returns: number };
       show_trgm: { Args: { "": string }; Returns: string[] };

@@ -9,6 +9,7 @@ import type { EnquiryStatus } from "@/lib/enquiries/constants";
 import { fetchEnquiriesByIds, matchingEnquiryIds } from "@/lib/enquiries/query";
 import { loadEnquiryContext } from "@/lib/enquiries/server";
 import { buildEnquiryFilter } from "@/lib/enquiries/views";
+import { enquiryViewer, visibleEnquiryIds } from "@/lib/enquiries/visibility";
 import { filterSchema } from "@/lib/filters/ast";
 import { recordExport } from "@/lib/security/access-log";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -39,9 +40,11 @@ export async function POST(req: Request) {
   const admin = createAdminClient();
   const ctx = await loadEnquiryContext(admin, member.orgId);
 
+  // Phase 20c: the export holds only what this member may see under their restricted enquiry view.
+  const viewer = await enquiryViewer(admin, member);
   let ids: string[];
   if (body.ids) {
-    ids = body.ids;
+    ids = await visibleEnquiryIds(admin, member.orgId, viewer, body.ids);
   } else {
     try {
       ids = await matchingEnquiryIds(
@@ -52,6 +55,7 @@ export async function POST(req: Request) {
           filter: buildEnquiryFilter(body),
           search: body.search,
           timezone: member.org.timezone,
+          viewer,
         },
         MAX_EXPORT,
       );

@@ -33,6 +33,11 @@ export const inboxSettingsSchema = z.object({
   auto_assign: z.enum(["none", "round_robin"]).default("round_robin"),
   /** Move the conversation to Waiting when an agent replies. */
   waiting_on_reply: z.boolean().default(false),
+  /**
+   * Phase 20c: an online member with no activity in Pulse for this many minutes counts as away (null = off). Read in SQL
+   * by app.auto_away_minutes(); bounds in lib/presence/idle.ts.
+   */
+  auto_away_minutes: z.number().int().min(5).max(480).nullable().default(null),
 });
 
 export type InboxSettings = z.infer<typeof inboxSettingsSchema>;

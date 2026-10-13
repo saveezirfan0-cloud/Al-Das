@@ -55,7 +55,7 @@ export const SETTINGS_PAGES: readonly SettingsPage[] = [
     href: "/settings/users",
     label: "Users",
     section: "Workspace",
-    keywords: ["invite", "staff", "members"],
+    keywords: ["invite", "staff", "members", "open conversation limit", "enquiry view"],
     allow: admin,
   },
   {
@@ -69,7 +69,7 @@ export const SETTINGS_PAGES: readonly SettingsPage[] = [
     href: "/settings/teams",
     label: "Teams",
     section: "Workspace",
-    keywords: ["departments", "routing"],
+    keywords: ["departments", "routing", "auto-reply", "fallback team", "office hours"],
     allow: admin,
   },
   { href: "/settings/custom-fields", label: "Custom fields", section: "Workspace", allow: admin },
@@ -100,7 +100,7 @@ export const SETTINGS_PAGES: readonly SettingsPage[] = [
     href: "/settings/inbox",
     label: "Inbox rules",
     section: "Channels & integrations",
-    keywords: ["assignment", "office hours", "sla"],
+    keywords: ["assignment", "office hours", "sla", "away", "idle"],
     allow: admin,
   },
   {

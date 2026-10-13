@@ -243,6 +243,7 @@ describe.skipIf(!TEST_DATABASE_URL)("jobs framework (db)", () => {
         "outbound",
         "outbound_priority",
         "parallel_run",
+        "presence_auto_away",
         "recall_run",
         "review_requests_sweep",
         "scheduler",

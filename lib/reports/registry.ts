@@ -9,6 +9,13 @@ import {
   uniteAppointmentsReport,
   whatsappUsageReport,
 } from "@/lib/reports/queries";
+import {
+  aiEngagementReport,
+  assignmentCloseReport,
+  enquiryCohortReport,
+  memberStatusReport,
+  ownerRemovedReport,
+} from "@/lib/reports/routing-queries";
 import type { ReportDef } from "@/lib/reports/types";
 
 /**
@@ -33,6 +40,43 @@ export const REPORTS: readonly ReportDef[] = [
     filters: ["channel", "team"],
     requires: ["mv_conversation_facts"],
     run: responseReport,
+  },
+  // Phase 20c / G13: read the assignment and presence logs (20261025000100) through service-role report functions.
+  {
+    key: "assign-to-close",
+    title: "Assignment to close",
+    description: "Time from the first and the last assignment to closing a conversation.",
+    group: "Conversations",
+    filters: ["team", "user"],
+    requires: ["v_conversation_engagement", "v_assignment_events"],
+    run: assignmentCloseReport,
+  },
+  {
+    key: "owner-removed",
+    title: "Owner removed",
+    description: "Conversations taken away from a person: unassigned or handed to someone else.",
+    group: "Conversations",
+    filters: ["team", "user"],
+    requires: ["v_assignment_events"],
+    run: ownerRemovedReport,
+  },
+  {
+    key: "ai-engagement",
+    title: "AI and automation",
+    description: "Closed conversations where AI drafts or bots took part, and those closed without a staff reply.",
+    group: "Conversations",
+    filters: ["channel", "team"],
+    requires: ["v_conversation_engagement"],
+    run: aiEngagementReport,
+  },
+  {
+    key: "member-status",
+    title: "Member status log",
+    description: "Online, away and offline time per member per day.",
+    group: "People",
+    filters: ["team", "user"],
+    requires: ["v_presence_events"],
+    run: memberStatusReport,
   },
   {
     key: "agents",
@@ -69,6 +113,15 @@ export const REPORTS: readonly ReportDef[] = [
     filters: ["team", "user"],
     requires: ["v_enquiry_facts", "v_enquiry_stage_entries"],
     run: enquiryStageTimeReport,
+  },
+  {
+    key: "enquiry-cohorts",
+    title: "Enquiry cohorts",
+    description: "Enquiries grouped by the month they were created, and where they are now.",
+    group: "Enquiries",
+    filters: ["user"],
+    requires: ["v_enquiry_facts"],
+    run: enquiryCohortReport,
   },
   {
     key: "campaigns",

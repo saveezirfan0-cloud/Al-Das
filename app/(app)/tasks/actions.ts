@@ -6,6 +6,7 @@ import { z } from "zod";
 import { can } from "@/lib/auth/can";
 import { requirePerm } from "@/lib/auth/session";
 import { searchContactOptions, type ContactOption } from "@/lib/contacts/search-options";
+import { enquiryViewer, visibleEnquiryIds } from "@/lib/enquiries/visibility";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Tables } from "@/lib/supabase/types";
 import { TASK_TYPES } from "@/lib/tasks/constants";
@@ -257,7 +258,7 @@ export type EnquiryOption = { id: string; number: number; title: string };
 export async function searchEnquiriesForTask(
   q: string,
 ): Promise<ActionResult<{ rows: EnquiryOption[] }>> {
-  const { ctx, canEnquiries } = await ctxFor("tasks.manage");
+  const { ctx, canEnquiries, userId } = await ctxFor("tasks.manage");
   if (!canEnquiries) return fail("You do not have access to enquiries.");
   const term = q.trim().slice(0, 100);
   if (term.length < 1) return { ok: true, data: { rows: [] } };
@@ -273,5 +274,15 @@ export async function searchEnquiriesForTask(
     : query.ilike("title", `%${term.replace(/[\\%_]/g, (m) => `\\${m}`)}%`);
   const { data, error } = await query.order("number", { ascending: false });
   if (error) return fail("Search failed.");
-  return { ok: true, data: { rows: data ?? [] } };
+  // Phase 20c: only enquiries this member may see under their restricted enquiry view.
+  const viewer = await enquiryViewer(ctx.admin, { userId, orgId: ctx.orgId });
+  const visible = new Set(
+    await visibleEnquiryIds(
+      ctx.admin,
+      ctx.orgId,
+      viewer,
+      (data ?? []).map((r) => r.id),
+    ),
+  );
+  return { ok: true, data: { rows: (data ?? []).filter((r) => visible.has(r.id)) } };
 }

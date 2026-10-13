@@ -11,6 +11,12 @@ import {
 } from "react";
 import { toast } from "sonner";
 
+import {
+  HEARTBEAT_INTERVAL_MS,
+  heartbeatDue,
+  isPresence,
+  PRESENCE_EVENT,
+} from "@/lib/presence/idle";
 import { stripBadge, withBadge } from "@/lib/shell/title-badge";
 import { createClient } from "@/lib/supabase/client";
 
@@ -295,6 +301,48 @@ export function ShellDataProvider({
       pending.clear();
     };
   }, [orgId, userId, canTasks, debounced, loadNotifications, loadInbox, loadOverdue]);
+
+  // Phase 20c presence heartbeat: while the person is using Pulse (recent input, tab visible) tell the database at most
+  // once a minute. With auto-away on (Settings, Inbox) an online member without heartbeats counts as away and a pg_cron
+  // sweep marks them away; the next heartbeat brings them back. The rule is in lib/presence/idle.ts.
+  useEffect(() => {
+    const supabase = createClient();
+    let lastActivity: number | null = Date.now();
+    let lastSent: number | null = null;
+    const onActivity = () => {
+      lastActivity = Date.now();
+    };
+    const tick = () => {
+      const now = Date.now();
+      const due = heartbeatDue({
+        now,
+        visible: document.visibilityState === "visible",
+        lastActivityAt: lastActivity,
+        lastSentAt: lastSent,
+      });
+      if (!due) return;
+      lastSent = now;
+      void supabase.rpc("presence_heartbeat", { p_org_id: orgId }).then(({ data }) => {
+        if (isPresence(data))
+          window.dispatchEvent(new CustomEvent(PRESENCE_EVENT, { detail: data }));
+      });
+    };
+    const inputs = ["pointerdown", "pointermove", "keydown", "wheel", "touchstart"] as const;
+    for (const e of inputs) window.addEventListener(e, onActivity, { passive: true });
+    const onVisible = () => {
+      if (document.visibilityState !== "visible") return;
+      onActivity();
+      tick();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    tick();
+    const timer = setInterval(tick, HEARTBEAT_INTERVAL_MS / 4);
+    return () => {
+      clearInterval(timer);
+      for (const e of inputs) window.removeEventListener(e, onActivity);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [orgId]);
 
   // Time moves without row changes: poll slowly and refresh when the tab comes back.
   useEffect(() => {

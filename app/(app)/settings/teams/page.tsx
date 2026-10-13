@@ -2,6 +2,7 @@ import { PageHeader } from "@/components/shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requirePerm } from "@/lib/auth/session";
+import { officeHoursToForm } from "@/lib/inbox/routing-rules";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import { TeamActions } from "./team-actions";
@@ -15,7 +16,7 @@ export default async function TeamsPage() {
   const [{ data: teams }, { data: members }, { data: teamMembers }] = await Promise.all([
     admin
       .from("teams")
-      .select("id, name, description, round_robin")
+      .select("id, name, description, round_robin, auto_reply_text, office_hours, fallback_team_id")
       .eq("org_id", member.orgId)
       .order("name"),
     admin
@@ -37,6 +38,8 @@ export default async function TeamsPage() {
   for (const tm of teamMembers ?? [])
     byTeam.set(tm.team_id, [...(byTeam.get(tm.team_id) ?? []), tm.user_id]);
   const nameOf = new Map(people.map((p) => [p.id, p.label]));
+  const teamOptions = (teams ?? []).map((t) => ({ id: t.id, name: t.name }));
+  const teamName = new Map(teamOptions.map((t) => [t.id, t.name]));
 
   return (
     <div className="flex flex-col gap-6">
@@ -44,7 +47,7 @@ export default async function TeamsPage() {
         title="Teams"
         description="Inbox queues and assignment groups. Round-robin shares new conversations across members."
       >
-        <TeamDialog mode="create" people={people} />
+        <TeamDialog mode="create" people={people} teams={teamOptions} />
       </PageHeader>
       {(teams ?? []).length === 0 ? (
         <p className="text-muted-foreground rounded-xl border border-dashed p-10 text-center text-sm">
@@ -54,12 +57,14 @@ export default async function TeamsPage() {
         <div className="grid gap-4 lg:grid-cols-2">
           {(teams ?? []).map((t) => {
             const ids = byTeam.get(t.id) ?? [];
+            const hours = officeHoursToForm(t.office_hours);
             return (
               <Card key={t.id}>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     {t.name}
                     {t.round_robin && <Badge variant="outline">Round-robin</Badge>}
+                    {t.auto_reply_text && <Badge variant="outline">Auto-reply</Badge>}
                   </CardTitle>
                   <CardDescription>{t.description || "No description"}</CardDescription>
                   <div className="col-start-2 row-span-2 row-start-1 self-start justify-self-end">
@@ -70,14 +75,23 @@ export default async function TeamsPage() {
                         description: t.description ?? "",
                         round_robin: t.round_robin,
                         member_ids: ids,
+                        auto_reply_text: t.auto_reply_text ?? "",
+                        office_days: hours.days,
+                        office_start: hours.start,
+                        office_end: hours.end,
+                        fallback_team_id: t.fallback_team_id,
                       }}
                       people={people}
+                      teams={teamOptions}
                     />
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="text-muted-foreground mb-2 text-xs">
                     {ids.length} member{ids.length === 1 ? "" : "s"}
+                    {t.fallback_team_id && teamName.get(t.fallback_team_id)
+                      ? ` · falls back to ${teamName.get(t.fallback_team_id)}`
+                      : ""}
                   </div>
                   <div className="flex flex-wrap gap-1">
                     {ids.map((id) => (

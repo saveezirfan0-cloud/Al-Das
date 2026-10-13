@@ -337,6 +337,24 @@ export const GUIDES: readonly Guide[] = [
     ],
   },
   {
+    id: "routing",
+    title: "Teams and routing",
+    pages: ["/settings/teams", "/settings/users"],
+    purpose:
+      "Decide who gets new WhatsApp conversations, what patients hear when nobody is free, and who sees which enquiries.",
+    steps: [
+      "In Teams, switch on round-robin to share new conversations among the members who are online.",
+      "Pick a fallback team: it takes new conversations when nobody in the team is online or everyone is at their limit.",
+      "Set office hours and an auto-reply. It is sent once per conversation when a chat arrives outside those hours or while nobody in the team is online.",
+      "In Users, open a member's menu, Routing and enquiry view, to limit how many open conversations round-robin gives them and which enquiries they see.",
+      "In Settings, Inbox, switch on 'Set people away when idle' so people who walk away stop receiving new chats.",
+    ],
+    watchOut: [
+      "The auto-reply is plain text, so it only goes out inside 24 hours of the patient's message. Keep it short and never promise a time you cannot keep.",
+      "A restricted enquiry view also applies to exports and searches. You can still assign more conversations by hand than the limit allows.",
+    ],
+  },
+  {
     id: "notifications",
     title: "Notifications",
     pages: ["/notifications"],
