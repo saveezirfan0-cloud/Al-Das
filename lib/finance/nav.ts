@@ -233,6 +233,17 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
     permissions: ["finance.close.view", "finance.close.manage", "finance.close.tasks"],
   },
   {
+    href: "/finance/revenue-share",
+    label: "Doctor revenue share",
+    section: "Money",
+    permissions: [
+      "finance.revshare.view",
+      "finance.revshare.manage",
+      "finance.revshare.verify",
+      "finance.revshare.approve",
+    ],
+  },
+  {
     href: "/finance/export",
     label: "Accounting export",
     section: "Money",

@@ -321,7 +321,8 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 18: finance upgrades, access", () => 
     // finance-followup.test.ts), finance.close.tasks with Phase 20G (20261029000100, tested in
     // finance-close-timetable.test.ts), the bank keys with Phase 20C (20261028000100, tested in finance-bank.test.ts) and the
     // invoice-change keys and the Operations role with Phase 20J (20261031000100, tested in
-    // finance-invoice-changes.test.ts); this migration predates them.
+    // finance-invoice-changes.test.ts) and the revenue-share keys with Phase 20F (20261101000100, tested in
+    // finance-revenue-share.test.ts); this migration predates them.
     const later = (p: string) =>
       p === "finance.payment_links" ||
       p === "finance.close.tasks" ||
@@ -333,6 +334,7 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 18: finance upgrades, access", () => 
       p === "finance.tally.export" ||
       p.startsWith("finance.bank.") ||
       p.startsWith("finance.changes.") ||
+      p.startsWith("finance.revshare.") ||
       p.startsWith("finance.costs.") ||
       p.startsWith("finance.profit.");
     for (const preset of FINANCE_ROLES.filter((r) => first[r.name]))

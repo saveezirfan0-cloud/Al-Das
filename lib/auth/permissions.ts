@@ -506,6 +506,34 @@ export const PERMISSIONS = [
     description: "Sign a reviewed bank reconciliation. The signer must be a different person from the preparer. Audited.",
   },
   {
+    key: "finance.revshare.view",
+    group: "Finance",
+    label: "View doctor revenue share",
+    description:
+      "See revenue-share schemes, doctor charges, monthly runs with every calculation step, payouts and payment references. This is doctor compensation: grant it only to named people.",
+  },
+  {
+    key: "finance.revshare.manage",
+    group: "Finance",
+    label: "Prepare doctor revenue share",
+    description:
+      "Draft scheme versions, enter or upload doctor charges (lab, referrals, consumables), build the monthly run and record the accounting and payment references. Audited.",
+  },
+  {
+    key: "finance.revshare.verify",
+    group: "Finance",
+    label: "Verify revenue share (Finance Manager)",
+    description:
+      "The Finance Manager's check of a scheme version or a monthly run, bound to the exact figures shown. Never the person who prepared it. Audited.",
+  },
+  {
+    key: "finance.revshare.approve",
+    group: "Finance",
+    label: "Approve revenue share (CEO)",
+    description:
+      "Approve a verified scheme version or monthly run, or retire a scheme. Must be a different person from the one who verified. Audited.",
+  },
+  {
     key: "portal.recall_sends.write",
     group: "Portal",
     label: "Edit recall call-list entries",
@@ -592,6 +620,8 @@ const FINANCE_PRESET: readonly string[] = [
   "finance.followup.manage",
   "finance.changes.view",
   "finance.changes.review",
+  "finance.revshare.view",
+  "finance.revshare.manage",
   "finance.bank.view",
   "finance.bank.manage",
   "finance.bank.signoff",
@@ -616,8 +646,13 @@ export const FINANCE_ROLES: readonly RolePreset[] = [
   {
     name: "Finance Manager",
     description:
-      "Everything Finance does, plus verifying payment vouchers (the checker) and the delegation-of-authority settings.",
-    permissions: [...FINANCE_PRESET, "finance.vouchers.check", "finance.vouchers.settings"],
+      "Everything Finance does, plus verifying payment vouchers and revenue share (the checker) and the delegation-of-authority settings.",
+    permissions: [
+      ...FINANCE_PRESET,
+      "finance.vouchers.check",
+      "finance.vouchers.settings",
+      "finance.revshare.verify",
+    ],
   },
   {
     name: "Billing",
@@ -670,6 +705,8 @@ export const FINANCE_ROLES: readonly RolePreset[] = [
       "finance.vouchers.approve_ceo",
       "finance.bank.view",
       "finance.changes.view",
+      "finance.revshare.view",
+      "finance.revshare.approve",
     ],
   },
   {

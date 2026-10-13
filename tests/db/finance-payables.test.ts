@@ -708,9 +708,13 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance payables and vouchers (Phase 20D)",
         await svc(() => q("select name, permissions from public.roles where org_id = $1", [orgC]))
       ).rows.map((r) => [r.name, [...(r.permissions as string[])].sort()]),
     );
+    // keys a later migration grants to the Finance Manager directly are tested with that slice (20F: revenue-share verify)
+    const grantedLater = (p: string) => p === "finance.revshare.verify";
     for (const name of ["Finance", "Finance Manager", "CEO", "Department head"])
       expect(roles[name], name).toEqual(
-        [...FINANCE_ROLES.find((r) => r.name === name)!.permissions].sort(),
+        FINANCE_ROLES.find((r) => r.name === name)!
+          .permissions.filter((p) => !grantedLater(p))
+          .sort(),
       );
     // separation of duties in the presets
     const perms = (n: string) => FINANCE_ROLES.find((r) => r.name === n)!.permissions;
