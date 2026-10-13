@@ -405,6 +405,34 @@ export const PERMISSIONS = [
       "Set the daily revenue, patient and ARPP targets and the reporting lines (branches, Chiro, leased units) used by the flash report. Audited.",
   },
   {
+    key: "finance.revshare.view",
+    group: "Finance",
+    label: "View doctor revenue share",
+    description:
+      "See revenue-share schemes, doctor charges, monthly runs with every calculation step, payouts and payment references. This is doctor compensation: grant it only to named people.",
+  },
+  {
+    key: "finance.revshare.manage",
+    group: "Finance",
+    label: "Prepare doctor revenue share",
+    description:
+      "Draft scheme versions, enter or upload doctor charges (lab, referrals, consumables), build the monthly run and record the accounting and payment references. Audited.",
+  },
+  {
+    key: "finance.revshare.verify",
+    group: "Finance",
+    label: "Verify revenue share (Finance)",
+    description:
+      "Finance verification of a scheme version or a monthly run, bound to the exact figures shown. Audited.",
+  },
+  {
+    key: "finance.revshare.approve",
+    group: "Finance",
+    label: "Approve revenue share (CEO)",
+    description:
+      "Approve a verified scheme version or monthly run, or retire a scheme. Must be a different person from the one who verified. Audited.",
+  },
+  {
     key: "portal.recall_sends.write",
     group: "Portal",
     label: "Edit recall call-list entries",
@@ -496,6 +524,9 @@ export const FINANCE_ROLES: readonly RolePreset[] = [
       "finance.flash.view",
       "finance.targets.manage",
       "finance.followup.manage",
+      "finance.revshare.view",
+      "finance.revshare.manage",
+      "finance.revshare.verify",
     ],
   },
   {
@@ -543,6 +574,8 @@ export const FINANCE_ROLES: readonly RolePreset[] = [
       "finance.close.signoff.ceo",
       "finance.profit.view",
       "finance.flash.view",
+      "finance.revshare.view",
+      "finance.revshare.approve",
     ],
   },
   {

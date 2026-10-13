@@ -3949,6 +3949,64 @@ export type Database = {
           },
         ];
       };
+      fin_doctor_charges: {
+        Row: {
+          amount: number;
+          created_at: string;
+          created_by: string | null;
+          doctor_dha_id: string;
+          id: string;
+          kind: string;
+          month: string;
+          note: string | null;
+          org_id: string;
+          reference: string | null;
+          source: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          amount: number;
+          created_at?: string;
+          created_by?: string | null;
+          doctor_dha_id: string;
+          id?: string;
+          kind: string;
+          month: string;
+          note?: string | null;
+          org_id: string;
+          reference?: string | null;
+          source?: string;
+        };
+        Update: {
+          amount?: number;
+          created_at?: string;
+          created_by?: string | null;
+          doctor_dha_id?: string;
+          id?: string;
+          kind?: string;
+          month?: string;
+          note?: string | null;
+          org_id?: string;
+          reference?: string | null;
+          source?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_doctor_charges_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_doctor_charges_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       fin_eligibility_checks: {
         Row: {
           appointment_id: string | null;
@@ -5914,6 +5972,277 @@ export type Database = {
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      fin_revshare_lines: {
+        Row: {
+          created_at: string;
+          doctor_dha_id: string;
+          id: string;
+          org_id: string;
+          paid_by: string | null;
+          paid_on: string | null;
+          paid_recorded_at: string | null;
+          payment_ref: string | null;
+          payout: number;
+          run_id: string;
+          scheme_id: string;
+          scheme_version: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          doctor_dha_id: string;
+          id?: string;
+          org_id: string;
+          paid_by?: string | null;
+          paid_on?: string | null;
+          paid_recorded_at?: string | null;
+          payment_ref?: string | null;
+          payout: number;
+          run_id: string;
+          scheme_id: string;
+          scheme_version: number;
+        };
+        Update: {
+          created_at?: string;
+          doctor_dha_id?: string;
+          id?: string;
+          org_id?: string;
+          paid_by?: string | null;
+          paid_on?: string | null;
+          paid_recorded_at?: string | null;
+          payment_ref?: string | null;
+          payout?: number;
+          run_id?: string;
+          scheme_id?: string;
+          scheme_version?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_revshare_lines_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_revshare_lines_paid_by_fkey";
+            columns: ["paid_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_revshare_lines_run_id_fkey";
+            columns: ["run_id"];
+            isOneToOne: false;
+            referencedRelation: "fin_revshare_runs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      fin_revshare_runs: {
+        Row: {
+          approved_at: string | null;
+          approved_by: string | null;
+          built_at: string;
+          built_by: string | null;
+          created_at: string;
+          id: string;
+          month: string;
+          org_id: string;
+          paid_at: string | null;
+          posted_at: string | null;
+          posted_by: string | null;
+          posted_ref: string | null;
+          snapshot: NonNullable<Json>;
+          snapshot_hash: string;
+          status: string;
+          total_payout: number;
+          updated_at: string;
+          verified_at: string | null;
+          verified_by: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          approved_at?: string | null;
+          approved_by?: string | null;
+          built_at?: string;
+          built_by?: string | null;
+          created_at?: string;
+          id?: string;
+          month: string;
+          org_id: string;
+          paid_at?: string | null;
+          posted_at?: string | null;
+          posted_by?: string | null;
+          posted_ref?: string | null;
+          snapshot: NonNullable<Json>;
+          snapshot_hash: string;
+          status?: string;
+          total_payout?: number;
+          updated_at?: string;
+          verified_at?: string | null;
+          verified_by?: string | null;
+        };
+        Update: {
+          approved_at?: string | null;
+          approved_by?: string | null;
+          built_at?: string;
+          built_by?: string | null;
+          created_at?: string;
+          id?: string;
+          month?: string;
+          org_id?: string;
+          paid_at?: string | null;
+          posted_at?: string | null;
+          posted_by?: string | null;
+          posted_ref?: string | null;
+          snapshot?: NonNullable<Json>;
+          snapshot_hash?: string;
+          status?: string;
+          total_payout?: number;
+          updated_at?: string;
+          verified_at?: string | null;
+          verified_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_revshare_runs_approved_by_fkey";
+            columns: ["approved_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_revshare_runs_built_by_fkey";
+            columns: ["built_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_revshare_runs_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_revshare_runs_posted_by_fkey";
+            columns: ["posted_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_revshare_runs_verified_by_fkey";
+            columns: ["verified_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      fin_revshare_schemes: {
+        Row: {
+          approved_at: string | null;
+          approved_by: string | null;
+          created_at: string;
+          created_by: string | null;
+          doctor_dha_id: string;
+          effective_from: string;
+          id: string;
+          note: string | null;
+          org_id: string;
+          retired_at: string | null;
+          retired_by: string | null;
+          rule: NonNullable<Json>;
+          rule_hash: string;
+          status: string;
+          updated_at: string;
+          verified_at: string | null;
+          verified_by: string | null;
+          version: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          approved_at?: string | null;
+          approved_by?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          doctor_dha_id: string;
+          effective_from: string;
+          id?: string;
+          note?: string | null;
+          org_id: string;
+          retired_at?: string | null;
+          retired_by?: string | null;
+          rule: NonNullable<Json>;
+          rule_hash: string;
+          status?: string;
+          updated_at?: string;
+          verified_at?: string | null;
+          verified_by?: string | null;
+          version: number;
+        };
+        Update: {
+          approved_at?: string | null;
+          approved_by?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          doctor_dha_id?: string;
+          effective_from?: string;
+          id?: string;
+          note?: string | null;
+          org_id?: string;
+          retired_at?: string | null;
+          retired_by?: string | null;
+          rule?: NonNullable<Json>;
+          rule_hash?: string;
+          status?: string;
+          updated_at?: string;
+          verified_at?: string | null;
+          verified_by?: string | null;
+          version?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_revshare_schemes_approved_by_fkey";
+            columns: ["approved_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_revshare_schemes_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_revshare_schemes_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_revshare_schemes_retired_by_fkey";
+            columns: ["retired_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_revshare_schemes_verified_by_fkey";
+            columns: ["verified_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
             referencedColumns: ["id"];
           },
         ];
@@ -14950,6 +15279,10 @@ export type Database = {
         };
         Returns: Json;
       };
+      fin_doctor_charges_replace_upload: {
+        Args: { p_org_id: string; p_rows: Json; p_user_id: string };
+        Returns: Json;
+      };
       fin_doctor_measures: {
         Args: { p_from: string; p_org_id: string; p_to: string };
         Returns: Json;
@@ -15061,6 +15394,58 @@ export type Database = {
           p_to: string;
         };
         Returns: Json;
+      };
+      fin_revshare_inputs: { Args: { p_month: string; p_org_id: string }; Returns: Json };
+      fin_revshare_liability: { Args: { p_org_id: string }; Returns: Json };
+      fin_revshare_post: {
+        Args: { p_org_id: string; p_ref: string; p_run_id: string; p_user_id: string };
+        Returns: undefined;
+      };
+      fin_revshare_record_payment: {
+        Args: {
+          p_line_id: string;
+          p_org_id: string;
+          p_paid_on: string;
+          p_ref: string;
+          p_user_id: string;
+        };
+        Returns: string;
+      };
+      fin_revshare_run_step: {
+        Args: {
+          p_hash: string;
+          p_org_id: string;
+          p_run_id: string;
+          p_step: string;
+          p_user_id: string;
+        };
+        Returns: undefined;
+      };
+      fin_revshare_scheme_save: {
+        Args: {
+          p_doctor: string;
+          p_effective_from: string;
+          p_note: string;
+          p_org_id: string;
+          p_rule: Json;
+          p_scheme_id: string;
+          p_user_id: string;
+        };
+        Returns: string;
+      };
+      fin_revshare_scheme_step: {
+        Args: {
+          p_hash: string;
+          p_org_id: string;
+          p_scheme_id: string;
+          p_step: string;
+          p_user_id: string;
+        };
+        Returns: undefined;
+      };
+      fin_revshare_store_draft: {
+        Args: { p_month: string; p_org_id: string; p_snapshot: Json; p_user_id: string };
+        Returns: string;
       };
       fin_rules_context: {
         Args: { p_org_id: string };

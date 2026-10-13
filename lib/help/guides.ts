@@ -219,6 +219,29 @@ export const GUIDES: readonly Guide[] = [
     ],
   },
   {
+    id: "finance-revenue-share",
+    title: "Doctor revenue share",
+    pages: [
+      "/finance/revenue-share",
+      "/finance/revenue-share/schemes",
+      "/finance/revenue-share/charges",
+    ],
+    purpose:
+      "Each doctor's monthly revenue share with a complete trail: the source revenue, the approved rule of their contract, the lab and referral charges, every calculation step, Finance verification, CEO approval, the accounting reference and each payment.",
+    steps: [
+      "Schemes: add one version per doctor contract (share of net revenue, optional rates per service category, which charges are deducted, an optional monthly threshold and minimum guarantee). Finance verifies it, then the CEO approves it; an approved version never changes, so a new contract term is a new version.",
+      "Doctor charges: enter or upload the month's lab, external referral, consumable and other costs per doctor before working day 7. Re-uploading a corrected file replaces the earlier upload for the same month and kind.",
+      "Monthly runs: after the month ends, build the draft and open each doctor to check every step. Finance verifies, then a different person (the CEO) approves.",
+      "Record the accounting (Tally) reference, then each doctor's payment date and reference. The trail CSV downloads the whole calculation.",
+    ],
+    watchOut: [
+      "This is doctor compensation: only Finance and the CEO see it.",
+      "Verifying freezes the run and the month's charges. Return it to draft (before the CEO approves) to correct something.",
+      "A month locked by the month-end close cannot have its charges or draft changed; approve the run before the close.",
+      "The page warns when invoices, charges or schemes changed after the draft was built. Rebuild before verifying.",
+    ],
+  },
+  {
     id: "finance-workflows",
     title: "Finance workflows",
     pages: [

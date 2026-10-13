@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-11-01-revenue-share",
+    date: "2026-11-01",
+    title: "Doctor revenue share",
+    body: "Finance has a new Doctor revenue share page. Each doctor's contract is kept as an approved rule (share of net revenue, rates per service category, a monthly threshold or minimum guarantee, and which lab and referral charges are deducted). Each month Pulse calculates every payout and shows every step; Finance verifies, the CEO approves, and the accounting and payment references are recorded against it, so anyone can see later exactly how a number was reached. Only Finance and the CEO can see it.",
+  },
+  {
     id: "2026-10-30-billing-mix",
     date: "2026-10-30",
     title: "Billing mix and trends",

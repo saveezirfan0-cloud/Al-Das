@@ -180,7 +180,8 @@ Send anonymised or synthetic copies where a file contains patient details; heade
 | 20A | Built on `claude/funny-clarke-6t7gee` (see `docs/20_PHASE_20A_NOTES.md`): flash report, targets and lines, comparison with the same days of last month, Excel export |
 | 20I | Built (see `docs/20_PHASE_20I_NOTES.md`): Insurance follow-up worklist with 60 / 90 / 120-day stages and a follow-up record per claim, daily follow-up tasks (off until a start date), submission sequence per claim (reconstructed; exact once Diligence sends a submission-level report, OQ-102), Receivables by payer and age with CSV (candidate ARP report, OQ-95), configurable ageing buckets |
 | 20K | Built on `claude/funny-clarke-6t7gee` (see `docs/20_PHASE_20K_NOTES.md`): doctor billing mix (service categories, insurance vs self-pay, revenue per patient, difference from the clinic), seasonality by week or month against last year, CSV export |
-| 20B to 20H, 20J, 21 | Not started |
+| 20F | Built (see `docs/20_PHASE_20F_NOTES.md`): doctor charges (lab, referral, consumables, other; typed in or CSV), versioned schemes with a closed rule (share of net revenue, category rates, threshold pro rata, deductions per charge kind, minimum guarantee) approved by two people on the rule's sha256, monthly runs with the nine-step trail (snapshot bound to its sha256, Finance verification, CEO approval by a different person, accounting reference, payment and reference per doctor), liability, trail CSV. Lab and referral costs are entered by Finance until 20E feeds them; the vocabulary awaits one real contract per scheme type (D10, OQ-115) |
+| 20B to 20E, 20G, 20H, 20J, 21 | Not started |
 
 ## 8. Things noticed in the current reports
 

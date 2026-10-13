@@ -503,6 +503,24 @@ export async function seedPhase20Rows(c: Client, orgId: string, userId: string) 
       "insert into public.ins_claim_followup_stages (org_id, claim_activity_id, stage, crossed_on) values ($1, $2, 90, '2026-09-29')",
       [orgId, ids.claim20],
     );
+    // 20F: a doctor charge, a draft scheme version, a draft run and its line
+    ids.charge20 = await one(
+      "insert into public.fin_doctor_charges (org_id, month, doctor_dha_id, kind, amount, created_by) values ($1, '2026-09-01', 'SYN-SEED', 'lab', 10, $2)",
+      [orgId, userId],
+    );
+    ids.scheme20 = await one(
+      `insert into public.fin_revshare_schemes (org_id, doctor_dha_id, version, effective_from, rule, rule_hash, created_by)
+       values ($1, 'SYN-SEED', 1, '2026-01-01', '{"basis":"net_revenue","default_rate":0.3,"deductions":{"lab":1}}'::jsonb, '', $2)`,
+      [orgId, userId],
+    );
+    ids.run20 = await one(
+      "insert into public.fin_revshare_runs (org_id, month, snapshot, snapshot_hash, built_by) values ($1, '2026-09-01', '{}'::jsonb, '', $2)",
+      [orgId, userId],
+    );
+    ids.line20 = await one(
+      "insert into public.fin_revshare_lines (org_id, run_id, doctor_dha_id, scheme_id, scheme_version, payout) values ($1, $2, 'SYN-SEED', $3, 1, 100)",
+      [orgId, ids.run20, ids.scheme20],
+    );
   });
   return ids;
 }
@@ -511,6 +529,10 @@ export async function seedPhase20Rows(c: Client, orgId: string, userId: string) 
 export const PHASE20_TABLES = [
   "fin_ref_report_lines",
   "fin_ref_revenue_targets",
+  "fin_doctor_charges",
+  "fin_revshare_lines",
+  "fin_revshare_runs",
+  "fin_revshare_schemes",
   "ins_claim_followup_stages",
   "ins_claim_followups",
 ] as const;

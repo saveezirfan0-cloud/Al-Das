@@ -117,6 +117,23 @@ describe("Finance navigation", () => {
     expect(role("CEO")).not.toContain("finance.followup.manage");
   });
 
+  it("doctor revenue share is compensation data: Finance and the CEO only, with verify and approve split", () => {
+    for (const r of ["Finance", "CEO"])
+      expect(hrefs(member(role(r))), r).toContain("/finance/revenue-share");
+    for (const r of ["Medical Director", "Billing", "Insurance", "Cost / Payroll"]) {
+      expect(hrefs(member(role(r))), r).not.toContain("/finance/revenue-share");
+      expect(role(r).filter((p) => p.startsWith("finance.revshare.")), r).toEqual([]);
+    }
+    expect(role("Finance")).toEqual(
+      expect.arrayContaining(["finance.revshare.view", "finance.revshare.manage", "finance.revshare.verify"]),
+    );
+    expect(role("Finance")).not.toContain("finance.revshare.approve");
+    expect(role("CEO")).toEqual(expect.arrayContaining(["finance.revshare.view", "finance.revshare.approve"]));
+    expect(role("CEO")).not.toContain("finance.revshare.verify");
+    expect(role("CEO")).not.toContain("finance.revshare.manage");
+    expect(hrefs(member(["finance.revshare.approve"]))).toEqual(["/finance/revenue-share"]);
+  });
+
   it("cost and profit pages follow the blueprint's separation of duties", () => {
     // Cost / Payroll: costs only, no revenue, branch, doctor or profit pages
     expect(hrefs(member(role("Cost / Payroll")))).toEqual(["/finance/costs"]);

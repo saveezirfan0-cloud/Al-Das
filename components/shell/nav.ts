@@ -155,7 +155,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: "Finance",
     icon: "finance",
     group: "Insight & back office",
-    keywords: ["invoices", "insurance", "claims", "denials", "pre-authorisation", "remittance", "forecast", "cash-up", "month-end", "revenue", "flash", "daily summary", "targets", "arpp", "follow-up", "receivables", "ageing", "arp", "billing mix", "seasonality", "trends"],
+    keywords: ["invoices", "insurance", "claims", "denials", "pre-authorisation", "remittance", "forecast", "cash-up", "month-end", "revenue", "flash", "daily summary", "targets", "arpp", "follow-up", "receivables", "ageing", "arp", "billing mix", "seasonality", "trends", "revenue share", "doctor incentives", "doctor charges", "payout"],
     permissions: [
       "finance.view",
       "finance.invoices.view",
@@ -187,6 +187,10 @@ export const NAV_ITEMS: readonly NavItem[] = [
       "finance.profit.approve",
       "finance.flash.view",
       "finance.targets.manage",
+      "finance.revshare.view",
+      "finance.revshare.manage",
+      "finance.revshare.verify",
+      "finance.revshare.approve",
     ],
   },
   {
