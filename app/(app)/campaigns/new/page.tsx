@@ -36,6 +36,7 @@ export default async function NewCampaignPage({
         .from("channels")
         .select("id, name, waba_id, status, quality_rating, messaging_limit_tier, display_phone")
         .eq("org_id", member.orgId)
+        .eq("type", "whatsapp")
         .eq("status", "active")
         .order("name"),
       supabase

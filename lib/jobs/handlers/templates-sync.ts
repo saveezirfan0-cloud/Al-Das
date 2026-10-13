@@ -13,6 +13,7 @@ registerTask("templates_sync", {
     const { data: channels } = await admin
       .from("channels")
       .select("id, org_id, phone_number_id, waba_id")
+      .eq("type", "whatsapp")
       .eq("status", "active")
       .order("created_at");
     const seen = new Set<string>();

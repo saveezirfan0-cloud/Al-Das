@@ -13,6 +13,8 @@ export type ChannelInfo = {
   name: string;
   display_phone: string | null;
   status: string;
+  /** whatsapp | web | instagram | messenger (Phase 20e). Only WhatsApp has templates, media and number switching. */
+  type: string;
 };
 export type LabelInfo = { id: string; name: string; color: string };
 export type CategoryInfo = { id: string; name: string };

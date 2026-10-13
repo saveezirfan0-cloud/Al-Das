@@ -15,6 +15,8 @@ const PUBLIC_PREFIXES = [
   "/api/public",
   "/api/calendar", // Phase 19: the doctor calendar feed (secret token in the path, rate limited)
   "/pay/done", // Phase 19: the plain page a patient lands on after paying
+  "/api/widget/", // Phase 20e: the website chat widget's API (allowed websites only, visitor token, rate limited)
+  "/widget/", // Phase 20e: the widget script itself (static)
   "/_next",
   "/favicon",
   "/manifest.webmanifest",

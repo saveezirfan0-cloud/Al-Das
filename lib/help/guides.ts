@@ -291,6 +291,65 @@ export const GUIDES: readonly Guide[] = [
     ],
   },
   {
+    id: "web-chat-setup",
+    title: "Website chat",
+    pages: ["/settings/integrations/web_chat"],
+    purpose:
+      "Put a chat button on your own website. Visitors' messages arrive in the Inbox and your replies appear in their browser.",
+    steps: [
+      "List the websites that may show the chat (host names such as www.example.com, separated by commas), choose the title, colour and welcome text, and save.",
+      "Switch on with the typed words.",
+      "Give your web developer the line under 'Add the chat to your website'. It goes before </body> on each page of the listed websites.",
+      "Open your website, send a test message and answer it from the Inbox (it shows 'Website chat').",
+    ],
+    watchOut: [
+      "Replies are text only: no templates, files or voice notes. There is no 24-hour limit.",
+      "A visitor is identified only by a random code kept in their own browser. If they clear it, their next message starts a new chat and a new patient record (merge them if needed).",
+      "Visitors are not verified: check who you are talking to before sharing anything personal.",
+      "The chat does not work in a training workspace.",
+    ],
+  },
+  {
+    id: "meta-messaging-setup",
+    title: "Instagram and Messenger",
+    pages: ["/settings/integrations/instagram", "/settings/integrations/messenger"],
+    purpose:
+      "Answer Instagram direct messages and Facebook Messenger conversations from the Inbox.",
+    steps: [
+      "In your Meta app, connect the Facebook Page (and the Instagram professional account linked to it) and create a long-lived Page access token with the messaging permission.",
+      "Enter the Page ID (and the Instagram account ID), the Page token, the app secret and a verify token of your choice, then save and press Test connection.",
+      "Switch on with the typed words.",
+      "In the Meta app's Webhooks settings, subscribe the Page (or Instagram) object's messages with the webhook address shown on this page and the same verify token.",
+      "Send a message to the account from a test profile and answer it from the Inbox.",
+    ],
+    watchOut: [
+      "Meta only allows a reply within 24 hours of the person's last message. After that Pulse refuses the reply; there are no templates on these channels.",
+      "Replies are text only. Photos and files people send show as an attachment notice; open the conversation in Instagram or Messenger to see them.",
+      "People are matched by the id Meta gives them on your account, never by phone number. Merge records by hand if the same patient also writes on WhatsApp.",
+      "Nothing is sent from a training workspace.",
+    ],
+  },
+  {
+    id: "google-calendar-setup",
+    title: "Google Calendar sync",
+    pages: ["/settings/integrations/google_calendar"],
+    purpose:
+      "Keep a doctor's Google Calendar and Pulse in step: Google busy times block bookings in Pulse, and Pulse appointments show in Google as 'Busy'.",
+    steps: [
+      "In the Google Cloud console create an OAuth client (web application), add the redirect address shown on this page, and enable the Google Calendar API.",
+      "Enter the client ID and secret, choose what to sync and how many days ahead, and save.",
+      "Switch on with the typed words.",
+      "For each doctor press Connect. The doctor signs in to their own Google account on that screen and allows access.",
+      "Within five minutes their busy times appear as blocked time in Pulse and their appointments appear in Google as 'Busy'.",
+    ],
+    watchOut: [
+      "Google receives only the start and end time of each appointment, titled 'Busy': never the patient, service or notes.",
+      "Pulse reads only when the doctor is busy, never what their events are. Events marked 'Free' in Google do not block bookings.",
+      "Busy times from Google cannot be edited in Pulse; change them in Google. Disconnect removes them and stops the sync.",
+      "Unite appointments are never changed by this sync.",
+    ],
+  },
+  {
     id: "ad-report",
     title: "Ad attribution report",
     pages: ["/reports/ads"],

@@ -176,6 +176,7 @@ export async function saveFlowDraft(
       .select("id")
       .eq("id", parsed.data.channel_id)
       .eq("org_id", member.orgId)
+      .eq("type", "whatsapp")
       .maybeSingle();
     if (!ch) return { ok: false, error: "Number not found" };
   }

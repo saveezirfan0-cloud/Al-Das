@@ -95,7 +95,7 @@ export type HttpResult = {
 export type RequestOptions = {
   /** Short stable name for the log and the health page, e.g. "sms.send". Never user data. */
   operation: string;
-  method: "GET" | "POST" | "DELETE";
+  method: "GET" | "POST" | "PUT" | "DELETE";
   url: string;
   headers?: Record<string, string>;
   /** Already serialised (JSON or application/x-www-form-urlencoded). */

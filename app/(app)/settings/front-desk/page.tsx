@@ -25,6 +25,7 @@ export default async function FrontDeskSettingsPage() {
       .from("channels")
       .select("id, name, display_phone")
       .eq("org_id", member.orgId)
+      .eq("type", "whatsapp")
       .order("name"),
   ]);
 

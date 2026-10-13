@@ -228,7 +228,12 @@ async function createAndSendOffer(
       admin.from("specialists").select("name").eq("id", slot.specialist_id).maybeSingle(),
       admin.from("locations").select("name, timezone").eq("id", slot.location_id).maybeSingle(),
       admin.from("services").select("name").eq("id", serviceId).maybeSingle(),
-      admin.from("channels").select("id, waba_id").eq("org_id", o.orgId).eq("status", "active"),
+      admin
+        .from("channels")
+        .select("id, waba_id")
+        .eq("org_id", o.orgId)
+        .eq("type", "whatsapp")
+        .eq("status", "active"),
     ]);
 
   const templateId = settings.offer_template_id;

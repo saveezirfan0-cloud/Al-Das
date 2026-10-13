@@ -7,6 +7,12 @@ import { z } from "zod";
 import { recordAudit } from "@/lib/audit";
 import { can, canAny } from "@/lib/auth/can";
 import { requireMember, requirePerm, type CurrentMember } from "@/lib/auth/session";
+import {
+  channelTypeOf,
+  hasWhatsAppFeatures,
+  replyWindow,
+  windowClosedMessage,
+} from "@/lib/channels/types";
 import { emit } from "@/lib/events/emit";
 import "@/lib/flow-engine/listeners";
 import { startRun } from "@/lib/flow-engine/run";
@@ -43,6 +49,9 @@ export type ActionResult<T = undefined> =
 
 const uuid = z.string().uuid();
 
+/** Phase 20e: the website chat, Instagram and Messenger carry text only. */
+const TEXT_ONLY = "Only text messages can be sent on this channel.";
+
 /** Loads a conversation the caller may see (RLS through the user client) and asserts the permission. */
 async function visibleConversation(
   member: CurrentMember,
@@ -54,7 +63,7 @@ async function visibleConversation(
   const supabase = await createClient();
   const { data } = await supabase
     .from("conversations")
-    .select("*, contacts(*), channels(id, name, phone_number_id, waba_id, status)")
+    .select("*, contacts(*), channels(id, name, type, phone_number_id, waba_id, status)")
     .eq("id", conversationId)
     .eq("org_id", member.orgId)
     .maybeSingle();
@@ -105,6 +114,13 @@ export async function sendChat(
   if (error || !conversation) return { ok: false, error: error ?? "Conversation not found." };
   if (conversation.channels?.status !== "active")
     return { ok: false, error: "This number is paused or disconnected." };
+  // Phase 20e: Instagram and Messenger only allow a reply within 24 hours of the person's last message (no templates there).
+  const channelType = channelTypeOf(conversation.channels?.type);
+  if (
+    channelType !== "whatsapp" &&
+    !replyWindow(channelType, { lastInboundAt: conversation.last_inbound_at }).open
+  )
+    return { ok: false, error: windowClosedMessage(channelType) };
   const body = fillVars(parsed.data.text, conversation.contacts, member);
   const admin = createAdminClient();
   await takeOverFromBot(admin, conversation.id);
@@ -168,6 +184,8 @@ export async function sendAttachment(
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   const { error, conversation } = await visibleConversation(member, parsed.data.conversation_id);
   if (error || !conversation) return { ok: false, error: error ?? "Conversation not found." };
+  if (!hasWhatsAppFeatures(channelTypeOf(conversation.channels?.type)))
+    return { ok: false, error: TEXT_ONLY };
   if (!isMediaPathFor(parsed.data.path, member.orgId, conversation.id))
     return { ok: false, error: "Invalid attachment path." };
   const d = parsed.data;
@@ -214,6 +232,8 @@ export async function sendLibraryMedia(
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   const { error, conversation } = await visibleConversation(member, parsed.data.conversation_id);
   if (error || !conversation) return { ok: false, error: error ?? "Conversation not found." };
+  if (!hasWhatsAppFeatures(channelTypeOf(conversation.channels?.type)))
+    return { ok: false, error: TEXT_ONLY };
   const admin = createAdminClient();
   const { data: asset } = await admin
     .from("media_assets")
@@ -272,6 +292,8 @@ export async function sendTemplateMessage(
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   const { error, conversation } = await visibleConversation(member, parsed.data.conversation_id);
   if (error || !conversation) return { ok: false, error: error ?? "Conversation not found." };
+  if (!hasWhatsAppFeatures(channelTypeOf(conversation.channels?.type)))
+    return { ok: false, error: TEXT_ONLY };
   const admin = createAdminClient();
   const { data: tpl } = await admin
     .from("wa_templates")
@@ -440,7 +462,12 @@ export async function markConversationRead(conversationId: string): Promise<Acti
     .order("at", { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (last?.wa_message_id && conversation.channels && conversation.channels.status === "active") {
+  if (
+    last?.wa_message_id &&
+    conversation.channels &&
+    conversation.channels.status === "active" &&
+    channelTypeOf(conversation.channels.type) === "whatsapp"
+  ) {
     try {
       const client = await clientForChannel(admin, conversation.channels);
       await client.markRead(last.wa_message_id);
@@ -673,6 +700,7 @@ export async function startConversation(
     .select("id, status")
     .eq("id", parsed.data.channel_id)
     .eq("org_id", member.orgId)
+    .eq("type", "whatsapp")
     .maybeSingle();
   if (!channel || channel.status !== "active")
     return { ok: false, error: "Pick an active number." };

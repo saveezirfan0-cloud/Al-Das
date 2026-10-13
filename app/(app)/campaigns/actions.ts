@@ -106,6 +106,7 @@ async function loadSendContext(
       .select("id, name, status, waba_id, quality_rating, messaging_limit_tier")
       .eq("org_id", orgId)
       .eq("id", channelId)
+      .eq("type", "whatsapp")
       .maybeSingle(),
     admin
       .from("wa_templates")

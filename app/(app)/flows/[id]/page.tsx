@@ -40,7 +40,12 @@ export default async function FlowBuilderPage({ params }: { params: Promise<{ id
     locations,
     enquiryFields,
   ] = await Promise.all([
-    admin.from("channels").select("id, name").eq("org_id", member.orgId).order("name"),
+    admin
+      .from("channels")
+      .select("id, name")
+      .eq("org_id", member.orgId)
+      .eq("type", "whatsapp")
+      .order("name"),
     admin
       .from("wa_templates")
       .select("id, name, status, category")

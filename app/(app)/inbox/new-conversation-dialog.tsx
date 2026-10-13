@@ -24,6 +24,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+import { channelTypeOf } from "@/lib/channels/types";
+
 import { startConversation } from "./actions";
 import type { ChannelInfo } from "./types";
 
@@ -39,7 +41,10 @@ export function NewConversationDialog({
   canCreateContacts: boolean;
 }) {
   const router = useRouter();
-  const active = channels.filter((c) => c.status === "active");
+  // Only a WhatsApp number can start a conversation (the website chat, Instagram and Messenger wait for the person to write).
+  const active = channels.filter(
+    (c) => c.status === "active" && channelTypeOf(c.type) === "whatsapp",
+  );
   const [channel, setChannel] = useState(active[0]?.id ?? "");
   const [phone, setPhone] = useState("");
   const [first, setFirst] = useState("");

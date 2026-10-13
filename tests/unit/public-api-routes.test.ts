@@ -28,7 +28,7 @@ function seed() {
       contacts: [{ id: C1, org_id: "org1", phone_e164: "+971501111111", first_name: "Amal", last_name: "Khan", dob: "1990-02-28", email: "amal@example.test", external_id: "PIN-1", stop_marketing: false, deleted_at: null }],
       contact_phones: [],
       orgs: [{ id: "org1", settings: {} }],
-      channels: [{ id: "ch1", org_id: "org1", waba_id: "w1", status: "active" }],
+      channels: [{ id: "ch1", org_id: "org1", type: "whatsapp", waba_id: "w1", status: "active" }],
       wa_templates: [{ id: TEMPLATE_ID, org_id: "org1", waba_id: "w1", name: "appt", language: "en", status: "APPROVED", category: "UTILITY", archived_at: null, components: [{ type: "BODY", text: "Hi {{1}}" }] }],
       conversations: [],
       messages: [],

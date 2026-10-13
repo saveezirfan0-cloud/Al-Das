@@ -2511,6 +2511,62 @@ export type Database = {
           },
         ];
       };
+      contact_channel_identities: {
+        Row: {
+          channel_id: string;
+          contact_id: string;
+          created_at: string;
+          external_id: string;
+          id: string;
+          last_seen_at: string;
+          org_id: string;
+          platform: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          channel_id: string;
+          contact_id: string;
+          created_at?: string;
+          external_id: string;
+          id?: string;
+          last_seen_at?: string;
+          org_id: string;
+          platform: string;
+        };
+        Update: {
+          channel_id?: string;
+          contact_id?: string;
+          created_at?: string;
+          external_id?: string;
+          id?: string;
+          last_seen_at?: string;
+          org_id?: string;
+          platform?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "contact_channel_identities_channel_id_fkey";
+            columns: ["channel_id"];
+            isOneToOne: false;
+            referencedRelation: "channels";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "contact_channel_identities_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "contact_channel_identities_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       contact_phones: {
         Row: {
           contact_id: string;
@@ -6633,6 +6689,204 @@ export type Database = {
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      gcal_connections: {
+        Row: {
+          access_enc: string | null;
+          access_expires_at: string | null;
+          calendar_id: string;
+          connected_at: string;
+          connected_by: string | null;
+          consecutive_failures: number;
+          created_at: string;
+          id: string;
+          last_error: string | null;
+          last_pull_at: string | null;
+          last_push_at: string | null;
+          next_sync_at: string;
+          org_id: string;
+          refresh_enc: string | null;
+          revoked_at: string | null;
+          specialist_id: string;
+          status: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          access_enc?: string | null;
+          access_expires_at?: string | null;
+          calendar_id?: string;
+          connected_at?: string;
+          connected_by?: string | null;
+          consecutive_failures?: number;
+          created_at?: string;
+          id?: string;
+          last_error?: string | null;
+          last_pull_at?: string | null;
+          last_push_at?: string | null;
+          next_sync_at?: string;
+          org_id: string;
+          refresh_enc?: string | null;
+          revoked_at?: string | null;
+          specialist_id: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          access_enc?: string | null;
+          access_expires_at?: string | null;
+          calendar_id?: string;
+          connected_at?: string;
+          connected_by?: string | null;
+          consecutive_failures?: number;
+          created_at?: string;
+          id?: string;
+          last_error?: string | null;
+          last_pull_at?: string | null;
+          last_push_at?: string | null;
+          next_sync_at?: string;
+          org_id?: string;
+          refresh_enc?: string | null;
+          revoked_at?: string | null;
+          specialist_id?: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "gcal_connections_connected_by_fkey";
+            columns: ["connected_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "gcal_connections_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "gcal_connections_specialist_id_fkey";
+            columns: ["specialist_id"];
+            isOneToOne: false;
+            referencedRelation: "specialists";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      gcal_event_links: {
+        Row: {
+          appointment_id: string | null;
+          connection_id: string;
+          created_at: string;
+          event_id: string;
+          id: string;
+          last_synced_at: string;
+          org_id: string;
+          status: string;
+          synced_hash: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          appointment_id?: string | null;
+          connection_id: string;
+          created_at?: string;
+          event_id: string;
+          id?: string;
+          last_synced_at?: string;
+          org_id: string;
+          status?: string;
+          synced_hash: string;
+        };
+        Update: {
+          appointment_id?: string | null;
+          connection_id?: string;
+          created_at?: string;
+          event_id?: string;
+          id?: string;
+          last_synced_at?: string;
+          org_id?: string;
+          status?: string;
+          synced_hash?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "gcal_event_links_appointment_id_fkey";
+            columns: ["appointment_id"];
+            isOneToOne: false;
+            referencedRelation: "appointments";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "gcal_event_links_connection_id_fkey";
+            columns: ["connection_id"];
+            isOneToOne: false;
+            referencedRelation: "gcal_connections";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "gcal_event_links_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      gcal_oauth_states: {
+        Row: {
+          created_at: string;
+          expires_at: string;
+          org_id: string;
+          specialist_id: string;
+          state_hash: string;
+          used_at: string | null;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          expires_at: string;
+          org_id: string;
+          specialist_id: string;
+          state_hash: string;
+          used_at?: string | null;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          expires_at?: string;
+          org_id?: string;
+          specialist_id?: string;
+          state_hash?: string;
+          used_at?: string | null;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "gcal_oauth_states_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "gcal_oauth_states_specialist_id_fkey";
+            columns: ["specialist_id"];
+            isOneToOne: false;
+            referencedRelation: "specialists";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "gcal_oauth_states_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
             referencedColumns: ["id"];
           },
         ];
@@ -12339,10 +12593,12 @@ export type Database = {
           created_at: string;
           created_by: string | null;
           ends_at: string;
+          external_key: string | null;
           id: string;
           location_id: string | null;
           org_id: string;
           reason: string | null;
+          source: string;
           specialist_id: string;
           starts_at: string;
           updated_at: string;
@@ -12352,10 +12608,12 @@ export type Database = {
           created_at?: string;
           created_by?: string | null;
           ends_at: string;
+          external_key?: string | null;
           id?: string;
           location_id?: string | null;
           org_id: string;
           reason?: string | null;
+          source?: string;
           specialist_id: string;
           starts_at: string;
           updated_at?: string;
@@ -12364,10 +12622,12 @@ export type Database = {
           created_at?: string;
           created_by?: string | null;
           ends_at?: string;
+          external_key?: string | null;
           id?: string;
           location_id?: string | null;
           org_id?: string;
           reason?: string | null;
+          source?: string;
           specialist_id?: string;
           starts_at?: string;
           updated_at?: string;
@@ -13195,6 +13455,69 @@ export type Database = {
             columns: ["specialist_id"];
             isOneToOne: false;
             referencedRelation: "specialists";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      web_chat_sessions: {
+        Row: {
+          channel_id: string;
+          contact_id: string;
+          conversation_id: string | null;
+          created_at: string;
+          id: string;
+          last_seen_at: string;
+          org_id: string;
+          token_hash: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          channel_id: string;
+          contact_id: string;
+          conversation_id?: string | null;
+          created_at?: string;
+          id?: string;
+          last_seen_at?: string;
+          org_id: string;
+          token_hash: string;
+        };
+        Update: {
+          channel_id?: string;
+          contact_id?: string;
+          conversation_id?: string | null;
+          created_at?: string;
+          id?: string;
+          last_seen_at?: string;
+          org_id?: string;
+          token_hash?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "web_chat_sessions_channel_id_fkey";
+            columns: ["channel_id"];
+            isOneToOne: false;
+            referencedRelation: "channels";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "web_chat_sessions_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "web_chat_sessions_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "web_chat_sessions_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
             referencedColumns: ["id"];
           },
         ];
@@ -15116,6 +15439,19 @@ export type Database = {
         };
         Returns: Json;
       };
+      channel_receive_social: {
+        Args: {
+          p_at?: string;
+          p_body: string;
+          p_channel: string;
+          p_external_id: string;
+          p_kind: string;
+          p_message_id: string;
+          p_org: string;
+          p_platform: string;
+        };
+        Returns: Json;
+      };
       claim_flow_lock: {
         Args: { p_key: string; p_owner: string; p_ttl_seconds?: number };
         Returns: boolean;
@@ -15405,6 +15741,11 @@ export type Database = {
       };
       fin_set_invoice_doctor_roles: { Args: { p_org_id: string; p_rows: Json }; Returns: number };
       fin_sync_denial_cases: { Args: { p_limit?: number; p_org_id: string }; Returns: Json };
+      gcal_apply_busy_blocks: {
+        Args: { p_blocks: Json; p_from: string; p_org: string; p_specialist: string; p_to: string };
+        Returns: Json;
+      };
+      gcal_clear_busy_blocks: { Args: { p_org: string; p_specialist: string }; Returns: number };
       gen_random_uuid: { Args: Record<PropertyKey, never>; Returns: string };
       gen_salt: { Args: { "": string }; Returns: string };
       ins_apply_matches: { Args: { p_matches: Json; p_org_id: string }; Returns: number };
@@ -16068,6 +16409,19 @@ export type Database = {
       uuid_ns_oid: { Args: Record<PropertyKey, never>; Returns: string };
       uuid_ns_url: { Args: Record<PropertyKey, never>; Returns: string };
       uuid_ns_x500: { Args: Record<PropertyKey, never>; Returns: string };
+      web_chat_receive: {
+        Args: {
+          p_at?: string;
+          p_body: string;
+          p_channel: string;
+          p_client_id: string;
+          p_create: boolean;
+          p_name: string;
+          p_org: string;
+          p_token_hash: string;
+        };
+        Returns: Json;
+      };
       workdays_between: {
         Args: { p_from: string; p_location?: string; p_org: string; p_to: string };
         Returns: number;

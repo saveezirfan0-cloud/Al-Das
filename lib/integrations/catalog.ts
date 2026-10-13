@@ -15,6 +15,10 @@ export const INTEGRATION_KINDS = [
   "meta_capi",
   "telehealth",
   "esign",
+  "web_chat",
+  "instagram",
+  "messenger",
+  "google_calendar",
 ] as const;
 export type IntegrationKind = (typeof INTEGRATION_KINDS)[number];
 
@@ -544,7 +548,243 @@ export const INTEGRATIONS: readonly IntegrationDef[] = [
     consequence:
       "This sends patient data to a third party. For every request the e-signature service receives the form itself and the signer's name and e-mail address, and it keeps its own copy of the signed document under its own terms and retention. Make sure your agreement with the service and its data location are approved. The title and message sent are fixed and generic.",
   },
+  {
+    kind: "web_chat",
+    outbound: false,
+    title: "Website chat",
+    description:
+      "A small chat button for your own website. Visitors' messages arrive in the inbox like WhatsApp chats and your replies appear in their browser. Only the websites you list can use it; visitors are identified by a random code kept in their browser, never by a cookie.",
+    contactsPatients: true,
+    movesMoney: false,
+    sharesData: false,
+    confirmWord: "ENABLE WEBSITE CHAT",
+    viewPermission: "integrations.manage",
+    providers: [{ id: "widget", label: "Pulse chat widget", fields: [] }],
+    commonFields: [
+      {
+        key: "allowed_domains",
+        label: "Allowed websites",
+        type: "text",
+        required: true,
+        max: 500,
+        placeholder: "www.example.com, booking.example.com",
+        help: "Host names separated by commas (https only). *.example.com allows every sub-domain. The chat refuses every other website.",
+      },
+      { key: "title", label: "Title", type: "text", max: 40, default: "Chat with us" },
+      {
+        key: "colour",
+        label: "Colour",
+        type: "text",
+        max: 7,
+        default: "#0f766e",
+        pattern: "^#[0-9a-fA-F]{6}$",
+        patternHint: "Use a colour such as #0f766e.",
+      },
+      {
+        key: "welcome",
+        label: "Welcome text",
+        type: "text",
+        max: 300,
+        default:
+          "Hello! How can we help you today? Please do not share medical emergencies here: call your local emergency number.",
+      },
+    ],
+    consequence:
+      "Anyone on the websites you list can start a chat. Their messages create patient records without a phone number and appear in the inbox; staff replies are shown in the visitor's browser.",
+  },
+  {
+    kind: "instagram",
+    outbound: true,
+    title: "Instagram messages",
+    description:
+      "Answer Instagram direct messages from the inbox. Each person is matched by the id Instagram gives them (never a phone number). Replies are text only and only within 24 hours of the person's last message, as Meta requires.",
+    contactsPatients: true,
+    movesMoney: false,
+    sharesData: false,
+    confirmWord: "ENABLE INSTAGRAM MESSAGES",
+    viewPermission: "integrations.manage",
+    providers: [
+      {
+        id: "meta",
+        label: "Meta Messenger Platform (Instagram)",
+        fields: [
+          {
+            key: "page_id",
+            label: "Facebook Page ID",
+            type: "text",
+            required: true,
+            max: 25,
+            pattern: "^\\d{5,25}$",
+            patternHint: "The Page ID is a number.",
+            help: "The Page linked to your Instagram professional account. Replies are sent through it.",
+          },
+          {
+            key: "ig_account_id",
+            label: "Instagram account ID",
+            type: "text",
+            required: true,
+            max: 25,
+            pattern: "^\\d{5,25}$",
+            patternHint: "The Instagram professional account ID is a number.",
+            help: "Meta puts this id on every message sent to your account; messages for any other account are ignored.",
+          },
+          ...metaSecretFields(),
+        ],
+      },
+    ],
+    commonFields: [graphVersionField()],
+    consequence:
+      "Instagram direct messages to your account will appear in the inbox and staff replies will be sent from it. Messages pass through Meta under Meta's terms.",
+  },
+  {
+    kind: "messenger",
+    outbound: true,
+    title: "Facebook Messenger",
+    description:
+      "Answer Messenger conversations with your Facebook Page from the inbox. Each person is matched by the id Messenger gives them (never a phone number). Replies are text only and only within 24 hours of the person's last message, as Meta requires.",
+    contactsPatients: true,
+    movesMoney: false,
+    sharesData: false,
+    confirmWord: "ENABLE MESSENGER MESSAGES",
+    viewPermission: "integrations.manage",
+    providers: [
+      {
+        id: "meta",
+        label: "Meta Messenger Platform",
+        fields: [
+          {
+            key: "page_id",
+            label: "Facebook Page ID",
+            type: "text",
+            required: true,
+            max: 25,
+            pattern: "^\\d{5,25}$",
+            patternHint: "The Page ID is a number.",
+            help: "The Page whose Messenger inbox Pulse answers.",
+          },
+          ...metaSecretFields(),
+        ],
+      },
+    ],
+    commonFields: [graphVersionField()],
+    consequence:
+      "Messenger conversations with your Page will appear in the inbox and staff replies will be sent from it. Messages pass through Meta under Meta's terms.",
+  },
+  {
+    kind: "google_calendar",
+    outbound: true,
+    title: "Google Calendar sync",
+    description:
+      "Connect a doctor's Google Calendar. Their busy times come into Pulse so nobody books them then, and their Pulse appointments appear in Google as 'Busy', with no patient name or detail.",
+    contactsPatients: false,
+    movesMoney: false,
+    sharesData: true,
+    confirmWord: "SYNC CALENDARS WITH GOOGLE",
+    viewPermission: "integrations.calendar",
+    providers: [
+      {
+        id: "google",
+        label: "Google Calendar API (OAuth)",
+        fields: [
+          {
+            key: "client_id",
+            label: "OAuth client ID",
+            type: "text",
+            required: true,
+            max: 200,
+            pattern: "^[A-Za-z0-9._-]+\\.apps\\.googleusercontent\\.com$",
+            patternHint: "The client ID ends in .apps.googleusercontent.com.",
+          },
+          {
+            key: "client_secret",
+            label: "OAuth client secret",
+            type: "password",
+            secret: true,
+            required: true,
+            max: 200,
+          },
+        ],
+      },
+    ],
+    commonFields: [
+      {
+        key: "pull_busy",
+        label: "Bring busy times into Pulse",
+        type: "select",
+        default: "yes",
+        options: [
+          { value: "yes", label: "Yes: block those times for bookings" },
+          { value: "no", label: "No" },
+        ],
+      },
+      {
+        key: "push_appointments",
+        label: "Show Pulse appointments in Google as 'Busy'",
+        type: "select",
+        default: "yes",
+        options: [
+          { value: "yes", label: "Yes (title 'Busy', no patient detail)" },
+          { value: "no", label: "No" },
+        ],
+      },
+      {
+        key: "window_days",
+        label: "Days ahead to sync",
+        type: "number",
+        min: 7,
+        max: 120,
+        default: 60,
+      },
+    ],
+    consequence:
+      "This shares data with Google. For each connected doctor, Google receives the start and end time of their Pulse appointments as 'Busy' events (no patient, service or note), and Pulse reads the times the doctor is busy in Google (not what the events are). Make sure your agreement with Google and its data location are approved.",
+  },
 ];
+
+/** The credentials an Instagram or Messenger integration needs (all three stored encrypted). */
+function metaSecretFields(): FieldDef[] {
+  return [
+    {
+      key: "page_access_token",
+      label: "Page access token",
+      type: "password",
+      secret: true,
+      required: true,
+      max: 600,
+      help: "A long-lived Page token with the messaging permission. Stored encrypted; never shown again.",
+    },
+    {
+      key: "app_secret",
+      label: "App secret",
+      type: "password",
+      secret: true,
+      required: true,
+      max: 200,
+      help: "Used to check that each webhook call really comes from Meta.",
+    },
+    {
+      key: "verify_token",
+      label: "Webhook verify token",
+      type: "password",
+      secret: true,
+      required: true,
+      max: 100,
+      help: "Any long random text. Type the same text in the Meta app's webhook settings.",
+    },
+  ];
+}
+
+function graphVersionField(): FieldDef {
+  return {
+    key: "graph_version",
+    label: "Graph API version (optional)",
+    type: "text",
+    max: 8,
+    pattern: "^v\\d{1,2}\\.\\d$",
+    patternHint: "Use a version such as v21.0, or leave it empty.",
+    help: "Leave empty to use the platform's default version.",
+  };
+}
 
 export function integrationDef(kind: IntegrationKind): IntegrationDef {
   return INTEGRATIONS.find((i) => i.kind === kind)!;
