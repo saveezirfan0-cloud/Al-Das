@@ -178,7 +178,8 @@ Send anonymised or synthetic copies where a file contains patient details; heade
 | Slice | Status |
 |---|---|
 | 20A | Built on `claude/funny-clarke-6t7gee` (see `docs/20_PHASE_20A_NOTES.md`): flash report, targets and lines, comparison with the same days of last month, Excel export |
-| 20B to 20J, 21 | Not started |
+| 20I | Built (see `docs/20_PHASE_20I_NOTES.md`): Insurance follow-up worklist with 60 / 90 / 120-day stages and a follow-up record per claim, daily follow-up tasks (off until a start date), submission sequence per claim (reconstructed; exact once Diligence sends a submission-level report, OQ-102), Receivables by payer and age with CSV (candidate ARP report, OQ-95), configurable ageing buckets |
+| 20B to 20H, 20J, 20K, 21 | Not started |
 
 ## 8. Things noticed in the current reports
 

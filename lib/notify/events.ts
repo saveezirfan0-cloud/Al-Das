@@ -124,6 +124,16 @@ export const NOTIFICATION_EVENTS = [
     permission: "finance.denials.manage",
   },
   {
+    key: "finance.followup_due",
+    group: "Work",
+    label: "An unpaid insurance claim needs a follow-up",
+    description:
+      "An unpaid claim reached a follow-up stage (60, 90 or 120 days by default; Finance, Workflow settings) and a task was created. Push and e-mail say only that a follow-up is due.",
+    channels: ALL,
+    defaults: { in_app: true, email: false, push: false },
+    permission: "finance.followup.manage",
+  },
+  {
     key: "ai.insights_ready",
     group: "Work",
     label: "The weekly AI reply-quality report is ready",
@@ -222,6 +232,7 @@ export function categoryForType(type: string): NotificationCategory {
     type === "ai.insights_ready" ||
     type === "finance.preauth_expiring" ||
     type === "finance.denial_deadline" ||
+    type === "finance.followup_due" ||
     type === "reminder.failed"
   )
     return "work";
@@ -245,6 +256,7 @@ export function typeFilterForCategory(category: NotificationCategory): {
           "reminder.failed",
           "finance.preauth_expiring",
           "finance.denial_deadline",
+          "finance.followup_due",
           "ai.insights_ready",
         ],
         prefixes: ["task.", "enquiry.", "appointment.", "document."],

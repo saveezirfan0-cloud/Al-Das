@@ -359,7 +359,8 @@ export const PERMISSIONS = [
     key: "finance.costs.view",
     group: "Finance",
     label: "View service costs and overheads",
-    description: "Read the cost inputs. Does not include doctor compensation, revenue detail or profit.",
+    description:
+      "Read the cost inputs. Does not include doctor compensation, revenue detail or profit.",
   },
   {
     key: "finance.costs.compensation",
@@ -379,7 +380,15 @@ export const PERMISSIONS = [
     key: "finance.profit.approve",
     group: "Finance",
     label: "Approve a cost month",
-    description: "Approve a month's costs so its profit figures stop being provisional, or reopen it. Audited.",
+    description:
+      "Approve a month's costs so its profit figures stop being provisional, or reopen it. Audited.",
+  },
+  {
+    key: "finance.followup.manage",
+    group: "Finance",
+    label: "Work insurance follow-ups",
+    description:
+      "Record what was done about an unpaid insurance claim (payer contacted, payment promised, resubmitted, disputed, write-off proposed) and the next action date. Reading the follow-up list and the receivables report needs View insurance claims. Audited.",
   },
   {
     key: "finance.flash.view",
@@ -486,6 +495,7 @@ export const FINANCE_ROLES: readonly RolePreset[] = [
       "finance.profit.approve",
       "finance.flash.view",
       "finance.targets.manage",
+      "finance.followup.manage",
     ],
   },
   {
@@ -504,7 +514,7 @@ export const FINANCE_ROLES: readonly RolePreset[] = [
   {
     name: "Insurance",
     description:
-      "Uploads Diligence claim files, works the insurance exception queue, pre-authorisations, eligibility, denials and remittance.",
+      "Uploads Diligence claim files, works the insurance exception queue, pre-authorisations, eligibility, denials, remittance and the follow-up of unpaid claims.",
     permissions: [
       "finance.claims.view",
       "finance.claims.import",
@@ -514,6 +524,7 @@ export const FINANCE_ROLES: readonly RolePreset[] = [
       "finance.denials.manage",
       "finance.remittance.manage",
       "finance.scorecards.view",
+      "finance.followup.manage",
     ],
   },
   {

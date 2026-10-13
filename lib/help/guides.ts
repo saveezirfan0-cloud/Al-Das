@@ -183,6 +183,24 @@ export const GUIDES: readonly Guide[] = [
     ],
   },
   {
+    id: "finance-followup",
+    title: "Insurance follow-up and receivables",
+    pages: ["/finance/followup", "/finance/receivables"],
+    purpose:
+      "Chase unpaid insurance claims at 60, 90 and 120 days, see each claim's submissions and resubmissions, and see what each payer owes by age.",
+    steps: [
+      "Insurance follow-up lists every unpaid claim, oldest first, with the stage it has reached. Filter by stage, payer or branch.",
+      "Open a claim to see its submissions (first, second, third) with the amounts claimed and remitted, then record what you did and the next action date.",
+      "Once finance sets a start date in Workflow settings, each claim gets one task when it reaches a stage, given to a member of the chosen role.",
+      "Receivables by age shows each payer's unpaid amount in the age buckets from Workflow settings. Download it as CSV.",
+    ],
+    watchOut: [
+      "Write no patient names, card or phone numbers in a follow-up note.",
+      "Whether a resubmission was a correction (the whole amount re-sent) is worked out from the amounts; Diligence's report does not say.",
+      "Insurer payments are confirmed only against the bank statement and the remittance received.",
+    ],
+  },
+  {
     id: "finance-workflows",
     title: "Finance workflows",
     pages: [

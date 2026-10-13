@@ -473,3 +473,44 @@ export const PHASE19_SERVICE_ONLY_TABLES = [
   "integration_webhook_events",
   "telehealth_rooms",
 ] as const;
+
+/**
+ * One row in every Phase 20 table (20A flash report, 20I insurance follow-up), for an org, so the cross-org sweeps are not
+ * vacuous for them. Synthetic ids and amounts only. Service role only: none of them has a write policy.
+ */
+export async function seedPhase20Rows(c: Client, orgId: string, userId: string) {
+  const ids: Record<string, string> = {};
+  await asServiceRole(c, async () => {
+    const one = async (sql: string, params: unknown[]) =>
+      (await c.query<{ id: string }>(sql + " returning id::text", params)).rows[0].id;
+    ids.line = await one(
+      "insert into public.fin_ref_report_lines (org_id, code, label, match_kind, match_values) values ($1, 'SEED20', 'Seed line', 'branch', '{P}')",
+      [orgId],
+    );
+    ids.target = await one(
+      "insert into public.fin_ref_revenue_targets (org_id, month, line_code, daily_revenue) values ($1, '2026-10-01', 'SEED20', 1000)",
+      [orgId],
+    );
+    ids.claim20 = await one(
+      "insert into public.ins_claim_activities (org_id, claim_activity_number, invoice_no, cpt_code, payer_id, transaction_date, net) values ($1, 'CA-SEED-20', 'ADMC/C/20001', '99213', 'PAYER-SEED', '2026-07-01', 100)",
+      [orgId],
+    );
+    ids.followup = await one(
+      "insert into public.ins_claim_followups (org_id, claim_activity_id, stage, outcome, note, created_by) values ($1, $2, 90, 'contacted', 'Seed note', $3)",
+      [orgId, ids.claim20, userId],
+    );
+    ids.followupStage = await one(
+      "insert into public.ins_claim_followup_stages (org_id, claim_activity_id, stage, crossed_on) values ($1, $2, 90, '2026-09-29')",
+      [orgId, ids.claim20],
+    );
+  });
+  return ids;
+}
+
+/** Phase 20 tables with a browser (select) policy. */
+export const PHASE20_TABLES = [
+  "fin_ref_report_lines",
+  "fin_ref_revenue_targets",
+  "ins_claim_followup_stages",
+  "ins_claim_followups",
+] as const;

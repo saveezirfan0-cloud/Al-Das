@@ -62,6 +62,12 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
     permissions: ["finance.claims.view"],
   },
   {
+    href: "/finance/receivables",
+    label: "Receivables by age",
+    section: "Overview",
+    permissions: ["finance.claims.view"],
+  },
+  {
     href: "/finance/branches",
     label: "Branches",
     section: "Overview",
@@ -124,6 +130,12 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
     section: "Billing and claims",
     permissions: ["finance.remittance.manage"],
     badge: "remittance",
+  },
+  {
+    href: "/finance/followup",
+    label: "Insurance follow-up",
+    section: "Billing and claims",
+    permissions: ["finance.claims.view"],
   },
   {
     href: "/finance/exceptions",

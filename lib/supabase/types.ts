@@ -5503,6 +5503,7 @@ export type Database = {
       fin_ref_finance_settings: {
         Row: {
           accepted_claim_statuses: string[];
+          ageing_bucket_days: number[];
           cashup_variance_tolerance: number;
           denial_cases_start_date: string | null;
           denial_default_resubmit_days: number;
@@ -5515,6 +5516,11 @@ export type Database = {
           evidence_start_date: string | null;
           flash_share_basis: string;
           flash_top_doctors: number;
+          followup_stage_days: number[];
+          followup_start_date: string | null;
+          followup_task_due_days: number;
+          followup_task_enabled: boolean;
+          followup_task_role: string;
           forecast_default_collection_rate: number;
           forecast_default_lag_days: number;
           forecast_horizon_weeks: number;
@@ -5548,6 +5554,7 @@ export type Database = {
         ComputedFields: never;
         Insert: {
           accepted_claim_statuses?: string[];
+          ageing_bucket_days?: number[];
           cashup_variance_tolerance?: number;
           denial_cases_start_date?: string | null;
           denial_default_resubmit_days?: number;
@@ -5560,6 +5567,11 @@ export type Database = {
           evidence_start_date?: string | null;
           flash_share_basis?: string;
           flash_top_doctors?: number;
+          followup_stage_days?: number[];
+          followup_start_date?: string | null;
+          followup_task_due_days?: number;
+          followup_task_enabled?: boolean;
+          followup_task_role?: string;
           forecast_default_collection_rate?: number;
           forecast_default_lag_days?: number;
           forecast_horizon_weeks?: number;
@@ -5592,6 +5604,7 @@ export type Database = {
         };
         Update: {
           accepted_claim_statuses?: string[];
+          ageing_bucket_days?: number[];
           cashup_variance_tolerance?: number;
           denial_cases_start_date?: string | null;
           denial_default_resubmit_days?: number;
@@ -5604,6 +5617,11 @@ export type Database = {
           evidence_start_date?: string | null;
           flash_share_basis?: string;
           flash_top_doctors?: number;
+          followup_stage_days?: number[];
+          followup_start_date?: string | null;
+          followup_task_due_days?: number;
+          followup_task_enabled?: boolean;
+          followup_task_role?: string;
           forecast_default_collection_rate?: number;
           forecast_default_lag_days?: number;
           forecast_horizon_weeks?: number;
@@ -6990,6 +7008,131 @@ export type Database = {
           },
           {
             foreignKeyName: "ins_claim_activity_events_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      ins_claim_followup_stages: {
+        Row: {
+          assignee_id: string | null;
+          claim_activity_id: string;
+          created_at: string;
+          crossed_on: string;
+          id: string;
+          org_id: string;
+          stage: number;
+          superseded: boolean;
+          task_id: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          assignee_id?: string | null;
+          claim_activity_id: string;
+          created_at?: string;
+          crossed_on: string;
+          id?: string;
+          org_id: string;
+          stage: number;
+          superseded?: boolean;
+          task_id?: string | null;
+        };
+        Update: {
+          assignee_id?: string | null;
+          claim_activity_id?: string;
+          created_at?: string;
+          crossed_on?: string;
+          id?: string;
+          org_id?: string;
+          stage?: number;
+          superseded?: boolean;
+          task_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ins_claim_followup_stages_assignee_id_fkey";
+            columns: ["assignee_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ins_claim_followup_stages_claim_activity_id_fkey";
+            columns: ["claim_activity_id"];
+            isOneToOne: false;
+            referencedRelation: "ins_claim_activities";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ins_claim_followup_stages_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ins_claim_followup_stages_task_id_fkey";
+            columns: ["task_id"];
+            isOneToOne: false;
+            referencedRelation: "tasks";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      ins_claim_followups: {
+        Row: {
+          claim_activity_id: string;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          next_action_date: string | null;
+          note: string | null;
+          org_id: string;
+          outcome: string;
+          stage: number | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          claim_activity_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          next_action_date?: string | null;
+          note?: string | null;
+          org_id: string;
+          outcome: string;
+          stage?: number | null;
+        };
+        Update: {
+          claim_activity_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          next_action_date?: string | null;
+          note?: string | null;
+          org_id?: string;
+          outcome?: string;
+          stage?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ins_claim_followups_claim_activity_id_fkey";
+            columns: ["claim_activity_id"];
+            isOneToOne: false;
+            referencedRelation: "ins_claim_activities";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ins_claim_followups_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ins_claim_followups_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
@@ -14813,6 +14956,41 @@ export type Database = {
         Args: { p_month: string; p_org_id: string; p_rows: Json; p_user: string };
         Returns: number;
       };
+      fin_followup_create_tasks: {
+        Args: { p_limit?: number; p_now?: string; p_org_id: string; p_today: string };
+        Returns: Json;
+      };
+      fin_followup_open_claims: {
+        Args: { p_org_id: string; p_today: string };
+        Returns: {
+          age_days: number;
+          branch_code: string;
+          claim_activity_number: string;
+          claim_status: string;
+          evidenced: boolean;
+          id: string;
+          invoice_no: string;
+          last_resubmission_date: string;
+          net: number;
+          outstanding: number;
+          payer_id: string;
+          rejected: number;
+          remitted: number;
+          resubmission_count: number;
+          transaction_date: string;
+        }[];
+      };
+      fin_followup_worklist: {
+        Args: {
+          p_branch?: string;
+          p_limit?: number;
+          p_org_id: string;
+          p_payer?: string;
+          p_stage?: number;
+          p_today: string;
+        };
+        Returns: Json;
+      };
       fin_forecast_history: { Args: { p_mature_days?: number; p_org_id: string }; Returns: Json };
       fin_forecast_outstanding: { Args: { p_org_id: string }; Returns: Json };
       fin_insurance_overview: {
@@ -14852,6 +15030,10 @@ export type Database = {
       };
       fin_profit_inputs: {
         Args: { p_from: string; p_org_id: string; p_to: string };
+        Returns: Json;
+      };
+      fin_receivables_by_payer_age: {
+        Args: { p_branch?: string; p_org_id: string; p_today: string };
         Returns: Json;
       };
       fin_rederive_branches: { Args: { p_org_id: string }; Returns: number };

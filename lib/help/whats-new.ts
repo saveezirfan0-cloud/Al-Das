@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-10-26-insurance-follow-up",
+    date: "2026-10-26",
+    title: "Insurance follow-up and receivables by age",
+    body: "Finance has a new Insurance follow-up page: every unpaid insurance claim, oldest first, with the 60, 90 or 120-day stage it has reached, its last resubmission and the last follow-up. Open a claim to see its first, second and third submissions with the amounts, and record what you did and when to act next. Once finance sets a start date, Pulse creates one task per claim at each stage. A Receivables by age report shows what each payer owes in age buckets you choose, and downloads as CSV.",
+  },
+  {
     id: "2026-10-23-daily-flash",
     date: "2026-10-23",
     title: "Daily flash report",
