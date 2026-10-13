@@ -2,7 +2,7 @@
 
 _All open questions in one place, compiled 13 Oct 2026 from the register `docs/audit/open-questions.md` (the source of truth, with evidence and where each answer is used) and the data requests in `docs/20_FINANCE_CONTROL_PLAN.md`. Answered items are left out. Reply with the question number; Pulse keeps the proposed value (or stays switched off where marked blocking) until you answer._
 
-**113 open questions**, 36 of them blocking a feature.
+**114 open questions**, 36 of them blocking a feature.
 
 ## Answer these first
 
@@ -77,6 +77,7 @@ _All open questions in one place, compiled 13 Oct 2026 from the register `docs/a
 - **OQ-125** (Hardik / auditors): **Reporting framework.** Full IFRS or IFRS for SMEs (allowed at revenue of AED 50m or less)? It decides lease accounting (IFRS 16) and some disclosures _(today: auditor's choice; proposed: IFRS for SMEs if eligible)_
 - **OQ-126** (Hardik / auditors): **Insurer rejections in revenue.** Reduce revenue each month by an expected-rejection estimate per payer (IFRS 15 variable consideration) and true it up, or recognise rejections only when final? _(today: written off when final; proposed: monthly estimate per payer)_
 - **OQ-127** (Hardik / Saeed): **Packages and deposits.** Does the clinic sell prepaid packages or take deposits (deferred revenue released per session, VAT on deposits for 5% services)? _(today: unknown; proposed: handle if used)_
+- **OQ-128** (Hardik / CEO / auditors): **Audit adjustments after a locked year.** Pulse has a 13th "adjustment" period per fiscal year, dated on the year's last day, for the auditors' adjustments; only people with the periods permission may post there, and it is allowed even when the CEO has locked June. Is that the control you want, or must the CEO unlock first? _(today: adjustments in Tally; proposed: adjustment period, accounting.periods.manage only)_
 
 ## Marketing, consent and legal
 
