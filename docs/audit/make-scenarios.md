@@ -14,6 +14,8 @@ Re-pull everything with `scripts/export-make.ts`.
 
 ---
 
+> **Live check, 13 Oct 2026:** read through the connected Make account. 49 scenarios, 7 active (the seven below), and none edited since the 8 Oct read, so this inventory is current.
+
 ## 1. Active scenarios (must be replaced natively)
 
 | # | Scenario (id) | Trigger | What it does | Native replacement |
