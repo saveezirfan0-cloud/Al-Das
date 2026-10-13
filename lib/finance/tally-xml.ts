@@ -58,6 +58,8 @@ export type TallyPayment = {
   narration: string;
   paymentReference: string | null;
   invoiceNumbers: readonly string[];
+  /** True when Pulse approved the voucher (route pulse); a Tally-route voucher is authorised in Tally. */
+  approvedInPulse: boolean;
 };
 
 export type TallyMissing = { kind: TallyLedgerKind; key: string; label: string };
@@ -247,6 +249,7 @@ export function buildTallyXml(input: {
       ? ` Invoices: ${[...v.invoiceNumbers].sort(bytewise).join(", ")}.`
       : "";
     const paid = v.paymentReference ? ` Bank ref ${v.paymentReference}.` : "";
+    const approval = v.approvedInPulse ? "Approved in Pulse." : "To be authorised in Tally.";
     blocks.push(
       voucherXml({
         type: "Payment",
@@ -254,7 +257,7 @@ export function buildTallyXml(input: {
         number: v.voucherNo,
         reference: v.paymentReference ? clip(v.paymentReference, 60) : null,
         party: toSupplier ? debitLedger : bank,
-        narration: clip(`${v.voucherNo}: ${v.narration}.${refs}${paid} Approved in Pulse.`, 400),
+        narration: clip(`${v.voucherNo}: ${v.narration}.${refs}${paid} ${approval}`, 400),
         entries: [
           { ledger: debitLedger, cents: c, debit: true, costCentre: cc },
           { ledger: bank, cents: c, debit: false, costCentre: null },

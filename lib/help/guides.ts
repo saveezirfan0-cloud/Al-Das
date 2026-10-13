@@ -173,7 +173,8 @@ export const GUIDES: readonly Guide[] = [
     id: "clinical-feedback",
     title: "Clinical feedback",
     pages: ["/portal/clinical-feedback"],
-    purpose: "See what patients answered to clinical check-ins and which answers raised a red flag.",
+    purpose:
+      "See what patients answered to clinical check-ins and which answers raised a red flag.",
     steps: [
       "Use 'Needing a person' to see replies the system could not judge on its own.",
       "A red flag means the doctor and the care coordinators were both alerted. The call itself is in the Follow-Up Queue.",
@@ -304,13 +305,14 @@ export const GUIDES: readonly Guide[] = [
       "Press Pay with a voucher (or New voucher under Payment vouchers). Check the amount, category, branch and narration, attach any other backup, save the draft and submit it.",
       "The Finance Manager verifies it (Tier 1 vouchers can be verified together). Tier 2 then goes to a department head; Tier 3, Tier 4, payroll, intercompany and related-party vouchers go to the CEO, who can approve on a phone.",
       "Anyone who rejects must write remarks; the maker edits the voucher and submits it again.",
-      "Once approved, record the payment date and bank reference, then build the Tally file under Tally export and import it in Tally.",
+      "Once approved, someone other than the maker records the payment date and bank reference, then build the Tally file under Tally export and import it in Tally.",
       "Download the approval certificate from a voucher for the auditors: it lists every step, person, time, remark and the fingerprint of the documents.",
     ],
     watchOut: [
       "Each step must be a different person: whoever prepared or changed a voucher cannot verify or approve it.",
       "Changing a voucher after it was submitted returns it to draft and clears its approvals.",
-      "Nothing dated in a locked month can change.",
+      "Nothing dated in a locked month can change its amounts, dates or documents; its invoices can still be paid by a later voucher and exported to Tally.",
+      "A voucher for less than its invoices pays the oldest first; an invoice not fully paid stays Part paid with its balance for the next voucher.",
       "The Tally file refuses until every category, supplier, bank and branch is mapped to a Tally ledger (Voucher settings).",
     ],
   },

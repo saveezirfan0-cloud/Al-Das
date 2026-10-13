@@ -66,7 +66,10 @@ export const METHOD_LABEL: Record<PaymentMethod, string> = {
   cash: "Cash",
 };
 
-/** Who may open the vouchers page, a voucher, its documents and its certificate. */
+/**
+ * Who may open the vouchers page, the report and a certificate. WHICH vouchers each person then sees is
+ * voucherReadAccess() / canReadVoucher() below (and row level security, app.fin_can_read_voucher).
+ */
 export const VOUCHER_READ_PERMS = [
   "finance.payables.view",
   "finance.vouchers.prepare",
@@ -104,6 +107,8 @@ export const VOUCHER_ERRORS = {
   payment_details_required: "Enter the payment date and the bank reference.",
   bulk_not_allowed: "Only Tier 1 vouchers can be verified in bulk.",
   invoice_unavailable: "An invoice is not available (already on another voucher, paid or void).",
+  amount_exceeds_invoices:
+    "The voucher is for more than its supplier invoices still owe. Lower the amount or link the right invoices.",
   document_unavailable: "An attachment is not available.",
   exported: "This voucher was exported to Tally and cannot change.",
   stale_export: "Something changed while the file was built. Build it again.",
@@ -377,6 +382,8 @@ export function voucherTransition(
     case "pay": {
       if (!ctx.can(ACTION_PERMISSION.pay)) return fail("not_permitted");
       if (s.status !== "approved" && s.status !== "for_tally") return fail("wrong_status");
+      // a second person records the payment, whatever the approval route (Pulse or Tally)
+      if (isMaker) return fail("same_person");
       const ref = (ctx.payment?.reference ?? "").trim();
       if (!ctx.payment?.date || ref === "" || ref.length > 60)
         return fail("payment_details_required");
@@ -435,6 +442,126 @@ export function waitingFor(s: Pick<VoucherMachineState, "status" | "needsDept" |
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
+// Part payments (mirror of the allocation in fin_voucher_act 'pay', migration 20261107000100)
+// ---------------------------------------------------------------------------------------------------------------------
+
+export type PayableInvoice = {
+  id: string;
+  /** Invoice date, YYYY-MM-DD. */
+  date: string;
+  number: string;
+  total: number;
+  /** Paid so far by earlier vouchers. */
+  paid: number;
+};
+
+export type InvoiceAllocation = {
+  id: string;
+  allocated: number;
+  paidAfter: number;
+  /** "paid" once the balance is settled within the tolerance, otherwise "open" again with its balance. */
+  status: "paid" | "open";
+};
+
+const bytewiseCompare = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
+
+/**
+ * How a paid voucher's amount is spread over its supplier invoices: oldest first (invoice date, then number, then id),
+ * each up to its balance. Deterministic; amounts in exact cents.
+ */
+export function allocateVoucherPayment(
+  amount: number,
+  invoices: readonly PayableInvoice[],
+  tolerance: number,
+): InvoiceAllocation[] {
+  let left = cents(amount);
+  const tol = cents(tolerance);
+  return [...invoices]
+    .sort(
+      (a, b) =>
+        bytewiseCompare(a.date, b.date) ||
+        bytewiseCompare(a.number, b.number) ||
+        bytewiseCompare(a.id, b.id),
+    )
+    .map((i) => {
+      const total = cents(i.total);
+      const paid = cents(i.paid);
+      const alloc = Math.min(left, Math.max(total - paid, 0));
+      left -= alloc;
+      return {
+        id: i.id,
+        allocated: alloc / 100,
+        paidAfter: (paid + alloc) / 100,
+        status: paid + alloc >= total - tol ? "paid" : "open",
+      };
+    });
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Who reads which voucher (mirror of app.fin_can_read_voucher, migration 20261107000100; parity-tested)
+// ---------------------------------------------------------------------------------------------------------------------
+
+/** Any of these reads every voucher that is not a special category. */
+export const VOUCHER_FULL_READ_PERMS = [
+  "finance.payables.view",
+  "finance.payables.manage",
+  "finance.vouchers.prepare",
+  "finance.vouchers.check",
+  "finance.vouchers.approve_ceo",
+  "finance.vouchers.pay",
+  "finance.tally.export",
+] as const;
+
+/** Special categories (payroll, intercompany, related party) also need one of these. */
+export const VOUCHER_SPECIAL_READ_PERMS = [
+  "finance.vouchers.check",
+  "finance.vouchers.approve_ceo",
+  "finance.costs.compensation",
+] as const;
+
+export type VoucherReadAccess = {
+  /** Every voucher that is not a special category. */
+  full: boolean;
+  /** Special-category vouchers too. */
+  special: boolean;
+  /** A department head: Tier 2 vouchers waiting for a department head, or that this person decided. */
+  dept: boolean;
+};
+
+export function voucherReadAccess(can: (permission: string) => boolean): VoucherReadAccess {
+  const full = VOUCHER_FULL_READ_PERMS.some(can);
+  return {
+    full,
+    special: full && VOUCHER_SPECIAL_READ_PERMS.some(can),
+    dept: can("finance.vouchers.approve_dept"),
+  };
+}
+
+export type VoucherVisibility = {
+  special: SpecialCategory;
+  route: "pulse" | "tally" | null;
+  needsDept: boolean;
+  status: VoucherStatus;
+  /** Who approved it as department head or rejected it (the trail's dept_approved and rejected steps). */
+  deciders: readonly string[];
+};
+
+export function canReadVoucher(
+  a: VoucherReadAccess,
+  v: VoucherVisibility,
+  userId: string,
+): boolean {
+  if (v.special !== "none") return a.special;
+  if (a.full) return true;
+  return (
+    a.dept &&
+    v.route === "pulse" &&
+    v.needsDept &&
+    (v.status === "checked" || v.deciders.includes(userId))
+  );
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
 // Numbering and labels (the content hash is in voucher-hash.ts, which needs node:crypto and stays on the server)
 // ---------------------------------------------------------------------------------------------------------------------
 
@@ -465,7 +592,10 @@ export type VoucherReportRow = {
   approvedAt: string | null;
   rejectedAt: string | null;
   rejectionRemarks: string | null;
-  /** Sum of the linked supplier invoices' totals (null when none are linked). */
+  /**
+   * What the linked supplier invoices are owed by this voucher (null when none are linked): for a paid voucher the amount
+   * allocated to them, otherwise their outstanding balance (part payments).
+   */
   invoicesTotal: number | null;
 };
 

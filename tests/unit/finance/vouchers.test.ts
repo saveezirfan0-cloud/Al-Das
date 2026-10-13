@@ -7,7 +7,9 @@ import {
   type VoucherContent,
 } from "@/lib/finance/voucher-hash";
 import {
+  allocateVoucherPayment,
   approvalRoute,
+  canReadVoucher,
   formatVoucherNumber,
   rejectPermission,
   requiredApprovals,
@@ -15,6 +17,7 @@ import {
   unusualFlags,
   voucherEdited,
   voucherReport,
+  voucherReadAccess,
   voucherTransition,
   waitingFor,
   type ApprovalTier,
@@ -352,5 +355,120 @@ describe("status and exception report", () => {
       count: 4,
       averageApprovalHours: 14,
     });
+  });
+});
+
+describe("part payments (allocateVoucherPayment, mirrored by fin_voucher_act pay)", () => {
+  const inv = (id: string, date: string, number: string, total: number, paid = 0) => ({
+    id,
+    date,
+    number,
+    total,
+    paid,
+  });
+
+  it("pays the oldest invoice first (then by number, then id) and leaves the rest open", () => {
+    const r = allocateVoucherPayment(
+      700,
+      [inv("b", "2026-09-10", "INV-2", 300), inv("a", "2026-09-01", "INV-9", 1050)],
+      1,
+    );
+    expect(r).toEqual([
+      { id: "a", allocated: 700, paidAfter: 700, status: "open" },
+      { id: "b", allocated: 0, paidAfter: 0, status: "open" },
+    ]);
+    const sameDay = allocateVoucherPayment(
+      100,
+      [inv("z", "2026-09-01", "INV-B", 60), inv("y", "2026-09-01", "INV-A", 60)],
+      0,
+    );
+    expect(sameDay.map((x) => [x.id, x.allocated, x.status])).toEqual([
+      ["y", 60, "paid"],
+      ["z", 40, "open"],
+    ]);
+  });
+
+  it("an invoice is paid only once its balance is settled within the tolerance", () => {
+    expect(allocateVoucherPayment(500, [inv("a", "2026-09-01", "I", 1050)], 1)[0]).toEqual({
+      id: "a",
+      allocated: 500,
+      paidAfter: 500,
+      status: "open",
+    });
+    expect(allocateVoucherPayment(549.5, [inv("a", "2026-09-01", "I", 1050, 500)], 1)[0]).toEqual({
+      id: "a",
+      allocated: 549.5,
+      paidAfter: 1049.5,
+      status: "paid",
+    });
+    expect(
+      allocateVoucherPayment(548.99, [inv("a", "2026-09-01", "I", 1050, 500)], 1)[0].status,
+    ).toBe("open");
+    // never more than the balance; cents stay exact
+    expect(
+      allocateVoucherPayment(
+        0.3,
+        [inv("a", "2026-09-01", "I", 0.1), inv("b", "2026-09-02", "J", 0.2)],
+        0,
+      ),
+    ).toEqual([
+      { id: "a", allocated: 0.1, paidAfter: 0.1, status: "paid" },
+      { id: "b", allocated: 0.2, paidAfter: 0.2, status: "paid" },
+    ]);
+    expect(
+      allocateVoucherPayment(5000, [inv("a", "2026-09-01", "I", 100, 40)], 1)[0],
+    ).toMatchObject({
+      allocated: 60,
+      paidAfter: 100,
+      status: "paid",
+    });
+  });
+});
+
+describe("who reads which voucher (voucherReadAccess / canReadVoucher, mirrored by app.fin_can_read_voucher)", () => {
+  const access = (...perms: string[]) =>
+    voucherReadAccess((p) => perms.some((g) => permissionMatches(g, p)));
+  const row = (over: Partial<Parameters<typeof canReadVoucher>[1]> = {}) => ({
+    special: "none" as SpecialCategory,
+    route: "pulse" as const,
+    needsDept: true,
+    status: "checked" as const,
+    deciders: [] as string[],
+    ...over,
+  });
+
+  it("a department head reads a Tier 2 voucher waiting for a department head, or one they decided, and nothing else", () => {
+    const dept = access("finance.vouchers.approve_dept");
+    expect(dept).toEqual({ full: false, special: false, dept: true });
+    expect(canReadVoucher(dept, row(), "u1")).toBe(true);
+    expect(canReadVoucher(dept, row({ status: "approved", deciders: ["u1"] }), "u1")).toBe(true);
+    expect(canReadVoucher(dept, row({ status: "approved", deciders: ["u2"] }), "u1")).toBe(false);
+    expect(canReadVoucher(dept, row({ status: "submitted" }), "u1")).toBe(false);
+    expect(canReadVoucher(dept, row({ needsDept: false }), "u1")).toBe(false);
+    expect(canReadVoucher(dept, row({ route: "tally" }), "u1")).toBe(false);
+    expect(canReadVoucher(dept, row({ special: "payroll" }), "u1")).toBe(false);
+  });
+
+  it("special categories need the checker, CEO or compensation key on top of a payables key", () => {
+    const payroll = row({ special: "payroll", needsDept: false });
+    expect(canReadVoucher(access("finance.tally.export"), payroll, "u")).toBe(false);
+    expect(canReadVoucher(access("finance.vouchers.pay"), payroll, "u")).toBe(false);
+    expect(canReadVoucher(access("finance.costs.compensation"), payroll, "u")).toBe(false);
+    expect(
+      canReadVoucher(access("finance.payables.view", "finance.vouchers.approve_ceo"), payroll, "u"),
+    ).toBe(true);
+    expect(canReadVoucher(access("finance.vouchers.check"), payroll, "u")).toBe(true);
+    expect(
+      canReadVoucher(
+        access("finance.vouchers.prepare", "finance.costs.compensation"),
+        payroll,
+        "u",
+      ),
+    ).toBe(true);
+    expect(canReadVoucher(access("*"), payroll, "u")).toBe(true);
+    expect(canReadVoucher(access("finance.tally.export"), row({ needsDept: false }), "u")).toBe(
+      true,
+    );
+    expect(canReadVoucher(access(), row(), "u")).toBe(false);
   });
 });

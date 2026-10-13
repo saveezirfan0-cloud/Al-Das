@@ -26,12 +26,15 @@ import {
 } from "@/lib/finance/finance-documents";
 import { voucherErrorMessage } from "@/lib/finance/vouchers";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 
 /**
  * Suppliers, supplier invoices and the finance documents attached to them (Phase 20D). Suppliers and invoices need
  * finance.payables.manage; uploading a document also suits a voucher maker (finance.vouchers.prepare); opening one needs
- * any payables or voucher permission and is written to the access log. Writes use the service role after the check and
- * are audited. Supplier invoices dated in a locked month cannot change (database trigger).
+ * any payables or voucher permission AND row level security must show the person that document
+ * (app.fin_can_read_document: a department head only the files of the vouchers they review, special categories only for
+ * the checker, the CEO or the compensation key, inbox files only for inbox or payables managers); every open is written
+ * to the access log. Writes use the service role after the check and are audited. Supplier invoices dated in a locked month cannot change (database trigger).
  */
 
 const MANAGE = ["finance.payables.manage"] as const;
@@ -236,12 +239,15 @@ export async function voidSupplierInvoice(raw: { id: string }): Promise<ActionRe
     .eq("id", raw.id)
     .eq("org_id", member.orgId)
     .eq("status", "open")
+    .eq("paid_amount", 0)
     .is("tally_export_id", null)
     .select("id")
     .maybeSingle();
   if (error) return fail(dbError(error, "Could not void the invoice."));
   if (!data)
-    return fail("Only an open invoice that is not on a voucher and not exported can be voided.");
+    return fail(
+      "Only an open invoice that is not on a voucher, not part paid and not exported can be voided.",
+    );
   await recordAudit(admin, {
     orgId: member.orgId,
     userId: member.userId,
@@ -322,6 +328,16 @@ export async function openFinanceDocument(raw: {
   const member = await gate(READ);
   if (!member) return fail(DENIED);
   if (!uuid.safeParse(raw.id).success) return fail("Reload the page and try again.");
+  // Which documents this person may open is decided by row level security, read with their own client.
+  const { data: visible } = await (
+    await createClient()
+  )
+    .from("fin_documents")
+    .select("id")
+    .eq("id", raw.id)
+    .eq("org_id", member.orgId)
+    .maybeSingle();
+  if (!visible) return fail("Document not found.");
   const admin = createAdminClient(member.userId);
   const res = await signedFinanceDocumentUrl(
     admin,

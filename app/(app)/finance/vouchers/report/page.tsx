@@ -25,7 +25,11 @@ import {
   VOUCHER_READ_PERMS,
   voucherReport,
 } from "@/lib/finance/vouchers";
-import { loadPayablesSettings, loadReportRows } from "@/lib/finance/vouchers-server";
+import {
+  loadPayablesSettings,
+  loadReportRows,
+  loadVoucherScope,
+} from "@/lib/finance/vouchers-server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const metadata = { title: "Voucher report" };
@@ -49,8 +53,10 @@ export default async function VoucherReportPage({
   const month = MONTH.test(sp.month ?? "") ? sp.month! : todayIn(member.org.timezone).slice(0, 7);
   const { first, last } = monthRange(month);
   const admin = createAdminClient(); // service role AFTER the permission check
+  // only the vouchers this person may read (a department head: their Tier 2 queue and decisions)
+  const scope = (await loadVoucherScope(admin, member)) ?? { special: false, ids: [] };
   const [rows, settings] = await Promise.all([
-    loadReportRows(admin, member.orgId, first, last),
+    loadReportRows(admin, member.orgId, first, last, scope),
     loadPayablesSettings(admin, member.orgId),
   ]);
   const r = voucherReport(rows, settings);

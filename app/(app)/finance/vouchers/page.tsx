@@ -22,6 +22,7 @@ import {
   loadTiers,
   loadVoucherDetail,
   loadVoucherList,
+  loadVoucherScope,
   type VoucherDetail,
 } from "@/lib/finance/vouchers-server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -58,7 +59,7 @@ async function formOptions(
     admin
       .from("fin_supplier_invoices")
       .select(
-        "id, supplier_id, invoice_number, invoice_date, total, category, branch_code, document_id",
+        "id, supplier_id, invoice_number, invoice_date, total, paid_amount, category, branch_code, document_id",
       )
       .eq("org_id", orgId)
       .eq("status", "open")
@@ -68,7 +69,7 @@ async function formOptions(
       ? admin
           .from("fin_supplier_invoices")
           .select(
-            "id, supplier_id, invoice_number, invoice_date, total, category, branch_code, document_id",
+            "id, supplier_id, invoice_number, invoice_date, total, paid_amount, category, branch_code, document_id",
           )
           .eq("org_id", orgId)
           .in("id", includeInvoiceIds)
@@ -103,7 +104,8 @@ async function formOptions(
         supplier_id: i.supplier_id,
         invoice_number: i.invoice_number,
         invoice_date: i.invoice_date,
-        total: Number(i.total),
+        // what is still owed (a part-paid invoice shows its balance; the voucher pays at most that)
+        total: Math.round((Number(i.total) - Number(i.paid_amount)) * 100) / 100,
         category: i.category,
         branch_code: i.branch_code,
         document:
@@ -153,10 +155,15 @@ export default async function VouchersPage({
   const today = todayIn(member.org.timezone);
 
   const admin = createAdminClient(); // service role AFTER the permission check
+  // only the vouchers this person may read (a department head: their Tier 2 queue and decisions; special categories
+  // need the checker, CEO or compensation key), as row level security
+  const scope = (await loadVoucherScope(admin, member)) ?? { special: false, ids: [] };
   const [rows, counts, detail] = await Promise.all([
-    loadVoucherList(admin, member.orgId, VOUCHER_TABS[tab].statuses),
-    countVouchersByStatus(admin, member.orgId),
-    sp.v && UUID.test(sp.v) ? loadVoucherDetail(admin, member.orgId, sp.v) : Promise.resolve(null),
+    loadVoucherList(admin, member.orgId, VOUCHER_TABS[tab].statuses, scope),
+    countVouchersByStatus(admin, member.orgId, scope),
+    sp.v && UUID.test(sp.v)
+      ? loadVoucherDetail(admin, member.orgId, sp.v, scope)
+      : Promise.resolve(null),
   ]);
   const newFromInvoice = sp.new && UUID.test(sp.new) ? sp.new : null;
   const options = perms.prepare

@@ -40,8 +40,9 @@
         { "actor": "maker", "action": "check", "expect": "not_permitted" },
         { "actor": "fm", "action": "check", "hash": "stale", "expect": "hash_mismatch" },
         { "actor": "fm", "action": "check", "expect": "approved" },
-        { "actor": "maker", "action": "pay", "payment": { "date": "2026-10-08", "reference": "" }, "expect": "payment_details_required" },
-        { "actor": "maker", "action": "pay", "payment": { "date": "2026-10-08", "reference": "BANKREF-0001" }, "expect": "paid" },
+        { "actor": "maker", "action": "pay", "payment": { "date": "2026-10-08", "reference": "BANKREF-0001" }, "expect": "same_person" },
+        { "actor": "fm", "action": "pay", "payment": { "date": "2026-10-08", "reference": "" }, "expect": "payment_details_required" },
+        { "actor": "fm", "action": "pay", "payment": { "date": "2026-10-08", "reference": "BANKREF-0001" }, "expect": "paid" },
         { "actor": "maker", "action": "cancel", "remarks": "Too late", "expect": "wrong_status" }
       ]
     },
@@ -159,13 +160,14 @@
       ]
     },
     {
-      "name": "Approval mode Tally: Pulse skips its own approvals",
+      "name": "Approval mode Tally: Pulse skips its own approvals, but the maker never records the payment",
       "amount": 30000,
       "approvalMode": "tally",
       "steps": [
         { "actor": "maker", "action": "submit", "expect": "for_tally" },
         { "actor": "fm", "action": "check", "expect": "wrong_status" },
-        { "actor": "maker", "action": "pay", "payment": { "date": "2026-10-09", "reference": "BANKREF-0002" }, "expect": "paid" }
+        { "actor": "maker", "action": "pay", "payment": { "date": "2026-10-09", "reference": "BANKREF-0002" }, "expect": "same_person" },
+        { "actor": "fm", "action": "pay", "payment": { "date": "2026-10-09", "reference": "BANKREF-0002" }, "expect": "paid" }
       ]
     },
     {

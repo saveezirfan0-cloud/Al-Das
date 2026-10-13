@@ -5,7 +5,11 @@ import { canAny } from "@/lib/auth/can";
 import { getCurrentMember } from "@/lib/auth/session";
 import { voucherCertificatePdf } from "@/lib/finance/voucher-certificate";
 import { VOUCHER_READ_PERMS } from "@/lib/finance/vouchers";
-import { certificateFrom, loadVoucherDetail } from "@/lib/finance/vouchers-server";
+import {
+  certificateFrom,
+  loadVoucherDetail,
+  loadVoucherScope,
+} from "@/lib/finance/vouchers-server";
 import { recordExport } from "@/lib/security/access-log";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -14,7 +18,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /**
  * GET /api/finance/vouchers/<id>/certificate -> the approval certificate PDF, rendered from the stored voucher and its
  * append-only trail (people, times, remarks, the content hash each step was bound to; attachments by kind and sha256).
- * Needs a payables or voucher permission. Audited and written to the access log as an export.
+ * Needs a payables or voucher permission, and the voucher must be one the person may read (loadVoucherScope). Audited and written to the access log as an export.
  */
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const member = await getCurrentMember();
@@ -25,7 +29,8 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   if (!UUID.test(id)) return NextResponse.json({ error: "bad id" }, { status: 400 });
 
   const admin = createAdminClient(); // service role AFTER the permission check
-  const detail = await loadVoucherDetail(admin, member.orgId, id);
+  const scope = await loadVoucherScope(admin, member);
+  const detail = scope ? await loadVoucherDetail(admin, member.orgId, id, scope) : null;
   if (!detail) return NextResponse.json({ error: "not found" }, { status: 404 });
   const pdf = await voucherCertificatePdf(
     certificateFrom(detail, { name: member.org.name, timezone: member.org.timezone }),
