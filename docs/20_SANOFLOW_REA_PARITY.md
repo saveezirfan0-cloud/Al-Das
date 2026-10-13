@@ -1,6 +1,6 @@
 # Sanoflow parity pass (REA capture, 13 Oct 2026)
 
-_Read after `CLAUDE.md`, `docs/01_FEASIBILITY_AND_TEARDOWN.md` and `docs/09_STATUS_AND_ROADMAP.md`. Data file: `docs/audit/sanoflow-surface.json`._
+_Read after `CLAUDE.md`, `docs/01_FEASIBILITY_AND_TEARDOWN.md` and `docs/09_STATUS_AND_ROADMAP.md`. Data files: `docs/audit/sanoflow-surface.json` (declared endpoints and form fields) and `docs/audit/sanoflow-rea-shapes.json` (response shapes)._
 
 ## 1. Why this exists
 
@@ -57,17 +57,22 @@ Evidence is a code search of the repo on 13 Oct; confirm each row in Plan Mode b
 
 Prompts: `docs/21_SANOFLOW_PARITY_PROMPTS.md`.
 
-## 6. REA run (response shapes, the data model)
+## 6. Response shapes (the data model) — captured 13 Oct
 
-REA (`github.com/saveezirfan0-cloud/rea`, v6.4.0) attaches over the Chrome DevTools Protocol to a Chrome that **you** start and log into. It was built and verified end to end in the cloud session on 13 Oct, but that environment's network policy blocks app.sanoflow.io, so the live run happens on your machine with `tools/rea-sanoflow.mjs`:
+`docs/audit/sanoflow-rea-shapes.json` holds the JSON response shapes of 125 Sanoflow data endpoints: 78 with full field paths and types (1,173 fields), 30 that rejected the call without a record id (their `required_params` name the record key), 8 that need a record context (500/403). It was captured from the owner's logged-in browser with read-only GETs (no mutation, AI, export, sync or payment endpoints; at most 3 records per list), and every response was reduced to field paths and types **inside the browser**: no values, names, numbers or message text left the page. Sanoflow's own SaaS billing endpoints are left out.
 
-```bash
-node tools/rea-sanoflow.mjs           # clones + builds REA into ~/rea if missing, opens a debug Chrome on Sanoflow's login page,
-                                      # waits for you to log in, then captures 19 screens
-```
+What the shapes confirm or add to §4:
 
-For each screen it runs `rea inspect-web-page` with `--include-json-body-shapes --include-websocket-shapes --include-storage-keys` while it loads the page, then `rea analyze-web-bundle`. REA keeps **JSON shapes only (field paths and types, never values)**, so the summary it writes, `~/rea-sanoflow-evidence/sanoflow-rea-shapes.json`, holds every endpoint's response schema (e.g. `data[].PatientID:number`) and no patient data. Commit that summary as `docs/audit/sanoflow-rea-shapes.json`. Keep `~/rea-sanoflow-evidence/raw/` private (query strings in the URLs can hold search text) and delete it when you're done.
+- **G5 routing (confirmed):** teams carry `auto_assign`, `auto_reply`, `auto_reply_msg`, `fallback_team`, `pipeline_id`, `org_channel_id`, `is_default`; users carry `max_assigned_chats`, `restrict_enquiry_view`, `restrict_inbox_view`, `default_inbox_view`, `is_agent`; the org has an inactivity value (`qUserInactive`).
+- **G6 booking (confirmed):** services carry `apptduration`, `prebuffer`, `postbuffer`, `concurentpatients`, `enableonline`, `requiredpayment`, `price`, `currency`; specialists carry `timeslotduration`, `enable_multiple_bookings`, `max_bookings_per_slot`, `showbusy`, per-location weekly schedules, Arabic name fields and Google Calendar sync fields (`calendar_id`, sync token, webhook id).
+- **Inbox list row** (`OCInbox/ChatQueue`): what one conversation row needs: assignee, team, label + colour, tags, unread count, `is_bot`, `open_chat_window`, `last_inbound_datetime`, `phone_stop_marketing`, language, timezone, nationality, contact-owner agent/team. Use it to check Pulse's inbox query returns the same.
+- **Notifications:** per user and per event, four channels (`email_notif`, `browser_notif`, `sms_notif`, `whatsapp_notif`) in four groups (appointments, enquiries, inbox, other), plus sound settings. Pulse has in-app, e-mail and push; SMS/WhatsApp-to-staff is a new row (P3).
+- **Roles:** a permission matrix per rule with `view_rec`, `manage_rec`, `delete_rec`, `export_rec`. Compare with Pulse's `can()` keys when mapping roles in 20a.
+- **Dynamic segments:** the stored filter is a JSON object keyed by field (`tag_array`, `dob`, `gender`, `birthday` with conditions, `last_interaction_time`, `nationality_id`) with `filterType`/`type`/`dateFrom`/`dateTo`/`values`. The 20a segment report can translate these into Pulse's filter AST instead of listing them for manual rebuild.
+- **Templates:** Meta template components stored as returned by Meta, plus Sanoflow's mapper fields (`all_mappers`, `mapper`, `header_mapper`, `button_mapper`, `button_mapper2`, `mapper_missing`) and a carousel card field.
+- **Campaigns:** daily conversation limit per channel (`current_limit`, `max_daily_conversations_per_business`), monthly campaign quota (`limit_given`/`limit_used`), retry fields (`is_retry`, `retry_count`, `next_retry_time`), recurring (`cron`, `recurring_period`, `next_run_time`).
+- **Security lesson:** Sanoflow returns channel access tokens and users' password-reset tokens to the browser. Pulse must keep doing the opposite (CLAUDE.md rules 9 and 17).
 
-Use the shapes for: (1) the 20a importers' column/field mapping, (2) checking Pulse tables carry every field the clinic relies on, (3) the opaque settings keys in §3.9 (their stored values show up as typed fields).
+### Re-running it
 
-For one-off deep dives (flow canvas JSON while you edit a flow, a report's columns), `npx rea-agents@latest setup` registers REA's MCP server with Claude Code, and the REA prompt at the end of docs/21 applies.
+`tools/rea-sanoflow.mjs` runs REA (`github.com/saveezirfan0-cloud/rea`, v6.4.0) on a computer: it opens a separate Chrome, waits for you to log in, and records value-free JSON shapes per screen with `rea inspect-web-page --include-json-body-shapes` and `rea analyze-web-bundle`. Use it to fill the 38 endpoints above that need a record id (open one record per screen while it runs). Keep its `raw/` folder outside the repo and delete it afterwards.
