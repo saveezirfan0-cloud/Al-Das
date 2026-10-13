@@ -58,6 +58,7 @@ export function AppointmentsSettings({
           departments={departments}
           services={services}
           users={users}
+          defaultSlotMin={rules.slot_granularity_min}
         />
       </TabsContent>
       <TabsContent value="locations">

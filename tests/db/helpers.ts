@@ -526,3 +526,27 @@ export const PHASE20_TABLES = [
   "campaign_archive_recipients",
   "enquiry_tags",
 ] as const;
+
+/**
+ * Phase 20c booking capacity (weekly blocks): one synthetic row, so the cross-org sweeps are not vacuous for it.
+ * Service role, like the settings action that writes it.
+ */
+export async function seedPhase20cbRows(c: Client, orgId: string) {
+  const ids: Record<string, string> = {};
+  await asServiceRole(c, async () => {
+    const one = async (sql: string, params: unknown[]) =>
+      (await c.query<{ id: string }>(sql + " returning id::text", params)).rows[0].id;
+    ids.specialist = await one(
+      "insert into public.specialists (org_id, name) values ($1, 'Dr Seed 20cb')",
+      [orgId],
+    );
+    ids.block = await one(
+      "insert into public.specialist_recurring_blocks (org_id, specialist_id, weekday, start_min, end_min, reason) values ($1, $2, 1, 780, 840, 'Lunch')",
+      [orgId, ids.specialist],
+    );
+  });
+  return ids;
+}
+
+/** Phase 20c booking-capacity tables with a browser (select) policy. */
+export const PHASE20CB_TABLES = ["specialist_recurring_blocks"] as const;

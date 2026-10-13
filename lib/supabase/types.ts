@@ -10963,6 +10963,9 @@ export type Database = {
       services: {
         Row: {
           active: boolean;
+          buffer_after_min: number;
+          buffer_before_min: number;
+          capacity: number;
           created_at: string;
           default_visit_mode: string;
           department_id: string | null;
@@ -10976,6 +10979,9 @@ export type Database = {
         ComputedFields: never;
         Insert: {
           active?: boolean;
+          buffer_after_min?: number;
+          buffer_before_min?: number;
+          capacity?: number;
           created_at?: string;
           default_visit_mode?: string;
           department_id?: string | null;
@@ -10988,6 +10994,9 @@ export type Database = {
         };
         Update: {
           active?: boolean;
+          buffer_after_min?: number;
+          buffer_before_min?: number;
+          capacity?: number;
           created_at?: string;
           default_visit_mode?: string;
           department_id?: string | null;
@@ -11299,6 +11308,68 @@ export type Database = {
           },
         ];
       };
+      specialist_recurring_blocks: {
+        Row: {
+          created_at: string;
+          end_min: number;
+          id: string;
+          location_id: string | null;
+          org_id: string;
+          reason: string | null;
+          specialist_id: string;
+          start_min: number;
+          updated_at: string;
+          weekday: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          end_min: number;
+          id?: string;
+          location_id?: string | null;
+          org_id: string;
+          reason?: string | null;
+          specialist_id: string;
+          start_min: number;
+          updated_at?: string;
+          weekday: number;
+        };
+        Update: {
+          created_at?: string;
+          end_min?: number;
+          id?: string;
+          location_id?: string | null;
+          org_id?: string;
+          reason?: string | null;
+          specialist_id?: string;
+          start_min?: number;
+          updated_at?: string;
+          weekday?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "specialist_recurring_blocks_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "specialist_recurring_blocks_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "specialist_recurring_blocks_specialist_id_fkey";
+            columns: ["specialist_id"];
+            isOneToOne: false;
+            referencedRelation: "specialists";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       specialist_services: {
         Row: {
           org_id: string;
@@ -11347,9 +11418,11 @@ export type Database = {
           department_id: string | null;
           external_id: string | null;
           id: string;
+          max_per_slot: number;
           name: string;
           org_id: string;
           photo_path: string | null;
+          slot_length_min: number | null;
           title: string | null;
           updated_at: string;
           user_id: string | null;
@@ -11361,9 +11434,11 @@ export type Database = {
           department_id?: string | null;
           external_id?: string | null;
           id?: string;
+          max_per_slot?: number;
           name: string;
           org_id: string;
           photo_path?: string | null;
+          slot_length_min?: number | null;
           title?: string | null;
           updated_at?: string;
           user_id?: string | null;
@@ -11374,9 +11449,11 @@ export type Database = {
           department_id?: string | null;
           external_id?: string | null;
           id?: string;
+          max_per_slot?: number;
           name?: string;
           org_id?: string;
           photo_path?: string | null;
+          slot_length_min?: number | null;
           title?: string | null;
           updated_at?: string;
           user_id?: string | null;
@@ -14546,6 +14623,13 @@ export type Database = {
           p_wa_message_id: string;
         };
         Returns: boolean;
+      };
+      appointment_capacity_conflicts: {
+        Args: { p_ids: string[]; p_org_id: string };
+        Returns: {
+          appointment_id: string;
+          reason: string;
+        }[];
       };
       book_appointment: {
         Args: {
