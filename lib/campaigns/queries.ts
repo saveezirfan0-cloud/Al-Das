@@ -109,7 +109,7 @@ export async function getCampaignDetail(
   const { data, error } = await supabase
     .from("campaigns")
     .select(
-      `${LIST_SELECT}, org_id, channel_id, template_id, segment_id, variable_map, fallbacks, guardrails, retry_delay_minutes, paused_at, cancelled_at, csv_opt_in_confirmed, segments(name), campaign_ab_variants(split_pct, variable_map, wa_templates(id, name, language))`,
+      `${LIST_SELECT}, org_id, channel_id, template_id, segment_id, variable_map, fallbacks, guardrails, retry_delay_minutes, paused_at, cancelled_at, csv_opt_in_confirmed, segments(name), campaign_ab_variants(split_pct, variable_map, template_id)`,
     )
     .eq("org_id", orgId)
     .eq("id", id)
@@ -135,15 +135,25 @@ export async function getCampaignDetail(
       campaign_ab_variants: {
         split_pct: number;
         variable_map: unknown;
-        wa_templates: { id: string; name: string; language: string } | null;
+        template_id: string;
       } | null;
     };
   const { segments, campaign_ab_variants: variant, ...rowFields } = raw;
   const base = toRow(rowFields as RawRow);
   // Live numbers while the drawer is open (the stored snapshot lags by up to 30 s).
-  const [{ data: live }, abLive] = await Promise.all([
+  // Version B's template name is read with the service role (the campaign row was already authorised by RLS), so a
+  // member with campaigns.view but no template access still sees which template B is.
+  const [{ data: live }, abLive, abTemplate] = await Promise.all([
     admin.rpc("campaign_funnel", { p_campaign_id: id }),
     variant ? admin.rpc("campaign_ab_funnel", { p_campaign_id: id }) : Promise.resolve(null),
+    variant
+      ? admin
+          .from("wa_templates")
+          .select("id, name, language")
+          .eq("id", variant.template_id)
+          .eq("org_id", orgId)
+          .maybeSingle()
+      : Promise.resolve(null),
   ]);
   if (live) base.funnel = parseFunnel(live);
   return {
@@ -163,7 +173,7 @@ export async function getCampaignDetail(
     ab: variant
       ? {
           splitPct: variant.split_pct,
-          template: variant.wa_templates,
+          template: abTemplate?.data ?? null,
           variableMap: stringMap(variant.variable_map),
           funnel: parseAbFunnel(abLive?.data ?? null),
         }

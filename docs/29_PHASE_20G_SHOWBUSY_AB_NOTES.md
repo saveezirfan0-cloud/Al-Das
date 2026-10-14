@@ -29,7 +29,7 @@ outside working hours are never listed.
 | `public.campaign_ab_funnel(campaign)` (new)   | Service role only. `{a: {...}, b: {...}}` with total, eligible, pending, queued, sent, delivered, read (cumulative like `campaign_funnel`), replied, clicked (a quick-reply `button` message answering the recipient's `wa_message_id`, as in `report_template_performance`), failed, skipped.                                                                                                                                                                                                             |
 | `media_asset_usage()`                         | Redefined from the 20d definition; a library file in a variant B mapping counts for its campaign (same kind `campaign`, same delete block).                                                                                                                                                                                                                                                                                                                                                                |
 | `lib/campaigns/ab.ts` (pure)                  | `settingsForVariant` (a `b` recipient without a version B is skipped `variant_missing`, never sent A), `variantProblem` (same category as A, split 1 to 99, must differ from A), `parseAbFunnel`, `abRows`.                                                                                                                                                                                                                                                                                                |
-| `lib/campaigns/engine.ts`                     | `loadCampaign` embeds `campaign_ab_variants(..., wa_templates(...))`. `runFanout` reads `variant` and resolves each recipient with its version's template, mapping and fallbacks; everything else (consent re-check, in-flight cap, tier limit, budget claim before `campaign_dispatch`, outbound guard, retry rounds) is the same code path. Guardrails pause the campaign when either version's template is not approved.                                                                                |
+| `lib/campaigns/engine.ts`                     | `loadCampaign` embeds `campaign_ab_variants(..., wa_templates(...))`. `runFanout` reads `variant` and resolves each recipient with its version's template, mapping and fallbacks; everything else (consent re-check by the category of the recipient’s own version, in-flight cap, tier limit, budget claim before `campaign_dispatch`, outbound guard, retry rounds) is the same code path. Guardrails pause the campaign when either version's template is not approved.                                 |
 | `createCampaign` (campaigns actions)          | Optional `variant_b` (Zod: template id, maps, `split_pct` int 1 to 99). Still `requirePerm("campaigns.create")`. B goes through the same checks as A (`loadSendContext`: approved, not archived, same WhatsApp account; `mappingError`; `checkMediaReferences`) plus `variantProblem`. The variant row is inserted before the audience snapshot; on failure the campaign is deleted. The `campaign.created` audit row gains `ab: {template_id, split_pct}`.                                                |
 | New campaign form                             | Card "A/B test" (hidden for Repeat): switch, version B template (same number and category; "same as A" allowed), share for B, then a second variable-mapping card for B (the mapping card is now one renderer used twice). The preview has Version A / Version B buttons and the test send sends the version shown.                                                                                                                                                                                        |
 | Campaign drawer                               | "A/B test" table under the funnel: Sent, Delivered, Read, Replied, Clicked, Failed for A and B, each as % of that version's eligible recipients, plus version B's variables in Details.                                                                                                                                                                                                                                                                                                                    |
@@ -43,9 +43,13 @@ outside working hours are never listed.
   parity sweep (`tests/db/booking-capacity.test.ts`) now also compares the reason with `app.slot_conflict`.
 - **Assignment is in SQL, stored, and immutable.** Computing the variant at dispatch time would also be deterministic,
   but storing it makes the funnel a plain `group by` and makes "never flips" enforceable by a trigger.
-- **Version B must have A's category.** The audience snapshot, the dispatch-time consent check and the send-time
-  opt-out guard (`guardCampaignMessage`) are all decided by A's category; a MARKETING B on a UTILITY A would bypass
-  the opt-in rule, so it is refused (action and form).
+- **Version B must have A's category when it is created** (action and form), because the audience snapshot is
+  decided by A's category. A category can still change later (Meta's `template_category` webhook updates
+  `wa_templates.category`), so the dispatch-time consent check (`classifyRecipient`) and the send-time opt-out guard
+  (`guardCampaignMessage`) use the category of the template **that recipient gets**: a B recategorised to MARKETING
+  on a UTILITY A skips B recipients without an opt-in (`no_opt_in`) and withdraws B messages to people who opted out.
+  A B recipient whose version cannot be read is treated as marketing in the guard (fail closed). Version B's template
+  name in the drawer is read with the service role after RLS let the member read the campaign.
 - **A separate table, not columns on `campaigns`.** A second FK from `campaigns` to `wa_templates` would make every
   existing `campaigns → wa_templates(...)` embed ambiguous in PostgREST. `campaign_ab_variants` has its own id as the
   key, so PostgREST sees no many-to-many path; the service test runs the list, drawer and guard embeds through
@@ -74,9 +78,11 @@ Test database `pulse_g6` (fresh from `scripts/test-db.sh` plus the new migration
   range, one per campaign, no update, no variant after the audience, template delete blocked, cascade); the A/B funnel
   with replies and a quick-reply click (a quoted text reply is not a click); browser roles cannot call it; media
   usage and the delete block for a version B header file.
-- `tests/db/sf20g-service.test.ts` (5, through PostgREST and the real `runFanout`): B recipients get B's template and
+- `tests/db/sf20g-service.test.ts` (6, through PostgREST and the real `runFanout`): B recipients get B's template and
   mapping, A recipients A's; a retry round re-sends the same version; same-template variant with another mapping; a
-  non-approved B template pauses the campaign; `listCampaigns`, `getCampaignDetail` (A/B numbers) and
+  non-approved B template pauses the campaign; A UTILITY with B recategorised to MARKETING skips every B recipient
+  without opt-in as `no_opt_in` while A recipients are queued, and the outbound guard withdraws a B message (not an A
+  one) for a contact with `stop_marketing`; `listCampaigns`, `getCampaignDetail` (A/B numbers) and
   `guardCampaignMessage` still resolve their embeds.
 - `tests/db/booking-capacity.test.ts`: the TS/SQL parity sweep also compares the display reason.
 - `tests/db/security-guard.test.ts`: `SF20G_TABLES` / `seedSf20gRows` in the org sweeps; `campaign_ab_funnel` is

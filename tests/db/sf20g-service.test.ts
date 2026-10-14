@@ -50,7 +50,12 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)(
     const phone = () => `+447700900${String(300 + ++n).padStart(3, "0")}`;
 
     /** A sending campaign with variant B (added before the audience) and `size` opted-in recipients. */
-    async function abCampaign(name: string, b: { template: string; map: object }, size = 16) {
+    async function abCampaign(
+      name: string,
+      b: { template: string; map: object },
+      size = 16,
+      optIn = true,
+    ) {
       const id = await one(
         `insert into public.campaigns (org_id, name, channel_id, template_id, audience_type, status, started_at, guard_since, quality_at_start, variable_map, retry_rounds, created_by)
          values ($1, $2, $3, $4, 'csv', 'sending', now(), now(), 'GREEN', '{"body.1":"contact.first_name"}', 1, $5)`,
@@ -62,8 +67,8 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)(
       );
       for (let i = 0; i < size; i++) {
         const k = await one(
-          "insert into public.contacts (org_id, first_name, last_name, phone_e164, promotions_opt_in) values ($1, $2, 'Demo', $3, true)",
-          [org, `Layla${i}`, phone()],
+          "insert into public.contacts (org_id, first_name, last_name, phone_e164, promotions_opt_in) values ($1, $2, 'Demo', $3, $4)",
+          [org, `Layla${i}`, phone(), optIn],
         );
         await q(
           "insert into public.campaign_recipients (org_id, campaign_id, contact_id) values ($1, $2, $3)",
@@ -196,6 +201,55 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)(
         expect(r.dispatched).toBe(0);
       } finally {
         await q("update public.wa_templates set status = 'APPROVED' where id = $1", [tplB]);
+      }
+    });
+
+    it("decides consent by each recipient's own version: B recategorised to MARKETING skips people without opt-in", async () => {
+      // A stays UTILITY; Meta moves B to MARKETING after the campaign was created (template_category webhook).
+      const id = await abCampaign(
+        "B became marketing",
+        { template: tplB, map: { "body.1": "text:Friend" } },
+        16,
+        false,
+      );
+      await q("update public.wa_templates set category = 'MARKETING' where id = $1", [tplB]);
+      try {
+        await runFanout(admin, id, log);
+        const rows = await q<{ variant: string; status: string; skip_reason: string | null }>(
+          "select variant, status, skip_reason from public.campaign_recipients where campaign_id = $1",
+          [id],
+        );
+        const bs = rows.filter((r) => r.variant === "b");
+        const as = rows.filter((r) => r.variant === "a");
+        expect(bs.length).toBeGreaterThan(0);
+        expect(as.length).toBeGreaterThan(0);
+        for (const r of bs)
+          expect(r).toMatchObject({ status: "skipped", skip_reason: "no_opt_in" });
+        for (const r of as) expect(r.status).toBe("queued");
+
+        // The outbound guard also reads the recipient's own template: a B message to someone who opted out of
+        // marketing is withdrawn, an A (utility) message is not.
+        const guardId = await abCampaign("Guard B marketing", {
+          template: tplB,
+          map: { "body.1": "text:Friend" },
+        });
+        await runFanout(admin, guardId, log);
+        const sentRows = await sent(guardId);
+        const b = sentRows.find((x) => x.variant === "b")!;
+        const a = sentRows.find((x) => x.variant === "a")!;
+        expect(
+          await guardCampaignMessage(admin, a.message_id, a.recipient, { stop_marketing: true }),
+        ).toBe("send");
+        expect(
+          await guardCampaignMessage(admin, b.message_id, b.recipient, { stop_marketing: true }),
+        ).toBe("released");
+        const [after] = await q<{ status: string; skip_reason: string }>(
+          "select status, skip_reason from public.campaign_recipients where id = $1",
+          [b.recipient],
+        );
+        expect(after).toEqual({ status: "skipped", skip_reason: "stop_marketing" });
+      } finally {
+        await q("update public.wa_templates set category = 'UTILITY' where id = $1", [tplB]);
       }
     });
 
