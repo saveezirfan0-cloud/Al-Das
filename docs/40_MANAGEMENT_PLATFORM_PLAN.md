@@ -155,6 +155,11 @@ Each phase starts in Plan Mode with its own notes file. Weeks are indicative for
 - **Forecast output** always shows a range and last month's forecast against the actual.
 - **No PHI** in any of it: PIN-level data only where the finance rules already allow it; analytics use `patient_ref`.
 
-## 6. Open questions added
+## 6. Status
+
+- **M1 built (14 Oct 2026):** 23A and 23B (see `docs/23_PHASE_23A_NOTES.md`, `docs/23_PHASE_23B_NOTES.md`). Deferred from M1: KPI alerts (revenue behind target, data late), Longevity split (23C), collections and data-quality view (23D), the metric register as a shared module (the 23B rules are its first entries).
+- **M2 input:** doctor pay comes from the HR Contract Generator terms; `docs/finance/contract-rules-alignment.md` maps each contract type onto Pulse's revenue-share rule and lists the gaps (OQ-148 to OQ-157).
+
+## 7. Open questions added
 
 OQ-143 to OQ-147, in `docs/audit/open-questions.md`.

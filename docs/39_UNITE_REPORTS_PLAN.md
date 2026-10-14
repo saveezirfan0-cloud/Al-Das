@@ -165,6 +165,8 @@ Order: 23A unblocks everything, 23B replaces workbook B, 23C and 23D can follow 
 
 ### 23A — Unite Daily Collection report import (the bridge while capture is OFF) · P0
 
+> **As built (14 Oct 2026):** the report rows go to their own sanitised table `fin_report_visits`, not into `fin_invoices`. The report has no DHA doctor id and one row per visit (self-pay and insurance numbers together), so writing it into the capture tables would give every doctor a second identity and risk posting revenue twice. Amounts keep Unite's three decimals. Details: `docs/23_PHASE_23A_NOTES.md`; the text below is the original plan.
+
 **Upload.** Finance uploads A's .xlsx at `/finance/upload` (new card "Unite daily collection"). It needs a new permission,
 `finance.revenue.import`, granted to Finance and Finance Manager. The migration also grants it and adds it to `later()`
 in `tests/db/finance-phase18-rls.test.ts`.

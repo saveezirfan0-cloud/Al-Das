@@ -6,6 +6,13 @@ This is the single document to work from. Section 1 says where we are, 2 says wh
 
 ---
 
+## 0e. Update, 14 Oct 2026: Phase 23 (M1) built
+
+- **23A Unite collection report upload** (`/finance/upload`, `finance.revenue.import`): sanitised rows only, reconciled to the report's own totals before commit; tested end to end against the real September export locally (reconciles to the fils: net 1,839,005.80, 1,362 patients; the file is not in the repository). Notes: `docs/23_PHASE_23A_NOTES.md`.
+- **23B Doctor performance** (`/finance/doctor-performance`, Excel download, target and bands under Finance, Targets and report lines, tiles on the Management dashboard): reproduces the corrected revenue comparison workbook (e.g. Dermatology 123,626.24 / 160 patients / 772.66). Notes: `docs/23_PHASE_23B_NOTES.md`.
+- **Contract Generator alignment** (`docs/finance/contract-rules-alignment.md`): how the HR contract terms feed doctor pay in M2; OQ-148 to OQ-157.
+- Database: paste files `66_` to `68_` after `65_`. **Production has only the first 4 migrations**: the `db-migrate` workflow fails because the repository secret `SUPABASE_DB_URL` is empty (see `docs/38_HOSTING_SETUP.md`).
+
 ## 0d. Update, 14 Oct 2026: management platform plan
 
 The owner's May 2026 models (turnaround template, department benchmarking and recruitment calculator) were reviewed against Pulse. Plan in `docs/40_MANAGEMENT_PLATFORM_PLAN.md`: one data layer and one metric register (six profit levels from net revenue to profit after allocation) feeding Group, Clinic, Department and Doctor views; phases M0 (turn on the data), M1 (revenue, = Phase 23A/23B), M2 (costs and contribution), M3 (capacity and rooms), M4 (forecasts and scenarios), M5 (cockpit). 13 defects in the May models are listed so they are not carried into code. New questions OQ-143 to OQ-147.
