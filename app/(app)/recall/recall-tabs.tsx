@@ -5,20 +5,16 @@ import { usePathname } from "next/navigation";
 
 import { cn } from "@/lib/utils";
 
-const TABS = [
-  { href: "/recall", label: "Programmes" },
-  { href: "/recall/calls", label: "Call list" },
-  { href: "/recall/parallel-run", label: "Parallel run" },
-];
-
-export function RecallTabs() {
+/** The strip; the layout passes only the tabs the member may open (./tabs.ts). */
+export function RecallTabs({ tabs }: { tabs: ReadonlyArray<{ href: string; label: string }> }) {
   const pathname = usePathname();
   return (
     <nav className="flex gap-1 border-b" aria-label="Recall sections">
-      {TABS.map((t) => (
+      {tabs.map((t) => (
         <Link
           key={t.href}
           href={t.href}
+          aria-current={pathname === t.href ? "page" : undefined}
           className={cn(
             "-mb-px border-b-2 px-3 py-2 text-sm",
             pathname === t.href

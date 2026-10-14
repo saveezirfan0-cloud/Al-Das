@@ -18,6 +18,7 @@ import { NAV_MODULES } from "@/lib/nav/modules";
 import { NAV_STATE_COOKIE, parseNavState } from "@/lib/nav/state";
 import { buildNavTree } from "@/lib/nav/tree";
 import type { QuickLink } from "@/lib/shell/quick-links";
+import { subPageLinksFor } from "@/lib/shell/sub-page-links";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const member = await requireMember();
@@ -54,22 +55,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       keywords: ["videos", "guides", "shortcuts", "what's new", "feedback", "onboarding", "?"],
       hint: "Help",
     },
-    ...(can(member, "frontdesk.use")
-      ? [
-          {
-            href: "/front-desk/end-of-day",
-            label: "End of day sheet",
-            keywords: ["handover", "print", "unconfirmed", "close up"],
-            hint: "Front desk",
-          },
-          {
-            href: "/front-desk/qr",
-            label: "Desk QR code",
-            keywords: ["poster", "register", "walk-in", "print"],
-            hint: "Front desk",
-          },
-        ]
-      : []),
     ...items.flatMap((i) => [
       { href: i.href, label: i.label, keywords: i.keywords, hint: i.group },
       // every registered module page, with "<module> · <section>" as context
@@ -89,6 +74,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         ]),
       ),
     ]),
+    // pages reached from inside another page (in-page tabs, buttons), each behind its page's own key
+    ...subPageLinksFor(member),
   ];
 
   const name = `${member.profile.first_name} ${member.profile.last_name}`.trim();
