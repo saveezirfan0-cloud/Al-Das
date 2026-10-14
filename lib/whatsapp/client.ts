@@ -196,6 +196,18 @@ export class WhatsAppClient {
     return this.sendMessage({ ...this.recipient(to, opts), type: "template", template });
   }
 
+  /**
+   * Phase 20h: a Marketing template through Meta's Marketing Messages Lite API, `POST /{phone-number-id}/marketing_messages`,
+   * with the same body as /messages. Request and answer shapes come from Meta's documentation and are NOT verified against a
+   * live, onboarded account (docs/30_PHASE_20H_SMS_MMLITE_NOTES.md). Only the outbound job calls it, and only for campaign
+   * messages whose template is in the Marketing category while the `wa_mm_lite` integration is on (lib/whatsapp/mm-lite.ts).
+   */
+  sendMarketingTemplate(to: string, template: TemplateObject): Promise<SendResult> {
+    return this.request<SendResult>(this.phonePath("marketing_messages"), {
+      json: { ...this.recipient(to), type: "template", template },
+    });
+  }
+
   sendReaction(to: string, messageId: string, emoji: string) {
     return this.sendMessage({
       ...this.recipient(to),

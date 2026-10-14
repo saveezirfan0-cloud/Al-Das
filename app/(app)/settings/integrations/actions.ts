@@ -214,7 +214,9 @@ export async function testIntegration(kindInput: string): Promise<ActionResult> 
     return {
       ok: false,
       error:
-        "This gateway has no safe test call. Create a small payment in the gateway's test mode instead.",
+        kind === "sms"
+          ? "There is no safe test without a check address (a test send would text someone). Add the gateway's read-only check address, or send a test from the gateway's own dashboard to a number the clinic owns."
+          : "This gateway has no safe test call. Create a small payment in the gateway's test mode instead.",
     };
   if (result.ok) {
     if (account.enabled) await recordOk(admin, member.orgId, kind);
