@@ -374,3 +374,25 @@ export async function buildJournalForSource(
   const records = await loadRecords(port, orgId, kind, [id]);
   return buildItem(kind, records.get(id), ctx);
 }
+
+/**
+ * The journals Pulse would post for several items of one kind, without posting anything (the Tally bridge's daily
+ * summaries and batches). One context load for all of them; a missing record is "withdraw". Service role, after can().
+ */
+export async function buildJournalsForSources(
+  admin: AdminClient | PostingPort,
+  orgId: string,
+  kind: PostingSource,
+  ids: readonly string[],
+): Promise<Map<string, BuildResult>> {
+  const port = toPort(admin);
+  const out = new Map<string, BuildResult>();
+  if (ids.length === 0) return out;
+  const ctx = await loadPostingContext(port, orgId);
+  for (let i = 0; i < ids.length; i += APPLY_CHUNK) {
+    const chunk = ids.slice(i, i + APPLY_CHUNK);
+    const records = await loadRecords(port, orgId, kind, chunk);
+    for (const id of chunk) out.set(id, buildItem(kind, records.get(id), ctx));
+  }
+  return out;
+}

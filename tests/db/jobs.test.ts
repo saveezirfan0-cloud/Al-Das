@@ -212,6 +212,7 @@ describe.skipIf(!TEST_DATABASE_URL)("jobs framework (db)", () => {
       expect(names).toEqual([
         "accounting_assets",
         "accounting_post",
+        "accounting_tally_bridge",
         "ai_insights",
         "ai_quality_weekly",
         "appointments",

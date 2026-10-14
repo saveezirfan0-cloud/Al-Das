@@ -619,6 +619,8 @@ export function planTallyImport(
         number: v.number,
         narration,
         lines,
+        // a voucher the Tally bridge pushed: linked back to its Pulse source when the pull applies it
+        ...(v.remoteId?.startsWith("pulse-") ? { remote_id: v.remoteId } : {}),
       },
     });
     if (!firstDate || v.date! < firstDate) firstDate = v.date;

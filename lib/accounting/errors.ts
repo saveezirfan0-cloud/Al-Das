@@ -106,6 +106,27 @@ export const ACCOUNTING_ERRORS: Record<string, string> = {
   adjustment_locked:
     "The year's adjustment period is locked, so the closing journal cannot be posted.",
   later_year_closed: "Re-open the later year first.",
+  // Phase 22J: the Tally bridge (also the reasons shown next to a voucher that waits or failed)
+  mode_locked: "Unite revenue was already sent to Tally this way; the mode cannot change now.",
+  push_from_needed: "Choose the first date to send to Tally before switching pushing on.",
+  push_off: "Pushing to Tally is switched off.",
+  push_stopped: "Pushing to Tally is stopped; Tally does not hold this voucher.",
+  ledger_started: "The ledger has started: Pulse is the book of record and nothing more is sent to Tally.",
+  training: "A training workspace never sends anything to Tally.",
+  switched_off: "The Tally bridge is switched off (Settings, Integrations).",
+  not_paired: "No connector is paired.",
+  ledger_unmapped:
+    "An account has no Tally ledger. Point the posting rule at a ledger imported from Tally, or link the account in the Tally import.",
+  account_unknown: "An account on the journal is not in the chart of accounts.",
+  voucher_type: "This kind of journal has no Pulse voucher type in Tally.",
+  not_buildable: "Pulse cannot build this item's journal right now (see Waiting to post).",
+  capture_failed: "Pulse could not read this item's journal. It will be tried again.",
+  tally_error: "Tally refused the voucher (its message is shown). Fix it in Tally, then send it again.",
+  connector_refused: "The connector refused this voucher. Tell your administrator.",
+  bad_content: "The voucher could not be written for Tally.",
+  no_answer: "Tally's answer never came. Check in Tally whether the voucher is there, then send it again.",
+  withdrawn: "The item was withdrawn in Pulse before it reached Tally.",
+  invalid_code: "Unknown or expired pairing code.",
 };
 
 export function accountingErrorMessage(code: string | null | undefined, fallback: string): string {
