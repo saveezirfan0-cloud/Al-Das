@@ -20104,6 +20104,7 @@ export type Database = {
           bio: string | null;
           created_at: string;
           department_id: string | null;
+          dha_id: string | null;
           external_id: string | null;
           id: string;
           licence_authority: string;
@@ -20115,6 +20116,7 @@ export type Database = {
           org_id: string;
           phone_ext: string | null;
           photo_path: string | null;
+          report_doctor_key: string | null;
           slot_length_min: number | null;
           specialty: string | null;
           title: string | null;
@@ -20127,6 +20129,7 @@ export type Database = {
           bio?: string | null;
           created_at?: string;
           department_id?: string | null;
+          dha_id?: string | null;
           external_id?: string | null;
           id?: string;
           licence_authority?: string;
@@ -20138,6 +20141,7 @@ export type Database = {
           org_id: string;
           phone_ext?: string | null;
           photo_path?: string | null;
+          report_doctor_key?: string | null;
           slot_length_min?: number | null;
           specialty?: string | null;
           title?: string | null;
@@ -20149,6 +20153,7 @@ export type Database = {
           bio?: string | null;
           created_at?: string;
           department_id?: string | null;
+          dha_id?: string | null;
           external_id?: string | null;
           id?: string;
           licence_authority?: string;
@@ -20160,6 +20165,7 @@ export type Database = {
           org_id?: string;
           phone_ext?: string | null;
           photo_path?: string | null;
+          report_doctor_key?: string | null;
           slot_length_min?: number | null;
           specialty?: string | null;
           title?: string | null;
@@ -25084,6 +25090,7 @@ export type Database = {
         Args: { p_org_id: string; p_upload_id: string };
         Returns: Json;
       };
+      fin_report_doctor_keys: { Args: { p_org_id: string }; Returns: Json };
       fin_report_latest_month: {
         Args: { p_branches?: string[]; p_org_id: string };
         Returns: string;

@@ -398,6 +398,13 @@ export function monthParam(raw: string | null | undefined): string | null {
   return `${m[1]}-${m[2]}-01`;
 }
 
+/** The page's ?doctor= (a report doctor key, from the Doctors drawer): trimmed, at most 200 characters; else null. */
+export function doctorParam(raw: string | string[] | null | undefined): string | null {
+  if (typeof raw !== "string") return null;
+  const v = raw.trim();
+  return v && v.length <= 200 ? v : null;
+}
+
 const amount = (label: string) =>
   z.coerce
     .number({ message: `${label} must be a number.` })
