@@ -390,7 +390,7 @@ export function supabaseStore(admin: AdminClient): FlowStore {
 
 export function supabaseActions(admin: AdminClient): FlowActions {
   return {
-    async send(run, spec: SendSpec, body) {
+    async send(run, spec: SendSpec, body, opts) {
       let conversationId = run.conversation_id;
       if (!conversationId) {
         if (!run.contact_id) throw new Error("Run has no contact to message");
@@ -426,6 +426,8 @@ export function supabaseActions(admin: AdminClient): FlowActions {
         sentByUserId: null,
         flowRunId: run.id,
         priority: false,
+        // Replay-safe: the same step key returns the message this step already queued (messages.flow_step_key).
+        flowStepKey: opts.stepKey,
       });
       return { messageId: message.id };
     },

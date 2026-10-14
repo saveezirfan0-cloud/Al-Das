@@ -16374,6 +16374,7 @@ export type Database = {
           error_code: number | null;
           error_message: string | null;
           flow_run_id: string | null;
+          flow_step_key: string | null;
           id: string;
           kind: string;
           media_filename: string | null;
@@ -16400,6 +16401,7 @@ export type Database = {
           error_code?: number | null;
           error_message?: string | null;
           flow_run_id?: string | null;
+          flow_step_key?: string | null;
           id?: string;
           kind: string;
           media_filename?: string | null;
@@ -16425,6 +16427,7 @@ export type Database = {
           error_code?: number | null;
           error_message?: string | null;
           flow_run_id?: string | null;
+          flow_step_key?: string | null;
           id?: string;
           kind?: string;
           media_filename?: string | null;
@@ -24370,6 +24373,7 @@ export type Database = {
         Args: { p_actor: string; p_membership: string; p_org: string; p_reassign_to?: string };
         Returns: Json;
       };
+      outbound_message_enqueued: { Args: { p_message_id: string }; Returns: boolean };
       pgp_armor_headers: { Args: { "": string }; Returns: Record<string, unknown>[] };
       pick_round_robin_assignee: { Args: { p_org_id: string; p_team_id: string }; Returns: string };
       pick_round_robin_assignee_capped: {

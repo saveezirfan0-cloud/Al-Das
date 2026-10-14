@@ -181,8 +181,11 @@ export type InboundMessageView = {
 
 export type SendResult = { messageId: string };
 
+/** `stepKey` is the step's idempotency key (flowStepKey): the same key always yields the same message, never a second one. */
+export type SendOptions = { stepKey: string };
+
 export interface FlowActions {
-  send(run: RunRecord, spec: SendSpec, body: string | null): Promise<SendResult>;
+  send(run: RunRecord, spec: SendSpec, body: string | null, opts: SendOptions): Promise<SendResult>;
   assign(
     run: RunRecord,
     target: { type: "user" | "team" | "bot" | "unassign"; id?: string },
@@ -233,9 +236,11 @@ export interface CrmPort {
     run: RunRecord,
     input: { tag_id: string; on: boolean },
   ): Promise<{ changed: boolean }>;
+  /** `opts.stepKey` makes a replayed step return the request it already sent instead of failing on the open link. */
   createPaymentLink?(
     run: RunRecord,
     input: { invoice_number: string; amount: string },
+    opts: SendOptions,
   ): Promise<PaymentLinkResult>;
   sendMetaEvent?(run: RunRecord, input: { event_name: string }): Promise<MetaEventResult>;
   /** The newest inbound message of the run's conversation (its text stays in memory; it is never stored by the router). */

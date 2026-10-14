@@ -12,6 +12,11 @@ export type ExecCtx = {
   contact: ContactView | null;
   conversation: ConversationView | null;
   scope: InterpolateScope;
+  /**
+   * This step's idempotency key (flowStepKey: run id + step seq). Pass it to every send and to any port that queues a
+   * message, so a replayed step returns what it queued the first time instead of queueing it again.
+   */
+  stepKey: string;
 };
 
 export type Executor = (ctx: ExecCtx) => Promise<Outcome>;

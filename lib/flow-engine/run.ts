@@ -6,7 +6,10 @@
  *
  * Idempotency: the step row (unique on run_id+seq) is written BEFORE side effects and holds the
  * executor's outcome once it finished, so a redelivered job replays the outcome instead of
- * sending the message twice. Waits use `scheduled_jobs` through deps.jobs, never in-memory timers.
+ * sending the message twice. A crash after the send but before the outcome is stored leaves the
+ * step 'running' and the node runs again; its sends carry the step key (run id + seq), which is
+ * unique on messages, so the second attempt gets the first message back instead of a copy.
+ * Waits use `scheduled_jobs` through deps.jobs, never in-memory timers.
  */
 import { checkAnswer, matchOption, MAX_ANSWER_CHARS } from "@/lib/flow-engine/answers";
 import type { FlowDeps, RunRecord } from "@/lib/flow-engine/deps";
@@ -22,6 +25,7 @@ import {
   type RunContext,
   type WaitingFor,
   emptyContext,
+  flowStepKey,
 } from "@/lib/flow-engine/types";
 
 export type AdvanceResult =
@@ -172,7 +176,9 @@ async function advanceLocked(deps: FlowDeps, runId: string): Promise<AdvanceResu
   if (replayed) {
     outcome = replayed; // a previous attempt already executed this node; do not send again
   } else {
-    outcome = await execute(deps, run, node);
+    // A step left 'running' (crash between the send and the update below) runs again with the same key, so its
+    // send returns the message it already queued (messages.flow_step_key) instead of queueing a copy.
+    outcome = await execute(deps, run, node, flowStepKey(run.id, seq));
     const status = outcome.kind === "fail" ? "failed" : outcome.kind === "wait" ? "waiting" : "ok";
     await deps.store.updateStep(step.id, {
       status,
@@ -186,7 +192,12 @@ async function advanceLocked(deps: FlowDeps, runId: string): Promise<AdvanceResu
   return applyOutcome(deps, run, graph, node, seq, outcome);
 }
 
-async function execute(deps: FlowDeps, run: RunRecord, node: FlowNode): Promise<Outcome> {
+async function execute(
+  deps: FlowDeps,
+  run: RunRecord,
+  node: FlowNode,
+  stepKey: string,
+): Promise<Outcome> {
   const [contact, conversation, vars] = await Promise.all([
     run.contact_id ? deps.store.getContact(run.contact_id) : Promise.resolve(null),
     run.conversation_id ? deps.store.getConversation(run.conversation_id) : Promise.resolve(null),
@@ -199,6 +210,7 @@ async function execute(deps: FlowDeps, run: RunRecord, node: FlowNode): Promise<
     contact,
     conversation,
     scope: buildScope(run, contact, vars),
+    stepKey,
   };
   try {
     return await EXECUTORS[node.type](ctx);

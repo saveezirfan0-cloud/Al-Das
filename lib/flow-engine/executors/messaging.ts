@@ -29,7 +29,9 @@ export const message: Executor = async (ctx) => {
   if (blocked) return fail(blocked);
   const body = text(ctx, cfg.data.text).trim();
   if (!body) return fail("Message is empty after filling in variables");
-  const sent = await ctx.deps.actions.send(ctx.run, { type: "text", body }, body);
+  const sent = await ctx.deps.actions.send(ctx.run, { type: "text", body }, body, {
+    stepKey: ctx.stepKey,
+  });
   return { kind: "next", output: { message_id: sent.messageId } };
 };
 
@@ -136,7 +138,9 @@ export const question: Executor = async (ctx) => {
   const options = c.style === "text" ? [] : c.options;
   const sent =
     c.style === "text"
-      ? await ctx.deps.actions.send(ctx.run, { type: "text", body }, body)
+      ? await ctx.deps.actions.send(ctx.run, { type: "text", body }, body, {
+          stepKey: ctx.stepKey,
+        })
       : await ctx.deps.actions.send(
           ctx.run,
           {
@@ -144,6 +148,7 @@ export const question: Executor = async (ctx) => {
             interactive: interactiveFor(c.style, body, options, c.list_button_label),
           },
           body,
+          { stepKey: ctx.stepKey },
         );
 
   const token = ctx.deps.uuid();
@@ -192,6 +197,7 @@ export const quick_reply: Executor = async (ctx) => {
       interactive: interactiveFor("buttons", body, cfg.data.buttons, "Choose"),
     },
     body,
+    { stepKey: ctx.stepKey },
   );
   return { kind: "next", output: { message_id: sent.messageId } };
 };
@@ -235,6 +241,7 @@ export const template: Executor = async (ctx: ExecCtx): Promise<Outcome> => {
     ctx.run,
     { type: "template", template_id: tpl.id, values },
     null,
+    { stepKey: ctx.stepKey },
   );
   return { kind: "next", output: { message_id: sent.messageId, template: tpl.name } };
 };

@@ -55,6 +55,10 @@ All new nodes are in `NODE_TYPES`, `NODE_DATA_SCHEMAS`, the catalogue, the build
 - Question: a refused pattern, or `save_to: email` without an e-mail answer, blocks publishing.
 - The trigger must still be connected (unchanged).
 
+## Replay-safe sends (follow-up, migration `20261122000100_flow_step_send_key.sql`)
+
+The step row (unique on run + seq) is written before a node runs and holds its outcome afterwards, so a redelivered job replays a finished step without running it. The gap was a crash between "message queued" and "outcome stored" (`advanceLocked` in `lib/flow-engine/run.ts`: `execute` then `updateStep`): the step stayed `running` and the redelivered job queued the message again. Now every send carries the step key `flowStepKey(run id, seq)` (`lib/flow-engine/types.ts`, handed to executors as `ctx.stepKey`), stored in `messages.flow_step_key` (partial unique index). `queueOutbound({ flowStepKey })` treats a unique violation on that key like `retry_of_message_id`: it returns the message the first attempt queued (same org only) instead of inserting a copy, and re-queues it only when the row is still `queued` and `outbound_message_enqueued()` (service role only) finds no job for it in either outbound queue (the crash fell between the insert and the enqueue). Message, question (and each re-ask, which is its own step and key), quick reply and template all pass the key; `payment_link` passes it to `createPaymentRequest`, which hands back the request a replayed step already sent instead of failing on "a link is already open". A new node that sends must pass `ctx.stepKey` (it is a required argument of `FlowActions.send`). Tests: `tests/unit/flow-step-send-key.test.ts`, `tests/db/flow-step-send-key.test.ts`, one case in `tests/db/integrations-service.test.ts`.
+
 ## Files
 
 - New: `lib/flow-engine/crm-adapters.ts`, `answers.ts`, `wa-flow.ts`, `node-options.ts` (client-safe lists: router labels, Meta event names, answer types, `patternProblem`), `executors/ai.ts`; migration `supabase/migrations/20261110000100_flow_parity.sql`; tests `tests/unit/flow-parity.test.ts`, `tests/unit/flow-answers.test.ts`, `tests/db/flow-parity.test.ts`.

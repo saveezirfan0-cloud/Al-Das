@@ -210,6 +210,11 @@ export type CreateRequestInput = {
   amount: string;
   now?: Date;
   provider?: PaymentProvider;
+  /**
+   * A flow's Payment link step (flowStepKey: run id + step seq). The message carries it (messages.flow_step_key, unique),
+   * so a step replayed after a crash gets the request it already sent back instead of a second link or message.
+   */
+  flowStepKey?: string;
 };
 
 export async function createPaymentRequest(
@@ -217,6 +222,10 @@ export async function createPaymentRequest(
   input: CreateRequestInput,
 ): Promise<Result<{ requestId: string; expiresAt: string }>> {
   const now = input.now ?? new Date();
+  if (input.flowStepKey) {
+    const earlier = await requestSentByFlowStep(admin, input.orgId, input.flowStepKey);
+    if (earlier) return { ok: true, ...earlier };
+  }
   const setupRes = await loadPaymentSetup(admin, input.orgId, { provider: input.provider });
   if (!setupRes.ok) return setupRes;
   const { account, cfg, provider, template } = setupRes.setup;
@@ -387,6 +396,7 @@ export async function createPaymentRequest(
       body: [preview.headerText, preview.body].filter(Boolean).join("\n"),
       sentByUserId: input.actorId,
       priority: true,
+      flowStepKey: input.flowStepKey,
     });
     await admin
       .from("fin_payment_requests")
@@ -411,6 +421,29 @@ export async function createPaymentRequest(
   });
   await bumpUsage(admin, input.orgId, "payments", "links_sent");
   return { ok: true, requestId, expiresAt: finalExpiry.toISOString() };
+}
+
+/** The request a flow step already sent (its message carries the step key), or null. Ids and the expiry only. */
+async function requestSentByFlowStep(
+  admin: AdminClient,
+  orgId: string,
+  key: string,
+): Promise<{ requestId: string; expiresAt: string } | null> {
+  const { data: message } = await admin
+    .from("messages")
+    .select("id")
+    .eq("org_id", orgId)
+    .eq("flow_step_key", key)
+    .maybeSingle();
+  if (!message) return null;
+  const { data: request } = await admin
+    .from("fin_payment_requests")
+    .select("id, expires_at")
+    .eq("org_id", orgId)
+    .eq("message_id", message.id)
+    .maybeSingle();
+  // expires_at is written with the row; the flow step only reads the request id.
+  return request ? { requestId: request.id, expiresAt: request.expires_at ?? "" } : null;
 }
 
 /** Cancels an open request and asks the gateway to close the link where it can. A payment that still arrives is recorded and flagged. */

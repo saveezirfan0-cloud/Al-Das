@@ -1145,6 +1145,30 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)(
         if (!r.ok) expect(r.error).toContain("already open");
       });
 
+      it("a replayed flow step gets the request it already sent back, with no new link or message", async () => {
+        const [row] = await payRows();
+        const key = "00000000-0000-4000-8000-0000000000f7:5";
+        // As if a flow's Payment link step had queued this message (queueOutbound stores the step key).
+        await svc(() =>
+          q("update public.messages set flow_step_key = $2 where id = $1", [row.message_id, key]),
+        );
+        const fake = createFakePaymentProvider();
+        const replay = await create({ actorId: null, flowStepKey: key }, fake);
+        expect(replay).toMatchObject({ ok: true, requestId: row.id });
+        expect(fake.created).toHaveLength(0);
+        expect(await payRows()).toHaveLength(1);
+        const msgs = (
+          await svc(() =>
+            q("select count(*)::int as n from public.messages where flow_step_key = $1", [key]),
+          )
+        ).rows[0].n;
+        expect(msgs).toBe(1);
+        // Another step (another key) is a new attempt and still meets the one-open-link rule.
+        const other = await create({ actorId: null, flowStepKey: `${key}0` }, fake);
+        expect(other.ok).toBe(false);
+        if (!other.ok) expect(other.error).toContain("already open");
+      });
+
       it("never writes to the invoice (nothing is marked paid, nothing goes to Unite)", async () => {
         const inv = (
           await svc(() => q("select * from public.fin_invoices where id = $1", [invoice]))
