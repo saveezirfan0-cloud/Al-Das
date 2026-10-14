@@ -16,22 +16,24 @@ import {
 import {
   defaultStartMonth,
   loadAccounts,
+  loadBranchCodeOptions,
   loadEntities,
   loadTrialBalance,
 } from "@/lib/accounting/accounting-server";
 import { fiscalYearOf } from "@/lib/accounting/numbering";
 import { buildTrialBalance, rangeProblem } from "@/lib/accounting/reports";
 import { requirePerm } from "@/lib/auth/session";
+import { pickBranchCode } from "@/lib/branches/codes";
 import { todayIn } from "@/lib/finance/action-support";
 import { money } from "@/lib/finance/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-import { Balance, dateParam, RangeForm } from "../ui";
+import { Balance, BRANCH_VIEW_NOTE, BranchCodeSelect, dateParam, RangeForm } from "../ui";
 
 export const metadata = { title: "Trial balance" };
 export const dynamic = "force-dynamic";
 
-type Search = { from?: string; to?: string; entity?: string; view?: string };
+type Search = { from?: string; to?: string; entity?: string; view?: string; branch?: string };
 
 export default async function TrialBalancePage({
   searchParams,
@@ -42,11 +44,14 @@ export default async function TrialBalancePage({
   const sp = await searchParams;
   const today = todayIn(member.org.timezone);
   const admin = createAdminClient(); // service role AFTER the permission check
-  const [entities, accounts] = await Promise.all([
+  const [entities, accounts, branchOptions] = await Promise.all([
     loadEntities(admin, member.orgId),
     loadAccounts(admin, member.orgId),
+    loadBranchCodeOptions(admin, member.orgId),
   ]);
   const entity = entities.find((e) => e.id === sp.entity) ?? null;
+  // Phase B: one branch's lines (finance code, linked to the clinic's branch in Settings, Appointments).
+  const branch = pickBranchCode(sp.branch, branchOptions);
   const fy = fiscalYearOf(entity?.fiscal_year_start_month ?? defaultStartMonth(entities), today);
   let from = dateParam(sp.from, fy.start);
   let to = dateParam(sp.to, today);
@@ -56,9 +61,9 @@ export default async function TrialBalancePage({
     to = today;
   }
   const groupsOnly = sp.view === "groups";
-  const data = await loadTrialBalance(admin, member.orgId, entity?.id ?? null, from, to);
+  const data = await loadTrialBalance(admin, member.orgId, entity?.id ?? null, from, to, branch);
   const tb = buildTrialBalance(accounts, data, { groupsOnly });
-  const exportHref = `/api/accounting/trial-balance?from=${from}&to=${to}${entity ? `&entity=${entity.id}` : ""}`;
+  const exportHref = `/api/accounting/trial-balance?from=${from}&to=${to}${entity ? `&entity=${entity.id}` : ""}${branch ? `&branch=${branch}` : ""}`;
 
   return (
     <div className="flex flex-col gap-4">
@@ -84,6 +89,7 @@ export default async function TrialBalancePage({
             </select>
           </label>
         )}
+        <BranchCodeSelect options={branchOptions} value={branch} />
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium">Show</span>
           <select
@@ -101,9 +107,16 @@ export default async function TrialBalancePage({
           <AlertDescription>{problem} Showing the fiscal year to date instead.</AlertDescription>
         </Alert>
       )}
+      {branch && (
+        <Alert>
+          <AlertDescription>{BRANCH_VIEW_NOTE}</AlertDescription>
+        </Alert>
+      )}
       <div>
         {tb.balanced ? (
           <Badge variant="success">Balanced</Badge>
+        ) : branch ? (
+          <Badge variant="outline">Branch view: not expected to balance</Badge>
         ) : (
           <Badge variant="destructive">Out of balance: report this to the administrator</Badge>
         )}

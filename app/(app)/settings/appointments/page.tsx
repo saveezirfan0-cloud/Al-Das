@@ -2,6 +2,7 @@ import { PageHeader } from "@/components/shell/page-header";
 import { requirePerm } from "@/lib/auth/session";
 import { readAppointmentSettings } from "@/lib/appointments/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 
 import { AppointmentsSettings } from "./appointments-settings";
 
@@ -10,6 +11,7 @@ export const metadata = { title: "Appointment settings" };
 export default async function AppointmentSettingsPage() {
   const member = await requirePerm("settings.manage");
   const admin = createAdminClient();
+  const supabase = await createClient();
   const org = member.orgId;
   const [
     { data: orgRow },
@@ -25,6 +27,7 @@ export default async function AppointmentSettingsPage() {
     { data: exclusions },
     { data: members },
     { data: weekly },
+    { data: financeBranches },
   ] = await Promise.all([
     admin.from("orgs").select("settings, timezone").eq("id", org).single(),
     admin.from("locations").select("*").eq("org_id", org).order("name"),
@@ -67,6 +70,14 @@ export default async function AppointmentSettingsPage() {
       .eq("org_id", org)
       .order("weekday")
       .order("start_min"),
+    // Phase B: the finance branch codes for the location picker, read with the member's own rights (RLS: finance
+    // readers only). Without them the code is typed instead.
+    supabase
+      .from("fin_ref_branches")
+      .select("code, name")
+      .eq("org_id", org)
+      .eq("active", true)
+      .order("code"),
   ]);
 
   return (
@@ -103,6 +114,7 @@ export default async function AppointmentSettingsPage() {
         templates={templates ?? []}
         channels={channels ?? []}
         exclusions={exclusions ?? []}
+        financeBranches={(financeBranches ?? []).map((b) => ({ code: b.code, name: b.name }))}
         users={(members ?? []).map((m) => ({
           id: m.user_id,
           name: `${m.profiles?.first_name ?? ""} ${m.profiles?.last_name ?? ""}`.trim() || "User",

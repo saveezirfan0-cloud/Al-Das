@@ -9,7 +9,8 @@ import type { AdminClient } from "@/lib/supabase/admin";
 export const BRANCH_DENIED = "That belongs to a branch you do not work in.";
 
 type BranchMember = Pick<CurrentMember, "orgId" | "branchScope" | "branchIds" | "homeLocationId">;
-type BranchTable = "appointments" | "waitlist_entries" | "handover_notes" | "enquiries";
+type BranchTable =
+  "appointments" | "waitlist_entries" | "handover_notes" | "enquiries" | "tasks" | "time_blocks";
 
 /**
  * The member's branch view for a server action (no page has loaded the locations): reads the org's active
@@ -59,4 +60,27 @@ export async function rowOutsideBranches(
     .maybeSingle();
   if (!data) return false;
   return !canSeeLocation(access, data.location_id);
+}
+
+/**
+ * The ids among `ids` the member may act on: rows in a branch they work in, rows with no branch, and ids that do not
+ * exist in the org (the caller's own not-found handling runs for those). An unrestricted member never costs a query.
+ */
+export async function idsInsideBranches(
+  admin: AdminClient,
+  member: BranchMember,
+  table: BranchTable,
+  ids: readonly string[],
+): Promise<string[]> {
+  const access = readBranchAccess(member);
+  if (access.scope === "all" || ids.length === 0) return [...ids];
+  const { data } = await admin
+    .from(table as "appointments")
+    .select("id, location_id")
+    .eq("org_id", member.orgId)
+    .in("id", [...ids]);
+  const hidden = new Set(
+    (data ?? []).filter((r) => !canSeeLocation(access, r.location_id)).map((r) => r.id),
+  );
+  return ids.filter((id) => !hidden.has(id));
 }

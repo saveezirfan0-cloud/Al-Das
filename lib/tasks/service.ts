@@ -28,6 +28,11 @@ export type TaskInput = {
   contactId?: string | null;
   enquiryId?: string | null;
   appointmentId?: string | null;
+  /**
+   * Phase B: the task's branch. Null/undefined on create lets the database take the appointment's, else the enquiry's
+   * branch (tasks_branch_default); the caller checks the member may use it.
+   */
+  locationId?: string | null;
 };
 
 function dbError(error: { code?: string; message: string }, fallback: string): TaskError {
@@ -77,6 +82,7 @@ export async function createTask(ctx: TaskCtx, input: TaskInput): Promise<{ id: 
       contact_id: input.contactId ?? null,
       enquiry_id: input.enquiryId ?? null,
       appointment_id: input.appointmentId ?? null,
+      location_id: input.locationId ?? null,
       created_by: ctx.userId,
     })
     .select("id, due_at, done, assignee_id, contact_id, enquiry_id")
@@ -119,6 +125,7 @@ export async function updateTask(ctx: TaskCtx, id: string, patch: TaskPatch): Pr
   if (patch.assigneeId !== undefined) update.assignee_id = patch.assigneeId;
   if (patch.contactId !== undefined) update.contact_id = patch.contactId;
   if (patch.enquiryId !== undefined) update.enquiry_id = patch.enquiryId;
+  if (patch.locationId !== undefined) update.location_id = patch.locationId;
   if (Object.keys(update).length === 0) return;
   const { data, error } = await ctx.admin
     .from("tasks")

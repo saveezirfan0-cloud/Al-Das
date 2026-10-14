@@ -28,6 +28,18 @@ export type RouteOutcome = {
 
 const uuid = z.string().uuid();
 
+/**
+ * Phase B: the team a new conversation is routed to. The number's own team (channels.default_team_id, a branch's desk)
+ * comes first, then the workspace default (Settings, Inbox); null = no routing. public.route_conversation() applies the
+ * same order in SQL (it re-reads the channel), so a stale value here can only pick the team the database would.
+ */
+export function routingTeamId(
+  channelTeamId: string | null | undefined,
+  orgDefaultTeamId: string | null | undefined,
+): string | null {
+  return channelTeamId || orgDefaultTeamId || null;
+}
+
 /** Office hours as stored on teams.office_hours: null (always open) or a valid schedule; anything else is null. */
 export function parseOfficeHours(raw: unknown): OfficeHours | null {
   if (raw === null || raw === undefined) return null;

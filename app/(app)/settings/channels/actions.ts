@@ -208,6 +208,9 @@ const updateSchema = z.object({
   status: z.enum(["active", "paused"]),
   access_token: z.string().trim().max(2000).optional().default(""),
   clear_token: z.boolean().optional().default(false),
+  /** Phase B: the number's branch and the team its new conversations go to (undefined = leave as it is). */
+  location_id: z.string().uuid().nullish(),
+  default_team_id: z.string().uuid().nullish(),
 });
 export type UpdateChannelInput = z.input<typeof updateSchema>;
 
@@ -222,6 +225,27 @@ export async function updateChannel(
   const { admin, channel } = await ownChannel(member.orgId, channelId);
   if (!channel) return { ok: false, error: "Channel not found." };
   const d = parsed.data;
+  // The branch and team must be this org's (the database checks it too: app.check_parent_org).
+  const [{ data: loc }, { data: team }] = await Promise.all([
+    d.location_id
+      ? admin
+          .from("locations")
+          .select("id")
+          .eq("id", d.location_id)
+          .eq("org_id", member.orgId)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    d.default_team_id
+      ? admin
+          .from("teams")
+          .select("id")
+          .eq("id", d.default_team_id)
+          .eq("org_id", member.orgId)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+  if (d.location_id && !loc) return { ok: false, error: "That branch does not exist." };
+  if (d.default_team_id && !team) return { ok: false, error: "That team does not exist." };
   const { error } = await admin
     .from("channels")
     .update({
@@ -229,6 +253,8 @@ export async function updateChannel(
       catalog_id: d.catalog_id || null,
       send_rate_per_sec: d.send_rate_per_sec,
       status: d.status,
+      ...(d.location_id !== undefined ? { location_id: d.location_id } : {}),
+      ...(d.default_team_id !== undefined ? { default_team_id: d.default_team_id } : {}),
     })
     .eq("id", channel.id);
   if (error) return { ok: false, error: "Could not update the channel." };
@@ -250,6 +276,8 @@ export async function updateChannel(
       send_rate_per_sec: d.send_rate_per_sec,
       catalog: !!d.catalog_id,
       token_changed: !!d.access_token || d.clear_token,
+      location_id: d.location_id ?? null,
+      default_team_id: d.default_team_id ?? null,
     },
   });
   revalidatePath("/settings/channels");

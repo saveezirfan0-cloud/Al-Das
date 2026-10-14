@@ -7,6 +7,7 @@ import { recordAudit } from "@/lib/audit";
 import { requirePerm } from "@/lib/auth/session";
 import { appointmentSettingsSchema, writeAppointmentSettings } from "@/lib/appointments/settings";
 import { syncAppointmentReminders } from "@/lib/appointments/service";
+import { branchCodeProblem, normalizeBranchCode } from "@/lib/branches/codes";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/types";
 
@@ -58,28 +59,70 @@ const locationSchema = z.object({
     .transform((u) => (u === "" ? null : u))
     .nullish(),
   active: z.boolean().default(true),
+  /** Phase B: the finance branch code (fin_ref_branches.code) this clinical branch reports under; blank = none. */
+  branch_code: z.string().max(10).nullish(),
 });
 
 export async function saveLocation(input: z.input<typeof locationSchema>): Promise<ActionResult> {
   const member = await requirePerm("settings.manage");
   const parsed = locationSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid" };
-  const { id, ...row } = parsed.data;
-  if ((row.latitude == null) !== (row.longitude == null))
+  const { id, branch_code: rawCode, ...rest } = parsed.data;
+  if ((rest.latitude == null) !== (rest.longitude == null))
     return { ok: false, error: "Enter both latitude and longitude, or neither." };
   const admin = createAdminClient();
+  const branchCode = normalizeBranchCode(rawCode);
+  if (branchCode !== null) {
+    // Service role after settings.manage: the org's finance code list and its own locations' names only.
+    const [{ data: finance }, { data: taken }] = await Promise.all([
+      admin.from("fin_ref_branches").select("code").eq("org_id", member.orgId),
+      admin
+        .from("locations")
+        .select("id, name")
+        .eq("org_id", member.orgId)
+        .eq("branch_code", branchCode === "invalid" ? "" : branchCode),
+    ]);
+    const other = (taken ?? []).find((l) => l.id !== id) ?? null;
+    const problem = branchCodeProblem(
+      branchCode,
+      (finance ?? []).map((f) => f.code),
+      other?.name ?? null,
+    );
+    if (problem) return { ok: false, error: problem };
+  }
+  const row = { ...rest, branch_code: branchCode === "invalid" ? null : branchCode };
+  let before: string | null = null;
+  if (id) {
+    const { data: prev } = await admin
+      .from("locations")
+      .select("branch_code")
+      .eq("id", id)
+      .eq("org_id", member.orgId)
+      .maybeSingle();
+    before = prev?.branch_code ?? null;
+  }
   const q = id
     ? admin.from("locations").update(row).eq("id", id).eq("org_id", member.orgId)
     : admin.from("locations").insert({ ...row, org_id: member.orgId });
   const { error } = await q;
-  if (error) return fail(error, "A location with that name or Unite clinic id already exists.");
+  if (error)
+    return fail(
+      error,
+      error.message?.includes("branch_code")
+        ? "Another location already uses that branch code."
+        : "A location with that name or Unite clinic id already exists.",
+    );
   await recordAudit(admin, {
     orgId: member.orgId,
     userId: member.userId,
     action: id ? "appointments.location_updated" : "appointments.location_created",
     entity: "location",
     entityId: id ?? undefined,
-    diff: { name: row.name } as Json,
+    diff: {
+      name: row.name,
+      branch_code: row.branch_code,
+      ...(id && before !== row.branch_code ? { branch_code_before: before } : {}),
+    } as Json,
   });
   refresh();
   return { ok: true, message: "Location saved." };

@@ -21,6 +21,7 @@ export function OptionSelect({
   disabled,
   id,
   className,
+  ariaLabel,
 }: {
   value: string | null | undefined;
   onChange: (v: string | null) => void;
@@ -31,6 +32,8 @@ export function OptionSelect({
   disabled?: boolean;
   id?: string;
   className?: string;
+  /** Accessible name when there is no visible <Label htmlFor>. */
+  ariaLabel?: string;
 }) {
   return (
     <Select
@@ -38,7 +41,7 @@ export function OptionSelect({
       onValueChange={(v) => onChange(v === NONE ? null : v)}
       disabled={disabled}
     >
-      <SelectTrigger id={id} className={className ?? "w-full"}>
+      <SelectTrigger id={id} aria-label={ariaLabel} className={className ?? "w-full"}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>

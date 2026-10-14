@@ -4,7 +4,15 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { can } from "@/lib/auth/can";
-import { requirePerm } from "@/lib/auth/session";
+import { requirePerm, type CurrentMember } from "@/lib/auth/session";
+import { viewBranchIds, withBranchFilter } from "@/lib/branches/filter";
+import {
+  BRANCH_DENIED,
+  branchAllowed,
+  idsInsideBranches,
+  memberBranchView,
+  rowOutsideBranches,
+} from "@/lib/branches/guard";
 import { searchContactOptions, type ContactOption } from "@/lib/contacts/search-options";
 import { enquiryViewer, visibleEnquiryIds } from "@/lib/enquiries/visibility";
 import { deletedMessage } from "@/lib/soft-delete/rules";
@@ -44,6 +52,7 @@ async function ctxFor(perm: "tasks.view" | "tasks.manage"): Promise<{
   canContacts: boolean;
   canEnquiries: boolean;
   userId: string;
+  member: CurrentMember;
 }> {
   const member = await requirePerm(perm);
   return {
@@ -52,6 +61,7 @@ async function ctxFor(perm: "tasks.view" | "tasks.manage"): Promise<{
     canContacts: can(member, "contacts.view"),
     canEnquiries: can(member, "enquiries.view"),
     userId: member.userId,
+    member,
   };
 }
 
@@ -79,17 +89,24 @@ const listSchema = z.object({
   dir: z.enum(["asc", "desc"]).default("asc"),
   page: z.number().int().min(1).default(1),
   pageSize: z.number().int().min(10).max(200).default(50),
+  /** Phase B: a branch id, "all" (every branch the member may see), or null to follow the branch switcher. */
+  branch: z
+    .union([z.literal("all"), uuid])
+    .nullable()
+    .optional(),
 });
 export type ListTasksInput = z.input<typeof listSchema>;
 
 export async function listTasks(
   raw: ListTasksInput,
 ): Promise<ActionResult<{ rows: TaskRow[]; total: number }>> {
-  const { ctx, timezone, userId, canContacts, canEnquiries } = await ctxFor("tasks.view");
+  const { ctx, timezone, userId, canContacts, canEnquiries, member } = await ctxFor("tasks.view");
   const parsed = listSchema.safeParse(raw);
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid query");
   const q = parsed.data;
   const range = taskStateRange(q.state, new Date(), timezone);
+  // Phase B: service role, so the branch rule of RLS (tasks_select) is applied here; the switcher narrows further.
+  const branchIds = viewBranchIds(q.branch ?? null, await memberBranchView(ctx.admin, member));
 
   let query = ctx.admin
     .from("tasks")
@@ -99,6 +116,7 @@ export async function listTasks(
     )
     .eq("org_id", ctx.orgId)
     .is("deleted_at", null);
+  query = withBranchFilter(query, branchIds);
   if (q.assignee === "me") query = query.eq("assignee_id", userId);
   else if (q.assignee !== "all") query = query.eq("assignee_id", q.assignee);
   if (range.done !== undefined) query = query.eq("done", range.done);
@@ -126,7 +144,7 @@ export async function listTasks(
 
 /** One task, for a deep link (/tasks?task=<id>) from a notification. Same visibility rules as the list. */
 export async function getTaskAction(id: string): Promise<ActionResult<TaskRow>> {
-  const { ctx, canContacts, canEnquiries } = await ctxFor("tasks.view");
+  const { ctx, canContacts, canEnquiries, member } = await ctxFor("tasks.view");
   if (!uuid.safeParse(id).success) return fail("Invalid task.");
   const { data } = await ctx.admin
     .from("tasks")
@@ -135,8 +153,10 @@ export async function getTaskAction(id: string): Promise<ActionResult<TaskRow>> 
     )
     .eq("org_id", ctx.orgId)
     .eq("id", id)
+    .is("deleted_at", null)
     .maybeSingle();
   if (!data) return fail("This task no longer exists.");
+  if (!branchAllowed(member, data.location_id)) return fail(BRANCH_DENIED);
   const t = data as unknown as TaskRow;
   return {
     ok: true,
@@ -165,17 +185,21 @@ const taskSchema = z.object({
   assignee_id: z.preprocess(blank, uuid.nullable().optional()),
   contact_id: z.preprocess(blank, uuid.nullable().optional()),
   enquiry_id: z.preprocess(blank, uuid.nullable().optional()),
+  /** Phase B: the task's branch (null = no branch). Undefined leaves it as it is on update. */
+  location_id: z.preprocess(blank, uuid.nullable().optional()),
 });
 
 export async function createTaskAction(input: unknown): Promise<ActionResult<{ id: string }>> {
-  const { ctx, canContacts, canEnquiries } = await ctxFor("tasks.manage");
+  const { ctx, canContacts, canEnquiries, member } = await ctxFor("tasks.manage");
   const parsed = taskSchema.safeParse(input);
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid task");
   const d = parsed.data;
   if ((d.contact_id && !canContacts) || (d.enquiry_id && !canEnquiries))
     return fail("You cannot link records you do not have access to.");
+  if (!branchAllowed(member, d.location_id)) return fail(BRANCH_DENIED);
   try {
     const created = await createTask(ctx, {
+      locationId: d.location_id ?? null,
       type: d.type,
       subject: d.subject,
       notes: d.notes ?? null,
@@ -192,15 +216,19 @@ export async function createTaskAction(input: unknown): Promise<ActionResult<{ i
 }
 
 export async function updateTaskAction(id: string, input: unknown): Promise<ActionResult> {
-  const { ctx, canContacts, canEnquiries } = await ctxFor("tasks.manage");
+  const { ctx, canContacts, canEnquiries, member } = await ctxFor("tasks.manage");
   const parsed = taskSchema.safeParse(input);
   if (!uuid.safeParse(id).success || !parsed.success)
     return fail(
       parsed.success ? "Invalid id" : (parsed.error.issues[0]?.message ?? "Invalid task"),
     );
   const d = parsed.data;
+  // Phase B: a task in another branch is refused, and it cannot be moved into one.
+  if (await rowOutsideBranches(ctx.admin, member, "tasks", id)) return fail(BRANCH_DENIED);
+  if (!branchAllowed(member, d.location_id)) return fail(BRANCH_DENIED);
   try {
     await updateTask(ctx, id, {
+      locationId: d.location_id,
       type: d.type,
       subject: d.subject,
       notes: d.notes ?? null,
@@ -219,11 +247,13 @@ export async function updateTaskAction(id: string, input: unknown): Promise<Acti
 }
 
 export async function setTasksDoneAction(ids: string[], done: boolean): Promise<ActionResult> {
-  const { ctx } = await ctxFor("tasks.manage");
+  const { ctx, member } = await ctxFor("tasks.manage");
   const parsed = uuids.safeParse(ids);
   if (!parsed.success) return fail("Select at least one task.");
   try {
-    const n = await setTasksDone(ctx, parsed.data, done);
+    // Phase B: tasks of a branch the member does not work in are left alone.
+    const allowed = await idsInsideBranches(ctx.admin, member, "tasks", parsed.data);
+    const n = await setTasksDone(ctx, allowed, done);
     refresh();
     return {
       ok: true,
@@ -241,12 +271,14 @@ export async function assignTasksAction(
   ids: string[],
   assigneeId: string | null,
 ): Promise<ActionResult> {
-  const { ctx } = await ctxFor("tasks.manage");
+  const { ctx, member } = await ctxFor("tasks.manage");
   const parsed = uuids.safeParse(ids);
   if (!parsed.success || (assigneeId !== null && !uuid.safeParse(assigneeId).success))
     return fail("Invalid request");
   try {
-    for (const id of parsed.data) await updateTask(ctx, id, { assigneeId });
+    const allowed = await idsInsideBranches(ctx.admin, member, "tasks", parsed.data);
+    if (allowed.length < parsed.data.length) return fail(BRANCH_DENIED);
+    for (const id of allowed) await updateTask(ctx, id, { assigneeId });
     refresh();
     return { ok: true, message: "Reassigned." };
   } catch (e) {
@@ -255,11 +287,13 @@ export async function assignTasksAction(
 }
 
 export async function deleteTasksAction(ids: string[]): Promise<ActionResult> {
-  const { ctx } = await ctxFor("tasks.manage");
+  const { ctx, member } = await ctxFor("tasks.manage");
   const parsed = uuids.safeParse(ids);
   if (!parsed.success) return fail("Select at least one task.");
   try {
-    const n = await deleteTasks(ctx, parsed.data);
+    const allowed = await idsInsideBranches(ctx.admin, member, "tasks", parsed.data);
+    if (allowed.length < parsed.data.length) return fail(BRANCH_DENIED);
+    const n = await deleteTasks(ctx, allowed);
     refresh();
     revalidatePath("/settings/recently-deleted");
     const days = await loadRestoreWindowDays(ctx.admin, ctx.orgId);

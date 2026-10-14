@@ -17,6 +17,7 @@ import {
 import {
   defaultStartMonth,
   loadAccounts,
+  loadBranchCodeOptions,
   loadEntities,
   loadLedger,
 } from "@/lib/accounting/accounting-server";
@@ -24,12 +25,13 @@ import { flattenTree } from "@/lib/accounting/accounts";
 import { fiscalYearOf } from "@/lib/accounting/numbering";
 import { rangeProblem } from "@/lib/accounting/reports";
 import { requirePerm } from "@/lib/auth/session";
+import { pickBranchCode } from "@/lib/branches/codes";
 import { todayIn } from "@/lib/finance/action-support";
 import { money } from "@/lib/finance/format";
 import { recordAccess } from "@/lib/security/access-log";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-import { Amount, Balance, dateParam, RangeForm } from "../ui";
+import { Amount, Balance, BRANCH_VIEW_NOTE, BranchCodeSelect, dateParam, RangeForm } from "../ui";
 
 export const metadata = { title: "General ledger" };
 export const dynamic = "force-dynamic";
@@ -37,17 +39,19 @@ export const dynamic = "force-dynamic";
 const PAGE = 200;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-type Search = { account?: string; from?: string; to?: string; page?: string };
+type Search = { account?: string; from?: string; to?: string; page?: string; branch?: string };
 
 export default async function LedgerPage({ searchParams }: { searchParams: Promise<Search> }) {
   const member = await requirePerm("accounting.ledger.view");
   const sp = await searchParams;
   const today = todayIn(member.org.timezone);
   const admin = createAdminClient(); // service role AFTER the permission check
-  const [entities, accounts] = await Promise.all([
+  const [entities, accounts, branchOptions] = await Promise.all([
     loadEntities(admin, member.orgId),
     loadAccounts(admin, member.orgId),
+    loadBranchCodeOptions(admin, member.orgId),
   ]);
+  const branch = pickBranchCode(sp.branch, branchOptions);
   const fy = fiscalYearOf(defaultStartMonth(entities), today);
   let from = dateParam(sp.from, fy.start);
   let to = dateParam(sp.to, today);
@@ -59,13 +63,13 @@ export default async function LedgerPage({ searchParams }: { searchParams: Promi
   const page = Math.max(0, Math.min(10_000, Number.parseInt(sp.page ?? "0", 10) || 0));
   const accountId = UUID.test(sp.account ?? "") ? (sp.account as string) : null;
   const ledger = accountId
-    ? await loadLedger(admin, member.orgId, accountId, from, to, PAGE, page * PAGE)
+    ? await loadLedger(admin, member.orgId, accountId, from, to, PAGE, page * PAGE, branch)
     : null;
   if (ledger) await recordAccess(admin, member, { entity: "accounting_journal", action: "list" });
   const tree = flattenTree(accounts);
   const pages = ledger ? Math.ceil(ledger.total_lines / PAGE) : 0;
   const link = (p: number) =>
-    `/accounting/ledger?account=${accountId}&from=${from}&to=${to}&page=${p}`;
+    `/accounting/ledger?account=${accountId}&from=${from}&to=${to}&page=${p}${branch ? `&branch=${branch}` : ""}`;
 
   return (
     <div className="flex flex-col gap-4">
@@ -87,7 +91,13 @@ export default async function LedgerPage({ searchParams }: { searchParams: Promi
             ))}
           </select>
         </label>
+        <BranchCodeSelect options={branchOptions} value={branch} />
       </RangeForm>
+      {branch && (
+        <Alert>
+          <AlertDescription>{BRANCH_VIEW_NOTE}</AlertDescription>
+        </Alert>
+      )}
       {problem && (
         <Alert>
           <AlertDescription>{problem} Showing the fiscal year to date instead.</AlertDescription>

@@ -6,6 +6,7 @@ import { z } from "zod";
 import { recordAudit } from "@/lib/audit";
 import { can } from "@/lib/auth/can";
 import { requireMember, requirePerm } from "@/lib/auth/session";
+import { BRANCH_DENIED, branchAllowed } from "@/lib/branches/guard";
 import { coerceCustomObject } from "@/lib/contacts/custom-values";
 import { contactInputSchema } from "@/lib/contacts/fields";
 import type { PreparedContact } from "@/lib/contacts/import";
@@ -320,6 +321,7 @@ const CONTACT_DIFF_KEYS = [
   "external_id",
   "promotions_opt_in",
   "stop_marketing",
+  "location_id",
   "custom",
 ] as const;
 
@@ -358,6 +360,7 @@ async function buildContactWrite(
   if (has("external_id")) write.external_id = d.external_id || null;
   if (has("promotions_opt_in")) write.promotions_opt_in = d.promotions_opt_in ?? false;
   if (has("stop_marketing")) write.stop_marketing = d.stop_marketing ?? false;
+  if (has("location_id")) write.location_id = d.location_id ?? null;
   if (has("custom")) {
     const admin = createAdminClient();
     const { customFields } = await loadContactContext(admin, orgId);
@@ -393,6 +396,8 @@ export async function createContact(input: unknown): Promise<ActionResult<{ id: 
   const member = await requirePerm("contacts.manage");
   const built = await buildContactWrite(member.orgId, input, null, false);
   if (!built.ok) return built;
+  // Phase B: a home branch must be one the member works in.
+  if (!branchAllowed(member, built.write.location_id)) return fail(BRANCH_DENIED);
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("contacts")
@@ -425,6 +430,10 @@ export async function updateContact(id: string, input: unknown): Promise<ActionR
   if (!before || before.deleted_at) return fail("Contact not found");
   const built = await buildContactWrite(member.orgId, input, before.custom, true);
   if (!built.ok) return built;
+  // Phase B: an unchanged home branch is kept as it is; a new one must be a branch the member works in.
+  if (built.write.location_id !== undefined && built.write.location_id === before.location_id)
+    delete built.write.location_id;
+  else if (!branchAllowed(member, built.write.location_id)) return fail(BRANCH_DENIED);
   if (Object.keys(built.write).length === 0) return { ok: true };
   const { error } = await admin
     .from("contacts")

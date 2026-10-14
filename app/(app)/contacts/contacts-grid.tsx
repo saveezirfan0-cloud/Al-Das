@@ -21,7 +21,10 @@ export function buildContactColumns(opts: {
   customFields: CustomFieldDef[];
   timezone: string;
   users: Array<{ id: string; label: string }>;
+  branches?: Array<{ id: string; name: string }>;
 }): DataGridColumn<ContactListRow>[] {
+  const branchName = (id: string | null) =>
+    id ? (opts.branches?.find((b) => b.id === id)?.name ?? "Other branch") : "";
   const userName = (id: string | null) =>
     id ? (opts.users.find((u) => u.id === id)?.label ?? "Unknown") : "";
   const col = (
@@ -105,6 +108,10 @@ export function buildContactColumns(opts: {
     }),
     col("owner", "Owner", (r) => userName(r.owner_id), { size: 150, defaultHidden: true }),
     col("assignee", "Assignee", (r) => userName(r.assignee_id), { size: 150, defaultHidden: true }),
+    col("home_branch", "Home branch", (r) => branchName(r.location_id), {
+      size: 140,
+      defaultHidden: true,
+    }),
     col("source", "Source", (r) => SOURCE_LABELS[r.source] ?? r.source, {
       sortKey: "source",
       size: 130,
