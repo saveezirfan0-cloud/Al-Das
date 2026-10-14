@@ -306,9 +306,8 @@ describe("landing", () => {
       landingPathFor({ ...base, roleName: " doctor ", permissions: ["appointments.view"] }),
     ).toBe("/my-day");
     expect(landingPathFor({ ...base, roleName: "Doctor", permissions: [] })).toBe("/dashboard");
-    expect(landingPathFor({ ...base, roleName: "HR", permissions: ["hr.view"] })).toBe(
-      "/dashboard",
-    );
+    // Phase D: the HR role opens on Staff (lib/shell/landing.ts)
+    expect(landingPathFor({ ...base, roleName: "HR", permissions: ["hr.view"] })).toBe("/staff");
     expect(
       landingPathFor({ ...base, roleName: "Receptionist", permissions: ["frontdesk.use"] }),
     ).toBe("/front-desk");

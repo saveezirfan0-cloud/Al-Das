@@ -68,12 +68,14 @@ describe("areas (docs/34 §3)", () => {
       "Organisation",
       "Organisation",
       "Organisation",
+      "Organisation",
     ]);
     expect(crm.map((i) => i.label)).toEqual([
       "Patients",
       "Enquiries",
       "Doctors",
       "Staff",
+      "Rota",
       "Teams",
       "Branches",
     ]);

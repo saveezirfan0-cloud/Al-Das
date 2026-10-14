@@ -166,15 +166,17 @@ describe("organisation navigation (CRM)", () => {
     return item.permissions ? item.permissions.some((p) => perms.includes(p)) : true;
   };
 
-  it("lists patients, enquiries, doctors, appointments, staff and the rota together, Appointments after Doctors", () => {
+  it("lists patients, enquiries, doctors, staff, the rota, teams and branches together; Appointments sits in Today (docs/34 §3)", () => {
     expect(crm).toEqual([
       "/contacts",
       "/enquiries",
       "/doctors",
-      "/appointments",
       "/staff",
       "/staff/rota",
+      "/settings/teams",
+      "/settings/appointments?tab=locations",
     ]);
+    expect(NAV_ITEMS.find((i) => i.href === "/appointments")?.group).toBe("Today");
   });
 
   it("gates the Rota like its page: hr.view or appointments.view", () => {

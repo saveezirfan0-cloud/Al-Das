@@ -209,6 +209,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: "Rota",
     icon: "rota",
     group: "CRM",
+    subgroup: "Organisation",
     keywords: ["shifts", "who is on", "schedule", "week", "duty roster", "staff"],
     permissions: ["hr.view", "appointments.view"],
   },

@@ -9,18 +9,9 @@ import { confirmPartsFromText } from "@/lib/shell/confirm-text";
  * Phase D: confirmations use the in-app dialog (`useConfirm()` / `ConfirmDialog` in components/shell/confirm-dialog.tsx),
  * never the browser's `confirm()`, which cannot be styled, translated or tested and blocks the page.
  *
- * ALLOWED holds the directories other agents are reworking in parallel (Phase E: front desk and appointments; Phase F:
- * inbox, patients, tasks and enquiries). They still have browser confirms; those agents remove them and then delete
- * their entry here. Do not add anything else to this list.
+ * ALLOWED is empty: Phases E and F removed the last browser confirms. Do not add to it.
  */
-const ALLOWED = [
-  "app/(app)/front-desk/",
-  "app/(app)/appointments/",
-  "app/(app)/inbox/",
-  "app/(app)/contacts/",
-  "app/(app)/tasks/",
-  "app/(app)/enquiries/",
-];
+const ALLOWED: readonly string[] = [];
 
 const ROOTS = ["app", "components"];
 
