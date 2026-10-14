@@ -96,22 +96,23 @@ export async function saveFinanceAccessWindow(input: FinanceAccessInput): Promis
   const parsed = financeAccessSchema.safeParse(input);
   if (!parsed.success)
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
-  const next = parsed.data;
   const admin = createAdminClient(member.userId);
 
-  if (next.role_ids.length > 0) {
+  // Roles deleted since the page loaded are dropped quietly; only an enabled "only these roles" left empty is refused.
+  let roleIds: string[] = [];
+  if (parsed.data.role_ids.length > 0) {
     const { data: roles, error: rolesError } = await admin
       .from("roles")
       .select("id")
       .eq("org_id", member.orgId)
-      .in("id", next.role_ids);
+      .in("id", parsed.data.role_ids);
     if (rolesError) return { ok: false, error: "Could not check the roles." };
-    if ((roles ?? []).length !== next.role_ids.length)
-      return {
-        ok: false,
-        error: "One of the chosen roles no longer exists. Reload and try again.",
-      };
+    const existing = new Set((roles ?? []).map((r) => r.id));
+    roleIds = parsed.data.role_ids.filter((id) => existing.has(id));
   }
+  const next = { ...parsed.data, role_ids: roleIds };
+  if (next.enabled && next.scope === "selected_roles" && next.role_ids.length === 0)
+    return { ok: false, error: "Choose at least one role." };
 
   const { data: org, error: orgError } = await admin
     .from("orgs")

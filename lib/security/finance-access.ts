@@ -9,7 +9,9 @@ import { ipAllowed, parseIpRange, type ParsedIp } from "@/lib/security/client-ip
  * addresses, members reach finance and accounting. Stored in orgs.settings->'finance_access'; OFF by default.
  *
  * The decision is pure: the server (lib/auth/session.ts) feeds it the clock, the org timezone, the stored setting, the
- * request's client address and the member's role, once per request. A denied member keeps every other permission;
+ * request's client address and the member's role, once per request. The database repeats the days-and-hours part in
+ * app.finance_window_reason (RLS through app.has_perm / app.has_perm_wild), parity-tested with
+ * tests/unit/finance/fixtures/finance-access-window.synthetic.json; the address list is enforced here only. A denied member keeps every other permission;
  * only permissions in RESTRICTED_AREAS stop matching (lib/auth/can.ts). Admin ("*") is never restricted, so a wrong
  * setting can always be put right.
  */
@@ -68,9 +70,12 @@ export const financeAccessSchema = z
     role_ids: z.array(z.string().uuid()).max(200).default([]),
   })
   .superRefine((v, ctx) => {
+    // Only a window that is switched on has to be complete; a switched-off draft can be saved half-filled.
+    // supabase/migrations/20261121000100_finance_access_window.sql (app.finance_window_reason) repeats these rules.
+    if (!v.enabled) return;
     if (v.limit_hours && v.days.length === 0)
       ctx.addIssue({ code: "custom", message: "Choose at least one day." });
-    if (v.enabled && !v.limit_hours && v.ip_allowlist.length === 0)
+    if (!v.limit_hours && v.ip_allowlist.length === 0)
       ctx.addIssue({
         code: "custom",
         message: "Limit the days and hours, add an address, or leave the window off.",
@@ -84,9 +89,12 @@ export type FinanceAccessInput = z.input<typeof financeAccessSchema>;
 
 export const DEFAULT_FINANCE_ACCESS: FinanceAccessSettings = financeAccessSchema.parse({});
 
-/** The stored setting, or `invalid` when something is stored but does not validate (the decision then fails closed). */
+/**
+ * The stored setting, or `ok: false` when something is stored but does not validate: the decision then fails closed,
+ * unless the stored value plainly says `enabled: false` (`disabled`), which is honoured before full validation.
+ */
 export type StoredFinanceAccess =
-  { ok: true; settings: FinanceAccessSettings } | { ok: false; settings: null };
+  { ok: true; settings: FinanceAccessSettings } | { ok: false; settings: null; disabled: boolean };
 
 export function readFinanceAccess(orgSettings: unknown): StoredFinanceAccess {
   const raw =
@@ -95,7 +103,12 @@ export function readFinanceAccess(orgSettings: unknown): StoredFinanceAccess {
       : undefined;
   if (raw === undefined || raw === null) return { ok: true, settings: DEFAULT_FINANCE_ACCESS };
   const parsed = financeAccessSchema.safeParse(raw);
-  return parsed.success ? { ok: true, settings: parsed.data } : { ok: false, settings: null };
+  if (parsed.success) return { ok: true, settings: parsed.data };
+  const disabled =
+    typeof raw === "object" &&
+    !Array.isArray(raw) &&
+    (raw as { enabled?: unknown }).enabled === false;
+  return { ok: false, settings: null, disabled };
 }
 
 export function writeFinanceAccess(
@@ -190,7 +203,10 @@ export function financeAccessDecision(input: FinanceAccessDecisionInput): Financ
   const perms = Array.isArray(member.permissions) ? member.permissions : [];
   if (perms.includes("*")) return { allowed: true, reason: "admin" };
   if (!holdsRestrictedArea(perms)) return { allowed: true, reason: "not_in_scope" };
-  if (!stored.ok) return { allowed: false, reason: "invalid_settings" };
+  if (!stored.ok)
+    return stored.disabled
+      ? { allowed: true, reason: "off" }
+      : { allowed: false, reason: "invalid_settings" };
   const s = stored.settings;
   if (!s.enabled) return { allowed: true, reason: "off" };
   if (s.scope === "selected_roles" && !s.role_ids.includes(member.roleId))
@@ -243,6 +259,13 @@ export function denyReasonText(reason: FinanceAccessDenyReason): string {
   }
 }
 
+/** Time, network or settings: one alert per class per member per day, so a later address refusal is not hidden. */
+export function denyReasonClass(reason: FinanceAccessDenyReason): "time" | "network" | "settings" {
+  if (reason === "ip_unknown" || reason === "ip_not_allowed") return "network";
+  if (reason === "invalid_settings") return "settings";
+  return "time";
+}
+
 const REASON_SHORT: Record<FinanceAccessDenyReason, string> = {
   invalid_settings: "setting unreadable",
   ip_unknown: "address unknown",
@@ -252,7 +275,8 @@ const REASON_SHORT: Record<FinanceAccessDenyReason, string> = {
 };
 
 /**
- * The security alert for a refusal: one per member per local day (security_alerts is unique on org + dedupe key), so a
+ * The security alert for a refusal: one per member, reason class and local day (security_alerts is unique on org +
+ * dedupe key), so a
  * person retrying all evening raises one alert. The detail carries the reason, the /24 (or /48) network and a keyed
  * hash of the address (the same hash as the login history), never the address itself.
  */
@@ -268,7 +292,7 @@ export function financeAccessAlert(input: {
   return {
     kind: "finance_access_denied",
     userId: input.userId,
-    dedupeKey: `finance_access:${input.userId}:${day}`,
+    dedupeKey: `finance_access:${denyReasonClass(input.reason)}:${input.userId}:${day}`,
     summary: `Finance access refused by the access window (${REASON_SHORT[input.reason]})`,
     detail: {
       reason: input.reason,

@@ -73,8 +73,8 @@ describe("financeAccessAlert", () => {
         ipHash: null,
       }).dedupeKey;
     // 19:59Z and 20:00Z on 12 Oct are 23:59 Monday and 00:00 Tuesday in Dubai
-    expect(at("2026-10-12T19:59:00Z")).toBe("finance_access:u:2026-10-12");
-    expect(at("2026-10-12T20:00:00Z")).toBe("finance_access:u:2026-10-13");
+    expect(at("2026-10-12T19:59:00Z")).toBe("finance_access:time:u:2026-10-12");
+    expect(at("2026-10-12T20:00:00Z")).toBe("finance_access:time:u:2026-10-13");
     expect(at("2026-10-12T08:00:00Z")).toBe(at("2026-10-12T19:00:00Z"));
   });
 });

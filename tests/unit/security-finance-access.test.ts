@@ -4,6 +4,7 @@ import { can } from "@/lib/auth/can";
 import { parseIp } from "@/lib/security/client-ip";
 import {
   DEFAULT_FINANCE_ACCESS,
+  denyReasonClass,
   describeDays,
   describeWindow,
   financeAccessDecision,
@@ -17,6 +18,8 @@ import {
   type FinanceAccessInput,
   type FinanceAccessDecisionInput,
 } from "@/lib/security/finance-access";
+
+import fixtures from "./finance/fixtures/finance-access-window.synthetic.json";
 
 // 2026-10-12 is a Monday. Dubai is UTC+4 all year; London changes clocks on 2026-03-29 and 2026-10-25.
 const ROLE = "11111111-1111-4111-8111-111111111111";
@@ -80,8 +83,8 @@ describe("financeAccessSchema", () => {
       { end: "24:00" },
       { days: [0] },
       { days: [8] },
-      { days: [] },
-      { scope: "selected_roles", role_ids: [] },
+      { enabled: true, days: [] },
+      { enabled: true, scope: "selected_roles", role_ids: [] },
       { role_ids: ["not-a-uuid"] },
       { enabled: true, limit_hours: false, ip_allowlist: [] },
     ];
@@ -111,6 +114,7 @@ describe("readFinanceAccess / writeFinanceAccess", () => {
     expect(readFinanceAccess({ finance_access: { enabled: "yes" } })).toEqual({
       ok: false,
       settings: null,
+      disabled: false,
     });
     expect(readFinanceAccess({ finance_access: { ip_allowlist: ["nope"] } }).ok).toBe(false);
   });
@@ -153,7 +157,7 @@ describe("financeAccessDecision", () => {
       financeAccessDecision({
         now: new Date(),
         timezone: "Asia/Dubai",
-        stored: { ok: false, settings: null },
+        stored: { ok: false, settings: null, disabled: false },
         ip: null,
         member: admin,
       }),
@@ -181,7 +185,7 @@ describe("financeAccessDecision", () => {
       financeAccessDecision({
         now: new Date("2026-10-12T08:00:00Z"),
         timezone: "Asia/Dubai",
-        stored: { ok: false, settings: null },
+        stored: { ok: false, settings: null, disabled: false },
         ip: parseIp("203.0.113.7"),
         member: FINANCE,
       }),
@@ -414,5 +418,51 @@ describe("insideHours / localClock / describe", () => {
     expect(describeWindow({ ...DEFAULT_FINANCE_ACCESS, limit_hours: false }, "Asia/Dubai")).toBe(
       "any time",
     );
+  });
+});
+
+describe("shared parity fixtures (same cases as app.finance_window_reason in tests/db)", () => {
+  type Case = {
+    name: string;
+    cfg: unknown;
+    now?: string;
+    timezone?: string;
+    permissions?: string[];
+    expect: string;
+  };
+  const fx = fixtures as { roleId: string; cases: Case[] };
+
+  it.each(fx.cases.map((c) => [c.name, c] as const))("%s", (_name, c) => {
+    const d = financeAccessDecision({
+      now: new Date(c.now ?? "2026-10-12T08:00:00Z"),
+      timezone: c.timezone ?? "Asia/Dubai",
+      stored: readFinanceAccess(c.cfg === null ? {} : { finance_access: c.cfg }),
+      ip: parseIp("203.0.113.7"),
+      member: { roleId: fx.roleId, permissions: c.permissions ?? ["finance.view", "inbox.send"] },
+    });
+    expect(d.reason).toBe(c.expect);
+  });
+});
+
+describe("switched-off and half-filled settings", () => {
+  it("honours a plain enabled:false before full validation", () => {
+    const stored = readFinanceAccess({ finance_access: { enabled: false, days: "x" } });
+    expect(stored).toEqual({ ok: false, settings: null, disabled: true });
+    expect(decide({ stored })).toEqual({ allowed: true, reason: "off" });
+  });
+
+  it("saves a switched-off window with 'only these roles' and no roles", () => {
+    expect(
+      financeAccessSchema.safeParse({ enabled: false, scope: "selected_roles", role_ids: [] })
+        .success,
+    ).toBe(true);
+  });
+
+  it("puts the reason class in the alert's dedupe key", () => {
+    expect(denyReasonClass("outside_hours")).toBe("time");
+    expect(denyReasonClass("day_not_allowed")).toBe("time");
+    expect(denyReasonClass("ip_not_allowed")).toBe("network");
+    expect(denyReasonClass("ip_unknown")).toBe("network");
+    expect(denyReasonClass("invalid_settings")).toBe("settings");
   });
 });

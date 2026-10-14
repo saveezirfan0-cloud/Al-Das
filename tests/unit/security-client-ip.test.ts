@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   formatIp,
+  forwardingHeadersTrusted,
   ipAllowed,
   ipInRange,
   ipNetworkLabel,
@@ -37,17 +38,36 @@ describe("rawClientIp / requestClientIp", () => {
 
   it("returns null when no header is present", () => {
     expect(rawClientIp(h({}))).toBeNull();
-    expect(requestClientIp(h({}))).toBeNull();
+    expect(requestClientIp(h({}), true)).toBeNull();
     expect(rawClientIp(h({ "x-forwarded-for": " , 10.0.0.1" }))).toBeNull();
   });
 
   it("parses the header value and refuses garbage", () => {
-    expect(requestClientIp(h({ "x-real-ip": "203.0.113.7" }))).toEqual({
+    expect(requestClientIp(h({ "x-real-ip": "203.0.113.7" }), true)).toEqual({
       version: 4,
       bytes: [203, 0, 113, 7],
     });
-    expect(requestClientIp(h({ "x-real-ip": "unknown" }))).toBeNull();
-    expect(requestClientIp(h({ "x-real-ip": "203.0.113.7; drop" }))).toBeNull();
+    expect(requestClientIp(h({ "x-real-ip": "unknown" }), true)).toBeNull();
+    expect(requestClientIp(h({ "x-real-ip": "203.0.113.7; drop" }), true)).toBeNull();
+  });
+
+  it("trusts the forwarding headers for security decisions only on Vercel", () => {
+    const headers = h({ "x-real-ip": "203.0.113.7" });
+    expect(requestClientIp(headers, false)).toBeNull();
+    // rate limiting keeps the raw value wherever it runs
+    expect(rawClientIp(headers)).toBe("203.0.113.7");
+    const before = process.env.VERCEL;
+    try {
+      process.env.VERCEL = "1";
+      expect(forwardingHeadersTrusted()).toBe(true);
+      expect(requestClientIp(headers)?.bytes).toEqual([203, 0, 113, 7]);
+      delete process.env.VERCEL;
+      expect(forwardingHeadersTrusted()).toBe(false);
+      expect(requestClientIp(headers)).toBeNull();
+    } finally {
+      if (before === undefined) delete process.env.VERCEL;
+      else process.env.VERCEL = before;
+    }
   });
 });
 

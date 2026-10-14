@@ -3,8 +3,8 @@
  * Pure (no Node built-ins) so the settings form, the server and the tests share one implementation.
  *
  * Header order (Vercel sets all three at its edge and overwrites anything the client sent):
- * `x-vercel-forwarded-for`, then `x-real-ip`, then the FIRST hop of `x-forwarded-for`. Off Vercel these headers are only
- * as trustworthy as the proxy in front of Pulse, so an IP allow-list assumes the Vercel deployment.
+ * `x-vercel-forwarded-for`, then `x-real-ip`, then the FIRST hop of `x-forwarded-for`. Off Vercel anyone can send these
+ * headers, so `requestClientIp` (used for the finance allow-list) trusts them only when `VERCEL=1`.
  */
 
 /** The raw first-hop value from the platform headers, or null when none is present. Not validated. */
@@ -104,8 +104,21 @@ export function parseClientIp(raw: string | null | undefined): ParsedIp | null {
   return parseIp(s);
 }
 
-/** The client address of this request from the platform headers, parsed; null when missing or not an address. */
-export function requestClientIp(h: Pick<Headers, "get">): ParsedIp | null {
+/** True when this server runs on Vercel, whose edge sets the forwarding headers and overwrites client values. */
+export function forwardingHeadersTrusted(): boolean {
+  return typeof process !== "undefined" && process.env?.VERCEL === "1";
+}
+
+/**
+ * The client address of this request for SECURITY decisions (the finance access allow-list), parsed. Null when the
+ * headers cannot be trusted (not on Vercel: anyone could send them), when missing, or when not an address; a null
+ * address is refused whenever an allow-list is set. Rate limiting keeps using the raw value (`rawClientIp`).
+ */
+export function requestClientIp(
+  h: Pick<Headers, "get">,
+  trusted: boolean = forwardingHeadersTrusted(),
+): ParsedIp | null {
+  if (!trusted) return null;
   return parseClientIp(rawClientIp(h));
 }
 

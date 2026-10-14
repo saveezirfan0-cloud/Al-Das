@@ -8,7 +8,7 @@ import { hashValue } from "@/lib/security/hash";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
- * Records a finance access window refusal as a security alert (one per member per local day; repeats are dropped by
+ * Records a finance access window refusal as a security alert (one per member, reason class and local day; repeats are dropped by
  * the unique dedupe key). Ids, the reason, the /24 network and a keyed hash of the address only. Never throws: a
  * failed alert must not turn a clear refusal page into an error.
  */

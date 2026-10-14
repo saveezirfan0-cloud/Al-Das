@@ -23,6 +23,14 @@ vi.mock("next/headers", () => ({
   cookies: async () => ({ get: () => undefined }),
 }));
 vi.mock("next/navigation", () => ({ redirect: (to: string) => redirect(to) }));
+// after() runs its callback once the response is sent; here it is collected and run on demand
+const afterQueue: Array<() => Promise<void> | void> = [];
+vi.mock("next/server", () => ({
+  after: (fn: () => Promise<void> | void) => void afterQueue.push(fn),
+}));
+async function flushAfter() {
+  while (afterQueue.length) await afterQueue.shift()!();
+}
 vi.mock("@/lib/security/finance-access-server", () => ({ noteFinanceDenial }));
 vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => {
@@ -83,6 +91,8 @@ async function load() {
 
 describe("finance access window in the session", () => {
   beforeEach(() => {
+    process.env.VERCEL = "1"; // the forwarding headers are trusted only on Vercel
+    afterQueue.length = 0;
     noteFinanceDenial.mockClear();
     redirect.mockClear();
     state.headers = { "x-real-ip": "203.0.113.7", "x-pulse-path": "/dashboard" };
@@ -131,10 +141,39 @@ describe("finance access window in the session", () => {
       state.headers["x-pulse-path"] = path;
       const { getCurrentMember, requirePerm } = await load();
       await getCurrentMember();
-      // the alert itself is deduped in the database (one per member per day); here it is at least raised
+      // the alert itself is deduped in the database (per reason class and day); here it is at least raised
       await requirePerm("finance.view").catch(() => {});
+      // written after the response, never while the page renders
+      expect(noteFinanceDenial, path).not.toHaveBeenCalled();
+      await flushAfter();
       expect(noteFinanceDenial, path).toHaveBeenCalled();
     }
+  });
+
+  it("does not record a refusal for a router prefetch", async () => {
+    state.settings = CLOSED;
+    const prefetches: Array<Record<string, string>> = [
+      { "next-router-prefetch": "1" },
+      { purpose: "prefetch" },
+      { "sec-purpose": "prefetch;prerender" },
+    ];
+    for (const extra of prefetches) {
+      noteFinanceDenial.mockClear();
+      state.headers = { "x-real-ip": "203.0.113.7", "x-pulse-path": "/finance/bank", ...extra };
+      const { getCurrentMember } = await load();
+      expect((await getCurrentMember())!.financeAccess.allowed).toBe(false);
+      await flushAfter();
+      expect(noteFinanceDenial, JSON.stringify(extra)).not.toHaveBeenCalled();
+    }
+  });
+
+  it("does not trust the forwarding headers off Vercel: a list then refuses everyone but Admin", async () => {
+    state.settings = OPEN;
+    delete process.env.VERCEL;
+    const { getCurrentMember } = await load();
+    const m = (await getCurrentMember())!;
+    expect(m.clientIp).toBeNull();
+    expect(m.financeAccess).toEqual({ allowed: false, reason: "ip_unknown" });
   });
 
   it("fails closed without an address when a list is set", async () => {
@@ -171,6 +210,7 @@ describe("finance access window in the session", () => {
     await expect(requirePerm("finance.view")).rejects.toThrow(
       `REDIRECT:${FINANCE_UNAVAILABLE_PATH}`,
     );
+    await flushAfter();
     expect(noteFinanceDenial).toHaveBeenCalledTimes(1);
   });
 

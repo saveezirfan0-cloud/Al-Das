@@ -2,6 +2,7 @@ import "server-only";
 
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { cache } from "react";
 import type { User } from "@supabase/supabase-js";
 
@@ -72,15 +73,42 @@ async function requestPath(): Promise<string | null> {
   }
 }
 
+/** True for a router prefetch (a link coming into view), which is not an access attempt. */
+async function isPrefetch(): Promise<boolean> {
+  try {
+    const h = await headers();
+    return (
+      h.has("next-router-prefetch") ||
+      h.get("purpose") === "prefetch" ||
+      h.get("sec-purpose")?.includes("prefetch") === true
+    );
+  } catch {
+    return false;
+  }
+}
+
 /** Member objects whose refusal is already recorded (one object per render; the alert is deduped per day anyway). */
 const refusalsRecorded = new WeakSet<object>();
 
-/** Raises the finance access security alert for this member, at most once per request (the alert itself is per day). */
+/**
+ * Raises the finance access security alert for this member, at most once per member object (the alert itself is per
+ * reason class and day). Skipped for prefetches; the write runs after the response (`after()`), so the refusal page or
+ * error is never held up by it.
+ */
 async function recordFinanceRefusal(member: CurrentMember): Promise<void> {
   if (member.financeAccess?.allowed !== false || refusalsRecorded.has(member)) return;
+  if (await isPrefetch()) return;
   refusalsRecorded.add(member);
-  const { noteFinanceDenial } = await import("@/lib/security/finance-access-server");
-  await noteFinanceDenial(member);
+  const record = async () => {
+    const { noteFinanceDenial } = await import("@/lib/security/finance-access-server");
+    await noteFinanceDenial(member);
+  };
+  try {
+    after(record);
+  } catch {
+    // outside a request scope (scripts, tests): record inline; noteFinanceDenial never throws
+    await record();
+  }
 }
 
 /** True for a server action request (Next sends the action id in this header). */
@@ -256,7 +284,7 @@ export function blockedByFinanceWindow(member: CurrentMember, permission: string
 }
 
 /**
- * Records the refusal (one security alert per member per day) and sends a page navigation to the explanation page.
+ * Records the refusal (one security alert per member, reason class and day) and sends a page navigation to the explanation page.
  * Server actions get a ForbiddenError instead, which they already turn into an error message.
  */
 export async function refuseOutsideFinanceWindow(

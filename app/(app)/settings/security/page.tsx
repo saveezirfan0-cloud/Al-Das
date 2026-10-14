@@ -81,8 +81,13 @@ export default async function SecuritySettingsPage() {
         timezone={member.org.timezone}
       />
       <FinanceWindowForm
-        initial={financeWindow.ok ? financeWindow.settings : DEFAULT_FINANCE_ACCESS}
-        unreadable={!financeWindow.ok}
+        initial={(() => {
+          const s = financeWindow.ok ? financeWindow.settings : DEFAULT_FINANCE_ACCESS;
+          // a role deleted since the window was saved is not offered (and not sent back)
+          const known = new Set((roles ?? []).map((r) => r.id));
+          return { ...s, role_ids: s.role_ids.filter((id) => known.has(id)) };
+        })()}
+        unreadable={!financeWindow.ok && !financeWindow.disabled}
         roles={(roles ?? []).map((r) => {
           const perms = Array.isArray(r.permissions)
             ? (r.permissions as unknown[]).filter((p): p is string => typeof p === "string")

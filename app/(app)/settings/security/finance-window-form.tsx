@@ -83,9 +83,9 @@ export function FinanceWindowForm({
           <CardTitle>Finance access window</CardTitle>
           <CardDescription>
             Limit when, and from which networks, people reach Finance and Accounting. Outside the
-            window those pages, downloads and actions are refused and an alert is raised (one per
-            person per day). Everything else in Pulse keeps working. Admin is never restricted, so a
-            wrong setting can always be put right.
+            window those pages, downloads and actions are refused and an alert is raised (at most
+            one per person a day for each kind of refusal). Everything else in Pulse keeps working.
+            Admin is never restricted, so a wrong setting can always be put right.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-5">
@@ -178,6 +178,10 @@ export function FinanceWindowForm({
               <span>
                 One IPv4 or IPv6 address or range (CIDR) per line, up to {MAX_ALLOWLIST_ENTRIES}.
                 Leave empty to allow any location.
+              </span>
+              <span>
+                The address list applies to Pulse&rsquo;s own pages, actions and downloads only. The
+                days and hours apply everywhere, including direct access to the database.
               </span>
               {problems.length > 0 && (
                 <span className="text-destructive" role="alert">
