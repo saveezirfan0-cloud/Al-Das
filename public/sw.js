@@ -9,7 +9,7 @@
  *
  * Bump VERSION when this file changes: it names the caches, so old ones are cleaned up on activate.
  */
-const VERSION = "pulse-sw-v1";
+const VERSION = "pulse-sw-v2";
 const STATIC_CACHE = `${VERSION}-static`;
 const SHELL_CACHE = `${VERSION}-shell`;
 const OFFLINE_URL = "/offline.html";

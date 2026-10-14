@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-11-13-al-das-colours",
+    date: "2026-11-13",
+    title: "Pulse in Al Das colours",
+    body: "Pulse now uses the clinic's own colours: Al Das teal for buttons and links, the bronze accent, and the teal-navy of the website for the menu and for dark mode. Every colour still meets the contrast standard for easy reading. The app icon on phones and computers is teal too (reinstall or refresh the app if it still shows the old one).",
+  },
+  {
     id: "2026-11-12-inbox-campaigns-ads",
     date: "2026-11-12",
     title: "Inbox extras, campaign A/B tests and ad spend",

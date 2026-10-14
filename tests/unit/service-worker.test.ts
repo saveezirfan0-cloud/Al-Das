@@ -194,7 +194,7 @@ describe("service worker: caching and the offline page", () => {
   it("precaches the offline page and does not take over until the user accepts the update", async () => {
     const w = loadWorker();
     await w.fire("install", {});
-    expect(w.stores.get("pulse-sw-v1-shell")?.has("/offline.html")).toBe(true);
+    expect(w.stores.get("pulse-sw-v2-shell")?.has("/offline.html")).toBe(true);
     expect(w.self.skipWaiting).not.toHaveBeenCalled();
     await w.fire("message", { data: { type: "SKIP_WAITING" } });
     expect(w.self.skipWaiting).toHaveBeenCalledTimes(1);

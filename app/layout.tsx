@@ -23,8 +23,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#1d4f9c" },
-    { media: "(prefers-color-scheme: dark)", color: "#090e12" }, // --background in .dark
+    { media: "(prefers-color-scheme: light)", color: "#277880" },
+    { media: "(prefers-color-scheme: dark)", color: "#112f3b" }, // the rail's teal-navy
   ],
   // Draw under the notch and let the composer follow the on-screen keyboard (see lib/hooks/use-visual-viewport.ts).
   viewportFit: "cover",

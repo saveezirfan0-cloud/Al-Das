@@ -11,28 +11,29 @@
 }
 
 :root {
-  /* Neutrals carry a faint cool tint (hue 250). Contrast (WCAG): muted-foreground 5.5:1 on background,
-     5.0:1 on muted; ring 4.9:1 on background. Re-check both modes when changing a value. */
+  /* Al Das brand (aldasclinic.com): teal #40b4bb, deep teal #277880 for filled controls (white text 5.1:1), bronze
+     #ae8b7d accent, teal-navy #112f3b, warm neutrals like the website. Contrast (WCAG) is noted per pair; re-check
+     both modes when changing a value. */
   color-scheme: light;
   --radius: 0.625rem;
   --background: oklch(1 0 0);
-  --foreground: oklch(0.17 0.015 250);
+  --foreground: oklch(0.27 0.012 88);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.17 0.015 250);
+  --card-foreground: oklch(0.27 0.012 88);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.17 0.015 250);
-  --primary: oklch(0.45 0.16 250);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.968 0.005 250);
-  --secondary-foreground: oklch(0.21 0.015 250);
-  --muted: oklch(0.968 0.005 250);
-  --muted-foreground: oklch(0.52 0.015 250);
-  --accent: oklch(0.96 0.008 250);
-  --accent-foreground: oklch(0.21 0.015 250);
+  --popover-foreground: oklch(0.27 0.012 88);
+  --primary: oklch(0.528 0.077 204.5);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.968 0.004 95);
+  --secondary-foreground: oklch(0.27 0.012 88);
+  --muted: oklch(0.968 0.004 95);
+  --muted-foreground: oklch(0.5 0.01 85);
+  --accent: oklch(0.955 0.022 200);
+  --accent-foreground: oklch(0.3 0.045 215);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.918 0.006 250);
-  --input: oklch(0.9 0.008 250);
-  --ring: oklch(0.55 0.16 250);
+  --border: oklch(0.912 0.005 90);
+  --input: oklch(0.885 0.006 90);
+  --ring: oklch(0.572 0.082 203.8);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -54,55 +55,59 @@
   --viz-good: #0ca30c;
   --viz-warning: #fab219;
   --viz-critical: #d03b3b;
-  --sidebar: oklch(0.982 0.004 250);
-  --sidebar-foreground: oklch(0.17 0.015 250);
-  --sidebar-primary: oklch(0.45 0.16 250);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  /* Active nav item: a light brand tint (foreground 11:1 on it). */
-  --sidebar-accent: oklch(0.93 0.035 250);
-  --sidebar-accent-foreground: oklch(0.3 0.09 250);
-  --sidebar-border: oklch(0.918 0.006 250);
-  --sidebar-ring: oklch(0.55 0.16 250);
-  /* Navigation rail (components/shell/app-nav.tsx): deep navy in both modes. Labels 13:1 on it. */
-  --rail: oklch(0.25 0.06 262);
-  --rail-foreground: oklch(0.96 0.01 262);
-  --rail-muted: oklch(0.31 0.06 262);
-  --rail-hover: oklch(0.37 0.07 262);
+  --sidebar: oklch(0.979 0.003 100);
+  --sidebar-foreground: oklch(0.27 0.012 88);
+  --sidebar-primary: oklch(0.528 0.077 204.5);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  /* Active page in the pages panel: a light teal tint. */
+  --sidebar-accent: oklch(0.93 0.04 198);
+  --sidebar-accent-foreground: oklch(0.32 0.055 212);
+  --sidebar-border: oklch(0.912 0.005 90);
+  --sidebar-ring: oklch(0.572 0.082 203.8);
+  /* Navigation rail (components/shell/app-nav.tsx): the website's teal-navy. Active tile is the bright brand teal with
+     a teal-navy icon (6.8:1); the marker and the logo tile are bronze (4.5:1 on the rail). */
+  --rail: oklch(0.288 0.042 227.2);
+  --rail-foreground: oklch(0.97 0.006 200);
+  --rail-muted: oklch(0.34 0.045 225);
+  --rail-hover: oklch(0.4 0.05 222);
+  --rail-active: oklch(0.709 0.102 200.8);
+  --rail-active-foreground: oklch(0.227 0.032 228.6);
+  --brand-accent: oklch(0.666 0.047 42.9);
 }
 
 @media screen {
   .dark {
-    /* muted-foreground 7.3:1 on background, 5.6:1 on muted; ring 7.3:1 on background. */
+    /* Teal-navy surfaces like the website's dark sections; bright teal primary with teal-navy text. */
     color-scheme: dark;
-    --background: oklch(0.16 0.012 250);
-    --foreground: oklch(0.97 0.004 250);
-    --card: oklch(0.205 0.013 250);
-    --card-foreground: oklch(0.97 0.004 250);
-    --popover: oklch(0.205 0.013 250);
-    --popover-foreground: oklch(0.97 0.004 250);
-    --primary: oklch(0.72 0.14 250);
-    --primary-foreground: oklch(0.16 0.012 250);
-    --secondary: oklch(0.27 0.014 250);
-    --secondary-foreground: oklch(0.97 0.004 250);
-    --muted: oklch(0.27 0.014 250);
-    --muted-foreground: oklch(0.7 0.015 250);
-    --accent: oklch(0.27 0.014 250);
-    --accent-foreground: oklch(0.97 0.004 250);
+    --background: oklch(0.2 0.024 226);
+    --foreground: oklch(0.96 0.006 200);
+    --card: oklch(0.235 0.027 226);
+    --card-foreground: oklch(0.96 0.006 200);
+    --popover: oklch(0.235 0.027 226);
+    --popover-foreground: oklch(0.96 0.006 200);
+    --primary: oklch(0.709 0.102 200.8);
+    --primary-foreground: oklch(0.227 0.032 228.6);
+    --secondary: oklch(0.29 0.03 224);
+    --secondary-foreground: oklch(0.96 0.006 200);
+    --muted: oklch(0.29 0.03 224);
+    --muted-foreground: oklch(0.75 0.018 210);
+    --accent: oklch(0.31 0.04 215);
+    --accent-foreground: oklch(0.96 0.006 200);
     --destructive: oklch(0.704 0.191 22.216);
     --border: oklch(1 0 0 / 10%);
     --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.7 0.14 250);
-    --sidebar: oklch(0.19 0.012 250);
-    --sidebar-foreground: oklch(0.97 0.004 250);
-    --sidebar-primary: oklch(0.72 0.14 250);
-    --sidebar-primary-foreground: oklch(0.16 0.012 250);
-    --sidebar-accent: oklch(0.3 0.05 250);
-    --sidebar-accent-foreground: oklch(0.97 0.004 250);
+    --ring: oklch(0.72 0.1 200);
+    --sidebar: oklch(0.215 0.026 226);
+    --sidebar-foreground: oklch(0.96 0.006 200);
+    --sidebar-primary: oklch(0.709 0.102 200.8);
+    --sidebar-primary-foreground: oklch(0.227 0.032 228.6);
+    --sidebar-accent: oklch(0.33 0.055 205);
+    --sidebar-accent-foreground: oklch(0.96 0.006 200);
     --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.7 0.14 250);
-    --rail: oklch(0.13 0.025 262);
-    --rail-muted: oklch(0.2 0.035 262);
-    --rail-hover: oklch(0.27 0.045 262);
+    --sidebar-ring: oklch(0.72 0.1 200);
+    --rail: oklch(0.17 0.026 228);
+    --rail-muted: oklch(0.24 0.034 226);
+    --rail-hover: oklch(0.31 0.042 222);
 
     --viz-1: #3987e5;
     --viz-2: #d95926;
@@ -158,6 +163,9 @@
   --color-rail-foreground: var(--rail-foreground);
   --color-rail-muted: var(--rail-muted);
   --color-rail-hover: var(--rail-hover);
+  --color-rail-active: var(--rail-active);
+  --color-rail-active-foreground: var(--rail-active-foreground);
+  --color-brand-accent: var(--brand-accent);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
