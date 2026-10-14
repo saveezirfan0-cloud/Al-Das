@@ -1,5 +1,6 @@
 import { can, canAny, type MemberLike } from "@/lib/auth/can";
 import { SIGNING_PERMS } from "@/lib/signing/perms";
+import { canOpenRecentlyDeleted } from "@/lib/soft-delete/access";
 
 /**
  * Every Settings page, with the section it sits under and who may see it. One list feeds the
@@ -255,7 +256,18 @@ export const SETTINGS_PAGES: readonly SettingsPage[] = [
     href: "/settings/security",
     label: "Security",
     section: "Security & audit",
-    keywords: ["mfa", "two-step", "2fa", "authenticator", "retention", "alerts", "off hours"],
+    keywords: [
+      "mfa",
+      "two-step",
+      "2fa",
+      "authenticator",
+      "retention",
+      "alerts",
+      "off hours",
+      "finance hours",
+      "ip allow-list",
+      "finance access window",
+    ],
     allow: (m) => can(m, "security.manage"),
   },
   {
@@ -278,6 +290,13 @@ export const SETTINGS_PAGES: readonly SettingsPage[] = [
       "right to be forgotten",
     ],
     allow: (m) => can(m, "privacy.manage"),
+  },
+  {
+    href: "/settings/recently-deleted",
+    label: "Recently deleted",
+    section: "Security & audit",
+    keywords: ["restore", "undo delete", "bin", "trash", "deleted contacts", "deleted tasks", "recover"],
+    allow: (m) => canOpenRecentlyDeleted(m),
   },
   {
     href: "/settings/system-health",

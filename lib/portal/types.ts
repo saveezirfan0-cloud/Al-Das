@@ -69,6 +69,11 @@ export type PortalObjectDef = {
   /** Whether the portal may create / delete rows (config tables yes, engine-owned no). */
   allowCreate: boolean;
   allowDelete: boolean;
+  /**
+   * Deletes go to Settings, Recently deleted for the restore window (docs/35) instead of removing the row. The table
+   * carries `deleted_at`; every portal read filters it (lib/portal/query.ts, service.ts, bulk.ts).
+   */
+  softDeleteEntity?: "website_entry_point";
 };
 
 /** Columns every portal table carries; appended to each object's grid as read-only. */

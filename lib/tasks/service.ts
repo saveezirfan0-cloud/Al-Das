@@ -4,6 +4,7 @@ import { recordAudit } from "@/lib/audit";
 import { readEnquirySettings } from "@/lib/enquiries/settings";
 import { emit } from "@/lib/events/emit";
 import { scheduleJob } from "@/lib/jobs/enqueue";
+import { softDelete } from "@/lib/soft-delete/server";
 import type { AdminClient } from "@/lib/supabase/admin";
 import type { Tables, TablesUpdate } from "@/lib/supabase/types";
 import { reminderDedupeKey, reminderRunAt } from "@/lib/tasks/due";
@@ -107,6 +108,7 @@ export async function updateTask(ctx: TaskCtx, id: string, patch: TaskPatch): Pr
     .select("*")
     .eq("org_id", ctx.orgId)
     .eq("id", id)
+    .is("deleted_at", null)
     .maybeSingle();
   if (!before) throw new TaskError("Task not found.");
   const update: TablesUpdate<"tasks"> = {};
@@ -123,6 +125,7 @@ export async function updateTask(ctx: TaskCtx, id: string, patch: TaskPatch): Pr
     .update(update)
     .eq("org_id", ctx.orgId)
     .eq("id", id)
+    .is("deleted_at", null)
     .select("id, due_at, done")
     .single();
   if (error || !data) throw dbError(error ?? { message: "no row" }, "Could not save the task.");
@@ -154,6 +157,7 @@ export async function setTasksDone(ctx: TaskCtx, ids: string[], done: boolean): 
     )
     .eq("org_id", ctx.orgId)
     .in("id", ids)
+    .is("deleted_at", null)
     .eq("done", !done)
     .select("id, due_at, done, assignee_id, contact_id, enquiry_id");
   if (error) throw dbError(error, "Could not update the tasks.");
@@ -180,21 +184,37 @@ export async function setTasksDone(ctx: TaskCtx, ids: string[], done: boolean): 
   return data?.length ?? 0;
 }
 
+/**
+ * Soft-deletes tasks into the bin (docs/35): they vanish from lists, counts and reminders and can be restored from
+ * Settings, Recently deleted until the org's restore window ends; the nightly purge then removes them.
+ */
 export async function deleteTasks(ctx: TaskCtx, ids: string[]): Promise<number> {
   if (ids.length === 0) return 0;
-  const { data, error } = await ctx.admin
-    .from("tasks")
-    .delete()
-    .eq("org_id", ctx.orgId)
-    .in("id", ids)
-    .select("id");
-  if (error) throw dbError(error, "Could not delete the tasks.");
+  let moved: string[];
+  try {
+    moved = await softDelete(ctx.admin, { orgId: ctx.orgId, userId: ctx.userId, entity: "task", ids });
+  } catch {
+    throw new TaskError("Could not delete the tasks.");
+  }
   await recordAudit(ctx.admin, {
     orgId: ctx.orgId,
     userId: ctx.userId,
     action: "task.deleted",
     entity: "task",
-    diff: { count: data?.length ?? 0 },
+    entityId: moved.length === 1 ? moved[0] : undefined,
+    diff: { count: moved.length, restorable: true },
   });
-  return data?.length ?? 0;
+  return moved.length;
+}
+
+/** After a restore: an open task gets its due reminder back (a reminder that fell due in the bin is not resent). */
+export async function afterTaskRestored(ctx: TaskCtx, id: string): Promise<void> {
+  const { data } = await ctx.admin
+    .from("tasks")
+    .select("id, due_at, done")
+    .eq("org_id", ctx.orgId)
+    .eq("id", id)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (data) await scheduleReminder(ctx, data);
 }

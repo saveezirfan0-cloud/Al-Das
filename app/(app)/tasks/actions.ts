@@ -7,6 +7,8 @@ import { can } from "@/lib/auth/can";
 import { requirePerm } from "@/lib/auth/session";
 import { searchContactOptions, type ContactOption } from "@/lib/contacts/search-options";
 import { enquiryViewer, visibleEnquiryIds } from "@/lib/enquiries/visibility";
+import { deletedMessage } from "@/lib/soft-delete/rules";
+import { loadRestoreWindowDays } from "@/lib/soft-delete/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Tables } from "@/lib/supabase/types";
 import { TASK_TYPES } from "@/lib/tasks/constants";
@@ -95,7 +97,8 @@ export async function listTasks(
       "*, contact:contacts(id, full_name, phone_e164), enquiry:enquiries(id, number, title, deleted_at)",
       { count: "exact" },
     )
-    .eq("org_id", ctx.orgId);
+    .eq("org_id", ctx.orgId)
+    .is("deleted_at", null);
   if (q.assignee === "me") query = query.eq("assignee_id", userId);
   else if (q.assignee !== "all") query = query.eq("assignee_id", q.assignee);
   if (range.done !== undefined) query = query.eq("done", range.done);
@@ -258,7 +261,9 @@ export async function deleteTasksAction(ids: string[]): Promise<ActionResult> {
   try {
     const n = await deleteTasks(ctx, parsed.data);
     refresh();
-    return { ok: true, message: `${n} task${n === 1 ? "" : "s"} deleted.` };
+    revalidatePath("/settings/recently-deleted");
+    const days = await loadRestoreWindowDays(ctx.admin, ctx.orgId);
+    return { ok: true, message: deletedMessage("task", n, days) };
   } catch (e) {
     return fail(describe(e, "Could not delete the tasks."));
   }

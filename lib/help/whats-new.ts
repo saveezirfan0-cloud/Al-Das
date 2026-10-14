@@ -3,6 +3,24 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-11-15-finance-access-window",
+    date: "2026-10-14",
+    title: "Finance access window",
+    body: "Administrators can now limit when, and from which networks, people reach Finance and Accounting: choose the days and hours (in the clinic's timezone), optionally list the approved network addresses, and pick the roles it applies to. Outside the days and hours those pages, downloads and actions are refused with a short explanation, and so is reading finance data any other way; the address list applies to Pulse's own pages, actions and downloads. Everything else in Pulse keeps working, and the administrators get at most one alert per person a day for each kind of refusal. Admin is never restricted. It is off until switched on under Settings, Security.",
+  },
+  {
+    id: "2026-11-15-recently-deleted",
+    date: "2026-10-14",
+    title: "Undo a delete: Recently deleted",
+    body: "Deleting a contact, enquiry, task or website entry point no longer removes it straight away. It goes to Settings, Recently deleted, where anyone allowed to manage that kind of record can restore it, with its links and history, for 30 days. After that it is removed overnight. Administrators with security rights can change the number of days (1 to 90). Erasing a patient's details is still done through Patient data requests, with a second administrator's approval.",
+  },
+  {
+    id: "2026-10-14-branch-access",
+    date: "2026-10-14",
+    title: "Branch access and a branch switcher",
+    body: "Administrators can choose, for each person under Settings, Users, Branch access, whether they work in all branches or only one or several, and which is their home branch. People limited to some branches only see the diary, front desk, waiting list and enquiries of those branches. The pin icon at the top of the menu switches between your branches, or shows all of them together; Pulse remembers your choice on each device.",
+  },
+  {
     id: "2026-10-14-go-live-checklist",
     date: "2026-10-14",
     title: "Go-live checklist, older chats and complete reports",

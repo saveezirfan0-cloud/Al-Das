@@ -185,9 +185,7 @@ describe("Sentry options and wiring", () => {
 
   it("is a no-op without a DSN (the SDK is only imported behind the DSN check)", () => {
     const inst = src("instrumentation.ts");
-    expect(inst).toMatch(
-      /if \(!process\.env\.SENTRY_DSN\) return;\s+if \(process\.env\.NEXT_RUNTIME/,
-    );
+    expect(inst).toMatch(/if \(!serverSentryDsn\(\)\) return;\s+if \(process\.env\.NEXT_RUNTIME/);
     expect(inst).not.toMatch(/^import .*@sentry\/nextjs/m);
     const client = src("instrumentation-client.ts");
     expect(client).not.toMatch(/from "@sentry\/nextjs"/);
@@ -201,5 +199,14 @@ describe("Sentry options and wiring", () => {
     expect(browser).toContain("replaysSessionSampleRate: 0");
     expect(browser).toContain("replaysOnErrorSampleRate: 0");
     expect(browser).not.toMatch(/replayIntegration/);
+  });
+});
+
+describe("server Sentry DSN", () => {
+  it("prefers SENTRY_DSN and falls back to the public DSN", async () => {
+    const { serverSentryDsn } = await import("@/lib/observability/dsn");
+    expect(serverSentryDsn({ SENTRY_DSN: "a", NEXT_PUBLIC_SENTRY_DSN: "b" })).toBe("a");
+    expect(serverSentryDsn({ NEXT_PUBLIC_SENTRY_DSN: "b" })).toBe("b");
+    expect(serverSentryDsn({})).toBeUndefined();
   });
 });

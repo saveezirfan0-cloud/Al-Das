@@ -17,6 +17,7 @@ export const GET = apiRoute("tasks:read", async ({ admin, ctx, params }) => {
     .select("*")
     .eq("id", params.id)
     .eq("org_id", ctx.orgId)
+    .is("deleted_at", null)
     .maybeSingle();
   if (!data) return apiError(404, "not_found", "Task not found.");
   return json(serializeTask(data));

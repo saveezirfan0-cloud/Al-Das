@@ -395,6 +395,97 @@ export async function setMemberRouting(
   return { ok: true, message: "Routing settings saved." };
 }
 
+const memberBranchesSchema = z
+  .object({
+    membershipId: z.string().uuid(),
+    scope: z.enum(["all", "selected"]),
+    locationIds: z.array(z.string().uuid()).max(100),
+    homeLocationId: z.string().uuid().nullable(),
+  })
+  .refine((v) => v.scope === "all" || v.locationIds.length > 0, {
+    message: "Choose at least one branch, or allow all branches.",
+  })
+  .refine(
+    (v) => !v.homeLocationId || v.scope === "all" || v.locationIds.includes(v.homeLocationId),
+    {
+      message: "The home branch must be one of the branches they can work in.",
+    },
+  );
+
+/**
+ * Phase B: which branches a member may work in (all, or one or several) and the branch Pulse opens on for them.
+ * Enforced in RLS by app.location_visible_to and in the service-role loaders by lib/branches/access.ts.
+ */
+export async function setMemberBranches(
+  membershipId: string,
+  input: { scope: string; locationIds: string[]; homeLocationId: string | null },
+): Promise<ActionResult> {
+  const member = await requirePerm("settings.manage");
+  const parsed = memberBranchesSchema.safeParse({ membershipId, ...input });
+  if (!parsed.success)
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  const { scope, homeLocationId } = parsed.data;
+  const locationIds = scope === "all" ? [] : [...new Set(parsed.data.locationIds)];
+  const admin = createAdminClient(member.userId);
+  const { data: target } = await admin
+    .from("memberships")
+    .select("id, user_id, branch_scope, home_location_id, membership_locations(location_id)")
+    .eq("id", parsed.data.membershipId)
+    .eq("org_id", member.orgId)
+    .maybeSingle();
+  if (!target) return { ok: false, error: "Member not found." };
+  const wanted = [...locationIds, ...(homeLocationId ? [homeLocationId] : [])];
+  if (wanted.length) {
+    const { data: found } = await admin
+      .from("locations")
+      .select("id")
+      .eq("org_id", member.orgId)
+      .in("id", wanted);
+    if ((found ?? []).length !== new Set(wanted).size)
+      return { ok: false, error: "One of those branches no longer exists." };
+  }
+  const { error: delError } = await admin
+    .from("membership_locations")
+    .delete()
+    .eq("membership_id", target.id)
+    .eq("org_id", member.orgId);
+  if (delError) return { ok: false, error: "Could not save the member's branches." };
+  if (locationIds.length) {
+    const { error: insError } = await admin.from("membership_locations").insert(
+      locationIds.map((location_id) => ({
+        org_id: member.orgId,
+        membership_id: target.id,
+        location_id,
+      })),
+    );
+    if (insError) return { ok: false, error: "Could not save the member's branches." };
+  }
+  const { error } = await admin
+    .from("memberships")
+    .update({ branch_scope: scope, home_location_id: homeLocationId })
+    .eq("id", target.id)
+    .eq("org_id", member.orgId);
+  if (error) return { ok: false, error: "Could not save the member's branches." };
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "membership.branches_updated",
+    entity: "membership",
+    entityId: target.id,
+    diff: {
+      user_id: target.user_id,
+      branch_scope: { from: target.branch_scope, to: scope },
+      location_ids: {
+        from: (target.membership_locations ?? []).map((l) => l.location_id),
+        to: locationIds,
+      },
+      home_location_id: { from: target.home_location_id, to: homeLocationId },
+    },
+  });
+  revalidatePath("/settings/users");
+  return { ok: true, message: "Branch access saved." };
+}
+
 export async function removeMember(membershipId: string): Promise<ActionResult> {
   const member = await requirePerm("settings.manage");
   if (membershipId === member.membershipId)
@@ -478,6 +569,7 @@ export async function previewOffboarding(
         .from("tasks")
         .select("id", { count: "exact", head: true })
         .eq("org_id", member.orgId)
+        .is("deleted_at", null)
         .eq("assignee_id", uid)
         .eq("done", false),
     ),

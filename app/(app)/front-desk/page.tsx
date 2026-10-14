@@ -1,6 +1,8 @@
 import { PageHeader } from "@/components/shell/page-header";
 import { can } from "@/lib/auth/can";
 import { requirePerm } from "@/lib/auth/session";
+import { withBranchFilter } from "@/lib/branches/filter";
+import { memberBranchView } from "@/lib/branches/guard";
 import { loadBoardRows, loadNextFreeSlots, shiftDate, todayIn } from "@/lib/front-desk/server";
 import { readFrontDeskSettings } from "@/lib/front-desk/settings";
 import { recordAccess } from "@/lib/security/access-log";
@@ -41,32 +43,44 @@ export default async function FrontDeskPage({
     requested > shiftDate(today, 14) || requested < shiftDate(today, -14) ? today : requested;
   const settings = readFrontDeskSettings(member.org.settings);
 
+  // Phase B: the service role skips RLS, so every read below keeps to the member's branch view: the branch the
+  // switcher (or home / only branch) points at, else every branch they may see. Rows with no branch stay visible.
+  const branch = await memberBranchView(admin, member);
+
   const [rows, slots, waitRes, notesRes, options] = await Promise.all([
-    loadBoardRows(admin, member.orgId, tz, date),
+    loadBoardRows(admin, member.orgId, tz, date, null, branch.filterIds),
     loadNextFreeSlots(admin, member.orgId, {
       today: date,
       durationMin: settings.next_slot_minutes,
+      locationId: branch.current,
+      locationIds: branch.filterIds,
     }),
-    admin
-      .from("waitlist_entries")
-      .select(
-        "id, contact_id, not_after, notes, created_at, contacts(full_name), specialists(name), services(name), locations(name), slot_offers(status, starts_at, expires_at, failure_reason, created_at)",
-      )
-      .eq("org_id", member.orgId)
-      .eq("status", "waiting")
+    withBranchFilter(
+      admin
+        .from("waitlist_entries")
+        .select(
+          "id, contact_id, not_after, notes, created_at, contacts(full_name), specialists(name), services(name), locations(name), slot_offers(status, starts_at, expires_at, failure_reason, created_at)",
+        )
+        .eq("org_id", member.orgId)
+        .eq("status", "waiting"),
+      branch.filterIds,
+    )
       .order("created_at")
       .limit(200),
-    admin
-      .from("handover_notes")
-      .select(
-        "id, body, pinned, created_at, resolved_at, profiles:profiles!handover_notes_created_by_fkey(first_name, last_name)",
-      )
-      .eq("org_id", member.orgId)
-      .gte("created_at", new Date(Date.now() - 7 * 24 * 3600_000).toISOString())
+    withBranchFilter(
+      admin
+        .from("handover_notes")
+        .select(
+          "id, body, pinned, created_at, resolved_at, profiles:profiles!handover_notes_created_by_fkey(first_name, last_name)",
+        )
+        .eq("org_id", member.orgId)
+        .gte("created_at", new Date(Date.now() - 7 * 24 * 3600_000).toISOString()),
+      branch.filterIds,
+    )
       .order("pinned", { ascending: false })
       .order("created_at", { ascending: false })
       .limit(60),
-    loadDeskOptions(admin, member.orgId, tz),
+    loadDeskOptions(admin, member.orgId, tz, { access: branch.access, current: branch.current }),
   ]);
 
   await recordAccess(admin, member, {

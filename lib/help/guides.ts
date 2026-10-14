@@ -671,6 +671,40 @@ export const GUIDES: readonly Guide[] = [
     ],
   },
   {
+    id: "recently-deleted",
+    title: "Recently deleted",
+    pages: ["/settings/recently-deleted"],
+    purpose:
+      "Bring back a contact, enquiry, task or website entry point that was deleted by mistake, within the restore window.",
+    steps: [
+      "Find the item in the list: it shows what kind of record it is, who deleted it, when, and how many days are left.",
+      "Choose Restore. The record goes back to its list with its links, notes and history.",
+      "Restore a contact before its enquiries and tasks: Pulse asks you to if they were deleted together.",
+      "Administrators with security rights set how many days items are kept (1 to 90, 30 by default).",
+    ],
+    watchOut: [
+      "When the days run out the item is removed overnight and cannot be brought back. A contact then stays hidden; erasing a patient's details is a separate Patient data request.",
+      "You only see the kinds of record you are allowed to manage.",
+    ],
+  },
+  {
+    id: "finance-access-window",
+    title: "Finance access window",
+    pages: ["/settings/security", "/finance-unavailable"],
+    purpose:
+      "Choose when, and from which networks, people can reach Finance and Accounting, alongside two-step verification and alerts.",
+    steps: [
+      "Under Settings, Security, Finance access window, switch on Restrict finance access.",
+      "Tick the days and set the opening and closing times. They are in the clinic's timezone; a closing time before the opening time runs past midnight.",
+      "Optionally list the approved network addresses (one per line, ranges like 198.51.100.0/24 allowed). The line underneath shows whether your own connection is on the list.",
+      "Choose every finance role, or only some roles, and save.",
+    ],
+    watchOut: [
+      "Admin is never restricted, so an administrator can always correct a wrong setting.",
+      "Outside the window Finance and Accounting disappear from the menu for the roles it covers and their pages explain why. Each refused person raises one alert a day.",
+    ],
+  },
+  {
     id: "routing",
     title: "Teams and routing",
     pages: ["/settings/teams", "/settings/users"],

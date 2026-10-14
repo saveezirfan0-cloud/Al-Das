@@ -78,6 +78,8 @@ import {
   seedSf20iRows,
   seedPortalTagRows,
   seedSecurityRows,
+  seedSoftDeleteRows,
+  SOFT_DELETE_SERVICE_ONLY_TABLES,
   TEST_DATABASE_URL,
 } from "./helpers";
 
@@ -140,6 +142,8 @@ const SERVICE_ONLY = new Set([
   "webhook_events_in",
   // Phase 22D: where the posting runner got to per org and source kind; only the runner (service role) reads or moves it
   "acc_posting_cursors",
+  // Soft delete (docs/35): the bin, with the cleared phone numbers of deleted contacts; server code after can() only
+  "deleted_items",
 ]);
 
 /** SECURITY DEFINER functions in `public` that signed-in users may call directly (each uses auth.uid() inside). */
@@ -1059,6 +1063,8 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
     await seedSf20iRows(c, orgA);
     // Portal tags (docs/33) likewise.
     await seedPortalTagRows(c, orgA);
+    // Soft delete (docs/35): one item in the bin, so the service-only read check is not vacuous.
+    await seedSoftDeleteRows(c, orgA, alice);
   });
   afterAll(async () => {
     await resetDb(c);
@@ -1197,6 +1203,7 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
         ...PHASE22_SERVICE_ONLY_TABLES,
         ...PHASE22I_SERVICE_ONLY_TABLES,
         ...PHASE22J_SERVICE_ONLY_TABLES,
+        ...SOFT_DELETE_SERVICE_ONLY_TABLES,
         ...PHASE23_SERVICE_ONLY_TABLES,
       ]) {
         const { rows } = await c

@@ -5,7 +5,8 @@ import { z } from "zod";
 
 import { recordAudit } from "@/lib/audit";
 import { can } from "@/lib/auth/can";
-import { requirePerm } from "@/lib/auth/session";
+import { requirePerm, type CurrentMember } from "@/lib/auth/session";
+import { BRANCH_DENIED, branchAllowed } from "@/lib/branches/guard";
 import { searchContactOptions, type ContactOption } from "@/lib/contacts/search-options";
 import { addTimelineEvent } from "@/lib/contacts/timeline";
 import { CARD_FIELD_KEYS } from "@/lib/enquiries/constants";
@@ -43,6 +44,7 @@ import { FilterCompileError, InvalidOperatorError } from "@/lib/filters";
 import { filterSchema } from "@/lib/filters/ast";
 import { UnknownFieldError } from "@/lib/filters/field-registry";
 import { recordAccess } from "@/lib/security/access-log";
+import { deletedMessage, readRestoreWindowDays } from "@/lib/soft-delete/rules";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json, Tables } from "@/lib/supabase/types";
 
@@ -75,7 +77,10 @@ function refresh() {
 
 /** Phase 20c: may this member act on this enquiry under their restricted enquiry view? */
 async function mayTouch(
-  member: { userId: string; orgId: string; enquiryScope?: string | null },
+  member: Pick<
+    CurrentMember,
+    "userId" | "orgId" | "enquiryScope" | "branchScope" | "branchIds" | "homeLocationId"
+  >,
   id: string,
 ) {
   const admin = createAdminClient(member.userId);
@@ -302,6 +307,7 @@ export async function getEnquiry(id: string): Promise<ActionResult<EnquiryDetail
           .select("id, type, subject, due_at, done, assignee_id")
           .eq("org_id", member.orgId)
           .eq("enquiry_id", id)
+          .is("deleted_at", null)
           .order("done")
           .order("due_at")
           .limit(100)
@@ -354,6 +360,7 @@ export async function createNewEnquiry(
   const parsed = newEnquirySchema.safeParse(input);
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid input");
   const d = parsed.data;
+  if (!branchAllowed(member, d.location_id)) return fail(BRANCH_DENIED);
   const admin = createAdminClient(member.userId);
   try {
     const ctx = await loadEnquiryContext(admin, member.orgId);
@@ -392,6 +399,7 @@ export async function updateEnquiryDetails(id: string, input: unknown): Promise<
   const parsed = enquiryDetailsSchema.partial().safeParse(input);
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid input");
   const d = parsed.data;
+  if (!branchAllowed(member, d.location_id)) return fail(BRANCH_DENIED);
   const admin = createAdminClient(member.userId);
   if (!(await canSeeEnquiry(admin, member.orgId, await enquiryViewer(admin, member), id)))
     return fail("Enquiry not found.");
@@ -569,6 +577,8 @@ export async function bulkEnquiries(
         est_value: "estValue",
       } as const;
       for (const f of o.fields) patch[map[f]] = o[f] ?? null;
+      if (o.fields.includes("location_id") && !branchAllowed(member, o.location_id))
+        return fail(BRANCH_DENIED);
       op = { type: "edit", patch };
       break;
     }
@@ -613,7 +623,11 @@ export async function removeEnquiries(ids: string[]): Promise<ActionResult> {
     if (ids.length === 0) return fail("Select at least one enquiry.");
     const n = await deleteEnquiries({ admin, orgId: member.orgId, userId: member.userId }, ids);
     refresh();
-    return { ok: true, message: `${n} enquir${n === 1 ? "y" : "ies"} deleted.` };
+    revalidatePath("/settings/recently-deleted");
+    return {
+      ok: true,
+      message: deletedMessage("enquiry", n, readRestoreWindowDays(member.org.settings)),
+    };
   } catch (e) {
     return fail(describeError(e, "Could not delete the enquiries."));
   }

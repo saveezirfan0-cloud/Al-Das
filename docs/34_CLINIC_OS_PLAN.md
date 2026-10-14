@@ -97,6 +97,18 @@ docs and help guides updated, and the `nav-qa` agent run.
   reply (simulator), book and move an appointment, a synthetic Diligence/bank upload, and the tax invoice PDF. Run it in CI.
 
 ### Phase B — Branches as a workspace dimension (2 weeks)
+**Status (14 Oct 2026): first slice built.**
+- Built:
+  - Branch access per member (all branches, or one or several) with a home branch, under Settings, Users.
+  - Enforcement in RLS and in the service-role loaders: front desk, appointments, enquiries, waiting list and handover notes.
+  - The branch switcher in the rail and the phone drawer.
+  - `locations.branch_code`.
+- Still to do in this phase:
+  - A UI to set `branch_code`.
+  - Branch for channels, teams, contacts, tasks and conversations.
+  - Per-branch reports and settings.
+  - Branch checks on `deleteBlock`, the quick-reply appointment lookup, and the enquiry location pickers.
+
 - **Data model.**
   - `locations.branch_code` → `fin_ref_branches.code`, so the clinical and finance branch lists meet. Needed before the
     10 Nov Unite code change (OQ-101).

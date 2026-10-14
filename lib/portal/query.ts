@@ -81,7 +81,9 @@ export function compilePortalPredicate(
   const f = compileFilter(filter, registry, { timezone }, bag);
   const s = compilePortalSearch(def, search, bag);
   const t = compilePortalTagFilter(def, tagIds, bag);
-  const parts = [f.sql, s, t].filter((p) => p !== "true");
+  // Records in Recently deleted (docs/35) are never listed, counted, exported or bulk-edited.
+  const d = def.softDeleteEntity ? "c.deleted_at is null" : "true";
+  const parts = [d, f.sql, s, t].filter((p) => p !== "true");
   return { sql: parts.length ? parts.join(" and ") : "true", params: bag.params };
 }
 
@@ -170,11 +172,9 @@ export async function fetchPortalRows(
   ids: string[],
 ): Promise<PortalRow[]> {
   if (ids.length === 0) return [];
-  const { data, error } = await loose(admin)
-    .from(def.table)
-    .select("*")
-    .eq("org_id", orgId)
-    .in("id", ids);
+  let q = loose(admin).from(def.table).select("*").eq("org_id", orgId).in("id", ids);
+  if (def.softDeleteEntity) q = q.is("deleted_at", null);
+  const { data, error } = await q;
   if (error) throw new Error(`${def.table} fetch failed: ${error.message}`);
   const byId = new Map(((data ?? []) as PortalRow[]).map((r) => [r.id, r]));
   return ids.map((id) => byId.get(id)).filter((r): r is PortalRow => !!r);

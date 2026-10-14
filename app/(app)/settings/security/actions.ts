@@ -6,6 +6,13 @@ import { z } from "zod";
 import { recordAudit } from "@/lib/audit";
 import { requirePerm } from "@/lib/auth/session";
 import {
+  financeAccessSchema,
+  localClock,
+  readFinanceAccess,
+  writeFinanceAccess,
+  type FinanceAccessInput,
+} from "@/lib/security/finance-access";
+import {
   securitySettingsSchema,
   writeSecuritySettings,
   readSecuritySettings,
@@ -79,4 +86,91 @@ export async function saveSecuritySettings(
   revalidatePath(PATH);
   revalidatePath("/", "layout");
   return { ok: true, message: "Security settings saved." };
+}
+
+/**
+ * Finance access window (orgs.settings.finance_access): days, hours, address list and the roles it covers. Admin is
+ * never restricted, whatever is saved. The audit row carries what changed and counts, not the addresses.
+ */
+export async function saveFinanceAccessWindow(input: FinanceAccessInput): Promise<ActionResult> {
+  const member = await requirePerm("security.manage");
+  const parsed = financeAccessSchema.safeParse(input);
+  if (!parsed.success)
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  const admin = createAdminClient(member.userId);
+
+  // Roles deleted since the page loaded are dropped quietly; only an enabled "only these roles" left empty is refused.
+  let roleIds: string[] = [];
+  if (parsed.data.role_ids.length > 0) {
+    const { data: roles, error: rolesError } = await admin
+      .from("roles")
+      .select("id")
+      .eq("org_id", member.orgId)
+      .in("id", parsed.data.role_ids);
+    if (rolesError) return { ok: false, error: "Could not check the roles." };
+    const existing = new Set((roles ?? []).map((r) => r.id));
+    roleIds = parsed.data.role_ids.filter((id) => existing.has(id));
+  }
+  const next = { ...parsed.data, role_ids: roleIds };
+  if (next.enabled && next.scope === "selected_roles" && next.role_ids.length === 0)
+    return { ok: false, error: "Choose at least one role." };
+  // the database refuses a switched-on window with an offset or unknown timezone (app.finance_access_problem)
+  if (next.enabled && !localClock(new Date(), member.org.timezone))
+    return {
+      ok: false,
+      error: `The organisation's timezone (${member.org.timezone}) is not a named zone such as Asia/Dubai. Change it first.`,
+    };
+
+  const { data: org, error: orgError } = await admin
+    .from("orgs")
+    .select("settings")
+    .eq("id", member.orgId)
+    .single();
+  if (orgError || !org) return { ok: false, error: "Could not load the settings." };
+  const stored = readFinanceAccess(org.settings);
+  const before = stored.ok ? stored.settings : null;
+  const { error } = await admin
+    .from("orgs")
+    .update({ settings: writeFinanceAccess(org.settings, next) as never })
+    .eq("id", member.orgId);
+  if (error)
+    return {
+      ok: false,
+      error:
+        error.code === "23514"
+          ? "The database refused this window. Check the addresses and the organisation's timezone."
+          : "Could not save the finance access window.",
+    };
+
+  const changed = before
+    ? (Object.keys(next) as Array<keyof typeof next>).filter(
+        (k) => JSON.stringify(next[k]) !== JSON.stringify(before[k]),
+      )
+    : ["unreadable_before"];
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "finance_access_window.updated",
+    entity: "org",
+    entityId: member.orgId,
+    diff: {
+      changed,
+      enabled: next.enabled,
+      limit_hours: next.limit_hours,
+      days: next.days,
+      start: next.start,
+      end: next.end,
+      address_entries: next.ip_allowlist.length,
+      scope: next.scope,
+      role_count: next.role_ids.length,
+    },
+  });
+  revalidatePath(PATH);
+  revalidatePath("/", "layout");
+  return {
+    ok: true,
+    message: next.enabled
+      ? "Finance access window saved. It applies from the next page anyone opens."
+      : "Finance access window saved and switched off.",
+  };
 }
