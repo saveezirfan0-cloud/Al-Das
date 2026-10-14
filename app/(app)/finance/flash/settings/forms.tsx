@@ -7,6 +7,7 @@ import {
   copyPreviousTargets,
   deleteReportLine,
   saveFlashDisplay,
+  saveMgmtAlertSettings,
   savePerfBands,
   saveReportLine,
   saveTargets,
@@ -210,6 +211,35 @@ export function PerfBandsForm({ target, near, moderate }: { target: number; near
         Revenue per patient at or above the target is Achieved; from Near Target up to the target is Near Target; from
         Moderate up to Near Target is Moderate; below Moderate is Below Target. Each band starts exactly at its number,
         so nothing falls between bands. Expected revenue is patients times the target.
+      </p>
+    </ActionForm>
+  );
+}
+
+export function MgmtAlertsForm(v: { lateDays: number; targetPct: number; targetDays: number; minPatients: number }) {
+  return (
+    <ActionForm action={saveMgmtAlertSettings} submitLabel="Save alert settings">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label="Unite report late after (days with no covered day)">
+          <Input name="alert_report_late_days" inputMode="numeric" defaultValue={v.lateDays} required />
+        </Field>
+        <Field label="Revenue behind below (% of target)">
+          <Input name="alert_revenue_target_pct" inputMode="decimal" defaultValue={v.targetPct} required />
+        </Field>
+        <Field label="Revenue behind for (covered days in a row)">
+          <Input name="alert_revenue_target_days" inputMode="numeric" defaultValue={v.targetDays} required />
+        </Field>
+        <Field label="Band alert: minimum patients per doctor">
+          <Input name="alert_band_min_patients" inputMode="numeric" defaultValue={v.minPatients} required />
+        </Field>
+      </div>
+      <p className="text-muted-foreground text-xs">
+        Checked every morning. The report alert goes to the people who upload the Unite report when no committed upload
+        covers any of the last days set here. The revenue alert goes to flash report readers when month-to-date revenue
+        (the total, and each branch line with a target) stays below this share of its target on each of the last covered
+        days set here; the target counts only the days the report covers, not calendar days. Once last month is fully
+        covered, one alert says how many doctors with at least the minimum patients were Below Target. Each alert is
+        sent once until it clears; notifications never name a doctor or an amount.
       </p>
     </ActionForm>
   );

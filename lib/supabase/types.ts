@@ -10420,6 +10420,41 @@ export type Database = {
           },
         ];
       };
+      fin_mgmt_alert_state: {
+        Row: {
+          cleared_at: string | null;
+          org_id: string;
+          period: string;
+          raised_at: string;
+          rule: string;
+          scope: string;
+        };
+        Insert: {
+          cleared_at?: string | null;
+          org_id: string;
+          period: string;
+          raised_at?: string;
+          rule: string;
+          scope: string;
+        };
+        Update: {
+          cleared_at?: string | null;
+          org_id?: string;
+          period?: string;
+          raised_at?: string;
+          rule?: string;
+          scope?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_mgmt_alert_state_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       fin_payment_requests: {
         Row: {
           amount_minor: number;
@@ -12157,6 +12192,10 @@ export type Database = {
           acc_large_journal_amount: number;
           accepted_claim_statuses: string[];
           ageing_bucket_days: number[];
+          alert_band_min_patients: number;
+          alert_report_late_days: number;
+          alert_revenue_target_days: number;
+          alert_revenue_target_pct: number;
           approval_mode: string;
           bank_amount_tolerance: number;
           bank_amount_tolerance_pct: number;
@@ -12243,6 +12282,10 @@ export type Database = {
           acc_large_journal_amount?: number;
           accepted_claim_statuses?: string[];
           ageing_bucket_days?: number[];
+          alert_band_min_patients?: number;
+          alert_report_late_days?: number;
+          alert_revenue_target_days?: number;
+          alert_revenue_target_pct?: number;
           approval_mode?: string;
           bank_amount_tolerance?: number;
           bank_amount_tolerance_pct?: number;
@@ -12328,6 +12371,10 @@ export type Database = {
           acc_large_journal_amount?: number;
           accepted_claim_statuses?: string[];
           ageing_bucket_days?: number[];
+          alert_band_min_patients?: number;
+          alert_report_late_days?: number;
+          alert_revenue_target_days?: number;
+          alert_revenue_target_pct?: number;
           approval_mode?: string;
           bank_amount_tolerance?: number;
           bank_amount_tolerance_pct?: number;
@@ -24680,6 +24727,11 @@ export type Database = {
       };
       fin_link_preauth_claims: { Args: { p_org_id: string }; Returns: number };
       fin_maintenance_enqueue: { Args: Record<PropertyKey, never>; Returns: number };
+      fin_mgmt_alert_claim: {
+        Args: { p_org_id: string; p_period: string; p_rule: string; p_scope: string };
+        Returns: boolean;
+      };
+      fin_mgmt_alert_inputs: { Args: { p_month: string; p_org_id: string }; Returns: Json };
       fin_open_exception: {
         Args: {
           p_branch_code?: string;

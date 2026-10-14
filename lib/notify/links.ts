@@ -31,5 +31,13 @@ export function notificationHref(type: string, payload: unknown): string | null 
   if (type === "finance.close_due") return "/finance/close/timetable";
   if (type === "finance.followup_due") return "/finance/followup";
   if (type === "accounting.runs_prepared") return "/accounting/depreciation";
+  // Management alerts (M1): the page behind the alert; the band alert opens its month (validated yyyy-mm only).
+  if (type === "finance.report_late") return "/finance/upload";
+  if (type === "finance.revenue_behind") return "/finance/flash";
+  if (type === "finance.band_below") {
+    const m =
+      typeof p.month === "string" && /^\d{4}-(0[1-9]|1[0-2])$/.test(p.month) ? p.month : null;
+    return m ? `/finance/doctor-performance?month=${m}` : "/finance/doctor-performance";
+  }
   return null;
 }

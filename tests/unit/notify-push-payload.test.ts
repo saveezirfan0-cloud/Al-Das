@@ -148,3 +148,37 @@ describe("insurance card expiry notifications (Phase 16)", () => {
     expect(notificationHref("mention", { contact_id: UUID })).toBeNull();
   });
 });
+
+describe("management alerts (M1)", () => {
+  const EVENTS = {
+    "finance.report_late": ["finance.revenue.import", "/finance/upload"],
+    "finance.revenue_behind": ["finance.flash.view", "/finance/flash"],
+    "finance.band_below": ["finance.revenue.view", "/finance/doctor-performance"],
+  } as const;
+
+  it("are catalogued, gated by their finance permission, with a fixed sentence and no figures", async () => {
+    const { getEvent, eventsFor } = await import("@/lib/notify/events");
+    for (const [event, [permission, url]] of Object.entries(EVENTS)) {
+      expect(getEvent(event)?.permission, event).toBe(permission);
+      expect(eventsFor(() => false).some((e) => e.key === event)).toBe(false);
+      const p = buildPushPayload(event, { task_id: UUID })!;
+      expect(p.url).toBe(url);
+      expect(`${p.title} ${p.body}`, event).not.toMatch(/[0-9@+]/);
+      expect(genericEmail(event)?.sentence).toBe(p.body);
+    }
+  });
+
+  it("open the page in the centre; the band alert opens its month, validated", () => {
+    expect(notificationHref("finance.report_late", { count: 1 })).toBe("/finance/upload");
+    expect(notificationHref("finance.revenue_behind", { month: "2026-10" })).toBe("/finance/flash");
+    expect(notificationHref("finance.band_below", { month: "2026-09" })).toBe(
+      "/finance/doctor-performance?month=2026-09",
+    );
+    expect(notificationHref("finance.band_below", { month: "2026-13" })).toBe(
+      "/finance/doctor-performance",
+    );
+    expect(notificationHref("finance.band_below", { month: "//evil.example" })).toBe(
+      "/finance/doctor-performance",
+    );
+  });
+});

@@ -9,6 +9,7 @@ import { requireMember } from "@/lib/auth/session";
 import { DENIED, dbMessage, fail, firstIssue, type ActionResult } from "@/lib/finance/action-support";
 import { perfSettingsSchema } from "@/lib/finance/doctor-performance";
 import { LINE_CODE_RE, monthOf, parseTargetInput } from "@/lib/finance/flash";
+import { mgmtAlertSettingsSchema } from "@/lib/finance/management-alerts";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/types";
 
@@ -229,6 +230,29 @@ export async function savePerfBands(values: Record<string, string>): Promise<Act
   refresh();
   revalidatePath("/finance/doctor-performance");
   return { ok: true, message: "Target and bands saved." };
+}
+
+/** Management alerts (M1): report late, revenue behind target and the revenue-per-patient band (thresholds only). */
+export async function saveMgmtAlertSettings(values: Record<string, string>): Promise<ActionResult> {
+  const member = await gate();
+  if (!member) return fail(DENIED);
+  const parsed = mgmtAlertSettingsSchema.safeParse(values);
+  if (!parsed.success) return fail(firstIssue(parsed.error));
+  const admin = createAdminClient(member.userId);
+  const { error } = await admin
+    .from("fin_ref_finance_settings")
+    .upsert({ org_id: member.orgId, ...parsed.data }, { onConflict: "org_id" });
+  if (error) return fail(dbMessage(error, "Could not save the alert settings."));
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "finance.management_alerts.settings_saved",
+    entity: "fin_ref_finance_settings",
+    entityId: member.orgId,
+    diff: parsed.data,
+  });
+  revalidatePath("/finance/flash/settings");
+  return { ok: true, message: "Alert settings saved." };
 }
 
 const displaySchema = z.object({

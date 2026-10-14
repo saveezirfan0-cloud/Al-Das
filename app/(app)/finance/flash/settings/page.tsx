@@ -17,6 +17,7 @@ import { requirePerm } from "@/lib/auth/session";
 import { todayIn } from "@/lib/finance/action-support";
 import { DEFAULT_PERF_SETTINGS } from "@/lib/finance/doctor-performance";
 import { monthOf, targetFromRow } from "@/lib/finance/flash";
+import { mgmtAlertSettingsFromRow } from "@/lib/finance/management-alerts";
 import { monthTitle } from "@/lib/finance/flash-xlsx";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -24,6 +25,7 @@ import {
   CopyTargetsButton,
   DisplayForm,
   EditLineButton,
+  MgmtAlertsForm,
   PerfBandsForm,
   NewLineButton,
   TargetsForm,
@@ -57,7 +59,9 @@ export default async function FlashSettingsPage({
       .eq("month", month),
     admin
       .from("fin_ref_finance_settings")
-      .select("flash_share_basis, flash_top_doctors, perf_arpp_target, perf_band_near, perf_band_moderate")
+      .select(
+        "flash_share_basis, flash_top_doctors, perf_arpp_target, perf_band_near, perf_band_moderate, alert_report_late_days, alert_revenue_target_pct, alert_revenue_target_days, alert_band_min_patients",
+      )
       .eq("org_id", member.orgId)
       .maybeSingle(),
   ]);
@@ -72,6 +76,7 @@ export default async function FlashSettingsPage({
   }));
   const targets = (targetRows ?? []).map(targetFromRow);
   const active = lines.filter((l) => l.active);
+  const alerts = mgmtAlertSettingsFromRow(settings);
 
   return (
     <div className="flex flex-col gap-6">
@@ -195,6 +200,20 @@ export default async function FlashSettingsPage({
             target={Number(settings?.perf_arpp_target ?? DEFAULT_PERF_SETTINGS.target)}
             near={Number(settings?.perf_band_near ?? DEFAULT_PERF_SETTINGS.near)}
             moderate={Number(settings?.perf_band_moderate ?? DEFAULT_PERF_SETTINGS.moderate)}
+          />
+        </CardContent>
+      </Card>
+
+      <Card id="alerts">
+        <CardHeader>
+          <CardTitle className="text-base">Management alerts</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <MgmtAlertsForm
+            lateDays={alerts.reportLateDays}
+            targetPct={alerts.revenueTargetPct}
+            targetDays={alerts.revenueTargetDays}
+            minPatients={alerts.bandMinPatients}
           />
         </CardContent>
       </Card>
