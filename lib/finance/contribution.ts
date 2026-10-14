@@ -32,8 +32,11 @@ import {
  *   - everything is Provisional until Finance approves the month AND every doctor with revenue has pay loaded (and the
  *     report covers the whole month);
  *   - without finance.costs.compensation no individual pay is shown: the pay column and every doctor's contribution are
- *     removed here (not just hidden on screen), and a department or clinic total is shown only when its pay comes from
- *     at least MIN_PAID_DOCTORS doctors and no sibling total would give a single doctor's pay away by subtraction.
+ *     removed here (not just hidden on screen). A doctor's pay is split over every total they appear in by revenue, and
+ *     revenue is on screen, so ANY two pay-inclusive totals that share doctors (two clinics, two departments, or the
+ *     same total under two branch filters) form equations that give individual pay away. So without the permission the
+ *     only pay-inclusive figure shown is the whole organisation's total, unfiltered (`wholeOrg`), and only when its pay
+ *     comes from at least MIN_PAID_DOCTORS doctors; every department, clinic and filtered total is withheld.
  */
 
 export { PROVISIONAL_LABEL };
@@ -218,9 +221,15 @@ function withhold<T extends Level & Partial<ClinicLevels>>(l: T): T {
 
 export function buildContribution(
   inputs: ContributionInputs,
-  opts: { canSeePay: boolean; branchNames?: Readonly<Record<string, string>> },
+  opts: {
+    canSeePay: boolean;
+    /** The view is the whole organisation: no branch restriction and no branch filter. */
+    wholeOrg?: boolean;
+    branchNames?: Readonly<Record<string, string>>;
+  },
 ): ContributionReport {
   const { canSeePay } = opts;
+  const wholeOrg = opts.wholeOrg === true;
   const month = inputs.month;
   const comp = new Map(inputs.comp.map((c) => [c.dha_id, c.amount]));
   const charges = new Map(inputs.charges.map((c) => [c.dha_id, c.amount]));
@@ -321,7 +330,7 @@ export function buildContribution(
         doctors: ds.map(strip).sort(byRevenue),
       }))
       .sort(byRevenue);
-    if (!canSeePay && departments.some(revealsOne)) departments = departments.map(withhold);
+    if (!canSeePay) departments = departments.map(withhold);
     const l = level(list, canSeePay, payOf);
     const overhead = round3(k ? (branchOverhead.get(k) ?? 0) : 0);
     const allocated = round3(byCell.get(`${month}|${k}`) ?? 0);
@@ -338,7 +347,7 @@ export function buildContribution(
       departments,
     };
   });
-  if (!canSeePay) clinics = clinics.map((c) => (revealsOne(c) ? withhold(c) : c));
+  if (!canSeePay) clinics = clinics.map(withhold);
   clinics.sort(byRevenue);
 
   const all = level(doctors, canSeePay, payOf);
@@ -352,7 +361,7 @@ export function buildContribution(
     allocated: allocatedSum,
     l6: totalL5 === null ? null : round3(totalL5 - allocatedSum),
   };
-  if (!canSeePay && (revealsOne(total) || clinics.some((c) => c.withheld))) total = withhold(total);
+  if (!canSeePay && (!wholeOrg || revealsOne(total))) total = withhold(total);
 
   // why the figures are not final
   const hasData = doctors.length > 0;

@@ -27,6 +27,14 @@ import { z } from "zod";
 // Vocabulary
 // ---------------------------------------------------------------------------
 
+/** The column defaults of the recruitment settings (fin_ref_finance_settings), for an org with no settings row yet. */
+export const DEFAULT_RECRUIT_SETTINGS = {
+  conservative: 70,
+  consumables: 12,
+  gateway: 1.5,
+  minPeerMonths: 6,
+} as const;
+
 export const CONTRACT_TYPES = [
   "fixed_salary",
   "salary_backed_share",

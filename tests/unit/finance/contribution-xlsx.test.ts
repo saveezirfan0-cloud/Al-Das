@@ -74,7 +74,8 @@ describe("contribution workbook", () => {
     expect(doc.slice(5)).toEqual([6000, "Pay loaded", 200, ""]); // contribution cell left empty
     const marina = sheet.find((r) => r[0] === "Clinic contribution (L5)" && r[1] === "Marina")!;
     expect(marina[marina.length - 1]).toBe("Withheld");
+    // every clinic total that includes pay is withheld without the permission (two totals would give pay away)
     const palm = sheet.find((r) => r[0] === "Clinic contribution (L5)" && r[1] === "Palm")!;
-    expect(palm[palm.length - 1]).toBe(2800);
+    expect(palm[palm.length - 1]).toBe("Withheld");
   });
 });

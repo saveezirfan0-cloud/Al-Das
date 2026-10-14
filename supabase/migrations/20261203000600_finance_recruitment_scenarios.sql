@@ -68,6 +68,11 @@ as $$
 declare
   v_n integer;
 begin
+  -- seed once: an org that already has calendar events (seeded earlier, or edited / pruned by Finance) is left alone,
+  -- so a re-run of `pnpm finance:seed` never brings back a deleted event or duplicates a corrected date
+  if exists (select 1 from public.fin_ref_calendar_events e where e.org_id = p_org_id) then
+    return 0;
+  end if;
   insert into public.fin_ref_calendar_events (org_id, starts_on, ends_on, kind, label, approximate) values
     (p_org_id, '2026-02-18', '2026-03-19', 'ramadan', 'Ramadan 1447', true),
     (p_org_id, '2026-03-20', '2026-03-22', 'eid', 'Eid al Fitr 1447', true),

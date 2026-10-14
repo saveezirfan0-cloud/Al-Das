@@ -33,6 +33,7 @@ export async function loadContribution(
   if (error) throw new Error("Could not load the contribution figures.");
   return buildContribution(parseContributionInputs(data), {
     canSeePay: opts.canSeePay,
+    wholeOrg: opts.allowed === null && opts.branch === null,
     branchNames: opts.branchNames,
   });
 }

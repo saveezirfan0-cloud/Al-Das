@@ -22,6 +22,7 @@ import { monthOf, targetFromRow } from "@/lib/finance/flash";
 import { monthTitle } from "@/lib/finance/flash-xlsx";
 import { DEFAULT_RECON_SETTINGS } from "@/lib/finance/insurance-billing";
 import { mgmtAlertSettingsFromRow } from "@/lib/finance/management-alerts";
+import { DEFAULT_RECRUIT_SETTINGS } from "@/lib/finance/recruitment";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import {
@@ -249,17 +250,23 @@ export default async function FlashSettingsPage({
         </CardContent>
       </Card>
 
-      {can(member, "finance.costs.manage") && settings && (
+      {can(member, "finance.costs.manage") && (
         <Card id="recruitment">
           <CardHeader>
             <CardTitle className="text-base">Recruitment calculator defaults</CardTitle>
           </CardHeader>
           <CardContent>
             <RecruitDefaultsForm
-              conservative={Number(settings.recruit_conservative_pct)}
-              consumables={Number(settings.recruit_consumables_pct)}
-              gateway={Number(settings.recruit_gateway_pct)}
-              minPeerMonths={Number(settings.recruit_min_peer_months)}
+              conservative={Number(
+                settings?.recruit_conservative_pct ?? DEFAULT_RECRUIT_SETTINGS.conservative,
+              )}
+              consumables={Number(
+                settings?.recruit_consumables_pct ?? DEFAULT_RECRUIT_SETTINGS.consumables,
+              )}
+              gateway={Number(settings?.recruit_gateway_pct ?? DEFAULT_RECRUIT_SETTINGS.gateway)}
+              minPeerMonths={Number(
+                settings?.recruit_min_peer_months ?? DEFAULT_RECRUIT_SETTINGS.minPeerMonths,
+              )}
             />
           </CardContent>
         </Card>

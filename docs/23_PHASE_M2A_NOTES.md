@@ -63,10 +63,13 @@ Without `finance.costs.compensation`, `buildContribution(…, { canSeePay: false
 result itself (not just from the screen), so the page and the workbook cannot leak it:
 
 - no pay column at any level, and no doctor's L3 (revenue − L3 − charges would give the pay);
-- a department, clinic or total that includes pay is shown only when its pay comes from at least `MIN_PAID_DOCTORS` (2)
-  doctors; a department with pay from one doctor withholds every department of that clinic (otherwise clinic − the
-  others gives it away), a clinic with pay from one doctor is withheld, and the total is withheld when any clinic is.
-  The rule is a disclosure control, not a business threshold, so it is a constant rather than a setting. Revenue,
+- every department and clinic figure that includes pay is withheld. A doctor's pay is split over every total they
+  appear in by revenue, and revenue is on screen, so any two pay-inclusive totals that share doctors (two clinics, two
+  departments, or one total under two branch filters) are equations that give individual pay away (found in review:
+  two doctors split 60/40 and 25/75 across two clinics gave both pays exactly). The only pay-inclusive figure shown is
+  the whole organisation's unfiltered total (`wholeOrg`: no branch restriction, no branch filter), and only when pay
+  from at least `MIN_PAID_DOCTORS` (2) doctors is in it. People who need department or clinic contribution need
+  `finance.costs.compensation`. The rule is a disclosure control, not a business threshold, so it is a constant. Revenue,
   charges, branch overheads and the allocated line stay visible.
 
 ## Branches and privacy

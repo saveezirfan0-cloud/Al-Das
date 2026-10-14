@@ -150,7 +150,8 @@ export async function runManagementAlerts(
       p_scope: k.scope,
       p_period: k.period,
     });
-    if (error) totals.failed++; // not claimed: tried again tomorrow; the keys already won are still announced
+    if (error)
+      totals.failed++; // not claimed: tried again tomorrow; the keys already won are still announced
     else if (data === true) won.push(k);
   }
   totals.raised = won.length;
@@ -187,16 +188,31 @@ export async function runManagementAlerts(
       count: rule === "band_below" ? bandCount : keys.length,
     };
     if (period !== "-") payload.month = period;
-    const result = await notify(admin, {
-      orgId: org.id,
-      userIds: await recipients(admin, org.id, rule),
-      event: MGMT_ALERT_EVENTS[rule],
-      type: MGMT_ALERT_EVENTS[rule],
-      title: msg.title,
-      body: msg.body,
-      payload,
-    });
-    totals.notified += result?.recipients ?? 0;
+    try {
+      const result = await notify(admin, {
+        orgId: org.id,
+        userIds: await recipients(admin, org.id, rule),
+        event: MGMT_ALERT_EVENTS[rule],
+        type: MGMT_ALERT_EVENTS[rule],
+        title: msg.title,
+        body: msg.body,
+        payload,
+      });
+      totals.notified += result?.recipients ?? 0;
+    } catch {
+      // Not announced: release the claims so tomorrow's run reopens them (the claim reopens a cleared key).
+      totals.failed++;
+      for (const k of keys) {
+        await admin
+          .from("fin_mgmt_alert_state")
+          .update({ cleared_at: at })
+          .eq("org_id", org.id)
+          .eq("rule", k.rule)
+          .eq("scope", k.scope)
+          .eq("period", k.period)
+          .is("cleared_at", null);
+      }
+    }
   }
   return totals;
 }

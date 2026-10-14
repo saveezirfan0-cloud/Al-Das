@@ -176,13 +176,34 @@ describe("compensation visibility", () => {
       expect(values.has(v), String(v)).toBe(false);
   });
 
-  it("shows department and clinic totals that include pay when at least two doctors' pay is in them", () => {
+  it("withholds every department and clinic total that includes pay, even with two doctors' pay in it", () => {
+    // a doctor's pay is split over every total they appear in by revenue (on screen), so two totals that share
+    // doctors give individual pay away by solving two equations: no department or clinic total is safe to show
     const r = build(inputs(), false);
-    const p = r.clinics.find((c) => c.branchCode === "P")!;
-    expect(p.withheld).toBe(false);
-    expect(p.contribution).toBe(3800);
-    expect(p.l5).toBe(2800);
-    expect(p.departments.find((d) => d.label === "General Medicine")!.contribution).toBe(3800);
+    for (const c of r.clinics) {
+      expect(c).toMatchObject({ withheld: true, contribution: null, l5: null, l6: null });
+      expect(c.departments.every((d) => d.withheld && d.contribution === null)).toBe(true);
+    }
+    expect(r.clinics.find((c) => c.branchCode === "P")!.revenue).toBeGreaterThan(0);
+  });
+
+  it("the two-clinic attack: two doctors split across two clinics leak no pay without the permission", () => {
+    // review case: X splits 60/40 and Y 25/75 between two clinics; both clinic totals shown would let anyone solve
+    // 0.6·pX + 0.25·pY and 0.4·pX + 0.75·pY for each doctor's pay
+    const i = inputs();
+    const r = build(i, false);
+    const shown = [...r.clinics, ...r.clinics.flatMap((c) => c.departments)].filter((l) => !l.withheld);
+    expect(shown.filter((l) => l.contribution !== null)).toHaveLength(0);
+    // the same holds under a branch filter: a filtered "total" is never the whole organisation
+    const filtered = buildContribution(i, { canSeePay: false, wholeOrg: false });
+    expect(filtered.total).toMatchObject({ withheld: true, contribution: null });
+  });
+
+  it("shows the whole organisation's total (unfiltered) when at least two doctors' pay is in it", () => {
+    const r = buildContribution(inputs(), { canSeePay: false, wholeOrg: true });
+    expect(r.total.withheld).toBe(false);
+    expect(r.total.contribution).toBe(fixture.result.total.contribution);
+    expect(r.clinics.every((c) => c.withheld)).toBe(true);
   });
 
   it("withholds a total whose pay comes from one doctor, its sibling departments and the grand total", () => {
@@ -192,7 +213,7 @@ describe("compensation visibility", () => {
     expect(m.departments.every((d) => d.withheld && d.contribution === null)).toBe(true);
     const unknown = r.clinics.find((c) => c.branchCode === null)!;
     expect(unknown.withheld).toBe(true);
-    // total − Palm would give the others away, so the total is withheld too
+    // not the whole organisation's unfiltered view (the helper passes no wholeOrg), so the total is withheld too
     expect(r.total).toMatchObject({ withheld: true, contribution: null, l5: null, l6: null });
     // revenue, charges, overheads and the allocated line stay visible
     expect(m.revenue).toBe(3800);

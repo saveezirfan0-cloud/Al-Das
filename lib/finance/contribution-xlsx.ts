@@ -62,7 +62,7 @@ export const CONTRIBUTION_DEFINITIONS: readonly (readonly [string, string])[] = 
   ],
   [
     WITHHELD,
-    `Without the doctor compensation permission, individual pay is not shown and a total is withheld when its pay comes from fewer than ${MIN_PAID_DOCTORS} doctors (or would let one be worked out).`,
+    `Without the doctor compensation permission, individual pay is not shown, every department and clinic figure that includes pay is withheld (two such figures sharing doctors would let individual pay be worked out), and only the whole organisation's unfiltered total is shown, when pay from at least ${MIN_PAID_DOCTORS} doctors is in it.`,
   ],
 ];
 
