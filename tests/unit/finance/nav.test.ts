@@ -172,6 +172,7 @@ describe("Finance navigation", () => {
       [
         "/finance/analytics",
         "/finance/branches",
+        "/finance/capacity", // M3: follows finance.revenue.view; room costs stay hidden (no cost permission)
         "/finance/doctor-performance", // Phase 23B: follows finance.revenue.view (docs/39 §4)
         "/finance/doctors",
         "/finance/flash",

@@ -106,6 +106,21 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
     ],
   },
   {
+    href: "/finance/capacity",
+    label: "Capacity",
+    section: "Overview",
+    permissions: ["finance.revenue.view"],
+    keywords: [
+      "rooms",
+      "room rota",
+      "available hours",
+      "revenue per hour",
+      "occupancy",
+      "utilisation",
+      "room-hour",
+    ],
+  },
+  {
     href: "/finance/analytics",
     label: "Billing mix and trends",
     section: "Overview",

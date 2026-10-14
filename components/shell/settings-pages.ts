@@ -196,6 +196,13 @@ export const SETTINGS_PAGES: readonly SettingsPage[] = [
     allow: admin,
   },
   {
+    href: "/settings/rooms",
+    label: "Rooms",
+    section: "Clinic operations",
+    keywords: ["rota", "room rota", "consultation room", "procedure room", "room cost", "capacity"],
+    allow: (m) => can(m, "rooms.manage"),
+  },
+  {
     href: "/settings/front-desk",
     label: "Front desk",
     section: "Clinic operations",

@@ -12059,6 +12059,53 @@ export type Database = {
           },
         ];
       };
+      fin_ref_doctor_keys: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          doctor_key: string;
+          org_id: string;
+          specialist_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          doctor_key: string;
+          org_id: string;
+          specialist_id: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          doctor_key?: string;
+          org_id?: string;
+          specialist_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_ref_doctor_keys_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_ref_doctor_keys_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_ref_doctor_keys_specialist_id_fkey";
+            columns: ["specialist_id"];
+            isOneToOne: false;
+            referencedRelation: "specialists";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       fin_ref_doctors: {
         Row: {
           active: boolean;
@@ -12218,6 +12265,7 @@ export type Database = {
           recovery_tone_approved_by: string | null;
           recovery_tone_approved_hash: string | null;
           recovery_variable_map: NonNullable<Json>;
+          room_open_hours_per_day: number;
           scorecard_days_to_pay_alert: number;
           scorecard_days_to_pay_warn: number;
           scorecard_denial_rate_alert: number;
@@ -12304,6 +12352,7 @@ export type Database = {
           recovery_tone_approved_by?: string | null;
           recovery_tone_approved_hash?: string | null;
           recovery_variable_map?: NonNullable<Json>;
+          room_open_hours_per_day?: number;
           scorecard_days_to_pay_alert?: number;
           scorecard_days_to_pay_warn?: number;
           scorecard_denial_rate_alert?: number;
@@ -12389,6 +12438,7 @@ export type Database = {
           recovery_tone_approved_by?: string | null;
           recovery_tone_approved_hash?: string | null;
           recovery_variable_map?: NonNullable<Json>;
+          room_open_hours_per_day?: number;
           scorecard_days_to_pay_alert?: number;
           scorecard_days_to_pay_warn?: number;
           scorecard_denial_rate_alert?: number;
@@ -19202,6 +19252,117 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "roles_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      room_rota: {
+        Row: {
+          created_at: string;
+          end_min: number;
+          id: string;
+          org_id: string;
+          room_id: string;
+          specialist_id: string;
+          start_min: number;
+          updated_at: string;
+          weekday: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          end_min: number;
+          id?: string;
+          org_id: string;
+          room_id: string;
+          specialist_id: string;
+          start_min: number;
+          updated_at?: string;
+          weekday: number;
+        };
+        Update: {
+          created_at?: string;
+          end_min?: number;
+          id?: string;
+          org_id?: string;
+          room_id?: string;
+          specialist_id?: string;
+          start_min?: number;
+          updated_at?: string;
+          weekday?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "room_rota_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "room_rota_room_id_fkey";
+            columns: ["room_id"];
+            isOneToOne: false;
+            referencedRelation: "rooms";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "room_rota_specialist_id_fkey";
+            columns: ["specialist_id"];
+            isOneToOne: false;
+            referencedRelation: "specialists";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      rooms: {
+        Row: {
+          active: boolean;
+          created_at: string;
+          id: string;
+          kind: string;
+          location_id: string;
+          monthly_cost: number | null;
+          name: string;
+          org_id: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          active?: boolean;
+          created_at?: string;
+          id?: string;
+          kind?: string;
+          location_id: string;
+          monthly_cost?: number | null;
+          name: string;
+          org_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          active?: boolean;
+          created_at?: string;
+          id?: string;
+          kind?: string;
+          location_id?: string;
+          monthly_cost?: number | null;
+          name?: string;
+          org_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "rooms_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "rooms_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";

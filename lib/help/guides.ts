@@ -222,6 +222,25 @@ export const GUIDES: readonly Guide[] = [
     ],
   },
   {
+    id: "finance-capacity",
+    title: "Capacity and rooms",
+    pages: ["/finance/capacity", "/settings/rooms"],
+    purpose:
+      "How much clinic time each doctor and room had in a month, and what it earned: available hours, revenue per available hour, room occupancy and revenue per room-hour.",
+    steps: [
+      "Under Settings, Rooms add each branch's rooms (kind, and the monthly cost if known) and the weekly rota: which doctor uses which room, on which day and when.",
+      "On Finance, Capacity pick a month and, if you work in more than one, a branch.",
+      "Link each Unite doctor to the Pulse doctor under Unite doctors and Pulse doctors, so their revenue meets their hours.",
+      "Available hours are working hours on open days minus weekly blocks and leave; a doctor's revenue is shared over their rooms by their rota hours.",
+    ],
+    watchOut: [
+      "Booked against available time needs the Unite appointment feed; until then it shows Needs Unite appointments.",
+      "Occupancy uses the room opening hours setting, because branches have no opening hours in Pulse yet.",
+      "An unknown room cost stays unknown (never 0). Cost per hour shows only to people who may see costs.",
+      "A room cannot be on the rota twice at the same time, and a doctor must work at the room's branch.",
+    ],
+  },
+  {
     id: "finance-flash",
     title: "Daily flash",
     pages: ["/finance/flash", "/finance/flash/settings"],
