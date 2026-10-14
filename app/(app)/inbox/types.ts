@@ -113,6 +113,11 @@ export type InboxProps = {
   templates: TemplateInfo[];
   people: Person[];
   settings: { require_category_on_close: boolean; require_summary_on_close: boolean };
+  /** Phase B: the branches this member may choose in the filter (active ones), and every branch's name for the chips. */
+  branches: Array<{ id: string; name: string }>;
+  branchNames: Record<string, string>;
+  /** The branch the switcher shows (null = all the member may see); the list follows it unless query.branch is set. */
+  currentBranch: string | null;
   /** First page of the list (kept live by Realtime refreshes). */
   conversations: ConversationListRow[];
   /** Cursor for the next (older) page of the list; null when the first page is everything. */

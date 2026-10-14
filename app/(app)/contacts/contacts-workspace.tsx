@@ -91,8 +91,9 @@ export function ContactsWorkspace({ bootstrap }: { bootstrap: ContactsBootstrap 
         customFields: bootstrap.customFields,
         timezone: bootstrap.timezone,
         users: bootstrap.users,
+        branches: bootstrap.branches,
       }),
-    [bootstrap.customFields, bootstrap.timezone, bootstrap.users],
+    [bootstrap.customFields, bootstrap.timezone, bootstrap.users, bootstrap.branches],
   );
 
   // Hide columns that are not in the default set on first use.
@@ -199,8 +200,9 @@ export function ContactsWorkspace({ bootstrap }: { bootstrap: ContactsBootstrap 
       users: bootstrap.users.map((u) => ({ value: u.id, label: u.label })),
       tags: tags.map((t) => ({ value: t.id, label: t.name })),
       segments: segments.map((s) => ({ value: s.id, label: s.name })),
+      locations: bootstrap.branches.map((b) => ({ value: b.id, label: b.name })),
     }),
-    [bootstrap.users, tags, segments],
+    [bootstrap.users, tags, segments, bootstrap.branches],
   );
 
   async function selectAllMatching() {

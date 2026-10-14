@@ -62,7 +62,13 @@ export type ChannelView = {
   own_token: boolean;
   subscribed: boolean;
   templates: { total: number; approved: number };
+  /** Phase B: the branch this number belongs to, and the team its new conversations go to first. */
+  location_id: string | null;
+  default_team_id: string | null;
 };
+
+export type Option = { id: string; name: string };
+const NONE = "__none__";
 
 function qualityVariant(q: string | null): "success" | "warning" | "destructive" | "outline" {
   switch (q) {
@@ -82,7 +88,15 @@ function tierLabel(t: string | null): string {
   return t.replace("TIER_", "").replace("UNLIMITED", "unlimited") + "/24h";
 }
 
-export function ChannelCard({ channel }: { channel: ChannelView }) {
+export function ChannelCard({
+  channel,
+  branches,
+  teams,
+}: {
+  channel: ChannelView;
+  branches: Option[];
+  teams: Option[];
+}) {
   const [pending, startTransition] = useTransition();
   const [editing, setEditing] = useState(false);
   const [profile, setProfile] = useState(false);
@@ -164,6 +178,15 @@ export function ChannelCard({ channel }: { channel: ChannelView }) {
           <dd className="text-foreground font-mono">{channel.phone_number_id}</dd>
           <dt>WABA ID</dt>
           <dd className="text-foreground font-mono">{channel.waba_id}</dd>
+          <dt>Branch</dt>
+          <dd className="text-foreground">
+            {branches.find((b) => b.id === channel.location_id)?.name ?? "No branch"}
+          </dd>
+          <dt>New chats go to</dt>
+          <dd className="text-foreground">
+            {teams.find((t) => t.id === channel.default_team_id)?.name ??
+              "the workspace default team (Settings, Inbox)"}
+          </dd>
           <dt>Catalogue</dt>
           <dd className="text-foreground">{channel.catalog_id ?? "—"}</dd>
           <dt>Token</dt>
@@ -193,7 +216,13 @@ export function ChannelCard({ channel }: { channel: ChannelView }) {
           </dd>
         </dl>
       </CardContent>
-      <EditChannelDialog channel={channel} open={editing} onOpenChange={setEditing} />
+      <EditChannelDialog
+        channel={channel}
+        branches={branches}
+        teams={teams}
+        open={editing}
+        onOpenChange={setEditing}
+      />
       <ProfileDialog channel={channel} open={profile} onOpenChange={setProfile} />
     </Card>
   );
@@ -201,10 +230,14 @@ export function ChannelCard({ channel }: { channel: ChannelView }) {
 
 function EditChannelDialog({
   channel,
+  branches,
+  teams,
   open,
   onOpenChange,
 }: {
   channel: ChannelView;
+  branches: Option[];
+  teams: Option[];
   open: boolean;
   onOpenChange: (o: boolean) => void;
 }) {
@@ -216,6 +249,8 @@ function EditChannelDialog({
   );
   const [token, setToken] = useState("");
   const [clearToken, setClearToken] = useState(false);
+  const [branch, setBranch] = useState(channel.location_id ?? NONE);
+  const [team, setTeam] = useState(channel.default_team_id ?? NONE);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -230,6 +265,8 @@ function EditChannelDialog({
         status,
         access_token: token,
         clear_token: clearToken,
+        location_id: branch === NONE ? null : branch,
+        default_team_id: team === NONE ? null : team,
       });
       if (!res.ok) {
         setError(res.error);
@@ -246,7 +283,9 @@ function EditChannelDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Edit {channel.name}</DialogTitle>
-          <DialogDescription>Name, catalogue, throughput and token.</DialogDescription>
+          <DialogDescription>
+            Name, branch and routing, catalogue, throughput and token.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="flex flex-col gap-4">
           <div className="grid gap-2">
@@ -257,6 +296,46 @@ function EditChannelDialog({
               onChange={(e) => setName(e.target.value)}
               required
             />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-2">
+              <Label htmlFor={`b-${channel.id}`}>Branch</Label>
+              <Select value={branch} onValueChange={setBranch}>
+                <SelectTrigger id={`b-${channel.id}`} className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE}>No branch</SelectItem>
+                  {branches.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>
+                      {b.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-muted-foreground text-xs">
+                New conversations on this number belong to this branch.
+              </p>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor={`dt-${channel.id}`}>New chats go to</Label>
+              <Select value={team} onValueChange={setTeam}>
+                <SelectTrigger id={`dt-${channel.id}`} className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE}>Workspace default team</SelectItem>
+                  {teams.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-muted-foreground text-xs">
+                Used before the default team in Settings, Inbox.
+              </p>
+            </div>
           </div>
           <div className="grid gap-2">
             <Label htmlFor={`c-${channel.id}`}>Catalogue ID</Label>

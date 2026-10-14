@@ -53,6 +53,7 @@ import {
   SF20G_TABLES,
   SF20I_TABLES,
   PORTAL_TAGS_TABLES,
+  ORGANISATION_TABLES,
   resetDb,
   seedM3Rows,
   seedPhase13Rows,
@@ -81,6 +82,7 @@ import {
   seedSf20iRows,
   seedPortalTagRows,
   seedM4aRows,
+  seedOrganisationRows,
   seedSecurityRows,
   seedSoftDeleteRows,
   SOFT_DELETE_SERVICE_ONLY_TABLES,
@@ -1094,6 +1096,8 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
     await seedM4aRows(c, orgA);
     // M3 rooms and capacity likewise.
     await seedM3Rows(c, orgA);
+    // Phase C (organisation): a staff member, a duty and a shift.
+    await seedOrganisationRows(c, orgA);
   });
   afterAll(async () => {
     await resetDb(c);
@@ -1112,6 +1116,7 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
       ...SF20E_TABLES,
       ...SF20I_TABLES,
       ...PORTAL_TAGS_TABLES,
+      ...ORGANISATION_TABLES,
       ...SF20D_TABLES,
       ...SF20C_BOOKING_TABLES,
       ...SF20C_TABLES,
@@ -1147,6 +1152,7 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
         ...SF20E_TABLES,
         ...SF20I_TABLES,
         ...PORTAL_TAGS_TABLES,
+        ...ORGANISATION_TABLES,
         ...SF20D_TABLES,
         ...SF20C_BOOKING_TABLES,
         ...SF20C_TABLES,

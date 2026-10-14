@@ -32,6 +32,8 @@ export type ContactFormValues = {
   external_id: string;
   promotions_opt_in: boolean;
   stop_marketing: boolean;
+  /** Phase B: home branch (locations.id), "" = none. */
+  location_id: string;
   custom: Record<string, unknown>;
 };
 
@@ -52,6 +54,7 @@ export const EMPTY_CONTACT_FORM: ContactFormValues = {
   external_id: "",
   promotions_opt_in: false,
   stop_marketing: false,
+  location_id: "",
   custom: {},
 };
 
@@ -77,6 +80,7 @@ export function toContactInput(v: ContactFormValues) {
     external_id: s(v.external_id),
     promotions_opt_in: v.promotions_opt_in,
     stop_marketing: v.stop_marketing,
+    location_id: v.location_id || null,
     custom: v.custom,
   };
 }
@@ -87,12 +91,15 @@ export function ContactForm({
   users,
   customFields,
   idPrefix = "c",
+  branches = [],
 }: {
   value: ContactFormValues;
   onChange: (v: ContactFormValues) => void;
   users: Array<{ id: string; label: string }>;
   customFields: CustomFieldDef[];
   idPrefix?: string;
+  /** Phase B: branches for the home-branch picker; only `allowed` ones can be chosen. */
+  branches?: Array<{ id: string; name: string; allowed: boolean }>;
 }) {
   const set = <K extends keyof ContactFormValues>(k: K, v: ContactFormValues[K]) =>
     onChange({ ...value, [k]: v });
@@ -162,6 +169,34 @@ export function ContactForm({
       {text("label", "Label")}
       {userSelect("owner_id", "Contact owner")}
       {userSelect("assignee_id", "Assignee")}
+      {(branches.length > 1 || value.location_id) && (
+        <div className="grid gap-1.5">
+          <Label htmlFor={`${idPrefix}-location_id`}>Home branch</Label>
+          <Select
+            value={value.location_id || NONE}
+            onValueChange={(v) => set("location_id", v === NONE ? "" : v)}
+          >
+            <SelectTrigger id={`${idPrefix}-location_id`} className="w-full">
+              <SelectValue placeholder="—" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NONE}>—</SelectItem>
+              {branches
+                .filter((b) => b.allowed || b.id === value.location_id)
+                .map((b) => (
+                  <SelectItem key={b.id} value={b.id} disabled={!b.allowed}>
+                    {b.name}
+                  </SelectItem>
+                ))}
+              {value.location_id && !branches.some((b) => b.id === value.location_id) && (
+                <SelectItem value={value.location_id} disabled>
+                  Other branch
+                </SelectItem>
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
       <div className="grid gap-1.5">
         <Label htmlFor={`${idPrefix}-source`}>Source</Label>
         <Select value={value.source || "manual"} onValueChange={(v) => set("source", v)}>

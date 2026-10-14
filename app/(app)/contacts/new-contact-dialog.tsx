@@ -76,6 +76,7 @@ export function NewContactDialog({
             onChange={setValues}
             users={bootstrap.users}
             customFields={bootstrap.customFields}
+            branches={bootstrap.branches}
             idPrefix="new"
           />
           {error && (

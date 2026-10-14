@@ -3,6 +3,7 @@ import "server-only";
 import {
   autoReplyDecision,
   parseRouteOutcome,
+  routingTeamId,
   type AutoReplyDecision,
   type RouteOutcome,
 } from "@/lib/inbox/routing-rules";
@@ -12,23 +13,26 @@ import { redactText } from "@/lib/redact";
 import type { AdminClient } from "@/lib/supabase/admin";
 
 /**
- * Routes a new, unowned conversation into the workspace's default team (Phase 20c). Pick, capacity check, fallback team
- * and the owner write happen in ONE SQL transaction (public.route_conversation), so two webhooks in flight cannot both
- * take a member's last free place. Never throws: an inbound message must be stored even when routing fails (the
- * conversation then stays unassigned and the escalation ladder covers it).
+ * Routes a new, unowned conversation into its number's team (Phase B, channels.default_team_id), else the workspace's
+ * default team (Phase 20c). Pick, capacity check, fallback team and the owner write happen in ONE SQL transaction
+ * (public.route_conversation), so two webhooks in flight cannot both take a member's last free place. Never throws: an
+ * inbound message must be stored even when routing fails (the conversation then stays unassigned and the escalation
+ * ladder covers it).
  */
 export async function routeConversation(
   admin: AdminClient,
   orgId: string,
   conversationId: string,
   settings: Pick<InboxSettings, "default_team_id" | "auto_assign">,
+  channelTeamId: string | null = null,
 ): Promise<RouteOutcome | null> {
-  if (!settings.default_team_id) return null;
+  const teamId = routingTeamId(channelTeamId, settings.default_team_id);
+  if (!teamId) return null;
   try {
     const { data, error } = await admin.rpc("route_conversation", {
       p_org_id: orgId,
       p_conversation_id: conversationId,
-      p_team_id: settings.default_team_id,
+      p_team_id: teamId,
       p_round_robin: settings.auto_assign === "round_robin",
     });
     if (error) {

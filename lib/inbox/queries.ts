@@ -2,6 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { withBranchFilter } from "@/lib/branches/filter";
 import { FOLDERS, type FolderKey, type InboxQuery } from "@/lib/inbox/folders";
 import {
   CONVERSATION_PAGE_SIZE,
@@ -22,7 +23,7 @@ type UserClient = SupabaseClient<Database>;
 export const CONVERSATION_LIST_SELECT = `
   id, org_id, channel_id, contact_id, status, assignee_user_id, assignee_team_id, bot_active,
   last_inbound_at, last_outbound_at, last_message_at, last_message_preview, last_message_direction,
-  unread_count, category_id, summary, ai_tags, ad_referral, opened_at, closed_at,
+  unread_count, category_id, summary, ai_tags, ad_referral, opened_at, closed_at, location_id,
   contacts!inner(id, first_name, last_name, wa_profile_name, phone_e164, wa_bsuid, stop_marketing),
   channels(id, name, display_phone),
   conversation_labels(tag_id, tags(id, name, color))
@@ -50,6 +51,8 @@ export type ConversationListRow = {
   ad_referral: unknown;
   opened_at: string;
   closed_at: string | null;
+  /** Phase B: the branch of the number the conversation runs on (null = no branch). */
+  location_id: string | null;
   contacts: {
     id: string;
     first_name: string;
@@ -66,7 +69,13 @@ export type ConversationListRow = {
   }>;
 };
 
-export type QueryContext = { userId: string; orgId: string; teamIds: string[] };
+export type QueryContext = {
+  userId: string;
+  orgId: string;
+  teamIds: string[];
+  /** Phase B: branch ids the list and the folder counts keep to (plus rows without a branch); null = every branch. */
+  branchIds?: string[] | null;
+};
 
 export async function mentionConversationIds(
   supabase: UserClient,
@@ -102,6 +111,8 @@ function applyFolder<B extends Filterable<B>>(
 ): B {
   // Campaign sends sit in a hidden conversation until the patient replies.
   let b = builder.eq("campaign_only", false) as B;
+  // Phase B: the branch view narrows every folder and team queue alike.
+  b = withBranchFilter(b, ctx.branchIds);
   if (team) return b.neq("status", "closed").eq("assignee_team_id", team) as B;
   switch (folder) {
     case "open":

@@ -16,6 +16,8 @@ import {
 import { requirePerm } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 
+import { exportQuery } from "@/lib/finance/list-exports";
+
 export const metadata = { title: "Claims" };
 export const dynamic = "force-dynamic";
 
@@ -80,7 +82,17 @@ export default async function ClaimsPage({ searchParams }: { searchParams: Promi
       <PageHeader
         title="Claims"
         description={`${total.toLocaleString()} claim activities from Diligence, matched to Unite invoices.`}
-      />
+      >
+        {total > 0 && (
+          <Button asChild variant="outline" size="sm">
+            <a
+              href={`/api/finance/claims/export${exportQuery(sp, ["q", "status", "payer", "denial", "match"])}`}
+            >
+              Excel
+            </a>
+          </Button>
+        )}
+      </PageHeader>
       <form className="grid gap-2 sm:grid-cols-6">
         <Input
           name="q"

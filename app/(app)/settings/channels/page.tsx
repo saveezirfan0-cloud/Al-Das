@@ -14,7 +14,13 @@ export default async function ChannelsPage() {
   const member = await requirePerm("settings.manage");
   const admin = createAdminClient();
   const env = serverEnv();
-  const [{ data: channels }, { data: secrets }, { data: templateCounts }] = await Promise.all([
+  const [
+    { data: channels },
+    { data: secrets },
+    { data: templateCounts },
+    { data: branches },
+    { data: teams },
+  ] = await Promise.all([
     admin
       .from("channels")
       .select("*")
@@ -27,6 +33,14 @@ export default async function ChannelsPage() {
       .select("channel_id, status")
       .eq("org_id", member.orgId)
       .is("archived_at", null),
+    // Phase B: each number belongs to a branch and may route to its own team.
+    admin
+      .from("locations")
+      .select("id, name")
+      .eq("org_id", member.orgId)
+      .eq("active", true)
+      .order("name"),
+    admin.from("teams").select("id, name").eq("org_id", member.orgId).order("name"),
   ]);
   const hasOwnToken = new Set((secrets ?? []).map((s) => s.channel_id));
   const counts = new Map<string, { total: number; approved: number }>();
@@ -56,6 +70,8 @@ export default async function ChannelsPage() {
     own_token: hasOwnToken.has(c.id),
     subscribed: !!(c.meta as { subscribed_at?: string } | null)?.subscribed_at,
     templates: counts.get(c.id) ?? { total: 0, approved: 0 },
+    location_id: c.location_id,
+    default_team_id: c.default_team_id,
   }));
 
   const configured = !!env.META_APP_SECRET && !!env.META_WEBHOOK_VERIFY_TOKEN;
@@ -90,7 +106,7 @@ export default async function ChannelsPage() {
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
           {views.map((c) => (
-            <ChannelCard key={c.id} channel={c} />
+            <ChannelCard key={c.id} channel={c} branches={branches ?? []} teams={teams ?? []} />
           ))}
         </div>
       )}

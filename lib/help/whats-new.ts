@@ -9,6 +9,24 @@ export const WHATS_NEW: readonly WhatsNewEntry[] = [
     body: "Five new Finance pages build on the uploaded Unite collection report. Collections and data quality shows how each month was paid and flags rows worth checking. Insurance billed vs claimed lists invoices billed to an insurer that Diligence shows were never submitted. Contribution shows what each doctor, department and clinic contributes after the pay and overheads Finance has loaded, marked Provisional until the month is approved. Capacity shows each doctor's available hours and revenue per hour, with rooms kept under Settings, Rooms. The Recruitment calculator tests whether a candidate doctor would pay for themselves against the clinic's own doctors. Finance is also told, once per alert, when the report is late, revenue is behind target, or doctors fall below the revenue-per-patient band.",
   },
   {
+    id: "2026-12-03-finance-reports-hub",
+    date: "2026-10-14",
+    title: "Finance reports in one place, invoice view and e-mailed statements",
+    body: "Finance, Reports lists every management, accounting, receivables and tax report you may open. Pick the branch and the month, quarter or year once, tick Compare if you want the period before, and open or download each report with those choices (also under Insights, Reports). An invoice now shows who pays (payer and TPA, the insurer's and the patient's share, the balance due), whether it is posted in the ledger with a link to the journal, a Print button and an internal PDF copy (not a tax invoice). Accounting statements can be e-mailed to a business customer, with a balance-confirmation letter, and the month-end close pack to the people who signed it; Pulse shows the address before sending. New: Payables ageing and Supplier statements under Accounting, and Excel downloads of the invoices, claims, denials, journals, day book and general ledger lists, with every row.",
+  },
+  {
+    id: "2026-12-02-organisation",
+    date: "2026-10-14",
+    title: "Doctors, Staff, Rota and My day",
+    body: "CRM now holds the organisation as well as patients and enquiries. Doctors lists every doctor with their specialty, branches, services, licence expiry and today's appointments, and opens their calendar. Staff keeps each person's job, department, home branch, manager, duties and visa and licence dates (pay stays in Finance), and the Rota plans who is on at each branch, week by week, refusing two shifts at once for the same person. People who manage staff get a daily reminder of visas and licences that are about to expire (60 days before by default). Doctors have a new My day page with their own patients today, where each one is in the visit, and their tasks. Two new roles are ready to use: Doctor and HR.",
+  },
+  {
+    id: "2026-12-01-branch-dimension",
+    date: "2026-10-14",
+    title: "Branches across Pulse",
+    body: "Each WhatsApp number can now belong to a branch and send its new chats to that branch's team first (Settings, WhatsApp channels, Edit). Chats show their branch, and the Inbox, Tasks and their counts follow the branch switcher, with a Branch filter to look at another branch or all of yours. New tasks start in your current branch, and people limited to some branches only see those branches' tasks. Patients have a home branch on their record and in the list filters. In Accounting, the trial balance, general ledger, balance sheet, cash flow and receivables ageing can show one branch, and the profit and loss has Branches side by side; each branch's finance code is set under Settings, Appointment rules, Locations.",
+  },
+  {
     id: "2026-11-26-doctor-performance",
     date: "2026-10-14",
     title: "Doctor performance from the Unite collection report",

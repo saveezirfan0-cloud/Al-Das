@@ -496,6 +496,14 @@ const CONTACT_BASE_FIELDS: Partial[] = [
     optionsSource: "users",
   },
   {
+    key: "home_branch",
+    label: "Home branch",
+    group: "Contact",
+    type: "select",
+    source: col("location_id", "uuid"),
+    optionsSource: "locations",
+  },
+  {
     key: "external_id",
     label: "External ID (Unite PIN)",
     group: "Contact",

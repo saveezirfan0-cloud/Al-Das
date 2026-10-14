@@ -55,6 +55,8 @@ describe("catalogue", () => {
       "Receptionist",
       "Care coordinator",
       "Marketing",
+      "Doctor",
+      "HR",
       "Finance",
       "Finance Manager",
       "Billing",
@@ -186,5 +188,53 @@ describe("Phase 16 permissions", () => {
       expect(perms(name)).toContain("media.view");
       expect(perms(name)).not.toContain("media.manage");
     }
+  });
+});
+
+describe("Phase C permissions (organisation)", () => {
+  const perms = (name: string) => SYSTEM_ROLES.find((r) => r.name === name)!.permissions;
+
+  it("catalogues hr.view and hr.manage in the Organisation group", () => {
+    for (const key of ["hr.view", "hr.manage"]) {
+      expect(PERMISSIONS.find((p) => p.key === key)?.group, key).toBe("Organisation");
+    }
+  });
+
+  it("gives HR records to the HR preset (and Admin through '*') only", () => {
+    const holders = SYSTEM_ROLES.filter((r) =>
+      r.permissions.some((p) => permissionMatches(p, "hr.view")),
+    ).map((r) => r.name);
+    expect(holders).toEqual(["Admin", "HR"]);
+    expect(perms("HR")).toEqual(["hr.view", "hr.manage"]);
+  });
+
+  it("keeps pay out of HR: the HR preset holds no finance key", () => {
+    expect(perms("HR").some((p) => p.startsWith("finance."))).toBe(false);
+    expect(perms("HR")).not.toContain("finance.costs.compensation");
+  });
+
+  it("lets a Doctor read the diary and their follow-ups but never book, message or open documents", () => {
+    const doctor = perms("Doctor");
+    expect(doctor).toEqual(
+      expect.arrayContaining([
+        "appointments.view",
+        "contacts.view",
+        "tasks.view",
+        "tasks.manage",
+        "portal.clinical_followups.read",
+      ]),
+    );
+    for (const key of [
+      "appointments.manage",
+      "inbox.send",
+      "documents.view",
+      "contacts.manage",
+      "clinical.settings.manage",
+      "hr.view",
+    ])
+      expect(
+        doctor.some((p) => permissionMatches(p, key)),
+        key,
+      ).toBe(false);
   });
 });

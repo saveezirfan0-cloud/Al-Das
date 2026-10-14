@@ -43,6 +43,8 @@ type Form = {
   contact: { id: string; full_name: string; phone_e164: string | null } | null;
   enquiry: EnquiryOption | null;
   done: boolean;
+  /** Phase B: the task's branch (null = no branch). */
+  location_id: string | null;
 };
 
 /** Next full hour in the org timezone, as a datetime-local value. */
@@ -61,6 +63,7 @@ function blankForm(b: TasksBootstrap, preset?: Partial<Form>): Form {
     contact: null,
     enquiry: null,
     done: false,
+    location_id: b.currentBranch,
     ...preset,
   };
 }
@@ -78,6 +81,7 @@ function toForm(t: TaskRow, tz: string): Form {
         ? { id: t.enquiry.id, number: t.enquiry.number, title: t.enquiry.title }
         : null,
     done: t.done,
+    location_id: t.location_id,
   };
 }
 
@@ -118,6 +122,7 @@ export function TaskDrawer({
       assignee_id: form.assignee_id,
       contact_id: form.contact?.id ?? null,
       enquiry_id: form.enquiry?.id ?? null,
+      location_id: form.location_id,
     };
     startTransition(async () => {
       if (editing) {
@@ -202,6 +207,31 @@ export function TaskDrawer({
                 onChange={(v) => set({ assignee_id: v })}
               />
             </div>
+            {(bootstrap.branches.length > 1 || form.location_id) && (
+              <div className="grid gap-1.5">
+                <Label htmlFor="t-branch">Branch</Label>
+                <OptionSelect
+                  id="t-branch"
+                  noneLabel="No branch"
+                  disabled={!canManage}
+                  value={form.location_id}
+                  options={[
+                    ...bootstrap.branches.map((b) => ({ value: b.id, label: b.name })),
+                    // A branch that is no longer active stays readable on the task it is set on.
+                    ...(form.location_id &&
+                    !bootstrap.branches.some((b) => b.id === form.location_id)
+                      ? [
+                          {
+                            value: form.location_id,
+                            label: bootstrap.branchNames[form.location_id] ?? "Other branch",
+                          },
+                        ]
+                      : []),
+                  ]}
+                  onChange={(v) => set({ location_id: v })}
+                />
+              </div>
+            )}
             <div className="grid gap-1.5">
               <Label htmlFor="t-contact">Contact</Label>
               <ContactPicker

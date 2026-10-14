@@ -5,7 +5,7 @@
  * `filterIds` is what lib/branches/server.ts `branchView()` returns: the branch ids a query must keep to, plus rows
  * with no branch, or `null` for no filter at all (the default for an unrestricted member).
  */
-import { branchFilterIds, branchOrFilter, type BranchAccess } from "./access";
+import { ALL_BRANCHES, branchFilterIds, branchOrFilter, type BranchAccess } from "./access";
 
 /**
  * Adds the branch condition to a PostgREST query: the allowed branches plus rows without one. A `null` filter leaves
@@ -22,4 +22,18 @@ export function withBranchFilter<Q extends { or(filters: string): Q }>(
 /** The access-only filter (no switcher choice): every branch the member may see, or null when unrestricted. */
 export function accessFilterIds(access: BranchAccess): string[] | null {
   return branchFilterIds(access, null);
+}
+
+/**
+ * The branch ids a list keeps to when its own filter may override the switcher (inbox, tasks): an explicit branch
+ * narrows to it (never past the member's branches: an unallowed one leaves only rows without a branch), "all" means
+ * every branch the member may see, and null follows the switcher's view (`branchView().filterIds`). Null = no filter.
+ */
+export function viewBranchIds(
+  choice: string | null | undefined,
+  view: { access: BranchAccess; filterIds: string[] | null },
+): string[] | null {
+  if (choice === ALL_BRANCHES) return branchFilterIds(view.access, null);
+  if (choice) return branchFilterIds(view.access, choice);
+  return view.filterIds;
 }

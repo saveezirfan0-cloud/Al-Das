@@ -55,6 +55,8 @@ export function AppointmentsWorkspace({
     openId?: string | null;
     /** Phase B: the branch the diary opens on (the switcher's choice, home or only branch). */
     locationId?: string | null;
+    /** Phase C: the doctor the calendar view opens on (from the Doctors directory). */
+    specialistId?: string | null;
   };
 }) {
   const [view, setView] = React.useState<View>(initial.view);
@@ -71,7 +73,9 @@ export function AppointmentsWorkspace({
   const [locationId, setLocationId] = React.useState(
     initial.locationId ?? bootstrap.locations[0]?.id ?? "",
   );
-  const [calendarSpecialistId, setCalendarSpecialistId] = React.useState("");
+  const [calendarSpecialistId, setCalendarSpecialistId] = React.useState(
+    initial.specialistId ?? "",
+  );
   const [reloadKey, setReloadKey] = React.useState(0);
   const [openAppt, setOpenAppt] = React.useState<string | null>(initial.openId ?? null);
   const [drawer, setDrawer] = React.useState<{ open: boolean; defaults: NewAppointmentDefaults }>(

@@ -2,6 +2,8 @@ import "server-only";
 
 import { ForbiddenError } from "@/lib/auth/can";
 import { requireMember } from "@/lib/auth/session";
+import { loadBranchCodeOptions } from "@/lib/accounting/accounting-server";
+import { pickBranchCode, type BranchCodeOption } from "@/lib/branches/codes";
 import { parseStatementParams, type StatementReport } from "@/lib/accounting/statements/params";
 import {
   buildStatement,
@@ -15,6 +17,9 @@ import { createAdminClient, type AdminClient } from "@/lib/supabase/admin";
 type Search = Record<string, string | string[] | undefined>;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Phase B: the statements whose figures can be narrowed to one branch's journal lines. */
+const BRANCH_FILTERED: readonly StatementReport[] = ["balance-sheet", "cash-flow"];
 
 /**
  * What every statement page does first: the permission check (any key of REPORT_PERMISSIONS), then the service-role
@@ -50,6 +55,12 @@ export async function loadReportPage(
         })
       : { from: ctx.fy.start, to: today < ctx.fy.start ? ctx.fy.start : today },
   );
+  // Phase B: a branch filter must be one of the org's finance codes; anything else shows every branch.
+  let branchOptions: BranchCodeOption[] = [];
+  if (BRANCH_FILTERED.includes(report)) {
+    branchOptions = await loadBranchCodeOptions(admin, member.orgId);
+    p.branch = pickBranchCode(p.branch, branchOptions);
+  }
   const built = await buildStatement(admin, member, report, p, ctx);
-  return { member, admin, today, ctx, p, built };
+  return { member, admin, today, ctx, p, built, branchOptions };
 }
