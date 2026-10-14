@@ -3,11 +3,11 @@
 -- Phase B branch access: who works in which branches (all, or one or several), a home branch, and the rule that
 -- hides other branches' diary, front desk and enquiries from people limited to some branches. Everyone starts on
 -- "all branches", so nothing changes until an administrator sets someone's branches under Settings, Users.
--- Needs every earlier file first, up to and including 59_finance_views_invoker.sql.
+-- Needs every earlier file first, up to and including 62_flow_step_send_key.sql.
 -- Check the project name in the Supabase header first: this is for the Pulse project only.
 
 -- ======================================================================
--- 20261120000100_branch_access.sql
+-- 20261123000100_branch_access.sql
 -- ======================================================================
 -- Phase B (docs/34_CLINIC_OS_PLAN.md): branch access.
 --
@@ -149,4 +149,4 @@ create policy handover_notes_update on public.handover_notes for update to authe
   using (app.has_perm(org_id, 'frontdesk.use') and app.location_visible_to(org_id, auth.uid(), location_id))
   with check (app.has_perm(org_id, 'frontdesk.use') and app.location_visible_to(org_id, auth.uid(), location_id));
 
-insert into supabase_migrations.schema_migrations (version, name) values ('20261120000100', 'branch_access') on conflict (version) do nothing;
+insert into supabase_migrations.schema_migrations (version, name) values ('20261123000100', 'branch_access') on conflict (version) do nothing;
