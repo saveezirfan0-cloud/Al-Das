@@ -45,6 +45,8 @@ export type Location = {
   longitude: number | null;
   maps_url: string | null;
   active: boolean;
+  /** Phase B: the finance branch code (fin_ref_branches.code) this branch reports under. */
+  branch_code: string | null;
 };
 export type Department = { id: string; name: string; active: boolean };
 export type Service = {
@@ -201,9 +203,12 @@ function FormDialog({
 export function Locations({
   items,
   defaultTimezone,
+  financeBranches = [],
 }: {
   items: Location[];
   defaultTimezone: string;
+  /** Finance branch codes the member may read; empty means the code is typed. */
+  financeBranches?: Array<{ code: string; name: string }>;
 }) {
   const blank = {
     id: null as string | null,
@@ -215,7 +220,10 @@ export function Locations({
     longitude: "",
     maps_url: "",
     active: true,
+    branch_code: "",
   };
+  const usedBy = (code: string, self: string | null) =>
+    items.find((l) => l.branch_code === code && l.id !== self)?.name ?? null;
   const [form, setForm] = useState<typeof blank | null>(null);
   const { pending, run } = useRun();
   const zones = timezoneOptions();
@@ -236,6 +244,7 @@ export function Locations({
               {!l.active && <Badge variant="outline">Inactive</Badge>}
               <span className="text-muted-foreground block truncate text-xs">
                 {l.timezone}
+                {l.branch_code ? ` · Finance code ${l.branch_code}` : " · No finance code"}
                 {l.external_id ? ` · Unite ${l.external_id}` : ""}
                 {l.address ? ` · ${l.address}` : ""}
               </span>
@@ -254,6 +263,7 @@ export function Locations({
                   longitude: l.longitude === null ? "" : String(l.longitude),
                   maps_url: l.maps_url ?? "",
                   active: l.active,
+                  branch_code: l.branch_code ?? "",
                 })
               }
               onDelete={() => run(() => deleteLocation(l.id))}
@@ -341,6 +351,47 @@ export function Locations({
                 value={form.external_id}
                 onChange={(e) => setForm({ ...form, external_id: e.target.value })}
               />
+            </Field>
+            <Field
+              label="Finance branch code"
+              hint="Links this branch to its finance and ledger figures (the branch on each journal line). Each code belongs to one location."
+            >
+              {financeBranches.length > 0 ? (
+                <Select
+                  value={form.branch_code || NONE}
+                  onValueChange={(v) => setForm({ ...form, branch_code: v === NONE ? "" : v })}
+                >
+                  <SelectTrigger aria-label="Finance branch code">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NONE}>No code</SelectItem>
+                    {(financeBranches.some((b) => b.code === form.branch_code) || !form.branch_code
+                      ? financeBranches
+                      : [
+                          { code: form.branch_code, name: "not in the finance list" },
+                          ...financeBranches,
+                        ]
+                    ).map((b) => {
+                      const taken = usedBy(b.code, form.id);
+                      return (
+                        <SelectItem key={b.code} value={b.code} disabled={!!taken}>
+                          {b.code} · {b.name}
+                          {taken ? ` (used by ${taken})` : ""}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  value={form.branch_code}
+                  maxLength={4}
+                  placeholder="e.g. P"
+                  aria-label="Finance branch code"
+                  onChange={(e) => setForm({ ...form, branch_code: e.target.value.toUpperCase() })}
+                />
+              )}
             </Field>
             <label className="flex items-center gap-2 text-sm">
               <Switch
