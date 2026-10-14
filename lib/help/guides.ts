@@ -241,6 +241,25 @@ export const GUIDES: readonly Guide[] = [
     ],
   },
   {
+    id: "finance-contribution",
+    title: "Contribution",
+    pages: ["/finance/contribution"],
+    purpose:
+      "What each doctor, department and clinic contributes in a month: Unite report revenue less the doctor pay and charges Finance has loaded, less the branch's own overheads, then less the shared overheads allocated to it.",
+    steps: [
+      "Pick a month (the latest month with report data opens by default) and, if you work in more than one, a branch.",
+      "Each clinic lists its departments and doctors, then the branch overheads, the clinic contribution (L5), the shared overhead allocated and the figure after allocation (L6).",
+      "If you maintain costs, link each report doctor to their DHA id under Link report doctors; their loaded pay and charges then count in every month.",
+      "Download Excel gives the same figures as plain values, with a Definitions sheet.",
+    ],
+    watchOut: [
+      "Pay is never calculated here: only the compensation Finance loaded under Costs counts. A doctor shown as Pay not linked or Pay not loaded is left out of contribution, never counted as zero pay; Pay coverage shows how much revenue is in.",
+      "Figures stay Provisional until Finance approves the month's costs and every doctor with revenue has pay loaded.",
+      "Without the doctor compensation permission you see no individual pay, and a total that would give one doctor's pay away is withheld.",
+      "Department costs and expected revenue after denials are not included yet.",
+    ],
+  },
+  {
     id: "finance-collections",
     title: "Collections and data quality",
     pages: ["/finance/collections"],

@@ -258,12 +258,14 @@ describe("Finance navigation", () => {
     // CEO sees profitability but not the cost inputs
     const ceo = hrefs(member(role("CEO")));
     expect(ceo).toContain("/finance/profitability");
+    expect(ceo).toContain("/finance/contribution"); // M2A: follows finance.profit.view
     expect(ceo).not.toContain("/finance/costs");
     // Billing and the Medical Director never see cost or profit pages
     for (const name of ["Billing", "Medical Director", "Insurance"]) {
       const h = hrefs(member(role(name)));
       expect(h, name).not.toContain("/finance/costs");
       expect(h, name).not.toContain("/finance/profitability");
+      expect(h, name).not.toContain("/finance/contribution");
     }
     // Finance sees all of it
     const fin = hrefs(member(role("Finance")));

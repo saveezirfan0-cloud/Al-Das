@@ -132,6 +132,20 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
     permissions: ["finance.profit.view"],
   },
   {
+    href: "/finance/contribution",
+    label: "Contribution",
+    section: "Overview",
+    permissions: ["finance.profit.view"],
+    keywords: [
+      "doctor contribution",
+      "clinic contribution",
+      "l3",
+      "l5",
+      "l6",
+      "doctor pay coverage",
+    ],
+  },
+  {
     href: "/finance/invoices",
     label: "Invoices",
     section: "Billing and claims",
