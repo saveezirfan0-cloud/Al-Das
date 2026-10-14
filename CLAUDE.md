@@ -190,6 +190,8 @@ supabase start               # local stack
 pnpm db:migrate              # supabase migration up + gen types
 pnpm db:seed                 # fake data only
 pnpm test / pnpm e2e
+pnpm e2e:seed                # signed-in e2e: NEW synthetic logins + training workspace on the LOCAL stack (tests/e2e/README.md)
+E2E_SIGNED_IN=1 pnpm e2e     # signed-in Playwright suite (supabase start + pnpm e2e:seed first; E2E_SERVER=start after pnpm build; CI: .github/workflows/e2e.yml)
 pnpm test:db                 # RLS + jobs tests on plain Postgres (supabase/test/README.md)
 pnpm jobs:run <queue>        # drain a queue through /api/jobs like pg_cron does
 pnpm wa:simulate <fixture>   # post a sample Meta webhook locally
