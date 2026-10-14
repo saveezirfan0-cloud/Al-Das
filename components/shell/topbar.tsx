@@ -64,10 +64,8 @@ export function Topbar({
             tree={items}
             navState={navState}
             orgName={orgName}
-            defaultCollapsed={false}
             className="w-full border-0"
             onNavigate={() => setOpen(false)}
-            collapsible={false}
           />
         </SheetContent>
       </Sheet>

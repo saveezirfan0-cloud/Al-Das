@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-11-12-new-menu",
+    date: "2026-11-12",
+    title: "A new, tidier menu",
+    body: "The menu on the left is now a slim bar of icons. Point at it to see the names; the area you are in is highlighted. Finance, Accounting and Settings show their own pages in a panel next to it, with sections you can fold away and a button to hide the panel. Everything else gets the full width of the screen. On a phone the menu works as before.",
+  },
+  {
     id: "2026-11-11-channels-calendar",
     date: "2026-11-11",
     title: "Website chat, Instagram, Messenger and Google Calendar",

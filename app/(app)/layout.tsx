@@ -5,7 +5,7 @@ import { MobileTabs } from "@/components/shell/mobile-tabs";
 import { NAV_ITEMS, SIDEBAR_COOKIE } from "@/components/shell/nav";
 import { NavBadgesProvider } from "@/components/shell/nav-badges";
 import { ShellDataProvider } from "@/components/shell/shell-data";
-import { Sidebar } from "@/components/shell/sidebar";
+import { AppNav } from "@/components/shell/app-nav";
 import { Topbar } from "@/components/shell/topbar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { TrainingBanner } from "@/components/shell/training-banner";
@@ -88,12 +88,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </a>
         <NavBadgesProvider>
           <div className="flex h-svh overflow-hidden print:block print:h-auto print:overflow-visible">
-            <Sidebar
+            <AppNav
               tree={items}
               navState={navState}
               orgName={member.org.name}
-              defaultCollapsed={collapsed}
-              className="hidden md:flex print:hidden"
+              defaultPanelHidden={collapsed}
             />
             <div className="flex min-w-0 flex-1 flex-col print:block">
               {member.org.is_training && <TrainingBanner />}
