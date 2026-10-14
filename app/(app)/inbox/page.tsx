@@ -55,7 +55,7 @@ export default async function InboxPage({
     supabase.from("teams").select("id, name, round_robin").eq("org_id", member.orgId).order("name"),
     supabase
       .from("channels")
-      .select("id, name, display_phone, status, type")
+      .select("id, name, display_phone, status, type, catalog_id")
       .eq("org_id", member.orgId)
       .order("created_at"),
     supabase
@@ -318,7 +318,7 @@ export default async function InboxPage({
     query,
     counts,
     teams: (teams ?? []).map((t) => ({ ...t, mine: teamIds.includes(t.id) })),
-    channels: channels ?? [],
+    channels: (channels ?? []).map(({ catalog_id, ...c }) => ({ ...c, has_catalog: !!catalog_id })),
     labels: labels ?? [],
     categories: categories ?? [],
     views: (views ?? []).map((v) => ({ ...v, shared_team_ids: v.shared_team_ids ?? [] })),

@@ -1,6 +1,7 @@
 import { allowListProblem } from "@/lib/finance/mailbox";
 import type { IntegrationKind } from "@/lib/integrations/catalog";
 import { parseAllowedDomains } from "@/lib/channels/web/policy";
+import { httpSmsConfigProblems, readHttpSmsConfig } from "@/lib/integrations/sms/http-config";
 import { validateRoomTemplate } from "@/lib/integrations/telehealth/url";
 
 /**
@@ -21,5 +22,8 @@ export function extraValidation(
   if (kind === "web_chat" && /[<>]/.test(`${config.title ?? ""}${config.welcome ?? ""}`))
     return "The title and welcome text cannot contain < or >.";
   if (kind === "finance_mailbox") return allowListProblem(config.allowed_senders);
+  // Phase 20h: the generic SMS gateway's address (public host, https, no query), body template and check address.
+  if (kind === "sms" && provider === "http")
+    return httpSmsConfigProblems(readHttpSmsConfig(config))[0] ?? null;
   return null;
 }

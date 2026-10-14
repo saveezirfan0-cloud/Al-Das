@@ -17,6 +17,7 @@ import type { QueueName } from "@/lib/jobs/queues";
 import type { AdminClient } from "@/lib/supabase/admin";
 import { guardCampaignMessage } from "@/lib/campaigns/engine";
 import { deliverChannelOutbound } from "@/lib/channels/outbound";
+import { isEnabled } from "@/lib/integrations/accounts";
 import { MEDIA_BUCKET } from "@/lib/jobs/handlers/media-fetch";
 import { isTrainingOrg, simulateTrainingSend } from "@/lib/training/mode";
 import { clientForChannel } from "@/lib/whatsapp/channel";
@@ -25,6 +26,7 @@ import { e164ToWaId } from "@/lib/whatsapp/phone";
 import { MediaUseError, resolveHeaderMedia } from "@/lib/media/resolve";
 import { buildTemplateSend, isMarketingBlocked, isTemplateSendable } from "@/lib/whatsapp/templates";
 import type { MetaTemplateComponent, SendResult } from "@/lib/whatsapp/types";
+import { sendsThroughMmLite } from "@/lib/whatsapp/mm-lite";
 import { serviceWindow } from "@/lib/whatsapp/window";
 import { isTtlExpired, readRetryMarker, TTL_EXPIRED_CODE } from "@/lib/templates/delivery";
 import { maybeRetryTemplateMessage } from "@/lib/templates/retry";
@@ -310,7 +312,19 @@ export async function deliverOutbound(
           },
           values,
         );
-        result = await client.sendTemplate(to, template, replyTo);
+        // Phase 20h: a campaign's Marketing template goes through MM Lite while that integration is on (docs/30). The
+        // switch is read only for such messages, so every other send costs no extra query.
+        const mmLite =
+          sendsThroughMmLite({
+            specType: spec.type,
+            campaignRecipientId: message.campaign_recipient_id,
+            templateCategory: tpl.category,
+            enabled: true,
+          }) && (await isEnabled(admin, message.org_id, "wa_mm_lite"));
+        result = mmLite
+          ? await client.sendMarketingTemplate(to, template)
+          : await client.sendTemplate(to, template, replyTo);
+        if (mmLite) log.info("sent through MM Lite", { messageId: message.id });
         break;
       }
       case "interactive":
@@ -330,6 +344,9 @@ export async function deliverOutbound(
           },
           replyTo,
         );
+        break;
+      case "contacts":
+        result = await client.sendContacts(to, spec.contacts, replyTo);
         break;
     }
 

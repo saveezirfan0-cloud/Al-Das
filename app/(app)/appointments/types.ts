@@ -83,7 +83,12 @@ export type AppointmentsBootstrap = {
   } | null;
 };
 
-export type SlotOption = { start: string; label: string };
+export type SlotOption = {
+  start: string;
+  label: string;
+  /** ShowBusy: present when the time is taken (shown greyed out, not selectable). */
+  taken?: "booked" | "blocked" | "full";
+};
 
 export type ListQuery = {
   from?: string; // YYYY-MM-DD (org timezone), inclusive

@@ -25,5 +25,9 @@ globalThis.fetch = ((input: Parameters<typeof fetch>[0], init?: Parameters<typeo
   // Phase 20B: the finance mailbox is inbound only (the mail service posts to Pulse); no test may reach the mail service.
   if (/^https?:\/\/([a-z0-9-]+\.)*postmarkapp\.com([/:?#]|$)/i.test(url))
     throw new Error("Tests must never call the mail service: post a synthetic message to the route instead");
+  // Phase 20h: the generic HTTP SMS gateway is tested with fake fetches against reserved `.example` hosts (and the form's
+  // placeholder host); no test may reach a gateway. MM Lite goes to graph.facebook.com, blocked above.
+  if (/^https?:\/\/([a-z0-9-]+\.)*([a-z0-9-]+\.example|example-gateway\.com)([/:?#]|$)/i.test(url))
+    throw new Error("Tests must never call an SMS gateway: use a fake fetch");
   return realFetch(input, init);
 }) as typeof fetch;

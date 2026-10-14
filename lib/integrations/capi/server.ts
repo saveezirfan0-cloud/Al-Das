@@ -473,8 +473,10 @@ export async function loadAdReport(
   orgId: string,
   days: number,
   windowDays: number,
+  /** Count clicks from this instant instead (Phase 20i: the cost figures start with the first day that has spend). */
+  sinceIso?: string,
 ): Promise<AdReportRow[]> {
-  const since = new Date(Date.now() - days * 86_400_000).toISOString();
+  const since = sinceIso ?? new Date(Date.now() - days * 86_400_000).toISOString();
   const { data } = await admin.rpc("ad_attribution_report", {
     p_org: orgId,
     p_since: since,

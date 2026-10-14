@@ -41,10 +41,12 @@ export const GUIDES: readonly Guide[] = [
       "If the 24-hour window has closed, pick a template instead of typing a message.",
       "Use the Patient tab on the right to see the next appointment and any flags without leaving the chat.",
       "Close the conversation when it is finished, with a category if your clinic asks for one. In the same box you can create the patient's enquiry or move theirs on (stage, won, or lost with a reason).",
+      "Extras: forward on a message sends it to another open chat; the buttons by the message box share a contact card or a catalogue product; Call at the top rings the patient from your phone; More, Move chat to a new contact is for a shared phone.",
     ],
     watchOut: [
-      "Never copy patient details into another chat or email.",
+      "Never copy patient details into another chat or email. Forwarding a patient's message to someone else shares it with them: forward only what that person should see.",
       "An internal note is not sent to the patient, but colleagues can read it.",
+      "Forwards, contact cards and products only go out within 24 hours of the patient's last message.",
     ],
   },
   {
@@ -628,10 +630,12 @@ export const GUIDES: readonly Guide[] = [
       "Pick the period. Each row is one ad: its headline, conversations, patients, enquiries and bookings.",
       "A booking counts for an ad when it was made after the click, for the same patient, inside the attribution window.",
       "Events sent to Meta shows how many were sent, are waiting, failed, or were skipped and why.",
+      "With Meta ads spend switched on, each ad also shows its spend, impressions and clicks, and the cost per conversation, per enquiry and per booking.",
     ],
     watchOut: [
-      "Counts only: no patient is named here.",
+      "Counts and amounts only: no patient is named here.",
       "The report starts when ad attribution is switched on; earlier conversations are not included.",
+      "Spend is Meta's own figure, read once a day for the past few days (Meta's day, in the ad account's time zone), so today's spend is not in it yet.",
     ],
   },
   {

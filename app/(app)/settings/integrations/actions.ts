@@ -32,6 +32,7 @@ import { loadReadinessInput } from "@/lib/integrations/readiness-server";
 import { buildCapiClientFor } from "@/lib/integrations/capi/server";
 import { clearAllBusyBlocks } from "@/lib/integrations/gcal/server";
 import { buildMessagingClientFor } from "@/lib/integrations/meta-messaging/server";
+import { buildMetaAdsClientFor } from "@/lib/integrations/meta-ads/server";
 import { buildSmsProvider } from "@/lib/integrations/sms/provider";
 import { buildEsignProvider } from "@/lib/integrations/esign/server";
 import { buildTelehealthProvider } from "@/lib/integrations/telehealth/server";
@@ -187,6 +188,12 @@ export async function testIntegration(kindInput: string): Promise<ActionResult> 
       ok: false,
       code: "incomplete",
     };
+  } else if (kind === "meta_ads") {
+    // Reads the ad account's id and currency only: no insights, nothing written.
+    result = (await buildMetaAdsClientFor(admin, account)?.verify()) ?? {
+      ok: false,
+      code: "incomplete",
+    };
   } else if (kind === "esign") {
     result = (await buildEsignProvider(admin, account)?.verify()) ?? {
       ok: false,
@@ -214,7 +221,9 @@ export async function testIntegration(kindInput: string): Promise<ActionResult> 
     return {
       ok: false,
       error:
-        "This gateway has no safe test call. Create a small payment in the gateway's test mode instead.",
+        kind === "sms"
+          ? "There is no safe test without a check address (a test send would text someone). Add the gateway's read-only check address, or send a test from the gateway's own dashboard to a number the clinic owns."
+          : "This gateway has no safe test call. Create a small payment in the gateway's test mode instead.",
     };
   if (result.ok) {
     if (account.enabled) await recordOk(admin, member.orgId, kind);

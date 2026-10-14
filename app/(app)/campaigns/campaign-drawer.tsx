@@ -11,6 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { abRows } from "@/lib/campaigns/ab";
 import { skipReasonLabel, type CampaignStatus } from "@/lib/campaigns/constants";
 import { funnelStages } from "@/lib/campaigns/funnel";
 import { parseGuardrails } from "@/lib/campaigns/guardrails";
@@ -122,6 +123,53 @@ export function CampaignDrawer({
         </p>
       )}
 
+      {campaign.ab && (
+        <section aria-labelledby="ab-heading" className="flex flex-col gap-2">
+          <h3 id="ab-heading" className="text-sm font-medium">
+            A/B test
+            <span className="text-muted-foreground ml-2 text-xs font-normal">
+              A: {campaign.template?.name ?? "removed"} · B:{" "}
+              {campaign.ab.template?.name ?? "removed"} · B goes to {campaign.ab.splitPct}% of the
+              audience
+            </span>
+          </h3>
+          <div className="rounded-lg border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead scope="col">Stage</TableHead>
+                  <TableHead scope="col" className="text-right">
+                    A ({campaign.ab.funnel.a.eligible.toLocaleString()})
+                  </TableHead>
+                  <TableHead scope="col" className="text-right">
+                    B ({campaign.ab.funnel.b.eligible.toLocaleString()})
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {abRows(campaign.ab.funnel).map((r) => (
+                  <TableRow key={r.key}>
+                    <TableCell className="text-sm">{r.label}</TableCell>
+                    <TableCell className="text-right text-sm tabular-nums">
+                      {r.a.count.toLocaleString()}{" "}
+                      <span className="text-muted-foreground text-xs">{r.a.pct}%</span>
+                    </TableCell>
+                    <TableCell className="text-right text-sm tabular-nums">
+                      {r.b.count.toLocaleString()}{" "}
+                      <span className="text-muted-foreground text-xs">{r.b.pct}%</span>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <p className="text-muted-foreground text-xs">
+            Shares are of each version&apos;s eligible recipients. Clicked counts quick-reply button
+            taps (WhatsApp does not report link clicks).
+          </p>
+        </section>
+      )}
+
       <nav className="flex gap-1 border-b text-sm" aria-label="Campaign sections">
         {(["details", "recipients"] as const).map((t) => (
           <Link
@@ -182,6 +230,17 @@ export function CampaignDrawer({
             undeliverable (after {guard.min_sample} sends)
             {guard.pause_on_quality_drop ? ", or when the number's quality drops" : ""}.
           </Field>
+          {campaign.ab && Object.keys(campaign.ab.variableMap).length > 0 && (
+            <Field label="Variables (B)">
+              <ul className="flex flex-col gap-0.5">
+                {Object.entries(campaign.ab.variableMap).map(([k, v]) => (
+                  <li key={k} className="text-xs">
+                    <code>{k}</code> ← {v.startsWith("text:") ? `“${v.slice(5)}”` : v}
+                  </li>
+                ))}
+              </ul>
+            </Field>
+          )}
           {Object.keys(map).length > 0 && (
             <Field label="Variables">
               <ul className="flex flex-col gap-0.5">

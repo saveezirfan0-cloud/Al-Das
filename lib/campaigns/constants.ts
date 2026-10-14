@@ -108,6 +108,7 @@ export const SKIP_REASON_LABEL: Record<string, string> = {
   missing_variable: "Missing template value",
   channel_inactive: "Number paused",
   cancelled: "Campaign cancelled",
+  variant_missing: "Version B is missing",
 };
 
 export function skipReasonLabel(reason: string | null | undefined): string {
