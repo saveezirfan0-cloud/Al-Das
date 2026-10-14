@@ -6,6 +6,8 @@ import { addTimelineEvent } from "@/lib/contacts/timeline";
 import { locationMessage, runningLateText } from "@/lib/front-desk/messages";
 import { readFrontDeskSettings } from "@/lib/front-desk/settings";
 import { chooseOfferChannel } from "@/lib/front-desk/waitlist";
+import { WHATSAPP_DECLINED_ERROR } from "@/lib/front-desk/whatsapp-consent";
+import { recipientDeclinedWhatsApp } from "@/lib/front-desk/whatsapp-consent-server";
 import { resolveRecipient, type HouseholdContact } from "@/lib/household/addressing";
 import { loadHouseholdLink } from "@/lib/household/server";
 import { ensureConversation } from "@/lib/inbox/conversations";
@@ -52,6 +54,9 @@ export async function sendDeskMessage(
     await loadHouseholdLink(admin, input.orgId, patient.id),
   );
   if (!target) return { ok: false, error: "This patient has no WhatsApp number or user id." };
+  // Phase E: registered at the desk without the WhatsApp agreement: nothing is queued.
+  if (await recipientDeclinedWhatsApp(admin, input.orgId, target.recipient.id))
+    return { ok: false, error: WHATSAPP_DECLINED_ERROR };
 
   const { data: org } = await admin
     .from("orgs")

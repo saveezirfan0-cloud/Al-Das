@@ -235,6 +235,8 @@ export type PatientCardData = {
     language: string | null;
     dob: string | null;
     stop_marketing: boolean;
+    /** Phase E: registered at the desk without the WhatsApp agreement; nothing is sent until they agree. */
+    whatsapp_declined: boolean;
   };
   next_appointment: CardAppointment | null;
   last_visit: CardAppointment | null;
@@ -271,7 +273,9 @@ export async function loadPatientCard(
 ): Promise<PatientCardData | null> {
   const { data: contact } = await admin
     .from("contacts")
-    .select("id, full_name, phone_e164, wa_bsuid, language, dob, stop_marketing, is_test_record")
+    .select(
+      "id, full_name, phone_e164, wa_bsuid, language, dob, stop_marketing, is_test_record, whatsapp_declined_at",
+    )
     .eq("id", contactId)
     .eq("org_id", orgId)
     .is("deleted_at", null)
@@ -434,6 +438,7 @@ export async function loadPatientCard(
       language: contact.language,
       dob: contact.dob,
       stop_marketing: contact.stop_marketing,
+      whatsapp_declined: !!contact.whatsapp_declined_at,
     },
     next_appointment: next,
     last_visit: last,
@@ -469,6 +474,7 @@ export async function loadPatientCard(
       guardian: guardian ? { id: guardian.id, name: guardian.full_name } : null,
       dependants: dependants.length,
       is_test_record: contact.is_test_record,
+      whatsapp_declined: !!contact.whatsapp_declined_at,
     }),
     now: now.toISOString(),
   };

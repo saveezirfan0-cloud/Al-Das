@@ -9,6 +9,8 @@ import {
 import { applyReminderReply } from "@/lib/appointments/replies";
 import { expireOffer, handleOfferReply, offerFreedSlot } from "@/lib/front-desk/offers";
 import { classifyOfferButton, classifyOfferReply } from "@/lib/front-desk/waitlist";
+import { WHATSAPP_DECLINED_REASON } from "@/lib/front-desk/whatsapp-consent";
+import { recipientDeclinedWhatsApp } from "@/lib/front-desk/whatsapp-consent-server";
 import { resolveRecipient, type HouseholdContact } from "@/lib/household/addressing";
 import { loadHouseholdLink } from "@/lib/household/server";
 import { emit, on } from "@/lib/events/emit";
@@ -139,6 +141,12 @@ export async function processReminder(
     !(sendsTo && settings.reminder_test_numbers.includes(sendsTo))
   ) {
     await finish({ status: "excluded", exclusion_reason: "test_mode" });
+    return "excluded";
+  }
+  // Phase E: registered at the desk without the WhatsApp agreement. Excluded, not failed: no call task, no SMS fallback;
+  // the board still shows the visit as unconfirmed, so the desk rings as it would for any patient nobody has asked.
+  if (target && (await recipientDeclinedWhatsApp(admin, orgId, target.recipient.id))) {
+    await finish({ status: "excluded", exclusion_reason: WHATSAPP_DECLINED_REASON });
     return "excluded";
   }
 

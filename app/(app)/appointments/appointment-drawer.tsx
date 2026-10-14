@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { RecordHistorySection } from "@/components/history/record-history";
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { ExternalLink, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -34,6 +35,7 @@ import {
   setVisitMode,
   updateAppointmentNotes,
 } from "./actions";
+import { CheckinBadge } from "./checkin-badge";
 import { CONFLICT_TEXT } from "./conflict-badge";
 import { dateTimeLabel, REMINDER_LABELS, STATUS_STYLES, timeLabel } from "./format";
 import type { AppointmentsBootstrap, ApptDetail, SlotOption } from "./types";
@@ -80,6 +82,7 @@ export function AppointmentDrawer({
   const [moveStart, setMoveStart] = React.useState("");
   const [moveNotify, setMoveNotify] = React.useState(true);
   const [version, setVersion] = React.useState(0);
+  const [confirm, confirmDialog] = useConfirm();
 
   React.useEffect(() => {
     if (!id) {
@@ -247,6 +250,7 @@ export function AppointmentDrawer({
               >
                 {STATUS_LABELS[a.status]}
               </span>
+              <CheckinBadge value={a.checkin_status} className="px-1.5 py-0.5 text-xs" />
               {isUnite && <Badge variant="outline">Unite {a.external_id}</Badge>}
               {a.conflict && (
                 <Badge
@@ -328,9 +332,14 @@ export function AppointmentDrawer({
                     size="sm"
                     variant="ghost"
                     disabled={pending}
-                    onClick={() => {
-                      if (confirm("Make a new link? The old link will stop working."))
-                        joinVideo(true);
+                    onClick={async () => {
+                      const ok = await confirm({
+                        title: "Make a new link?",
+                        description:
+                          "The old link stops working. Use this if the link was shared by mistake.",
+                        confirmLabel: "Make a new link",
+                      });
+                      if (ok) joinVideo(true);
                     }}
                   >
                     New link
@@ -501,7 +510,7 @@ export function AppointmentDrawer({
                         #{r.idx} · {dateTimeLabel(r.due_at, tz)}
                         {r.exclusion_reason && (
                           <span className="text-muted-foreground block text-xs">
-                            Excluded: {r.exclusion_reason.replace("_", " ")}
+                            Excluded: {r.exclusion_reason.replace(/_/g, " ")}
                           </span>
                         )}
                         {r.error && (
@@ -550,6 +559,7 @@ export function AppointmentDrawer({
             </section>
           </div>
         )}
+        {confirmDialog}
       </SheetContent>
     </Sheet>
   );

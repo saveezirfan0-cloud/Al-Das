@@ -98,6 +98,14 @@ const deskCalls: Array<[string, () => Promise<unknown>, string[]]> = [
   ],
   ["addHandoverNote", () => desk.addHandoverNote({ body: "x" }), []],
   ["resolveHandoverNote", () => desk.resolveHandoverNote(ID, true), []],
+  // Phase E
+  ["recordWhatsAppAgreement", () => desk.recordWhatsAppAgreement(ID), ["contacts.manage"]],
+  [
+    "getDeskDaySlots",
+    () => desk.getDeskDaySlots({ locationId: ID, serviceId: ID, date: "2026-10-14" }),
+    ["appointments.view"],
+  ],
+  ["getArrivalChecks", () => desk.getArrivalChecks([ID]), ["appointments.view"]],
 ];
 
 describe("front desk actions: permission gating", () => {
@@ -132,13 +140,23 @@ describe("front desk actions: permission gating", () => {
 
   it("refuses an invalid walk-in before anything else, even for a permitted member", async () => {
     as("frontdesk.use", "contacts.manage");
+    // Phase E: the WhatsApp tick is a real choice now; a UAE landline is still refused before any data.
     const res = await desk.registerWalkIn({
-      phone: "0500000123",
+      phone: "04 000 0000",
       name: "Test Person",
       language: "en",
-      consent_contact: false as unknown as true,
+      consent_contact: false,
     });
-    expect(res).toMatchObject({ ok: false, error: expect.stringMatching(/agree to be contacted/) });
+    expect(res).toMatchObject({ ok: false, error: expect.stringMatching(/not a UAE mobile/) });
+    const short = await desk.registerWalkIn({ phone: "", name: "T", language: "en" });
+    expect(short).toMatchObject({ ok: false, error: expect.stringMatching(/name/) });
+    expect(state.adminCalls).toBe(0);
+  });
+
+  it("Phase E: checks a branch and the day before reading slots", async () => {
+    as("frontdesk.use", "appointments.view");
+    const past = await desk.getDeskDaySlots({ locationId: ID, serviceId: ID, date: "2020-01-01" });
+    expect(past).toMatchObject({ ok: false });
     expect(state.adminCalls).toBe(0);
   });
 

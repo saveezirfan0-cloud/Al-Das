@@ -32,6 +32,8 @@ export type CardInput = {
   guardian: { id: string; name: string } | null;
   dependants: number;
   is_test_record?: boolean;
+  /** Phase E: registered at the desk without the WhatsApp agreement (contacts.whatsapp_declined_at). */
+  whatsapp_declined?: boolean;
 };
 
 export function ageLabel(dob: string | null, now: Date): string | null {
@@ -53,6 +55,12 @@ export function cardFlags(c: CardInput): CardFlag[] {
   if (c.is_test_record) flags.push({ key: "test", label: "Test record", tone: "info" });
   if (c.stop_marketing)
     flags.push({ key: "stop_marketing", label: "No marketing messages", tone: "warn" });
+  if (c.whatsapp_declined)
+    flags.push({
+      key: "whatsapp_declined",
+      label: "Did not agree to WhatsApp: nothing is sent",
+      tone: "alert",
+    });
   if (!c.has_phone && !c.has_bsuid && !c.guardian)
     flags.push({ key: "no_whatsapp", label: "No WhatsApp number", tone: "alert" });
   else if (!c.has_phone && c.has_bsuid)
