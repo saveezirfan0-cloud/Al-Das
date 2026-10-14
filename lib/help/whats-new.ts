@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-12-04-front-desk-v2",
+    date: "2026-10-14",
+    title: "Front desk and diary: book at the desk, slips, drag to move",
+    body: "The Front desk has a Book button: it opens on your branch, shows one day of free times for each doctor who does the service, and books the patient you looked up. Cancel and No-show now ask once in a small window instead of two browser pop-ups, and a cancellation still offers the slot to the waiting list. When a patient arrives, the board shows whether their insurance card is on file or expired, their eligibility and their consent forms, or says Not checked when that information is switched off or not yours to see. Walk-ins can be registered without a phone or with a number from another country, and the WhatsApp tick is now a real choice: without it Pulse sends them nothing on WhatsApp. Print a slip (first name, time, doctor, branch and booking number) from the printer icon on the board; Finance users also see the payment record, which is not a tax invoice. End of day shows each branch's seen, no-shows, cancellations, walk-ins and median wait, with a link to the cash-up. In Appointments, bookings show the desk's check-in state, can be dragged to another time or doctor (they jump back with the reason if the time is taken), and the new Branch week shows every doctor of a branch from Monday to Sunday.",
+  },
+  {
     id: "2026-12-03-finance-reports-hub",
     date: "2026-10-14",
     title: "Finance reports in one place, invoice view and e-mailed statements",
