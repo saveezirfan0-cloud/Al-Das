@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { formatDateTime } from "@/lib/contacts/format";
-import { parseSoftDeleteSignal, SOFT_DELETE_WINDOW_EVENT } from "@/lib/soft-delete/rules";
+import { parseSoftDeleteSignal, SOFT_DELETE_WINDOW_EVENT } from "@/lib/soft-delete/signal";
 import { createClient } from "@/lib/supabase/client";
 import { TASK_TYPES, TASK_TYPE_LABELS } from "@/lib/tasks/constants";
 import { dueState } from "@/lib/tasks/due";

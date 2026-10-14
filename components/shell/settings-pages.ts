@@ -1,6 +1,6 @@
 import { can, canAny, type MemberLike } from "@/lib/auth/can";
 import { SIGNING_PERMS } from "@/lib/signing/perms";
-import { canOpenRecentlyDeleted } from "@/lib/soft-delete/rules";
+import { canOpenRecentlyDeleted } from "@/lib/soft-delete/access";
 
 /**
  * Every Settings page, with the section it sits under and who may see it. One list feeds the

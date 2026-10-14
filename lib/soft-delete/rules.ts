@@ -1,85 +1,21 @@
 import { z } from "zod";
 
-import { can, type MemberLike } from "@/lib/auth/can";
+import { ENTITY_RULES } from "./access";
+import type { SoftDeleteEntity } from "./signal";
+
+export * from "./access";
+export * from "./signal";
 
 /**
  * Soft delete with a restore window (docs/35_SOFT_DELETE_NOTES.md). Pure rules shared by the server actions, the
  * "Recently deleted" page and the tests. The database repeats the window rule (app.restore_window_days) for the
- * restore check and the nightly purge; keep the two in step.
+ * restore check and the nightly purge; keep the two in step. Browser code imports signal.ts / access.ts directly so
+ * Zod stays out of its bundles.
  */
-
-export const SOFT_DELETE_ENTITIES = ["contact", "enquiry", "task", "website_entry_point"] as const;
-export type SoftDeleteEntity = (typeof SOFT_DELETE_ENTITIES)[number];
 
 export const DEFAULT_RESTORE_WINDOW_DAYS = 30;
 export const MIN_RESTORE_WINDOW_DAYS = 1;
 export const MAX_RESTORE_WINDOW_DAYS = 90;
-
-/**
- * What each kind of record is called, and the permissions that may restore it: the record's own manage key, plus (for
- * enquiries) the separate delete key, since whoever may delete may undo it. Any one of them is enough.
- */
-export const ENTITY_RULES: Record<
-  SoftDeleteEntity,
-  { label: string; plural: string; restorePerms: readonly string[]; auditEntity: string }
-> = {
-  contact: {
-    label: "Contact",
-    plural: "contacts",
-    restorePerms: ["contacts.manage"],
-    auditEntity: "contact",
-  },
-  enquiry: {
-    label: "Enquiry",
-    plural: "enquiries",
-    restorePerms: ["enquiries.manage", "enquiries.delete"],
-    auditEntity: "enquiry",
-  },
-  task: { label: "Task", plural: "tasks", restorePerms: ["tasks.manage"], auditEntity: "task" },
-  website_entry_point: {
-    label: "Website entry point",
-    plural: "website entry points",
-    restorePerms: ["portal.website_entry_points.write"],
-    auditEntity: "website_entry_points",
-  },
-};
-
-/** May this member restore (and so see in Recently deleted) this kind of record? */
-export function canRestore(member: MemberLike | null | undefined, entity: SoftDeleteEntity): boolean {
-  return ENTITY_RULES[entity].restorePerms.some((p) => can(member, p));
-}
-
-/** Who may open Settings, Recently deleted: anyone who can restore one kind of record, or set the window. */
-export function canOpenRecentlyDeleted(member: MemberLike | null | undefined): boolean {
-  return can(member, "security.manage") || SOFT_DELETE_ENTITIES.some((e) => canRestore(member, e));
-}
-
-/**
- * Realtime after a soft delete (docs/35). Other members' lists listen with postgres_changes, but the UPDATE that hides a
- * row is filtered out for them by RLS, so the server also sends one broadcast on this org channel with ids only, never
- * titles. The channel is PRIVATE (Realtime Authorization): the policy soft_delete_broadcast_receive on realtime.messages
- * lets only active members of the org receive it, and browsers have no policy to send. The shell
- * (components/shell/shell-data.tsx) listens and re-dispatches it as a window event.
- */
-export const SOFT_DELETE_CHANNEL_CONFIG = { config: { private: true } } as const;
-export const SOFT_DELETE_BROADCAST_EVENT = "deleted";
-export const SOFT_DELETE_WINDOW_EVENT = "pulse:soft-deleted";
-export function softDeleteChannelName(orgId: string): string {
-  return `soft-delete:${orgId}`;
-}
-export type SoftDeleteSignal = { entity: SoftDeleteEntity; ids: string[] };
-/** Parses a broadcast payload (untrusted: anyone on the channel could send one); null when it is not a valid signal. */
-export function parseSoftDeleteSignal(payload: unknown): SoftDeleteSignal | null {
-  if (!payload || typeof payload !== "object") return null;
-  const p = payload as Record<string, unknown>;
-  if (!isSoftDeleteEntity(p.entity) || !Array.isArray(p.ids)) return null;
-  const ids = p.ids.filter((x): x is string => typeof x === "string" && /^[0-9a-f-]{36}$/i.test(x)).slice(0, 500);
-  return ids.length ? { entity: p.entity, ids } : null;
-}
-
-export function isSoftDeleteEntity(v: unknown): v is SoftDeleteEntity {
-  return typeof v === "string" && (SOFT_DELETE_ENTITIES as readonly string[]).includes(v);
-}
 
 export const restoreWindowSchema = z
   .number({ error: "Enter a number of days" })

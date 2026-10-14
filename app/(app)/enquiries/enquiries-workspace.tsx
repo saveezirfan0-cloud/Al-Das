@@ -30,7 +30,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { parseSoftDeleteSignal, SOFT_DELETE_WINDOW_EVENT } from "@/lib/soft-delete/rules";
+import { parseSoftDeleteSignal, SOFT_DELETE_WINDOW_EVENT } from "@/lib/soft-delete/signal";
 import { createClient } from "@/lib/supabase/client";
 import { CARD_FIELD_OPTIONS } from "@/lib/enquiries/constants";
 import type { EnquiryRow } from "@/lib/enquiries/query";

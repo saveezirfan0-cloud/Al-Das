@@ -24,7 +24,7 @@ import {
   SOFT_DELETE_CHANNEL_CONFIG,
   SOFT_DELETE_WINDOW_EVENT,
   softDeleteChannelName,
-} from "@/lib/soft-delete/rules";
+} from "@/lib/soft-delete/signal";
 import { createClient } from "@/lib/supabase/client";
 
 import { markAllNotificationsRead, markNotificationRead } from "./actions";
