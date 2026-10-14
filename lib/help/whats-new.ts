@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-10-14-go-live-checklist",
+    date: "2026-10-14",
+    title: "Go-live checklist, older chats and complete reports",
+    body: "Administrators have a Go-live checklist under Settings that shows, in one place, which connections are ready and what is still missing. In the Inbox you can load older conversations and earlier messages, and filtering by label now finds every labelled chat. Finance and accounting totals, exports and patient erasure now include every row, however long the list. Notifications open the task or appointment itself.",
+  },
+  {
     id: "2026-11-15-menu-flyout",
     date: "2026-10-14",
     title: "Point at the menu to see its pages",

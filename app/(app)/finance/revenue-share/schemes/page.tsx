@@ -18,6 +18,7 @@ import { parseRule, ruleSummary, type SchemeStatus } from "@/lib/finance/revshar
 import { knownCategories, profileNames } from "@/lib/finance/revshare-server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 
 import { SchemeSheet, SchemeStepButton } from "../controls";
 import { RevshareTabs, VIEW_PERMS } from "../tabs";
@@ -57,7 +58,15 @@ export default async function RevshareSchemesPage() {
       admin,
       (schemes ?? []).flatMap((s) => [s.verified_by, s.approved_by, s.retired_by]),
     ),
-    supabase.from("fin_ref_doctors").select("dha_id, name").limit(2000),
+    // A name lookup, so every doctor is read in pages (PostgREST returns at most 1,000 per request).
+    fetchAll((from, to) =>
+      supabase
+        .from("fin_ref_doctors")
+        .select("dha_id, name")
+        .order("org_id")
+        .order("dha_id")
+        .range(from, to),
+    ),
   ]);
   const doctorName = new Map(
     (doctors.data ?? []).map((d) => [d.dha_id.trim().toUpperCase(), d.name]),

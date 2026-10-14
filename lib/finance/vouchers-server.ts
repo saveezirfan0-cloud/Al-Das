@@ -2,6 +2,7 @@ import "server-only";
 
 import { can, type MemberLike } from "@/lib/auth/can";
 import type { AdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 import type { CertificateEvent, VoucherCertificate } from "@/lib/finance/voucher-certificate";
 import {
   canReadVoucher,
@@ -103,21 +104,29 @@ export async function loadVoucherScope(
   if (access.full) return { special: access.special, ids: null };
   if (!access.dept) return null;
   const [candidates, decided] = await Promise.all([
-    admin
-      .from("fin_payment_vouchers")
-      .select("id, special_category, route, needs_dept, status")
-      .eq("org_id", member.orgId)
-      .eq("special_category", "none")
-      .eq("route", "pulse")
-      .eq("needs_dept", true)
-      .limit(5000),
-    admin
-      .from("fin_voucher_events")
-      .select("voucher_id")
-      .eq("org_id", member.orgId)
-      .eq("actor_id", member.userId)
-      .in("action", ["dept_approved", "rejected"])
-      .limit(5000),
+    // Every candidate and decision is read in pages (PostgREST returns at most 1,000 per request), so a voucher the
+    // department head may read is never left out of the scope.
+    fetchAll((from, to) =>
+      admin
+        .from("fin_payment_vouchers")
+        .select("id, special_category, route, needs_dept, status")
+        .eq("org_id", member.orgId)
+        .eq("special_category", "none")
+        .eq("route", "pulse")
+        .eq("needs_dept", true)
+        .order("id")
+        .range(from, to),
+    ),
+    fetchAll((from, to) =>
+      admin
+        .from("fin_voucher_events")
+        .select("voucher_id")
+        .eq("org_id", member.orgId)
+        .eq("actor_id", member.userId)
+        .in("action", ["dept_approved", "rejected"])
+        .order("id")
+        .range(from, to),
+    ),
   ]);
   const mine = new Set((decided.data ?? []).map((e) => e.voucher_id));
   const ids = (candidates.data ?? [])
@@ -502,17 +511,20 @@ export async function loadReportRows(
   to: string,
   scope: VoucherScope,
 ): Promise<VoucherReportRow[]> {
-  let query = admin
-    .from("fin_payment_vouchers")
-    .select(
-      "id, voucher_no, voucher_date, payee_name, supplier_id, amount, status, special_category, tier_code, submitted_at, approved_at, rejected_at, rejection_remarks",
-    )
-    .eq("org_id", orgId)
-    .gte("voucher_date", from)
-    .lte("voucher_date", to);
-  if (!scope.special) query = query.eq("special_category", "none");
-  if (scope.ids) query = query.in("id", scope.ids);
-  const { data } = await query.order("voucher_date").limit(2000);
+  // The report totals every voucher in the range, so rows are read in pages (PostgREST returns at most 1,000 per request).
+  const { data } = await fetchAll((lo, hi) => {
+    let query = admin
+      .from("fin_payment_vouchers")
+      .select(
+        "id, voucher_no, voucher_date, payee_name, supplier_id, amount, status, special_category, tier_code, submitted_at, approved_at, rejected_at, rejection_remarks",
+      )
+      .eq("org_id", orgId)
+      .gte("voucher_date", from)
+      .lte("voucher_date", to);
+    if (!scope.special) query = query.eq("special_category", "none");
+    if (scope.ids) query = query.in("id", scope.ids);
+    return query.order("voucher_date").order("id").range(lo, hi);
+  });
   const rows = data ?? [];
   const totals = new Map<string, number>();
   const ids = rows.map((r) => r.id);

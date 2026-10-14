@@ -26,6 +26,9 @@ import {
   type BridgeSettingsView,
 } from "./forms";
 
+/** The push statuses the summary line counts. */
+const PUSH_STATUSES = ["done", "ready", "sent", "held", "failed", "unknown"] as const;
+
 export const metadata = { title: "Tally bridge" };
 export const dynamic = "force-dynamic";
 
@@ -117,7 +120,17 @@ export default async function TallyBridgePage() {
       .eq("org_id", org)
       .eq("is_default", true)
       .maybeSingle(),
-    admin.from("acc_tally_push").select("status").eq("org_id", org).limit(20_000),
+    // One exact count per status (PostgREST returns at most 1,000 rows, so counting fetched rows reads low).
+    Promise.all(
+      PUSH_STATUSES.map(async (status) => {
+        const { count } = await admin
+          .from("acc_tally_push")
+          .select("id", { count: "exact", head: true })
+          .eq("org_id", org)
+          .eq("status", status);
+        return [status, count ?? 0] as const;
+      }),
+    ),
     admin
       .from("acc_tally_push")
       .select(
@@ -181,8 +194,7 @@ export default async function TallyBridgePage() {
     push_sources: [...DEFAULT_PUSH_SOURCES],
     cost_category: "Primary Cost Category",
   };
-  const counts = new Map<string, number>();
-  for (const r of statusRows.data ?? []) counts.set(r.status, (counts.get(r.status) ?? 0) + 1);
+  const counts = new Map<string, number>(statusRows);
   const start =
     (entity.data as { ledger_start_date?: string | null } | null)?.ledger_start_date ?? null;
   const company = String(view.config.company ?? "");

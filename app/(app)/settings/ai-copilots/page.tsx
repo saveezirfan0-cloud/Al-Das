@@ -4,6 +4,7 @@ import { readAiSettings } from "@/lib/ai/settings";
 import { can } from "@/lib/auth/can";
 import { requireMember } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 import { redirect } from "next/navigation";
 
 import { AiCopilotsSettings } from "./ai-copilots-settings";
@@ -23,13 +24,18 @@ export default async function AiCopilotsSettingsPage() {
   const since = new Date(
     Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1),
   ).toISOString();
-  const { data: usage } = await createAdminClient()
-    .from("ai_usage")
-    .select("feature, status")
-    .eq("org_id", member.orgId)
-    .gte("created_at", since)
-    .in("feature", ["flow_copilot", "campaign_audience", "campaign_copy", "intent"])
-    .limit(5000);
+  // Counted below, so every row is read in pages (PostgREST returns at most 1,000 per request).
+  const admin = createAdminClient();
+  const { data: usage } = await fetchAll((from, to) =>
+    admin
+      .from("ai_usage")
+      .select("feature, status")
+      .eq("org_id", member.orgId)
+      .gte("created_at", since)
+      .in("feature", ["flow_copilot", "campaign_audience", "campaign_copy", "intent"])
+      .order("id")
+      .range(from, to),
+  );
   const counts: Record<string, { calls: number; problems: number }> = {};
   for (const u of usage ?? []) {
     const c = (counts[u.feature] ??= { calls: 0, problems: 0 });

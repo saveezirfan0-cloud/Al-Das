@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { AdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 
 import {
   addMonths,
@@ -86,14 +87,18 @@ export type AssetView = RegisterAsset & {
 };
 
 export async function loadAssets(admin: AdminClient, orgId: string): Promise<AssetView[]> {
-  const { data } = await admin
-    .from("acc_assets")
-    .select(
-      "id, entity_id, code, class_id, description, branch_code, department, acquisition_date, in_service_date, cost, residual, life_months, method, status, opening_accumulated, supplier_invoice_id, disposal_status, disposal_date, disposal_proceeds, disposal_account_id, disposal_accumulated, disposal_sha256, disposal_prepared_by, disposal_journal_id, acc_asset_classes(name)",
-    )
-    .eq("org_id", orgId)
-    .order("code")
-    .limit(5000);
+  // Every asset (depreciation runs plan from this list), read in pages: PostgREST returns at most 1,000 per request.
+  const { data } = await fetchAll((from, to) =>
+    admin
+      .from("acc_assets")
+      .select(
+        "id, entity_id, code, class_id, description, branch_code, department, acquisition_date, in_service_date, cost, residual, life_months, method, status, opening_accumulated, supplier_invoice_id, disposal_status, disposal_date, disposal_proceeds, disposal_account_id, disposal_accumulated, disposal_sha256, disposal_prepared_by, disposal_journal_id, acc_asset_classes(name)",
+      )
+      .eq("org_id", orgId)
+      .order("code")
+      .order("id")
+      .range(from, to),
+  );
   return (data ?? []).map((a) => ({
     id: a.id,
     entityId: a.entity_id,
@@ -132,14 +137,18 @@ export type ScheduleView = ScheduleRow & {
 };
 
 export async function loadSchedules(admin: AdminClient, orgId: string): Promise<ScheduleView[]> {
-  const { data } = await admin
-    .from("acc_schedules")
-    .select(
-      "id, entity_id, kind, description, pl_account_id, bs_account_id, total, start_month, months, branch_code, department, auto_reverse, status, supplier_invoice_id",
-    )
-    .eq("org_id", orgId)
-    .order("start_month", { ascending: false })
-    .limit(2000);
+  // Every schedule, read in pages (PostgREST returns at most 1,000 per request).
+  const { data } = await fetchAll((from, to) =>
+    admin
+      .from("acc_schedules")
+      .select(
+        "id, entity_id, kind, description, pl_account_id, bs_account_id, total, start_month, months, branch_code, department, auto_reverse, status, supplier_invoice_id",
+      )
+      .eq("org_id", orgId)
+      .order("start_month", { ascending: false })
+      .order("id")
+      .range(from, to),
+  );
   return (data ?? []).map((s) => ({
     id: s.id,
     entityId: s.entity_id,
@@ -217,13 +226,16 @@ export async function loadRunLines(
   runId: string,
   version: number,
 ) {
-  const { data } = await admin
-    .from("acc_asset_run_lines")
-    .select("id, asset_id, schedule_id, branch_code, amount, debit_account_id, credit_account_id")
-    .eq("org_id", orgId)
-    .eq("run_id", runId)
-    .eq("version", version)
-    .limit(5000);
+  const { data } = await fetchAll((from, to) =>
+    admin
+      .from("acc_asset_run_lines")
+      .select("id, asset_id, schedule_id, branch_code, amount, debit_account_id, credit_account_id")
+      .eq("org_id", orgId)
+      .eq("run_id", runId)
+      .eq("version", version)
+      .order("id")
+      .range(from, to),
+  );
   return (data ?? []).map((l) => ({ ...l, amount: Number(l.amount) }));
 }
 
@@ -236,25 +248,34 @@ export async function loadPostedLines(
   orgId: string,
   opts: { entityId?: string; kinds: readonly RunKind[] },
 ): Promise<PostedLine[]> {
-  let q = admin
-    .from("acc_depreciation_runs")
-    .select("id, period_month, posted_version")
-    .eq("org_id", orgId)
-    .in("kind", [...opts.kinds])
-    .not("posted_version", "is", null)
-    .limit(5000);
-  if (opts.entityId) q = q.eq("entity_id", opts.entityId);
-  const { data: runs } = await q;
+  // Accumulated depreciation is summed from these, so runs and lines are read in pages (PostgREST returns at most
+  // 1,000 rows per request).
+  const { data: runs } = await fetchAll((from, to) => {
+    let q = admin
+      .from("acc_depreciation_runs")
+      .select("id, period_month, posted_version")
+      .eq("org_id", orgId)
+      .in("kind", [...opts.kinds])
+      .not("posted_version", "is", null);
+    if (opts.entityId) q = q.eq("entity_id", opts.entityId);
+    return q.order("id").range(from, to);
+  });
   const out: PostedLine[] = [];
   const byRun = new Map((runs ?? []).map((r) => [r.id, r]));
   const ids = [...byRun.keys()];
   for (let i = 0; i < ids.length; i += 200) {
-    const { data: lines } = await admin
-      .from("acc_asset_run_lines")
-      .select("run_id, version, asset_id, schedule_id, amount")
-      .eq("org_id", orgId)
-      .in("run_id", ids.slice(i, i + 200))
-      .limit(100000);
+    const part = ids.slice(i, i + 200);
+    const { data: lines } = await fetchAll(
+      (from, to) =>
+        admin
+          .from("acc_asset_run_lines")
+          .select("run_id, version, asset_id, schedule_id, amount")
+          .eq("org_id", orgId)
+          .in("run_id", part)
+          .order("id")
+          .range(from, to),
+      { max: 1_000_000 },
+    );
     for (const l of lines ?? []) {
       const r = byRun.get(l.run_id);
       if (!r || l.version !== r.posted_version) continue;
@@ -416,12 +437,16 @@ export async function loadInvoiceOptions(
       .neq("status", "void")
       .order("invoice_date", { ascending: false })
       .limit(200),
-    admin
-      .from("acc_assets")
-      .select("supplier_invoice_id, cost")
-      .eq("org_id", orgId)
-      .not("supplier_invoice_id", "is", null)
-      .limit(5000),
+    // Summed per invoice, so every linked asset is read in pages (PostgREST returns at most 1,000 per request).
+    fetchAll((from, to) =>
+      admin
+        .from("acc_assets")
+        .select("supplier_invoice_id, cost")
+        .eq("org_id", orgId)
+        .not("supplier_invoice_id", "is", null)
+        .order("id")
+        .range(from, to),
+    ),
   ]);
   const cap = new Map<string, number>();
   for (const u of used ?? [])

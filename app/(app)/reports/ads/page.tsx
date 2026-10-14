@@ -14,6 +14,7 @@ import {
 } from "@/lib/integrations/meta-ads/cost";
 import { loadAdSpend, loadSpendCoverageStart } from "@/lib/integrations/meta-ads/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 
 export const metadata = { title: "Ad attribution" };
 export const dynamic = "force-dynamic";
@@ -86,14 +87,18 @@ export default async function AdReportPage({
         countEvents("skipped"),
       ])
     : [0, 0, 0, 0];
+  // Counted per reason below, so every row is read in pages (PostgREST returns at most 1,000 per request).
   const { data: skips } = on
-    ? await admin
-        .from("capi_events")
-        .select("reason")
-        .eq("org_id", member.orgId)
-        .eq("status", "skipped")
-        .gte("created_at", since)
-        .limit(2000)
+    ? await fetchAll((from, to) =>
+        admin
+          .from("capi_events")
+          .select("reason")
+          .eq("org_id", member.orgId)
+          .eq("status", "skipped")
+          .gte("created_at", since)
+          .order("id")
+          .range(from, to),
+      )
     : { data: [] };
   const byReason: Record<string, number> = {};
   for (const s of skips ?? [])

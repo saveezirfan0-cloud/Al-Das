@@ -4,6 +4,7 @@ import { requireMember } from "@/lib/auth/session";
 import { listLibraryAssets } from "@/lib/media/library";
 import { scannerLabel } from "@/lib/media/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 
 import { MediaLibrary } from "./media-library";
 
@@ -41,12 +42,16 @@ export default async function MediaPage({ searchParams }: { searchParams: Promis
       .eq("org_id", member.orgId)
       .eq("status", "ready")
       .limit(1000),
-    admin
-      .from("media_assets")
-      .select("size_bytes")
-      .eq("org_id", member.orgId)
-      .eq("status", "ready")
-      .limit(5000),
+    // Summed below, so every row is read in pages (PostgREST returns at most 1,000 per request).
+    fetchAll((from, to) =>
+      admin
+        .from("media_assets")
+        .select("size_bytes")
+        .eq("org_id", member.orgId)
+        .eq("status", "ready")
+        .order("id")
+        .range(from, to),
+    ),
   ]);
   const allTags = [...new Set((tagRows ?? []).flatMap((r) => r.tags))].sort().slice(0, 60);
   const totalBytes = (sizes ?? []).reduce((n, r) => n + r.size_bytes, 0);

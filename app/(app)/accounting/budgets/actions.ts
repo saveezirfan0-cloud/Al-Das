@@ -10,6 +10,7 @@ import { can } from "@/lib/auth/can";
 import { requireMember } from "@/lib/auth/session";
 import { DENIED, fail, firstIssue, uuid, type ActionResult } from "@/lib/finance/action-support";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 
 /**
  * Budgets (Phase 22G). accounting.budgets.manage prepares (create, edit the grid, import a CSV, reopen, delete a draft);
@@ -79,13 +80,20 @@ export async function saveBudgetHeader(
   let lines: Array<Record<string, unknown>> = [];
   if (p.data.id) {
     const admin = createAdminClient(member.userId);
-    const { data } = await admin
-      .from("acc_budget_lines")
-      .select("account_id, month, branch_code, department, amount")
-      .eq("org_id", member.orgId)
-      .eq("budget_id", p.data.id)
-      .limit(20000);
-    lines = (data ?? []).map((l) => ({
+    // Every line is read (in pages: PostgREST returns at most 1,000 per request) because save() replaces them all;
+    // a failed or partial read stops here rather than drop lines.
+    const { data, error, truncated } = await fetchAll((from, to) =>
+      admin
+        .from("acc_budget_lines")
+        .select("account_id, month, branch_code, department, amount")
+        .eq("org_id", member.orgId)
+        .eq("budget_id", p.data.id as string)
+        .order("id")
+        .range(from, to),
+    );
+    if (error || truncated)
+      return fail("Could not read the budget lines. Nothing was changed; try again.");
+    lines = data.map((l) => ({
       ...l,
       month: l.month.slice(0, 7),
       amount: Number(l.amount),
@@ -123,14 +131,24 @@ export async function saveBudgetGrid(input: {
     .eq("id", id.data)
     .maybeSingle();
   if (!b) return fail("Budget not found.");
-  const { data: kept } = await admin
-    .from("acc_budget_lines")
-    .select("account_id, month, branch_code, department, amount")
-    .eq("budget_id", b.id)
-    .or("branch_code.not.is.null,department.not.is.null")
-    .limit(20000);
+  // Every kept line is read (in pages) because save() replaces them all; a failed or partial read stops here.
+  const {
+    data: kept,
+    error: keptErr,
+    truncated,
+  } = await fetchAll((from, to) =>
+    admin
+      .from("acc_budget_lines")
+      .select("account_id, month, branch_code, department, amount")
+      .eq("budget_id", b.id)
+      .or("branch_code.not.is.null,department.not.is.null")
+      .order("id")
+      .range(from, to),
+  );
+  if (keptErr || truncated)
+    return fail("Could not read the budget lines. Nothing was changed; try again.");
   const lines: Array<Record<string, unknown>> = [
-    ...(kept ?? []).map((l) => ({ ...l, month: l.month.slice(0, 7), amount: Number(l.amount) })),
+    ...kept.map((l) => ({ ...l, month: l.month.slice(0, 7), amount: Number(l.amount) })),
     ...cells.data
       .filter((c: LineInput) => c.amount > 0)
       .map((c) => ({ account_id: c.account_id, month: c.month, amount: c.amount })),
@@ -163,14 +181,18 @@ export async function importBudgetCsv(input: {
   if (!b) return fail("Budget not found.");
   const parsed = parseBudgetCsv(input.csv, fiscalMonths(b.fy_start));
   if (parsed.errors.length) return fail(parsed.errors.slice(0, 5).join(" "));
-  const { data: ledgers } = await admin
-    .from("acc_accounts")
-    .select("code")
-    .eq("org_id", member.orgId)
-    .eq("is_group", false)
-    .eq("is_active", true)
-    .in("nature", ["income", "expense"])
-    .limit(5000);
+  // Every active income/expense ledger (in pages), so a valid code is never reported as unknown.
+  const { data: ledgers } = await fetchAll((from, to) =>
+    admin
+      .from("acc_accounts")
+      .select("code")
+      .eq("org_id", member.orgId)
+      .eq("is_group", false)
+      .eq("is_active", true)
+      .in("nature", ["income", "expense"])
+      .order("id")
+      .range(from, to),
+  );
   const known = new Set((ledgers ?? []).map((a) => a.code));
   const unknown = [
     ...new Set(parsed.lines.map((l) => l.account_code).filter((c) => !known.has(c))),

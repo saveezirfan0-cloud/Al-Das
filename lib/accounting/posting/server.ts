@@ -15,6 +15,7 @@ import {
   type RuleRow,
 } from "@/lib/accounting/posting/types";
 import type { AdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 
 /**
  * Loaders for the posting pages (Phase 22D): Posting rules, Waiting to post, Posting preview. Service role, called by
@@ -165,6 +166,9 @@ export type WaitingItem = {
 
 export const WAITING_LIMIT = 500;
 
+/** acc_posting_status.state values (its CHECK constraint). */
+const POSTING_STATES = ["posted", "waiting", "preview", "nothing", "withdrawn"] as const;
+
 export async function loadWaiting(
   admin: AdminClient,
   orgId: string,
@@ -186,16 +190,36 @@ export async function loadWaiting(
     .limit(WAITING_LIMIT);
   if (filter.reason) query = query.eq("reason", filter.reason);
   if (filter.kind) query = query.eq("source_kind", filter.kind);
-  const [{ data }, { data: states }] = await Promise.all([
+  // PostgREST returns at most 1,000 rows per request, so states are exact head counts (the CHECK constraint fixes the
+  // list) and only the waiting rows' reasons are read, in pages.
+  const [{ data }, stateCounts, { data: waiting }] = await Promise.all([
     query,
-    admin.from("acc_posting_status").select("state, reason").eq("org_id", orgId).limit(100_000),
+    Promise.all(
+      POSTING_STATES.map(async (state) => {
+        const { count } = await admin
+          .from("acc_posting_status")
+          .select("source_id", { count: "exact", head: true })
+          .eq("org_id", orgId)
+          .eq("state", state);
+        return [state, count ?? 0] as const;
+      }),
+    ),
+    fetchAll((from, to) =>
+      admin
+        .from("acc_posting_status")
+        .select("reason")
+        .eq("org_id", orgId)
+        .eq("state", "waiting")
+        .order("source_kind")
+        .order("source_id")
+        .range(from, to),
+    ),
   ]);
   const byReason = new Map<string, number>();
   const byState: Record<string, number> = {};
-  for (const s of states ?? []) {
-    byState[s.state] = (byState[s.state] ?? 0) + 1;
-    if (s.state === "waiting" && s.reason)
-      byReason.set(s.reason, (byReason.get(s.reason) ?? 0) + 1);
+  for (const [state, count] of stateCounts) if (count) byState[state] = count;
+  for (const s of waiting ?? []) {
+    if (s.reason) byReason.set(s.reason, (byReason.get(s.reason) ?? 0) + 1);
   }
   return {
     items: (data ?? [])
