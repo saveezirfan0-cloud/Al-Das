@@ -7,6 +7,7 @@ import {
   copyPreviousTargets,
   deleteReportLine,
   saveFlashDisplay,
+  saveInsuranceRecon,
   savePerfBands,
   saveReportLine,
   saveTargets,
@@ -210,6 +211,26 @@ export function PerfBandsForm({ target, near, moderate }: { target: number; near
         Revenue per patient at or above the target is Achieved; from Near Target up to the target is Near Target; from
         Moderate up to Near Target is Moderate; below Moderate is Below Target. Each band starts exactly at its number,
         so nothing falls between bands. Expected revenue is patients times the target.
+      </p>
+    </ActionForm>
+  );
+}
+
+export function InsuranceReconForm({ tolerance, graceDays }: { tolerance: number; graceDays: number }) {
+  return (
+    <ActionForm action={saveInsuranceRecon} submitLabel="Save tolerance and grace days">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label="Difference tolerance (AED)">
+          <Input name="ins_recon_tolerance" inputMode="decimal" defaultValue={tolerance} required />
+        </Field>
+        <Field label="Grace days before at risk">
+          <Input name="ins_recon_grace_days" inputMode="numeric" defaultValue={graceDays} required />
+        </Field>
+      </div>
+      <p className="text-muted-foreground text-xs">
+        A billed invoice whose submitted amount differs by more than the tolerance, either way, is flagged. A billed
+        invoice with no claim in Diligence counts as at risk once more than the grace days have passed since its report
+        date.
       </p>
     </ActionForm>
   );

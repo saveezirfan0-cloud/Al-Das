@@ -8,6 +8,7 @@ import { can } from "@/lib/auth/can";
 import { requireMember } from "@/lib/auth/session";
 import { DENIED, dbMessage, fail, firstIssue, type ActionResult } from "@/lib/finance/action-support";
 import { perfSettingsSchema } from "@/lib/finance/doctor-performance";
+import { reconSettingsSchema } from "@/lib/finance/insurance-billing";
 import { LINE_CODE_RE, monthOf, parseTargetInput } from "@/lib/finance/flash";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/types";
@@ -229,6 +230,30 @@ export async function savePerfBands(values: Record<string, string>): Promise<Act
   refresh();
   revalidatePath("/finance/doctor-performance");
   return { ok: true, message: "Target and bands saved." };
+}
+
+/** Insurance billed vs claimed (Phase 23D-2): the difference tolerance (AED) and the grace days before "at risk". */
+export async function saveInsuranceRecon(values: Record<string, string>): Promise<ActionResult> {
+  const member = await gate();
+  if (!member) return fail(DENIED);
+  const parsed = reconSettingsSchema.safeParse(values);
+  if (!parsed.success) return fail(firstIssue(parsed.error));
+  const admin = createAdminClient(member.userId);
+  const { error } = await admin
+    .from("fin_ref_finance_settings")
+    .upsert({ org_id: member.orgId, ...parsed.data }, { onConflict: "org_id" });
+  if (error) return fail(dbMessage(error, "Could not save the tolerance and grace days."));
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "finance.insurance_billing.settings_saved",
+    entity: "fin_ref_finance_settings",
+    entityId: member.orgId,
+    diff: parsed.data,
+  });
+  refresh();
+  revalidatePath("/finance/insurance-billing");
+  return { ok: true, message: "Tolerance and grace days saved." };
 }
 
 const displaySchema = z.object({

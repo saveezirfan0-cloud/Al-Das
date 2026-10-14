@@ -222,6 +222,25 @@ export const GUIDES: readonly Guide[] = [
     ],
   },
   {
+    id: "finance-insurance-billing",
+    title: "Insurance billed vs claimed",
+    pages: ["/finance/insurance-billing"],
+    purpose:
+      "Compares what the Unite collection report billed to insurers with what Diligence shows was submitted, by invoice number, for one month, so claims that were never sent are found before they are lost.",
+    steps: [
+      "Pick a month (the latest month with Unite report data opens by default) and, if you work in more than one, a branch.",
+      "Billed, not submitted lists invoices billed to an insurer with no claim in Diligence once the grace days have passed, oldest first. Work this list first.",
+      "Billed and submitted amounts differ lists invoice numbers where the two amounts differ by more than the tolerance.",
+      "Submitted, not in this month's report and Ambiguous invoice numbers are for checking in Unite; nothing there is paired automatically.",
+      "Download Excel gives every row, including the matched invoices within the tolerance. Finance sets the tolerance and grace days under Targets and report lines.",
+    ],
+    watchOut: [
+      "It is only as current as the latest Unite report and Diligence uploads.",
+      "Diligence has no branch, so the submitted-but-not-in-the-report list shows only for every branch with no branch chosen.",
+      "These are review signals, not proof: check the invoice in Unite and the claim in Diligence before acting.",
+    ],
+  },
+  {
     id: "finance-flash",
     title: "Daily flash",
     pages: ["/finance/flash", "/finance/flash/settings"],

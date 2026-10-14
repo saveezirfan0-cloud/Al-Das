@@ -16,6 +16,7 @@ import {
 import { requirePerm } from "@/lib/auth/session";
 import { todayIn } from "@/lib/finance/action-support";
 import { DEFAULT_PERF_SETTINGS } from "@/lib/finance/doctor-performance";
+import { DEFAULT_RECON_SETTINGS } from "@/lib/finance/insurance-billing";
 import { monthOf, targetFromRow } from "@/lib/finance/flash";
 import { monthTitle } from "@/lib/finance/flash-xlsx";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -24,6 +25,7 @@ import {
   CopyTargetsButton,
   DisplayForm,
   EditLineButton,
+  InsuranceReconForm,
   PerfBandsForm,
   NewLineButton,
   TargetsForm,
@@ -57,7 +59,7 @@ export default async function FlashSettingsPage({
       .eq("month", month),
     admin
       .from("fin_ref_finance_settings")
-      .select("flash_share_basis, flash_top_doctors, perf_arpp_target, perf_band_near, perf_band_moderate")
+      .select("flash_share_basis, flash_top_doctors, perf_arpp_target, perf_band_near, perf_band_moderate, ins_recon_tolerance, ins_recon_grace_days")
       .eq("org_id", member.orgId)
       .maybeSingle(),
   ]);
@@ -195,6 +197,18 @@ export default async function FlashSettingsPage({
             target={Number(settings?.perf_arpp_target ?? DEFAULT_PERF_SETTINGS.target)}
             near={Number(settings?.perf_band_near ?? DEFAULT_PERF_SETTINGS.near)}
             moderate={Number(settings?.perf_band_moderate ?? DEFAULT_PERF_SETTINGS.moderate)}
+          />
+        </CardContent>
+      </Card>
+
+      <Card id="insurance-billing">
+        <CardHeader>
+          <CardTitle className="text-base">Insurance billed vs claimed</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <InsuranceReconForm
+            tolerance={Number(settings?.ins_recon_tolerance ?? DEFAULT_RECON_SETTINGS.tolerance)}
+            graceDays={Number(settings?.ins_recon_grace_days ?? DEFAULT_RECON_SETTINGS.graceDays)}
           />
         </CardContent>
       </Card>
