@@ -204,6 +204,7 @@ These are the most valuable things to do before any client sees the product, bec
 ### 2.4 Housekeeping
 
 - Done 14 Oct 2026: `README.md`, `docs/06` and `docs/07` carry the "Phases 4 to 10 are built" update, `app/(app)/dashboard/page.tsx` is Prettier-clean, and `docs/00_HOW_TO_USE.md` points to the pitch pack in `docs/pitch/`. The six helper functions the Supabase security advisor flagged (`clinical_setting*`, `is_reminder_excluded`, `is_working_day`, `workdays_between`) now pin `search_path` (migration `20261118000100`, paste file 58).
+- Done 14 Oct 2026: the advisor's 14 `security_definer_view` errors on the finance views are cleared and every member sees the same rows as before (`docs/34`, migration `20261119000100`, paste file 59). Six views no screen read are closed to signed-in users. The other eight are `security_invoker`, and the owner-rights part sits in `app.*` SECURITY DEFINER functions.
 - Several docs share a number prefix (`05_*`, `06_*`, `08_*`). Harmless, but rename once the numbering settles.
 
 ---
