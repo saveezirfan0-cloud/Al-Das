@@ -1579,6 +1579,9 @@ export const PHASE22J_TABLES = [
 /** Phase 22J service-only tables: RLS on, no policy (the connectors' pairing-code and token hashes). */
 export const PHASE22J_SERVICE_ONLY_TABLES = ["acc_tally_devices"] as const;
 
+/** Phase 23A (Unite collection report upload): sanitised report rows, service role only (no policies). */
+export const PHASE23_SERVICE_ONLY_TABLES = ["fin_report_uploads", "fin_report_visits"] as const;
+
 /**
  * Phase 20i (G13, Meta ads spend): one synthetic row per table for an org, so the cross-org sweeps are not vacuous. Meta's own
  * per-ad figures only (a made-up ad id, amounts and counts); no patient data. Service role only (no write policy).
