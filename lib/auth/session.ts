@@ -2,13 +2,22 @@ import "server-only";
 
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { cache } from "react";
 import type { User } from "@supabase/supabase-js";
 
-import { assertCan, type MemberLike } from "@/lib/auth/can";
+import { assertCan, can, ForbiddenError, type MemberLike } from "@/lib/auth/can";
 import { parseBranchScope, type BranchScope } from "@/lib/branches/access";
 import { parseEnquiryScope } from "@/lib/enquiries/scope";
-import { AUTH_MODE_HEADER, isAuthMode } from "@/lib/supabase/auth-mode";
+import { requestClientIp, type ParsedIp } from "@/lib/security/client-ip";
+import {
+  financeAccessDecision,
+  isFinancePath,
+  readFinanceAccess,
+  restrictedAreasFor,
+  type FinanceAccessDecision,
+} from "@/lib/security/finance-access";
+import { AUTH_MODE_HEADER, isAuthMode, REQUEST_PATH_HEADER } from "@/lib/supabase/auth-mode";
 import { redactText } from "@/lib/redact";
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/supabase/types";
@@ -40,9 +49,81 @@ export type CurrentMember = MemberLike & {
   branchIds?: string[];
   homeLocationId?: string | null;
   roleName: string;
+  /**
+   * The finance access window for this request (lib/security/finance-access.ts). When it denies, `restrictedAreas`
+   * holds "finance" and "accounting", so every can() for those keys is false; everything else is unchanged.
+   */
+  financeAccess: FinanceAccessDecision;
+  /** The request's client address (platform headers), parsed; null when unknown. Never logged in full. */
+  clientIp: ParsedIp | null;
   /** Other orgs the user belongs to (for the org switcher). */
   orgs: Array<{ id: string; name: string; slug: string }>;
 };
+
+/** The client address from the platform headers (null outside a request or when missing). */
+async function requestIp(): Promise<ParsedIp | null> {
+  try {
+    return requestClientIp(await headers());
+  } catch {
+    return null;
+  }
+}
+
+/** The path the middleware forwarded (null outside a request). */
+async function requestPath(): Promise<string | null> {
+  try {
+    return (await headers()).get(REQUEST_PATH_HEADER);
+  } catch {
+    return null;
+  }
+}
+
+/** True for a router prefetch (a link coming into view), which is not an access attempt. */
+async function isPrefetch(): Promise<boolean> {
+  try {
+    const h = await headers();
+    return (
+      h.has("next-router-prefetch") ||
+      h.get("purpose") === "prefetch" ||
+      h.get("sec-purpose")?.includes("prefetch") === true
+    );
+  } catch {
+    return false;
+  }
+}
+
+/** Member objects whose refusal is already recorded (one object per render; the alert is deduped per day anyway). */
+const refusalsRecorded = new WeakSet<object>();
+
+/**
+ * Raises the finance access security alert for this member, at most once per member object (the alert itself is per
+ * reason class and day). Skipped for prefetches; the write runs after the response (`after()`), so the refusal page or
+ * error is never held up by it.
+ */
+async function recordFinanceRefusal(member: CurrentMember): Promise<void> {
+  if (member.financeAccess?.allowed !== false || refusalsRecorded.has(member)) return;
+  if (await isPrefetch()) return;
+  refusalsRecorded.add(member);
+  const record = async () => {
+    const { noteFinanceDenial } = await import("@/lib/security/finance-access-server");
+    await noteFinanceDenial(member);
+  };
+  try {
+    after(record);
+  } catch {
+    // outside a request scope (scripts, tests): record inline; noteFinanceDenial never throws
+    await record();
+  }
+}
+
+/** True for a server action request (Next sends the action id in this header). */
+async function isServerAction(): Promise<boolean> {
+  try {
+    return (await headers()).has("next-action");
+  } catch {
+    return false;
+  }
+}
 
 /** The mode the middleware chose for this request ("strict" when unknown: scripts, tests, or no middleware). */
 async function requestAuthMode() {
@@ -138,7 +219,17 @@ export const getCurrentMember = cache(async (): Promise<CurrentMember | null> =>
     ? (role.permissions as unknown[]).filter((p): p is string => typeof p === "string")
     : [];
 
-  return {
+  // Finance access window: decided once per request from the org row already loaded above (no extra query).
+  const clientIp = await requestIp();
+  const financeAccess = financeAccessDecision({
+    now: new Date(),
+    timezone: org.timezone,
+    stored: readFinanceAccess(org.settings),
+    ip: clientIp,
+    member: { roleId: membership.role_id, permissions },
+  });
+
+  const current: CurrentMember = {
     userId: user.id,
     orgId: membership.org_id,
     roleId: membership.role_id,
@@ -151,6 +242,9 @@ export const getCurrentMember = cache(async (): Promise<CurrentMember | null> =>
     branchIds: (membership.membership_locations ?? []).map((l) => l.location_id),
     homeLocationId: membership.home_location_id,
     permissions,
+    restrictedAreas: restrictedAreasFor(financeAccess),
+    financeAccess,
+    clientIp,
     user,
     profile,
     org,
@@ -159,6 +253,11 @@ export const getCurrentMember = cache(async (): Promise<CurrentMember | null> =>
       .filter((o): o is NonNullable<typeof o> => !!o)
       .map((o) => ({ id: o.id, name: o.name, slug: o.slug })),
   };
+  // A refusal on a finance or accounting page, action or API route is an access attempt: record it here, once, so
+  // every gate (requirePerm, the module gate() helpers, route handlers using can()) is covered without changes.
+  if (!financeAccess.allowed && isFinancePath(await requestPath()))
+    await recordFinanceRefusal(current);
+  return current;
 });
 
 /** Best effort, for sign-out and auth-event logging: a failed lookup counts as no membership, never as an error. */
@@ -180,9 +279,47 @@ export async function requireMember(): Promise<CurrentMember> {
   return member;
 }
 
+/** Where a page navigation lands when the finance access window refuses it. Outside /finance and /accounting. */
+export const FINANCE_UNAVAILABLE_PATH = "/finance-unavailable";
+
+/** True when the role grants the permission but the finance access window takes it away for this request. */
+export function blockedByFinanceWindow(member: CurrentMember, permission: string): boolean {
+  return (
+    member.financeAccess?.allowed === false &&
+    !can(member, permission) &&
+    can({ ...member, restrictedAreas: [] }, permission)
+  );
+}
+
+/**
+ * Records the refusal (one security alert per member, reason class and day) and sends a page navigation to the explanation page.
+ * Server actions get a ForbiddenError instead, which they already turn into an error message.
+ */
+export async function refuseOutsideFinanceWindow(
+  member: CurrentMember,
+  permission: string,
+): Promise<never> {
+  await recordFinanceRefusal(member);
+  if (await isServerAction()) throw new ForbiddenError(permission);
+  redirect(FINANCE_UNAVAILABLE_PATH);
+}
+
+/**
+ * For the finance and accounting layouts: a member the window refuses is recorded and sent to the explanation page,
+ * whichever page of the module they asked for. Pages still check their own permission (requirePerm), because a layout
+ * is not re-rendered on every client-side navigation.
+ */
+export async function enforceFinanceWindow(member: CurrentMember): Promise<void> {
+  if (member.financeAccess?.allowed !== false) return;
+  await recordFinanceRefusal(member);
+  redirect(FINANCE_UNAVAILABLE_PATH);
+}
+
 /** requireMember() plus a permission check; throws ForbiddenError when missing. */
 export async function requirePerm(permission: string): Promise<CurrentMember> {
   const member = await requireMember();
+  if (blockedByFinanceWindow(member, permission))
+    await refuseOutsideFinanceWindow(member, permission);
   assertCan(member, permission);
   return member;
 }

@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { redactText } from "@/lib/redact";
 import { isMfaExemptPath, mfaGate } from "@/lib/security/mfa";
-import { AUTH_MODE_HEADER, authModeFor } from "@/lib/supabase/auth-mode";
+import { AUTH_MODE_HEADER, authModeFor, REQUEST_PATH_HEADER } from "@/lib/supabase/auth-mode";
 import type { Database } from "@/lib/supabase/types";
 
 const PUBLIC_PREFIXES = [
@@ -64,6 +64,7 @@ export async function updateSession(request: NextRequest) {
   const forward = () => {
     const headers = new Headers(request.headers);
     headers.set(AUTH_MODE_HEADER, authMode);
+    headers.set(REQUEST_PATH_HEADER, request.nextUrl.pathname);
     return NextResponse.next({ request: { headers } });
   };
   let response = forward();

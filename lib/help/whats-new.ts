@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-11-15-finance-access-window",
+    date: "2026-10-14",
+    title: "Finance access window",
+    body: "Administrators can now limit when, and from which networks, people reach Finance and Accounting: choose the days and hours (in the clinic's timezone), optionally list the approved network addresses, and pick the roles it applies to. Outside the days and hours those pages, downloads and actions are refused with a short explanation, and so is reading finance data any other way; the address list applies to Pulse's own pages, actions and downloads. Everything else in Pulse keeps working, and the administrators get at most one alert per person a day for each kind of refusal. Admin is never restricted. It is off until switched on under Settings, Security.",
+  },
+  {
     id: "2026-11-15-recently-deleted",
     date: "2026-10-14",
     title: "Undo a delete: Recently deleted",
