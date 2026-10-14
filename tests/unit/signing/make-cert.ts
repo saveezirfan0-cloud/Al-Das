@@ -54,7 +54,9 @@ export function makeTestCert(
   const cert = forge.pki.createCertificate();
   cert.publicKey = kp.publicKey;
   cert.serialNumber = o.serial ?? "0" + Math.floor(Math.random() * 1e12).toString(16);
-  cert.validity.notBefore = o.notBefore ?? new Date(now - 24 * 3600_000);
+  // Fixed early start (not "a day before now"): tests sign at fixed times such as 13 Oct 2026, which must stay inside it.
+  cert.validity.notBefore =
+    o.notBefore ?? new Date(Math.min(now - 24 * 3600_000, Date.UTC(2026, 0, 1)));
   cert.validity.notAfter = o.notAfter ?? new Date(now + 365 * 24 * 3600_000);
   cert.setSubject(subject);
   cert.setIssuer(issuerAttrs);
