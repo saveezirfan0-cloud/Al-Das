@@ -185,28 +185,38 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance row level security", () => {
       expect(await count(c, "select 1 from public.fin_invoice_lines")).toBe(1);
       expect(await count(c, "select 1 from public.fin_payments")).toBe(1);
       expect(await count(c, "select 1 from public.ins_claim_activities")).toBe(0);
-      expect(await count(c, "select 1 from public.v_fin_monthly_summary")).toBe(0);
+      expect(await count(c, "select 1 from public.v_fin_monthly_measures")).toBe(0);
     });
   });
 
-  it("insurance reads claims and the matching view but not invoices or payments", async () => {
+  it("insurance reads claims but not invoices or payments", async () => {
     await asRole("ins", async () => {
       expect(await count(c, "select 1 from public.ins_claim_activities")).toBe(1);
       expect(await count(c, "select 1 from public.fin_invoices")).toBe(0);
       expect(await count(c, "select 1 from public.fin_payments")).toBe(0);
-      expect(await count(c, "select 1 from public.v_ins_invoice_match")).toBe(1);
-      expect(await count(c, "select 1 from public.v_ins_invoice_line_match")).toBe(1);
     });
-    await asRole("billing", async () => {
-      expect(await count(c, "select 1 from public.v_ins_invoice_match")).toBe(0);
-    });
+  });
+
+  it("the unread owner-rights views are closed to signed-in members (20261119000100)", async () => {
+    for (const v of [
+      "v_ins_invoice_match",
+      "v_ins_invoice_line_match",
+      "v_fin_revenue_daily",
+      "v_fin_adjustments_daily",
+      "v_fin_collections_daily",
+      "v_fin_monthly_summary",
+    ])
+      for (const who of ["ins", "fin"])
+        await asRole(who, async () => {
+          await expect(q(`select 1 from public.${v}`), v).rejects.toMatchObject({ code: "42501" });
+        });
   });
 
   it("finance and CEO read aggregates; summary numbers are right", async () => {
     for (const who of ["fin", "ceo"]) {
       await asRole(who, async () => {
         const { rows } = await q(
-          "select branch_code, generated, claimed, remitted, rejected, outstanding, self_pay_collected from public.v_fin_monthly_summary",
+          "select branch_code, generated, claimed, remitted, rejected, outstanding, self_pay_collected from public.v_fin_monthly_measures",
         );
         expect(rows).toHaveLength(1);
         expect(rows[0].branch_code).toBe("P");
@@ -216,11 +226,10 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance row level security", () => {
         expect(Number(rows[0].rejected)).toBe(40);
         expect(Number(rows[0].outstanding)).toBe(40);
         expect(rows[0].self_pay_collected).toBeNull(); // the only invoice is INSURANCE
-        expect(await count(c, "select 1 from public.v_fin_revenue_daily")).toBe(1);
+        expect(await count(c, "select 1 from public.v_fin_revenue_monthly")).toBe(1);
         expect(await count(c, "select 1 from public.v_fin_claims_status")).toBe(1);
         expect(await count(c, "select 1 from public.v_fin_receivables_ageing")).toBe(1);
         expect(await count(c, "select 1 from public.v_fin_denials")).toBe(1);
-        expect(await count(c, "select 1 from public.v_fin_collections_daily")).toBe(1);
       });
     }
   });
@@ -230,16 +239,16 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance row level security", () => {
       await q("update public.fin_invoice_lines set is_current = false where id = $1", [lineA]);
     });
     await asRole("fin", async () => {
-      expect(await count(c, "select 1 from public.v_fin_revenue_daily")).toBe(0);
+      expect(await count(c, "select 1 from public.v_fin_revenue_monthly")).toBe(0);
     });
     await asServiceRole(c, async () => {
       await q("update public.fin_invoice_lines set is_current = true where id = $1", [lineA]);
       await q("update public.fin_invoices set is_deleted = true where id = $1", [invA]);
     });
     await asRole("fin", async () => {
-      expect(await count(c, "select 1 from public.v_fin_revenue_daily")).toBe(0);
+      expect(await count(c, "select 1 from public.v_fin_revenue_monthly")).toBe(0);
       expect(
-        await count(c, "select 1 from public.v_fin_monthly_summary where generated is not null"),
+        await count(c, "select 1 from public.v_fin_monthly_measures where generated is not null"),
       ).toBe(0);
     });
     await asServiceRole(c, async () => {
@@ -255,7 +264,7 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance row level security", () => {
       expect(await count(c, "select 1 from public.ins_claim_activities")).toBe(0);
       expect(await count(c, "select 1 from public.ops_exceptions")).toBe(0);
       expect(
-        await count(c, "select 1 from public.v_fin_monthly_summary where org_id = $1", [orgA]),
+        await count(c, "select 1 from public.v_fin_monthly_measures where org_id = $1", [orgA]),
       ).toBe(0);
     });
   });

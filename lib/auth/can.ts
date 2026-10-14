@@ -10,8 +10,12 @@ export type MemberLike = {
   permissions: readonly string[];
 };
 
+/** Next.js keeps a digest that is already set, so the app's error boundary can tell "no access" from a crash. */
+export const FORBIDDEN_DIGEST = "PULSE_FORBIDDEN";
+
 export class ForbiddenError extends Error {
   readonly status = 403;
+  readonly digest = FORBIDDEN_DIGEST;
   constructor(public readonly permission: string) {
     super(`Missing permission: ${permission}`);
     this.name = "ForbiddenError";

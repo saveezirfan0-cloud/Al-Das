@@ -34,14 +34,10 @@ export function localMinutes(iso: string | Date, tz: string): number {
 }
 
 export function dayLabel(date: string): string {
+  // A fixed pattern, not toLocaleDateString: Node and the browser ship different ICU data ("Wednesday, 14 …" vs
+  // "Wednesday 14 …"), which made the server and client render different text (hydration mismatch).
   const [y, m, d] = date.split("-").map(Number);
-  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-GB", {
-    timeZone: "UTC",
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
+  return formatInTimeZone(new Date(Date.UTC(y, m - 1, d)), "UTC", "EEEE d MMMM yyyy");
 }
 
 export function shiftDate(date: string, days: number): string {
