@@ -123,7 +123,7 @@ function envRows(env: EnvLike): ReadinessRow[] {
 
   const resendKey = has(env, "RESEND_API_KEY");
   const fromOk = checks.find((c) => c.id === "env:resend-from")?.ok === true;
-  const sentryServer = has(env, "SENTRY_DSN");
+  const sentryServer = has(env, "SENTRY_DSN") || has(env, "NEXT_PUBLIC_SENTRY_DSN");
   const sentryBrowser = has(env, "NEXT_PUBLIC_SENTRY_DSN");
   const vapid = ["VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY"].filter((k) => has(env, k)).length;
   const fakeEmbeddings = env.EMBEDDINGS_PROVIDER?.trim() === "fake";
