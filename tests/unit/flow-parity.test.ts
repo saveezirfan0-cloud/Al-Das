@@ -66,6 +66,8 @@ function runRecord(over: Partial<RunRecord> = {}): RunRecord {
   };
 }
 
+let stepSeq = 0;
+
 async function exec(
   h: Harness,
   type: NodeType,
@@ -79,6 +81,7 @@ async function exec(
     contact: fakeContact(),
     conversation: opts.conversation === undefined ? fakeConversation() : opts.conversation,
     scope: { contact: { first_name: "Layla" }, vars: { invoice: "INV-0007", amount: "150.00" } },
+    stepKey: `step-${++stepSeq}`,
   });
 }
 

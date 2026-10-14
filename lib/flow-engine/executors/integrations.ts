@@ -79,10 +79,15 @@ export const payment_link: Executor = async (ctx) => {
   const port = ctx.deps.crm.createPaymentLink;
   if (!port) return fail("Payment links are not available in this workspace");
   if (!ctx.contact) return fail("This step needs a contact");
-  const res = await port.call(ctx.deps.crm, ctx.run, {
-    invoice_number: text(ctx, cfg.data.invoice_number).trim().slice(0, 100),
-    amount: text(ctx, cfg.data.amount).trim().slice(0, 30),
-  });
+  const res = await port.call(
+    ctx.deps.crm,
+    ctx.run,
+    {
+      invoice_number: text(ctx, cfg.data.invoice_number).trim().slice(0, 100),
+      amount: text(ctx, cfg.data.amount).trim().slice(0, 30),
+    },
+    { stepKey: ctx.stepKey },
+  );
   if (!res.ok) return fail(res.error);
   return { kind: "next", output: { request_id: res.requestId } };
 };

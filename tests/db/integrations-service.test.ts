@@ -1145,6 +1145,236 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)(
         if (!r.ok) expect(r.error).toContain("already open");
       });
 
+      describe("a flow step replayed after a crash (fin_payment_requests.flow_step_key)", () => {
+        // Each case has its own invoice (one open link per invoice) and its own step key.
+        let n = 0;
+        const stepCase = async () => {
+          n += 1;
+          const number = `INV-30${String(n).padStart(2, "0")}`;
+          await svc(() =>
+            one(
+              "insert into public.fin_invoices (org_id, inv_display_number, patient_pin, total, record_hash) values ($1, $2, 'PIN-100', 90, $3)",
+              [org, number, `hash-30${n}`],
+            ),
+          );
+          const key = `00000000-0000-4000-8000-0000000000f7:${n}`;
+          const run = (fake: ReturnType<typeof createFakePaymentProvider>) =>
+            create(
+              { actorId: null, invoiceNumber: number, amount: "90.00", flowStepKey: key },
+              fake,
+            );
+          return { key, run };
+        };
+        const byId = async (rid: string) =>
+          (
+            await svc(() =>
+              q(
+                "select id, status, message_id, flow_step_key, failure_code, provider_ref, create_attempted_at from public.fin_payment_requests where id = $1",
+                [rid],
+              ),
+            )
+          ).rows[0];
+        const keyedMessages = async (key: string) =>
+          (
+            await svc(() =>
+              q("select id from public.messages where flow_step_key = $1 order by at", [key]),
+            )
+          ).rows.map((r) => r.id as string);
+        const jobsFor = async (messageId: string) =>
+          (
+            await q(
+              "select count(*)::int as n from pgmq.q_outbound_priority where message ->> 'message_id' = $1",
+              [messageId],
+            )
+          ).rows[0].n as number;
+        const sql = (text: string, params: unknown[]) => svc(() => q(text, params));
+        /** As if the first attempt stopped before its message was queued: no message carries the key. */
+        const detachMessage = async (key: string, requestId: string, patch: string) => {
+          await sql("update public.messages set flow_step_key = null where flow_step_key = $1", [
+            key,
+          ]);
+          await sql(
+            `update public.fin_payment_requests set message_id = null, ${patch} where id = $1`,
+            [requestId],
+          );
+        };
+        const sentRequest = async (c: Awaited<ReturnType<typeof stepCase>>, prefix: string) => {
+          const r = await c.run(createFakePaymentProvider({ refPrefix: prefix }));
+          if (!r.ok) throw new Error(r.error);
+          return r.requestId;
+        };
+
+        it("stores the key on the request and its message, and stamps the gateway call", async () => {
+          const c = await stepCase();
+          const id = await sentRequest(c, "cs_step_a");
+          const row = await byId(id);
+          expect(row).toMatchObject({ status: "sent", flow_step_key: c.key });
+          expect(row.create_attempted_at).not.toBeNull();
+          expect(await keyedMessages(c.key)).toEqual([row.message_id]);
+        });
+
+        it("crash after queueing, before linking: the replay links it; no second link, whatever happened since", async () => {
+          const c = await stepCase();
+          const id = await sentRequest(c, "cs_step_b");
+          const { message_id: messageId } = await byId(id);
+          await sql(
+            "update public.fin_payment_requests set message_id = null, status = 'created' where id = $1",
+            [id],
+          );
+          const fake = createFakePaymentProvider({ refPrefix: "cs_step_b2" });
+          expect(await c.run(fake)).toMatchObject({ ok: true, requestId: id });
+          expect(fake.created).toHaveLength(0);
+          expect(await byId(id)).toMatchObject({ status: "sent", message_id: messageId });
+          expect(await keyedMessages(c.key)).toEqual([messageId]);
+          await sql("update public.fin_payment_requests set status = 'cancelled' where id = $1", [
+            id,
+          ]);
+          expect(await c.run(fake)).toMatchObject({ ok: true, requestId: id });
+          expect(fake.created).toHaveLength(0);
+        });
+
+        it("crash after the message insert, before its enqueue: the replay queues the link once", async () => {
+          const c = await stepCase();
+          const id = await sentRequest(c, "cs_step_c");
+          const { message_id: messageId } = await byId(id);
+          await q("delete from pgmq.q_outbound_priority where message ->> 'message_id' = $1", [
+            messageId,
+          ]);
+          await sql(
+            "update public.fin_payment_requests set message_id = null, status = 'created' where id = $1",
+            [id],
+          );
+          const fake = createFakePaymentProvider({ refPrefix: "cs_step_c2" });
+          expect(await c.run(fake)).toMatchObject({ ok: true, requestId: id });
+          expect(await jobsFor(messageId)).toBe(1);
+          expect(await c.run(fake)).toMatchObject({ ok: true, requestId: id });
+          expect(await jobsFor(messageId)).toBe(1);
+          expect(fake.created).toHaveLength(0);
+          expect(await byId(id)).toMatchObject({ status: "sent", message_id: messageId });
+          // A link that is no longer live is never queued again.
+          await q("delete from pgmq.q_outbound_priority where message ->> 'message_id' = $1", [
+            messageId,
+          ]);
+          await sql("update public.messages set payload = payload - 'requeued_at' where id = $1", [
+            messageId,
+          ]);
+          await sql("update public.fin_payment_requests set status = 'expired' where id = $1", [
+            id,
+          ]);
+          expect(await c.run(fake)).toMatchObject({ ok: true, requestId: id });
+          expect(await jobsFor(messageId)).toBe(0);
+        });
+
+        it("crash before queueing a confirmed link: the replay closes it at its own gateway and sends a fresh one, once", async () => {
+          const c = await stepCase();
+          const id = await sentRequest(c, "cs_step_d");
+          const before = await byId(id);
+          await detachMessage(c.key, id, "status = 'created'");
+          const fake = createFakePaymentProvider({ refPrefix: "cs_step_d2" });
+          const r = await c.run(fake);
+          expect(r.ok).toBe(true);
+          if (!r.ok) return;
+          expect(r.requestId).not.toBe(id);
+          expect(await byId(id)).toMatchObject({
+            status: "failed",
+            failure_code: "step_replayed",
+            flow_step_key: null,
+          });
+          expect(fake.expired).toEqual([before.provider_ref]);
+          expect(fake.created).toHaveLength(1);
+          const fresh = await byId(r.requestId);
+          expect(fresh).toMatchObject({ status: "sent", flow_step_key: c.key });
+          expect(await keyedMessages(c.key)).toEqual([fresh.message_id]);
+          expect(await c.run(fake)).toMatchObject({ ok: true, requestId: r.requestId });
+          expect(fake.created).toHaveLength(1);
+        });
+
+        it("a request that never reached the gateway is restarted", async () => {
+          const c = await stepCase();
+          const id = await sentRequest(c, "cs_step_e");
+          await detachMessage(
+            c.key,
+            id,
+            "status = 'pending', provider_ref = null, create_attempted_at = null",
+          );
+          const fake = createFakePaymentProvider({ refPrefix: "cs_step_e2" });
+          const r = await c.run(fake);
+          expect(r.ok).toBe(true);
+          expect(fake.created).toHaveLength(1);
+          expect(fake.expired).toEqual([]);
+          expect(await byId(id)).toMatchObject({ status: "failed", failure_code: "step_replayed" });
+        });
+
+        it("a failed request fails the step again; nothing is created", async () => {
+          const c = await stepCase();
+          const id = await sentRequest(c, "cs_step_f");
+          await sql(
+            "update public.fin_payment_requests set status = 'failed', failure_code = 'card_declined' where id = $1",
+            [id],
+          );
+          const fake = createFakePaymentProvider({ refPrefix: "cs_step_f2" });
+          const r = await c.run(fake);
+          expect(r.ok).toBe(false);
+          if (!r.ok) expect(r.error).toMatch(/failed earlier/);
+          expect(fake.created).toHaveLength(0);
+        });
+
+        it("an ambiguous create (gateway timeout) is never sent again", async () => {
+          const c = await stepCase();
+          const timeout = createFakePaymentProvider({
+            fail: { ok: false, code: "timeout", retryable: false, ambiguous: true },
+          });
+          const first = await c.run(timeout);
+          expect(first.ok).toBe(false);
+          const [row] = (
+            await sql(
+              "select id, status, failure_code from public.fin_payment_requests where flow_step_key = $1",
+              [c.key],
+            )
+          ).rows;
+          expect(row).toMatchObject({ status: "failed", failure_code: "ambiguous_create" });
+          const fake = createFakePaymentProvider({ refPrefix: "cs_step_g2" });
+          const r = await c.run(fake);
+          expect(r.ok).toBe(false);
+          if (!r.ok) expect(r.error).toMatch(/may have made a payment link/);
+          expect(fake.created).toHaveLength(0);
+          expect(timeout.created).toHaveLength(1);
+        });
+
+        it("a crash during the gateway call (stamped, no reference) is marked ambiguous and never sent again", async () => {
+          const c = await stepCase();
+          const id = await sentRequest(c, "cs_step_h");
+          await detachMessage(c.key, id, "status = 'pending', provider_ref = null");
+          const fake = createFakePaymentProvider({ refPrefix: "cs_step_h2" });
+          const r = await c.run(fake);
+          expect(r.ok).toBe(false);
+          if (!r.ok) expect(r.error).toMatch(/may have made a payment link/);
+          expect(fake.created).toHaveLength(0);
+          expect(await byId(id)).toMatchObject({
+            status: "failed",
+            failure_code: "ambiguous_create",
+            flow_step_key: c.key,
+          });
+          expect((await c.run(fake)).ok).toBe(false);
+          expect(fake.created).toHaveLength(0);
+        });
+
+        it("a request staff cancelled (or the expiry closed) before it was sent is not replaced", async () => {
+          for (const status of ["cancelled", "expired"]) {
+            const c = await stepCase();
+            const id = await sentRequest(c, `cs_step_i_${status}`);
+            await detachMessage(c.key, id, `status = '${status}'`);
+            const fake = createFakePaymentProvider({ refPrefix: `cs_step_i2_${status}` });
+            const r = await c.run(fake);
+            expect(r.ok).toBe(false);
+            if (!r.ok) expect(r.error).toContain(`was ${status} before it was sent`);
+            expect(fake.created).toHaveLength(0);
+            expect(fake.expired).toEqual([]);
+            expect(await byId(id)).toMatchObject({ status, flow_step_key: c.key });
+          }
+        });
+      });
+
       it("never writes to the invoice (nothing is marked paid, nothing goes to Unite)", async () => {
         const inv = (
           await svc(() => q("select * from public.fin_invoices where id = $1", [invoice]))

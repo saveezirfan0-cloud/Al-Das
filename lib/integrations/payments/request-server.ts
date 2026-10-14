@@ -210,16 +210,44 @@ export type CreateRequestInput = {
   amount: string;
   now?: Date;
   provider?: PaymentProvider;
+  /**
+   * A flow's Payment link step (flowStepKey: run id + step seq). The request row and its message both carry it (unique
+   * columns), so a step replayed after a crash gets the request it already made back instead of a second link or message.
+   */
+  flowStepKey?: string;
 };
+
+/** failure_code of a request whose gateway call may or may not have made a link: never created again by code. */
+const AMBIGUOUS_CREATE = "ambiguous_create";
 
 export async function createPaymentRequest(
   admin: AdminClient,
   input: CreateRequestInput,
 ): Promise<Result<{ requestId: string; expiresAt: string }>> {
   const now = input.now ?? new Date();
+  const replay = input.flowStepKey
+    ? await flowStepRequest(admin, input.orgId, input.flowStepKey)
+    : null;
+  if (replay?.kind === "done") return { ok: true, ...replay.result };
+  if (replay?.kind === "refuse") return { ok: false, error: replay.error };
   const setupRes = await loadPaymentSetup(admin, input.orgId, { provider: input.provider });
   if (!setupRes.ok) return setupRes;
   const { account, cfg, provider, template } = setupRes.setup;
+  if (replay?.kind === "restart") {
+    // The earlier attempt of this step never queued its message, so nothing reached the patient, and either never asked
+    // the gateway ('pending') or holds a link the gateway confirmed ('created'): close it (and that link, through the
+    // gateway the row was made with), release the key and start over.
+    const old = replay.request;
+    if (old.provider_ref && old.provider !== provider.id)
+      return {
+        ok: false,
+        error:
+          "An earlier attempt of this step made a link with another payment gateway; cancel it under Finance before trying again.",
+      };
+    const closed = await closeUnsentFlowStepRequest(admin, input.orgId, old);
+    if (!closed) throw new Error("The payment request changed while the step was replayed");
+    if (old.provider_ref && provider.expire) await provider.expire(old.provider_ref);
+  }
 
   const amountMinor = majorToMinor(input.amount, cfg.currency);
   if (amountMinor === null)
@@ -281,6 +309,7 @@ export async function createPaymentRequest(
       status: "pending",
       expires_at: expiresAt.toISOString(),
       created_by: input.actorId,
+      flow_step_key: input.flowStepKey ?? null,
     })
     .select("id")
     .single();
@@ -304,6 +333,16 @@ export async function createPaymentRequest(
     return { ok: false, error };
   };
 
+  // Stamped before the gateway call: a replay after a crash from here on cannot know whether the gateway made a link, so
+  // it never asks again (an ambiguous create is never sent twice by code).
+  const stamped = await admin
+    .from("fin_payment_requests")
+    .update({ create_attempted_at: new Date().toISOString() })
+    .eq("id", requestId)
+    .eq("org_id", input.orgId);
+  if (stamped.error)
+    return fail("not_stamped", "Could not create the payment request. Nothing was sent.");
+
   const server = serverEnv();
   const created = await provider.createPayment({
     requestId,
@@ -317,6 +356,11 @@ export async function createPaymentRequest(
   if (!created.ok) {
     await recordFailure(admin, input.orgId, "payments", `gateway error ${created.code}`);
     await bumpUsage(admin, input.orgId, "payments", "create_failed");
+    if (created.ambiguous)
+      return fail(
+        AMBIGUOUS_CREATE,
+        "The payment gateway did not answer clearly, so the link may exist there. Nothing was sent to the patient; check the gateway before trying again.",
+      );
     return fail(
       created.code,
       "The payment gateway did not create the link. Nothing was sent to the patient.",
@@ -387,6 +431,7 @@ export async function createPaymentRequest(
       body: [preview.headerText, preview.body].filter(Boolean).join("\n"),
       sentByUserId: input.actorId,
       priority: true,
+      flowStepKey: input.flowStepKey,
     });
     await admin
       .from("fin_payment_requests")
@@ -411,6 +456,139 @@ export async function createPaymentRequest(
   });
   await bumpUsage(admin, input.orgId, "payments", "links_sent");
   return { ok: true, requestId, expiresAt: finalExpiry.toISOString() };
+}
+
+type FlowStepRequestRow = {
+  id: string;
+  status: string;
+  message_id: string | null;
+  expires_at: string | null;
+  provider: string;
+  provider_ref: string | null;
+  failure_code: string | null;
+  create_attempted_at: string | null;
+};
+
+type FlowStepReplay =
+  | { kind: "none" }
+  | { kind: "done"; result: { requestId: string; expiresAt: string } }
+  | { kind: "refuse"; error: string }
+  | { kind: "restart"; request: FlowStepRequestRow };
+
+const REPLAY_AMBIGUOUS =
+  "An earlier attempt of this step may have made a payment link at the gateway; it is not made again automatically. Check the gateway, then send a link by hand if needed.";
+
+/**
+ * What a replayed Payment link step already did (fin_payment_requests.flow_step_key):
+ *  - failed: the step fails again (ambiguous creates are never repeated; staff decide on the fallback path)
+ *  - its message was queued: done. A message queued but not linked (crash between queueing and linking) is linked now; one
+ *    whose enqueue was lost is queued once (requeue_lost_flow_message) while the request is still live
+ *  - no message, never asked the gateway ('pending', no create_attempted_at) or a link the gateway confirmed ('created'):
+ *    restart (the caller closes it and starts over)
+ *  - no message, asked the gateway but no answer stored: marked ambiguous_create, the step fails, nothing is created again
+ *  - no message, cancelled or expired: the step fails; a request staff cancelled or the expiry closed is never replaced
+ *  - none: this step never got as far as a request
+ */
+async function flowStepRequest(
+  admin: AdminClient,
+  orgId: string,
+  key: string,
+): Promise<FlowStepReplay> {
+  const { data: request, error } = await admin
+    .from("fin_payment_requests")
+    .select(
+      "id, status, message_id, expires_at, provider, provider_ref, failure_code, create_attempted_at",
+    )
+    .eq("org_id", orgId)
+    .eq("flow_step_key", key)
+    .maybeSingle();
+  if (error) throw new Error("Could not read the payment request of this step");
+  if (!request) return { kind: "none" };
+  if (request.status === "failed")
+    return {
+      kind: "refuse",
+      error:
+        request.failure_code === AMBIGUOUS_CREATE
+          ? REPLAY_AMBIGUOUS
+          : "The payment link of this step failed earlier; it is not tried again automatically.",
+    };
+  // expires_at is written with the row; the flow step only reads the request id.
+  const done: FlowStepReplay = {
+    kind: "done",
+    result: { requestId: request.id, expiresAt: request.expires_at ?? "" },
+  };
+
+  const { data: message } = await admin
+    .from("messages")
+    .select("id, status, wa_message_id")
+    .eq("org_id", orgId)
+    .eq("flow_step_key", key)
+    .maybeSingle();
+  if (message) {
+    let status = request.status;
+    if (!request.message_id) {
+      // Queued but never linked to the request: link it now (and mark it sent if it was waiting for that).
+      status = request.status === "created" ? "sent" : request.status;
+      await admin
+        .from("fin_payment_requests")
+        .update(
+          status !== request.status
+            ? { message_id: message.id, status }
+            : { message_id: message.id },
+        )
+        .eq("id", request.id)
+        .eq("org_id", orgId)
+        .is("message_id", null);
+    }
+    // Inserted but its enqueue was lost: queue it once, only while the link is still live.
+    if (
+      (status === "created" || status === "sent") &&
+      message.status === "queued" &&
+      !message.wa_message_id
+    ) {
+      const { error: requeueError } = await admin.rpc("requeue_lost_flow_message", {
+        p_message_id: message.id,
+        p_queue: "outbound_priority",
+      });
+      if (requeueError) throw new Error("Could not queue the payment message again");
+    }
+    return done;
+  }
+  if (request.message_id || request.status === "sent" || request.status === "paid") return done;
+
+  if (request.status === "pending" && request.create_attempted_at) {
+    // The gateway was asked but its answer was never stored: it may hold a link. Never ask it again.
+    await admin
+      .from("fin_payment_requests")
+      .update({ status: "failed", failure_code: AMBIGUOUS_CREATE })
+      .eq("id", request.id)
+      .eq("org_id", orgId)
+      .eq("status", "pending");
+    return { kind: "refuse", error: REPLAY_AMBIGUOUS };
+  }
+  if (request.status === "pending" || request.status === "created")
+    return { kind: "restart", request };
+  return {
+    kind: "refuse",
+    error: `The payment link of this step was ${request.status} before it was sent; it is not replaced automatically.`,
+  };
+}
+
+/** Closes a replayed step's request that never sent its message and releases the key. False if it changed meanwhile. */
+async function closeUnsentFlowStepRequest(
+  admin: AdminClient,
+  orgId: string,
+  request: FlowStepRequestRow,
+): Promise<boolean> {
+  const { data } = await admin
+    .from("fin_payment_requests")
+    .update({ flow_step_key: null, status: "failed", failure_code: "step_replayed" })
+    .eq("id", request.id)
+    .eq("org_id", orgId)
+    .eq("status", request.status)
+    .is("message_id", null)
+    .select("id");
+  return (data?.length ?? 0) > 0;
 }
 
 /** Cancels an open request and asks the gateway to close the link where it can. A payment that still arrives is recorded and flagged. */

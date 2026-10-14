@@ -55,6 +55,21 @@ All new nodes are in `NODE_TYPES`, `NODE_DATA_SCHEMAS`, the catalogue, the build
 - Question: a refused pattern, or `save_to: email` without an e-mail answer, blocks publishing.
 - The trigger must still be connected (unchanged).
 
+## Replay-safe steps (follow-up, migration `20261122000100_flow_step_send_key.sql`)
+
+The step row (unique on run + seq) is written before a node runs and holds its outcome afterwards, so a redelivered job replays a finished step without running it. The gap was a crash between the node's side effect and "outcome stored" (`advanceLocked` in `lib/flow-engine/run.ts`: `execute` then `updateStep`): the step stayed `running` and the redelivered job ran the node again. Every side effect a step makes now carries the step key `flowStepKey(run id, seq)` (`lib/flow-engine/types.ts`, handed to executors as `ctx.stepKey`, a required argument of `FlowActions.send`, `CrmPort.bookAppointment` and `CrmPort.createPaymentLink`) in a column with a partial unique index:
+
+- **Messages** (`messages.flow_step_key`). Message, question (each re-ask is its own step and key), quick reply and template pass the key to `queueOutbound({ flowStepKey })`, which treats a unique violation like `retry_of_message_id`: it returns the message the first attempt queued (same org only). If that row is still `queued`, `requeue_lost_flow_message()` (service role) queues it only when neither outbound queue holds a job for it, claiming it on the locked row (`payload.requeued_at`) and calling `pgmq.send` in the same transaction, so two replays at once still queue it at most once.
+- **Book appointment** (`appointments.flow_step_key`). `createAppointment({ flowStepKey })` books through `book_appointment_for_flow_step`: the unchanged `book_appointment` (same signature, per-specialist lock and slot rule) plus the key in one transaction, refused with `flow_step_booked` when the step already booked. A replay gets that booking back, re-syncs reminders and asks for the confirmation again with the same key (queued only if the first attempt never queued it). The timeline entry and `appointment.created` are not repeated (at most once). The key is not a history change (`record_history` skips it).
+- **Payment link** (`fin_payment_requests.flow_step_key`, written at insert, and the message's key; `create_attempted_at` stamped just before the gateway call). A replay finds the request by key:
+  - **Failed:** the step fails again (its fallback path). An ambiguous create (a gateway timeout or 5xx, stored as `ambiguous_create`) is never sent again by code.
+  - **Its message was queued:** the step gets the request back. A message queued but not linked is linked now. A message whose enqueue was lost is queued once (`requeue_lost_flow_message`, `outbound_priority`), only while the request is still `created` or `sent`.
+  - **No message, never asked the gateway** (`pending`, no stamp), **or a link the gateway confirmed** (`created`): the old request is closed (`failed`, `step_replayed`, its link expired through the gateway recorded on that row, refused if the org has since moved to another gateway), the key is released and the step starts over.
+  - **No message, asked the gateway but no reference stored:** marked `ambiguous_create` and the step fails. Staff decide; nothing is created again.
+  - **No message, cancelled or expired:** the step fails. A request staff cancelled or the expiry closed is never replaced automatically.
+
+Tests: `tests/unit/flow-step-send-key.test.ts`, `tests/db/flow-step-send-key.test.ts`, the "flow step replayed after a crash" cases in `tests/db/integrations-service.test.ts`.
+
 ## Files
 
 - New: `lib/flow-engine/crm-adapters.ts`, `answers.ts`, `wa-flow.ts`, `node-options.ts` (client-safe lists: router labels, Meta event names, answer types, `patternProblem`), `executors/ai.ts`; migration `supabase/migrations/20261110000100_flow_parity.sql`; tests `tests/unit/flow-parity.test.ts`, `tests/unit/flow-answers.test.ts`, `tests/db/flow-parity.test.ts`.

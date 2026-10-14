@@ -286,7 +286,7 @@ export function createCrmAdapters(
       return { id: String(res.data.id), created: input.mode !== "update" };
     },
 
-    async bookAppointment(run, input) {
+    async bookAppointment(run, input, opts) {
       if (!run.contact_id) throw new Error("This step needs a contact");
       const res = await s.createAppointment(admin, {
         orgId: run.org_id,
@@ -298,6 +298,7 @@ export function createCrmAdapters(
         startsAt: new Date(String(input.starts_at)),
         notify: input.notify === true,
         source: "bot",
+        flowStepKey: opts.stepKey,
       });
       if (!res.ok) throw new Error(res.error);
       return { id: res.appointment.id, created: true };
@@ -335,7 +336,7 @@ export function createCrmAdapters(
       return { changed: (data?.length ?? 0) > 0 };
     },
 
-    async createPaymentLink(run, input) {
+    async createPaymentLink(run, input, opts) {
       if (!run.contact_id) return { ok: false, error: "This step needs a contact" };
       // createPaymentRequest checks: switched on, not a training workspace, credentials, approved UTILITY template, invoice,
       // amount within the total, one live request per invoice, guardian-aware recipient; it sends through queueOutbound.
@@ -345,6 +346,7 @@ export function createCrmAdapters(
         expectContactId: run.contact_id,
         invoiceNumber: input.invoice_number,
         amount: input.amount,
+        flowStepKey: opts.stepKey,
       });
       return res.ok ? { ok: true, requestId: res.requestId } : { ok: false, error: res.error };
     },
