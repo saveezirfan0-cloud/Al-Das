@@ -104,9 +104,16 @@ const withBundleAnalyzer = createBundleAnalyzer({
  * Source maps go to Sentry only when SENTRY_AUTH_TOKEN (with SENTRY_ORG and SENTRY_PROJECT) is set at build time; they
  * are deleted from the output after upload. Without the token the build is exactly as before: no Sentry build plugin,
  * no upload, no extra loaders. Runtime reporting does not depend on this (instrumentation.ts).
+ *
+ * On Vercel the upload is off unless SENTRY_UPLOAD_SOURCEMAPS=1: with it the build peaks at about 7 to 8 GB on the 8 GB
+ * build machine and was killed for memory on 14 Oct (docs/38_HOSTING_SETUP.md). Errors still reach Sentry; their stack
+ * traces stay minified. Turn it back on with a larger build machine.
  */
 const uploadSourceMaps =
-  !!process.env.SENTRY_AUTH_TOKEN && !!process.env.SENTRY_ORG && !!process.env.SENTRY_PROJECT;
+  !!process.env.SENTRY_AUTH_TOKEN &&
+  !!process.env.SENTRY_ORG &&
+  !!process.env.SENTRY_PROJECT &&
+  (!onVercel || process.env.SENTRY_UPLOAD_SOURCEMAPS === "1");
 
 const withSentry = (config: NextConfig): NextConfig =>
   uploadSourceMaps
