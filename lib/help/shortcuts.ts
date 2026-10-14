@@ -14,6 +14,15 @@ export const SHORTCUT_GROUPS: readonly ShortcutGroup[] = [
     ],
   },
   {
+    title: "In the menu (computer)",
+    items: [
+      { keys: ["Enter"], does: "On an area's icon: open its pages and go to the first one" },
+      { keys: ["→"], does: "Same as Enter on an area's icon" },
+      { keys: ["↑", "↓"], does: "Move between the pages of the open area" },
+      { keys: ["Esc"], does: "Back to the area's icon (← does the same)" },
+    ],
+  },
+  {
     title: "In the inbox composer",
     items: [
       { keys: ["/"], does: "Open your quick replies; keep typing to narrow them" },

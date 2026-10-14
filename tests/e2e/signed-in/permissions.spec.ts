@@ -38,6 +38,7 @@ test.describe("Agent", () => {
     const rail = page.getByRole("navigation", { name: "Main" });
     await expect(rail.getByRole("link", { name: "Home", exact: true })).toBeVisible();
     await expect(rail.getByRole("link", { name: "Finance", exact: true })).toHaveCount(0);
+    await expect(rail.getByRole("button", { name: "Finance", exact: true })).toHaveCount(0);
 
     // A finance page itself refuses with the no-access page.
     await gotoReady(page, "/finance/claims");
