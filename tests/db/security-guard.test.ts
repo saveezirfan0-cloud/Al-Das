@@ -49,6 +49,7 @@ import {
   SF20E_TABLES,
   SF20G_TABLES,
   SF20I_TABLES,
+  PORTAL_TAGS_TABLES,
   resetDb,
   seedPhase13Rows,
   seedPhase14Rows,
@@ -74,6 +75,7 @@ import {
   seedSf20eRows,
   seedSf20gRows,
   seedSf20iRows,
+  seedPortalTagRows,
   seedSecurityRows,
   TEST_DATABASE_URL,
 } from "./helpers";
@@ -1050,6 +1052,8 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
     await seedSf20gRows(c, orgA);
     // Phase 20i (Meta ads spend) tables likewise.
     await seedSf20iRows(c, orgA);
+    // Portal tags (docs/33) likewise.
+    await seedPortalTagRows(c, orgA);
   });
   afterAll(async () => {
     await resetDb(c);
@@ -1065,6 +1069,7 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
       ...SF20G_TABLES,
       ...SF20E_TABLES,
       ...SF20I_TABLES,
+      ...PORTAL_TAGS_TABLES,
       ...SF20D_TABLES,
       ...SF20C_BOOKING_TABLES,
       ...SF20C_TABLES,
@@ -1097,6 +1102,7 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
         ...SF20G_TABLES,
         ...SF20E_TABLES,
         ...SF20I_TABLES,
+        ...PORTAL_TAGS_TABLES,
         ...SF20D_TABLES,
         ...SF20C_BOOKING_TABLES,
         ...SF20C_TABLES,

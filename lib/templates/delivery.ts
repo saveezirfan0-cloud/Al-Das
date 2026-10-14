@@ -70,7 +70,13 @@ export function isTtlExpired(
 }
 
 export type RetrySkipReason =
-  "off" | "not_template" | "campaign" | "not_retryable" | "exhausted" | "expired";
+  | "off"
+  | "not_template"
+  | "campaign"
+  | "authentication"
+  | "not_retryable"
+  | "exhausted"
+  | "expired";
 
 export type RetryDecision =
   | { retry: true; attempt: number; delaySeconds: number }
@@ -84,6 +90,8 @@ export function templateRetryDecision(input: {
   retryOnFail: boolean | null | undefined;
   isTemplate: boolean;
   campaignRecipientId: string | null | undefined;
+  /** An Authentication (code) template is never re-sent: the code would be stale. */
+  category?: string | null;
   errorCode: number | null | undefined;
   previousRetries: number;
   ttlSeconds: number | null | undefined;
@@ -92,6 +100,8 @@ export function templateRetryDecision(input: {
 }): RetryDecision {
   if (!input.isTemplate) return { retry: false, reason: "not_template" };
   if (input.campaignRecipientId) return { retry: false, reason: "campaign" };
+  if ((input.category ?? "").toUpperCase() === "AUTHENTICATION")
+    return { retry: false, reason: "authentication" };
   if (input.retryOnFail !== true) return { retry: false, reason: "off" };
   if (!isRetryableCode(input.errorCode)) return { retry: false, reason: "not_retryable" };
   const done = Math.max(0, Math.floor(input.previousRetries));

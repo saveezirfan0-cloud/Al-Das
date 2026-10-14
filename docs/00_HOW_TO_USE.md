@@ -4,7 +4,7 @@
 
 | File | Who reads it | Use it for |
 |---|---|---|
-| `AlDas_InHouse_Clinic_Platform_Proposal.pdf` | **Client** (Saeed / management) | The pitch: scope, delivery plan, running costs and savings. Send it, nothing else |
+| `pitch/Pulse_Proposal_Al_Das_Medical.pdf` (with `pitch/Pulse_Pitch_Deck.pptx`) | **Client** (Saeed / management) | The pitch: scope, delivery plan, running costs and savings. Send these, nothing else |
 | `00_HOW_TO_USE.md` | You | This guide |
 | `01_FEASIBILITY_AND_TEARDOWN.md` | You + Claude Code | **Functional spec**: every Sanoflow screen, field, flow node and integration, plus WhatsApp feasibility. Claude Code reads it to know *what* to build. (Its stack section is outdated; `02` wins) |
 | `02_CLAUDE_CODE_BUILD_PLAN.md` | Claude Code (and you) | **How to build**: Supabase + Vercel stack, data model, jobs design, WhatsApp, back office, Unite, phases with **copy-paste prompts** |

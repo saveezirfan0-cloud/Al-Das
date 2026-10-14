@@ -200,6 +200,14 @@ export async function deleteRecord(
     .eq("id", id);
   if (error) return { ok: false, error: friendlyDbError(error) };
   if (!count) return { ok: false, error: "Record not found." };
+  // Its portal tags go too (record_id has no foreign key: it points at a different table per object).
+  const { error: tagErr } = await loose(admin)
+    .from("portal_record_tags")
+    .delete()
+    .eq("org_id", member.orgId)
+    .eq("object_key", def.key)
+    .eq("record_id", id);
+  if (tagErr) console.error("[portal] tag cleanup failed", { code: tagErr.code });
   await recordAudit(admin, {
     orgId: member.orgId,
     userId: member.userId,

@@ -178,7 +178,9 @@ export function TemplatePicker({
                                 ? "URL suffix"
                                 : v.kind === "copy_code"
                                   ? "code"
-                                  : `${v.kind} id or URL`}
+                                  : v.kind === "catalog_thumbnail"
+                                    ? "optional catalogue item ID"
+                                    : `${v.kind} id or URL`}
                               )
                             </span>
                           )}

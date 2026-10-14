@@ -34,11 +34,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { MultiSelect } from "@/components/ui/multi-select";
 import { countConditions, filterSchema, type Filter } from "@/lib/filters/ast";
+import type { PortalTag } from "@/lib/portal/bulk-edit";
 import type { PortalRow } from "@/lib/portal/types";
 import type { SavedViewDto } from "@/lib/portal/server";
 
 import { deletePortalView, listRecords, previewFilterCount, savePortalGridPrefs } from "./actions";
+import { PortalBulkBar } from "./bulk-bar";
 import { CreateDialog } from "./create-dialog";
 import { buildPortalColumns } from "./portal-columns";
 import { RecordDrawer } from "./record-drawer";
@@ -73,6 +76,9 @@ export function PortalWorkspace({ bootstrap }: { bootstrap: PortalBootstrap }) {
   const [pageSize, setPageSize] = React.useState(bootstrap.gridPrefs?.pageSize ?? 100);
   const [rows, setRows] = React.useState<PortalRow[]>([]);
   const [links, setLinks] = React.useState<Record<string, Record<string, string>>>({});
+  const [rowTags, setRowTags] = React.useState<Record<string, string[]>>({});
+  const [tags, setTags] = React.useState<PortalTag[]>(bootstrap.tags);
+  const [tagFilter, setTagFilter] = React.useState<string[]>([]);
   const [total, setTotal] = React.useState(0);
   const [loading, setLoading] = React.useState(true);
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
@@ -98,8 +104,8 @@ export function PortalWorkspace({ bootstrap }: { bootstrap: PortalBootstrap }) {
   );
 
   const columns = React.useMemo(
-    () => buildPortalColumns(def, { timezone: bootstrap.timezone, links }),
-    [def, bootstrap.timezone, links],
+    () => buildPortalColumns(def, { timezone: bootstrap.timezone, links, tags, rowTags }),
+    [def, bootstrap.timezone, links, tags, rowTags],
   );
 
   // First use: hide the columns the object marks as default-hidden.
@@ -146,7 +152,12 @@ export function PortalWorkspace({ bootstrap }: { bootstrap: PortalBootstrap }) {
   React.useEffect(() => {
     setPage(1);
     setRowSelection({});
-  }, [filter, debouncedSearch, sorting, pageSize]);
+  }, [filter, debouncedSearch, sorting, pageSize, tagFilter]);
+
+  // Selection is per page (docs/33): a bulk action never touches rows the person can no longer see.
+  React.useEffect(() => {
+    setRowSelection({});
+  }, [page]);
 
   const sort = React.useMemo(
     () =>
@@ -164,23 +175,43 @@ export function PortalWorkspace({ bootstrap }: { bootstrap: PortalBootstrap }) {
   React.useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    listRecords(def.key, { filter, search: debouncedSearch || null, sort, page, pageSize }).then(
-      (res) => {
-        if (cancelled) return;
-        setLoading(false);
-        if (!res.ok) {
-          toast.error(res.error);
-          return;
-        }
-        setRows(res.data.rows);
-        setTotal(res.data.total);
-        setLinks(res.data.links);
-      },
-    );
+    listRecords(def.key, {
+      filter,
+      search: debouncedSearch || null,
+      sort,
+      page,
+      pageSize,
+      tagIds: tagFilter,
+    }).then((res) => {
+      if (cancelled) return;
+      setLoading(false);
+      if (!res.ok) {
+        toast.error(res.error);
+        return;
+      }
+      setRows(res.data.rows);
+      setTotal(res.data.total);
+      setLinks(res.data.links);
+      setRowTags(res.data.tags);
+    });
     return () => {
       cancelled = true;
     };
-  }, [def.key, filter, debouncedSearch, sort, page, pageSize, reloadKey]);
+  }, [def.key, filter, debouncedSearch, sort, page, pageSize, tagFilter, reloadKey]);
+
+  const selectedIds = React.useMemo(
+    () => Object.keys(rowSelection).filter((id) => rowSelection[id]),
+    [rowSelection],
+  );
+  const addTag = React.useCallback(
+    (t: PortalTag) =>
+      setTags((cur) =>
+        cur.some((x) => x.id === t.id)
+          ? cur
+          : [...cur, t].sort((a, b) => a.name.localeCompare(b.name)),
+      ),
+    [],
+  );
 
   const reload = React.useCallback(() => setReloadKey((k) => k + 1), []);
 
@@ -249,7 +280,14 @@ export function PortalWorkspace({ bootstrap }: { bootstrap: PortalBootstrap }) {
       body: JSON.stringify(
         scope === "all"
           ? { scope, columns: visible }
-          : { scope, filter, search: debouncedSearch || null, sort, columns: visible },
+          : {
+              scope,
+              filter,
+              search: debouncedSearch || null,
+              tagIds: tagFilter,
+              sort,
+              columns: visible,
+            },
       ),
     });
     if (!res.ok) {
@@ -331,6 +369,17 @@ export function PortalWorkspace({ bootstrap }: { bootstrap: PortalBootstrap }) {
               <X /> Clear
             </Button>
           )}
+          {tags.length > 0 && (
+            <MultiSelect
+              aria-label="Filter by tag"
+              className="w-56 max-w-full"
+              options={tags.map((t) => ({ value: t.id, label: t.name }))}
+              value={tagFilter}
+              onChange={setTagFilter}
+              placeholder="Any tag"
+              emptyText="No portal tags."
+            />
+          )}
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -400,6 +449,20 @@ export function PortalWorkspace({ bootstrap }: { bootstrap: PortalBootstrap }) {
           </DropdownMenu>
         </div>
 
+        {bootstrap.can.write && selectedIds.length > 0 && (
+          <PortalBulkBar
+            ids={selectedIds}
+            bootstrap={bootstrap}
+            tags={tags}
+            onTagCreated={addTag}
+            onClear={() => setRowSelection({})}
+            onDone={() => {
+              setRowSelection({});
+              reload();
+            }}
+          />
+        )}
+
         <DataGrid
           columns={columns}
           data={rows}
@@ -421,7 +484,7 @@ export function PortalWorkspace({ bootstrap }: { bootstrap: PortalBootstrap }) {
           onRowSelectionChange={setRowSelection}
           onRowClick={(r) => setParam({ record: r.id })}
           emptyText={
-            total === 0 && !activeConditions && !debouncedSearch
+            total === 0 && !activeConditions && !debouncedSearch && tagFilter.length === 0
               ? `No ${def.label.toLowerCase()} yet. They appear here after the Airtable import.`
               : "No records match."
           }
@@ -471,6 +534,8 @@ export function PortalWorkspace({ bootstrap }: { bootstrap: PortalBootstrap }) {
       <RecordDrawer
         recordId={recordId}
         bootstrap={bootstrap}
+        tags={tags}
+        onTagCreated={addTag}
         onClose={() => setParam({ record: null })}
         onChanged={reload}
       />

@@ -16,6 +16,7 @@ const bodySchema = z.object({
   scope: z.enum(["current", "all"]).default("current"),
   filter: filterSchema.nullable().optional(),
   search: z.string().max(200).nullable().optional(),
+  tagIds: z.array(z.string().uuid()).max(20).optional(),
   columns: z.array(z.string().max(80)).max(100).optional(),
 });
 
@@ -50,6 +51,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ object: string
       current ? body.search : null,
       MAX_EXPORT,
       member.org.timezone,
+      current ? (body.tagIds ?? null) : null,
     );
   } catch {
     return NextResponse.json({ error: "invalid filter" }, { status: 400 });

@@ -15,6 +15,18 @@ export const WHATS_NEW: readonly WhatsNewEntry[] = [
     body: "Pulse now uses the clinic's own colours: Al Das teal for buttons and links, the bronze accent, and the teal-navy of the website for the menu and for dark mode. Every colour still meets the contrast standard for easy reading. The app icon on phones and computers is teal too (reinstall or refresh the app if it still shows the old one).",
   },
   {
+    id: "2026-11-13-templates-named-otp-catalog",
+    date: "2026-11-13",
+    title: "Named variables, one-time code and catalogue templates",
+    body: "In the template builder you can now name variables, for example {{first_name}} instead of {{1}}, which makes mappings easier to read; numbered variables work as before. Two new kinds of template can be built and submitted to Meta: a one-time code template (category Authentication), where Meta writes the message and you choose a security note, how long the code lasts and the copy button's label, and a catalogue template (Marketing) with a button that opens your WhatsApp product catalogue. Pulse does not create or send codes by itself, and one-time code templates cannot be used in campaigns.",
+  },
+  {
+    id: "2026-11-13-portal-bulk-edit-tags",
+    date: "2026-11-13",
+    title: "Edit many portal records at once, and tag them",
+    body: "In the Portal lists, tick the records you want (or the box at the top for the whole page) and choose Edit to give up to 500 records the same value in one field, or to clear it. Each change shows in the record's History. Portal records can now carry tags: add them in the record drawer or to many records at once, and filter a list by tag. Tags are managed under Settings, Tags, Portal tags.",
+  },
+  {
     id: "2026-11-12-inbox-campaigns-ads",
     date: "2026-11-12",
     title: "Inbox extras, campaign A/B tests and ad spend",

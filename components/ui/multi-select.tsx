@@ -21,7 +21,12 @@ export function MultiSelect({
   className,
   disabled,
   onCreate,
+  id,
+  "aria-label": ariaLabel,
 }: {
+  /** Id of the trigger button, for a <Label htmlFor>. */
+  id?: string;
+  "aria-label"?: string;
   options: MultiSelectOption[];
   value: string[];
   onChange: (next: string[]) => void;
@@ -67,6 +72,8 @@ export function MultiSelect({
           type="button"
           variant="outline"
           role="combobox"
+          id={id}
+          aria-label={ariaLabel}
           aria-expanded={open}
           disabled={disabled}
           className={cn("h-auto min-h-9 w-full justify-between px-2 py-1 font-normal", className)}

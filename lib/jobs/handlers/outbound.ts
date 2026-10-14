@@ -24,7 +24,12 @@ import { clientForChannel } from "@/lib/whatsapp/channel";
 import { WhatsAppApiError, mapMetaError } from "@/lib/whatsapp/errors";
 import { e164ToWaId } from "@/lib/whatsapp/phone";
 import { MediaUseError, resolveHeaderMedia } from "@/lib/media/resolve";
-import { buildTemplateSend, isMarketingBlocked, isTemplateSendable } from "@/lib/whatsapp/templates";
+import {
+  authTemplateSendAllowed,
+  buildTemplateSend,
+  isMarketingBlocked,
+  isTemplateSendable,
+} from "@/lib/whatsapp/templates";
 import type { MetaTemplateComponent, SendResult } from "@/lib/whatsapp/types";
 import { sendsThroughMmLite } from "@/lib/whatsapp/mm-lite";
 import { serviceWindow } from "@/lib/whatsapp/window";
@@ -283,9 +288,23 @@ export async function deliverOutbound(
           );
           return;
         }
+        if (!authTemplateSendAllowed(tpl.category, spec.otp)) {
+          await markFailed(
+            admin,
+            message.id,
+            -1,
+            "One-time code templates can only be sent by a person from the Inbox or through the public API.",
+          );
+          return;
+        }
         // Opt-outs can arrive between queueing and sending (CLAUDE.md rule 11): check again now.
         if (isMarketingBlocked(tpl.category, contact.stop_marketing)) {
-          await markFailed(admin, message.id, 131050, "The recipient opted out of marketing messages.");
+          await markFailed(
+            admin,
+            message.id,
+            131050,
+            "The recipient opted out of marketing messages.",
+          );
           await emit(message.org_id, "message.failed", {
             message_id: message.id,
             conversation_id: conversation.id,
@@ -373,7 +392,10 @@ export async function deliverOutbound(
     // message is already sent, so a failure here must not re-queue it.
     if (countsAsFirstTouch(message, spec.type)) {
       await markContactEnquiriesTouched(admin, message.org_id, contact.id).catch((e) =>
-        log.warn("enquiry first touch failed", { messageId: message.id, error: e instanceof Error ? e.message : "unknown" }),
+        log.warn("enquiry first touch failed", {
+          messageId: message.id,
+          error: e instanceof Error ? e.message : "unknown",
+        }),
       );
     }
     await emit(message.org_id, "message.sent", {

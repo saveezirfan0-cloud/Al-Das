@@ -9,7 +9,7 @@ import { queueOutbound } from "@/lib/inbox/send";
 import { readInboxSettings } from "@/lib/inbox/settings";
 import type { AdminClient } from "@/lib/supabase/admin";
 import { toE164 } from "@/lib/whatsapp/phone";
-import { isMarketingBlocked, renderTemplatePreview } from "@/lib/whatsapp/templates";
+import { isAuthTemplate, isMarketingBlocked, renderTemplatePreview } from "@/lib/whatsapp/templates";
 import type { MetaTemplateComponent } from "@/lib/whatsapp/types";
 
 /**
@@ -121,7 +121,7 @@ export async function sendTemplateViaApi(admin: AdminClient, orgId: string, inpu
   const message = await queueOutbound(admin, {
     orgId,
     conversationId,
-    spec: { type: "template", template_id: tpl.id, values: input.variables },
+    spec: { type: "template", template_id: tpl.id, values: input.variables, ...(isAuthTemplate(tpl.category) ? { otp: true as const } : {}) },
     body: [preview.headerText, preview.body].filter(Boolean).join("\n"),
     sentByUserId: null,
     priority: false,

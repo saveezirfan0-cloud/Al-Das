@@ -13,7 +13,16 @@ export const metadata = { title: "Tags" };
 const SCOPES = [
   { key: "contact", label: "Contact tags", perm: "contacts.manage", usage: "contact_tags" },
   { key: "enquiry", label: "Enquiry tags", perm: "enquiries.manage", usage: "enquiry_tags" },
+  { key: "portal", label: "Portal tags", perm: "portal.tags.manage", usage: "portal_record_tags" },
 ] as const;
+
+const DESCRIPTIONS: Record<(typeof SCOPES)[number]["key"], string> = {
+  contact:
+    "Labels for contacts. Tags can also be created on the fly from the contact drawer and bulk actions.",
+  enquiry: "Labels for enquiries. They can also be created on the fly from the enquiry drawer.",
+  portal:
+    "Labels for portal records (diagnoses, medications, items, website entry points). Anyone who can edit a portal object can add them to its records.",
+};
 
 export default async function TagsPage({
   searchParams,
@@ -40,14 +49,7 @@ export default async function TagsPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
-        title="Tags"
-        description={
-          scope.key === "enquiry"
-            ? "Labels for enquiries. They can also be created on the fly from the enquiry drawer."
-            : "Labels for contacts. Tags can also be created on the fly from the contact drawer and bulk actions."
-        }
-      />
+      <PageHeader title="Tags" description={DESCRIPTIONS[scope.key]} />
       {allowed.length > 1 && (
         <div className="flex gap-1">
           {allowed.map((s) => (

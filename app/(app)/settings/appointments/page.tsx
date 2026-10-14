@@ -41,6 +41,7 @@ export default async function AppointmentSettingsPage() {
       .from("wa_templates")
       .select("id, name, language, status, category")
       .eq("org_id", org)
+      .neq("category", "AUTHENTICATION")
       .is("archived_at", null)
       .order("name"),
     admin

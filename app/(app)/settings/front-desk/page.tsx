@@ -19,6 +19,7 @@ export default async function FrontDeskSettingsPage() {
       .from("wa_templates")
       .select("id, name, language, status, category")
       .eq("org_id", member.orgId)
+      .neq("category", "AUTHENTICATION")
       .is("archived_at", null)
       .order("name"),
     admin

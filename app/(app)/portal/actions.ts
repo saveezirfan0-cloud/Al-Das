@@ -8,7 +8,21 @@ import { z } from "zod";
 import { recordAudit } from "@/lib/audit";
 import { filterSchema } from "@/lib/filters/ast";
 import { can } from "@/lib/auth/can";
-import { requireMember } from "@/lib/auth/session";
+import { requireMember, requirePerm } from "@/lib/auth/session";
+import {
+  bulkTagRecords,
+  bulkUpdateRecords,
+  createPortalTag,
+  PORTAL_TAGS_MANAGE,
+  setRecordTags,
+  tagsForRecords,
+} from "@/lib/portal/bulk";
+import {
+  bulkResultMessage,
+  type BulkEditInput,
+  type BulkResult,
+  type BulkTagInput,
+} from "@/lib/portal/bulk-edit";
 import { loose } from "@/lib/portal/db";
 import { countPortal, queryPortal, MAX_PAGE_SIZE } from "@/lib/portal/query";
 import {
@@ -65,6 +79,8 @@ const listSchema = z.object({
     .optional(),
   page: z.number().int().min(1).max(100_000).default(1),
   pageSize: z.number().int().min(1).max(MAX_PAGE_SIZE).default(100),
+  /** Portal tags: rows carrying ANY of them. */
+  tagIds: z.array(uuid).max(20).optional(),
 });
 
 export async function listRecords(
@@ -75,6 +91,8 @@ export async function listRecords(
     rows: PortalRow[];
     total: number;
     links: Record<string, Record<string, string>>;
+    /** Portal tag ids per row id (rows without tags are absent). */
+    tags: Record<string, string[]>;
   }>
 > {
   const { member, admin, def } = await readable(key);
@@ -94,16 +112,25 @@ export async function listRecords(
         page: parsed.data.page,
         pageSize: parsed.data.pageSize,
         timezone: member.org.timezone,
+        tagIds: parsed.data.tagIds ?? null,
       },
       registry,
     );
-    const links = await resolveLinks(admin, member.orgId, def, page.rows);
+    const [links, tags] = await Promise.all([
+      resolveLinks(admin, member.orgId, def, page.rows),
+      tagsForRecords(
+        admin,
+        member.orgId,
+        def.key,
+        page.rows.map((r) => r.id),
+      ),
+    ]);
     await recordAccess(admin, member, {
       entity: "portal_record",
       action: parsed.data.search ? "search" : "list",
       detail: { object: def.key, rows: page.rows.length },
     });
-    return { ok: true, data: { rows: page.rows, total: page.total, links } };
+    return { ok: true, data: { rows: page.rows, total: page.total, links, tags } };
   } catch (err) {
     // Unknown field / operator errors from the filter compiler are user-fixable.
     return fail(
@@ -161,6 +188,8 @@ export type RecordDetail = {
     uploadedBy: string | null;
     createdAt: string;
   }>;
+  /** Portal tags on this record. */
+  tagIds: string[];
 };
 
 export async function getRecordDetail(
@@ -179,7 +208,7 @@ export async function getRecordDetail(
     detail: { object: def.key },
   });
   const l = loose(admin);
-  const [links, events, comments, attachments] = await Promise.all([
+  const [links, events, comments, attachments, tags] = await Promise.all([
     resolveLinks(admin, member.orgId, def, [rec.data]),
     l
       .from("portal_record_events")
@@ -206,6 +235,7 @@ export async function getRecordDetail(
       .eq("record_id", id)
       .order("created_at", { ascending: false })
       .limit(100),
+    tagsForRecords(admin, member.orgId, def.key, [id]),
   ]);
   type Row = Record<string, unknown>;
   return {
@@ -234,6 +264,7 @@ export async function getRecordDetail(
         uploadedBy: (a.uploaded_by as string) ?? null,
         createdAt: a.created_at as string,
       })),
+      tagIds: tags[id] ?? [],
     },
   };
 }
@@ -290,6 +321,68 @@ export async function deletePortalRecord(
   if (!res.ok) return res;
   revalidatePath(`/portal/${def.key}`);
   return res;
+}
+
+// ---------------------------------------------------------------------------
+// Bulk edit and tags (docs/33). Same permission as a single edit: the object's write key. The admin client
+// carries the person's id so record_history names them; lib/portal/bulk re-checks permission and validates.
+// ---------------------------------------------------------------------------
+
+export async function bulkEditPortalRecords(
+  key: string,
+  input: BulkEditInput,
+): Promise<ActionResult<BulkResult>> {
+  const { member, admin, def } = await writableContext(key);
+  if (!def) return fail("Unknown object.");
+  if (!canWrite(member, def)) return fail("You do not have permission to do that.");
+  const res = await bulkUpdateRecords(admin, member, def.key, input);
+  if (!res.ok) return res;
+  revalidatePath(`/portal/${def.key}`);
+  return { ok: true, data: res.data, message: bulkResultMessage(res.data) };
+}
+
+export async function bulkTagPortalRecords(
+  key: string,
+  input: BulkTagInput,
+): Promise<ActionResult<BulkResult>> {
+  const { member, admin, def } = await writableContext(key);
+  if (!def) return fail("Unknown object.");
+  if (!canWrite(member, def)) return fail("You do not have permission to do that.");
+  const res = await bulkTagRecords(admin, member, def.key, input);
+  if (!res.ok) return res;
+  revalidatePath(`/portal/${def.key}`);
+  return { ok: true, data: res.data, message: bulkResultMessage(res.data) };
+}
+
+export async function setPortalRecordTags(
+  key: string,
+  recordId: string,
+  tagIds: string[],
+): Promise<ActionResult> {
+  const { member, admin, def } = await writableContext(key);
+  if (!def) return fail("Unknown object.");
+  if (!canWrite(member, def)) return fail("You do not have permission to do that.");
+  const parsed = z
+    .object({ id: uuid, tags: z.array(uuid).max(100) })
+    .safeParse({ id: recordId, tags: tagIds });
+  if (!parsed.success) return fail("Invalid tags.");
+  const res = await setRecordTags(admin, member, def.key, parsed.data.id, parsed.data.tags);
+  if (!res.ok) return res;
+  return { ok: true, data: undefined };
+}
+
+/** Creates a portal tag on the fly from a tag picker (portal.tags.manage, like Settings, Tags). */
+export async function createPortalTagInline(
+  name: string,
+): Promise<ActionResult<{ id: string; name: string; color: string }>> {
+  const member = await requirePerm(PORTAL_TAGS_MANAGE);
+  const parsed = z.string().trim().min(1).max(40).safeParse(name);
+  if (!parsed.success) return fail("Enter a tag name (up to 40 characters).");
+  const admin = createAdminClient(member.userId);
+  const res = await createPortalTag(admin, member, parsed.data);
+  if (!res.ok) return res;
+  revalidatePath("/settings/tags");
+  return { ok: true, data: res.data };
 }
 
 // ---------------------------------------------------------------------------

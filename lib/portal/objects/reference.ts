@@ -23,7 +23,7 @@ export const REF_CONDITION_GROUPS: PortalObjectDef = {
     { key: "name", label: "Name", type: "text", required: true, maxLength: 200 },
     { key: "key", label: "Key", type: "text", required: true, createOnly: true, maxLength: 60 },
     { key: "messageable", label: "Messageable", type: "boolean" },
-    { key: "sort", label: "Priority", type: "number", integer: true },
+    { key: "sort", label: "Priority", type: "number", integer: true, notNull: true },
     { key: "follow_up_interval_days", label: "Follow-up (days)", type: "number", integer: true },
     {
       key: "regular_medication_examples",

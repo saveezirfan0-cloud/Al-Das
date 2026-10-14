@@ -82,6 +82,8 @@ Every merge was checked with typecheck, lint, the unit suite, the database suite
 
 **Sanoflow parity follow-ups (20f to 20i) are built**: inbox extras (forward, contact card, catalogue product, call link, move a chat to a new contact; `docs/28`), ShowBusy and campaign A/B tests (`docs/29`), a generic HTTP SMS gateway and Meta Marketing Messages Lite (`docs/30`), and Meta ads spend on the Ad attribution report (`docs/31`). Every row of the parity matrix (`docs/20` §4) is now closed except G14 (lead-gen forms, booking page, payment-required booking), which waits for a decision. Migrations `20261112000100`, `20261113000100`, `20261115000100`; paste file `deploy/supabase-paste/55_sanoflow_parity_followups.sql`. The live database (project "Al Das") had every migration up to `20261111000100` applied on 14 Oct 2026.
 
+**Portal bulk edit and tags are built** (`docs/33`): select rows in a portal list and change one field on all of them, or add and remove portal tags; tags in the record drawer, a tag filter and a Portal tags tab in Settings, Tags (`portal.tags.manage`). Per-object custom fields are deliberately not built. Migration `20261117000100`; paste file `deploy/supabase-paste/57_portal_bulk_edit_tags.sql`.
+
 ## 1. Where we are
 
 ### 1.1 The short version
@@ -123,13 +125,13 @@ Not run: the browser tests and any click-through (no Supabase auth stack in the 
 | 1 | Foundation: auth, orgs, RLS, roles, teams, invites, jobs framework | Yes | Presence inactivity timeout. MFA is enforced per role since Phase 15 but the enrolment flow has not been run against a real Supabase Auth |
 | 2 | Patient CRM: grid, views, segments, filters, import/export, merge, custom fields, tags | Yes | Sanoflow export header names are guessed (`--map` / `<step>.map.json` overrides); real export needed. Phase 20a imports the whole Sanoflow export set (docs/22) |
 | 3 | WhatsApp ingress and shared inbox | Yes | Never tested with real Meta traffic; BSUID (username) contract unverified; coexistence events only logged |
-| 4 | Templates: builder, Meta submit and sync, 26 starter templates (13 in English and Arabic) | Yes | Needs `META_APP_ID` and a real WABA; no OTP, catalogue or flow-button templates |
+| 4 | Templates: builder, Meta submit and sync, 26 starter templates (13 in English and Arabic) | Yes | Needs `META_APP_ID` and a real WABA; named, one-time code and catalogue templates since docs/32 (unverified live); no flow-button templates |
 | 5 | Enquiries and tasks: pipelines, Kanban, SLA, assignment, reminders, first-touch | Yes | No enquiry tags join table, no CSV import, no AI summary |
 | 5b | Tasks API, booking conversion, failed reminder becomes a call task | Yes | None |
 | 6 | Appointments, slot engine, reminders, button replies; read-only Unite sync; clinical rules engine; Follow-Up Queue; Clinical settings | Yes | Bookings and moves re-check the slot under a per-specialist lock (`book_appointment` / `move_appointment`); clinical messaging deliberately OFF until sign-off; Unite sync OFF until credentials |
 | 7 | Campaigns: audience snapshots, fan-out, throttling, funnel, retries | Yes | No recurring campaigns, A/B variants, per-recipient media headers |
 | 8 | Flows (21 node types), recall programmes, parallel-run tooling | Yes | Live path untested; recall in Test mode only; Token and MRD-sync parallel runs need Make exports |
-| 9 | Back-office portal and complete Airtable importer | Yes | Clinical importer mappers now write the real Phase 6 tables (dry-run first, then a real run against a real base is still to do); no portal bulk edit |
+| 9 | Back-office portal and complete Airtable importer | Yes | Clinical importer mappers now write the real Phase 6 tables (dry-run first, then a real run against a real base is still to do); portal bulk edit and tags added later (`docs/33`) |
 | 10 | AI assist and knowledge base, metrics, dashboards, reports, public API, webhooks | Yes | AI switch OFF until legal answer (OQ-57); WhatsApp cost report built but never run against live Meta (OQ-62); `ai_tags` are written only by Phase 17 intent detection (OFF by default); no scheduled digests |
 | 11 | Hardening, load tests, reconciliation, cut-over tooling | Yes | Load tests only run against a mock Graph; live rehearsal not done |
 | 15 | Security and audit: MFA by role, login history, session list, record access log, anomaly alerts, access review, off-boarding, History tabs, Activity log CSV, patient data export and erasure, API read counter | Yes | Never clicked in a browser or run against Supabase Auth (see `docs/12_PHASE_15_NOTES.md`); clinical records are kept on erasure pending OQ-63; enrolment and sign-out scopes need a real-stack check |
@@ -190,9 +192,9 @@ These are the most valuable things to do before any client sees the product, bec
 | Appointments | Google Calendar busy sync built in 20e (OFF, unverified live). (The double-booking race is closed: `book_appointment` / `move_appointment` re-check under a per-specialist advisory lock) |
 | Inbox | Idle auto-away built in 20c (Settings, Inbox). Create enquiry and Book appointment buttons in the contact sidebar need checking now that the modules exist |
 | Flows | Question re-ask and typed answers built in 20b. A crash between "queued" and "step recorded" can resend once on replay. Outbound webhooks node is wired, but untested live. CRM nodes (Create/update enquiry, Add task, Portal record, Book appointment) are wired since 20b (G0) |
-| Campaigns | Recurring campaigns and carousel sending built in 20d; no A/B |
-| Templates | Positional variables only in the builder; no OTP or catalogue templates |
-| Portal | No bulk edit; no per-object custom fields or tags |
+| Campaigns | Recurring campaigns and carousel sending built in 20d; A/B (version B on one-off campaigns) built in 20g (docs/29) |
+| Templates | Named variables, one-time code (authentication) and catalogue templates built (docs/32), payloads unverified against a live WABA; no flow-button templates |
+| Portal | Bulk edit (one field on up to 500 selected records) and portal tags (drawer, bulk, list filter, Settings, Tags) built (`docs/33_PORTAL_BULK_EDIT_TAGS_NOTES.md`). No per-object custom fields: portal columns are defined in code (`lib/portal/objects`), deliberately not built. Tags are not saved in views or exported |
 | Reports | Scheduled email digests, AI tags. (WhatsApp cost is built; its Meta response parser is unverified live, OQ-62) |
 | Public API | Rate limit is per key and fixed-window; reads are audited but sampled (one row per key and resource per 15 minutes); marketing opt-in through the API needs `consent` evidence; URLs limited to port 443. Open: marketing sends still check `stop_marketing` only |
 | AI | Limits are atomic (per user per minute, plus a workspace daily cap). Rate limits count calls, not tokens |
@@ -201,10 +203,8 @@ These are the most valuable things to do before any client sees the product, bec
 
 ### 2.4 Housekeeping
 
-- `README.md` still says "Other module pages are placeholders until their phase", and `docs/06_PHASE_11_CUTOVER.md` / `docs/07_PHASE_11_NOTES.md` still say Phases 4 to 10 are not built. They are out of date. Update both (Phase 12 prompt includes this).
+- Done 14 Oct 2026: `README.md`, `docs/06` and `docs/07` carry the "Phases 4 to 10 are built" update, `app/(app)/dashboard/page.tsx` is Prettier-clean, and `docs/00_HOW_TO_USE.md` points to the pitch pack in `docs/pitch/`. The six helper functions the Supabase security advisor flagged (`clinical_setting*`, `is_reminder_excluded`, `is_working_day`, `workdays_between`) now pin `search_path` (migration `20261118000100`, paste file 58).
 - Several docs share a number prefix (`05_*`, `06_*`, `08_*`). Harmless, but rename once the numbering settles.
-- `app/(app)/dashboard/page.tsx` is not Prettier-formatted; run `pnpm format` in a dedicated commit so reviews stay clean.
-- `docs/00_HOW_TO_USE.md` mentions `AlDas_InHouse_Clinic_Platform_Proposal.pdf`, which is not in the repo. The new pitch pack in `docs/pitch/` replaces it.
 
 ---
 
