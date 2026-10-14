@@ -120,6 +120,7 @@ export default async function SummaryPage({ searchParams }: { searchParams: Prom
     .select(
       "month, branch_code, generated, claimed, accepted, paid_allocated, status_unknown_claims, remitted, rejected, outstanding, self_pay_collected",
     )
+    .eq("org_id", member.orgId)
     .gte("month", `${prev.from}-01`)
     .lte("month", `${range.to}-01`)
     .order("month", { ascending: false })
@@ -131,6 +132,7 @@ export default async function SummaryPage({ searchParams }: { searchParams: Prom
     .select(
       "branch_code, department, doctor_name, doctor_dha_id, service_category, gross, discount, net, vat",
     )
+    .eq("org_id", member.orgId)
     .gte("month", `${range.from}-01`)
     .lte("month", `${range.to}-01`)
     .limit(20_000);
@@ -140,19 +142,22 @@ export default async function SummaryPage({ searchParams }: { searchParams: Prom
 
   let aq = supabase
     .from("v_fin_receivables_ageing")
-    .select("bucket, claim_activities, outstanding");
+    .select("bucket, claim_activities, outstanding")
+    .eq("org_id", member.orgId);
   if (branch) aq = aq.eq("branch_code", branch);
   let cq = supabase
     .from("v_fin_claims_status")
     .select(
       "claim_year, claim_month, payer_id, submitted, accepted, rejected, pending, resubmitted, net, remitted, rejected_amount",
     )
+    .eq("org_id", member.orgId)
     .gte("claim_year", Number(range.from.slice(0, 4)))
     .lte("claim_year", Number(range.to.slice(0, 4)));
   if (branch) cq = cq.eq("branch_code", branch);
   const dq = supabase
     .from("v_fin_denials")
     .select("denial_type, last_denial_code, claim_activities, rejected_amount")
+    .eq("org_id", member.orgId)
     .limit(5000);
 
   const [

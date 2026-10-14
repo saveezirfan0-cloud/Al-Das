@@ -1,5 +1,5 @@
 -- Security advisor (security_definer_view): the 14 finance reporting views ran with their owner's rights.
--- docs/34_FINANCE_VIEWS_INVOKER_NOTES.md has the per-view reasoning. Access stays exactly as it was: nobody gains
+-- docs/38_FINANCE_VIEWS_INVOKER_NOTES.md has the per-view reasoning. Access stays exactly as it was: nobody gains
 -- a row, and the only loss is the six views no screen reads (section 1).
 --
 -- None of the 14 can simply be switched to security_invoker: each one deliberately shows a permission holder more

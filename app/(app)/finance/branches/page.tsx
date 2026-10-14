@@ -57,11 +57,13 @@ export default async function BranchesPage({ searchParams }: { searchParams: Pro
       .select(
         "branch_code, generated, claimed, accepted, paid_allocated, rejected, outstanding, self_pay_collected, status_unknown_claims",
       )
+      .eq("org_id", member.orgId)
       .gte("month", `${range.from}-01`)
       .lte("month", `${range.to}-01`),
     supabase
       .from("v_fin_receivables_ageing")
-      .select("branch_code, bucket, claim_activities, outstanding"),
+      .select("branch_code, bucket, claim_activities, outstanding")
+      .eq("org_id", member.orgId),
     supabase.from("fin_ref_branches").select("code, name"),
     loadFreshness(supabase),
   ]);
