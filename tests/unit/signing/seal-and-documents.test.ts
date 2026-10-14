@@ -188,7 +188,7 @@ describe("signed approval certificate and close pack", () => {
     const b = await voucherCertificatePdf(voucher(section));
     expect(a.equals(b)).toBe(true);
     const id = openP12(makeTestCert({ cn: "Seal Test Org" }).p12, "1234-test");
-    // inside the test certificate's validity (it starts a day before now); PDF times have whole seconds
+    // inside the test certificate's validity; PDF times have whole seconds
     const at = new Date(Math.floor(Date.now() / 1000) * 1000);
     const sealedPdf = await sealPdf(
       await voucherCertificatePdf(
