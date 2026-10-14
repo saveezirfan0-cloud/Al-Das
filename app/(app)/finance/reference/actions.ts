@@ -127,19 +127,29 @@ const doctorSchema = z.object({
   specialty: nullable,
   active: checkbox,
 });
+/** Updates a finance doctor, or adds one by hand when the DHA id is new (same fields, same permission). */
 export async function saveDoctor(formData: FormData): Promise<ActionResult> {
   const member = await requirePerm(PERM);
   const p = doctorSchema.safeParse(Object.fromEntries(formData));
   if (!p.success) return { ok: false, error: "Check the doctor fields." };
   const { dha_id, ...patch } = p.data;
-  const { error } = await (
-    await createClient()
-  )
+  const supabase = await createClient();
+  const { data: updated, error } = await supabase
     .from("fin_ref_doctors")
     .update(patch)
     .eq("org_id", member.orgId)
-    .eq("dha_id", dha_id);
+    .eq("dha_id", dha_id)
+    .select("dha_id");
   if (error) return failure(error);
+  if (!updated?.length) {
+    const { error: insertError } = await supabase
+      .from("fin_ref_doctors")
+      .insert({ org_id: member.orgId, dha_id, ...patch });
+    if (insertError) return failure(insertError);
+    await audit("finance.reference.doctor_added", "fin_ref_doctors", dha_id, patch);
+    revalidatePath("/finance/reference");
+    return { ok: true, message: "Doctor added." };
+  }
   await audit("finance.reference.doctor_saved", "fin_ref_doctors", dha_id, patch);
   revalidatePath("/finance/reference");
   return { ok: true, message: "Doctor saved." };
