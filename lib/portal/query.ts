@@ -26,6 +26,8 @@ export type PortalQuery = {
   page?: number;
   pageSize?: number;
   timezone?: string;
+  /** Portal tag ids: a record matches when it carries ANY of them (portal_record_tags). */
+  tagIds?: string[] | null;
 };
 
 export type PortalPage = { rows: PortalRow[]; total: number; page: number; pageSize: number };
@@ -46,18 +48,40 @@ export function compilePortalSearch(
   return `(${parts.join(" or ")})`;
 }
 
-/** Filter + search compiled into one predicate over `public.<table> c` with a shared param bag. */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Tag filter: the record carries ANY of the given portal tags. Values travel as parameters; the object key is a
+ * parameter too, so nothing the caller sends is spliced into the SQL text.
+ */
+export function compilePortalTagFilter(
+  def: PortalObjectDef,
+  tagIds: string[] | null | undefined,
+  bag: ParamBag,
+): string {
+  const ids = [
+    ...new Set((tagIds ?? []).filter((t) => UUID_RE.test(t)).map((t) => t.toLowerCase())),
+  ];
+  if (ids.length === 0) return "true";
+  const key = bag.text(def.key);
+  const list = bag.json(ids);
+  return `exists (select 1 from public.portal_record_tags prt where prt.org_id = c.org_id and prt.object_key = ${key} and prt.record_id = c.id and prt.tag_id::text in (select jsonb_array_elements_text(${list})))`;
+}
+
+/** Filter + search (+ tags) compiled into one predicate over `public.<table> c` with a shared param bag. */
 export function compilePortalPredicate(
   def: PortalObjectDef,
   registry: FieldRegistry,
   filter: Filter | null | undefined,
   search: string | null | undefined,
   timezone = "UTC",
+  tagIds: string[] | null = null,
 ): { sql: string; params: unknown[] } {
   const bag = new ParamBag();
   const f = compileFilter(filter, registry, { timezone }, bag);
   const s = compilePortalSearch(def, search, bag);
-  const parts = [f.sql, s].filter((p) => p !== "true");
+  const t = compilePortalTagFilter(def, tagIds, bag);
+  const parts = [f.sql, s, t].filter((p) => p !== "true");
   return { sql: parts.length ? parts.join(" and ") : "true", params: bag.params };
 }
 
@@ -73,7 +97,14 @@ export async function queryPortal(
 ): Promise<PortalPage> {
   const page = Math.max(1, Math.floor(q.page ?? 1));
   const pageSize = Math.min(MAX_PAGE_SIZE, Math.max(1, Math.floor(q.pageSize ?? 100)));
-  const { sql, params } = compilePortalPredicate(q.def, registry, q.filter, q.search, q.timezone);
+  const { sql, params } = compilePortalPredicate(
+    q.def,
+    registry,
+    q.filter,
+    q.search,
+    q.timezone,
+    q.tagIds ?? null,
+  );
   const { data, error } = await loose(admin).rpc("portal_search", {
     p_org_id: q.orgId,
     p_object_key: q.def.key,
@@ -117,8 +148,9 @@ export async function matchingPortalIds(
   search: string | null | undefined,
   limit = MAX_EXPORT,
   timezone = "UTC",
+  tagIds: string[] | null = null,
 ): Promise<string[]> {
-  const { sql, params } = compilePortalPredicate(def, registry, filter, search, timezone);
+  const { sql, params } = compilePortalPredicate(def, registry, filter, search, timezone, tagIds);
   const { data, error } = await loose(admin).rpc("portal_ids", {
     p_org_id: orgId,
     p_object_key: def.key,

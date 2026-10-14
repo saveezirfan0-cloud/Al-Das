@@ -1594,3 +1594,33 @@ export async function seedSf20iRows(c: Client, orgId: string) {
 
 /** Phase 20i tables with a browser (select) policy (ads.view). */
 export const SF20I_TABLES = ["ad_insights_daily"] as const;
+
+/**
+ * Portal tags (docs/33): one synthetic diagnosis, portal tag and record tag for an org, so the cross-org sweeps are
+ * not vacuous. Seeds the org's portal_objects first (the select policy reads the object's read key from there).
+ * Service role, like the server actions that write it.
+ */
+export async function seedPortalTagRows(c: Client, orgId: string) {
+  await asServiceRole(c, async () => {
+    await c.query("select public.seed_portal_objects($1)", [orgId]);
+    const diag = (
+      await c.query<{ id: string }>(
+        "insert into public.ref_diagnoses (org_id, code, short_description) values ($1, 'Z99', 'Sweep') on conflict (org_id, code) do update set short_description = excluded.short_description returning id::text",
+        [orgId],
+      )
+    ).rows[0].id;
+    const tag = (
+      await c.query<{ id: string }>(
+        "insert into public.tags (org_id, name, scope) values ($1, 'Sweep portal', 'portal') on conflict (org_id, scope, name) do update set color = excluded.color returning id::text",
+        [orgId],
+      )
+    ).rows[0].id;
+    await c.query(
+      "insert into public.portal_record_tags (org_id, object_key, record_id, tag_id) values ($1, 'ref_diagnoses', $2, $3) on conflict do nothing",
+      [orgId, diag, tag],
+    );
+  });
+}
+
+/** Portal tags tables with a browser (select) policy (the object's read key via app.portal_can_read). */
+export const PORTAL_TAGS_TABLES = ["portal_record_tags"] as const;

@@ -1,4 +1,5 @@
 import type { ClientField } from "@/components/filter-builder/filter-builder";
+import type { PortalTag } from "@/lib/portal/bulk-edit";
 import type { PortalObjectDef } from "@/lib/portal/types";
 import type { SavedViewDto } from "@/lib/portal/server";
 
@@ -12,7 +13,16 @@ export type PortalBootstrap = {
   object: PortalObjectDef;
   userId: string;
   timezone: string;
-  can: { write: boolean; create: boolean; delete: boolean; export: boolean };
+  can: {
+    write: boolean;
+    create: boolean;
+    delete: boolean;
+    export: boolean;
+    /** portal.tags.manage: may create tags from the picker. */
+    manageTags: boolean;
+  };
+  /** The organisation's portal tags (scope 'portal'). */
+  tags: PortalTag[];
   fields: ClientField[];
   views: SavedViewDto[];
   users: Array<{ id: string; label: string }>;

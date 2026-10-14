@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-11-13-portal-bulk-edit-tags",
+    date: "2026-11-13",
+    title: "Edit many portal records at once, and tag them",
+    body: "In the Portal lists, tick the records you want (or the box at the top for the whole page) and choose Edit to give up to 500 records the same value in one field, or to clear it. Each change shows in the record's History. Portal records can now carry tags: add them in the record drawer or to many records at once, and filter a list by tag. Tags are managed under Settings, Tags, Portal tags.",
+  },
+  {
     id: "2026-11-12-inbox-campaigns-ads",
     date: "2026-11-12",
     title: "Inbox extras, campaign A/B tests and ad spend",

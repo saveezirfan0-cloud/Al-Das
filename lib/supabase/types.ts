@@ -17318,6 +17318,56 @@ export type Database = {
           },
         ];
       };
+      portal_record_tags: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          object_key: string;
+          org_id: string;
+          record_id: string;
+          tag_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          object_key: string;
+          org_id: string;
+          record_id: string;
+          tag_id: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          object_key?: string;
+          org_id?: string;
+          record_id?: string;
+          tag_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "portal_record_tags_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "portal_record_tags_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "portal_record_tags_tag_id_fkey";
+            columns: ["tag_id"];
+            isOneToOne: false;
+            referencedRelation: "tags";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       prescription_sequences: {
         Row: {
           antibiotic_end_date: string | null;
@@ -24325,6 +24375,20 @@ export type Database = {
       pick_round_robin_assignee_capped: {
         Args: { p_org_id: string; p_team_id: string };
         Returns: string;
+      };
+      portal_bulk_update: {
+        Args: {
+          p_column: string;
+          p_ids: string[];
+          p_object_key: string;
+          p_org_id: string;
+          p_value: Json;
+        };
+        Returns: {
+          new_value: Json;
+          old_value: Json;
+          record_id: string;
+        }[];
       };
       portal_count: {
         Args: { p_object_key: string; p_org_id: string; p_params: Json; p_where: string };

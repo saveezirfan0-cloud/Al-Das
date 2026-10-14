@@ -17,11 +17,20 @@ const tagSchema = z.object({
 });
 export type TagInput = z.input<typeof tagSchema>;
 
-/** Contact tags are managed with contacts.manage, enquiry tags (Phase 20a) with enquiries.manage. */
-export type TagScope = "contact" | "enquiry";
+/**
+ * Contact tags are managed with contacts.manage, enquiry tags (Phase 20a) with enquiries.manage, portal tags
+ * (docs/33) with portal.tags.manage.
+ */
+export type TagScope = "contact" | "enquiry" | "portal";
 const SCOPE_PERM: Record<TagScope, string> = {
   contact: "contacts.manage",
   enquiry: "enquiries.manage",
+  portal: "portal.tags.manage",
+};
+const SCOPE_PATH: Record<TagScope, string> = {
+  contact: "/contacts",
+  enquiry: "/enquiries",
+  portal: "/portal",
 };
 
 /** The member, after checking the permission for the scope of the tag being changed. */
@@ -39,7 +48,9 @@ async function scopeOf(orgId: string, id: string): Promise<TagScope | null> {
     .eq("id", id)
     .eq("org_id", orgId)
     .maybeSingle();
-  return data?.scope === "contact" || data?.scope === "enquiry" ? data.scope : null;
+  return data?.scope === "contact" || data?.scope === "enquiry" || data?.scope === "portal"
+    ? data.scope
+    : null;
 }
 
 export async function saveTag(
@@ -73,7 +84,8 @@ export async function saveTag(
     diff: { name: parsed.data.name, scope },
   });
   revalidatePath("/settings/tags");
-  revalidatePath(scope === "enquiry" ? "/enquiries" : "/contacts");
+  if (scope === "portal") revalidatePath(SCOPE_PATH[scope], "layout");
+  else revalidatePath(SCOPE_PATH[scope]);
   return { ok: true, message: id ? "Tag saved." : "Tag created." };
 }
 
@@ -99,6 +111,7 @@ export async function deleteTag(id: string): Promise<ActionResult> {
     diff: { name: data[0].name, scope },
   });
   revalidatePath("/settings/tags");
-  revalidatePath(scope === "enquiry" ? "/enquiries" : "/contacts");
+  if (scope === "portal") revalidatePath(SCOPE_PATH[scope], "layout");
+  else revalidatePath(SCOPE_PATH[scope]);
   return { ok: true, message: "Tag deleted." };
 }

@@ -127,6 +127,13 @@ export const PERMISSIONS = [
   },
   { key: "portal.*.read", group: "Portal", label: "Read all portal objects" },
   {
+    key: "portal.tags.manage",
+    group: "Portal",
+    label: "Manage portal tags",
+    description:
+      "Create, rename and delete the tags used on portal records (Settings, Tags). Adding a tag to a record needs edit access to that object.",
+  },
+  {
     key: "portal.sync_review.write",
     group: "Portal",
     label: "Resolve Sync Review items",
