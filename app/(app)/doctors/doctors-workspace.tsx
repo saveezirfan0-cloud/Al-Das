@@ -3,13 +3,24 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CalendarDays, Clock, Loader2, Save, Search, Users } from "lucide-react";
+import {
+  CalendarDays,
+  Clock,
+  IdCard,
+  Loader2,
+  Plus,
+  Save,
+  Search,
+  Stethoscope,
+  Users,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { OptionSelect } from "@/app/(app)/enquiries/option-select";
 import { DataGrid, type DataGridColumn } from "@/components/data-grid/data-grid";
 import { useLocalGrid } from "@/components/data-grid/use-local-grid";
 import { ExpiryBadge } from "@/components/organisation/expiry-badge";
+import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,9 +35,9 @@ import {
 } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { doctorCalendarHref } from "@/lib/organisation/doctors";
-import type { BranchOption, DoctorRow } from "@/lib/organisation/types";
+import type { BranchOption, DoctorDetail, DoctorRow } from "@/lib/organisation/types";
 
-import { updateDoctorProfileAction } from "./actions";
+import { loadDoctorDetailAction, updateDoctorProfileAction } from "./actions";
 
 type Can = {
   edit: boolean;
@@ -38,6 +49,8 @@ type Can = {
 };
 
 const ALL = "all";
+/** Doctors are added (with branches, services and hours) under Settings, Appointments, which opens on Specialists. */
+const ADD_DOCTOR_HREF = "/settings/appointments";
 
 export function DoctorsWorkspace({
   rows,
@@ -198,6 +211,13 @@ export function DoctorsWorkspace({
             </Link>
           </Button>
         )}
+        {can.settings && (
+          <Button asChild>
+            <Link href={ADD_DOCTOR_HREF}>
+              <Plus aria-hidden /> Add doctor
+            </Link>
+          </Button>
+        )}
       </PageHeader>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -238,12 +258,29 @@ export function DoctorsWorkspace({
         </label>
       </div>
 
-      <DataGrid
-        columns={columns}
-        {...grid}
-        onRowClick={(r) => setOpen(r.id)}
-        emptyText="No doctors here yet. Doctors are added under Settings, Appointments."
-      />
+      {rows.length === 0 ? (
+        <EmptyState
+          icon={Stethoscope}
+          title="No doctors yet"
+          description="Doctors are added under Settings, Appointments, with their branches, services and working hours. They then appear here, in the diary and on the rota."
+          action={
+            can.settings && (
+              <Button asChild>
+                <Link href={ADD_DOCTOR_HREF}>
+                  <Plus aria-hidden /> Add the first doctor
+                </Link>
+              </Button>
+            )
+          }
+        />
+      ) : (
+        <DataGrid
+          columns={columns}
+          {...grid}
+          onRowClick={(r) => setOpen(r.id)}
+          emptyText="No doctors match these filters."
+        />
+      )}
 
       <DoctorDrawer
         doctor={current}
@@ -340,7 +377,7 @@ function DoctorDrawer({
                     )}
                     {can.revenue && (
                       <Button asChild size="sm" variant="outline">
-                        <Link href="/finance/doctors">Performance</Link>
+                        <Link href="/finance/doctor-performance">Performance</Link>
                       </Button>
                     )}
                     {can.revshare && (
@@ -350,6 +387,8 @@ function DoctorDrawer({
                     )}
                   </div>
                 </section>
+
+                <DoctorLinks doctorId={doctor.id} can={can} />
 
                 <section className="grid gap-2" aria-labelledby="doc-hours">
                   <h3 id="doc-hours" className="text-sm font-semibold">
@@ -493,5 +532,105 @@ function DoctorDrawer({
         )}
       </SheetContent>
     </Sheet>
+  );
+}
+
+/** What the doctor is linked to: the next appointments, this week's shifts and the staff record (loaded on open). */
+function DoctorLinks({ doctorId, can }: { doctorId: string; can: Can }) {
+  const [detail, setDetail] = React.useState<DoctorDetail | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    let live = true;
+    setDetail(null);
+    setError(null);
+    void loadDoctorDetailAction(doctorId).then((res) => {
+      if (!live) return;
+      if (res.ok) setDetail(res.data);
+      else setError(res.error);
+    });
+    return () => {
+      live = false;
+    };
+  }, [doctorId]);
+
+  if (error) return <p className="text-muted-foreground text-sm">{error}</p>;
+  if (!detail)
+    return (
+      <p className="text-muted-foreground flex items-center gap-2 text-sm" role="status">
+        <Loader2 aria-hidden className="size-4 animate-spin" /> Loading appointments and rota…
+      </p>
+    );
+
+  return (
+    <>
+      {detail.upcoming && (
+        <section className="grid gap-2" aria-labelledby="doc-next">
+          <h3 id="doc-next" className="text-sm font-semibold">
+            Next appointments
+          </h3>
+          {detail.upcoming.length === 0 ? (
+            <p className="text-muted-foreground text-sm">Nothing booked ahead.</p>
+          ) : (
+            <ul className="grid gap-1.5 text-sm">
+              {detail.upcoming.map((a) => (
+                <li key={a.id}>
+                  <span className="font-medium">{a.when}</span>
+                  {" · "}
+                  {[a.patient, a.service, a.branch].filter(Boolean).join(" · ")}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+
+      <section className="grid gap-2" aria-labelledby="doc-rota">
+        <h3 id="doc-rota" className="text-sm font-semibold">
+          Rota this week
+        </h3>
+        {detail.shifts.length === 0 ? (
+          <p className="text-muted-foreground text-sm">No shifts this week.</p>
+        ) : (
+          <ul className="grid gap-1.5 text-sm">
+            {detail.shifts.map((s) => (
+              <li key={s.id}>
+                <span className="font-medium">{s.day}</span> {s.time}
+                {[s.branch, s.role]
+                  .filter(Boolean)
+                  .map((x) => ` · ${x}`)
+                  .join("")}
+              </li>
+            ))}
+          </ul>
+        )}
+        {can.rota && (
+          <Link
+            href="/staff/rota"
+            className="text-primary text-sm underline-offset-4 hover:underline"
+          >
+            Open the rota
+          </Link>
+        )}
+      </section>
+
+      {detail.staff && (
+        <section className="grid gap-2" aria-labelledby="doc-staff">
+          <h3 id="doc-staff" className="text-sm font-semibold">
+            Staff record
+          </h3>
+          <p className="flex items-center gap-1.5 text-sm">
+            <IdCard aria-hidden className="text-muted-foreground size-4" />
+            {detail.staff.jobTitle ?? "No job title"}
+          </p>
+          <Link
+            href={`/staff?staff=${encodeURIComponent(detail.staff.id)}`}
+            className="text-primary text-sm underline-offset-4 hover:underline"
+          >
+            Open the staff record (duties and shifts)
+          </Link>
+        </section>
+      )}
+    </>
   );
 }
