@@ -99,16 +99,18 @@ export function ViewsRail({
         <h3 className="text-muted-foreground px-2 text-xs font-semibold tracking-wide uppercase">
           Views
         </h3>
-        {CONTACT_VIEWS.map((v) =>
-          item(
-            !showDupes && !segmentId && view === v.key,
-            () => onSelectView(v.key),
-            <>
-              <Users className="size-4 shrink-0" />
-              <span className="truncate">{v.label}</span>
-            </>,
-          ),
-        )}
+        {CONTACT_VIEWS.map((v) => (
+          <React.Fragment key={v.key}>
+            {item(
+              !showDupes && !segmentId && view === v.key,
+              () => onSelectView(v.key),
+              <>
+                <Users className="size-4 shrink-0" />
+                <span className="truncate">{v.label}</span>
+              </>,
+            )}
+          </React.Fragment>
+        ))}
         {item(
           showDupes,
           onShowDupes,
@@ -149,39 +151,43 @@ export function ViewsRail({
           {segments.length === 0 && (
             <p className="text-muted-foreground px-2 py-1 text-xs">No segments yet.</p>
           )}
-          {segments.map((s) =>
-            item(
-              segmentId === s.id,
-              () => onSelectSegment(s.id),
-              <>
-                <Layers className={cn("size-4 shrink-0", s.kind === "dynamic" && "text-primary")} />
-                <span className="truncate">{s.name}</span>
-                <span className="text-muted-foreground ml-auto text-xs tabular-nums">
-                  {s.member_count.toLocaleString()}
-                </span>
-              </>,
-              canManage ? (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label={`Segment actions for ${s.name}`}
-                      className="opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100"
-                    >
-                      <MoreHorizontal className="size-3.5" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => onEditSegment(s.id)}>Edit</DropdownMenuItem>
-                    <DropdownMenuItem variant="destructive" onClick={() => remove(s.id)}>
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ) : undefined,
-            ),
-          )}
+          {segments.map((s) => (
+            <React.Fragment key={s.id}>
+              {item(
+                segmentId === s.id,
+                () => onSelectSegment(s.id),
+                <>
+                  <Layers
+                    className={cn("size-4 shrink-0", s.kind === "dynamic" && "text-primary")}
+                  />
+                  <span className="truncate">{s.name}</span>
+                  <span className="text-muted-foreground ml-auto text-xs tabular-nums">
+                    {s.member_count.toLocaleString("en-GB")}
+                  </span>
+                </>,
+                canManage ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={`Segment actions for ${s.name}`}
+                        className="opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100"
+                      >
+                        <MoreHorizontal className="size-3.5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => onEditSegment(s.id)}>Edit</DropdownMenuItem>
+                      <DropdownMenuItem variant="destructive" onClick={() => remove(s.id)}>
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : undefined,
+              )}
+            </React.Fragment>
+          ))}
         </ScrollArea>
         <p className="text-muted-foreground px-2 text-[11px]">
           <span className="text-primary">●</span> dynamic (saved filter) · static (hand-picked)

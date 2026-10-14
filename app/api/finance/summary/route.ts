@@ -29,6 +29,7 @@ export async function GET(req: Request) {
     .select(
       "month, branch_code, generated, claimed, accepted, paid_allocated, remitted, rejected, outstanding, self_pay_collected",
     )
+    .eq("org_id", member.orgId)
     .gte("month", `${from}-01`)
     .lte("month", `${to}-01`)
     .order("month", { ascending: false })
