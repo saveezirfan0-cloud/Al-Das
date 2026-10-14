@@ -13,6 +13,9 @@
  * every overlapping interval. A time block (or a booking without a capacity) counts as capacity 1, so nothing
  * may overlap it. With every default (capacity 1, no buffers) any overlap refuses the slot, exactly as before.
  * Buffers keep bookings and blocks apart; they do not have to fit inside working hours.
+ *
+ * ShowBusy (Phase 20g, G6): generateSlots can also list the slots this rule refuses, each with a display reason
+ * (slotTakenReason). The rule itself is unchanged: a taken slot is exactly one slotFits refuses.
  */
 import { addDays, format, parseISO } from "date-fns";
 import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
@@ -38,13 +41,23 @@ export type BusyInterval = {
    * Absent = 1, which is also what a time block is: nothing may overlap it.
    */
   capacity?: number;
+  /** What occupies the time: a booking (default) or a one-off / weekly block. Only changes the display reason. */
+  kind?: "booking" | "block";
 };
+
+/**
+ * Why a slot cannot be booked (display only): a block is in the way ('blocked', app.slot_conflict says 'blocked'),
+ * every place of a shared slot is taken ('full'), or a one-place slot is booked ('booked'; SQL says 'full').
+ */
+export type TakenReason = "booked" | "blocked" | "full";
 
 export type Slot = {
   start: Date;
   end: Date;
   /** "HH:mm" in the location timezone, for the slot list. */
   label: string;
+  /** Set only when generateSlots was asked to include taken slots: this slot cannot be booked. */
+  taken?: TakenReason;
 };
 
 export type SlotInput = {
@@ -139,6 +152,7 @@ export function expandRecurringBlocks(
       out.push({
         start: localMinutesToInstant(d, r.start_min, timezone),
         end: localMinutesToInstant(d, r.end_min, timezone),
+        kind: "block",
       });
     }
   }
@@ -172,8 +186,34 @@ export function slotFits(candidate: SlotCandidate, busy: readonly BusyInterval[]
   return true;
 }
 
-/** Bookable slots for one specialist at one location on one local date, ordered by start. */
-export function generateSlots(input: SlotInput): Slot[] {
+/**
+ * Why slotFits refuses this candidate, or null when it fits. Same rule, display reason only: 'blocked' when any
+ * overlapping interval is a block (SQL checks blocks first), else 'full' when the smallest number of places involved
+ * is above 1, else 'booked'.
+ */
+export function slotTakenReason(
+  candidate: SlotCandidate,
+  busy: readonly BusyInterval[],
+): TakenReason | null {
+  if (slotFits(candidate, busy)) return null;
+  const c = widen(candidate);
+  let limit = places(candidate.capacity);
+  for (const b of busy) {
+    const w = widen(b);
+    if (w.start < c.end && w.end > c.start) {
+      if (b.kind === "block") return "blocked";
+      limit = Math.min(limit, places(b.capacity));
+    }
+  }
+  return limit > 1 ? "full" : "booked";
+}
+
+/**
+ * Bookable slots for one specialist at one location on one local date, ordered by start. With `includeTaken`
+ * (ShowBusy) the slots inside working hours that the capacity rule refuses are listed too, marked `taken`.
+ * Closed days, holidays, the lead time and the past are never listed either way.
+ */
+export function generateSlots(input: SlotInput, opts: { includeTaken?: boolean } = {}): Slot[] {
   const { date, timezone, durationMin, granularityMin } = input;
   if (durationMin <= 0 || granularityMin <= 0) return [];
   if (!isOpenDay(date, input.workingWeekdays, input.holidays)) return [];
@@ -203,19 +243,22 @@ export function generateSlots(input: SlotInput): Slot[] {
       if (t < earliest || seen.has(t)) continue;
       const start = new Date(t);
       const end = new Date(t + durationMs);
-      const fits = slotFits(
-        {
-          start,
-          end,
-          bufferBeforeMin: input.bufferBeforeMin,
-          bufferAfterMin: input.bufferAfterMin,
-          capacity: input.capacity,
-        },
-        busy,
-      );
-      if (!fits) continue;
+      const candidate: SlotCandidate = {
+        start,
+        end,
+        bufferBeforeMin: input.bufferBeforeMin,
+        bufferAfterMin: input.bufferAfterMin,
+        capacity: input.capacity,
+      };
+      const label = formatInTimeZone(start, timezone, "HH:mm");
+      if (!slotFits(candidate, busy)) {
+        if (!opts.includeTaken) continue;
+        seen.add(t);
+        slots.push({ start, end, label, taken: slotTakenReason(candidate, busy) ?? "booked" });
+        continue;
+      }
       seen.add(t);
-      slots.push({ start, end, label: formatInTimeZone(start, timezone, "HH:mm") });
+      slots.push({ start, end, label });
     }
   }
   return slots.sort((a, b) => a.start.getTime() - b.start.getTime());

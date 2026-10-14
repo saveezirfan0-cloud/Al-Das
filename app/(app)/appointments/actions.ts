@@ -12,6 +12,7 @@ import {
   rescheduleAppointment,
   sendAppointmentTemplate,
 } from "@/lib/appointments/service";
+import { readAppointmentSettings } from "@/lib/appointments/settings";
 import { localDate, localMinutesToInstant } from "@/lib/appointments/slots";
 import { APPOINTMENT_STATUSES, isAppointmentStatus } from "@/lib/appointments/status";
 import { recordAudit } from "@/lib/audit";
@@ -375,6 +376,8 @@ export async function getFreeSlots(input: {
   serviceId: string;
   date: string;
   excludeAppointmentId?: string;
+  /** The booking drawer asks for taken slots too; they are returned only when the org's ShowBusy setting is on. */
+  includeTaken?: boolean;
 }): Promise<ActionResult<{ slots: SlotOption[] }>> {
   const member = await requirePerm("appointments.view");
   const p = z
@@ -384,6 +387,7 @@ export async function getFreeSlots(input: {
       serviceId: uuid,
       date: dateStr,
       excludeAppointmentId: uuid.optional(),
+      includeTaken: z.boolean().optional(),
     })
     .safeParse(input);
   if (!p.success) return fail("Choose a location, specialist, service and date.");
@@ -395,19 +399,31 @@ export async function getFreeSlots(input: {
     .eq("org_id", member.orgId)
     .maybeSingle();
   if (!service) return fail("Service not found.");
-  const slots = await slotsForDay(admin, {
-    orgId: member.orgId,
-    specialistId: p.data.specialistId,
-    locationId: p.data.locationId,
-    date: p.data.date,
-    durationMin: service.duration_min,
-    serviceId: p.data.serviceId,
-    excludeAppointmentId: p.data.excludeAppointmentId,
-    ignoreLeadTime: true,
-  });
+  const slots = await slotsForDay(
+    admin,
+    {
+      orgId: member.orgId,
+      specialistId: p.data.specialistId,
+      locationId: p.data.locationId,
+      date: p.data.date,
+      durationMin: service.duration_min,
+      serviceId: p.data.serviceId,
+      excludeAppointmentId: p.data.excludeAppointmentId,
+      ignoreLeadTime: true,
+    },
+    {
+      includeTaken: !!p.data.includeTaken && readAppointmentSettings(member.org.settings).show_busy,
+    },
+  );
   return {
     ok: true,
-    data: { slots: slots.map((s) => ({ start: s.start.toISOString(), label: s.label })) },
+    data: {
+      slots: slots.map((s) => ({
+        start: s.start.toISOString(),
+        label: s.label,
+        ...(s.taken ? { taken: s.taken } : {}),
+      })),
+    },
   };
 }
 

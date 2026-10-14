@@ -42,6 +42,13 @@ export type NewAppointmentDefaults = {
 
 type Patient = { id: string; name: string; phone: string | null };
 
+/** ShowBusy reasons for a taken slot (G6). */
+const TAKEN_LABEL: Record<NonNullable<SlotOption["taken"]>, string> = {
+  booked: "Booked",
+  blocked: "Blocked",
+  full: "Full",
+};
+
 function PatientPicker({
   value,
   onChange,
@@ -274,15 +281,20 @@ export function NewAppointmentDrawer({
     }
     let cancelled = false;
     setLoadingSlots(true);
-    void getFreeSlots({ locationId, specialistId, serviceId, date }).then((res) => {
-      if (cancelled) return;
-      setLoadingSlots(false);
-      if (res.ok && res.data) {
-        setSlots(res.data.slots);
-        // keep a pre-clicked start only when it is still a free slot
-        setStartIso((cur) => (res.data!.slots.some((s) => s.start === cur) ? cur : ""));
-      } else if (!res.ok) toast.error(res.error);
-    });
+    // includeTaken: with the ShowBusy booking setting on, taken times come back too (greyed out below).
+    void getFreeSlots({ locationId, specialistId, serviceId, date, includeTaken: true }).then(
+      (res) => {
+        if (cancelled) return;
+        setLoadingSlots(false);
+        if (res.ok && res.data) {
+          setSlots(res.data.slots);
+          // keep a pre-clicked start only when it is still a free slot
+          setStartIso((cur) =>
+            res.data!.slots.some((s) => s.start === cur && !s.taken) ? cur : "",
+          );
+        } else if (!res.ok) toast.error(res.error);
+      },
+    );
     return () => {
       cancelled = true;
     };
@@ -445,20 +457,45 @@ export function NewAppointmentDrawer({
                         No free times that day. Pick another date, or book outside hours below.
                       </p>
                     ) : (
-                      <div className="grid grid-cols-4 gap-1.5">
-                        {(slots ?? []).map((s) => (
-                          <Button
-                            key={s.start}
-                            type="button"
-                            size="sm"
-                            variant={startIso === s.start ? "default" : "outline"}
-                            aria-pressed={startIso === s.start}
-                            onClick={() => setStartIso(s.start)}
-                          >
-                            {s.label}
-                          </Button>
-                        ))}
-                      </div>
+                      <>
+                        {slots && slots.every((s) => s.taken) && (
+                          <p className="text-muted-foreground text-xs">
+                            No free times that day. Pick another date, or book outside hours below.
+                          </p>
+                        )}
+                        <div className="grid grid-cols-4 gap-1.5">
+                          {(slots ?? []).map((s) =>
+                            s.taken ? (
+                              <Button
+                                key={s.start}
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                disabled
+                                className="bg-muted h-auto flex-col gap-0 py-1"
+                                aria-label={`${s.label}, ${TAKEN_LABEL[s.taken]}`}
+                                title={TAKEN_LABEL[s.taken]}
+                              >
+                                {s.label}
+                                <span className="text-[10px] leading-tight font-normal">
+                                  {TAKEN_LABEL[s.taken]}
+                                </span>
+                              </Button>
+                            ) : (
+                              <Button
+                                key={s.start}
+                                type="button"
+                                size="sm"
+                                variant={startIso === s.start ? "default" : "outline"}
+                                aria-pressed={startIso === s.start}
+                                onClick={() => setStartIso(s.start)}
+                              >
+                                {s.label}
+                              </Button>
+                            ),
+                          )}
+                        </div>
+                      </>
                     )}
                   </>
                 )}
