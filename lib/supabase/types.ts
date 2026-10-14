@@ -24690,6 +24690,27 @@ export type Database = {
         Returns: Json;
       };
       fin_rederive_branches: { Args: { p_org_id: string }; Returns: number };
+      fin_report_commit: {
+        Args: { p_org_id: string; p_upload_id: string; p_user_id: string };
+        Returns: Json;
+      };
+      fin_report_discard: {
+        Args: { p_org_id: string; p_upload_id: string };
+        Returns: Json;
+      };
+      fin_report_stage: {
+        Args: {
+          p_meta: Json;
+          p_org_id: string;
+          p_rows: Json;
+          p_user_id: string;
+        };
+        Returns: Json;
+      };
+      fin_report_upload_summary: {
+        Args: { p_org_id: string; p_upload_id: string };
+        Returns: Json;
+      };
       fin_revenue_breakdown: {
         Args: {
           p_branch?: string;
