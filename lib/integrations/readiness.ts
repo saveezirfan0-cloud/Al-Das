@@ -1,4 +1,6 @@
 import { parseAllowedDomains } from "@/lib/channels/web/policy";
+import { httpSmsConfigProblems, readHttpSmsConfig } from "@/lib/integrations/sms/http-config";
+import type { Config } from "@/lib/integrations/types";
 import { validateRoomTemplate } from "@/lib/integrations/telehealth/url";
 import {
   allFields,
@@ -69,6 +71,15 @@ export function readinessProblems(input: ReadinessInput): string[] {
       if (!t.hasLinkVariable)
         problems.push("Map one variable of the payment template to the payment link.");
     }
+  }
+  if (
+    input.kind === "sms" &&
+    input.provider === "http" &&
+    input.config.http_url &&
+    input.config.http_body
+  ) {
+    // Phase 20h: the same checks the save action applies (a stale or hand-edited row can never be switched on).
+    problems.push(...httpSmsConfigProblems(readHttpSmsConfig(input.config as Config)));
   }
   if (input.kind === "esign" && input.documentsEnabled !== true)
     problems.push("Switch on patient documents first (Settings, Patient documents).");

@@ -22,6 +22,7 @@ export const INTEGRATION_KINDS = [
   "finance_mailbox",
   "document_seal",
   "tally_bridge",
+  "wa_mm_lite",
 ] as const;
 export type IntegrationKind = (typeof INTEGRATION_KINDS)[number];
 
@@ -135,6 +136,83 @@ export const INTEGRATIONS: readonly IntegrationDef[] = [
             secret: true,
             required: true,
             max: 128,
+          },
+        ],
+      },
+      {
+        // Phase 20h (docs/30): any gateway that takes one https POST. Shapes are the administrator's; nothing is verified live.
+        id: "http",
+        label: "Other gateway (generic HTTP)",
+        fields: [
+          {
+            key: "http_url",
+            label: "Gateway address",
+            type: "url",
+            required: true,
+            max: 300,
+            placeholder: "https://api.example-gateway.com/v1/sms",
+            help: "The https address Pulse posts each SMS to. Only this host is ever called; no query string (put the key in the token field).",
+          },
+          {
+            key: "http_auth",
+            label: "Sign-in",
+            type: "select",
+            required: true,
+            default: "bearer",
+            options: [
+              { value: "bearer", label: "Bearer token (Authorization: Bearer ...)" },
+              { value: "basic", label: "User name and password (HTTP Basic)" },
+            ],
+          },
+          {
+            key: "http_username",
+            label: "User name (Basic sign-in only)",
+            type: "text",
+            max: 100,
+          },
+          {
+            key: "gateway_secret",
+            label: "Token or password",
+            type: "password",
+            secret: true,
+            required: true,
+            max: 400,
+            help: "The bearer token, or the password for Basic sign-in. Stored encrypted; never shown again.",
+          },
+          {
+            key: "http_encoding",
+            label: "Body format",
+            type: "select",
+            required: true,
+            default: "json",
+            options: [
+              { value: "json", label: "JSON" },
+              { value: "form", label: "Form (application/x-www-form-urlencoded)" },
+            ],
+          },
+          {
+            key: "http_body",
+            label: "Body fields",
+            type: "text",
+            required: true,
+            max: 400,
+            placeholder: "to={to}&sender={from}&message={text}",
+            help: "name=value pairs separated by &. Use {to} (the number, +971...) and {text} once each, {from} for the sender ID; other values are fixed words. Never put a key here.",
+          },
+          {
+            key: "http_id_field",
+            label: "Message id field in the answer (optional)",
+            type: "text",
+            max: 120,
+            placeholder: "id or data.message_id",
+            help: "When set, an answer without this field counts as not confirmed and is never sent again.",
+          },
+          {
+            key: "http_test_url",
+            label: "Check address for Test connection (optional)",
+            type: "url",
+            max: 300,
+            help: "A read-only address on the same host, such as the account balance. Without it there is no test: a test send would text someone.",
           },
         ],
       },
@@ -893,6 +971,24 @@ export const INTEGRATIONS: readonly IntegrationDef[] = [
     ],
     consequence:
       "Once pushing is also switched on (Accounting, Setup, Tally bridge), Pulse will create vouchers in the clinic's Tally company for the items and dates chosen there, and vouchers entered in Tally will be copied into Pulse's ledger. The connector never deletes or changes anything in Tally that Pulse did not create.",
+  },
+  {
+    kind: "wa_mm_lite",
+    // Phase 20h (docs/30): sends go through the existing outbound job and the WhatsApp client with the channel's own token,
+    // not through the integration client, so there are no integration_calls rows and no Test connection.
+    outbound: false,
+    title: "Marketing messages through MM Lite",
+    description:
+      "Sends the Marketing-category template messages of campaigns through Meta's Marketing Messages Lite API instead of the normal Cloud API endpoint. Everything else (inbox, reminders, utility templates, flows) is unchanged, and opt-outs, training mode and the per-number speed limit still apply. Accept Meta's Marketing Messages Lite terms for the WhatsApp Business Account in Meta Business Manager first.",
+    contactsPatients: true,
+    movesMoney: false,
+    sharesData: false,
+    confirmWord: "SEND MARKETING THROUGH MM LITE",
+    viewPermission: "integrations.manage",
+    providers: [{ id: "meta", label: "Meta Marketing Messages Lite API", fields: [] }],
+    commonFields: [],
+    consequence:
+      "Campaign messages that use a Marketing template will reach patients through Meta's Marketing Messages Lite API. Meta decides delivery and pricing for these messages; if the WhatsApp Business Account is not onboarded to MM Lite, those campaign messages fail until this is switched off.",
   },
 ];
 

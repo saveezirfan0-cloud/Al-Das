@@ -8,6 +8,8 @@ import {
   type AccountRow,
 } from "@/lib/integrations/accounts";
 import { readSmsConfig } from "@/lib/integrations/sms/config";
+import { createHttpSmsProvider } from "@/lib/integrations/sms/http";
+import { readHttpSmsConfig } from "@/lib/integrations/sms/http-config";
 import { createTwilioProvider } from "@/lib/integrations/sms/twilio";
 import type { SmsProvider } from "@/lib/integrations/sms/types";
 import type { AdminClient } from "@/lib/supabase/admin";
@@ -21,6 +23,17 @@ export function buildSmsProvider(admin: AdminClient, account: AccountRow): SmsPr
     return createTwilioProvider({
       accountSid: config.accountSid,
       authToken: secrets.auth_token,
+      sender: config.sender,
+      sink: dbCallSink(admin, account.org_id),
+      breaker: dbBreakerStore(admin, account.org_id, "sms"),
+    });
+  }
+  if (config.provider === "http") {
+    // Phase 20h: the generic HTTP gateway. The factory refuses settings it cannot use (address, template, sign-in).
+    if (!secrets.gateway_secret || !config.sender) return null;
+    return createHttpSmsProvider({
+      ...readHttpSmsConfig(readConfig(account)),
+      secret: secrets.gateway_secret,
       sender: config.sender,
       sink: dbCallSink(admin, account.org_id),
       breaker: dbBreakerStore(admin, account.org_id, "sms"),

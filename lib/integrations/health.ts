@@ -62,7 +62,8 @@ export function foldCallStats(
 /** The provider names a kind writes into integration_calls (its adapters' `provider` ids). */
 export const CALL_PROVIDERS: Record<IntegrationKind, readonly string[]> = {
   calendar_ics: [],
-  sms: ["twilio"],
+  // Phase 20h: the generic HTTP gateway logs as "sms_http" (lib/integrations/sms/http.ts).
+  sms: ["twilio", "sms_http"],
   payments: ["stripe", "paytabs"],
   // Google review requests make no provider call at all: the link is only text inside a WhatsApp template.
   google_reviews: [],
@@ -80,4 +81,7 @@ export const CALL_PROVIDERS: Record<IntegrationKind, readonly string[]> = {
   document_seal: [],
   // Inbound only: the connector on the Tally PC calls Pulse; its calls are recorded under this name.
   tally_bridge: ["tally_bridge"],
+  // Phase 20h: MM Lite sends go through the WhatsApp client with the channel token (messages carry their own status), not
+  // through the integration client, so there is nothing in integration_calls to count.
+  wa_mm_lite: [],
 };
