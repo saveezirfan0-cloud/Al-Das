@@ -2,10 +2,17 @@ import { PageHeader } from "@/components/shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requirePerm } from "@/lib/auth/session";
+import { formatIp } from "@/lib/security/client-ip";
+import {
+  DEFAULT_FINANCE_ACCESS,
+  holdsRestrictedArea,
+  readFinanceAccess,
+} from "@/lib/security/finance-access";
 import { isSensitiveRole } from "@/lib/security/mfa";
 import { readSecuritySettings } from "@/lib/security/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+import { FinanceWindowForm } from "./finance-window-form";
 import { MfaRoleTable, SecuritySettingsForm } from "./security-forms";
 
 export const metadata = { title: "Security" };
@@ -37,12 +44,13 @@ export default async function SecuritySettingsPage() {
     };
   });
   const exposed = rows.filter((r) => r.sensitive && !r.required);
+  const financeWindow = readFinanceAccess(member.org.settings);
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Security"
-        description="Two-step verification by role, how long access records are kept, and when to raise an alert."
+        description="Two-step verification by role, how long access records are kept, when to raise an alert, and when finance can be reached."
       />
       <Card>
         <CardHeader>
@@ -71,6 +79,23 @@ export default async function SecuritySettingsPage() {
       <SecuritySettingsForm
         initial={readSecuritySettings(member.org.settings)}
         timezone={member.org.timezone}
+      />
+      <FinanceWindowForm
+        initial={financeWindow.ok ? financeWindow.settings : DEFAULT_FINANCE_ACCESS}
+        unreadable={!financeWindow.ok}
+        roles={(roles ?? []).map((r) => {
+          const perms = Array.isArray(r.permissions)
+            ? (r.permissions as unknown[]).filter((p): p is string => typeof p === "string")
+            : [];
+          return {
+            id: r.id,
+            name: r.name,
+            finance: holdsRestrictedArea(perms),
+            admin: perms.includes("*"),
+          };
+        })}
+        timezone={member.org.timezone}
+        currentIp={member.clientIp ? formatIp(member.clientIp) : null}
       />
     </div>
   );

@@ -8,6 +8,11 @@ export type MemberLike = {
   roleName?: string;
   status: "active" | "suspended";
   permissions: readonly string[];
+  /**
+   * Permission areas (first key segment) taken away for this request, e.g. ["finance", "accounting"] outside the
+   * finance access window (lib/security/finance-access.ts). Set only by lib/auth/session.ts; never for Admin.
+   */
+  restrictedAreas?: readonly string[];
 };
 
 export class ForbiddenError extends Error {
@@ -22,6 +27,8 @@ export class ForbiddenError extends Error {
 export function can(member: MemberLike | null | undefined, permission: string): boolean {
   if (!member || member.status !== "active") return false;
   if (!Array.isArray(member.permissions)) return false;
+  if (member.restrictedAreas?.length && member.restrictedAreas.includes(permission.split(".")[0]))
+    return false;
   return member.permissions.some(
     (granted) => typeof granted === "string" && permissionMatches(granted, permission),
   );

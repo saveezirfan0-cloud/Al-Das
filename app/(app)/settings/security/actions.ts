@@ -6,6 +6,12 @@ import { z } from "zod";
 import { recordAudit } from "@/lib/audit";
 import { requirePerm } from "@/lib/auth/session";
 import {
+  financeAccessSchema,
+  readFinanceAccess,
+  writeFinanceAccess,
+  type FinanceAccessInput,
+} from "@/lib/security/finance-access";
+import {
   securitySettingsSchema,
   writeSecuritySettings,
   readSecuritySettings,
@@ -79,4 +85,77 @@ export async function saveSecuritySettings(
   revalidatePath(PATH);
   revalidatePath("/", "layout");
   return { ok: true, message: "Security settings saved." };
+}
+
+/**
+ * Finance access window (orgs.settings.finance_access): days, hours, address list and the roles it covers. Admin is
+ * never restricted, whatever is saved. The audit row carries what changed and counts, not the addresses.
+ */
+export async function saveFinanceAccessWindow(input: FinanceAccessInput): Promise<ActionResult> {
+  const member = await requirePerm("security.manage");
+  const parsed = financeAccessSchema.safeParse(input);
+  if (!parsed.success)
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  const next = parsed.data;
+  const admin = createAdminClient(member.userId);
+
+  if (next.role_ids.length > 0) {
+    const { data: roles, error: rolesError } = await admin
+      .from("roles")
+      .select("id")
+      .eq("org_id", member.orgId)
+      .in("id", next.role_ids);
+    if (rolesError) return { ok: false, error: "Could not check the roles." };
+    if ((roles ?? []).length !== next.role_ids.length)
+      return {
+        ok: false,
+        error: "One of the chosen roles no longer exists. Reload and try again.",
+      };
+  }
+
+  const { data: org, error: orgError } = await admin
+    .from("orgs")
+    .select("settings")
+    .eq("id", member.orgId)
+    .single();
+  if (orgError || !org) return { ok: false, error: "Could not load the settings." };
+  const stored = readFinanceAccess(org.settings);
+  const before = stored.ok ? stored.settings : null;
+  const { error } = await admin
+    .from("orgs")
+    .update({ settings: writeFinanceAccess(org.settings, next) as never })
+    .eq("id", member.orgId);
+  if (error) return { ok: false, error: "Could not save the finance access window." };
+
+  const changed = before
+    ? (Object.keys(next) as Array<keyof typeof next>).filter(
+        (k) => JSON.stringify(next[k]) !== JSON.stringify(before[k]),
+      )
+    : ["unreadable_before"];
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "finance_access_window.updated",
+    entity: "org",
+    entityId: member.orgId,
+    diff: {
+      changed,
+      enabled: next.enabled,
+      limit_hours: next.limit_hours,
+      days: next.days,
+      start: next.start,
+      end: next.end,
+      address_entries: next.ip_allowlist.length,
+      scope: next.scope,
+      role_count: next.role_ids.length,
+    },
+  });
+  revalidatePath(PATH);
+  revalidatePath("/", "layout");
+  return {
+    ok: true,
+    message: next.enabled
+      ? "Finance access window saved. It applies from the next page anyone opens."
+      : "Finance access window saved and switched off.",
+  };
 }

@@ -122,11 +122,15 @@ describe("middleware two-step verification", () => {
   it("shows a browser a readable page when failing closed, and logs the cause without secrets", async () => {
     const log = vi.spyOn(console, "error").mockImplementation(() => {});
     state.membershipError = { message: "column roles_1.require_mfa does not exist" };
-    const page = await updateSession(req("/dashboard", undefined, { headers: { accept: "text/html" } }));
+    const page = await updateSession(
+      req("/dashboard", undefined, { headers: { accept: "text/html" } }),
+    );
     expect(page.status).toBe(503);
     expect(page.headers.get("content-type")).toContain("text/html");
     expect(await page.text()).toContain("temporarily unavailable");
-    const api = await updateSession(req("/dashboard", undefined, { headers: { accept: "application/json" } }));
+    const api = await updateSession(
+      req("/dashboard", undefined, { headers: { accept: "application/json" } }),
+    );
     expect(await api.json()).toEqual({ error: "temporarily unavailable" });
     expect(log.mock.calls[0]?.[0]).toContain("require_mfa does not exist");
     log.mockRestore();
@@ -205,6 +209,13 @@ describe("middleware token verification (Phase 13)", () => {
       }),
     );
     expect(action.headers.get("x-middleware-request-x-pulse-auth")).toBe("strict");
+  });
+
+  it("forwards the request path for the finance access window, overwriting a browser value", async () => {
+    const page = await updateSession(
+      req("/finance/bank", undefined, { headers: { "x-pulse-path": "/dashboard" } }),
+    );
+    expect(page.headers.get("x-middleware-request-x-pulse-path")).toBe("/finance/bank");
   });
 
   it("can be switched back to always-strict with PULSE_VERIFY_JWT_LOCALLY=0", async () => {

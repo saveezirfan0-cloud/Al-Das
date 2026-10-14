@@ -1,4 +1,4 @@
-import { requireMember } from "@/lib/auth/session";
+import { enforceFinanceWindow, requireMember } from "@/lib/auth/session";
 import { accountingNavFor } from "@/lib/accounting/nav";
 
 import { SettingsNav } from "../settings/settings-nav";
@@ -6,6 +6,8 @@ import { SettingsNav } from "../settings/settings-nav";
 /** Accounting module shell (Phase 22A). Each page checks its own permission again. Query-free. */
 export default async function AccountingLayout({ children }: { children: React.ReactNode }) {
   const member = await requireMember();
+  // finance access window (Settings, Security): outside it, explain instead of showing the module
+  await enforceFinanceWindow(member);
   const items = accountingNavFor(member);
   return (
     <div className="flex flex-col gap-6 md:flex-row md:gap-10">
