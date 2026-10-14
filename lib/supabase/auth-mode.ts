@@ -27,3 +27,10 @@ export function authModeFor(input: {
 export function isAuthMode(value: string | null | undefined): value is AuthMode {
   return value === "claims" || value === "strict";
 }
+
+/**
+ * The request path, forwarded by the middleware for server code that cannot otherwise see it (lib/auth/session.ts uses
+ * it to record finance access window refusals on /finance, /accounting and their API routes). Overwritten on every
+ * request like the auth mode header; never used to grant anything.
+ */
+export const REQUEST_PATH_HEADER = "x-pulse-path";

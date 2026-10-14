@@ -1,0 +1,503 @@
+{
+  "_comment": "Synthetic parity cases for the finance access window: financeAccessDecision() (lib/security/finance-access.ts) and app.finance_window_reason() (SQL) must both give `expect`. The request address is always 203.0.113.7 (documentation range); SQL never evaluates addresses, so address-list cases here only use lists that contain it. 2026-10-12 is a Monday; Asia/Dubai is UTC+4 all year; Europe/London changes clocks on 2026-03-29 and 2026-10-25. Cases whose `cfg` the database refuses to store (app.finance_access_problem) are compared by that refusal instead.",
+  "roleId": "11111111-1111-4111-8111-111111111111",
+  "otherRoleId": "22222222-2222-4222-8222-222222222222",
+  "cases": [
+    {
+      "name": "nothing stored",
+      "cfg": null,
+      "now": "2026-10-18T22:00:00Z",
+      "expect": "off"
+    },
+    {
+      "name": "switched off",
+      "cfg": {
+        "enabled": false
+      },
+      "now": "2026-10-18T22:00:00Z",
+      "expect": "off"
+    },
+    {
+      "name": "switched off but malformed: off wins",
+      "cfg": {
+        "enabled": false,
+        "days": "weekdays",
+        "start": 7
+      },
+      "now": "2026-10-18T22:00:00Z",
+      "expect": "off"
+    },
+    {
+      "name": "enabled and malformed days",
+      "cfg": {
+        "enabled": true,
+        "days": "weekdays"
+      },
+      "expect": "invalid_settings"
+    },
+    {
+      "name": "enabled not a boolean",
+      "cfg": {
+        "enabled": "yes"
+      },
+      "expect": "invalid_settings"
+    },
+    {
+      "name": "enabled null",
+      "cfg": {
+        "enabled": null
+      },
+      "expect": "invalid_settings"
+    },
+    {
+      "name": "not an object",
+      "cfg": [1, 2],
+      "expect": "invalid_settings"
+    },
+    {
+      "name": "bad start time",
+      "cfg": {
+        "enabled": true,
+        "start": "7:00"
+      },
+      "expect": "invalid_settings"
+    },
+    {
+      "name": "day out of range",
+      "cfg": {
+        "enabled": true,
+        "days": [0, 1]
+      },
+      "expect": "invalid_settings"
+    },
+    {
+      "name": "fractional day",
+      "cfg": {
+        "enabled": true,
+        "days": [1.5]
+      },
+      "expect": "invalid_settings"
+    },
+    {
+      "name": "eight days",
+      "cfg": {
+        "enabled": true,
+        "days": [1, 1, 2, 3, 4, 5, 6, 7]
+      },
+      "expect": "invalid_settings"
+    },
+    {
+      "name": "no days while enabled",
+      "cfg": {
+        "enabled": true,
+        "days": []
+      },
+      "expect": "invalid_settings"
+    },
+    {
+      "name": "bad address",
+      "cfg": {
+        "enabled": true,
+        "ip_allowlist": ["office"]
+      },
+      "expect": "invalid_settings"
+    },
+    {
+      "name": "every-address range",
+      "cfg": {
+        "enabled": true,
+        "ip_allowlist": ["0.0.0.0/0"]
+      },
+      "expect": "invalid_settings"
+    },
+    {
+      "name": "bad scope",
+      "cfg": {
+        "enabled": true,
+        "scope": "everyone"
+      },
+      "expect": "invalid_settings"
+    },
+    {
+      "name": "bad role id",
+      "cfg": {
+        "enabled": true,
+        "role_ids": ["not-a-uuid"]
+      },
+      "expect": "invalid_settings"
+    },
+    {
+      "name": "only these roles, none, enabled",
+      "cfg": {
+        "enabled": true,
+        "scope": "selected_roles",
+        "role_ids": []
+      },
+      "expect": "invalid_settings"
+    },
+    {
+      "name": "only these roles, none, switched off",
+      "cfg": {
+        "enabled": false,
+        "scope": "selected_roles",
+        "role_ids": []
+      },
+      "expect": "off"
+    },
+    {
+      "name": "neither hours nor addresses",
+      "cfg": {
+        "enabled": true,
+        "limit_hours": false,
+        "ip_allowlist": []
+      },
+      "expect": "invalid_settings"
+    },
+    {
+      "name": "admin with malformed setting",
+      "cfg": {
+        "enabled": "yes"
+      },
+      "permissions": ["*"],
+      "expect": "admin"
+    },
+    {
+      "name": "admin outside hours",
+      "cfg": {
+        "enabled": true
+      },
+      "permissions": ["*"],
+      "now": "2026-10-18T22:00:00Z",
+      "expect": "admin"
+    },
+    {
+      "name": "no finance keys",
+      "cfg": {
+        "enabled": true
+      },
+      "permissions": ["inbox.send"],
+      "now": "2026-10-18T22:00:00Z",
+      "expect": "not_in_scope"
+    },
+    {
+      "name": "accounting key only",
+      "cfg": {
+        "enabled": true
+      },
+      "permissions": ["accounting.journals.view"],
+      "now": "2026-10-18T08:00:00Z",
+      "expect": "day_not_allowed"
+    },
+    {
+      "name": "wildcard finance key",
+      "cfg": {
+        "enabled": true
+      },
+      "permissions": ["finance.*"],
+      "now": "2026-10-12T20:00:00Z",
+      "expect": "outside_hours"
+    },
+    {
+      "name": "unknown keys ignored",
+      "cfg": {
+        "enabled": true,
+        "colour": "teal"
+      },
+      "expect": "inside"
+    },
+    {
+      "name": "Monday noon",
+      "cfg": {
+        "enabled": true
+      },
+      "now": "2026-10-12T08:00:00Z",
+      "expect": "inside"
+    },
+    {
+      "name": "06:59 closed",
+      "cfg": {
+        "enabled": true
+      },
+      "now": "2026-10-12T02:59:00Z",
+      "expect": "outside_hours"
+    },
+    {
+      "name": "07:00 open",
+      "cfg": {
+        "enabled": true
+      },
+      "now": "2026-10-12T03:00:00Z",
+      "expect": "inside"
+    },
+    {
+      "name": "20:59 open",
+      "cfg": {
+        "enabled": true
+      },
+      "now": "2026-10-12T16:59:00Z",
+      "expect": "inside"
+    },
+    {
+      "name": "21:00 closed",
+      "cfg": {
+        "enabled": true
+      },
+      "now": "2026-10-12T17:00:00Z",
+      "expect": "outside_hours"
+    },
+    {
+      "name": "Sunday noon",
+      "cfg": {
+        "enabled": true
+      },
+      "now": "2026-10-18T08:00:00Z",
+      "expect": "day_not_allowed"
+    },
+    {
+      "name": "Saturday UTC is Sunday in Dubai",
+      "cfg": {
+        "enabled": true,
+        "start": "00:00",
+        "end": "23:59"
+      },
+      "now": "2026-10-17T23:30:00Z",
+      "expect": "day_not_allowed"
+    },
+    {
+      "name": "London before spring change",
+      "cfg": {
+        "enabled": true,
+        "days": [1, 2, 3, 4, 5, 6, 7],
+        "start": "08:00",
+        "end": "18:00"
+      },
+      "timezone": "Europe/London",
+      "now": "2026-03-28T07:30:00Z",
+      "expect": "outside_hours"
+    },
+    {
+      "name": "London after spring change",
+      "cfg": {
+        "enabled": true,
+        "days": [1, 2, 3, 4, 5, 6, 7],
+        "start": "08:00",
+        "end": "18:00"
+      },
+      "timezone": "Europe/London",
+      "now": "2026-03-30T07:30:00Z",
+      "expect": "inside"
+    },
+    {
+      "name": "London before autumn change",
+      "cfg": {
+        "enabled": true,
+        "days": [1, 2, 3, 4, 5, 6, 7],
+        "start": "08:00",
+        "end": "18:00"
+      },
+      "timezone": "Europe/London",
+      "now": "2026-10-24T17:30:00Z",
+      "expect": "outside_hours"
+    },
+    {
+      "name": "London after autumn change",
+      "cfg": {
+        "enabled": true,
+        "days": [1, 2, 3, 4, 5, 6, 7],
+        "start": "08:00",
+        "end": "18:00"
+      },
+      "timezone": "Europe/London",
+      "now": "2026-10-26T17:30:00Z",
+      "expect": "inside"
+    },
+    {
+      "name": "overnight Monday 22:30",
+      "cfg": {
+        "enabled": true,
+        "days": [1],
+        "start": "22:00",
+        "end": "02:00"
+      },
+      "now": "2026-10-12T18:30:00Z",
+      "expect": "inside"
+    },
+    {
+      "name": "overnight Tuesday 01:30 (Monday's night)",
+      "cfg": {
+        "enabled": true,
+        "days": [1],
+        "start": "22:00",
+        "end": "02:00"
+      },
+      "now": "2026-10-12T21:30:00Z",
+      "expect": "inside"
+    },
+    {
+      "name": "overnight Tuesday 02:00",
+      "cfg": {
+        "enabled": true,
+        "days": [1],
+        "start": "22:00",
+        "end": "02:00"
+      },
+      "now": "2026-10-12T22:00:00Z",
+      "expect": "outside_hours"
+    },
+    {
+      "name": "overnight Tuesday 22:30",
+      "cfg": {
+        "enabled": true,
+        "days": [1],
+        "start": "22:00",
+        "end": "02:00"
+      },
+      "now": "2026-10-13T18:30:00Z",
+      "expect": "day_not_allowed"
+    },
+    {
+      "name": "overnight Monday noon",
+      "cfg": {
+        "enabled": true,
+        "days": [1],
+        "start": "22:00",
+        "end": "02:00"
+      },
+      "now": "2026-10-12T08:00:00Z",
+      "expect": "outside_hours"
+    },
+    {
+      "name": "overnight Monday 01:30 (Sunday's night)",
+      "cfg": {
+        "enabled": true,
+        "days": [1],
+        "start": "22:00",
+        "end": "02:00"
+      },
+      "now": "2026-10-11T21:30:00Z",
+      "expect": "day_not_allowed"
+    },
+    {
+      "name": "overnight Sunday into Monday",
+      "cfg": {
+        "enabled": true,
+        "days": [7],
+        "start": "22:00",
+        "end": "02:00"
+      },
+      "now": "2026-10-11T21:00:00Z",
+      "expect": "inside"
+    },
+    {
+      "name": "whole day Monday 00:00",
+      "cfg": {
+        "enabled": true,
+        "days": [1],
+        "start": "00:00",
+        "end": "00:00"
+      },
+      "now": "2026-10-11T20:00:00Z",
+      "expect": "inside"
+    },
+    {
+      "name": "whole day Tuesday",
+      "cfg": {
+        "enabled": true,
+        "days": [1],
+        "start": "00:00",
+        "end": "00:00"
+      },
+      "now": "2026-10-12T20:00:00Z",
+      "expect": "day_not_allowed"
+    },
+    {
+      "name": "other role selected",
+      "cfg": {
+        "enabled": true,
+        "scope": "selected_roles",
+        "role_ids": ["22222222-2222-4222-8222-222222222222"]
+      },
+      "now": "2026-10-12T20:00:00Z",
+      "expect": "not_in_scope"
+    },
+    {
+      "name": "own role selected at night",
+      "cfg": {
+        "enabled": true,
+        "scope": "selected_roles",
+        "role_ids": ["11111111-1111-4111-8111-111111111111"]
+      },
+      "now": "2026-10-12T20:00:00Z",
+      "expect": "outside_hours"
+    },
+    {
+      "name": "invalid timezone",
+      "cfg": {
+        "enabled": true
+      },
+      "timezone": "Not/AZone",
+      "expect": "invalid_settings"
+    },
+    {
+      "name": "offset timezone +04:00",
+      "cfg": {
+        "enabled": true
+      },
+      "timezone": "+04:00",
+      "expect": "invalid_settings"
+    },
+    {
+      "name": "offset timezone UTC+4",
+      "cfg": {
+        "enabled": true
+      },
+      "timezone": "UTC+4",
+      "expect": "invalid_settings"
+    },
+    {
+      "name": "posix-prefixed timezone",
+      "cfg": {
+        "enabled": true
+      },
+      "timezone": "posix/Asia/Dubai",
+      "expect": "invalid_settings"
+    },
+    {
+      "name": "Etc/GMT-4 is a named zone (UTC+4)",
+      "cfg": {
+        "enabled": true
+      },
+      "timezone": "Etc/GMT-4",
+      "now": "2026-10-12T03:00:00Z",
+      "expect": "inside"
+    },
+    {
+      "name": "Etc/GMT-4 one minute before opening",
+      "cfg": {
+        "enabled": true
+      },
+      "timezone": "Etc/GMT-4",
+      "now": "2026-10-12T02:59:00Z",
+      "expect": "outside_hours"
+    },
+    {
+      "name": "address list only (matches)",
+      "cfg": {
+        "enabled": true,
+        "limit_hours": false,
+        "ip_allowlist": ["203.0.113.0/24", "2001:db8::/32", ""]
+      },
+      "now": "2026-10-18T22:00:00Z",
+      "expect": "inside"
+    },
+    {
+      "name": "address list and hours, at night",
+      "cfg": {
+        "enabled": true,
+        "ip_allowlist": ["203.0.113.0/24"]
+      },
+      "now": "2026-10-12T20:00:00Z",
+      "expect": "outside_hours"
+    }
+  ]
+}

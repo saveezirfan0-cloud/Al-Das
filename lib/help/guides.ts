@@ -688,6 +688,23 @@ export const GUIDES: readonly Guide[] = [
     ],
   },
   {
+    id: "finance-access-window",
+    title: "Finance access window",
+    pages: ["/settings/security", "/finance-unavailable"],
+    purpose:
+      "Choose when, and from which networks, people can reach Finance and Accounting, alongside two-step verification and alerts.",
+    steps: [
+      "Under Settings, Security, Finance access window, switch on Restrict finance access.",
+      "Tick the days and set the opening and closing times. They are in the clinic's timezone; a closing time before the opening time runs past midnight.",
+      "Optionally list the approved network addresses (one per line, ranges like 198.51.100.0/24 allowed). The line underneath shows whether your own connection is on the list.",
+      "Choose every finance role, or only some roles, and save.",
+    ],
+    watchOut: [
+      "Admin is never restricted, so an administrator can always correct a wrong setting.",
+      "Outside the window Finance and Accounting disappear from the menu for the roles it covers and their pages explain why. Each refused person raises one alert a day.",
+    ],
+  },
+  {
     id: "routing",
     title: "Teams and routing",
     pages: ["/settings/teams", "/settings/users"],

@@ -9,7 +9,12 @@ import type { SecuritySettings } from "@/lib/security/settings";
  */
 
 export type AlertKind =
-  "bulk_export" | "off_hours_access" | "failed_logins" | "role_change" | "bulk_api_read";
+  | "bulk_export"
+  | "off_hours_access"
+  | "failed_logins"
+  | "role_change"
+  | "bulk_api_read"
+  | "finance_access_denied";
 
 export type AlertDraft = {
   kind: AlertKind;

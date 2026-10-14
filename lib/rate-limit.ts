@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 
 import { NextResponse } from "next/server";
 
+import { rawClientIp } from "@/lib/security/client-ip";
 import type { AdminClient } from "@/lib/supabase/admin";
 
 /**
@@ -78,14 +79,9 @@ export const RATE_RULES = {
   publicApi: { limit: 120, windowSec: 60, failOpen: true },
 } as const satisfies Record<string, RateRule>;
 
-/** Best-effort client IP behind Vercel's edge; "unknown" lumps unidentifiable callers together. */
+/** Best-effort client IP behind Vercel's edge (lib/security/client-ip.ts); "unknown" lumps unidentifiable callers together. */
 export function clientIp(h: Pick<Headers, "get">): string {
-  const vercel = h.get("x-vercel-forwarded-for")?.split(",")[0]?.trim();
-  if (vercel) return vercel;
-  const real = h.get("x-real-ip")?.trim();
-  if (real) return real;
-  const fwd = h.get("x-forwarded-for")?.split(",")[0]?.trim();
-  return fwd || "unknown";
+  return rawClientIp(h) ?? "unknown";
 }
 
 export function rateKey(scope: string, id: string): string {
