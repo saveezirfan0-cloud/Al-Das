@@ -6,8 +6,11 @@
 --   * fin_doctor_performance_inputs(): per (department, doctor) for a calendar month and the month before it, sums and
 --     counts from the current Unite collection report rows (fin_report_visits). Department and total patients are
 --     distinct patients at that level (never a sum of doctors). Counts and amounts only: no PIN, no patient ref.
---     Branch scoping: p_branches is the member's allowed finance branch codes (null = no restriction; rows with no
---     branch stay visible, as app.location_visible_to() does); p_branch is the page's own filter (exactly that code).
+--     Branch: worked out when read, from the row's Unite clinic and the CURRENT fin_ref_branches mapping (the code stored
+--     at commit is only the fallback), so mapping a clinic later fixes earlier uploads. Scoping: p_branches is the
+--     member's allowed finance branch codes (null = no restriction). A row whose branch is unknown is visible only to an
+--     unrestricted member: here "no branch" means "not yet mapped", not "belongs to no branch", so it fails closed.
+--     p_branch is the page's own filter (exactly that code).
 --     SECURITY DEFINER, service role only; the server checks finance.revenue.view first.
 
 -- ---------------------------------------------------------------------------
@@ -96,11 +99,13 @@ begin
            r.visit_status,
            r.is_cancelled
     from public.fin_report_visits r
+    left join public.fin_ref_branches b
+      on b.org_id = r.org_id and b.active and b.unite_clinic_long_name = r.clinic_name
     where r.org_id = p_org_id
       and r.is_current
       and r.report_date >= v_prev and r.report_date < v_next
-      and (p_branches is null or r.branch_code is null or r.branch_code = any (p_branches))
-      and (v_branch is null or r.branch_code = v_branch)
+      and (p_branches is null or coalesce(b.code, r.branch_code) = any (p_branches))
+      and (v_branch is null or coalesce(b.code, r.branch_code) = v_branch)
   ),
   -- Display name: the most frequent spelling for the doctor key over both months, ties alphabetical.
   names as (
@@ -193,8 +198,10 @@ set search_path = ''
 as $$
   select date_trunc('month', max(r.report_date))::date
   from public.fin_report_visits r
+  left join public.fin_ref_branches b
+    on b.org_id = r.org_id and b.active and b.unite_clinic_long_name = r.clinic_name
   where r.org_id = p_org_id and r.is_current
-    and (p_branches is null or r.branch_code is null or r.branch_code = any (p_branches));
+    and (p_branches is null or coalesce(b.code, r.branch_code) = any (p_branches));
 $$;
 revoke all on function public.fin_report_latest_month(uuid, text[]) from public, anon, authenticated;
 grant execute on function public.fin_report_latest_month(uuid, text[]) to service_role;

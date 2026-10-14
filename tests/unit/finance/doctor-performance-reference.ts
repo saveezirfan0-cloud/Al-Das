@@ -115,7 +115,7 @@ export function referenceInputs(
       r.is_current &&
       r.report_date >= prev &&
       r.report_date < next &&
-      (!opts.branches || r.branch_code === null || opts.branches.includes(r.branch_code)) &&
+      (!opts.branches || (r.branch_code !== null && opts.branches.includes(r.branch_code))) &&
       (!opts.branch || r.branch_code === opts.branch),
   );
   const name = names(rows);

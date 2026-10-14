@@ -93,6 +93,8 @@ const headerText = (v: unknown) =>
 const blankCell = (v: unknown) => v == null || (typeof v === "string" && v.trim() === "");
 const ymd = (d: Date) => d.toISOString().slice(0, 10);
 const aed = (mils: number) => mils / 1000;
+/** The real export has 74 columns; a stray cell far to the right must not make the parser walk 16,384 of them. */
+const MAX_COLUMNS = 300;
 /** Thousandths -> whole fils, half up (Unite prints its totals to the fils). */
 const toFils = (mils: number) => Math.round(mils / 10);
 
@@ -137,7 +139,8 @@ function readReportTotals(summary: SheetTable): ReportTotals {
     const mils = amountMils(row[col.get(key)!]);
     if (mils === "invalid")
       fail(`Clinic Summary row ${i + 1}: '${RECONCILED_TOTALS[key]}' is not a number.`);
-    totals[key] = aed(mils as number);
+    // Unite prints its totals to the fils; read in thousandths and round once, the same way as the rows' sum
+    totals[key] = toFils(mils as number) / 100;
   }
   return totals;
 }
@@ -320,6 +323,7 @@ function sheetTable(
   if (!sheet) return fail(`The workbook has no '${name}' sheet.`);
   if (sheet.rowCount > maxRows + 1) fail(`The '${name}' sheet has more than ${maxRows} rows.`);
   const width = sheet.columnCount;
+  if (width > MAX_COLUMNS) fail(`The '${name}' sheet has more than ${MAX_COLUMNS} columns.`);
   const table: unknown[][] = [];
   for (let r = 1; r <= sheet.rowCount; r++) {
     const row = sheet.getRow(r);

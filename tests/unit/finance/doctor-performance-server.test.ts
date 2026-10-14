@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
  * Phase 23B loader: branch scoping (Phase B). A member limited to one branch gets only that branch's finance code (and
- * so the SQL keeps rows of that branch plus rows with no branch); the switcher narrows further; nobody is widened.
+ * so the SQL keeps rows of that branch only; a row whose branch is unknown is for unrestricted members); the switcher
+ * narrows further; nobody is widened.
  */
 
 let cookie: string | undefined;
@@ -83,7 +84,7 @@ describe("loadPerfScope", () => {
     expect((await loadPerfScope(admin, limited)).allowed).toEqual(["GM"]);
   });
 
-  it("gives a member whose branches have no finance code only rows with no branch", async () => {
+  it("gives a member whose branches have no finance code an empty scope (nothing is shown)", async () => {
     const { admin, rpc } = fakeAdmin();
     const s = await loadPerfScope(
       admin,

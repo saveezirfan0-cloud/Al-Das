@@ -148,7 +148,7 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance doctor performance (Phase 23B)", ()
     expect(report.coverage.full).toBe(true);
   });
 
-  it("filters by one branch, and keeps to a member's allowed branches (rows with no branch stay visible)", async () => {
+  it("filters by one branch, and keeps to a member's allowed branches (a row with an unknown branch only for unrestricted members)", async () => {
     for (const opts of [
       { branch: "GM", branches: null },
       { branch: "PJ", branches: null },
@@ -162,16 +162,49 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance doctor performance (Phase 23B)", ()
       expect(j.previous, JSON.stringify(opts)).toEqual(ref.previous);
       expect(j.branch).toBe(opts.branch);
     }
-    // limited to GM: the PJ doctors are gone, the no-branch Dermatology row stays
+    // limited to GM: the PJ doctors are gone, and so is the Dermatology row whose branch is unknown (it fails closed)
     const gm = (await inputs(orgA, fixture.month, null, ["GM"])) as {
       current: { total: { revenue: number }; departments: Array<{ department: string | null }> };
     };
-    expect(gm.current.total.revenue).toBe(2599.985);
+    expect(gm.current.total.revenue).toBe(2499.985);
     expect(gm.current.departments.map((d) => d.department)).toEqual([
-      "Dermatology",
       "General Medicine",
       "Pediatrics",
     ]);
+  });
+
+  it("works out the branch when read: a clinic mapped after commit is picked up by every scope", async () => {
+    await svc(async () => {
+      const { rows: u } = await q(
+        `insert into public.fin_report_uploads (org_id, from_date, to_date, file_sha256, status, reconciled, committed_at)
+         values ($1, '2026-11-01', '2026-11-30', $2, 'committed', true, now()) returning id`,
+        [orgB, SHA(98)],
+      );
+      await q(
+        `insert into public.fin_report_visits (org_id, upload_id, row_no, report_date, department, doctor_name, doctor_key,
+           clinic_name, branch_code, patient_pin, net, is_current)
+         values ($1, $2, 1, '2026-11-03', 'Dermatology', 'Dr Demo-98', 'dr demo 98', 'Synthetic Clinic X', null,
+           '900000098', 77, true)`,
+        [orgB, u[0].id],
+      );
+    });
+    type J = { current: { total: { revenue: number } } };
+    const rev = async (branch: string | null, branches: string[] | null) =>
+      ((await inputs(orgB, "2026-11-01", branch, branches)) as J).current.total.revenue;
+    // unknown branch: only an unrestricted member sees it
+    expect(await rev(null, null)).toBe(77);
+    expect(await rev(null, ["ZZ"])).toBe(0);
+    expect(await rev("ZZ", null)).toBe(0);
+    await svc(() =>
+      q(
+        `insert into public.fin_ref_branches (org_id, code, name, unite_clinic_long_name)
+         values ($1, 'ZZ', 'Synthetic branch', 'Synthetic Clinic X')`,
+        [orgB],
+      ),
+    );
+    expect(await rev(null, ["ZZ"])).toBe(77);
+    expect(await rev("ZZ", null)).toBe(77);
+    expect(await rev(null, ["PJ"])).toBe(0);
   });
 
   it("counts only current rows and only the chosen months", async () => {

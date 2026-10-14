@@ -117,3 +117,15 @@ problem naming the column. An upload that does not reconcile can be looked at an
 - `tests/db/finance-unite-report.test.ts`: stage, idempotent re-stage, commit with branch codes, double commit refused,
   overlapping upload supersedes in range only, not reconciled (and the database's own re-check), out-of-range rows,
   discard (staged only), org isolation, no sentinel stored, service role only, the permission grant.
+
+## After the review (14 Oct 2026)
+
+- Report totals are read in thousandths and rounded to the fils once, exactly like the rows' sum, in the parser and in
+  `fin_report_stage`; a half-fils total can no longer be accepted by one and refused by the other.
+- `fin_report_commit` supersedes only the rows of the clinics the new upload contains: a one-clinic export never hides
+  the other clinics. When two exports of the same dates are committed, the last commit wins.
+- A sheet wider than 300 columns is refused (the real export has 74).
+- Not adopted: requiring each row's categories to add up to GROSS AMT. On the real September export 123 of 2,401 rows
+  differ (by up to AED 4,774), so the check would refuse genuine files.
+- Known gap (same as the Diligence upload): if the browser uploads the file and the page closes before processing, the
+  file stays in `finance-files/<org>/unite-report/` until removed; a storage sweep is a follow-up.

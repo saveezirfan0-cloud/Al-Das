@@ -364,7 +364,8 @@ export function buildDoctorPerformance(inputs: DoctorPerformanceInputs): DoctorP
 /**
  * The finance branch codes a member may see, from their branch filter (lib/branches branchView().filterIds) and the
  * org's locations (locations.branch_code). `null` = no restriction. A location without a finance code adds nothing, so
- * a member limited to such branches sees only rows with no branch (as app.location_visible_to() does).
+ * a member limited to such branches sees nothing; a row whose branch is unknown is shown only when there is no
+ * restriction (it fails closed, unlike app.location_visible_to(): here no branch means "not yet mapped").
  */
 export function allowedBranchCodes(
   filterIds: readonly string[] | null,

@@ -225,6 +225,21 @@ describe.skipIf(!TEST_DATABASE_URL)("Unite collection report upload (Phase 23A)"
     expect(await currentCount()).toBe(6);
   });
 
+  it("a one-clinic export supersedes only that clinic's rows, never the other clinics'", async () => {
+    // Unite's multi-clinic report can be run for one clinic: committing it must not hide the others
+    const p = await parse({ rows: [{ ...DEFAULT_ROWS[4], selfpay: "SP-0200" }] });
+    const s = await stage(p);
+    expect(s).toMatchObject({ existing: false, reconciled: true, row_count: 1 });
+    const res = await commit(s.upload_id as string);
+    expect(res).toMatchObject({ rows: 1, superseded: 1 });
+    const kept = await visits(first.id);
+    expect(kept.filter((r) => r.is_current).map((r) => r.report_date)).toEqual([
+      "2026-09-01",
+      "2026-09-01",
+    ]);
+    expect(await currentCount()).toBe(6);
+  });
+
   it("does not reconcile a tampered report, and refuses to commit it", async () => {
     const p = await parse({ tamper: { Cash: 0.01 } });
     const s = await stage(p);

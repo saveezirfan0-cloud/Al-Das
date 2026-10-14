@@ -13,7 +13,8 @@ import type { AdminClient } from "@/lib/supabase/admin";
 /**
  * Loads the doctor performance report (Phase 23B) from the Unite collection report rows. Service role only, so every
  * caller must have checked finance.revenue.view first. Branch-bound (Phase B): the rows are kept to the finance branch
- * codes of the branches the member may see (and the branch switcher's choice); rows with no branch stay visible.
+ * codes of the branches the member may see (and the branch switcher's choice); a row whose branch is unknown (clinic not
+ * yet mapped) is shown only to members who see every branch.
  */
 
 export type PerfScope = {
