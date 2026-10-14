@@ -121,6 +121,10 @@ describe("evaluateEnv: monitoring, e-mail sender, push and embeddings", () => {
     expect(
       byId({ ...goodEnv, RESEND_FROM: "Pulse <no-reply@aldas.example.ae>" }, "env:resend-from")?.ok,
     ).toBe(true);
+    // The Vercel Resend integration sets RESEND_EMAIL_DOMAIN instead of a full sender.
+    expect(
+      byId({ ...goodEnv, RESEND_EMAIL_DOMAIN: "mail.aldas.example.ae" }, "env:resend-from")?.ok,
+    ).toBe(true);
     expect(byId({ ...goodEnv, RESEND_API_KEY: "" }, "env:resend-from")).toBeUndefined();
   });
 

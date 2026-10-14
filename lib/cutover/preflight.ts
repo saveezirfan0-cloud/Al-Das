@@ -8,6 +8,8 @@
  *   post-cutover  the webhook has been moved; we check that traffic really flows through Pulse
  */
 
+import { resendFrom } from "@/lib/env";
+
 export type Stage = "pre-cutover" | "post-cutover";
 export type Severity = "blocker" | "warning" | "info";
 export type Check = {
@@ -145,17 +147,17 @@ export function evaluateEnv(env: EnvLike): Check[] {
         : "not set: browser errors are not reported",
     ),
   );
-  const resendFrom = env.RESEND_FROM?.trim() ?? "";
+  const resendFromValue = resendFrom(env) ?? "";
   if (has("RESEND_API_KEY"))
     out.push(
       c(
         "env:resend-from",
         "RESEND_FROM is a real sender address (not the example.com default)",
-        resendFrom !== "" && !/@example\.(com|org|net)\b/i.test(resendFrom),
+        resendFromValue !== "" && !/@example\.(com|org|net)\b/i.test(resendFromValue),
         "warning",
-        resendFrom === ""
+        resendFromValue === ""
           ? "not set: the example.com default is used"
-          : /@example\.(com|org|net)\b/i.test(resendFrom)
+          : /@example\.(com|org|net)\b/i.test(resendFromValue)
             ? "uses an example.com address"
             : "set",
       ),

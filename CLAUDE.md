@@ -141,7 +141,7 @@ Captures Unite invoices, matches them to Diligence claim files, and routes excep
 - Phones are always E.164 (`libphonenumber-js`). Times are stored in UTC and displayed in location/org timezone (`date-fns-tz`).
 - Domain events go through `emit(orgId, 'enquiry.stage_changed', payload)`, which triggers flows and outbound webhooks.
 - UI patterns: right-side drawers for records, DataGrid for lists with saved views, a phone preview for templates/campaigns.
-- Every schema change is a new migration. Never edit applied migrations. Regenerate types after migrating.
+- Every schema change is a new migration. Never edit applied migrations. Regenerate types after migrating. Production gets them through `.github/workflows/db-migrate.yml` (`supabase db push` on merge to `main`); hosting details are in `docs/38_HOSTING_SETUP.md`.
 - Navigation: sidebar entries live in `components/shell/nav.ts` (with `group` and search `keywords`); Settings pages live in `components/shell/settings-pages.ts`, which feeds both the Settings menu and Ctrl+K quick search. A new page is added there, gated by its permission. Status, gaps and roadmap: `docs/09_STATUS_AND_ROADMAP.md`.
 - Back-office objects: core entities merge into core tables; everything else becomes a real table registered in `portal_objects`.
 - Portal bulk edit and tags (docs/33): many-record edits go only through `public.portal_bulk_update` (via `lib/portal/bulk.ts`, the object's write key, one audit row with the field key and counts, never values). Portal tags are `tags.scope = 'portal'` joined through `portal_record_tags` (no browser writes; a trigger refuses other scopes and records of another org); managing them needs `portal.tags.manage`.
