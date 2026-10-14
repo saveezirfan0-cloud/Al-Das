@@ -4,6 +4,12 @@ import {
   type ClientDeps,
   type HttpResult,
 } from "@/lib/integrations/client";
+import {
+  MAX_RETRY_SLEEP_MS,
+  pageTimeoutMs,
+  REQUEST_MAX_RETRIES,
+  REQUEST_TIMEOUT_MS,
+} from "@/lib/integrations/meta-ads/budget";
 import { META_ADS_HOST } from "@/lib/integrations/meta-ads/config";
 import {
   hasDuplicateDays,
@@ -26,7 +32,8 @@ import {
  *
  *   GET https://graph.facebook.com/{version}/act_{id}?fields=id,currency     (Test connection)
  *
- * Every call is a GET, so the shared client retries timeouts, 429 and 5xx with back-off. The next page is requested with our own URL
+ * Every call is a GET, so the shared client retries timeouts, 429 and 5xx, but only once, after a pause of at most 2 s, with a 15 s
+ * timeout per attempt; with `deadlineAt` no page is started, and no attempt may run, past the task's deadline (budget.ts). The next page is requested with our own URL
  * and Graph's `after` cursor, never by following `paging.next` (which can carry a token in its query string). The token travels only
  * in the Authorization header: never in a URL, a log row or an error.
  */
@@ -47,6 +54,8 @@ export type MetaAdsClientOptions = {
   graphVersion: string;
   pageSize?: number;
   maxPages?: number;
+  /** Epoch ms after which no request may still be running (the sync task's deadline). */
+  deadlineAt?: number;
 } & Partial<
   Pick<
     ClientDeps,
@@ -97,18 +106,21 @@ export function insightsUrl(
 }
 
 export function createMetaAdsClient(o: MetaAdsClientOptions): MetaAdsClient {
+  const clock = o.now ?? Date.now;
+  const baseSleep = o.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
   const client = createIntegrationClient({
     provider: "meta_ads",
     allowedHosts: [META_ADS_HOST],
     fetchFn: o.fetchFn,
     now: o.now,
-    sleep: o.sleep,
+    // A retry pause (including a Retry-After answer) never eats the time budget.
+    sleep: (ms) => baseSleep(Math.min(ms, MAX_RETRY_SLEEP_MS)),
     rng: o.rng,
     sink: o.sink,
     breaker: o.breaker,
     breakerConfig: o.breakerConfig,
-    timeoutMs: o.timeoutMs ?? 30_000,
-    maxRetries: o.maxRetries,
+    timeoutMs: o.timeoutMs ?? REQUEST_TIMEOUT_MS,
+    maxRetries: o.maxRetries ?? REQUEST_MAX_RETRIES,
   });
   const headers = { Authorization: `Bearer ${o.accessToken}`, Accept: "application/json" };
   const pageSize = o.pageSize ?? DEFAULT_PAGE_SIZE;
@@ -127,6 +139,12 @@ export function createMetaAdsClient(o: MetaAdsClientOptions): MetaAdsClient {
       const rows: InsightRow[] = [];
       let after: string | null = null;
       for (let page = 1; page <= maxPages; page++) {
+        let timeoutMs: number | undefined;
+        if (o.deadlineAt !== undefined) {
+          const t = pageTimeoutMs(o.deadlineAt - clock());
+          if (t === null) return { ok: false, code: "deadline", retryable: true, auth: false };
+          timeoutMs = t;
+        }
         let res: HttpResult;
         try {
           res = await client.request({
@@ -134,6 +152,7 @@ export function createMetaAdsClient(o: MetaAdsClientOptions): MetaAdsClient {
             method: "GET",
             url: insightsUrl(o.graphVersion, o.adAccountId, range, pageSize, after),
             headers,
+            timeoutMs,
           });
         } catch (err) {
           return failure(err);

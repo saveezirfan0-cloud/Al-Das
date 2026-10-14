@@ -12,7 +12,7 @@ import {
   mergeAdPerformance,
   totalsByCurrency,
 } from "@/lib/integrations/meta-ads/cost";
-import { loadAdSpend } from "@/lib/integrations/meta-ads/server";
+import { loadAdSpend, loadSpendCoverageStart } from "@/lib/integrations/meta-ads/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const metadata = { title: "Ad attribution" };
@@ -50,11 +50,19 @@ export default async function AdReportPage({
   const on = account?.enabled === true;
   const spendOn = adsAccount?.enabled === true;
   const since = new Date(Date.now() - days * 86_400_000).toISOString();
-  const [attribution, spendRows] = await Promise.all([
+  const sinceDay = since.slice(0, 10);
+  const [attribution, spendRows, coverageStart] = await Promise.all([
     on ? loadAdReport(admin, member.orgId, days, cfg.windowDays) : Promise.resolve([]),
-    spendOn ? loadAdSpend(admin, member.orgId, since.slice(0, 10)) : Promise.resolve([]),
+    spendOn ? loadAdSpend(admin, member.orgId, sinceDay) : Promise.resolve([]),
+    spendOn ? loadSpendCoverageStart(admin, member.orgId) : Promise.resolve(null),
   ]);
-  const rows = mergeAdPerformance(attribution, spendRows);
+  // Spend exists only from the first day Pulse read: costs divide by the clicks from that day on, never by the whole period.
+  const costFrom = coverageStart && coverageStart > sinceDay ? coverageStart : null;
+  const costAttribution =
+    on && costFrom
+      ? await loadAdReport(admin, member.orgId, days, cfg.windowDays, `${costFrom}T00:00:00Z`)
+      : attribution;
+  const rows = mergeAdPerformance(attribution, spendRows, costAttribution);
   const currencyTotals = totalsByCurrency(rows);
   const lastPulled = spendRows.reduce<string | null>(
     (a, r) => (r.pulled_at && (!a || r.pulled_at > a) ? r.pulled_at : a),
@@ -151,12 +159,21 @@ export default async function AdReportPage({
                 {spendOn ? (
                   <>
                     {" "}
-                    Spend, impressions and clicks are Meta&apos;s own figures, read once a day for
-                    the days in this period (Meta&apos;s day, in the ad account&apos;s time zone)
+                    Spend, impressions and clicks are Meta&apos;s own figures for complete days up
+                    to yesterday (Meta&apos;s day, in the ad account&apos;s time zone), read once a
+                    day
                     {lastPulled
                       ? `, last read ${lastPulled.slice(0, 16).replace("T", " ")} UTC`
                       : ""}
                     .
+                    {costFrom ? (
+                      <>
+                        {" "}
+                        Spend is available from {costFrom} only, so spend and the cost per
+                        conversation, enquiry and booking cover ad clicks from {costFrom} on; the
+                        conversation, enquiry and booking columns cover the whole period.
+                      </>
+                    ) : null}
                   </>
                 ) : (
                   <> Meta ads spend is off, so no cost is shown.</>

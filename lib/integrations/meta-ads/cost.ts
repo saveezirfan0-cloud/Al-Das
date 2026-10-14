@@ -5,6 +5,10 @@
  *
  * Money stays an integer number of thousandths of the ad account's currency until it is shown. An ad whose spend arrived in more
  * than one currency (the account currency changed) gets no spend and no cost figures rather than a sum of unlike amounts.
+ *
+ * Like periods only: spend exists only for the days Pulse has read (at most 28 days back from the day the integration was switched
+ * on, then daily), so the costs divide by `costCounts`, Pulse's counts for clicks on or after the first day with spend, not by the
+ * counts of the whole report period (which may start earlier). The report shows both and says from when costs are counted.
  */
 
 export type AttributionCounts = {
@@ -47,17 +51,23 @@ export type AdPerformanceRow = {
   mixedCurrency: boolean;
   impressions: number | null;
   clicks: number | null;
+  /** The counts the cost figures divide by (clicks inside the period that has spend). */
+  costBasis: CostBasis;
   costPerConversationMilli: number | null;
   costPerEnquiryMilli: number | null;
   costPerBookingMilli: number | null;
 };
+
+export type CostBasis = { conversations: number; enquiries: number; appointments: number };
+
+const NO_COUNTS: CostBasis = { conversations: 0, enquiries: 0, appointments: 0 };
 
 export type CurrencyTotals = {
   currency: string;
   spendMilli: number;
   impressions: number;
   clicks: number;
-  /** Counts for the ads that have spend in this currency (so the cost figures divide like by like). */
+  /** Cost-basis counts for the ads that have spend in this currency (so the cost figures divide like by like). */
   conversations: number;
   enquiries: number;
   appointments: number;
@@ -114,11 +124,22 @@ function foldSpend(spend: readonly SpendTotals[]): Map<string, SpendByAd> {
   return byAd;
 }
 
+/**
+ * `costCounts` are the counts for the period that has spend (defaults to `attribution`, when spend covers the whole period). Rows are
+ * keyed `<source type>:<source id>`; an ad missing from `costCounts` had no click in that period.
+ */
 export function mergeAdPerformance(
   attribution: readonly AttributionCounts[],
   spend: readonly SpendTotals[],
+  costCounts: readonly AttributionCounts[] = attribution,
 ): AdPerformanceRow[] {
   const byAd = foldSpend(spend);
+  const basisByKey = new Map<string, CostBasis>(
+    costCounts.map((c) => [
+      `${c.source_type}:${c.source_id}`,
+      { conversations: c.conversations, enquiries: c.enquiries, appointments: c.appointments },
+    ]),
+  );
   const used = new Set<string>();
   const rows: AdPerformanceRow[] = [];
 
@@ -135,6 +156,8 @@ export function mergeAdPerformance(
   ): AdPerformanceRow => {
     const usable = s && !s.mixed ? s : undefined;
     const spendMilli = usable ? usable.spendMilli : null;
+    const basis =
+      basisByKey.get(key) ?? (adId ? basisByKey.get(`ad:${adId}`) : undefined) ?? NO_COUNTS;
     return {
       key,
       adId,
@@ -151,11 +174,12 @@ export function mergeAdPerformance(
       mixedCurrency: s?.mixed === true,
       impressions: s ? s.impressions : null,
       clicks: s ? s.clicks : null,
+      costBasis: basis,
       costPerConversationMilli:
-        spendMilli === null ? null : costPerMilli(spendMilli, counts.conversations),
-      costPerEnquiryMilli: spendMilli === null ? null : costPerMilli(spendMilli, counts.enquiries),
+        spendMilli === null ? null : costPerMilli(spendMilli, basis.conversations),
+      costPerEnquiryMilli: spendMilli === null ? null : costPerMilli(spendMilli, basis.enquiries),
       costPerBookingMilli:
-        spendMilli === null ? null : costPerMilli(spendMilli, counts.appointments),
+        spendMilli === null ? null : costPerMilli(spendMilli, basis.appointments),
     };
   };
 
@@ -204,9 +228,9 @@ export function totalsByCurrency(rows: readonly AdPerformanceRow[]): CurrencyTot
     t.spendMilli += r.spendMilli;
     t.impressions += r.impressions ?? 0;
     t.clicks += r.clicks ?? 0;
-    t.conversations += r.conversations;
-    t.enquiries += r.enquiries;
-    t.appointments += r.appointments;
+    t.conversations += r.costBasis.conversations;
+    t.enquiries += r.costBasis.enquiries;
+    t.appointments += r.costBasis.appointments;
     out.set(r.currency, t);
   }
   return [...out.values()]

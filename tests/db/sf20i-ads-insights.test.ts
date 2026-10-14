@@ -13,7 +13,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 
 import { loadAccount, saveSettings, setEnabled } from "@/lib/integrations/accounts";
-import { loadAdSpend, syncAdInsights } from "@/lib/integrations/meta-ads/server";
+import { ATTEMPT_MARKER, loadAdSpend, syncAdInsights } from "@/lib/integrations/meta-ads/server";
 import type { AdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/lib/supabase/types";
 
@@ -369,6 +369,7 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 20i: meta ads spend (database)", () =
           rows: 0,
           failed: 0,
           skipped: 0,
+          deferred: 0,
         });
         expect(requests).toHaveLength(0);
         expect(await stored(orgC)).toHaveLength(0);
@@ -388,6 +389,7 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 20i: meta ads spend (database)", () =
           rows: 3,
           failed: 0,
           skipped: 0,
+          deferred: 0,
         });
         expect(requests).toHaveLength(1);
         const url = new URL(requests[0]);
@@ -453,9 +455,65 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 20i: meta ads spend (database)", () =
           rows: 0,
           failed: 0,
           skipped: 1,
+          deferred: 0,
         });
         expect(requests).toHaveLength(0);
         await svc(() => q("update public.orgs set is_training = false where id = $1", [orgC]));
+      });
+
+      it("stops starting workspaces at the deadline and takes the one tried longest ago first; a cut-off run leaves an attempt on record", async () => {
+        const dave = await createAuthUser(c, "dave@example.test");
+        const orgD = await createOrg(c, "Org D", "org-d", dave);
+        await saveSettings(admin, {
+          orgId: orgD,
+          kind: "meta_ads",
+          provider: "meta_ads",
+          secrets: { access_token: TOKEN },
+          config: { ad_account_id: "act_9876543210987", lookback_days: 3, graph_version: "v21.0" },
+        });
+        await setEnabled(admin, { orgId: orgD, kind: "meta_ads", userId: dave, enabled: true });
+        // org D has never been tried, org C has: D goes first, and the clock then passes the budget, so C is not started
+        let t = 0;
+        requests.length = 0;
+        answer = () => {
+          t += 41_000;
+          return ok([])();
+        };
+        const before = await loadAccount(admin, orgC, "meta_ads");
+        expect(await syncAdInsights(admin, { ...deps, clock: () => t })).toEqual({
+          orgs: 1,
+          synced: 1,
+          rows: 0,
+          failed: 0,
+          skipped: 0,
+          deferred: 1,
+        });
+        expect(requests).toHaveLength(1);
+        expect(new URL(requests[0]).pathname).toBe("/v21.0/act_9876543210987/insights");
+        const after = await loadAccount(admin, orgC, "meta_ads");
+        expect(after?.last_error_at).toBe(before?.last_error_at); // untouched: keeps its place at the front
+        expect(after?.last_ok_at).toBe(before?.last_ok_at);
+
+        // the attempt is on record before the first request (so a run killed mid-request leaves it, and the workspace goes to the
+        // back); the one tried longest ago (C) goes first now
+        const seen: Array<string | null> = [];
+        const probe = (async (url: string) => {
+          requests.push(String(url));
+          seen.push((await loadAccount(admin, orgC, "meta_ads"))?.last_error ?? null);
+          return ok([])();
+        }) as unknown as typeof fetch;
+        requests.length = 0;
+        expect(
+          await syncAdInsights(admin, { ...deps, fetchFn: probe, clock: () => 0 }),
+        ).toMatchObject({
+          orgs: 2,
+          synced: 2,
+          deferred: 0,
+        });
+        expect(new URL(requests[0]).pathname).toBe("/v21.0/act_1234567890123/insights");
+        expect(seen[0]).toBe(ATTEMPT_MARKER);
+        expect((await loadAccount(admin, orgC, "meta_ads"))?.last_error).toBeNull();
+        await setEnabled(admin, { orgId: orgD, kind: "meta_ads", userId: dave, enabled: false });
       });
     },
   );
