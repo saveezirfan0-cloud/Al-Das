@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { formatDateTime } from "@/lib/contacts/format";
+import { parseSoftDeleteSignal, SOFT_DELETE_WINDOW_EVENT } from "@/lib/soft-delete/signal";
 import { createClient } from "@/lib/supabase/client";
 import { TASK_TYPES, TASK_TYPE_LABELS } from "@/lib/tasks/constants";
 import { dueState } from "@/lib/tasks/due";
@@ -164,6 +165,19 @@ export function TasksWorkspace({ bootstrap }: { bootstrap: TasksBootstrap }) {
       if (timer.current) clearTimeout(timer.current);
     };
   }, [bootstrap.orgId, reload]);
+
+  // A row someone else moved to Recently deleted: RLS hides that UPDATE from postgres_changes, so the shell relays the
+  // org's soft-delete broadcast (ids only) as a window event (docs/35).
+  React.useEffect(() => {
+    const onDeleted = (e: Event) => {
+      const signal = parseSoftDeleteSignal((e as CustomEvent).detail);
+      if (signal?.entity !== "task") return;
+      if (timer.current) clearTimeout(timer.current);
+      timer.current = setTimeout(reload, 500);
+    };
+    window.addEventListener(SOFT_DELETE_WINDOW_EVENT, onDeleted);
+    return () => window.removeEventListener(SOFT_DELETE_WINDOW_EVENT, onDeleted);
+  }, [reload]);
 
   const userName = React.useMemo(
     () => new Map(bootstrap.users.map((u) => [u.id, u.label])),

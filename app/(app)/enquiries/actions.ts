@@ -44,6 +44,7 @@ import { FilterCompileError, InvalidOperatorError } from "@/lib/filters";
 import { filterSchema } from "@/lib/filters/ast";
 import { UnknownFieldError } from "@/lib/filters/field-registry";
 import { recordAccess } from "@/lib/security/access-log";
+import { deletedMessage, readRestoreWindowDays } from "@/lib/soft-delete/rules";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json, Tables } from "@/lib/supabase/types";
 
@@ -306,6 +307,7 @@ export async function getEnquiry(id: string): Promise<ActionResult<EnquiryDetail
           .select("id, type, subject, due_at, done, assignee_id")
           .eq("org_id", member.orgId)
           .eq("enquiry_id", id)
+          .is("deleted_at", null)
           .order("done")
           .order("due_at")
           .limit(100)
@@ -621,7 +623,11 @@ export async function removeEnquiries(ids: string[]): Promise<ActionResult> {
     if (ids.length === 0) return fail("Select at least one enquiry.");
     const n = await deleteEnquiries({ admin, orgId: member.orgId, userId: member.userId }, ids);
     refresh();
-    return { ok: true, message: `${n} enquir${n === 1 ? "y" : "ies"} deleted.` };
+    revalidatePath("/settings/recently-deleted");
+    return {
+      ok: true,
+      message: deletedMessage("enquiry", n, readRestoreWindowDays(member.org.settings)),
+    };
   } catch (e) {
     return fail(describeError(e, "Could not delete the enquiries."));
   }

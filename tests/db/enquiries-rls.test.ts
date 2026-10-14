@@ -222,10 +222,11 @@ describe.skipIf(!TEST_DATABASE_URL)("enquiries + tasks RLS and SQL functions", (
         c.query("insert into public.pipelines (org_id, name) values ($1, 'nope')", [orgA]),
       ).rejects.toThrow(/row-level security/);
     });
+    // Soft delete (docs/35): even an admin cannot hard-delete from a browser; deletes go through soft_delete_records.
     await asUser(c, alice, async () => {
       expect(
         (await c.query("delete from public.enquiries where id = $1", [deskEnquiry])).rowCount,
-      ).toBe(1);
+      ).toBe(0);
     });
   });
 

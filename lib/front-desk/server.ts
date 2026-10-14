@@ -352,7 +352,8 @@ export async function loadPatientCard(
       .eq("org_id", orgId)
       .eq("contact_id", contactId)
       .eq("type", "call")
-      .eq("done", false),
+      .eq("done", false)
+      .is("deleted_at", null),
     withBranchFilter(
       admin
         .from("waitlist_entries")

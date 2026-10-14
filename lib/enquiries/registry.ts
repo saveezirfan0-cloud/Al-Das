@@ -27,7 +27,7 @@ const ENQUIRY_RELATIONS: Record<RelationKey, RelationDef> = {
     table: "public.tasks",
     contactColumn: "enquiry_id",
     columns: { due_at: "timestamptz", done: "boolean", type: "text" },
-    extraWhere: "r.done = false",
+    extraWhere: "r.done = false and r.deleted_at is null",
   },
   enquiry_tags: {
     key: "enquiry_tags",
