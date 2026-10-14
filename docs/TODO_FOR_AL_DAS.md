@@ -46,7 +46,7 @@ _Updated 14 Oct 2026. Pulse's code for Phases 20 to 22 is merged into `main` (fi
 ## 7. Decisions (all open questions)
 
 <!-- generated:start -->
-_Generated 14 Oct 2026 by `scripts/compile-todo.py`: 122 open questions, 37 of them blocking a feature._
+_Generated 14 Oct 2026 by `scripts/compile-todo.py`: 127 open questions, 39 of them blocking a feature._
 
 ### Answer these first
 
@@ -131,6 +131,11 @@ _Generated 14 Oct 2026 by `scripts/compile-todo.py`: 122 open questions, 37 of t
 - [ ] **OQ-134** (Hardik / auditors): **Depreciation conventions.** Reducing balance is double-declining, switching to straight line to land on the residual; the month an asset goes into service counts in full and the month of disposal gets no depreciation; useful lives per class (medical equipment 60 months, IT 36, furniture 60, leasehold improvements 60, vehicles 60). Confirm with the auditors _(today: Tally / auditors; proposed: as described)_
 - [ ] **OQ-135** (Hardik): **Cheque and bank charge practice.** A cheque is stale six months after its date; VAT on a bank charge is split off when the bank charges VAT (5%). Confirm both _(today: practice; proposed: as described)_
 - [ ] **OQ-137** (Hardik / Krishna): **Remittance before bank entry.** A bank line that pays a remittance must be matched in Bank reconciliation first; otherwise someone could also record it as a bank entry. Is a working rule enough, or should Pulse block bank entries on lines that look like insurer payments? _(proposed: working rule)_
+- [ ] **OQ-138** (Hardik / Saeed / CEO, blocking): **Revenue per patient (ARPP).** The hand-built revenue comparison divides a doctor's month revenue by unique patients (including patients seen without billing); the flash report divides by patient visits. Which one carries the AED 750 target and the bands (Achieved 750+, Near 700-749, Moderate 650-699, Below under 650)? Do unbilled patients count? _(today: revenue / unique patients incl. unbilled (hand sheet); proposed: show both: "Revenue per visit" (flash) and "Revenue per patient" (doctor performance); target and bands on revenue per patient, unbilled patients counted)_
+- [ ] **OQ-139** (Hardik / Saeed, blocking): **Longevity.** Which services (Unite item codes) and practitioners make up Longevity, and how is part of a doctor's revenue moved into it? The collection report's category columns cannot reproduce the September split _(today: split by hand; proposed: a service-line list by item code, plus the Longevity practitioners)_
+- [ ] **OQ-140** (Hardik / Saeed / Operations): **Follow-up visits.** The revenue comparison counts follow-ups as visits minus unique patients in the month (repeat visits). Unite's own "Followup" status is 0 for every visit. Keep the repeat-visit measure, or should reception start using Unite's Followup status? _(today: repeat visits; proposed: repeat visits; revisit/new from Unite status shown alongside)_
+- [ ] **OQ-141** (Saeed / Operations): **Site tag in the collection report.** Staff type the real site (Shoreline, Meadows, Golden Mile; 20+ spellings) into the INSURANCE REMARKS column, and it disagrees with Unite's clinic on about 365 of 2,401 September rows. Is that tag the truth for branch reporting until the 10 Nov separation (OQ-101), and may Pulse read it through a closed list (never storing the text)? _(today: free text; proposed: read through a closed list until 10 Nov, then Unite's new billing codes)_
+- [ ] **OQ-142** (Hardik / Accountant): **Revenue from the uploaded report.** While Unite capture stays OFF (OQ-94), may invoices imported from the Unite collection report post to the ledger, or should they feed management reports only until capture is switched on? _(proposed: reports only; capture stays the posting source)_
 
 ### Marketing, consent and legal
 
@@ -192,8 +197,8 @@ _Generated 14 Oct 2026 by `scripts/compile-todo.py`: 122 open questions, 37 of t
 
 | # | What | For | From |
 |---|---|---|---|
-| D1 | Unite daily revenue download (the one Krishna uses) and the month-end revenue report, cash vs insurance | 20A / 20B | Krishna |
-| D2 | Reception daily collection sheet per branch | 20B / 20C | Krishna |
+| D1 | Unite daily revenue download (the one Krishna uses) and the month-end revenue report, cash vs insurance. **Received 14 Oct 2026** (Unite Daily Collection Multi-Clinic Report, Sep 2026; analysed in `docs/39_UNITE_REPORTS_PLAN.md`, not kept) | 20A / 20B / 23A | Krishna |
+| D2 | Reception daily collection sheet per branch. **Covered by D1** (the same report has the collection per clinic) | 20B / 20C | Krishna |
 | D3 | Bank statement export for each account (CSV or XLSX), one month | 20C | Krishna / Hardik |
 | D4 | Card / EPG settlement report, Tabby payout report, rePG and MX reports | 20C | Krishna |
 | D5 | In-house lab monthly statement and one send-out lab invoice with test list | 20E | Althaf |
@@ -206,4 +211,5 @@ _Generated 14 Oct 2026 by `scripts/compile-todo.py`: 122 open questions, 37 of t
 | D12 | The targets sheet (daily revenue and patient targets per branch, ARPP target) | 20A | Hardik / Saeed |
 | D13 | ARP report example | 20I | Vineetha |
 | D14 | The full finance meeting transcript | all | Saveez |
+| D15 | A Unite item-wise (service-level) revenue export for one month, and the list of Longevity services, so Longevity can be split per practitioner (OQ-139) | 23C | Krishna / Saeed |
 <!-- generated:end -->

@@ -6,6 +6,14 @@ This is the single document to work from. Section 1 says where we are, 2 says wh
 
 ---
 
+## 0c. Update, 14 Oct 2026: Unite collection report analysed, Phase 23 planned
+
+Al Das sent the Unite "Daily Collection Multi-Clinic Report" for September (data request D1, also covers D2) and the hand-built "Revenue comparison" workbook. Findings and the plan are in `docs/39_UNITE_REPORTS_PLAN.md`:
+- the workbook reconciles to Unite's net billing (1,839,005.80) to the fils, but has 13 formula and reference errors (the worst: change % divided by the current month, follow-up % using the wrong month, a phantom doctor row, a department variance total that drops two departments);
+- every Pulse revenue page is empty while Unite capture stays OFF (OQ-94), because the planned report upload was never built;
+- Phase 23: **23A** import the Unite collection report (bridge while capture is OFF, capture wins later), **23B** doctor performance and month comparison (replaces the workbook: revenue per patient vs 750 with bands, follow-ups, department roll-up, reconciliation footer), **23C** Longevity and service lines (needs OQ-139 and D15), **23D** collections and data-quality view.
+- New questions OQ-138 to OQ-142; new data request D15.
+
 ## 0b. Update, 14 Oct 2026: Phase 22 (Pulse replaces Tally) merged
 
 **Everything the clinic still has to do, decide or send is in one list: `docs/TODO_FOR_AL_DAS.md`.**
