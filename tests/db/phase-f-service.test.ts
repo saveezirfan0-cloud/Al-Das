@@ -167,9 +167,11 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)("phase F s
           [org, north],
         ),
       );
-      // 07:00 in Dubai today, so the 23:30 due time is still ahead.
-      const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Dubai" });
-      const now = new Date(`${today}T03:00:00Z`);
+      // 07:00 in Dubai tomorrow, so the 23:30 due time is ahead whatever time the test runs.
+      const tomorrow = new Date(Date.now() + 86_400_000).toLocaleDateString("en-CA", {
+        timeZone: "Asia/Dubai",
+      });
+      const now = new Date(`${tomorrow}T03:00:00Z`);
       const first = await runTasksDaily(admin, silent, now);
       expect(first.created).toBe(1);
       expect((await runTasksDaily(admin, silent, now)).created).toBe(0);
