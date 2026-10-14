@@ -309,7 +309,7 @@ export const GUIDES: readonly Guide[] = [
       "The Finance Manager verifies it (Tier 1 vouchers can be verified together). Tier 2 then goes to a department head; Tier 3, Tier 4, payroll, intercompany and related-party vouchers go to the CEO, who can approve on a phone.",
       "Anyone who rejects must write remarks; the maker edits the voucher and submits it again.",
       "Once approved, someone other than the maker records the payment date and bank reference, then build the Tally file under Tally export and import it in Tally.",
-      "Download the approval certificate from a voucher for the auditors: it lists every step, person, time, remark and the fingerprint of the documents.",
+      "Download the approval certificate from a voucher for the auditors: it lists every step, person, time, remark and the fingerprint of the documents. Once the voucher is fully approved and the organisation seal is on, the certificate is digitally sealed and every download is the same sealed file.",
     ],
     watchOut: [
       "Each step must be a different person: whoever prepared or changed a voucher cannot verify or approve it.",
@@ -317,6 +317,7 @@ export const GUIDES: readonly Guide[] = [
       "Nothing dated in a locked month can change its amounts, dates or documents; its invoices can still be paid by a later voucher and exported to Tally.",
       "A voucher for less than its invoices pays the oldest first; an invoice not fully paid stays Part paid with its balance for the next voucher.",
       "The Tally file refuses until every category, supplier, bank and branch is mapped to a Tally ledger (Voucher settings).",
+      "With a signing certificate (Settings, Signing certificate), type its PIN when you verify or approve to sign with it; a wrong PIN saves nothing. Leave it blank to approve without a personal signature.",
     ],
   },
   {
@@ -424,6 +425,7 @@ export const GUIDES: readonly Guide[] = [
       "Reminders to patients are off until the tone has been approved and an administrator switches them on.",
       "Every AI-written appeal starts with a DRAFT banner. Read it and check the figures before using it.",
       "A signed month cannot be changed. Withdraw the finance sign-off first if something is wrong.",
+      "Each sign-off can carry your personal digital signature (type your certificate PIN). The PDF of a locked month is sealed with the organisation certificate when the seal is on; the Sign-off box shows whether each signature is valid.",
     ],
   },
   {
@@ -445,6 +447,42 @@ export const GUIDES: readonly Guide[] = [
       "Review requests go only to patients who opted in to messages, at most once per person in the period you set, and never depend on how the visit went. Pulse does not contact Google.",
       "SMS is only a fallback for appointment reminders that WhatsApp could not deliver, and each message costs money.",
       "Nothing here ever writes to Unite.",
+    ],
+  },
+  {
+    id: "document-seal",
+    title: "Organisation seal",
+    pages: ["/settings/integrations/document_seal"],
+    purpose:
+      "Digitally seal the final payment voucher approval certificates and the locked month-end close packs with the organisation's certificate, so anyone can check who issued the PDF and that it has not been changed.",
+    steps: [
+      "Get a certificate issued to the organisation (from a certificate authority, or your IT provider for internal use) and export it with its private key as a .p12 / .pfx file with a password.",
+      "Choose the file, type its password and the name to show with the seal, then Save settings. A file that cannot be opened with the password is refused at once.",
+      "Check the certificate details shown below (subject, issuer, validity), then type SEAL DOCUMENTS and Switch on.",
+      "From then on, a voucher's certificate is sealed when it is fully approved, and a close pack PDF when the month is locked. The sealed file is kept, so every download is the same.",
+    ],
+    watchOut: [
+      "Switch it off at once if the certificate file or its password may have leaked, then replace the certificate.",
+      "Renew the certificate before it expires: an expired certificate seals nothing, and documents show 'Not digitally sealed'.",
+      "A self-signed certificate seals correctly, but PDF readers will say the signer is not trusted.",
+      "The seal is not a UAE qualified electronic signature. Signing happens inside Pulse; nothing is sent anywhere.",
+    ],
+  },
+  {
+    id: "signing-certificate",
+    title: "Signing certificate",
+    pages: ["/settings/signing-certificate"],
+    purpose:
+      "Add your own soft certificate so you can digitally sign the approvals you give: verifying and approving payment vouchers, and the month-end sign-offs.",
+    steps: [
+      "Export your certificate with its private key as a .p12 / .pfx file protected by a PIN (at least 4 characters).",
+      "Choose the file, type the PIN and press Add my certificate. Pulse reads the certificate and forgets the PIN.",
+      "When you verify, approve or sign off, type the PIN in 'Sign with my certificate'. Your signature is listed on the approval certificate and the close pack.",
+    ],
+    watchOut: [
+      "A wrong PIN stops the approval: nothing is saved until you type it correctly or leave the box blank.",
+      "A USB token cannot be used by Pulse; keep using it in Tally where required.",
+      "Expired certificates are refused. Revoke yours here at once if the file or the PIN may be known to someone else.",
     ],
   },
   {
@@ -669,6 +707,327 @@ export const GUIDES: readonly Guide[] = [
     ],
     watchOut: ["Do not put patient details in feedback."],
   },
+  {
+    id: "accounting",
+    title: "Accounting",
+    pages: ["/accounting", "/accounting/dashboard"],
+    purpose:
+      "The general ledger that replaces Tally: every journal, typed in or posted from the finance sub-ledgers, in one double-entry book.",
+    steps: [
+      "The dashboard shows the current period, journals waiting to be posted and drafts.",
+      "Journals are prepared by one person and posted by another; open Journals to work them.",
+      "Reports (day book, general ledger, trial balance) read posted journals only.",
+    ],
+    watchOut: [
+      "A posted journal never changes. To correct one, reverse it and post a new one.",
+      "The fiscal year runs July to June unless the entity says otherwise.",
+    ],
+  },
+  {
+    id: "accounting-journals",
+    title: "Journals",
+    pages: ["/accounting/journals"],
+    purpose:
+      "Prepare, check and post manual journals (Journal, Contra, Debit and Credit notes, opening balances), and reverse posted ones.",
+    steps: [
+      "Press New journal, choose the type and date, write a narration and add a line per account with its debit or credit. More shows the branch, department, cost centre, tax code, doctor, payer and supplier.",
+      "Save the draft (it may be unbalanced), then Submit for posting once debits equal credits.",
+      "Someone else with the post permission opens it, checks it and presses Post, or Send back with a reason.",
+      "Posting gives it its number (for example JV/2026-27/00001). To undo a posted journal, press Reverse with a date and a reason.",
+      "For an accrual, set Reverse automatically on: the reversal is posted on that date.",
+    ],
+    watchOut: [
+      "Receivables, payables, bank, cash, VAT, clearing and retained earnings are control accounts: only the sub-ledgers post to them (and opening-balance journals).",
+      "A closed period takes postings only from people who manage periods; a locked period, or a month the CEO signed off, takes none.",
+      "Never put a patient's name in a narration; card, account and phone numbers are masked.",
+    ],
+  },
+  {
+    id: "accounting-chart",
+    title: "Chart of accounts, tax codes and cost centres",
+    pages: ["/accounting/accounts", "/accounting/tax-codes", "/accounting/cost-centres"],
+    purpose:
+      "The account tree (Tally's predefined groups and the clinic's ledgers), the UAE VAT codes and the free cost centres.",
+    steps: [
+      "Add a ledger under the right group: it takes the group's nature (asset, liability, equity, income or expense).",
+      "Mark a ledger as a control account when only a sub-ledger should post to it.",
+      "Rename freely; deactivate a ledger you no longer use (a ledger with postings is never deleted).",
+      "Tax codes: add or edit the VAT codes; the tax adviser decides which service gets which code.",
+    ],
+    watchOut: [
+      "Tally's 28 predefined groups (marked Tally) keep their code, place and nature so the Tally import lands in the right place.",
+    ],
+  },
+  {
+    id: "accounting-reports",
+    title: "Day book, general ledger and trial balance",
+    pages: ["/accounting/day-book", "/accounting/ledger", "/accounting/trial-balance"],
+    purpose:
+      "Read the books: every posting by day, one account with its running balance, and every balance together.",
+    steps: [
+      "Day book: choose the dates to see each journal with its lines (a year at most).",
+      "General ledger: choose an account or a whole group and the dates; open any number to see its journal.",
+      "Trial balance: choose the dates; download it as Excel. It must say Balanced.",
+    ],
+    watchOut: [
+      "Income and expense accounts start again each fiscal year; earlier years' profit shows on one line until the year-end close.",
+      "Reversed journals stay in the books next to their reversal, so both show.",
+    ],
+  },
+  {
+    id: "accounting-sales",
+    title: "Sales invoices, credit notes and customers",
+    pages: [
+      "/accounting/sales-invoices",
+      "/accounting/credit-notes",
+      "/accounting/customers",
+      "/accounting/receivables-settings",
+    ],
+    purpose:
+      "Tax invoices Pulse issues to insurers, corporates, tenants and other businesses, and the credit notes against them. Patient invoices are issued by Unite, not here.",
+    steps: [
+      "Customers: add the business with its TRN (blank when not VAT registered), address, credit terms, and for an insurer its payer.",
+      "Sales invoices, New invoice: choose the customer, add a line per item with its income account and VAT code, and save the draft.",
+      "Open the draft and press Issue: it gets its number (for example SI/2026-27/00001) and is posted to the ledger. Above the approval limit someone else with the journal approval permission presses Approve and issue.",
+      "PDF downloads the tax invoice. A customer without a TRN gets a simplified tax invoice up to AED 10,000; everyone else a full one.",
+      "To reduce an invoice, open it and press Credit note; to cancel it entirely, press Void (a credit note in full).",
+    ],
+    watchOut: [
+      "VAT is worked out per line and rounded to the fil; the VAT code is never guessed (the tax adviser decides which service is zero-rated or 5%).",
+      "Issue a credit note within 14 days of the event (the FTA rule); Pulse warns when it is later.",
+      "An issued invoice never changes. Before the ledger start date it is issued but waits: Tally holds the books for that date.",
+    ],
+  },
+  {
+    id: "accounting-receivables",
+    title: "Receipts, ageing and statements",
+    pages: ["/accounting/receipts", "/accounting/receivables-ageing", "/accounting/statements"],
+    purpose:
+      "Record money received from customers, see who owes what and for how long, and send statements and balance-confirmation letters.",
+    steps: [
+      "Receipts, New receipt: choose the customer, the date, the amount and the bank or cash account. Pulse allocates it to the oldest open invoice first; change the amounts to allocate by hand. Anything left stays on account.",
+      "A receipt by cheque: register the cheque first (Banking, Cheques), then choose it on the receipt. The receipt posts it on the cheque's date, so it is never posted twice; a post-dated cheque's receipt posts on that date.",
+      "Open a receipt to change its allocation, or Void it: its journal is reversed and the invoices are open again. A receipt paid by a registered cheque is voided by bouncing or cancelling the cheque.",
+      "Receivables ageing shows each customer's open amounts as at a date: current, 1-30, 31-60, 61-90, 91-120 and over 120 days past due.",
+      "Statements: choose the customer and dates; download it as PDF or Excel, or a balance-confirmation letter for the auditors.",
+    ],
+    watchOut: [
+      "Insurance remittances are matched in Finance, Remittances, not recorded here.",
+      "Only Pulse's own sales invoices are aged here; insurance claims from Unite are aged in Finance.",
+    ],
+  },
+  {
+    id: "accounting-assets",
+    title: "Fixed assets and depreciation",
+    pages: ["/accounting/assets", "/accounting/depreciation"],
+    purpose:
+      "Keep the fixed asset register and post each month's depreciation, with one person preparing and another posting.",
+    steps: [
+      "Add an asset with its class (medical, IT, furniture, leasehold improvements, vehicles), cost, in-service date and branch. From a bill, the cost and date come from the supplier invoice.",
+      "Depreciation is monthly from the month the asset goes into service, straight line or reducing balance, down to the residual value.",
+      "Depreciation: prepare a month to see each asset's charge. Pulse also prepares last month's run itself on the first working day.",
+      "Someone else with journal approval posts the run: one journal, depreciation expense against accumulated depreciation by class and branch.",
+      "Dispose of an asset with its date and proceeds; Pulse works out the gain or loss and another person posts it.",
+      "Download the register at any date, with the 12-month forecast and the schedules, as Excel.",
+    ],
+    watchOut: [
+      "Once depreciation is posted for an asset its cost, life and dates are locked; dispose of it and add it again if they were wrong.",
+      "Only the latest month can be prepared again once a later month is posted; it catches up on anything missed.",
+      "A run dated before the ledger start date waits ('Waiting for the ledger start date') and can be posted later.",
+    ],
+  },
+  {
+    id: "accounting-schedules",
+    title: "Prepayments, accruals and deferred revenue",
+    pages: ["/accounting/schedules"],
+    purpose:
+      "Spread a prepaid cost, an accrued cost or income received in advance evenly over the months it belongs to.",
+    steps: [
+      "Add a schedule: the kind, the two ledgers, the total, the first month and the number of months.",
+      "Tick 'reverse' on an accrual that is an estimate: each month's accrual is undone on the 1st of the next month when the real bill arrives.",
+      "Prepare the month's releases (Pulse also does it on the first working day); another person with journal approval posts them.",
+      "Cancel a schedule to stop further releases; what was released stays in the ledger.",
+    ],
+    watchOut: [
+      "The payment or bill itself is posted with the bill, not here: a schedule only moves the amount month by month.",
+      "Leases: enter them as a prepayment or accrual for now. IFRS 16 lease accounting waits for the reporting framework decision (OQ-125).",
+    ],
+  },
+  {
+    id: "accounting-close",
+    title: "Periods, entities and fiscal years",
+    pages: ["/accounting/periods", "/accounting/entities"],
+    purpose:
+      "Close and lock months, and set up the legal entity, its branches and its fiscal year.",
+    steps: [
+      "A period is created by the first posting in its month; Add a period creates one ahead of time.",
+      "Close a month when its books are done; reopen it if something was missed.",
+      "Lock a closed month for good by typing LOCK. Nothing can be posted into it again, by anyone.",
+      "Entities: set the TRN, the fiscal year start month and each branch's emirate (for the VAT return).",
+    ],
+    watchOut: [
+      "The fiscal year start cannot change once a fiscal year exists.",
+      "Audit adjustments after the year end go into the year's adjustment period (people who manage periods only), so the last month stays closed.",
+    ],
+  },
+  {
+    id: "accounting-posting",
+    title: "Posting engine: rules, waiting items and the preview",
+    pages: ["/accounting/posting-rules", "/accounting/waiting", "/accounting/posting-preview"],
+    purpose:
+      "Pulse turns Unite invoices and payments, remittances, final denials, supplier bills, paid vouchers, the doctor revenue share, lab statements, cash-ups and card settlements into journals by itself, using the posting rules.",
+    steps: [
+      "Posting rules: each kind of amount (revenue per service category, VAT code per service category, payment modes, receivables, expenses, bank, ...) points at an account. '*' means any; the most specific rule wins. Not mapped yet lists what the finance records use today and has no rule.",
+      "The VAT code of each service category is the tax adviser's decision; an invoice with a category that has none waits instead of guessing.",
+      "Waiting to post: every item the engine could not post, with the reason (no rule, no VAT code, closed period, before the ledger start, ...). Fix the reason and it posts on the next run (every 15 minutes), or press Try again.",
+      "Ledger start (Entities and fiscal years): the first day Pulse is the book of record. Before it Tally is, and Pulse only previews. Type START to set it.",
+      "Posting preview: during the parallel run, what Pulse would post per account and month against the ledger (the Tally mirror). Work the differences down before the ledger start.",
+    ],
+    watchOut: [
+      "Once Pulse has posted, the ledger start cannot be cleared, moved earlier or moved past its first journal: nothing is ever posted twice.",
+      "A changed source (an amended Unite invoice) is reversed and posted again; a deleted or reopened one is reversed. Journals never change.",
+      "Journals carry ids (an invoice number), amounts and dimensions; never a patient's name or PIN.",
+    ],
+  },
+  {
+    id: "accounting-banking",
+    title: "Banking and cash",
+    pages: ["/accounting/banking"],
+    purpose:
+      "The books' side of the bank and the cash: each bank account's ledger and position, transfers (Contra), bank charges and interest, petty cash and the cheque register.",
+    steps: [
+      "Bank accounts: link each bank account (Finance adds them under Bank reconciliation) to its ledger, or create one under Bank Accounts or Bank OD A/c. Type the statement's closing balance for a date to see the books against the bank.",
+      "Transfers: money between two bank accounts, cash deposited or withdrawn, or a petty cash top-up. Each posts as a Contra voucher at once.",
+      "Bank entries: charges, interest and direct debits or credits. Use Create entry on a statement line nothing explains yet; the line then counts as matched in the bank reconciliation.",
+      "Petty cash: one float per branch with its own cash ledger. Record each expense with its receipt; at month end count the cash and save the count; someone else signs it.",
+      "Cheques: register cheques we issue (vouchers paid by cheque are listed to register) and cheques we receive. Mark them presented, cleared or bounced; cancel one that was never used. A voucher paid by cheque is posted by its cheque, not again on payment; until its cheque is registered it waits under Waiting to post.",
+    ],
+    watchOut: [
+      "Nothing is edited after it is saved: cancel it (a posted item is reversed) and enter it again.",
+      "A post-dated cheque posts on its date (a daily job, or Post what is due). A cheque goes stale six months after its date and its posting is reversed.",
+      "A bounced cheque reverses its posting and flags the party; clear the flag with a reason once settled.",
+      "An item dated before the ledger starts waits and posts by itself once that date is open.",
+      "A patient on a cheque is recorded by the Unite PIN only, never by name.",
+    ],
+  },
+  {
+    id: "accounting-statements",
+    title: "Financial statements",
+    pages: [
+      "/accounting/reports/profit-and-loss",
+      "/accounting/reports/balance-sheet",
+      "/accounting/reports/cash-flow",
+      "/accounting/reports/ratios",
+      "/accounting/reports/exceptions",
+      "/accounting/report-settings",
+    ],
+    purpose:
+      "The profit and loss, balance sheet, cash flow, ratios and exception lists, all read from the posted ledger, with Excel and PDF downloads.",
+    steps: [
+      "Profit and loss: choose the dates; split the columns by month, branch, department or doctor, or compare with the previous period or the same period last year. Click a ledger to open its general ledger.",
+      "Balance sheet: choose the date; this year's profit shows as a line in equity until the year-end close. It must balance; a difference is shown in red.",
+      "Cash flow: net profit, non-cash items, working capital, investing and financing, reconciled to the cash and bank ledgers. Set a ledger's class under Chart of accounts, Reporting.",
+      "Exceptions: look at these before closing a month (late postings, cash below zero, balances on the wrong side, suspense, large manual journals, missing branch or cost centre).",
+      "Excel and PDF hold exactly what the page shows.",
+    ],
+    watchOut: [
+      "Figures are Provisional until every month in the range is closed or locked under Periods.",
+      "The adjustment period can be left out with the Adjustment period option, to see the books before audit adjustments.",
+    ],
+  },
+  {
+    id: "accounting-budgets",
+    title: "Budgets",
+    pages: ["/accounting/budgets", "/accounting/reports/budget-vs-actual"],
+    purpose:
+      "Monthly budgets per income and expense ledger, approved by a second person, and compared with the actuals.",
+    steps: [
+      "Press New budget, choose the fiscal year and name it.",
+      "Type the amounts in the grid and save, or import a CSV (account_code, month as yyyy-mm, amount, and optionally branch_code and department).",
+      "Someone else with the post permission (Finance Manager or Chief Accountant) opens it and presses Approve.",
+      "Budget against actual: choose the budget, the months and optionally a branch or department. Lines worse than budget by more than the threshold are highlighted.",
+    ],
+    watchOut: [
+      "An approved budget cannot change. Reopen it to edit; it then needs approving again.",
+      "Importing a CSV replaces every line of the budget.",
+    ],
+  },
+  {
+    id: "accounting-tax",
+    title: "VAT return and corporate tax bridge",
+    pages: ["/accounting/reports/vat-return", "/accounting/reports/corporate-tax"],
+    purpose:
+      "Working papers for the tax adviser: the VAT 201 boxes from the tax codes on journal lines, and the bridge from accounting profit to taxable income.",
+    steps: [
+      "VAT return: pick the tax period. Click a box to see its supporting lines; fix the lines without a tax code before using the figures.",
+      "Box 1 splits by the emirate of each line's branch; lines without a branch use the entity's default emirate and are flagged.",
+      "VAT settings (tax permission): monthly or quarterly, the month a quarter starts in, and the default emirate.",
+      "Corporate tax bridge: tag ledgers (entertainment, fines, donations, other non-deductible, connected persons) under Chart of accounts, Reporting; type any other adjustment on the page.",
+    ],
+    watchOut: [
+      "Pulse never files a VAT or corporate tax return. Enter the reviewed figures in EmaraTax.",
+      "Which services are zero-rated or standard-rated is the tax adviser's decision.",
+    ],
+  },
+  {
+    id: "accounting-tally-import",
+    title: "Tally import",
+    pages: ["/accounting/tally-import"],
+    purpose:
+      "Bring Tally's groups, ledgers, opening balances and the full voucher history into Pulse, matched on Tally's GUID so nothing is ever posted twice.",
+    steps: [
+      "In TallyPrime, export All Masters and the Day Book as XML (the steps are in the Phase 22I notes) and choose both files here together.",
+      "Read the dry run: groups mapped onto Pulse's, new ledgers, the opening trial balance (it must net to zero), vouchers per month and type, and anything refused with its reason.",
+      "Press Commit; long histories run in steps and the page keeps going until nothing is left. Importing again only posts what is new or altered in Tally.",
+      "Then reconcile the import with Tally's trial balance on the Tally reconciliation page.",
+    ],
+    watchOut: [
+      "Cancelled and optional vouchers are skipped; a voucher altered in Tally is reversed and posted again.",
+      "The uploaded files are deleted right after they are read; only their fingerprint is kept.",
+    ],
+  },
+  {
+    id: "accounting-opening",
+    title: "Opening balances",
+    pages: ["/accounting/opening-balances"],
+    purpose:
+      "Type each account's balance at the opening date when the balances do not come from the Tally import.",
+    steps: [
+      "Choose the opening date (the day before the first period you will post in).",
+      "Enter a debit or a credit for each account; the totals must balance.",
+      "Submit for posting. Someone else with the post permission opens the journal and posts it.",
+    ],
+    watchOut: [
+      "Control accounts take opening balances too. A second opening journal adds to the first.",
+    ],
+  },
+  {
+    id: "accounting-tally-reconciliation",
+    title: "Tally reconciliation",
+    pages: ["/accounting/tally-reconciliation"],
+    purpose:
+      "Prove the import: Pulse's trial balance against Tally's, ledger by ledger, at the import's last date.",
+    steps: [
+      "In Tally open the Trial Balance at the import's last date, show it detailed (ledgers, not only groups) and export it to Excel.",
+      "Choose the import, the same date and the file, and press Compare.",
+      "Every difference must be zero. Then lock the imported months if Tally stays the book of record for them.",
+    ],
+    watchOut: ["Locking is final: nothing can be posted into a locked month again."],
+  },
+  {
+    id: "accounting-year-end",
+    title: "Year-end close",
+    pages: ["/accounting/year-end"],
+    purpose: "Move the year's income and expenses to retained earnings and close the fiscal year.",
+    steps: [
+      "Choose the year. Close its twelve months (the button does it), post or discard any drafts and close earlier years first.",
+      "Press Close the year and type CLOSE: the closing journal goes into the year's adjustment period and the year refuses every posting afterwards.",
+      "To correct a closed year, press Re-open with a reason: the closing journal is reversed. Close it again when done.",
+    ],
+    watchOut: [
+      "After the close, the trial balance no longer shows earlier years' profit for that year: it is in retained earnings.",
+    ],
+  },
 ];
 
 export const FALLBACK_GUIDE: Guide = {
@@ -678,6 +1037,7 @@ export const FALLBACK_GUIDE: Guide = {
   purpose: "A quick orientation for any page.",
   steps: [
     "Use the menu on the left (or the tabs at the bottom on a phone) to move around.",
+    "Finance and Settings open in the menu: press the arrow beside them, or point at the icon when the menu is narrow.",
     "Press Ctrl K to search for any page or setting.",
     "The bell shows what needs you. Press ? for keyboard shortcuts.",
   ],

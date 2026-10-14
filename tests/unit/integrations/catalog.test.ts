@@ -36,10 +36,14 @@ describe("catalogue", () => {
     expect(isIntegrationKind("unite")).toBe(false);
   });
 
-  it("requires typed confirmation for everything that messages patients, takes money, shares patient data or accepts files, and nothing else", () => {
+  it("requires typed confirmation for everything that messages patients, takes money, shares patient data, accepts files or signs in the organisation's name, and nothing else", () => {
     for (const i of INTEGRATIONS) {
       const expected =
-        i.contactsPatients || i.movesMoney || i.sharesData || i.acceptsFiles === true;
+        i.contactsPatients ||
+        i.movesMoney ||
+        i.sharesData ||
+        i.acceptsFiles === true ||
+        i.signsDocuments === true;
       expect(needsConfirmation(i.kind), i.kind).toBe(expected);
       expect(i.confirmWord !== null, i.kind).toBe(expected);
     }
@@ -47,6 +51,10 @@ describe("catalogue", () => {
     expect(integrationDef("payments").confirmWord).toBe("ENABLE PAYMENTS");
     expect(integrationDef("calendar_ics").confirmWord).toBeNull();
     expect(integrationDef("finance_mailbox").confirmWord).toBe("ACCEPT MAILBOX ATTACHMENTS");
+    // Phase 22C: the organisation seal signs documents in the organisation's name; signing is local (no provider call)
+    expect(integrationDef("document_seal").confirmWord).toBe("SEAL DOCUMENTS");
+    expect(integrationDef("document_seal").outbound).toBe(false);
+    expect(integrationDef("document_seal").viewPermission).toBe("integrations.manage");
   });
 
   it("marks every credential as secret and keeps identifiers out of the encrypted blob", () => {
@@ -61,6 +69,9 @@ describe("catalogue", () => {
         "api_key",
         "api_key",
         "auth_token",
+        // the organisation seal's .p12 file (base64) and its password
+        "certificate",
+        "passphrase",
         "secret_key",
         "server_key",
         // Stripe's signing secret and the finance mailbox's webhook password

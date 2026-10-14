@@ -30,17 +30,20 @@ export function SignForm({
   id,
   month,
   hash,
+  certificate = null,
 }: {
   who: "finance" | "ceo";
   id: string;
   month: string;
   hash: string;
+  /** Phase 22C: the signer's own certificate, when they have one. */
+  certificate?: { label: string; usable: boolean } | null;
 }) {
   const run = who === "finance" ? signOffFinance : signOffCeo;
   return (
     <ActionForm
       submitLabel={who === "finance" ? "Sign for Finance" : "Sign as CEO and lock the month"}
-      action={async (v) => run({ id, month, hash, note: v.note ?? "" })}
+      action={async (v) => run({ id, month, hash, note: v.note ?? "", pin: v.pin ?? "" })}
     >
       <Field
         label="Note (optional)"
@@ -52,6 +55,25 @@ export function SignForm({
       >
         <Input name="note" maxLength={500} />
       </Field>
+      {certificate && (
+        <Field
+          label="Sign with my certificate (optional)"
+          hint={
+            certificate.usable
+              ? `Type the PIN of ${certificate.label} to add your personal digital signature. Leave blank to sign off without it.`
+              : "Your certificate is not valid now; replace it under Settings, Signing certificate."
+          }
+        >
+          <Input
+            name="pin"
+            type="password"
+            autoComplete="off"
+            placeholder="Certificate PIN"
+            maxLength={200}
+            disabled={!certificate.usable}
+          />
+        </Field>
+      )}
     </ActionForm>
   );
 }

@@ -7,7 +7,7 @@
  * 09:00 across a DST change. Everything else is absolute instants. Appointments (portal and Unite alike) and
  * time blocks occupy time; nothing here touches the database.
  *
- * Capacity rule (mirrored in SQL by app.slot_conflict, 20261108000400_booking_capacity.sql): every interval
+ * Capacity rule (mirrored in SQL by app.slot_conflict, 20261110000400_booking_capacity.sql): every interval
  * is widened by its own buffers. A candidate fits when the number n of busy intervals whose widened interval
  * overlaps the candidate's widened interval is 0, or n < the smallest `capacity` among the candidate and
  * every overlapping interval. A time block (or a booking without a capacity) counts as capacity 1, so nothing

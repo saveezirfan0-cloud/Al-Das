@@ -1,7 +1,7 @@
 -- Paste this whole file into Supabase > SQL Editor > New query, then Run.
 -- Run the files in numeric order. A failed file rolls back as a whole, so it is safe to retry.
 -- Phases 20b to 20e (Sanoflow parity, docs/20 to docs/27). Needs every earlier file first, up to and including
--- 40_finance_provider_file_ext.sql (21a and 21b hold the 20a Sanoflow import tables this builds on).
+-- 53_demo_wipe_accounting.sql (21a and 21b hold the 20a Sanoflow import tables this builds on).
 -- Check the project name in the Supabase header first: this is for the Pulse project only.
 -- 20b: flow parity (new triggers, drip on segments, window-closing jobs). 20c: routing (fallback team, open-chat limits, office
 -- hours, auto-reply, idle auto-away, restricted enquiry view, assignment and presence logs, reports) and booking capacity
@@ -11,7 +11,7 @@
 -- changes a setting. Nothing here calls Unite, WhatsApp, Meta or Google. The migration-history lines are at the bottom.
 
 -- ======================================================================
--- 20261108000100_flow_parity.sql
+-- 20261110000100_flow_parity.sql
 -- ======================================================================
 -- Phase 20b: flow parity (docs/23_PHASE_20B_NOTES.md).
 --
@@ -87,7 +87,7 @@ create index if not exists flow_runs_flow_conversation_started_idx
   where conversation_id is not null;
 
 -- ======================================================================
--- 20261108000200_routing_presence.sql
+-- 20261110000200_routing_presence.sql
 -- ======================================================================
 -- Phase 20c (routing half, docs/24_PHASE_20C_ROUTING_NOTES.md): team auto-reply and fallback team, a per-member open
 -- conversation limit honoured by round-robin, presence auto-away from browser heartbeats, a per-member restricted
@@ -652,7 +652,7 @@ revoke all on function public.enquiry_ids_visible_to(uuid, uuid, uuid[]) from pu
 grant execute on function public.enquiry_ids_visible_to(uuid, uuid, uuid[]) to service_role;
 
 -- ======================================================================
--- 20261108000300_routing_reports.sql
+-- 20261110000300_routing_reports.sql
 -- ======================================================================
 -- Phase 20c / G13 reports (docs/24_PHASE_20C_ROUTING_NOTES.md). Source views (lib/reports/registry.ts `requires`) plus
 -- report functions. Service role only, called by lib/reports after can('reports.view'). Each returns a bounded,
@@ -914,7 +914,7 @@ end;
 $$;
 
 -- ======================================================================
--- 20261108000400_booking_capacity.sql
+-- 20261110000400_booking_capacity.sql
 -- ======================================================================
 -- Phase 20c (booking half, G6): booking capacity. docs/25_PHASE_20C_BOOKING_NOTES.md.
 --
@@ -1274,7 +1274,7 @@ revoke all on function public.appointment_capacity_conflicts(uuid, uuid[]) from 
 grant execute on function public.appointment_capacity_conflicts(uuid, uuid[]) to service_role;
 
 -- ======================================================================
--- 20261108000500_phase20d_template_delivery.sql
+-- 20261110000500_phase20d_template_delivery.sql
 -- ======================================================================
 -- Phase 20d (docs/26_PHASE_20D_NOTES.md): template delivery settings, retry-on-fail, template performance.
 -- Service role writes everything here; no new table, so no new policy (wa_templates / messages keep theirs).
@@ -1289,7 +1289,7 @@ grant execute on function public.appointment_capacity_conflicts(uuid, uuid[]) to
 --   messages.retry_of_message_id the failed message a retry copies; unique, so a failure is retried at most once
 --   v_template_message_facts     template sends (ids, statuses, times only) for the template performance report
 --   report_template_performance  sent / delivered / read / replied / quick-reply clicks / failed per template and range
---   (media_asset_usage() learns carousel card headers in 20261108000600, next to recurring campaigns)
+--   (media_asset_usage() learns carousel card headers in 20261110000600, next to recurring campaigns)
 
 alter table public.wa_templates
   add column if not exists sms_fallback boolean not null default true,
@@ -1406,7 +1406,7 @@ revoke all on function public.report_template_performance(uuid, date, date, uuid
 grant execute on function public.report_template_performance(uuid, date, date, uuid[], uuid) to service_role;
 
 -- ======================================================================
--- 20261108000600_phase20d_recurring_campaigns_budget.sql
+-- 20261110000600_phase20d_recurring_campaigns_budget.sql
 -- ======================================================================
 -- Phase 20d (docs/26_PHASE_20D_NOTES.md): recurring campaigns and the monthly campaign message budget.
 --
@@ -1670,7 +1670,7 @@ revoke all on function public.media_asset_usage(uuid, uuid) from public, anon, a
 grant execute on function public.media_asset_usage(uuid, uuid) to service_role;
 
 -- ======================================================================
--- 20261108000700_web_chat_social_channels.sql
+-- 20261110000700_web_chat_social_channels.sql
 -- ======================================================================
 -- Phase 20e (G12): website chat widget, Instagram and Messenger as inbox channels.
 --
@@ -1973,7 +1973,7 @@ select cron.schedule('pulse:housekeeping_20e_channels', '35 3 * * *', $$
 $$);
 
 -- ======================================================================
--- 20261108000800_google_calendar_sync.sql
+-- 20261110000800_google_calendar_sync.sql
 -- ======================================================================
 -- Phase 20e (G7): Google Calendar two-way busy sync per specialist. OFF by default (integration_accounts kind
 -- 'google_calendar', typed confirmation because appointment times are shared with Google).
@@ -2199,7 +2199,7 @@ select cron.schedule('pulse:housekeeping_20e_gcal', '40 3 * * *', $$
 $$);
 
 -- ======================================================================
--- 20261108000900_phase20_integration.sql
+-- 20261110000900_phase20_integration.sql
 -- ======================================================================
 -- Phase 20 integration: enquiry tags follow the restricted enquiry view (20c). The tag rows of an enquiry a member
 -- may not see are hidden too; the enquiries policy (app.enquiry_visible_to) decides inside the exists.
@@ -2225,12 +2225,12 @@ create policy enquiry_tags_delete on public.enquiry_tags for delete to authentic
     and exists (select 1 from public.enquiries e where e.id = enquiry_id)
   );
 
-insert into supabase_migrations.schema_migrations (version, name) values ('20261108000100', 'flow_parity') on conflict (version) do nothing;
-insert into supabase_migrations.schema_migrations (version, name) values ('20261108000200', 'routing_presence') on conflict (version) do nothing;
-insert into supabase_migrations.schema_migrations (version, name) values ('20261108000300', 'routing_reports') on conflict (version) do nothing;
-insert into supabase_migrations.schema_migrations (version, name) values ('20261108000400', 'booking_capacity') on conflict (version) do nothing;
-insert into supabase_migrations.schema_migrations (version, name) values ('20261108000500', 'phase20d_template_delivery') on conflict (version) do nothing;
-insert into supabase_migrations.schema_migrations (version, name) values ('20261108000600', 'phase20d_recurring_campaigns_budget') on conflict (version) do nothing;
-insert into supabase_migrations.schema_migrations (version, name) values ('20261108000700', 'web_chat_social_channels') on conflict (version) do nothing;
-insert into supabase_migrations.schema_migrations (version, name) values ('20261108000800', 'google_calendar_sync') on conflict (version) do nothing;
-insert into supabase_migrations.schema_migrations (version, name) values ('20261108000900', 'phase20_integration') on conflict (version) do nothing;
+insert into supabase_migrations.schema_migrations (version, name) values ('20261110000100', 'flow_parity') on conflict (version) do nothing;
+insert into supabase_migrations.schema_migrations (version, name) values ('20261110000200', 'routing_presence') on conflict (version) do nothing;
+insert into supabase_migrations.schema_migrations (version, name) values ('20261110000300', 'routing_reports') on conflict (version) do nothing;
+insert into supabase_migrations.schema_migrations (version, name) values ('20261110000400', 'booking_capacity') on conflict (version) do nothing;
+insert into supabase_migrations.schema_migrations (version, name) values ('20261110000500', 'phase20d_template_delivery') on conflict (version) do nothing;
+insert into supabase_migrations.schema_migrations (version, name) values ('20261110000600', 'phase20d_recurring_campaigns_budget') on conflict (version) do nothing;
+insert into supabase_migrations.schema_migrations (version, name) values ('20261110000700', 'web_chat_social_channels') on conflict (version) do nothing;
+insert into supabase_migrations.schema_migrations (version, name) values ('20261110000800', 'google_calendar_sync') on conflict (version) do nothing;
+insert into supabase_migrations.schema_migrations (version, name) values ('20261110000900', 'phase20_integration') on conflict (version) do nothing;

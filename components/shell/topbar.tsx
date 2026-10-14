@@ -8,21 +8,23 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 
 import { HelpMenu } from "@/components/help/help-menu";
+import type { NavState } from "@/lib/nav/state";
 
 import { OPEN_PALETTE_EVENT } from "./command-palette";
 import { OPEN_NAV_EVENT } from "./mobile-tabs";
 import { NotificationsMenu } from "./notifications-menu";
-import type { NavItem } from "./nav";
-import { Sidebar } from "./sidebar";
+import { Sidebar, type SidebarNode } from "./sidebar";
 import { UserMenu, type UserMenuProps } from "./user-menu";
 
 export function Topbar({
   items,
+  navState,
   orgName,
   user,
   helpVideos,
 }: {
-  items: readonly NavItem[];
+  items: readonly SidebarNode[];
+  navState: NavState;
   orgName: string;
   user: UserMenuProps;
   /** Recorded training clips by id (orgs.settings.help.videos), for the ? button. */
@@ -59,7 +61,8 @@ export function Topbar({
         <SheetContent side="left" className="w-60 p-0 sm:max-w-60">
           <SheetTitle className="sr-only">Navigation</SheetTitle>
           <Sidebar
-            items={items}
+            tree={items}
+            navState={navState}
             orgName={orgName}
             defaultCollapsed={false}
             className="w-full border-0"

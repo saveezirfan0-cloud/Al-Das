@@ -114,6 +114,12 @@ export const VOUCHER_ERRORS = {
   stale_export: "Something changed while the file was built. Build it again.",
   invalid: "Check the form and try again.",
   unknown_action: "Unknown action.",
+  // Phase 22C: signing with a personal certificate (app.fin_store_approval_signature)
+  signature_invalid: "The signature could not be checked. Nothing was saved; try again.",
+  signature_stale: "The signature took too long. Nothing was saved; sign again.",
+  signature_step: "Only verification and approval steps can be signed.",
+  certificate_revoked: "Your signing certificate was revoked or replaced. Nothing was saved.",
+  certificate_expired: "Your signing certificate is not valid now. Nothing was saved.",
 } as const;
 export type VoucherErrorCode = keyof typeof VOUCHER_ERRORS;
 

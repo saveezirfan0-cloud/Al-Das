@@ -1,4 +1,5 @@
 import { toWinAnsi } from "@/lib/finance/close-pdf";
+import { signingLines, type SigningSection } from "@/lib/signing/pdf-text";
 import {
   approvalRoute,
   EVENT_LABEL,
@@ -13,7 +14,9 @@ import {
 /**
  * The approval certificate of one payment voucher (pdf-lib, built-in Helvetica), rendered from the stored voucher and its
  * append-only trail. Attachments appear by kind, size and sha256 (no file names). It records approvals made in Pulse; it is
- * not a DSC signature (OQ-91). Layout has not been checked in a PDF viewer beyond "readable and paginated".
+ * not a DSC signature (OQ-91). Phase 22C adds the "Digital signatures" section (personal certificate signatures and the
+ * seal line); the organisation seal itself is applied afterwards by lib/signing/pades.ts (lib/finance/signed-pdfs-server.ts).
+ * Layout has not been checked in a PDF viewer beyond "readable and paginated".
  */
 
 export type CertificateEvent = {
@@ -55,6 +58,8 @@ export type VoucherCertificate = {
   events: CertificateEvent[];
   payment: { date: string; reference: string } | null;
   timezone: string;
+  /** Phase 22C: personal signatures and the organisation seal line (left out by callers before 22C). */
+  signing?: SigningSection;
 };
 
 const PAGE_W = 595.28;
@@ -228,9 +233,21 @@ export async function voucherCertificatePdf(c: VoucherCertificate): Promise<Buff
       bold,
       rgb(0.7, 0.1, 0.1),
     );
+  if (c.signing) {
+    heading("Digital signatures");
+    for (const l of signingLines(c.signing, (iso) => when(iso, c.timezone))) {
+      const x = l.indent ? MARGIN + 12 : MARGIN;
+      if (l.style === "bold") para(l.text, 9, bold, ink, x);
+      else if (l.style === "mono") para(l.text, 7.5, mono, grey, x);
+      else if (l.style === "grey") para(l.text, 8, font, grey, x);
+      else para(l.text, 9, font, ink, x);
+    }
+  }
   y -= 6;
   para(
-    "This certificate records approvals made in Pulse. It is not a digital signature certificate (DSC); where a DSC signature is required it is applied in Tally or through the e-signature provider (OQ-91).",
+    c.signing
+      ? "This certificate records approvals made in Pulse. A USB-token DSC cannot be used by a web application; where a DSC signature is required it is applied in Tally or through the e-signature provider (OQ-91, OQ-121)."
+      : "This certificate records approvals made in Pulse. It is not a digital signature certificate (DSC); where a DSC signature is required it is applied in Tally or through the e-signature provider (OQ-91).",
     8,
     font,
     grey,

@@ -132,7 +132,7 @@ then set `Birthday Message = Sent`, look up the Sanoflow contact, add tag **3590
 | Sanoflow API (`send-template`, `contacts/list`, `contacts/edit`) | Used by 4 scenarios | Gone; WhatsApp Cloud API native; tags native |
 | Sanoflow tag 3590 (birthday), tag 4654 + label 1800 (chronic recall) | Set via `contacts/edit` | `tags` rows `birthday_sent_<year>`, `chronic_recall_sent`; label → conversation label (OQ-43) |
 | Google Sheet "Appointment Reminders" (spreadsheet id ends `…yzR0jvrfc`) | Failed-send fallback list | Failed Messages log + reception task |
-| Airtable native automations on the Unite base (2) | record created → update; enters view "Chronic" → Google Sheets row | Document in Phase 8, then switch off (OQ-41) |
+| Airtable native automations on the Unite base (2) | `wflJ8HcmP16BqEv7z` record created → `60 days >` = True for a 60/90-day prescription; `wflwgvvZP4J8Kvg8K` enters view "Chronic" → Google Sheets row with ~33 patient fields | Documented (21B); switch both off at the cut-over freeze and delete the sheet (OQ-41, `docs/06_PHASE_11_CUTOVER.md` §5 and §8) |
 | Sanoflow flows calling Make webhooks (Chronic Update; doctor-specific booking flow API Action nodes) | Webhook hop | Native flow nodes / event handlers |
 | Make Pro plan (80k ops) | ~2.5k ops/day | Cancelled after the parallel-run checklist is complete |
 

@@ -1,4 +1,5 @@
-import { can, type MemberLike } from "@/lib/auth/can";
+import { can, canAny, type MemberLike } from "@/lib/auth/can";
+import { SIGNING_PERMS } from "@/lib/signing/perms";
 
 /**
  * Every Settings page, with the section it sits under and who may see it. One list feeds the
@@ -49,6 +50,13 @@ export const SETTINGS_PAGES: readonly SettingsPage[] = [
       "e-mail",
     ],
     allow: everyone,
+  },
+  {
+    href: "/settings/signing-certificate",
+    label: "Signing certificate",
+    section: "Personal",
+    keywords: ["digital signature", "dsc", "p12", "pfx", "certificate", "sign", "pin"],
+    allow: (m) => canAny(m, SIGNING_PERMS),
   },
 
   {
@@ -128,6 +136,9 @@ export const SETTINGS_PAGES: readonly SettingsPage[] = [
       "google calendar",
       "feed",
       "gateway",
+      "seal",
+      "digital signature",
+      "pades",
     ],
     allow: (m) => can(m, "integrations.manage") || can(m, "integrations.calendar"),
   },

@@ -9,6 +9,7 @@ import {
   loadAccount,
   loadView,
   patchConfig,
+  readSecrets,
   recordFailure,
   recordOk,
   saveSettings,
@@ -35,6 +36,7 @@ import { buildSmsProvider } from "@/lib/integrations/sms/provider";
 import { buildEsignProvider } from "@/lib/integrations/esign/server";
 import { buildTelehealthProvider } from "@/lib/integrations/telehealth/server";
 import { checkRateLimit, RATE_RULES, waitText } from "@/lib/rate-limit";
+import { checkSealSecrets } from "@/lib/signing/seal";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { MetaTemplateComponent } from "@/lib/whatsapp/types";
 
@@ -72,6 +74,15 @@ export async function saveIntegrationSettings(
   if (!checked.ok) return { ok: false, error: checked.error };
   const extra = extraValidation(kind, providerId, checked.config);
   if (extra) return { ok: false, error: extra };
+  if (kind === "document_seal") {
+    // A certificate that cannot be opened with its password is refused now (expiry and key usage show as readiness problems).
+    const stored = sameProvider ? readSecrets(await loadAccount(admin, member.orgId, kind)) : {};
+    const merged = { ...stored, ...checked.secrets };
+    if (merged.certificate && merged.passphrase) {
+      const seal = checkSealSecrets(merged, new Date());
+      if (!seal.ok && seal.info === null) return { ok: false, error: seal.problems[0] };
+    }
+  }
   const saved = await saveSettings(admin, {
     orgId: member.orgId,
     kind,

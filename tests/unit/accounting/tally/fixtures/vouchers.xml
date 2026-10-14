@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SYNTHETIC fixture written by hand for the Pulse Tally import tests (Day Book export shape). Fake company "Demo Clinic". -->
+<ENVELOPE>
+  <HEADER><TALLYREQUEST>Import Data</TALLYREQUEST></HEADER>
+  <BODY>
+    <IMPORTDATA>
+      <REQUESTDESC>
+        <REPORTNAME>Vouchers</REPORTNAME>
+        <STATICVARIABLES><SVCURRENTCOMPANY>Demo Clinic LLC</SVCURRENTCOMPANY></STATICVARIABLES>
+      </REQUESTDESC>
+      <REQUESTDATA>
+        <!-- V1: custom type "Insurance Receipt" (base Receipt) with a bill allocation -->
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHER REMOTEID="demo-guid-v1" VCHTYPE="Insurance Receipt" ACTION="Create" OBJVIEW="Accounting Voucher View">
+            <GUID>demo-guid-v1</GUID>
+            <ALTERID>101</ALTERID>
+            <MASTERID>1</MASTERID>
+            <DATE>20260705</DATE>
+            <VOUCHERTYPENAME>Insurance Receipt</VOUCHERTYPENAME>
+            <VOUCHERNUMBER>IR-0001</VOUCHERNUMBER>
+            <PARTYLEDGERNAME>Insurer Demo A</PARTYLEDGERNAME>
+            <NARRATION>Remittance batch 42</NARRATION>
+            <ISCANCELLED>No</ISCANCELLED>
+            <ISOPTIONAL>No</ISOPTIONAL>
+            <ALLLEDGERENTRIES.LIST>
+              <LEDGERNAME>Insurer Demo A</LEDGERNAME>
+              <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+              <AMOUNT>10500.00</AMOUNT>
+              <BILLALLOCATIONS.LIST>
+                <NAME>CLM-DEMO-0001</NAME>
+                <BILLTYPE>Agst Ref</BILLTYPE>
+                <AMOUNT>10500.00</AMOUNT>
+              </BILLALLOCATIONS.LIST>
+            </ALLLEDGERENTRIES.LIST>
+            <ALLLEDGERENTRIES.LIST>
+              <LEDGERNAME>Bank - Demo Main</LEDGERNAME>
+              <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+              <AMOUNT>-10500.00</AMOUNT>
+            </ALLLEDGERENTRIES.LIST>
+          </VOUCHER>
+        </TALLYMESSAGE>
+        <!-- V2: custom type "Cash Sales" (base Sales), one cost category split across two branches -->
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHER VCHTYPE="Cash Sales" ACTION="Create">
+            <GUID>demo-guid-v2</GUID>
+            <ALTERID>102</ALTERID>
+            <DATE>20260710</DATE>
+            <VOUCHERTYPENAME>Cash Sales</VOUCHERTYPENAME>
+            <VOUCHERNUMBER>CS-0001</VOUCHERNUMBER>
+            <NARRATION>Walk-in consultations</NARRATION>
+            <ALLLEDGERENTRIES.LIST>
+              <LEDGERNAME>Cash - Demo</LEDGERNAME>
+              <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+              <AMOUNT>-1050.00</AMOUNT>
+            </ALLLEDGERENTRIES.LIST>
+            <ALLLEDGERENTRIES.LIST>
+              <LEDGERNAME>Consultation Fees Demo</LEDGERNAME>
+              <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+              <AMOUNT>1000.00</AMOUNT>
+              <CATEGORYALLOCATIONS.LIST>
+                <CATEGORY>Branches</CATEGORY>
+                <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+                <COSTCENTREALLOCATIONS.LIST><NAME>Branch Demo North</NAME><AMOUNT>600.00</AMOUNT></COSTCENTREALLOCATIONS.LIST>
+                <COSTCENTREALLOCATIONS.LIST><NAME>Branch Demo South</NAME><AMOUNT>400.00</AMOUNT></COSTCENTREALLOCATIONS.LIST>
+              </CATEGORYALLOCATIONS.LIST>
+            </ALLLEDGERENTRIES.LIST>
+            <ALLLEDGERENTRIES.LIST>
+              <LEDGERNAME>VAT Output Demo</LEDGERNAME>
+              <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+              <AMOUNT>50.00</AMOUNT>
+            </ALLLEDGERENTRIES.LIST>
+            <ALLLEDGERENTRIES.LIST>
+              <LEDGERNAME>Rent Demo</LEDGERNAME>
+              <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+              <AMOUNT>0.00</AMOUNT>
+            </ALLLEDGERENTRIES.LIST>
+          </VOUCHER>
+        </TALLYMESSAGE>
+        <!-- V3: Payment with two cost categories in parallel (the split is not guessed) -->
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHER VCHTYPE="Payment" ACTION="Create">
+            <GUID>demo-guid-v3</GUID>
+            <ALTERID>103</ALTERID>
+            <DATE>20260712</DATE>
+            <VOUCHERTYPENAME>Payment</VOUCHERTYPENAME>
+            <VOUCHERNUMBER>PY-0001</VOUCHERNUMBER>
+            <NARRATION>July rent</NARRATION>
+            <ALLLEDGERENTRIES.LIST>
+              <LEDGERNAME>Rent Demo</LEDGERNAME>
+              <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+              <AMOUNT>-5000.00</AMOUNT>
+              <CATEGORYALLOCATIONS.LIST>
+                <CATEGORY>Branches</CATEGORY>
+                <COSTCENTREALLOCATIONS.LIST><NAME>Branch Demo North</NAME><AMOUNT>-5000.00</AMOUNT></COSTCENTREALLOCATIONS.LIST>
+              </CATEGORYALLOCATIONS.LIST>
+              <CATEGORYALLOCATIONS.LIST>
+                <CATEGORY>Doctors</CATEGORY>
+                <COSTCENTREALLOCATIONS.LIST><NAME>Dr Demo One</NAME><AMOUNT>-5000.00</AMOUNT></COSTCENTREALLOCATIONS.LIST>
+              </CATEGORYALLOCATIONS.LIST>
+            </ALLLEDGERENTRIES.LIST>
+            <ALLLEDGERENTRIES.LIST>
+              <LEDGERNAME>Bank - Demo Main</LEDGERNAME>
+              <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+              <AMOUNT>5000.00</AMOUNT>
+            </ALLLEDGERENTRIES.LIST>
+          </VOUCHER>
+        </TALLYMESSAGE>
+        <!-- V4: Journal in a foreign currency -->
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHER VCHTYPE="Journal" ACTION="Create">
+            <GUID>demo-guid-v4</GUID>
+            <ALTERID>104</ALTERID>
+            <DATE>20260720</DATE>
+            <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
+            <VOUCHERNUMBER>JV-0001</VOUCHERNUMBER>
+            <NARRATION>Settle USD supplier</NARRATION>
+            <ALLLEDGERENTRIES.LIST>
+              <LEDGERNAME>USD Supplier Demo</LEDGERNAME>
+              <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+              <AMOUNT>-100.00 USD @ AED 3.6725/USD = -367.25</AMOUNT>
+            </ALLLEDGERENTRIES.LIST>
+            <ALLLEDGERENTRIES.LIST>
+              <LEDGERNAME>Bank - Demo Main</LEDGERNAME>
+              <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+              <AMOUNT>367.25</AMOUNT>
+            </ALLLEDGERENTRIES.LIST>
+          </VOUCHER>
+        </TALLYMESSAGE>
+        <!-- V5: cancelled -->
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHER VCHTYPE="Payment" ACTION="Create">
+            <GUID>demo-guid-v5</GUID>
+            <ALTERID>105</ALTERID>
+            <DATE>20260721</DATE>
+            <VOUCHERTYPENAME>Payment</VOUCHERTYPENAME>
+            <VOUCHERNUMBER>PY-0002</VOUCHERNUMBER>
+            <ISCANCELLED>Yes</ISCANCELLED>
+          </VOUCHER>
+        </TALLYMESSAGE>
+        <!-- V6: optional -->
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHER VCHTYPE="Journal" ACTION="Create">
+            <GUID>demo-guid-v6</GUID>
+            <ALTERID>106</ALTERID>
+            <DATE>20260722</DATE>
+            <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
+            <ISOPTIONAL>Yes</ISOPTIONAL>
+            <ALLLEDGERENTRIES.LIST><LEDGERNAME>Rent Demo</LEDGERNAME><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><AMOUNT>-10.00</AMOUNT></ALLLEDGERENTRIES.LIST>
+            <ALLLEDGERENTRIES.LIST><LEDGERNAME>Bank - Demo Main</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>10.00</AMOUNT></ALLLEDGERENTRIES.LIST>
+          </VOUCHER>
+        </TALLYMESSAGE>
+        <!-- V7: post-dated payment; the narration carries Tally's &#4; marker and a card number (masked) -->
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHER VCHTYPE="Payment" ACTION="Create">
+            <GUID>demo-guid-v7</GUID>
+            <ALTERID>107</ALTERID>
+            <DATE>20260815</DATE>
+            <VOUCHERTYPENAME>Payment</VOUCHERTYPENAME>
+            <VOUCHERNUMBER>PY-0003</VOUCHERNUMBER>
+            <ISPOSTDATED>Yes</ISPOSTDATED>
+            <NARRATION>&#4;PDC to supplier, card 4111111111111111</NARRATION>
+            <ALLLEDGERENTRIES.LIST><LEDGERNAME>Supplier Demo B</LEDGERNAME><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><AMOUNT>-2000.00</AMOUNT></ALLLEDGERENTRIES.LIST>
+            <ALLLEDGERENTRIES.LIST><LEDGERNAME>Bank - Demo Main</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>2000.00</AMOUNT></ALLLEDGERENTRIES.LIST>
+          </VOUCHER>
+        </TALLYMESSAGE>
+        <!-- V8: a type whose base is not an accounting voucher (refused) -->
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHER VCHTYPE="Memo Demo" ACTION="Create">
+            <GUID>demo-guid-v8</GUID>
+            <ALTERID>108</ALTERID>
+            <DATE>20260723</DATE>
+            <VOUCHERTYPENAME>Memo Demo</VOUCHERTYPENAME>
+            <ALLLEDGERENTRIES.LIST><LEDGERNAME>Rent Demo</LEDGERNAME><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><AMOUNT>-10.00</AMOUNT></ALLLEDGERENTRIES.LIST>
+            <ALLLEDGERENTRIES.LIST><LEDGERNAME>Bank - Demo Main</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>10.00</AMOUNT></ALLLEDGERENTRIES.LIST>
+          </VOUCHER>
+        </TALLYMESSAGE>
+        <!-- V9: the flag disagrees with the sign (refused) -->
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHER VCHTYPE="Journal" ACTION="Create">
+            <GUID>demo-guid-v9</GUID>
+            <ALTERID>109</ALTERID>
+            <DATE>20260724</DATE>
+            <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
+            <ALLLEDGERENTRIES.LIST><LEDGERNAME>Rent Demo</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>-10.00</AMOUNT></ALLLEDGERENTRIES.LIST>
+            <ALLLEDGERENTRIES.LIST><LEDGERNAME>Bank - Demo Main</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>10.00</AMOUNT></ALLLEDGERENTRIES.LIST>
+          </VOUCHER>
+        </TALLYMESSAGE>
+        <!-- V10: invoice mode (LEDGERENTRIES.LIST plus the inventory entry's accounting allocation) -->
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHER VCHTYPE="Sales" ACTION="Create" OBJVIEW="Invoice Voucher View">
+            <GUID>demo-guid-v10</GUID>
+            <ALTERID>110</ALTERID>
+            <DATE>20260801</DATE>
+            <VOUCHERTYPENAME>Sales</VOUCHERTYPENAME>
+            <VOUCHERNUMBER>SI-0001</VOUCHERNUMBER>
+            <LEDGERENTRIES.LIST><LEDGERNAME>Insurer Demo A</LEDGERNAME><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><AMOUNT>-525.00</AMOUNT></LEDGERENTRIES.LIST>
+            <LEDGERENTRIES.LIST><LEDGERNAME>VAT Output Demo</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>25.00</AMOUNT></LEDGERENTRIES.LIST>
+            <ALLINVENTORYENTRIES.LIST>
+              <STOCKITEMNAME>Consultation</STOCKITEMNAME>
+              <AMOUNT>500.00</AMOUNT>
+              <ACCOUNTINGALLOCATIONS.LIST>
+                <LEDGERNAME>Consultation Fees Demo</LEDGERNAME>
+                <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+                <AMOUNT>500.00</AMOUNT>
+              </ACCOUNTINGALLOCATIONS.LIST>
+            </ALLINVENTORYENTRIES.LIST>
+          </VOUCHER>
+        </TALLYMESSAGE>
+        <!-- V11: other income (custom primary group) -->
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHER VCHTYPE="Receipt" ACTION="Create">
+            <GUID>demo-guid-v11</GUID>
+            <ALTERID>111</ALTERID>
+            <DATE>20260805</DATE>
+            <VOUCHERTYPENAME>Receipt</VOUCHERTYPENAME>
+            <VOUCHERNUMBER>RC-0001</VOUCHERNUMBER>
+            <NARRATION>Sublease &amp; parking</NARRATION>
+            <ALLLEDGERENTRIES.LIST><LEDGERNAME>Bank - Demo Main</LEDGERNAME><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><AMOUNT>-800.00</AMOUNT></ALLLEDGERENTRIES.LIST>
+            <ALLLEDGERENTRIES.LIST><LEDGERNAME>Demo Other Income</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>800.00</AMOUNT></ALLLEDGERENTRIES.LIST>
+          </VOUCHER>
+        </TALLYMESSAGE>
+      </REQUESTDATA>
+    </IMPORTDATA>
+  </BODY>
+</ENVELOPE>

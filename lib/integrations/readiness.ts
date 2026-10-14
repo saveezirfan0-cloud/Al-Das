@@ -34,6 +34,8 @@ export type ReadinessInput = {
   documentsEnabled?: boolean;
   /** Google review requests only. */
   reviews?: { template: TemplateReadiness | null; locationsWithLink: number };
+  /** Organisation seal only: what is wrong with the stored certificate (opened with its password; empty = usable). */
+  seal?: { problems: string[] };
 };
 
 export function readinessProblems(input: ReadinessInput): string[] {
@@ -84,6 +86,11 @@ export function readinessProblems(input: ReadinessInput): string[] {
     !parseAllowedDomains(input.config.allowed_domains)
   )
     problems.push("The allowed websites are not valid host names.");
+  if (input.kind === "document_seal") {
+    if (input.seal) problems.push(...input.seal.problems);
+    else if (input.secretsStored.certificate && input.secretsStored.passphrase)
+      problems.push("The stored certificate has not been checked yet.");
+  }
   if (input.kind === "google_reviews") {
     const r = input.reviews;
     const t = r?.template ?? null;

@@ -11,7 +11,7 @@
 --   messages.retry_of_message_id the failed message a retry copies; unique, so a failure is retried at most once
 --   v_template_message_facts     template sends (ids, statuses, times only) for the template performance report
 --   report_template_performance  sent / delivered / read / replied / quick-reply clicks / failed per template and range
---   (media_asset_usage() learns carousel card headers in 20261108000600, next to recurring campaigns)
+--   (media_asset_usage() learns carousel card headers in 20261110000600, next to recurring campaigns)
 
 alter table public.wa_templates
   add column if not exists sms_fallback boolean not null default true,

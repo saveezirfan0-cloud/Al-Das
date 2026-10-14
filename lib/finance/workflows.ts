@@ -55,6 +55,9 @@ export type WorkflowTotals = {
   followup_closed: number;
   close_tasks_created: number;
   close_reminders: number;
+  banking_posted: number;
+  banking_stale: number;
+  banking_failed: number;
 };
 
 const PAGE = 200;
@@ -81,6 +84,9 @@ export async function runFinanceWorkflows(
     followup_closed: 0,
     close_tasks_created: 0,
     close_reminders: 0,
+    banking_posted: 0,
+    banking_stale: 0,
+    banking_failed: 0,
   };
   const { data: orgs } = await admin.from("orgs").select("id, name, timezone");
   for (const org of orgs ?? []) {
@@ -325,5 +331,15 @@ async function oneOrg(
   // ---- 5. close timetable (off until finance set its start month) --------------------------------
   await contained(log, "close timetable step", async () => {
     await runCloseTimetable(admin, org, now, totals);
+  });
+
+  // ---- 6. banking (22F): post-dated cheques reaching their date, items waiting for the ledger start, stale cheques ----
+  await contained(log, "banking step", async () => {
+    const { data, error } = await admin.rpc("acc_banking_sweep", { p_org_id: org.id, p_today: today });
+    if (error) throw new Error("banking sweep refused");
+    const r = data as { posted: number; stale: number; failed: unknown[] };
+    totals.banking_posted += r.posted;
+    totals.banking_stale += r.stale;
+    totals.banking_failed += r.failed.length;
   });
 }

@@ -1,5 +1,5 @@
 /**
- * Phase 20c (G6) booking capacity in SQL (20261108000400_booking_capacity.sql): book_appointment,
+ * Phase 20c (G6) booking capacity in SQL (20261110000400_booking_capacity.sql): book_appointment,
  * move_appointment and accept_slot_offer re-check buffers, weekly blocks and places under the per-specialist
  * advisory lock; defaults behave exactly as before; Unite rows written the way the sync writes them are never
  * refused, only flagged by appointment_capacity_conflicts; the SQL rule matches the pure TypeScript one.

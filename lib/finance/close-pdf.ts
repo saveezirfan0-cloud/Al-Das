@@ -6,6 +6,7 @@ import {
 } from "@/lib/finance/close-controls";
 import { monthLabel, type ClosePack } from "@/lib/finance/close-pack";
 import type { SignOff } from "@/lib/finance/close-xlsx";
+import { signingLines, type SigningSection } from "@/lib/signing/pdf-text";
 
 /**
  * The close pack as a PDF (pdf-lib: pure JavaScript, no native code or fonts to ship), rendered from the FROZEN snapshot.
@@ -30,7 +31,12 @@ export function toWinAnsi(s: string): string {
 const fmt = (n: number) =>
   n.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-export async function closePackPdf(pack: ClosePack, sign: SignOff): Promise<Buffer> {
+export async function closePackPdf(
+  pack: ClosePack,
+  sign: SignOff,
+  /** Phase 22C: personal signatures and the seal line (the seal itself is applied afterwards to the rendered bytes). */
+  signing?: SigningSection,
+): Promise<Buffer> {
   const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");
   const doc = await PDFDocument.create();
   const when = new Date(pack.built_at);
@@ -287,6 +293,21 @@ export async function closePackPdf(pack: ClosePack, sign: SignOff): Promise<Buff
   );
   y -= 4;
   for (const n of pack.notes) para(n, 8);
+
+  if (signing) {
+    heading("Digital signatures");
+    for (const l of signingLines(signing, (iso) => iso.replace("T", " ").slice(0, 16) + " UTC")) {
+      if (l.style === "bold") {
+        need(14);
+        text(l.text.length > 110 ? `${l.text.slice(0, 108)}~` : l.text, MARGIN, 9, bold);
+        y -= 12;
+      } else if (l.style === "mono") {
+        need(12);
+        text(l.text, MARGIN + 12, 7);
+        y -= 10;
+      } else para(l.text, l.style === "grey" ? 8 : 9);
+    }
+  }
 
   const pages = doc.getPages();
   pages.forEach((p, i) => {

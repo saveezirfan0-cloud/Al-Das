@@ -20,6 +20,7 @@ export const INTEGRATION_KINDS = [
   "messenger",
   "google_calendar",
   "finance_mailbox",
+  "document_seal",
 ] as const;
 export type IntegrationKind = (typeof INTEGRATION_KINDS)[number];
 
@@ -44,6 +45,8 @@ export type FieldDef = {
   /** A regular expression (source, without slashes) a text value must match, and the sentence shown when it does not. */
   pattern?: string;
   patternHint?: string;
+  /** The value can be filled from a file the person chooses (read in the browser as base64); `accept` lists the extensions. */
+  upload?: { accept: string };
 };
 
 export type ProviderDef = {
@@ -66,7 +69,9 @@ export type IntegrationDef = {
   sharesData: boolean;
   /** True when switching it on lets people outside the clinic put files into Pulse (the finance mailbox). */
   acceptsFiles?: boolean;
-  /** Typed in full to switch it on (only for integrations that contact patients, take money, share patient data or accept files). */
+  /** True when switching it on makes Pulse sign documents in the organisation's name (the organisation seal). */
+  signsDocuments?: boolean;
+  /** Typed in full to switch it on (only for integrations that contact patients, take money, share patient data, accept files or sign in the organisation's name). */
   confirmWord: string | null;
   /** Permission to open its page and work with it (feeds, test, counters). Switching it on or off always needs integrations.manage. */
   viewPermission: "integrations.manage" | "integrations.calendar";
@@ -788,6 +793,75 @@ export const INTEGRATIONS: readonly IntegrationDef[] = [
     consequence:
       "Attachments (PDF, JPEG, PNG, CSV, Excel) e-mailed to the accounts mailbox by the allowed senders will be stored in Pulse as finance documents and appear in the Finance inbox. The rest of each message is discarded. Anyone who can send mail as an allowed sender can put a file there, so nothing is paid without the voucher approvals.",
   },
+  {
+    kind: "document_seal",
+    // Signing happens inside Pulse with the stored certificate: no provider is ever called.
+    outbound: false,
+    title: "Organisation seal (digital signature)",
+    description:
+      "Pulse signs the payment voucher approval certificate once a voucher is fully approved, and the month-end close pack once the month is locked, with the organisation's certificate (a PAdES digital signature). Any PDF reader then shows who sealed the file and that it has not been changed since. The signing happens inside Pulse; the certificate and the documents are not sent anywhere.",
+    contactsPatients: false,
+    movesMoney: false,
+    sharesData: false,
+    signsDocuments: true,
+    confirmWord: "SEAL DOCUMENTS",
+    viewPermission: "integrations.manage",
+    providers: [
+      {
+        id: "p12",
+        label: "Certificate file (.p12 / .pfx)",
+        fields: [
+          {
+            key: "certificate",
+            label: "Certificate file (.p12 / .pfx)",
+            type: "password",
+            secret: true,
+            required: true,
+            max: 90000,
+            upload: { accept: ".p12,.pfx,application/x-pkcs12" },
+            pattern: "^[A-Za-z0-9+/]+={0,2}$",
+            patternHint: "Choose the certificate file (.p12 or .pfx) again.",
+            help: "The organisation's certificate with its private key, exported as .p12 / .pfx (RSA, 2048 bits or more). The file is read in your browser and stored encrypted; it is never shown again.",
+          },
+          {
+            key: "passphrase",
+            label: "Certificate password",
+            type: "password",
+            secret: true,
+            required: true,
+            max: 200,
+            help: "The password the certificate file was exported with. Stored encrypted.",
+          },
+        ],
+      },
+    ],
+    commonFields: [
+      {
+        key: "seal_name",
+        label: "Name shown with the seal",
+        type: "text",
+        required: true,
+        max: 120,
+        placeholder: "Clinic name (organisation seal)",
+      },
+      {
+        key: "reason",
+        label: "Reason shown with the seal",
+        type: "text",
+        max: 200,
+        default: "Approved and recorded in Pulse",
+      },
+      {
+        key: "location",
+        label: "Location shown with the seal",
+        type: "text",
+        max: 120,
+        default: "Dubai, United Arab Emirates",
+      },
+    ],
+    consequence:
+      "Final approval certificates and locked month-end close packs downloaded from Pulse will carry a digital signature in the organisation's name, made with this certificate, and anyone holding the PDF can check it. Use a certificate issued to the organisation, and switch this off at once if the certificate or its password may have leaked.",
+  },
 ];
 
 /** The credentials an Instagram or Messenger integration needs (all three stored encrypted). */
@@ -861,7 +935,13 @@ export function allFields(
 /** Does this integration need the typed confirmation to be switched on? */
 export function needsConfirmation(kind: IntegrationKind): boolean {
   const d = integrationDef(kind);
-  return d.contactsPatients || d.movesMoney || d.sharesData || d.acceptsFiles === true;
+  return (
+    d.contactsPatients ||
+    d.movesMoney ||
+    d.sharesData ||
+    d.acceptsFiles === true ||
+    d.signsDocuments === true
+  );
 }
 
 export type FieldValues = Record<string, string | number>;

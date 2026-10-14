@@ -76,4 +76,6 @@ export const CALL_PROVIDERS: Record<IntegrationKind, readonly string[]> = {
   google_calendar: ["google_calendar"],
   // Inbound only: the mail service posts to Pulse; Pulse never calls it.
   finance_mailbox: [],
+  // Signing is local (the stored certificate, node:crypto); there is no provider and no call to record.
+  document_seal: [],
 };

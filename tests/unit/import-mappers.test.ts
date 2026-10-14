@@ -69,6 +69,21 @@ describe("Unite patients mapper", () => {
     });
     expect(m.warnings).toEqual([]);
     expect(m.isTestRecord).toBe(false);
+    // typed copy for chronic recall (contacts.unite_last_visit_date)
+    expect(m.uniteLastVisitDate).toBe("2026-09-01");
+  });
+
+  it("never returns a last visit date that is not a real date", () => {
+    const m = unitePatientsMapper.map({
+      id: "rec3",
+      fields: { [U.patientPin]: "PIN-3", [U.lastVisit]: "2026-02-30" },
+    });
+    expect(m.uniteLastVisitDate).toBeNull();
+    expect(m.warnings).toContain("invalid last visit date");
+    expect(
+      unitePatientsMapper.map({ id: "rec4", fields: { [U.patientPin]: "PIN-4" } })
+        .uniteLastVisitDate,
+    ).toBeNull();
   });
 
   it("warns on bad data but still returns an identifiable contact", () => {

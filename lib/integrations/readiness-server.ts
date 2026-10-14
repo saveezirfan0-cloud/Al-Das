@@ -1,7 +1,7 @@
 import "server-only";
 
 import { readDocumentSettings } from "@/lib/documents/settings";
-import type { AccountView } from "@/lib/integrations/accounts";
+import { loadAccount, readSecrets, type AccountView } from "@/lib/integrations/accounts";
 import type { IntegrationKind } from "@/lib/integrations/catalog";
 import { readPaymentsConfig } from "@/lib/integrations/payments/config";
 import { loadPaymentTemplate, templateReadiness } from "@/lib/integrations/payments/request-server";
@@ -12,6 +12,7 @@ import {
   loadReviewTemplate,
   reviewTemplateReadiness,
 } from "@/lib/integrations/reviews/server";
+import { checkSealSecrets } from "@/lib/signing/seal";
 import type { AdminClient } from "@/lib/supabase/admin";
 
 /**
@@ -47,6 +48,12 @@ export async function loadReadinessInput(
       ...base,
       reviews: { template: reviewTemplateReadiness(template, cfg), locationsWithLink },
     };
+  }
+  if (kind === "document_seal") {
+    if (!view.secretsStored.certificate || !view.secretsStored.passphrase) return base;
+    // Opens the stored .p12 with its password (in memory only) and checks validity and key usage.
+    const check = checkSealSecrets(readSecrets(await loadAccount(admin, orgId, kind)), new Date());
+    return { ...base, seal: { problems: check.ok ? [] : check.problems } };
   }
   if (kind === "esign") {
     const { data } = await admin.from("orgs").select("settings").eq("id", orgId).maybeSingle();
