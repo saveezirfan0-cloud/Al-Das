@@ -1,0 +1,1995 @@
+{
+ "_about": {
+  "captured": "2026-10-13, app.sanoflow.io, Al Das workspace, by the owner's logged-in browser session at the owner's request",
+  "method": "Read-only GET of 129 data-source endpoints (no mutations, no AI/export/sync/payment calls), limit=3 per list. Each JSON response was reduced IN THE BROWSER to field paths and value types; values never left the page. Object keys that looked like data (digits, emails, long strings) were replaced with <key>.",
+  "how_to_read": "fields maps path to type; [] marks array elements; required_params lists the params an endpoint rejected the request for (HTTP 400), which tells you its record key. 500/403 endpoints need a record context and were not resolved.",
+  "counts": {
+   "endpoints_called": 125,
+   "with_shapes": 78,
+   "needs_record_id": 30,
+   "errors": 8
+  },
+  "excluded": "Sanoflow's own SaaS billing endpoints (Settings/company/Billing/*) were captured but left out as irrelevant to Pulse.",
+  "security_note": "Sanoflow returns channel access tokens (page_access_token, user_access_token, account_token, account_key) and users' pass_reset_token to the browser. Pulse must never do this (CLAUDE.md rule 9)."
+ },
+ "endpoints": {
+  "Appointments/AllAppt": {
+   "endpoint": "/api/Appointments/AllAppt",
+   "http_status": 200,
+   "fields": {
+    "AllAppt": "array",
+    "BusinessHour": "array",
+    "BusinessHour[].startTime": "string",
+    "BusinessHour[].endTime": "string",
+    "BusinessHour[].daysOfWeek": "array",
+    "BusinessHour[].daysOfWeek[]": "number",
+    "BusinessHour[].id": "number"
+   }
+  },
+  "Appointments/AllSpecialistAppt": {
+   "endpoint": "/api/Appointments/AllSpecialistAppt",
+   "http_status": 200,
+   "fields": {
+    "AllSpecialistAppt": "array",
+    "events": "array",
+    "overload_events": "array"
+   }
+  },
+  "Appointments/SpecLoc": {
+   "endpoint": "/api/Appointments/SpecLoc",
+   "http_status": 200,
+   "fields": {
+    "All": "array",
+    "All[].spec_id": "number",
+    "All[].spec_name": "string",
+    "All[].spec_name_ar": "string",
+    "All[].spec_image": "string",
+    "All[].user": "null",
+    "All[].locations": "array",
+    "All[].locations[].loc_id": "number",
+    "All[].locations[].loc_name": "string",
+    "All[].businesshour": "null|array",
+    "All[].businesshour[].start_time": "string",
+    "All[].businesshour[].end_time": "string",
+    "All[].businesshour[].weekday": "array",
+    "All[].businesshour[].weekday[]": "number",
+    "All[].businesshour[].location_id": "number"
+   }
+  },
+  "Appointments/SpecOSList": {
+   "endpoint": "/api/Appointments/SpecOSList",
+   "http_status": 400,
+   "fields": {},
+   "required_params": [
+    "specialist"
+   ]
+  },
+  "Appointments/TimeSlotEnd": {
+   "endpoint": "/api/Appointments/TimeSlotEnd",
+   "http_status": 400,
+   "fields": {},
+   "required_params": [
+    "spec_id",
+    "loc_id",
+    "appt_date",
+    "start_time"
+   ]
+  },
+  "Appointments/TimeSlots": {
+   "endpoint": "/api/Appointments/TimeSlots",
+   "http_status": 400,
+   "fields": {},
+   "required_params": [
+    "spec_id",
+    "loc_id",
+    "appt_date"
+   ]
+  },
+  "Appointments/activity-list": {
+   "endpoint": "/api/Appointments/activity-list",
+   "http_status": 200,
+   "fields": {
+    "qActivityList": "array"
+   }
+  },
+  "Appointments/col-show-hide-list": {
+   "endpoint": "/api/Appointments/col-show-hide-list",
+   "http_status": 200,
+   "fields": {
+    "q_col_show_hide.appt_col_width.date": "string",
+    "q_col_show_hide.appt_col_width.time": "string",
+    "q_col_show_hide.appt_col_width.notes": "string",
+    "q_col_show_hide.appt_col_width.phone": "string",
+    "q_col_show_hide.appt_col_width.status": "string",
+    "q_col_show_hide.appt_col_width.channel": "string",
+    "q_col_show_hide.appt_col_width.contact": "string",
+    "q_col_show_hide.appt_col_width.service": "string",
+    "q_col_show_hide.appt_col_width.location": "string",
+    "q_col_show_hide.appt_col_width.specialist": "string",
+    "q_col_show_hide.appt_col_width.external_id": "string",
+    "q_col_show_hide.appt_col_show.date": "string",
+    "q_col_show_hide.appt_col_show.time": "string",
+    "q_col_show_hide.appt_col_show.notes": "string",
+    "q_col_show_hide.appt_col_show.phone": "string",
+    "q_col_show_hide.appt_col_show.status": "string",
+    "q_col_show_hide.appt_col_show.channel": "string",
+    "q_col_show_hide.appt_col_show.contact": "string",
+    "q_col_show_hide.appt_col_show.service": "string",
+    "q_col_show_hide.appt_col_show.location": "string",
+    "q_col_show_hide.appt_col_show.specialist": "string",
+    "q_col_show_hide.appt_col_show.external_id": "string",
+    "q_appt_channels": "array",
+    "q_appt_channels[].id": "string",
+    "q_appt_channels[].account_name": "string",
+    "q_appt_statuses": "array",
+    "q_appt_statuses[].id": "number",
+    "q_appt_statuses[].appt_status": "string",
+    "q_appt_locations": "array",
+    "q_appt_locations[].location_id": "number",
+    "q_appt_locations[].location_name": "string",
+    "q_appt_specialists": "array",
+    "q_appt_specialists[].specialist_id": "number",
+    "q_appt_specialists[].specialist_name": "string",
+    "q_appt_services": "array",
+    "q_appt_services[].service_id": "number",
+    "q_appt_services[].service_name": "string"
+   }
+  },
+  "Appointments/details": {
+   "endpoint": "/api/Appointments/details",
+   "http_status": 400,
+   "fields": {},
+   "required_params": [
+    "appt_id"
+   ]
+  },
+  "Appointments/sms-channel": {
+   "endpoint": "/api/Appointments/sms-channel",
+   "http_status": 200,
+   "fields": {}
+  },
+  "Campaigns/campaign-contacts": {
+   "endpoint": "/api/Campaigns/campaign-contacts",
+   "http_status": 200,
+   "fields": {
+    "varTotalContacts": "number"
+   }
+  },
+  "Campaigns/list": {
+   "endpoint": "/api/Campaigns/list",
+   "http_status": 200,
+   "fields": {
+    "qList.offset": "number",
+    "qList.limit": "string",
+    "qList.total": "number",
+    "qList.data": "array",
+    "qList.page.current": "number",
+    "qList.page.total": "number",
+    "qList.page.offset.first": "number",
+    "qList.page.offset.prev": "number",
+    "qList.page.offset.next": "number",
+    "qList.page.offset.last": "number",
+    "qList.data[].id": "string",
+    "qList.data[].template_name": "string",
+    "qList.data[].all_mappers_msg": "string",
+    "qList.data[].status": "string",
+    "qList.data[].account_id": "string",
+    "qList.data[].account_name": "string",
+    "qList.data[].icon": "string",
+    "qList.data[].template_id": "number",
+    "qList.data[].created_on": "string",
+    "qList.data[].cron": "null",
+    "qList.data[].org_id": "number",
+    "qList.data[].name": "string",
+    "qList.data[].sched_type": "string",
+    "qList.data[].created_by": "string",
+    "qList.data[].created_img": "string",
+    "qList.data[].type": "string",
+    "qList.data[].started_on": "string",
+    "qList.data[].completed_on": "string",
+    "qList.data[].schedule_id": "string",
+    "qList.data[].sort": "number",
+    "qList.data[].failed_batch": "null",
+    "qList.data[].next_run_time": "string",
+    "qList.data[].recurring_period": "null",
+    "qList.data[].failed_reason": "null",
+    "qList.data[].is_retry": "boolean",
+    "qList.data[].next_retry_time": "null",
+    "qList.data[].retry_count": "null"
+   }
+  },
+  "Campaigns/new-campaign-details": {
+   "endpoint": "/api/Campaigns/new-campaign-details",
+   "http_status": 200,
+   "fields": {
+    "qDetails": "array",
+    "qDetails[].id": "string",
+    "qDetails[].account_name": "string",
+    "qDetails[].account_id": "string",
+    "qDetails[].account_key": "string",
+    "qDetails[].current_limit": "string",
+    "qDetails[].max_daily_conversations_per_business": "string",
+    "qDetails[].total_conversation": "string",
+    "qDetails[].conversation_date": "string",
+    "qTemplateDetails": "array",
+    "qTemplateDetails[].id": "number",
+    "qTemplateDetails[].org_channel_id": "string",
+    "qTemplateDetails[].message_preview": "string",
+    "qTemplateDetails[].template_name": "string",
+    "qTemplateDetails[].all_mappers_msg": "string",
+    "qTemplateDetails[].all_mappers": "array|null",
+    "qTemplateDetails[].all_mappers[]": "string",
+    "qTemplateDetails[].mapper": "string|null",
+    "qTemplateDetails[].image_url": "null|string",
+    "qTemplateDetails[].header": "null|object",
+    "qTemplateDetails[].header.type": "string",
+    "qTemplateDetails[].header.format": "string",
+    "qTemplateDetails[].header.text": "string",
+    "qTemplateDetails[].header.example.header_handle[]": "string",
+    "qTemplateDetails[].footer": "null|object",
+    "qTemplateDetails[].footer.text": "string",
+    "qTemplateDetails[].footer.type": "string",
+    "qTemplateDetails[].template_components": "array",
+    "qTemplateDetails[].template_components[].text": "string",
+    "qTemplateDetails[].template_components[].type": "string",
+    "qTemplateDetails[].template_components[].format": "string",
+    "qTemplateDetails[].template_components[].example.body_text[][]": "string",
+    "qTemplateDetails[].template_components[].example.header_handle[]": "string",
+    "qTemplateDetails[].template_components[].buttons[].text": "string",
+    "qTemplateDetails[].template_components[].buttons[].type": "string",
+    "q_get_pending_campaign": "array",
+    "q_get_campaign_count[].limit_used": "string",
+    "q_get_given_limit[].limit_given": "string"
+   }
+  },
+  "Campaigns/recipient-details": {
+   "endpoint": "/api/Campaigns/recipient-details",
+   "http_status": 400,
+   "fields": {},
+   "required_params": [
+    "id",
+    "type"
+   ]
+  },
+  "Campaigns/recipient-list": {
+   "endpoint": "/api/Campaigns/recipient-list",
+   "http_status": 400,
+   "fields": {},
+   "required_params": [
+    "id",
+    "type",
+    "status"
+   ]
+  },
+  "Campaigns/retry-one-recipient-list": {
+   "endpoint": "/api/Campaigns/retry-one-recipient-list",
+   "http_status": 400,
+   "fields": {},
+   "required_params": [
+    "id",
+    "status"
+   ]
+  },
+  "Campaigns/retry-two-recipient-list": {
+   "endpoint": "/api/Campaigns/retry-two-recipient-list",
+   "http_status": 400,
+   "fields": {},
+   "required_params": [
+    "id",
+    "status"
+   ]
+  },
+  "Campaigns/retry-three-recipient-list": {
+   "endpoint": "/api/Campaigns/retry-three-recipient-list",
+   "http_status": 400,
+   "fields": {},
+   "required_params": [
+    "id",
+    "status"
+   ]
+  },
+  "Common/AllLocations": {
+   "endpoint": "/api/Common/AllLocations",
+   "http_status": 200,
+   "fields": {
+    "All": "array",
+    "All[].loc_id": "number",
+    "All[].loc_name": "string",
+    "All[].loc_name_ar": "null",
+    "All[].loc_address": "string",
+    "All[].loc_address_ar": "null",
+    "All[].city": "string",
+    "All[].phone": "string",
+    "All[].countrycode": "string",
+    "All[].phonecountry": "string",
+    "All[].email": "string",
+    "All[].loc_pic": "string",
+    "All[].latitude": "null",
+    "All[].longitude": "null",
+    "All[].isonline": "null",
+    "All[].reviewurl": "string",
+    "All[].address_url": "null",
+    "All[].external_loc": "null",
+    "All[].timezone": "number",
+    "All[].timezone_name": "string",
+    "All[].about_desc": "null",
+    "All[].user": "string",
+    "All[].services[].service_id": "number",
+    "All[].services[].service_name": "string",
+    "All[].services[].spec_dept_id": "number",
+    "All[].spec_service[].location_id": "number",
+    "All[].spec_service[].spec_id": "number",
+    "All[].spec_service[].spec_name": "string",
+    "All[].spec_service[].external_spec": "null",
+    "All[].spec_service[].specialty": "string",
+    "All[].spec_service[].spec_pic": "string",
+    "All[].spec_service[].dept_name": "string",
+    "All[].spec_service[].dept_name_ar": "null|string",
+    "All[].spec_service[].dept_id": "number",
+    "All[].spec_service[].services[].service_id": "number",
+    "All[].spec_service[].services[].service_name": "string",
+    "All[].spec_service[].services[].dept_id": "number",
+    "services[].service_id": "number",
+    "services[].service_name": "string",
+    "services[].spec_dept_id": "number",
+    "Specialist[].location_id": "number",
+    "Specialist[].spec_id": "number",
+    "Specialist[].spec_name": "string",
+    "Specialist[].external_spec": "null",
+    "Specialist[].specialty": "string",
+    "Specialist[].spec_pic": "string",
+    "Specialist[].dept_name": "string",
+    "Specialist[].dept_name_ar": "null|string",
+    "Specialist[].dept_id": "number",
+    "Specialist[].services[].service_id": "number",
+    "Specialist[].services[].service_name": "string",
+    "Specialist[].services[].dept_id": "number"
+   }
+  },
+  "Common/LabelsAndTags": {
+   "endpoint": "/api/Common/LabelsAndTags",
+   "http_status": 200,
+   "fields": {
+    "Labels[].id": "string",
+    "Labels[].label_name": "string",
+    "Labels[].bg_colour": "string",
+    "Tags[].id": "string",
+    "Tags[].tag_name": "string",
+    "Tags[].tag_id": "string"
+   }
+  },
+  "Common/Patients": {
+   "endpoint": "/api/Common/Patients",
+   "http_status": 500,
+   "fields": {}
+  },
+  "Common/all-org-locations": {
+   "endpoint": "/api/Common/all-org-locations",
+   "http_status": 200,
+   "fields": {
+    "qAllLocation[].id": "number",
+    "qAllLocation[].name": "string"
+   }
+  },
+  "Common/all-pipelines": {
+   "endpoint": "/api/Common/all-pipelines",
+   "http_status": 200,
+   "fields": {
+    "repeatPipeline[].id": "number",
+    "repeatPipeline[].pipeline_name": "string",
+    "repeatPipeline[].block_html_Enquiries": "string",
+    "repeatPipeline[].qEnquiryCustomField": "array",
+    "repeatPipeline[].stage[].enquiry_stage_id": "number",
+    "repeatPipeline[].stage[].enquiry_stage_name": "string",
+    "repeatPipeline[].stage[].enquiry_text_colour": "string",
+    "repeatPipeline[].stage[].enquiry_badge_colour": "string",
+    "repeatPipeline[].status[].enquiry_status_id": "number",
+    "repeatPipeline[].status[].enquiry_status_name": "string",
+    "repeatPipeline[].status[].enquiry_status_type": "string",
+    "repeatPipeline[].disqualify_reason[].id": "number",
+    "repeatPipeline[].disqualify_reason[].reason": "string",
+    "repeatPipeline[].team[].id": "number",
+    "repeatPipeline[].team[].name": "string",
+    "repeatPipeline[].col_show_hide[].title": "string",
+    "repeatPipeline[].col_show_hide[].field_id": "number",
+    "repeatPipeline[].col_show_hide[].required": "boolean",
+    "repeatPipeline[].col_show_hide[].is_visible": "boolean",
+    "repeatPipeline[].col_show_hide[].field_width": "null",
+    "repeatPipeline[].col_show_hide[].system_field": "boolean",
+    "repeatPipeline[].varColShowHide.first_name.show": "boolean",
+    "repeatPipeline[].varColShowHide.first_name.req": "boolean",
+    "repeatPipeline[].varColShowHide.first_name.width": "null",
+    "repeatPipeline[].varColShowHide.last_name.show": "boolean",
+    "repeatPipeline[].varColShowHide.last_name.req": "boolean",
+    "repeatPipeline[].varColShowHide.last_name.width": "null",
+    "repeatPipeline[].varColShowHide.title.show": "boolean",
+    "repeatPipeline[].varColShowHide.title.req": "boolean",
+    "repeatPipeline[].varColShowHide.title.width": "null",
+    "repeatPipeline[].varColShowHide.description.show": "boolean",
+    "repeatPipeline[].varColShowHide.description.req": "boolean",
+    "repeatPipeline[].varColShowHide.description.width": "null",
+    "repeatPipeline[].varColShowHide.phone.show": "boolean",
+    "repeatPipeline[].varColShowHide.phone.req": "boolean",
+    "repeatPipeline[].varColShowHide.phone.width": "null",
+    "repeatPipeline[].varColShowHide.location.show": "boolean",
+    "repeatPipeline[].varColShowHide.location.req": "boolean",
+    "repeatPipeline[].varColShowHide.location.width": "null",
+    "repeatPipeline[].varColShowHide.specialist.show": "boolean",
+    "repeatPipeline[].varColShowHide.specialist.req": "boolean",
+    "repeatPipeline[].varColShowHide.specialist.width": "null",
+    "repeatPipeline[].varColShowHide.service.show": "boolean",
+    "repeatPipeline[].varColShowHide.service.req": "boolean",
+    "repeatPipeline[].varColShowHide.service.width": "null",
+    "repeatPipeline[].varColShowHide.appointment_time.show": "boolean",
+    "repeatPipeline[].varColShowHide.appointment_time.req": "boolean",
+    "repeatPipeline[].varColShowHide.appointment_time.width": "null",
+    "repeatPipeline[].varColShowHide.assign_to.show": "boolean",
+    "repeatPipeline[].varColShowHide.assign_to.req": "boolean",
+    "repeatPipeline[].varColShowHide.assign_to.width": "null",
+    "repeatPipeline[].varColShowHide.tags.show": "boolean",
+    "repeatPipeline[].varColShowHide.tags.req": "boolean",
+    "repeatPipeline[].varColShowHide.tags.width": "null",
+    "repeatPipeline[].varColShowHide.created_date.show": "boolean",
+    "repeatPipeline[].varColShowHide.created_date.req": "boolean",
+    "repeatPipeline[].varColShowHide.created_date.width": "null",
+    "repeatPipeline[].varColShowHide.created_by.show": "boolean",
+    "repeatPipeline[].varColShowHide.created_by.req": "boolean",
+    "repeatPipeline[].varColShowHide.created_by.width": "null",
+    "repeatPipeline[].varColShowHide.source.show": "boolean",
+    "repeatPipeline[].varColShowHide.source.req": "boolean",
+    "repeatPipeline[].varColShowHide.source.width": "null",
+    "repeatPipeline[].varColShowHide.task_due.show": "boolean",
+    "repeatPipeline[].varColShowHide.task_due.req": "boolean",
+    "repeatPipeline[].varColShowHide.task_due.width": "null",
+    "repeatPipeline[].varColShowHide.estimated_value.show": "boolean",
+    "repeatPipeline[].varColShowHide.estimated_value.req": "boolean",
+    "repeatPipeline[].varColShowHide.estimated_value.width": "null"
+   }
+  },
+  "Common/all-teams": {
+   "endpoint": "/api/Common/all-teams",
+   "http_status": 200,
+   "fields": {
+    "qTeams[].id": "number",
+    "qTeams[].name": "string"
+   }
+  },
+  "Common/contacts": {
+   "endpoint": "/api/Common/contacts",
+   "http_status": 500,
+   "fields": {}
+  },
+  "Common/enquiry-setting": {
+   "endpoint": "/api/Common/enquiry-setting",
+   "http_status": 200,
+   "fields": {
+    "qEnquirySetting.val": "string",
+    "qEnquirySetting.id": "number"
+   }
+  },
+  "Common/get-payment-methods": {
+   "endpoint": "/api/Common/get-payment-methods",
+   "http_status": 200,
+   "fields": {
+    "payment_method_list[].offline": "boolean"
+   }
+  },
+  "Common/user-all-alert": {
+   "endpoint": "/api/Common/user-all-alert",
+   "http_status": 200,
+   "fields": {
+    "qAlertMsg[].id": "string",
+    "qAlertMsg[].alert_message": "string",
+    "qAlertMsg[].url": "string",
+    "qAlertMsg[].icon": "string",
+    "qAlertMsg[].status": "string",
+    "qAlertMsg[].type": "string",
+    "qAlertMsg[].created_on": "string",
+    "qAlertMsg[].datetime": "number",
+    "qAlertMsg[].rec_time": "string"
+   }
+  },
+  "Common/user-info": {
+   "endpoint": "/api/Common/user-info",
+   "http_status": 200,
+   "fields": {
+    "UserList[].userid": "string",
+    "UserList[].first_name": "string",
+    "UserList[].last_name": "string",
+    "UserList[].full_name": "string",
+    "UserList[].designation": "string",
+    "UserList[].email_id": "string",
+    "UserList[].last_login_ip": "string|null",
+    "UserList[].role_name": "string",
+    "UserList[].team_name": "string",
+    "UserList[].team_id": "string",
+    "UserList[].loc_name": "string|null",
+    "UserList[].loc_id": "string|null",
+    "UserList[].role_id": "number",
+    "UserList[].is_agent": "boolean",
+    "UserList[].default_inbox_view": "string",
+    "UserList[].restrict_inbox_view": "boolean",
+    "qTeams[].id": "number",
+    "qTeams[].name": "string"
+   }
+  },
+  "Common/widget-details": {
+   "endpoint": "/api/Common/widget-details",
+   "http_status": 200,
+   "fields": {}
+  },
+  "Masters/Status": {
+   "endpoint": "/api/Masters/Status",
+   "http_status": 200,
+   "fields": {
+    "queryStatus[].id": "number",
+    "queryStatus[].color": "string",
+    "queryStatus[].status": "string"
+   }
+  },
+  "Messages/all-message-templates": {
+   "endpoint": "/api/Messages/all-message-templates",
+   "http_status": 200,
+   "fields": {
+    "q_all_message_templates.offset": "number",
+    "q_all_message_templates.limit": "string",
+    "q_all_message_templates.total": "number",
+    "q_all_message_templates.data": "array",
+    "q_all_message_templates.page.current": "number",
+    "q_all_message_templates.page.total": "number",
+    "q_all_message_templates.page.offset.first": "number",
+    "q_all_message_templates.page.offset.prev": "number",
+    "q_all_message_templates.page.offset.next": "number",
+    "q_all_message_templates.page.offset.last": "number"
+   }
+  },
+  "OCInbox/All": {
+   "endpoint": "/api/OCInbox/All",
+   "http_status": 200,
+   "fields": {
+    "var_is_agent_name_enabled": "boolean",
+    "AvailableChannels[].id": "number",
+    "AvailableChannels[].account_name": "string",
+    "AccessChannelByUser[].id": "string",
+    "AccessChannelByUser[].account_name": "string",
+    "AccessChannelByUser[].channel_id": "number",
+    "AccessChannelByUser[].is_attachment": "boolean",
+    "AccessChannelByUser[].is_connected": "boolean",
+    "AllCanned[].id": "number",
+    "AllCanned[].name": "string",
+    "AllCanned[].message": "string",
+    "AllCanned[].msg_type": "string"
+   }
+  },
+  "OCInbox/ChatQueue": {
+   "endpoint": "/api/OCInbox/ChatQueue",
+   "http_status": 200,
+   "fields": {
+    "CloseCategorySetting.val": "string",
+    "response.channels.offset": "number",
+    "response.channels.limit": "string",
+    "response.channels.total": "number",
+    "response.channels.data": "array",
+    "response.channels.page.current": "number",
+    "response.channels.page.total": "number",
+    "response.channels.page.offset.first": "number",
+    "response.channels.page.offset.prev": "number",
+    "response.channels.page.offset.next": "number",
+    "response.channels.page.offset.last": "number",
+    "response.channels.data[].ref_id": "string",
+    "response.channels.data[].name": "string",
+    "response.channels.data[].patient_id": "string",
+    "response.channels.data[].assigned_to_name": "string",
+    "response.channels.data[].assigned_to_initials": "string",
+    "response.channels.data[].status": "string",
+    "response.channels.data[].social_icon": "string",
+    "response.channels.data[].account_id": "string",
+    "response.channels.data[].account_name": "string",
+    "response.channels.data[].profile_pic_url": "null",
+    "response.channels.data[].mobile": "string",
+    "response.channels.data[].email": "null|string",
+    "response.channels.data[].first_name": "string",
+    "response.channels.data[].last_name": "string",
+    "response.channels.data[].gender": "null|string",
+    "response.channels.data[].isd_code": "string",
+    "response.channels.data[].last_message": "string",
+    "response.channels.data[].last_msg_type": "string",
+    "response.channels.data[].raw_msg_time": "string",
+    "response.channels.data[].message_datetime": "string",
+    "response.channels.data[].assigned_to": "number|null",
+    "response.channels.data[].channels": "string",
+    "response.channels.data[].room_id": "string",
+    "response.channels.data[].country_code": "string",
+    "response.channels.data[].last_inbound_datetime": "string",
+    "response.channels.data[].label_name": "string|null",
+    "response.channels.data[].bg_colour": "string|null",
+    "response.channels.data[].total_unread_msg": "number",
+    "response.channels.data[].is_bot": "boolean",
+    "response.channels.data[].country_name": "null|string",
+    "response.channels.data[].nationality_id": "null|number",
+    "response.channels.data[].phone_stop_marketing": "boolean",
+    "response.channels.data[].cw_agent_id": "null",
+    "response.channels.data[].cw_agent_name": "string",
+    "response.channels.data[].cw_team_id": "null",
+    "response.channels.data[].cw_team_name": "null",
+    "response.channels.data[].open_chat_window": "string",
+    "response.channels.data[].team_assign": "number|null",
+    "response.channels.data[].team_name": "string|null",
+    "response.channels.data[].label_id": "string|null",
+    "response.channels.data[].timezone": "number|null",
+    "response.channels.data[].language_id": "number",
+    "response.channels.data[].tags": "array",
+    "response.channels.data[].tags[].tag_id": "number",
+    "response.channels.data[].tags[].tag_name": "string",
+    "response.channels.data[].tags[].bg_colour": "null",
+    "response.channels.data[].tags[].patient_id": "number",
+    "response.channels.data[].tags[].text_colour": "null"
+   }
+  },
+  "OCInbox/PatientChannel": {
+   "endpoint": "/api/OCInbox/PatientChannel",
+   "http_status": 400,
+   "fields": {},
+   "required_params": [
+    "PatientID"
+   ]
+  },
+  "OCInbox/PatientChats": {
+   "endpoint": "/api/OCInbox/PatientChats",
+   "http_status": 500,
+   "fields": {}
+  },
+  "OCInbox/all-payment-providers": {
+   "endpoint": "/api/OCInbox/all-payment-providers",
+   "http_status": 200,
+   "fields": {
+    "q_payment_provider_channel": "array",
+    "q_users[].user_id": "string",
+    "q_users[].user_name": "string"
+   }
+  },
+  "OCInbox/catalogue-products": {
+   "endpoint": "/api/OCInbox/catalogue-products",
+   "http_status": 400,
+   "fields": {},
+   "required_params": [
+    "catalogue_id"
+   ]
+  },
+  "OCInbox/contact-appt-list": {
+   "endpoint": "/api/OCInbox/contact-appt-list",
+   "http_status": 400,
+   "fields": {},
+   "required_params": [
+    "contact_id"
+   ]
+  },
+  "OCInbox/contact-enquiry": {
+   "endpoint": "/api/OCInbox/contact-enquiry",
+   "http_status": 200,
+   "fields": {
+    "qContactEnquiries": "array"
+   }
+  },
+  "OCInbox/contact-merge-details": {
+   "endpoint": "/api/OCInbox/contact-merge-details",
+   "http_status": 400,
+   "fields": {},
+   "required_params": [
+    "contact_id"
+   ]
+  },
+  "OCInbox/contact-open-close-enquiry": {
+   "endpoint": "/api/OCInbox/contact-open-close-enquiry",
+   "http_status": 400,
+   "fields": {},
+   "required_params": [
+    "contact_id"
+   ]
+  },
+  "OCInbox/contact-shared-media-files": {
+   "endpoint": "/api/OCInbox/contact-shared-media-files",
+   "http_status": 400,
+   "fields": {},
+   "required_params": [
+    "contact_id"
+   ]
+  },
+  "OCInbox/failed-msg-list": {
+   "endpoint": "/api/OCInbox/failed-msg-list",
+   "http_status": 200,
+   "fields": {
+    "q_get_list.offset": "number",
+    "q_get_list.limit": "string",
+    "q_get_list.total": "number",
+    "q_get_list.data": "array",
+    "q_get_list.page.current": "number",
+    "q_get_list.page.total": "number",
+    "q_get_list.page.offset.first": "number",
+    "q_get_list.page.offset.prev": "number",
+    "q_get_list.page.offset.next": "number",
+    "q_get_list.page.offset.last": "number",
+    "q_get_list.data[].patient_id": "string",
+    "q_get_list.data[].contact_name": "string",
+    "q_get_list.data[].msg_datetime": "string",
+    "q_get_list.data[].account_name": "string",
+    "q_get_list.data[].mobile": "string",
+    "q_get_list.data[].sender": "string",
+    "q_get_list.data[].msg": "string",
+    "q_get_list.data[].media_type": "null|string",
+    "q_get_list.data[].failed_reason": "string",
+    "q_get_list.data[].id": "string",
+    "q_get_list.data[].msg_id": "string",
+    "q_get_list.data[].social_media_name": "string",
+    "q_get_list.data[].icon": "string"
+   }
+  },
+  "OCInbox/msg-sources": {
+   "endpoint": "/api/OCInbox/msg-sources",
+   "http_status": 400,
+   "fields": {},
+   "required_params": [
+    "kb_source_id"
+   ]
+  },
+  "OCInbox/view-list": {
+   "endpoint": "/api/OCInbox/view-list",
+   "http_status": 200,
+   "fields": {
+    "q_views": "array"
+   }
+  },
+  "OCInbox/view-shared-teams": {
+   "endpoint": "/api/OCInbox/view-shared-teams",
+   "http_status": 400,
+   "fields": {},
+   "required_params": [
+    "view_id"
+   ]
+  },
+  "Patients/Segments/All": {
+   "endpoint": "/api/Patients/Segments/All",
+   "http_status": 200,
+   "fields": {
+    "Segment[].id": "string",
+    "Segment[].segment_name": "string",
+    "Segment[].segment_description": "null",
+    "Segment[].org_id": "number"
+   }
+  },
+  "Patients/Segments/dynamic-segment-list": {
+   "endpoint": "/api/Patients/Segments/dynamic-segment-list",
+   "http_status": 200,
+   "fields": {
+    "qAllDynamicSegment[].id": "string",
+    "qAllDynamicSegment[].segment_name": "string",
+    "qAllDynamicSegment[].flow_id": "null",
+    "qAllDynamicSegment[].workflow_name": "null",
+    "qAllDynamicSegment[].segment_filter": "object",
+    "qAllDynamicSegment[].segment_filter.tag_array.values[]": "string",
+    "qAllDynamicSegment[].segment_filter.tag_array.filterType": "string",
+    "qAllDynamicSegment[].segment_filter.dob.type": "string",
+    "qAllDynamicSegment[].segment_filter.dob.dateTo": "null",
+    "qAllDynamicSegment[].segment_filter.dob.dateFrom": "string",
+    "qAllDynamicSegment[].segment_filter.dob.filterType": "string",
+    "qAllDynamicSegment[].segment_filter.gender.values[]": "string",
+    "qAllDynamicSegment[].segment_filter.gender.filterType": "string",
+    "qAllDynamicSegment[].segment_filter.birthday.operator": "string",
+    "qAllDynamicSegment[].segment_filter.birthday.filterType": "string",
+    "qAllDynamicSegment[].segment_filter.birthday.conditions[].type": "string",
+    "qAllDynamicSegment[].segment_filter.birthday.conditions[].dateTo": "null",
+    "qAllDynamicSegment[].segment_filter.birthday.conditions[].dateFrom": "string",
+    "qAllDynamicSegment[].segment_filter.birthday.conditions[].customType": "string",
+    "qAllDynamicSegment[].segment_filter.birthday.conditions[].filterType": "string",
+    "qAllDynamicSegment[].segment_filter.last_interaction_time.type": "string",
+    "qAllDynamicSegment[].segment_filter.last_interaction_time.dateTo": "string",
+    "qAllDynamicSegment[].segment_filter.last_interaction_time.dateFrom": "string",
+    "qAllDynamicSegment[].segment_filter.last_interaction_time.customType": "string",
+    "qAllDynamicSegment[].segment_filter.last_interaction_time.filterType": "string",
+    "qAllDynamicSegment[].segment_filter.nationality_id.values[]": "number",
+    "qAllDynamicSegment[].segment_filter.nationality_id.filterType": "string"
+   }
+  },
+  "Patients/Segments/static-segment-list": {
+   "endpoint": "/api/Patients/Segments/static-segment-list",
+   "http_status": 200,
+   "fields": {
+    "qAllStaticSegment[].id": "string",
+    "qAllStaticSegment[].segment_name": "string",
+    "qAllStaticSegment[].contact_count": "string",
+    "qAllStaticSegment[].flow_id": "null",
+    "qAllStaticSegment[].workflow_name": "null"
+   }
+  },
+  "Patients/col-show-hide-list": {
+   "endpoint": "/api/Patients/col-show-hide-list",
+   "http_status": 200,
+   "fields": {
+    "qColShowHide.contact_col_show.Tags": "string",
+    "qColShowHide.contact_col_show.Email": "string",
+    "qColShowHide.contact_col_show.Label": "boolean",
+    "qColShowHide.contact_col_show.Phone": "string",
+    "qColShowHide.contact_col_show.Gender": "string",
+    "qColShowHide.contact_col_show.Messaging": "string",
+    "qColShowHide.contact_col_show.Nationality": "string",
+    "qColShowHide.contact_col_show.ContactOwner": "boolean",
+    "qColShowHide.contact_col_show.LastInteractionTime": "string",
+    "qColShowHide.contact_col_width.email": "number",
+    "qColShowHide.contact_col_width.gender": "number",
+    "qColShowHide.contact_col_width.full_name": "number",
+    "qColShowHide.contact_col_width.messaging": "string",
+    "qColShowHide.contact_col_width.tag_array": "number",
+    "qColShowHide.contact_col_width.chat_label_id": "string",
+    "qColShowHide.contact_col_width.nationality_id": "string",
+    "qColShowHide.contact_col_width.full_phone_number": "string",
+    "qColShowHide.contact_col_width.last_interaction_time": "string"
+   }
+  },
+  "Patients/custom-fields": {
+   "endpoint": "/api/Patients/custom-fields",
+   "http_status": 200,
+   "fields": {
+    "qContactCustomField": "array",
+    "block_html_Contacts": "string",
+    "q_tags[].tag_id": "string",
+    "q_tags[].tag_name": "string",
+    "q_ai_tags[].tag_name": "string",
+    "q_pipeline_stage[].stage_id": "string",
+    "q_pipeline_stage[].stage_name": "string",
+    "q_users[].user_id": "string",
+    "q_users[].user_name": "string",
+    "q_team[].team_id": "number",
+    "q_team[].team_name": "string",
+    "q_enquiry_channel[].channel_id": "number",
+    "q_enquiry_channel[].channel_name": "string",
+    "q_chat_channel[].channel_id": "number",
+    "q_chat_channel[].channel_name": "string",
+    "q_org_channel[].channel_id": "string",
+    "q_org_channel[].channel_name": "string",
+    "q_country[].country_id": "number",
+    "q_country[].country_name": "string",
+    "q_labels[].label_id": "string",
+    "q_labels[].label_name": "string",
+    "q_appt_status[].status_id": "number",
+    "q_appt_status[].status_name": "string",
+    "q_appt_location[].location_id": "number",
+    "q_appt_location[].location_name": "string",
+    "q_appt_service[].service_id": "number",
+    "q_appt_service[].service_name": "string",
+    "q_appt_specialist[].specialist_id": "number",
+    "q_appt_specialist[].specialist_name": "string",
+    "q_appt_department[].department_id": "number",
+    "q_appt_department[].department_name": "string",
+    "q_disqualify_reason[].reason": "string",
+    "q_disqualify_reason[].id": "number",
+    "q_disqualify_reason[].pipeline_name": "string"
+   }
+  },
+  "Settings/AllCategory": {
+   "endpoint": "/api/Settings/AllCategory",
+   "http_status": 200,
+   "fields": {
+    "AllCategory[].name": "string",
+    "AllCategory[].id": "number",
+    "qCategoryRequired.val": "string",
+    "qSummaryRequired.val": "string"
+   }
+  },
+  "Settings/account/account-details": {
+   "endpoint": "/api/Settings/account/account-details",
+   "http_status": 200,
+   "fields": {
+    "qAccountInfo.first_name": "string",
+    "qAccountInfo.last_name": "string",
+    "qAccountInfo.designation": "string",
+    "qAccountInfo.email_id": "string",
+    "qAccountInfo.timezone": "number",
+    "qAccountInfo.timezone_name": "string",
+    "qAccountInfo.language_id": "number"
+   }
+  },
+  "Settings/account/appt-notifi-list": {
+   "endpoint": "/api/Settings/account/appt-notifi-list",
+   "http_status": 200,
+   "fields": {
+    "q_list[].user_notif_id": "number",
+    "q_list[].email_notif": "boolean",
+    "q_list[].browser_notif": "boolean",
+    "q_list[].sms_notif": "boolean",
+    "q_list[].whatsapp_notif": "boolean",
+    "q_list[].notif_info": "string"
+   }
+  },
+  "Settings/account/enquiry-notifi-list": {
+   "endpoint": "/api/Settings/account/enquiry-notifi-list",
+   "http_status": 200,
+   "fields": {
+    "q_list[].user_notif_id": "number",
+    "q_list[].email_notif": "boolean",
+    "q_list[].browser_notif": "boolean",
+    "q_list[].sms_notif": "boolean",
+    "q_list[].whatsapp_notif": "boolean",
+    "q_list[].notif_info": "string"
+   }
+  },
+  "Settings/account/inbox-notifi-list": {
+   "endpoint": "/api/Settings/account/inbox-notifi-list",
+   "http_status": 200,
+   "fields": {
+    "q_list[].user_notif_id": "number",
+    "q_list[].email_notif": "boolean",
+    "q_list[].browser_notif": "boolean",
+    "q_list[].sms_notif": "boolean",
+    "q_list[].whatsapp_notif": "boolean",
+    "q_list[].notif_info": "string"
+   }
+  },
+  "Settings/account/notif-send-setting": {
+   "endpoint": "/api/Settings/account/notif-send-setting",
+   "http_status": 200,
+   "fields": {
+    "q_details.send_appt_notif": "boolean",
+    "q_details.send_enquiry_notif": "boolean",
+    "q_details.send_inbox_notif": "boolean",
+    "q_details.send_other_notif": "boolean"
+   }
+  },
+  "Settings/account/other-notifi-list": {
+   "endpoint": "/api/Settings/account/other-notifi-list",
+   "http_status": 200,
+   "fields": {
+    "q_list": "array"
+   }
+  },
+  "Settings/account/user-notif-info": {
+   "endpoint": "/api/Settings/account/user-notif-info",
+   "http_status": 200,
+   "fields": {
+    "qUserInfo.sound_notif": "string",
+    "qUserInfo.channel_sound_notif": "null",
+    "qUserInfo.receive_notif": "string"
+   }
+  },
+  "Settings/company/integration/waba-profile": {
+   "endpoint": "/api/Settings/company/integration/waba-profile",
+   "http_status": 400,
+   "fields": {},
+   "required_params": [
+    "channel_id"
+   ]
+  },
+  "Settings/company/knowledgebase/feedback-list": {
+   "endpoint": "/api/Settings/company/knowledgebase/feedback-list",
+   "http_status": 200,
+   "fields": {
+    "q_feedback_list.offset": "number",
+    "q_feedback_list.limit": "string",
+    "q_feedback_list.total": "number",
+    "q_feedback_list.data": "array",
+    "q_feedback_list.page.current": "number",
+    "q_feedback_list.page.total": "number",
+    "q_feedback_list.page.offset.first": "number",
+    "q_feedback_list.page.offset.prev": "number",
+    "q_feedback_list.page.offset.next": "number",
+    "q_feedback_list.page.offset.last": "number"
+   }
+  },
+  "Settings/company/knowledgebase/feedback-source-file": {
+   "endpoint": "/api/Settings/company/knowledgebase/feedback-source-file",
+   "http_status": 400,
+   "fields": {},
+   "required_params": [
+    "kb_source_id"
+   ]
+  },
+  "Settings/company/knowledgebase/source-file-list": {
+   "endpoint": "/api/Settings/company/knowledgebase/source-file-list",
+   "http_status": 200,
+   "fields": {
+    "q_knowledgebase[].correction_kb_id": "null",
+    "q_knowledgebase[].file_name": "null",
+    "q_knowledgebase[].id": "string",
+    "q_knowledgebase[].is_system": "boolean",
+    "q_knowledgebase[].source_group_id": "string",
+    "q_knowledgebase[].source_group_name": "string",
+    "q_knowledgebase[].status": "string",
+    "q_knowledgebase[].url": "string",
+    "q_knowledgebase[].url_name": "string"
+   }
+  },
+  "Settings/company/knowledgebase/source-group-list": {
+   "endpoint": "/api/Settings/company/knowledgebase/source-group-list",
+   "http_status": 200,
+   "fields": {
+    "q_kb_source_group[].id": "string",
+    "q_kb_source_group[].source_group_name": "string"
+   }
+  },
+  "Settings/company/organization/all-currencies": {
+   "endpoint": "/api/Settings/company/organization/all-currencies",
+   "http_status": 200,
+   "fields": {
+    "q_all_currencies[].currency_code": "string",
+    "q_all_currencies[].currency_name": "string"
+   }
+  },
+  "Settings/company/organization/org-details": {
+   "endpoint": "/api/Settings/company/organization/org-details",
+   "http_status": 200,
+   "fields": {
+    "qOrgInfo.currencies": "string",
+    "qOrgInfo.language_id": "number",
+    "qOrgInfo.logourl": "string",
+    "qOrgInfo.name": "string",
+    "qOrgInfo.support": "boolean",
+    "qOrgInfo.website": "string",
+    "qUserInactive.val": "string",
+    "q_webhook_event[].event_key": "string",
+    "q_webhook_event[].event_name": "string",
+    "q_webhook_event[].id": "string"
+   }
+  },
+  "Settings/company/users/channel-setting": {
+   "endpoint": "/api/Settings/company/users/channel-setting",
+   "http_status": 200,
+   "fields": {
+    "var_facebook_app_id": "string",
+    "all[].account_channel_id": "null",
+    "all[].account_email": "null|string",
+    "all[].account_id": "string",
+    "all[].account_name": "string",
+    "all[].account_type": "string",
+    "all[].alt_account_id": "null|string",
+    "all[].app_name": "null",
+    "all[].ban_state": "null",
+    "all[].business_verification_status": "null",
+    "all[].catalogue_id": "null",
+    "all[].catalogue_name": "null",
+    "all[].catalogue_status": "null",
+    "all[].channel_id": "number",
+    "all[].channel_settings": "object",
+    "all[].city_name": "null",
+    "all[].colour": "null|string",
+    "all[].current_limit": "null|string",
+    "all[].current_quality_rating": "null|string",
+    "all[].default_icon": "string",
+    "all[].expires_hrs": "number|null",
+    "all[].icon": "null|string",
+    "all[].id": "string",
+    "all[].is_connected": "boolean",
+    "all[].is_default": "boolean",
+    "all[].page_access_token": "string|null",
+    "all[].social_media_name": "string",
+    "all[].subtitle": "null",
+    "all[].title": "string|null",
+    "all[].user_access_token": "string|null",
+    "all[].welcome_title": "null",
+    "all[].channel_settings.current_limit": "string",
+    "all[].channel_settings.current_quality_rating": "string",
+    "all[].channel_settings.is_system": "boolean",
+    "all[].channel_settings.max_daily_conversations_per_business": "string|number"
+   }
+  },
+  "Settings/company/users/office-hour-list": {
+   "endpoint": "/api/Settings/company/users/office-hour-list",
+   "http_status": 400,
+   "fields": {},
+   "required_params": [
+    "id"
+   ]
+  },
+  "Settings/company/users/role-list": {
+   "endpoint": "/api/Settings/company/users/role-list",
+   "http_status": 200,
+   "fields": {
+    "AllRoles[].IsSystem": "boolean",
+    "AllRoles[].RoleInformation": "string",
+    "AllRoles[].RoleName": "string",
+    "AllRoles[].id": "number",
+    "Permissions[].available_types": "string",
+    "Permissions[].delete_rec": "boolean",
+    "Permissions[].display_name": "string",
+    "Permissions[].export_rec": "boolean",
+    "Permissions[].is_system_role": "boolean",
+    "Permissions[].manage_rec": "boolean",
+    "Permissions[].plan_access": "number",
+    "Permissions[].role_id": "number",
+    "Permissions[].rule_name": "string",
+    "Permissions[].view_rec": "boolean"
+   }
+  },
+  "Settings/company/users/team-list": {
+   "endpoint": "/api/Settings/company/users/team-list",
+   "http_status": 200,
+   "fields": {
+    "qPipeline[].id": "string",
+    "qPipeline[].pipeline_name": "string",
+    "qUsers[].first_name": "string",
+    "qUsers[].id": "string",
+    "qUsers[].last_name": "string",
+    "qTeams[].auto_assign": "boolean",
+    "qTeams[].auto_reply": "boolean",
+    "qTeams[].auto_reply_msg": "string",
+    "qTeams[].fallback_team": "null",
+    "qTeams[].id": "number",
+    "qTeams[].is_default": "boolean",
+    "qTeams[].name": "string",
+    "qTeams[].org_channel_id": "string",
+    "qTeams[].pipeline_id": "string",
+    "qTeams[].user_id": "string"
+   }
+  },
+  "Settings/company/users/user-list": {
+   "endpoint": "/api/Settings/company/users/user-list",
+   "http_status": 200,
+   "fields": {
+    "q_roles[].id": "number",
+    "q_roles[].role_name": "string",
+    "q_teams[].id": "number",
+    "q_teams[].name": "string",
+    "q_users[].default_inbox_view": "string",
+    "q_users[].deleted_on": "null|string",
+    "q_users[].designation": "string|null",
+    "q_users[].email_id": "string",
+    "q_users[].first_name": "string",
+    "q_users[].full_name": "string",
+    "q_users[].has_pass": "boolean",
+    "q_users[].invitation_type": "string",
+    "q_users[].is_agent": "boolean|null",
+    "q_users[].last_login_ip": "string|null",
+    "q_users[].last_name": "string",
+    "q_users[].loc_id": "null|string",
+    "q_users[].loc_name": "null|string",
+    "q_users[].max_assigned_chats": "number",
+    "q_users[].pass_reset_token": "string",
+    "q_users[].pass_reset_token_expiry": "string",
+    "q_users[].restrict_enquiry_view": "boolean",
+    "q_users[].restrict_inbox_view": "boolean",
+    "q_users[].role_id": "number",
+    "q_users[].role_name": "string",
+    "q_users[].team_id": "string",
+    "q_users[].team_name": "string",
+    "q_users[].userid": "string"
+   }
+  },
+  "Settings/platform/appointments/booking/setting": {
+   "endpoint": "/api/Settings/platform/appointments/booking/setting",
+   "http_status": 200,
+   "fields": {
+    "qSettings[].id": "number",
+    "qSettings[].name": "string",
+    "qSettings[].val": "string"
+   }
+  },
+  "Settings/platform/appointments/department/all-department-list": {
+   "endpoint": "/api/Settings/platform/appointments/department/all-department-list",
+   "http_status": 200,
+   "fields": {
+    "AllDepartment[].id": "number",
+    "AllDepartment[].name": "string",
+    "DepartmentList[].dep_name": "string",
+    "DepartmentList[].departmentid": "number",
+    "DepartmentList[].id": "number",
+    "DepartmentList[].org_id": "null|number",
+    "DepartmentList[].organizationid": "number",
+    "DepartmentList[].parent_dept_name": "null|string"
+   }
+  },
+  "Settings/platform/appointments/service/all-services": {
+   "endpoint": "/api/Settings/platform/appointments/service/all-services",
+   "http_status": 200,
+   "fields": {
+    "All.offset": "number",
+    "All.limit": "string",
+    "All.total": "number",
+    "All.data": "array",
+    "All.page.current": "number",
+    "All.page.total": "number",
+    "All.page.offset.first": "number",
+    "All.page.offset.prev": "number",
+    "All.page.offset.next": "number",
+    "All.page.offset.last": "number",
+    "All.data[].about_desc": "null",
+    "All.data[].apptduration": "number",
+    "All.data[].cnt_dept": "string",
+    "All.data[].concurentpatients": "number",
+    "All.data[].currency": "string",
+    "All.data[].dept_id": "number",
+    "All.data[].dept_name": "string",
+    "All.data[].dept_name_ar": "string",
+    "All.data[].enableonline": "boolean",
+    "All.data[].loc_name_csv": "null",
+    "All.data[].online_enabled": "string",
+    "All.data[].organization": "number",
+    "All.data[].payment_required": "string",
+    "All.data[].postbuffer": "number",
+    "All.data[].prebuffer": "number",
+    "All.data[].price": "null",
+    "All.data[].requiredpayment": "boolean",
+    "All.data[].service_id": "number",
+    "All.data[].service_name": "string",
+    "All.data[].service_name_ar": "null",
+    "All.data[].spec_name_csv": "null"
+   }
+  },
+  "Settings/platform/appointments/specialist/Integrations/get-all-calendar-list": {
+   "endpoint": "/api/Settings/platform/appointments/specialist/Integrations/get-all-calendar-list",
+   "http_status": 200,
+   "fields": {}
+  },
+  "Settings/platform/appointments/specialist/all-specialists": {
+   "endpoint": "/api/Settings/platform/appointments/specialist/all-specialists",
+   "http_status": 200,
+   "fields": {
+    "AllServices[].dept_id": "number",
+    "AllServices[].service_id": "number",
+    "AllServices[].service_name": "string",
+    "GetUser[].designation": "string",
+    "GetUser[].first_name": "string",
+    "GetUser[].id": "string",
+    "GetUser[].last_name": "string",
+    "IsSpec": "boolean",
+    "ViewAllSpec": "boolean",
+    "q_get_calendar": "array",
+    "querySettings.val": "string",
+    "All[].about_desc": "null|string",
+    "All[].calendar_id": "null",
+    "All[].calname": "null",
+    "All[].country": "null",
+    "All[].countrycode": "null",
+    "All[].dept_id": "number",
+    "All[].dept_name": "string",
+    "All[].email": "null",
+    "All[].enable_multiple_bookings": "boolean",
+    "All[].external_spec": "null",
+    "All[].gender": "string",
+    "All[].google_cal_next_sync_token": "null",
+    "All[].google_cal_resource_id": "null",
+    "All[].google_cal_webhook_id": "null",
+    "All[].has_refresh_token": "boolean",
+    "All[].loc_id": "string",
+    "All[].loc_name": "string",
+    "All[].location_services_sched": "array",
+    "All[].max_bookings_per_slot": "number",
+    "All[].phone": "null",
+    "All[].refresh_token": "null",
+    "All[].showbusy": "null",
+    "All[].spec_first_name": "string",
+    "All[].spec_first_name_ar": "null",
+    "All[].spec_id": "number",
+    "All[].spec_last_name": "string",
+    "All[].spec_last_name_ar": "null",
+    "All[].spec_name": "string",
+    "All[].spec_name_ar": "string",
+    "All[].spec_override": "null",
+    "All[].spec_pic": "string",
+    "All[].specialty": "string",
+    "All[].specialtyar": "null",
+    "All[].timeslotduration": "number",
+    "All[].user_id": "null",
+    "All[].yrsexperience": "null",
+    "All[].location_services_sched[].loc_id": "number",
+    "All[].location_services_sched[].loc_name": "string",
+    "All[].location_services_sched[].loc_pic": "string",
+    "All[].location_services_sched[].sched": "null|array",
+    "All[].location_services_sched[].services": "array|null",
+    "All[].location_services_sched[].specialist_id": "number",
+    "All[].location_services_sched[].timezone": "number",
+    "All[].location_services_sched[].sched[].end_time": "string",
+    "All[].location_services_sched[].sched[].loc_id": "number",
+    "All[].location_services_sched[].sched[].sched_id": "number",
+    "All[].location_services_sched[].sched[].start_time": "string",
+    "All[].location_services_sched[].sched[].timezone": "number",
+    "All[].location_services_sched[].sched[].weekday": "string",
+    "All[].location_services_sched[].services[].service_id": "number",
+    "All[].location_services_sched[].services[].service_name": "string"
+   }
+  },
+  "Settings/platform/appointments/specialist/teams": {
+   "endpoint": "/api/Settings/platform/appointments/specialist/teams",
+   "http_status": 200,
+   "fields": {
+    "qTeams[].id": "number",
+    "qTeams[].name": "string"
+   }
+  },
+  "Settings/platform/appointments/template/setting": {
+   "endpoint": "/api/Settings/platform/appointments/template/setting",
+   "http_status": 200,
+   "fields": {
+    "qSMSList": "array",
+    "qTemplateChannelSetting.val": "string",
+    "qWhatsAppChannel[].account_name": "string",
+    "qWhatsAppChannel[].id": "string",
+    "qSMSTemplate[].message": "null",
+    "qSMSTemplate[].setting_name": "string",
+    "qSMSTemplate[].setting_type": "string",
+    "qSMSTemplate[].settingid": "number",
+    "qSMSTemplate[].val": "null",
+    "qWhatsAppTemplate[].all_mappers": "null",
+    "qWhatsAppTemplate[].all_mappers_msg": "null",
+    "qWhatsAppTemplate[].button_mapper": "null",
+    "qWhatsAppTemplate[].button_mapper2": "null",
+    "qWhatsAppTemplate[].carousel_card": "null",
+    "qWhatsAppTemplate[].default_name": "string",
+    "qWhatsAppTemplate[].footer": "null",
+    "qWhatsAppTemplate[].header": "null",
+    "qWhatsAppTemplate[].header_mapper": "null",
+    "qWhatsAppTemplate[].image_url": "null",
+    "qWhatsAppTemplate[].mapper": "null",
+    "qWhatsAppTemplate[].message_preview": "null",
+    "qWhatsAppTemplate[].preview_url": "null",
+    "qWhatsAppTemplate[].setting_name": "string",
+    "qWhatsAppTemplate[].setting_type": "string",
+    "qWhatsAppTemplate[].settingid": "number",
+    "qWhatsAppTemplate[].template_components": "null",
+    "qWhatsAppTemplate[].template_name": "null",
+    "qWhatsAppTemplate[].template_status": "null",
+    "qWhatsAppTemplate[].template_type": "null",
+    "qWhatsAppTemplate[].val": "null",
+    "q_waba_template_list[].all_mappers": "array|null",
+    "q_waba_template_list[].all_mappers[]": "string",
+    "q_waba_template_list[].all_mappers_msg": "string",
+    "q_waba_template_list[].button_mapper": "null",
+    "q_waba_template_list[].button_mapper2": "null",
+    "q_waba_template_list[].custom_mapper": "boolean",
+    "q_waba_template_list[].footer": "null|object",
+    "q_waba_template_list[].footer.text": "string",
+    "q_waba_template_list[].footer.type": "string",
+    "q_waba_template_list[].header": "null|object",
+    "q_waba_template_list[].header.example.header_handle[]": "string",
+    "q_waba_template_list[].header.format": "string",
+    "q_waba_template_list[].header.text": "string",
+    "q_waba_template_list[].header.type": "string",
+    "q_waba_template_list[].header_mapper": "null",
+    "q_waba_template_list[].id": "number",
+    "q_waba_template_list[].image_url": "null|string",
+    "q_waba_template_list[].mapper": "string|null",
+    "q_waba_template_list[].mapper_missing": "number",
+    "q_waba_template_list[].message_preview": "string",
+    "q_waba_template_list[].org_channel_id": "string",
+    "q_waba_template_list[].template_name": "string",
+    "q_waba_template_list[].template_components": "array",
+    "q_waba_template_list[].template_components[].buttons[].text": "string",
+    "q_waba_template_list[].template_components[].buttons[].type": "string",
+    "q_waba_template_list[].template_components[].example.body_text[][]": "string",
+    "q_waba_template_list[].template_components[].example.header_handle[]": "string",
+    "q_waba_template_list[].template_components[].format": "string",
+    "q_waba_template_list[].template_components[].text": "string",
+    "q_waba_template_list[].template_components[].type": "string"
+   }
+  },
+  "Settings/platform/enquiry/assignment-rule": {
+   "endpoint": "/api/Settings/platform/enquiry/assignment-rule",
+   "http_status": 200,
+   "fields": {
+    "qEnquiryAssignment": "array",
+    "qTeams[].id": "number",
+    "qTeams[].name": "string"
+   }
+  },
+  "Settings/platform/enquiry/channels": {
+   "endpoint": "/api/Settings/platform/enquiry/channels",
+   "http_status": 200,
+   "fields": {
+    "EnquiryChannels.AllEnquiryChannels[].channel_id": "number",
+    "EnquiryChannels.AllEnquiryChannels[].channel_name": "string",
+    "EnquiryChannels.AllEnquiryChannels[].org_channel_id": "null|number",
+    "EnquiryChannels.AllEnquiryChannels[].organization": "null|number"
+   }
+  },
+  "Settings/platform/enquiry/check-stage": {
+   "endpoint": "/api/Settings/platform/enquiry/check-stage",
+   "http_status": 400,
+   "fields": {},
+   "required_params": [
+    "stage_id"
+   ]
+  },
+  "Settings/platform/enquiry/enquiry-routings": {
+   "endpoint": "/api/Settings/platform/enquiry/enquiry-routings",
+   "http_status": 200,
+   "fields": {
+    "qEnquiryNotif": "array"
+   }
+  },
+  "Settings/platform/enquiry/fields-list": {
+   "endpoint": "/api/Settings/platform/enquiry/fields-list",
+   "http_status": 200,
+   "fields": {
+    "qCustomFields": "array"
+   }
+  },
+  "Settings/platform/enquiry/more-settting": {
+   "endpoint": "/api/Settings/platform/enquiry/more-settting",
+   "http_status": 200,
+   "fields": {
+    "qEnquirySetting.val": "string"
+   }
+  },
+  "Settings/platform/enquiry/pipeline-list": {
+   "endpoint": "/api/Settings/platform/enquiry/pipeline-list",
+   "http_status": 200,
+   "fields": {
+    "qField[].default_field": "boolean",
+    "qField[].dependent_on": "null|string",
+    "qField[].id": "string",
+    "qField[].page": "string",
+    "qField[].system_field": "boolean",
+    "qField[].title": "string",
+    "qPipeline[].created_on": "string",
+    "qPipeline[].custom_field": "array",
+    "qPipeline[].has_emoji": "null",
+    "qPipeline[].id": "string",
+    "qPipeline[].is_default": "boolean",
+    "qPipeline[].pipeline_name": "string",
+    "qPipeline[].team_id": "string",
+    "qPipeline[].default_field[].field_id": "number",
+    "qPipeline[].default_field[].required": "boolean",
+    "qPipeline[].disqualify_reasons[].disqualify_reason": "string",
+    "qPipeline[].disqualify_reasons[].reason_id": "number",
+    "qPipeline[].stage[].stage_id": "number",
+    "qPipeline[].stage[].stage_name": "string",
+    "qPipeline[].status[].status_id": "number",
+    "qPipeline[].status[].status_name": "string",
+    "qPipeline[].status[].status_type": "string"
+   }
+  },
+  "Settings/platform/inbox/all-messages": {
+   "endpoint": "/api/Settings/platform/inbox/all-messages",
+   "http_status": 200,
+   "fields": {
+    "AllCanned[].id": "number",
+    "AllCanned[].message": "string",
+    "AllCanned[].msg_type": "string",
+    "AllCanned[].name": "string"
+   }
+  },
+  "Settings/platform/inbox/setting": {
+   "endpoint": "/api/Settings/platform/inbox/setting",
+   "http_status": 200,
+   "fields": {
+    "qSettings[].id": "number",
+    "qSettings[].name": "string",
+    "qSettings[].val": "string",
+    "q_org_agent_name_setting[].inbox_agent_name": "boolean"
+   }
+  },
+  "Task/AllTaskList": {
+   "endpoint": "/api/Task/AllTaskList",
+   "http_status": 200,
+   "fields": {
+    "AllUsers[].full_name": "string",
+    "AllUsers[].team_id": "string",
+    "AllUsers[].user_id": "string",
+    "qTaskList.offset": "number",
+    "qTaskList.limit": "string",
+    "qTaskList.total": "number",
+    "qTaskList.data": "array",
+    "qTaskList.page.current": "number",
+    "qTaskList.page.total": "number",
+    "qTaskList.page.offset.first": "number",
+    "qTaskList.page.offset.prev": "number",
+    "qTaskList.page.offset.next": "number",
+    "qTaskList.page.offset.last": "number",
+    "qTaskList.data[].activitytype": "string",
+    "qTaskList.data[].assignto": "null",
+    "qTaskList.data[].assigntoid": "null",
+    "qTaskList.data[].createdby": "string",
+    "qTaskList.data[].createddate": "string",
+    "qTaskList.data[].datecompleted": "null",
+    "qTaskList.data[].done": "boolean",
+    "qTaskList.data[].email": "null",
+    "qTaskList.data[].followuptime": "string",
+    "qTaskList.data[].full_name": "string",
+    "qTaskList.data[].full_phone_num": "string",
+    "qTaskList.data[].id": "number",
+    "qTaskList.data[].lead": "null",
+    "qTaskList.data[].leadfirstname": "null",
+    "qTaskList.data[].notes": "null",
+    "qTaskList.data[].patientfirstname": "string",
+    "qTaskList.data[].patientid": "string",
+    "qTaskList.data[].reminder": "null",
+    "qTaskList.data[].status": "string",
+    "qTaskList.data[].subject": "string"
+   }
+  },
+  "contact-details/all-merge-contact-details": {
+   "endpoint": "/api/contact-details/all-merge-contact-details",
+   "http_status": 500,
+   "fields": {}
+  },
+  "contact-details/contact-appointments": {
+   "endpoint": "/api/contact-details/contact-appointments",
+   "http_status": 500,
+   "fields": {}
+  },
+  "contact-details/contact-campaigns": {
+   "endpoint": "/api/contact-details/contact-campaigns",
+   "http_status": 400,
+   "fields": {},
+   "required_params": [
+    "patient_id"
+   ]
+  },
+  "contact-details/contact-enquiries": {
+   "endpoint": "/api/contact-details/contact-enquiries",
+   "http_status": 200,
+   "fields": {
+    "qEnquiries.offset": "number",
+    "qEnquiries.limit": "string",
+    "qEnquiries.total": "number",
+    "qEnquiries.data": "array",
+    "qEnquiries.page.current": "number",
+    "qEnquiries.page.total": "number",
+    "qEnquiries.page.offset.first": "number",
+    "qEnquiries.page.offset.prev": "number",
+    "qEnquiries.page.offset.next": "number",
+    "qEnquiries.page.offset.last": "number"
+   }
+  },
+  "contact-details/contact-system-note": {
+   "endpoint": "/api/contact-details/contact-system-note",
+   "http_status": 500,
+   "fields": {}
+  },
+  "contact-details/contact-task": {
+   "endpoint": "/api/contact-details/contact-task",
+   "http_status": 400,
+   "fields": {},
+   "required_params": [
+    "patient_id"
+   ]
+  },
+  "contact-details/details": {
+   "endpoint": "/api/contact-details/details",
+   "http_status": 400,
+   "fields": {},
+   "required_params": [
+    "id"
+   ]
+  },
+  "dashboard/all-enquiries": {
+   "endpoint": "/api/dashboard/all-enquiries",
+   "http_status": 200,
+   "fields": {
+    "qEnquiries.offset": "number",
+    "qEnquiries.limit": "string",
+    "qEnquiries.total": "number",
+    "qEnquiries.data": "array",
+    "qEnquiries.page.current": "number",
+    "qEnquiries.page.total": "number",
+    "qEnquiries.page.offset.first": "number",
+    "qEnquiries.page.offset.prev": "number",
+    "qEnquiries.page.offset.next": "number",
+    "qEnquiries.page.offset.last": "number"
+   }
+  },
+  "dashboard/all-tasks": {
+   "endpoint": "/api/dashboard/all-tasks",
+   "http_status": 200,
+   "fields": {
+    "qTaskList.offset": "number",
+    "qTaskList.limit": "string",
+    "qTaskList.total": "number",
+    "qTaskList.data": "array",
+    "qTaskList.page.current": "number",
+    "qTaskList.page.total": "number",
+    "qTaskList.page.offset.first": "number",
+    "qTaskList.page.offset.prev": "number",
+    "qTaskList.page.offset.next": "number",
+    "qTaskList.page.offset.last": "number"
+   }
+  },
+  "dashboard/all-users-by-team-status": {
+   "endpoint": "/api/dashboard/all-users-by-team-status",
+   "http_status": 200,
+   "fields": {
+    "qUsersByTeamAndStatus.offset": "number",
+    "qUsersByTeamAndStatus.limit": "string",
+    "qUsersByTeamAndStatus.total": "number",
+    "qUsersByTeamAndStatus.data": "array",
+    "qUsersByTeamAndStatus.page.current": "number",
+    "qUsersByTeamAndStatus.page.total": "number",
+    "qUsersByTeamAndStatus.page.offset.first": "number",
+    "qUsersByTeamAndStatus.page.offset.prev": "number",
+    "qUsersByTeamAndStatus.page.offset.next": "number",
+    "qUsersByTeamAndStatus.page.offset.last": "number",
+    "qUsersByTeamAndStatus.data[].first_name": "string",
+    "qUsersByTeamAndStatus.data[].id": "string",
+    "qUsersByTeamAndStatus.data[].last_name": "string",
+    "qUsersByTeamAndStatus.data[].time_start": "string|null",
+    "qUsersByTeamAndStatus.data[].user_status": "null"
+   }
+  },
+  "dashboard/daily-enquiries": {
+   "endpoint": "/api/dashboard/daily-enquiries",
+   "http_status": 200,
+   "fields": {
+    "q_daliy_enquiry[].x": "string",
+    "q_daliy_enquiry[].y": "number"
+   }
+  },
+  "enquiry-details/all": {
+   "endpoint": "/api/enquiry-details/all",
+   "http_status": 403,
+   "fields": {}
+  },
+  "enquiry-details/custom-fields": {
+   "endpoint": "/api/enquiry-details/custom-fields",
+   "http_status": 200,
+   "fields": {}
+  },
+  "enquiry/all-locations": {
+   "endpoint": "/api/enquiry/all-locations",
+   "http_status": 200,
+   "fields": {},
+   "same_as": "/api/Common/AllLocations"
+  },
+  "enquiry/csv-data": {
+   "endpoint": "/api/enquiry/csv-data",
+   "http_status": 400,
+   "fields": {},
+   "required_params": [
+    "pipeline_id"
+   ]
+  },
+  "enquiry/custom-fields": {
+   "endpoint": "/api/enquiry/custom-fields",
+   "http_status": 200,
+   "fields": {
+    "q_appt_department[].department_id": "number",
+    "q_appt_department[].department_name": "string",
+    "q_appt_location[].location_id": "number",
+    "q_appt_location[].location_name": "string",
+    "q_appt_service[].service_id": "number",
+    "q_appt_service[].service_name": "string",
+    "q_appt_specialist[].specialist_id": "number",
+    "q_appt_specialist[].specialist_name": "string",
+    "q_country[].country_id": "number",
+    "q_country[].country_name": "string",
+    "q_enquiry_channel[].channel_id": "number",
+    "q_enquiry_channel[].channel_name": "string",
+    "q_tags[].tag_id": "string",
+    "q_tags[].tag_name": "string",
+    "q_users[].user_id": "string",
+    "q_users[].user_name": "string"
+   }
+  },
+  "enquiry/custom-views/all": {
+   "endpoint": "/api/enquiry/custom-views/all",
+   "http_status": 400,
+   "fields": {},
+   "required_params": [
+    "pipeline_id"
+   ]
+  },
+  "enquiry/custom-views/shared-teams": {
+   "endpoint": "/api/enquiry/custom-views/shared-teams",
+   "http_status": 400,
+   "fields": {},
+   "required_params": [
+    "view_id"
+   ]
+  },
+  "enquiry/enquiry-common-details": {
+   "endpoint": "/api/enquiry/enquiry-common-details",
+   "http_status": 200,
+   "fields": {
+    "AllEnquiryChannels[].channel_id": "number",
+    "AllEnquiryChannels[].channel_name": "string",
+    "AllEnquiryChannels[].org_channel_id": "null|number",
+    "AllEnquiryChannels[].organization": "null|number",
+    "AllServices[].dept_id": "number",
+    "AllServices[].service_id": "number",
+    "AllServices[].service_name": "string",
+    "AllUsers[].full_name": "string",
+    "AllUsers[].team_id": "string",
+    "AllUsers[].user_id": "string"
+   }
+  },
+  "reports/appointments": {
+   "endpoint": "/api/reports/appointments",
+   "http_status": 200,
+   "fields": {}
+  },
+  "reports/chats": {
+   "endpoint": "/api/reports/chats",
+   "http_status": 200,
+   "fields": {}
+  },
+  "reports/common-data": {
+   "endpoint": "/api/reports/common-data",
+   "http_status": 200,
+   "fields": {
+    "q_appt_status[].id": "number",
+    "q_appt_status[].status": "string",
+    "q_category[].category_name": "string",
+    "q_category[].id": "number",
+    "q_channel[].account_name": "string",
+    "q_channel[].channel_id": "number",
+    "q_channel[].id": "string",
+    "q_department[].department": "string",
+    "q_department[].id": "number",
+    "q_enquiry_channel[].channel": "string",
+    "q_enquiry_channel[].id": "number",
+    "q_enquiry_location[].id": "number",
+    "q_enquiry_location[].location_name": "string",
+    "q_enquiry_service[].id": "number",
+    "q_enquiry_service[].service": "string",
+    "q_enquiry_source[].source": "string",
+    "q_enquiry_specialist[].id": "number",
+    "q_enquiry_specialist[].specialist_name": "string",
+    "q_source[].record_source": "string",
+    "q_user[].first_name": "string",
+    "q_user[].id": "string",
+    "q_user[].is_agent": "boolean",
+    "q_user[].last_name": "string",
+    "q_wa_flow": "array"
+   }
+  },
+  "reports/dashboard": {
+   "endpoint": "/api/reports/dashboard",
+   "http_status": 200,
+   "fields": {}
+  },
+  "reports/enquiries": {
+   "endpoint": "/api/reports/enquiries",
+   "http_status": 200,
+   "fields": {}
+  },
+  "reports/open-conversations": {
+   "endpoint": "/api/reports/open-conversations",
+   "http_status": 200,
+   "fields": {
+    "q_conversation_report[].assigned": "number",
+    "q_conversation_report[].open": "number",
+    "q_conversation_report[].unassigned": "number",
+    "q_conversation_report[].x": "string"
+   }
+  },
+  "template/all-channels": {
+   "endpoint": "/api/template/all-channels",
+   "http_status": 200,
+   "fields": {
+    "qWhatsAppChannel[].account_key": "string",
+    "qWhatsAppChannel[].account_name": "string",
+    "qWhatsAppChannel[].account_token": "string",
+    "qWhatsAppChannel[].app_name": "null",
+    "qWhatsAppChannel[].channel_id": "number",
+    "qWhatsAppChannel[].id": "string",
+    "qWhatsAppChannel[].is_connected": "boolean",
+    "qWhatsAppChannel[].mm_lite_api": "null"
+   }
+  },
+  "template/all-master-template": {
+   "endpoint": "/api/template/all-master-template",
+   "http_status": 200,
+   "fields": {
+    "all_template[].all_mappers": "array|null",
+    "all_template[].all_mappers[]": "string",
+    "all_template[].all_mappers_msg": "string",
+    "all_template[].body.example.body_text[][]": "string",
+    "all_template[].body.text": "string",
+    "all_template[].body.type": "string",
+    "all_template[].button_mapper": "null",
+    "all_template[].button_mapper2": "null",
+    "all_template[].buttons": "null|object",
+    "all_template[].buttons.buttons[].text": "string",
+    "all_template[].buttons.buttons[].type": "string",
+    "all_template[].buttons.type": "string",
+    "all_template[].card_preview": "string",
+    "all_template[].carousel_card": "null",
+    "all_template[].created_by": "string",
+    "all_template[].created_img": "string",
+    "all_template[].created_on": "string",
+    "all_template[].footer": "null|object",
+    "all_template[].footer.text": "string",
+    "all_template[].footer.type": "string",
+    "all_template[].header.format": "string",
+    "all_template[].header.text": "string",
+    "all_template[].header.type": "string",
+    "all_template[].header_mapper": "null",
+    "all_template[].id": "number",
+    "all_template[].image_url": "null",
+    "all_template[].last_edit_on": "null",
+    "all_template[].mapper": "string",
+    "all_template[].mapper_missing": "number",
+    "all_template[].message_preview": "string",
+    "all_template[].template_category": "string",
+    "all_template[].template_category_icon": "string|null",
+    "all_template[].template_category_localized": "string",
+    "all_template[].template_components[].buttons[].text": "string",
+    "all_template[].template_components[].buttons[].type": "string",
+    "all_template[].template_components[].example.body_text[][]": "string",
+    "all_template[].template_components[].format": "string",
+    "all_template[].template_components[].text": "string",
+    "all_template[].template_components[].type": "string",
+    "all_template[].template_id": "null",
+    "all_template[].template_industry": "string",
+    "all_template[].template_industry_localized": "string",
+    "all_template[].template_language": "string",
+    "all_template[].template_language_localized": "string",
+    "all_template[].template_name": "string",
+    "all_template[].template_status": "string",
+    "all_template[].template_status_localized": "string",
+    "all_template[].template_type": "string",
+    "all_template[].template_type_localized": "string",
+    "all_template[].template_usecase": "string",
+    "all_template[].template_usecase_localized": "string",
+    "all_template[].updated_by": "string",
+    "all_template[].updated_img": "string",
+    "all_template[].updated_on": "null"
+   }
+  },
+  "template/all-whatsapp-template": {
+   "endpoint": "/api/template/all-whatsapp-template",
+   "http_status": 400,
+   "fields": {},
+   "required_params": [
+    "id"
+   ]
+  },
+  "template/performance": {
+   "endpoint": "/api/template/performance",
+   "http_status": 500,
+   "fields": {}
+  },
+  "workflow/all": {
+   "endpoint": "/api/workflow/all",
+   "http_status": 200,
+   "fields": {
+    "qAllWorkflow.offset": "number",
+    "qAllWorkflow.limit": "string",
+    "qAllWorkflow.total": "number",
+    "qAllWorkflow.data": "array",
+    "qAllWorkflow.page.current": "number",
+    "qAllWorkflow.page.total": "number",
+    "qAllWorkflow.page.offset.first": "number",
+    "qAllWorkflow.page.offset.prev": "number",
+    "qAllWorkflow.page.offset.next": "number",
+    "qAllWorkflow.page.offset.last": "number",
+    "qAllWorkflow.data[].channel_name": "string",
+    "qAllWorkflow.data[].closed_count": "null",
+    "qAllWorkflow.data[].communication_channel_icon": "null",
+    "qAllWorkflow.data[].communication_channel_id": "null",
+    "qAllWorkflow.data[].completed_count": "null",
+    "qAllWorkflow.data[].drip_flow": "boolean",
+    "qAllWorkflow.data[].event_type": "null",
+    "qAllWorkflow.data[].icon": "string",
+    "qAllWorkflow.data[].id": "string",
+    "qAllWorkflow.data[].processing_count": "null",
+    "qAllWorkflow.data[].sort_order": "number",
+    "qAllWorkflow.data[].total_count": "null",
+    "qAllWorkflow.data[].updated_by": "string",
+    "qAllWorkflow.data[].updated_on": "string",
+    "qAllWorkflow.data[].workflow_desc": "null",
+    "qAllWorkflow.data[].workflow_name": "string",
+    "qAllWorkflow.data[].workflow_status": "string",
+    "qAllWorkflow.data[].workflow_type": "string",
+    "var_template_localization.conversation_closed": "string",
+    "var_template_localization.conversation_opened": "string",
+    "var_template_localization.conversation_waiting": "string",
+    "var_template_localization.enquiry_added": "string",
+    "var_template_localization.enquiry_stage_updated": "string",
+    "var_template_localization.enquiry_status_updated": "string",
+    "var_template_localization.incoming_webhook": "string",
+    "var_template_localization.recurring": "string",
+    "var_template_localization.shortcut": "string",
+    "var_template_localization.whatsapp_template": "string",
+    "var_workflow_triggers[].description": "string",
+    "var_workflow_triggers[].imgSrc": "string",
+    "var_workflow_triggers[].is_trigger_allowed": "boolean",
+    "var_workflow_triggers[].loc_title": "string",
+    "var_workflow_triggers[].title": "string",
+    "var_workflow_triggers[].trigger_type": "string|null"
+   }
+  },
+  "workflow/common-data": {
+   "endpoint": "/api/workflow/common-data",
+   "http_status": 200,
+   "fields": {
+    "q_ads": "array",
+    "q_contact_custom_fields": "array",
+    "q_enquiry_custom_fields": "array",
+    "q_category[].content": "string",
+    "q_category[].value": "number",
+    "q_enq_channel[].content": "string",
+    "q_enq_channel[].value": "string",
+    "q_enq_team[].content": "string",
+    "q_enq_team[].pipeline_id": "number",
+    "q_enq_team[].value": "string",
+    "q_get_org_limit[].limit": "string",
+    "q_get_org_limit[].limit_name": "string",
+    "q_kb_source_group[].content": "string",
+    "q_kb_source_group[].value": "string",
+    "q_knowledge_sources[].id": "string",
+    "q_label[].content": "string",
+    "q_label[].type": "string",
+    "q_label[].value": "string",
+    "q_location[].content": "string",
+    "q_location[].value": "string",
+    "q_nationality[].content": "string",
+    "q_nationality[].value": "string",
+    "q_org_channel[].alt_account_id": "null|string",
+    "q_org_channel[].channel_id": "number",
+    "q_org_channel[].content": "string",
+    "q_org_channel[].is_connected": "boolean",
+    "q_org_channel[].value": "string",
+    "q_pipeline[].content": "string",
+    "q_pipeline[].value": "string",
+    "q_pipeline_stage[].content": "string",
+    "q_pipeline_stage[].pipeline_id": "number",
+    "q_pipeline_stage[].value": "string",
+    "q_pipeline_status[].content": "string",
+    "q_pipeline_status[].pipeline_id": "number",
+    "q_pipeline_status[].value": "string",
+    "q_service[].content": "string",
+    "q_service[].value": "string",
+    "q_specialist[].content": "string",
+    "q_specialist[].value": "string",
+    "q_tag[].content": "string",
+    "q_tag[].type": "string",
+    "q_tag[].value": "string",
+    "q_team[].content": "string",
+    "q_team[].is_default": "boolean",
+    "q_team[].type": "string",
+    "q_team[].value": "string",
+    "q_team_user[].content": "string",
+    "q_team_user[].team_id": "number",
+    "q_team_user[].value": "string",
+    "q_user[].content": "string",
+    "q_user[].type": "string",
+    "q_user[].value": "string",
+    "q_wa_template[].content": "string",
+    "q_wa_template[].org_channel_id": "string",
+    "q_wa_template[].value": "string"
+   }
+  },
+  "workflow/flow-template": {
+   "endpoint": "/api/workflow/flow-template",
+   "http_status": 200,
+   "fields": {
+    "q_template_list[].id": "string",
+    "q_template_list[].is_recommended": "boolean",
+    "q_template_list[].template_category": "string",
+    "q_template_list[].template_desc": "string",
+    "q_template_list[].template_img": "string",
+    "q_template_list[].template_name": "string",
+    "q_template_list[].template_type": "string"
+   }
+  },
+  "workflow/log/all": {
+   "endpoint": "/api/workflow/log/all",
+   "http_status": 400,
+   "fields": {},
+   "required_params": [
+    "workflow_id"
+   ]
+  },
+  "workflow/log/step": {
+   "endpoint": "/api/workflow/log/step",
+   "http_status": 400,
+   "fields": {},
+   "required_params": [
+    "contact_workflow_id"
+   ]
+  },
+  "workflow/variables/all": {
+   "endpoint": "/api/workflow/variables/all",
+   "http_status": 200,
+   "fields": {
+    "qAllVariable[].disable_on": "null",
+    "qAllVariable[].id": "string",
+    "qAllVariable[].variable_name": "string"
+   }
+  },
+  "workflow/whatsapp-flows": {
+   "endpoint": "/api/workflow/whatsapp-flows",
+   "http_status": 200,
+   "fields": {
+    "q_flows": "array"
+   }
+  }
+ }
+}
