@@ -12869,6 +12869,59 @@ export type Database = {
           },
         ];
       };
+      fin_report_doctor_map: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          dha_id: string;
+          doctor_key: string;
+          id: string;
+          org_id: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          dha_id: string;
+          doctor_key: string;
+          id?: string;
+          org_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          dha_id?: string;
+          doctor_key?: string;
+          id?: string;
+          org_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_report_doctor_map_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_report_doctor_map_org_id_dha_id_fkey";
+            columns: ["org_id", "dha_id"];
+            isOneToOne: false;
+            referencedRelation: "fin_ref_doctors";
+            referencedColumns: ["org_id", "dha_id"];
+          },
+          {
+            foreignKeyName: "fin_report_doctor_map_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       fin_report_uploads: {
         Row: {
           committed_at: string | null;
@@ -24568,6 +24621,10 @@ export type Database = {
         Returns: string;
       };
       fin_close_withdraw: { Args: { p_close_id: string; p_org_id: string }; Returns: undefined };
+      fin_contribution_inputs: {
+        Args: { p_branch?: string; p_branches?: string[]; p_month: string; p_org_id: string };
+        Returns: Json;
+      };
       fin_cost_set_period: {
         Args: {
           p_month: string;
