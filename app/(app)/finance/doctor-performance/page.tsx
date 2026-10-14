@@ -21,6 +21,7 @@ import { todayIn } from "@/lib/finance/action-support";
 import {
   BAND_LABEL,
   chosenBranch,
+  doctorParam,
   monthParam,
   type Band,
   type DoctorPerformance,
@@ -40,7 +41,8 @@ import { cn } from "@/lib/utils";
 export const metadata = { title: "Doctor performance" };
 export const dynamic = "force-dynamic";
 
-type Search = { month?: string; branch?: string };
+/** `doctor`: a report doctor key (the Doctors drawer's Performance link); that doctor's rows are highlighted. */
+type Search = { month?: string; branch?: string; doctor?: string };
 
 /** Tinted chips (never white text on amber or emerald), one tint per band. */
 const BAND_CLASS: Record<Band, string> = {
@@ -116,7 +118,7 @@ function Cells({ m }: { m: Measures }) {
 
 const sticky = "bg-card sticky left-0 z-10 min-w-44 max-w-64";
 
-function PerformanceTable({ r }: { r: DoctorPerformance }) {
+function PerformanceTable({ r, focus }: { r: DoctorPerformance; focus: string | null }) {
   const prev = monthTitle(r.previousMonth);
   return (
     <Table>
@@ -156,17 +158,28 @@ function PerformanceTable({ r }: { r: DoctorPerformance }) {
             </TableHead>
             <Cells m={d} />
           </TableRow>
-          {d.doctorRows.map((doc) => (
-            <TableRow key={doc.key}>
-              <TableHead
-                scope="row"
-                className={cn(sticky, "text-foreground h-auto py-2 pl-5 font-normal")}
+          {d.doctorRows.map((doc) => {
+            const hit = focus !== null && doc.doctorKey === focus;
+            return (
+              <TableRow
+                key={doc.key}
+                aria-current={hit ? "true" : undefined}
+                className={cn(hit && "bg-accent hover:bg-accent")}
               >
-                {doc.name}
-              </TableHead>
-              <Cells m={doc} />
-            </TableRow>
-          ))}
+                <TableHead
+                  scope="row"
+                  className={cn(
+                    sticky,
+                    "text-foreground h-auto py-2 pl-5 font-normal",
+                    hit && "bg-accent border-primary border-l-4 font-semibold",
+                  )}
+                >
+                  {doc.name}
+                </TableHead>
+                <Cells m={doc} />
+              </TableRow>
+            );
+          })}
         </TableBody>
       ))}
       <TableBody>
@@ -209,8 +222,12 @@ export default async function DoctorPerformancePage({
 
   const title = monthTitle(month);
   const prevTitle = monthTitle(r.previousMonth);
-  const link = (m: string) =>
-    `/finance/doctor-performance?${new URLSearchParams({ month: m.slice(0, 7), ...(branch ? { branch } : {}) })}`;
+  const focus = doctorParam(sp.doctor);
+  const focusName = focus
+    ? (r.departments.flatMap((d) => d.doctorRows).find((x) => x.doctorKey === focus)?.name ?? null)
+    : null;
+  const link = (m: string, doctor = focus) =>
+    `/finance/doctor-performance?${new URLSearchParams({ month: m.slice(0, 7), ...(branch ? { branch } : {}), ...(doctor ? { doctor } : {}) })}`;
   const excel = `/api/finance/doctor-performance?${new URLSearchParams({ month: month.slice(0, 7), ...(branch ? { branch } : {}) })}`;
   const s = r.settings;
   const t = r.total;
@@ -234,6 +251,7 @@ export default async function DoctorPerformancePage({
       </PageHeader>
 
       <form className="flex flex-wrap items-end gap-3">
+        {focus && <input type="hidden" name="doctor" value={focus} />}
         <label className="flex flex-col gap-1 text-xs">
           <span className="text-muted-foreground">Month</span>
           <Input name="month" type="month" defaultValue={month.slice(0, 7)} className="w-44" />
@@ -355,9 +373,19 @@ export default async function DoctorPerformancePage({
                 Bands: Achieved from {int(s.target)}, Near Target from {int(s.near)}, Moderate from{" "}
                 {int(s.moderate)}, otherwise Below Target (AED per patient).
               </CardDescription>
+              {focus && (
+                <p className="text-sm" role="status">
+                  {focusName
+                    ? `Highlighted: ${focusName}.`
+                    : `The doctor you opened has no report rows in ${title} or ${prevTitle}.`}{" "}
+                  <Link className="text-primary underline" href={link(month, null)}>
+                    Clear
+                  </Link>
+                </p>
+              )}
             </CardHeader>
             <CardContent>
-              <PerformanceTable r={r} />
+              <PerformanceTable r={r} focus={focus} />
             </CardContent>
           </Card>
 

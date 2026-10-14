@@ -121,7 +121,7 @@ export async function loadDoctors(
     admin
       .from("specialists")
       .select(
-        "id, name, title, specialty, department_id, active, licence_number, licence_authority, licence_expires_on, phone_ext, bio, user_id, profiles:profiles!specialists_user_id_fkey(first_name, last_name, email)",
+        "id, name, title, specialty, department_id, active, licence_number, licence_authority, licence_expires_on, phone_ext, bio, user_id, report_doctor_key, profiles:profiles!specialists_user_id_fkey(first_name, last_name, email)",
       )
       .eq("org_id", orgId)
       .order("name"),
@@ -189,6 +189,7 @@ export async function loadDoctors(
       bio: s.bio,
       userId: s.user_id,
       userLabel: personLabel(s.profiles),
+      reportDoctorKey: s.report_doctor_key,
       todayCount: counts.get(s.id) ?? 0,
       hours: hoursSummary(
         myHours,
