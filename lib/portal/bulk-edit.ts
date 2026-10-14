@@ -64,6 +64,11 @@ export function bulkEditableColumns(def: PortalObjectDef): PortalColumn[] {
   return writableColumns(def, "update").filter((c) => c.key !== def.titleColumn);
 }
 
+/** Can this field be emptied? Not when required, not a yes/no field and not a NOT NULL column (the update would fail). */
+export function bulkClearable(column: PortalColumn): boolean {
+  return !column.required && !column.notNull && column.type !== "boolean";
+}
+
 export type BulkEditPlan =
   { ok: true; ids: string[]; column: PortalColumn; value: unknown } | { ok: false; error: string };
 
@@ -76,8 +81,11 @@ export function planBulkEdit(def: PortalObjectDef, input: unknown): BulkEditPlan
   const column = bulkEditableColumns(def).find((c) => c.key === p.field);
   if (!column) return { ok: false, error: "That field cannot be edited in bulk." };
   if (p.op === "clear") {
-    if (column.required)
-      return { ok: false, error: `${column.label} is required and cannot be cleared.` };
+    if (!bulkClearable(column))
+      return {
+        ok: false,
+        error: `${column.label} ${column.required ? "is required and " : ""}cannot be cleared.`,
+      };
     return { ok: true, ids: p.ids, column, value: null };
   }
   if (p.value === undefined) return { ok: false, error: `Enter a value for ${column.label}.` };

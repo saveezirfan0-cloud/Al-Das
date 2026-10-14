@@ -154,6 +154,11 @@ export function PortalWorkspace({ bootstrap }: { bootstrap: PortalBootstrap }) {
     setRowSelection({});
   }, [filter, debouncedSearch, sorting, pageSize, tagFilter]);
 
+  // Selection is per page (docs/33): a bulk action never touches rows the person can no longer see.
+  React.useEffect(() => {
+    setRowSelection({});
+  }, [page]);
+
   const sort = React.useMemo(
     () =>
       sorting

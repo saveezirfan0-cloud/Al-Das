@@ -27,6 +27,8 @@ export type PortalColumn = {
   type: PortalFieldType;
   /** Must be non-empty on create / edit. */
   required?: boolean;
+  /** Optional in forms (the database has a default) but NOT NULL, so it can never be cleared. */
+  notNull?: boolean;
   /** Shown but never written through the portal (ids, timestamps, import provenance). */
   readOnly?: boolean;
   /** Writable on create only (natural keys). */

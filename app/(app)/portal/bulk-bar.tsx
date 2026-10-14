@@ -22,7 +22,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { BULK_EDIT_MAX, bulkEditableColumns, type PortalTag } from "@/lib/portal/bulk-edit";
+import {
+  BULK_EDIT_MAX,
+  bulkClearable,
+  bulkEditableColumns,
+  type PortalTag,
+} from "@/lib/portal/bulk-edit";
 
 import { bulkEditPortalRecords, bulkTagPortalRecords, createPortalTagInline } from "./actions";
 import { FieldInput } from "./field-input";
@@ -172,7 +177,7 @@ function BulkEditDialog({
     effective === undefined ||
     (typeof effective === "string" && effective.trim() === "") ||
     (Array.isArray(effective) && effective.length === 0 && column?.type !== "multi_select");
-  const canApply = !!column && (mode === "clear" ? !column.required : !blank);
+  const canApply = !!column && (mode === "clear" ? bulkClearable(column) : !blank);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -225,18 +230,22 @@ function BulkEditDialog({
                   Set to a value
                 </label>
                 <label
-                  className={`flex min-h-11 items-center gap-2 ${column.required ? "text-muted-foreground" : ""}`}
+                  className={`flex min-h-11 items-center gap-2 ${!bulkClearable(column) ? "text-muted-foreground" : ""}`}
                 >
                   <input
                     type="radio"
                     name="bulk-mode"
                     className="accent-primary size-4"
-                    disabled={column.required}
+                    disabled={!bulkClearable(column)}
                     checked={mode === "clear"}
                     onChange={() => setMode("clear")}
                   />
                   Clear it
-                  {column.required && <span className="text-xs">(required field)</span>}
+                  {!bulkClearable(column) && (
+                    <span className="text-xs">
+                      {column.required ? "(required field)" : "(cannot be empty)"}
+                    </span>
+                  )}
                 </label>
               </div>
               {mode === "set" && (

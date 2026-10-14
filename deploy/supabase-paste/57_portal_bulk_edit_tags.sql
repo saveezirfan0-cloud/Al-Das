@@ -137,4 +137,51 @@ $$;
 revoke all on function public.portal_bulk_update(uuid, text, uuid[], text, jsonb) from public, anon, authenticated;
 grant execute on function public.portal_bulk_update(uuid, text, uuid[], text, jsonb) to service_role;
 
+-- ---------------------------------------------------------------------------
+-- Tag writes per scope. The Phase 1 policies let any contacts.manage holder write a tag of ANY scope from the
+-- browser; the app writes tags only from the server (after the scope's own can()), so these restrictive policies
+-- make the database agree with it: each scope needs its own permission, and a tag never changes scope (the
+-- portal_record_tags / enquiry_tags triggers check the scope only when a link is written).
+-- ---------------------------------------------------------------------------
+create or replace function app.tag_scope_writable(p_org_id uuid, p_scope text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select case p_scope
+           when 'contact' then app.has_perm_wild(p_org_id, 'contacts.manage')
+           when 'enquiry' then app.has_perm_wild(p_org_id, 'enquiries.manage')
+           when 'conversation' then app.has_perm_wild(p_org_id, 'settings.manage')
+           when 'portal' then app.has_perm_wild(p_org_id, 'portal.tags.manage')
+           else false
+         end;
+$$;
+revoke all on function app.tag_scope_writable(uuid, text) from public;
+grant execute on function app.tag_scope_writable(uuid, text) to authenticated, service_role;
+
+create policy tags_scope_insert on public.tags as restrictive for insert to authenticated
+  with check (app.tag_scope_writable(org_id, scope));
+create policy tags_scope_update on public.tags as restrictive for update to authenticated
+  using (app.tag_scope_writable(org_id, scope))
+  with check (app.tag_scope_writable(org_id, scope));
+create policy tags_scope_delete on public.tags as restrictive for delete to authenticated
+  using (app.tag_scope_writable(org_id, scope));
+
+create or replace function app.tags_scope_fixed()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if new.scope is distinct from old.scope then
+    raise exception 'A tag cannot change scope' using errcode = '23514';
+  end if;
+  return new;
+end;
+$$;
+create trigger tags_scope_fixed before update of scope on public.tags
+  for each row execute function app.tags_scope_fixed();
+
 insert into supabase_migrations.schema_migrations (version, name) values ('20261117000100', 'portal_bulk_edit_tags') on conflict (version) do nothing;

@@ -34,3 +34,10 @@ Migration `supabase/migrations/20261117000100_portal_bulk_edit_tags.sql`; paste 
 - `tests/unit/portal-bulk-edit.test.ts`: field list, value validation, clear rules, the 500 cap, tag schemas and diffs, result counts, the tag filter SQL.
 - `tests/db/portal-bulk-tags.test.ts`: cross-org reads of `portal_record_tags` fail, reads follow the object's read key, no browser writes, the trigger refuses non-portal tags, other orgs' tags and records and missing records, `portal_bulk_update` touches only the caller's organisation and skips unchanged rows, names the actor in `record_history`, refuses system and unknown columns, more than 500 ids and signed-in callers.
 - `portal_record_tags` is in the cross-org sweep (`PORTAL_TAGS_TABLES`, `seedPortalTagRows` in `tests/db/helpers.ts`).
+
+## Review fixes (before merge)
+
+- **Tag writes per scope in the database.** Restrictive policies on `public.tags` (`app.tag_scope_writable`) require the scope's own permission for a browser write: contact `contacts.manage`, enquiry `enquiries.manage`, conversation `settings.manage`, portal `portal.tags.manage`. Before this, any `contacts.manage` holder could rename or delete a portal or enquiry tag from the browser. A trigger (`tags_scope_fixed`) refuses any change of a tag's scope, for every role.
+- **Clear is offered only where the database allows empty:** never for yes/no fields or for columns marked `notNull` (Condition groups, Priority), in the dialog and in `planBulkEdit` (`bulkClearable`).
+- **Selection resets when the page changes**, so a bulk action only touches rows on screen (decision 6).
+

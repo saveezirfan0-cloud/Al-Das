@@ -263,4 +263,52 @@ describe.skipIf(!TEST_DATABASE_URL)("portal bulk edit and tags", () => {
       });
     });
   });
+  describe("tag writes per scope", () => {
+    let hana: string; // contacts.manage only, in org A
+
+    beforeAll(async () => {
+      hana = await createAuthUser(c, "hana@example.test");
+      await asServiceRole(c, () => addMember(orgA, hana, "Contacts only", ["contacts.manage"]));
+    });
+
+    it("lets contacts.manage write contact tags but not portal or enquiry tags", async () => {
+      await asUser(c, hana, async () => {
+        await c.query(
+          "insert into public.tags (org_id, name, scope) values ($1, 'Fake contact', 'contact')",
+          [orgA],
+        );
+        await expect(
+          c.query(
+            "insert into public.tags (org_id, name, scope) values ($1, 'Fake portal', 'portal')",
+            [orgA],
+          ),
+        ).rejects.toThrow(/row-level security/);
+        const upd = await c.query(
+          "update public.tags set name = 'Renamed' where id = any($1::uuid[])",
+          [[tagA, enquiryTagA]],
+        );
+        expect(upd.rowCount).toBe(0);
+        const del = await c.query("delete from public.tags where id = $1", [tagA]);
+        expect(del.rowCount).toBe(0);
+      });
+      expect(
+        await count(c, "select 1 from public.portal_record_tags where tag_id = $1", [tagA]),
+      ).toBe(1);
+    });
+
+    it("lets a portal tag manager (here the administrator) rename a portal tag", async () => {
+      const upd = await asUser(c, alice, () =>
+        c.query("update public.tags set name = 'Review again' where id = $1", [tagA]),
+      );
+      expect(upd.rowCount).toBe(1);
+    });
+
+    it("never lets a tag change scope, not even for the service role", async () => {
+      await asServiceRole(c, async () => {
+        await expect(
+          c.query("update public.tags set scope = 'contact' where id = $1", [tagA]),
+        ).rejects.toThrow(/cannot change scope/);
+      });
+    });
+  });
 });

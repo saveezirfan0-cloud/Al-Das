@@ -55,6 +55,19 @@ describe("planBulkEdit", () => {
     expect(p).toEqual(expect.objectContaining({ ok: true, value: null }));
   });
 
+  it("refuses to clear a yes/no field or a NOT NULL column", () => {
+    expect(planBulkEdit(diag, { op: "clear", ids: [A], field: "chronic" })).toEqual({
+      ok: false,
+      error: expect.stringMatching(/cannot be cleared/),
+    });
+    const groups = requirePortalObject("ref_condition_groups");
+    expect(planBulkEdit(groups, { op: "clear", ids: [A], field: "sort" })).toEqual({
+      ok: false,
+      error: expect.stringMatching(/cannot be cleared/),
+    });
+    expect(planBulkEdit(groups, { op: "set", ids: [A], field: "sort", value: 3 }).ok).toBe(true);
+  });
+
   it("refuses to clear a required field", () => {
     const p = planBulkEdit(entries, { op: "clear", ids: [A], field: "section" });
     expect(p).toEqual({ ok: false, error: expect.stringMatching(/required/) });
