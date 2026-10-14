@@ -11,7 +11,8 @@ This is the single document to work from. Section 1 says where we are, 2 says wh
 - **23A Unite collection report upload** (`/finance/upload`, `finance.revenue.import`): sanitised rows only, reconciled to the report's own totals before commit; tested end to end against the real September export locally (reconciles to the fils: net 1,839,005.80, 1,362 patients; the file is not in the repository). Notes: `docs/23_PHASE_23A_NOTES.md`.
 - **23B Doctor performance** (`/finance/doctor-performance`, Excel download, target and bands under Finance, Targets and report lines, tiles on the Management dashboard): reproduces the corrected revenue comparison workbook (e.g. Dermatology 123,626.24 / 160 patients / 772.66). Notes: `docs/23_PHASE_23B_NOTES.md`.
 - **Contract Generator alignment** (`docs/finance/contract-rules-alignment.md`): how the HR contract terms feed doctor pay in M2; OQ-148 to OQ-157.
-- Database: paste files `66_` to `68_` after `65_`. **Production has only the first 4 migrations**: the `db-migrate` workflow fails because the repository secret `SUPABASE_DB_URL` is empty (see `docs/38_HOSTING_SETUP.md`).
+- Database: production (`dljdxwgmstxfxyhbpntz`) has every migration up to `20261125000100_finance_access_window` (the `db-migrate` run of 14 Oct 18:35 UTC succeeded); Phase 23's three migrations apply when this merges to `main` (paste files `66_` to `68_` for a manual run).
+- **Before the first real Unite report upload:** the production project is in **us-east-1**, and OQ-49 (where UAE patient data may be hosted) is still open. A report upload stores patient PINs; answer OQ-49 first.
 
 ## 0d. Update, 14 Oct 2026: management platform plan
 

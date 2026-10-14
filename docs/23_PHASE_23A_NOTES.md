@@ -96,8 +96,8 @@ problem naming the column. An upload that does not reconcile can be looked at an
 ## Integration notes
 
 - The `/finance/upload` page now opens for `finance.claims.import` OR `finance.revenue.import`, and shows each card only to
-  the holder of its permission. The menu entry in `lib/finance/nav.ts` still lists `finance.claims.import` only (left for
-  the nav owner; Finance and Finance Manager hold both).
+  the holder of its permission. The menu entry in `lib/finance/nav.ts` ("Uploads (insurance,
+  Unite)") lists both permissions.
 - No help guide existed for `/finance/upload`, so none was added.
 
 ## Deferred
