@@ -6016,10 +6016,12 @@ export type Database = {
           business_profile: NonNullable<Json>;
           catalog_id: string | null;
           created_at: string;
+          default_team_id: string | null;
           display_phone: string | null;
           id: string;
           is_coexistence: boolean;
           last_synced_at: string | null;
+          location_id: string | null;
           messaging_limit_tier: string | null;
           meta: NonNullable<Json>;
           name: string;
@@ -6040,10 +6042,12 @@ export type Database = {
           business_profile?: NonNullable<Json>;
           catalog_id?: string | null;
           created_at?: string;
+          default_team_id?: string | null;
           display_phone?: string | null;
           id?: string;
           is_coexistence?: boolean;
           last_synced_at?: string | null;
+          location_id?: string | null;
           messaging_limit_tier?: string | null;
           meta?: NonNullable<Json>;
           name: string;
@@ -6063,10 +6067,12 @@ export type Database = {
           business_profile?: NonNullable<Json>;
           catalog_id?: string | null;
           created_at?: string;
+          default_team_id?: string | null;
           display_phone?: string | null;
           id?: string;
           is_coexistence?: boolean;
           last_synced_at?: string | null;
+          location_id?: string | null;
           messaging_limit_tier?: string | null;
           meta?: NonNullable<Json>;
           name?: string;
@@ -6082,6 +6088,20 @@ export type Database = {
           waba_id?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "channels_default_team_id_fkey";
+            columns: ["default_team_id"];
+            isOneToOne: false;
+            referencedRelation: "teams";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "channels_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "channels_org_id_fkey";
             columns: ["org_id"];
@@ -7067,6 +7087,7 @@ export type Database = {
           language: string | null;
           last_interaction_at: string | null;
           last_name: string;
+          location_id: string | null;
           merged_into_id: string | null;
           nationality: string | null;
           no_review_requests_at: string | null;
@@ -7105,6 +7126,7 @@ export type Database = {
           language?: string | null;
           last_interaction_at?: string | null;
           last_name?: string;
+          location_id?: string | null;
           merged_into_id?: string | null;
           nationality?: string | null;
           no_review_requests_at?: string | null;
@@ -7142,6 +7164,7 @@ export type Database = {
           language?: string | null;
           last_interaction_at?: string | null;
           last_name?: string;
+          location_id?: string | null;
           merged_into_id?: string | null;
           nationality?: string | null;
           no_review_requests_at?: string | null;
@@ -7171,6 +7194,13 @@ export type Database = {
             columns: ["created_by"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "contacts_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
             referencedColumns: ["id"];
           },
           {
@@ -7420,6 +7450,7 @@ export type Database = {
           last_message_direction: string | null;
           last_message_preview: string | null;
           last_outbound_at: string | null;
+          location_id: string | null;
           opened_at: string;
           org_id: string;
           status: string;
@@ -7451,6 +7482,7 @@ export type Database = {
           last_message_direction?: string | null;
           last_message_preview?: string | null;
           last_outbound_at?: string | null;
+          location_id?: string | null;
           opened_at?: string;
           org_id: string;
           status?: string;
@@ -7481,6 +7513,7 @@ export type Database = {
           last_message_direction?: string | null;
           last_message_preview?: string | null;
           last_outbound_at?: string | null;
+          location_id?: string | null;
           opened_at?: string;
           org_id?: string;
           status?: string;
@@ -7551,6 +7584,13 @@ export type Database = {
             columns: ["flow_run_id"];
             isOneToOne: false;
             referencedRelation: "flow_runs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "conversations_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
             referencedColumns: ["id"];
           },
           {
@@ -20079,6 +20119,7 @@ export type Database = {
           due_notified_for: string | null;
           enquiry_id: string | null;
           id: string;
+          location_id: string | null;
           notes: string | null;
           org_id: string;
           subject: string;
@@ -20100,6 +20141,7 @@ export type Database = {
           due_notified_for?: string | null;
           enquiry_id?: string | null;
           id?: string;
+          location_id?: string | null;
           notes?: string | null;
           org_id: string;
           subject: string;
@@ -20120,6 +20162,7 @@ export type Database = {
           due_notified_for?: string | null;
           enquiry_id?: string | null;
           id?: string;
+          location_id?: string | null;
           notes?: string | null;
           org_id?: string;
           subject?: string;
@@ -20198,6 +20241,13 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "tasks_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "tasks_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
@@ -20264,6 +20314,7 @@ export type Database = {
           fallback_team_id: string | null;
           id: string;
           lead_user_id: string | null;
+          location_id: string | null;
           name: string;
           office_hours: Json | null;
           org_id: string;
@@ -20278,6 +20329,7 @@ export type Database = {
           fallback_team_id?: string | null;
           id?: string;
           lead_user_id?: string | null;
+          location_id?: string | null;
           name: string;
           office_hours?: Json | null;
           org_id: string;
@@ -20291,6 +20343,7 @@ export type Database = {
           fallback_team_id?: string | null;
           id?: string;
           lead_user_id?: string | null;
+          location_id?: string | null;
           name?: string;
           office_hours?: Json | null;
           org_id?: string;
@@ -20310,6 +20363,13 @@ export type Database = {
             columns: ["lead_user_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "teams_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
             referencedColumns: ["id"];
           },
           {
@@ -23377,6 +23437,7 @@ export type Database = {
       acc_balance_sheet: {
         Args: {
           p_as_at: string;
+          p_branch_code?: string;
           p_entity_id: string;
           p_include_adjustment: boolean;
           p_org_id: string;
@@ -23468,6 +23529,7 @@ export type Database = {
       };
       acc_cash_flow: {
         Args: {
+          p_branch_code?: string;
           p_entity_id: string;
           p_from: string;
           p_include_adjustment: boolean;
@@ -23534,6 +23596,7 @@ export type Database = {
       acc_ledger: {
         Args: {
           p_account_id: string;
+          p_branch_code?: string;
           p_from: string;
           p_limit: number;
           p_offset: number;
@@ -23826,7 +23889,13 @@ export type Database = {
         Returns: Json;
       };
       acc_trial_balance: {
-        Args: { p_entity_id: string; p_from: string; p_org_id: string; p_to: string };
+        Args: {
+          p_branch_code?: string;
+          p_entity_id: string;
+          p_from: string;
+          p_org_id: string;
+          p_to: string;
+        };
         Returns: Json;
       };
       acc_vat_return: {
