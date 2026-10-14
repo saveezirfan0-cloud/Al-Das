@@ -20,7 +20,7 @@ import {
 } from "./actions";
 import { ActionButton, RowForm } from "./row-form";
 
-export const metadata = { title: "Reference data" };
+export const metadata = { title: "Finance reference data" };
 export const dynamic = "force-dynamic";
 
 const TABS = [
@@ -47,7 +47,7 @@ export default async function ReferencePage({
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Reference data"
+        title="Finance reference data"
         description="Mappings that turn Unite and Diligence data into branches, departments and service categories."
       >
         <ActionButton action={rederiveBranchesAction}>Re-derive branches</ActionButton>

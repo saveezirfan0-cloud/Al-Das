@@ -11,7 +11,7 @@ test("the rail shows the areas; pointing at one opens its flyout and the pin doc
 }) => {
   await gotoReady(page, "/dashboard");
   const rail = page.getByRole("navigation", { name: "Main" });
-  for (const area of ["Home", "Today", "CRM", "Growth", "Insights", "Settings"])
+  for (const area of ["Home", "Today", "Messaging", "CRM", "Insights", "Settings"])
     await expect(rail.getByRole("link", { name: area, exact: true })).toBeVisible();
 
   // Home has a single page, so nothing is docked on the dashboard.

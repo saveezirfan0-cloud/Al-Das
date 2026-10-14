@@ -1,3 +1,4 @@
+import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -50,8 +51,8 @@ export default async function CostCentresPage() {
             <TableBody>
               {(data ?? []).length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={3} className="text-muted-foreground text-sm">
-                    No cost centres yet.
+                  <TableCell colSpan={3}>
+                    <EmptyState title="No cost centres yet" className="border-0 p-6" />
                   </TableCell>
                 </TableRow>
               )}

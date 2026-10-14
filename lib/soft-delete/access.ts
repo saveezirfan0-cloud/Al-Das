@@ -14,8 +14,8 @@ export const ENTITY_RULES: Record<
   { label: string; plural: string; restorePerms: readonly string[]; auditEntity: string }
 > = {
   contact: {
-    label: "Contact",
-    plural: "contacts",
+    label: "Patient",
+    plural: "patients",
     restorePerms: ["contacts.manage"],
     auditEntity: "contact",
   },

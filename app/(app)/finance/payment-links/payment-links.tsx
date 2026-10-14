@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { EmptyState } from "@/components/shell/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -197,7 +198,10 @@ export function PaymentLinks({ enabled, rows }: { enabled: boolean; rows: Reques
         </CardHeader>
         <CardContent>
           {rows.length === 0 ? (
-            <p className="text-muted-foreground text-sm">No payment links yet.</p>
+            <EmptyState
+              title="No payment links yet"
+              description="Send one from an invoice: the patient pays online and the link shows here."
+            />
           ) : (
             <Table>
               <TableHeader>

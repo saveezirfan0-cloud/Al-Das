@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -60,6 +61,7 @@ export function AiCopilotsSettings({
   canSign: boolean;
   usage: Record<string, { calls: number; problems: number }>;
 }) {
+  const [ask, askDialog] = useConfirm();
   const { pending, run } = useRun();
   const [phrase, setPhrase] = useState("");
   const [tags, setTags] = useState<FlowTriggerableTag[]>(tagFlows.tags);
@@ -145,8 +147,8 @@ export function AiCopilotsSettings({
                   variant="outline"
                   className="w-fit"
                   disabled={pending}
-                  onClick={() => {
-                    if (window.confirm("Stop AI tags from starting flows?"))
+                  onClick={async () => {
+                    if (await ask("Stop AI tags from starting flows?"))
                       run(() => disableTagFlows());
                   }}
                 >
@@ -239,6 +241,7 @@ export function AiCopilotsSettings({
           </dl>
         </CardContent>
       </Card>
+      {askDialog}
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 
 import { HelpMenu } from "@/components/help/help-menu";
 import type { NavState } from "@/lib/nav/state";
+import { currentItem } from "@/lib/nav/tree";
 
 import { OPEN_PALETTE_EVENT } from "./command-palette";
 import { OPEN_NAV_EVENT } from "./mobile-tabs";
@@ -47,7 +48,8 @@ export function Topbar({
     setIsMac(/mac/i.test(nav.userAgentData?.platform ?? nav.platform ?? ""));
   }, []);
 
-  const current = items.find((i) => pathname === i.href || pathname.startsWith(i.href + "/"));
+  // the most specific item: /dashboard/management is Management, /staff/rota is Rota
+  const current = currentItem(items, pathname);
 
   return (
     <header className="bg-background flex h-14 shrink-0 items-center gap-3 border-b px-4 print:hidden">

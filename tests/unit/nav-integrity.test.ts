@@ -4,6 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { NAV_GROUPS, NAV_ITEMS } from "@/components/shell/nav";
+import { SETTINGS_FOREIGN_PREFIXES } from "@/components/shell/settings-pages";
 import { NAV_MODULES } from "@/lib/nav/modules";
 
 // Every menu link must open a real page, and every page must sit under exactly one menu entry, so the desktop rail,
@@ -28,7 +29,11 @@ describe("navigation integrity", () => {
   it("every module page opens a page and lives under its module", () => {
     const missing = moduleHrefs.filter((e) => !pageExists(e.href)).map((e) => e.href);
     expect(missing).toEqual([]);
-    const outside = moduleHrefs.filter((e) => !e.href.startsWith(e.top)).map((e) => e.href);
+    // Settings may list the finance and accounting setup pages at their own URLs (Phase D); nothing else may live outside
+    const home = (e: { top: string; href: string }) =>
+      e.href.startsWith(e.top) ||
+      (e.top === "/settings" && SETTINGS_FOREIGN_PREFIXES.some((p) => e.href.startsWith(p)));
+    const outside = moduleHrefs.filter((e) => !home(e)).map((e) => e.href);
     expect(outside).toEqual([]);
   });
 

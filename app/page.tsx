@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 
 import { requireMember } from "@/lib/auth/session";
-import { landingPathFor } from "@/lib/front-desk/landing";
+import { landingPathFor } from "@/lib/shell/landing";
 
-/** Signed-in people land on the page that suits their role: the Receptionist on the Front desk, the Doctor on My day, others on the dashboard. */
+/** Signed-in people land on the page that suits their role (lib/shell/landing.ts, docs/34 §3 "Home"). */
 export default async function Home() {
   const member = await requireMember();
   redirect(landingPathFor(member));

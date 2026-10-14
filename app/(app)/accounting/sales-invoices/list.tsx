@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -134,8 +135,8 @@ export async function SalesList({ kind, sp }: { kind: SalesDocKind; sp: SalesSea
             <TableBody>
               {rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-muted-foreground text-sm">
-                    Nothing matches.
+                  <TableCell colSpan={7}>
+                    <EmptyState title="Nothing matches" className="border-0 p-6" />
                   </TableCell>
                 </TableRow>
               ) : (

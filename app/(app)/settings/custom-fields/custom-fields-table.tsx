@@ -4,6 +4,7 @@ import * as React from "react";
 import { ArrowDown, ArrowUp, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,6 +35,7 @@ export function CustomFieldsTable({
   rows: Row[];
   entity?: "contact" | "enquiry";
 }) {
+  const [ask, askDialog] = useConfirm();
   const [editing, setEditing] = React.useState<Row | null>(null);
   const [pending, startTransition] = React.useTransition();
 
@@ -48,9 +50,11 @@ export function CustomFieldsTable({
     });
   }
 
-  function remove(r: Row) {
+  async function remove(r: Row) {
     if (
-      !confirm(`Delete the field "${r.label}"? Filters and segments using it will stop matching.`)
+      !(await ask(
+        `Delete the field "${r.label}"? Filters and segments using it will stop matching.`,
+      ))
     )
       return;
     startTransition(async () => {
@@ -138,6 +142,7 @@ export function CustomFieldsTable({
           onOpenChange={(o) => !o && setEditing(null)}
         />
       )}
+      {askDialog}
     </>
   );
 }

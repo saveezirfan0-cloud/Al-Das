@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -24,11 +25,12 @@ export function TeamActions({
   people: Array<{ id: string; label: string }>;
   teams: Array<{ id: string; name: string }>;
 }) {
+  const [ask, askDialog] = useConfirm();
   const [editing, setEditing] = useState(false);
   const [pending, startTransition] = useTransition();
 
-  function remove() {
-    if (!confirm(`Delete the ${team.name} team?`)) return;
+  async function remove() {
+    if (!(await ask(`Delete the ${team.name} team?`))) return;
     startTransition(async () => {
       const res = await deleteTeam(team.id);
       if (res.ok) toast.success(res.message);
@@ -64,6 +66,7 @@ export function TeamActions({
         open={editing}
         onOpenChange={setEditing}
       />
+      {askDialog}
     </>
   );
 }

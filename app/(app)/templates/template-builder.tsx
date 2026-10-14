@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { MediaPicker } from "@/components/media/media-picker";
 import { PhonePreview } from "@/components/phone-preview/phone-preview";
 import { Badge } from "@/components/ui/badge";
@@ -286,6 +287,7 @@ export function TemplateBuilder({
   init: BuilderInit;
   closeHref: string;
 }) {
+  const [ask, askDialog] = useConfirm();
   const router = useRouter();
   const [draft, setDraft] = useState<TemplateDraft>(init.draft);
   const [channelId, setChannelId] = useState(init.channelId);
@@ -461,12 +463,12 @@ export function TemplateBuilder({
     });
   }
 
-  function submit() {
+  async function submit() {
     if (errors.length) return;
     if (
-      !window.confirm(
+      !(await ask(
         "Send this template to Meta for review? Meta usually answers within minutes, sometimes up to 24 hours.",
-      )
+      ))
     )
       return;
     startSubmit(async () => {
@@ -1334,6 +1336,7 @@ export function TemplateBuilder({
           </div>
         </div>
       </SheetContent>
+      {askDialog}
     </Sheet>
   );
 }

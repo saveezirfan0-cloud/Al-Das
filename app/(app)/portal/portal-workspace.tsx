@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { DataGrid } from "@/components/data-grid/data-grid";
 import { FilterPanel } from "@/components/filter-builder/filter-panel";
 import { PageHeader } from "@/components/shell/page-header";
@@ -59,6 +60,7 @@ function parseViewColumns(v: unknown): ViewColumns {
 }
 
 export function PortalWorkspace({ bootstrap }: { bootstrap: PortalBootstrap }) {
+  const [ask, askDialog] = useConfirm();
   const def = bootstrap.object;
   const router = useRouter();
   const pathname = usePathname();
@@ -306,7 +308,7 @@ export function PortalWorkspace({ bootstrap }: { bootstrap: PortalBootstrap }) {
   }
 
   async function removeView(v: SavedViewDto) {
-    if (!confirm(`Delete the view “${v.name}”?`)) return;
+    if (!(await ask(`Delete the view “${v.name}”?`))) return;
     const res = await deletePortalView(def.key, v.id);
     if (!res.ok) return toast.error(res.error);
     setViews((prev) => prev.filter((x) => x.id !== v.id));
@@ -539,6 +541,7 @@ export function PortalWorkspace({ bootstrap }: { bootstrap: PortalBootstrap }) {
         onClose={() => setParam({ record: null })}
         onChanged={reload}
       />
+      {askDialog}
     </div>
   );
 }

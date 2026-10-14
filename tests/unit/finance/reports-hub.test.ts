@@ -279,7 +279,7 @@ describe("cards", () => {
 
 describe("menu", () => {
   it("lists the hub first under Overview, for finance reporting keys only", () => {
-    expect(FINANCE_NAV[0]).toMatchObject({ href: "/finance/reports", section: "Overview" });
+    expect(FINANCE_NAV[0]).toMatchObject({ href: "/finance/reports", section: "Reports" });
     for (const k of HUB_NAV_PERMISSIONS) expect(HUB_PERMISSIONS).toContain(k);
     expect(HUB_NAV_PERMISSIONS.every((k) => k.startsWith("finance."))).toBe(true);
     expect(financeLanding(member(role("CEO")))).toBe("/finance/reports");

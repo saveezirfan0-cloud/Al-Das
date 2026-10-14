@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -96,8 +97,8 @@ export default async function WaitingPage({ searchParams }: { searchParams: Prom
             <TableBody>
               {items.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-muted-foreground text-sm">
-                    Nothing is waiting.
+                  <TableCell colSpan={7}>
+                    <EmptyState title="Nothing is waiting" className="border-0 p-6" />
                   </TableCell>
                 </TableRow>
               )}

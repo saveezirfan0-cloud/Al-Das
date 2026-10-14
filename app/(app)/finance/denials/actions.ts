@@ -47,7 +47,7 @@ export async function syncDenialCases(): Promise<ActionResult> {
   const r = (data ?? {}) as { skipped?: string; opened?: number; recovered?: number };
   if (r.skipped === "not_enabled")
     return fail(
-      "Denial cases are switched off. Set “Open denial cases from” in Finance, Workflow settings first.",
+      "Denial cases are switched off. Set “Open denial cases from” in Settings, Finance workflow settings first.",
     );
   await recordAudit(admin, {
     orgId: member.orgId,

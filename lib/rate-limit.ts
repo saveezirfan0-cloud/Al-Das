@@ -77,6 +77,8 @@ export const RATE_RULES = {
   financeDocumentEmailPerUser: { limit: 20, windowSec: 3600, failOpen: false },
   /** Phase 19: sending payment links by staff. */
   paymentLinkPerUser: { limit: 20, windowSec: 60, failOpen: false },
+  /** Phase D: Ctrl+K record search (patients, enquiries, tasks), per person; the palette debounces typing. */
+  recordSearchPerUser: { limit: 60, windowSec: 60, failOpen: true },
   /** Phase 10 /api/public/v1, per API key. */
   publicApi: { limit: 120, windowSec: 60, failOpen: true },
 } as const satisfies Record<string, RateRule>;

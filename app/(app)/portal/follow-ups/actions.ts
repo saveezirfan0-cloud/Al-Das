@@ -119,7 +119,7 @@ export async function notifyDoctor(id: string): Promise<ActionResult> {
     userId: doctor.user_id,
     type: "clinical.doctor_review",
     title: "A patient follow-up needs your review",
-    body: "Open the Follow-Up Queue to see the details.",
+    body: "Open Clinical follow-ups to see the details.",
     payload: { followup_id: f.id },
   });
   await admin

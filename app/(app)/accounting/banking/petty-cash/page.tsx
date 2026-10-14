@@ -1,3 +1,4 @@
+import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -154,8 +155,8 @@ export default async function PettyCashPage() {
             <TableBody>
               {floats.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-muted-foreground text-sm">
-                    No floats yet.
+                  <TableCell colSpan={7}>
+                    <EmptyState title="No floats yet" className="border-0 p-6" />
                   </TableCell>
                 </TableRow>
               )}
@@ -224,8 +225,8 @@ export default async function PettyCashPage() {
             <TableBody>
               {counts.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-muted-foreground text-sm">
-                    No counts yet.
+                  <TableCell colSpan={8}>
+                    <EmptyState title="No counts yet" className="border-0 p-6" />
                   </TableCell>
                 </TableRow>
               )}
@@ -296,8 +297,8 @@ export default async function PettyCashPage() {
             <TableBody>
               {expenses.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-muted-foreground text-sm">
-                    No expenses yet.
+                  <TableCell colSpan={8}>
+                    <EmptyState title="No expenses yet" className="border-0 p-6" />
                   </TableCell>
                 </TableRow>
               )}

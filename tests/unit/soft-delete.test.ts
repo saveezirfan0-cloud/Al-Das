@@ -116,7 +116,7 @@ describe("entities, permissions and messages", () => {
       "Task deleted. It can be restored for 30 days from Settings, Recently deleted.",
     );
     expect(deletedMessage("contact", 3, 1)).toBe(
-      "3 contacts deleted. They can be restored for 1 day from Settings, Recently deleted.",
+      "3 patients deleted. They can be restored for 1 day from Settings, Recently deleted.",
     );
     expect(deletedMessage("enquiry", 0, 30)).toBe("Nothing was deleted.");
   });
@@ -125,9 +125,9 @@ describe("entities, permissions and messages", () => {
     expect(restoreOutcomeMessage("task", "restored")).toEqual({ ok: true, message: "Task restored." });
     for (const w of ["expired", "conflict", "parent_deleted", "not_found", "something_else", ""])
       expect(restoreOutcomeMessage("contact", w).ok).toBe(false);
-    expect(restoreOutcomeMessage("contact", "conflict").message).toMatch(/Change or remove it on that contact/);
+    expect(restoreOutcomeMessage("contact", "conflict").message).toMatch(/Change or remove it on that record/);
     expect(restoreOutcomeMessage("contact", "conflict").message).not.toMatch(/[Mm]erge/);
-    expect(restoreOutcomeMessage("task", "parent_deleted").message).toMatch(/contact or enquiry/);
+    expect(restoreOutcomeMessage("task", "parent_deleted").message).toMatch(/patient or enquiry/);
   });
 });
 

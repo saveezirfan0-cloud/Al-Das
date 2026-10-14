@@ -9,7 +9,6 @@ import {
   IdCard,
   Loader2,
   Plus,
-  Save,
   Search,
   Stethoscope,
   Users,
@@ -23,6 +22,8 @@ import { ExpiryBadge } from "@/components/organisation/expiry-badge";
 import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Badge } from "@/components/ui/badge";
+import { DrawerFooter, useUnsavedGuard } from "@/components/shell/drawer-footer";
+import { isDirty } from "@/lib/shell/unsaved";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -322,34 +323,45 @@ function DoctorDrawer({
     phone_ext: "",
     bio: "",
   });
+  // what was loaded or last saved: the drawer asks before closing on anything else (Phase D)
+  const [saved, setSaved] = React.useState<typeof form | null>(null);
 
   React.useEffect(() => {
     if (!doctor) return;
-    setForm({
+    const loaded = {
       specialty: doctor.specialty ?? "",
       licence_number: doctor.licenceNumber ?? "",
       licence_authority: doctor.licenceAuthority || "DHA",
       licence_expires_on: doctor.licenceExpiresOn ?? "",
       phone_ext: doctor.phoneExt ?? "",
       bio: doctor.bio ?? "",
-    });
+    };
+    setForm(loaded);
+    setSaved(loaded);
   }, [doctor]);
 
   const set = (patch: Partial<typeof form>) => setForm((f) => ({ ...f, ...patch }));
+  const dirty = can.edit && isDirty(form, saved);
+  const { confirmClose, guardDialog } = useUnsavedGuard(dirty);
+  async function close() {
+    if (await confirmClose()) onClose();
+  }
 
   function save(e: React.FormEvent) {
     e.preventDefault();
     if (!doctor) return;
+    const sent = form;
     startTransition(async () => {
-      const res = await updateDoctorProfileAction(doctor.id, form);
+      const res = await updateDoctorProfileAction(doctor.id, sent);
       if (!res.ok) return void toast.error(res.error);
+      setSaved(sent);
       toast.success(res.message ?? "Saved.");
       router.refresh();
     });
   }
 
   return (
-    <Sheet open={!!doctor} onOpenChange={(o) => !o && onClose()}>
+    <Sheet open={!!doctor} onOpenChange={(o) => !o && void close()}>
       <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-lg">
         {doctor && (
           <>
@@ -532,18 +544,12 @@ function DoctorDrawer({
                 </section>
               </div>
               {can.edit && (
-                <div className="flex items-center gap-2 border-t p-4">
-                  <Button type="button" variant="ghost" className="ml-auto" onClick={onClose}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={pending}>
-                    {pending ? <Loader2 className="animate-spin" /> : <Save />} Save
-                  </Button>
-                </div>
+                <DrawerFooter onCancel={() => void close()} saving={pending} dirty={dirty} />
               )}
             </form>
           </>
         )}
+        {guardDialog}
       </SheetContent>
     </Sheet>
   );

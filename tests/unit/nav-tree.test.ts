@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { NAV_ITEMS } from "@/components/shell/nav";
-import { SETTINGS_PAGES } from "@/components/shell/settings-pages";
+import { SETTINGS_FOREIGN_PREFIXES, SETTINGS_PAGES } from "@/components/shell/settings-pages";
 import type { MemberLike } from "@/lib/auth/can";
 import { FINANCE_NAV } from "@/lib/finance/nav";
 import { NAV_MODULES, type ModuleEntry } from "@/lib/nav/modules";
@@ -112,7 +112,14 @@ describe("module registry", () => {
     for (const [href, entries] of Object.entries(NAV_MODULES)) {
       expect(tops, href).toContain(href);
       expect(new Set(entries.map((e) => e.href)).size).toBe(entries.length);
-      for (const e of entries) expect(e.href.startsWith(href + "/"), e.href).toBe(true);
+      // Settings also lists the finance and accounting setup pages at their own URLs (Phase D)
+      const prefixes =
+        href === "/settings" ? [href + "/", ...SETTINGS_FOREIGN_PREFIXES] : [href + "/"];
+      for (const e of entries)
+        expect(
+          prefixes.some((p) => e.href.startsWith(p)),
+          e.href,
+        ).toBe(true);
     }
   });
 });
@@ -150,7 +157,7 @@ describe("nav state cookie", () => {
   it("round-trips modules, minimised sections and groups", () => {
     let s = setOpen({}, moduleKey("/finance"), true);
     s = setOpen(s, sectionStateKey(sectionKey("/finance", "Billing & claims")), false);
-    s = setOpen(s, groupKey("Insight & back office"), false);
+    s = setOpen(s, groupKey("Insights"), false);
     s = setOpen(s, moduleKey("/settings"), false);
     const raw = serializeNavState(s);
     expect(raw).not.toMatch(/[;,\s]/); // safe as a cookie value

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Copy, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -309,6 +310,7 @@ export function Specialists({
   /** The org's slot step (Booking rules), shown when a specialist has no own slot length. */
   defaultSlotMin: number;
 }) {
+  const [ask, askDialog] = useConfirm();
   const [form, setForm] = useState<Form | null>(null);
   const { pending, run } = useRun();
   const locName = (id: string) => locations.find((l) => l.id === id)?.name ?? "?";
@@ -333,9 +335,9 @@ export function Specialists({
           <div>
             <CardTitle>Doctors</CardTitle>
             <CardDescription>
-              Doctors and other bookable staff (specialists), with the branches and hours they work.
-              Link each one to their Pulse user so My day shows their own patients. The Unite doctor
-              id links synced appointments to them.
+              Doctors and other bookable staff, with the branches, services and hours they work. Link
+              each one to their Pulse user so My day shows their own patients. The Unite doctor id links
+              synced appointments to them. Licences and profiles are in CRM, Doctors.
             </CardDescription>
           </div>
           <Button size="sm" onClick={() => setForm(blank)}>
@@ -345,7 +347,7 @@ export function Specialists({
         <CardContent>
           {specialists.length === 0 ? (
             <p className="text-muted-foreground text-sm">
-              No doctors yet. Add locations and services first, then add the doctors.
+              No doctors yet. Add branches and services first, then add the doctors.
             </p>
           ) : (
             <ul className="divide-y text-sm">
@@ -386,10 +388,10 @@ export function Specialists({
                       size="icon-sm"
                       aria-label={`Delete ${s.name}`}
                       disabled={pending}
-                      onClick={() => {
+                      onClick={async () => {
                         if (
-                          confirm(
-                            `Delete ${s.name}? Their appointments are kept without a specialist.`,
+                          await ask(
+                            `Delete ${s.name}? Their appointments are kept without a doctor.`,
                           )
                         )
                           run(() => deleteSpecialist(s.id));
@@ -603,6 +605,7 @@ export function Specialists({
           )}
         </DialogContent>
       </Dialog>
+      {askDialog}
     </>
   );
 }

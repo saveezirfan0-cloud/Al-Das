@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Loader2, MoreHorizontal, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -97,6 +98,7 @@ export function ChannelCard({
   branches: Option[];
   teams: Option[];
 }) {
+  const [ask, askDialog] = useConfirm();
   const [pending, startTransition] = useTransition();
   const [editing, setEditing] = useState(false);
   const [profile, setProfile] = useState(false);
@@ -157,9 +159,9 @@ export function ChannelCard({
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 variant="destructive"
-                onSelect={() => {
+                onSelect={async () => {
                   if (
-                    confirm(
+                    await ask(
                       `Remove ${channel.name}? Conversations are kept; the number stops receiving messages here.`,
                     )
                   )
@@ -224,6 +226,7 @@ export function ChannelCard({
         onOpenChange={setEditing}
       />
       <ProfileDialog channel={channel} open={profile} onOpenChange={setProfile} />
+      {askDialog}
     </Card>
   );
 }

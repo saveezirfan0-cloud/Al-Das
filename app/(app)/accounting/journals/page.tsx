@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -123,8 +124,8 @@ export default async function JournalsPage({ searchParams }: { searchParams: Pro
             <TableBody>
               {rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-muted-foreground text-sm">
-                    No journals match.
+                  <TableCell colSpan={7}>
+                    <EmptyState title="No journals match" className="border-0 p-6" />
                   </TableCell>
                 </TableRow>
               ) : (

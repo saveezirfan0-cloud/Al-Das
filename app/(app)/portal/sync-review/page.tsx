@@ -126,7 +126,7 @@ export default async function SyncReviewPage({
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Sync Review"
-        description="Unite patients and Sanoflow import records that could not be matched to a single contact or booked. Nothing is merged automatically."
+        description="Unite patients and Sanoflow import records that could not be matched to a single patient record or booked. Nothing is merged automatically."
       />
       <div className="flex gap-1">
         {SOURCES.map((s) => (
