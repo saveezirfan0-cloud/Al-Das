@@ -24,6 +24,14 @@ export function notificationHref(type: string, payload: unknown): string | null 
   // A patient-document reminder opens the patient (ids only; the drawer shows the Documents tab).
   const contact = id(p, "contact_id");
   if (contact && type.startsWith("document.")) return `/contacts?contact=${contact}`;
+  // A staff visa or licence reminder opens the staff record or the doctor (ids only).
+  if (type === "staff.document_expiring") {
+    const staff = id(p, "staff_member_id");
+    if (staff) return `/staff?staff=${staff}`;
+    const doctor = id(p, "specialist_id");
+    if (doctor) return `/doctors?doctor=${doctor}`;
+    return "/staff";
+  }
   // A payment voucher opens its drawer on the vouchers page.
   const voucher = id(p, "voucher_id");
   if (voucher && type.startsWith("finance.voucher_")) return `/finance/vouchers?v=${voucher}`;

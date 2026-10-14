@@ -6,6 +6,9 @@ import { PORTAL_OBJECTS } from "@/lib/portal/objects";
 export type NavIcon =
   | "dashboard"
   | "frontdesk"
+  | "myday"
+  | "doctors"
+  | "staff"
   | "inbox"
   | "contacts"
   | "enquiries"
@@ -58,6 +61,14 @@ export const NAV_ITEMS: readonly NavItem[] = [
     permission: "frontdesk.use",
   },
   {
+    href: "/my-day",
+    label: "My day",
+    icon: "myday",
+    group: "Today",
+    keywords: ["doctor", "my patients", "today's list", "my appointments", "clinic day"],
+    permission: "appointments.view",
+  },
+  {
     href: "/inbox",
     label: "Inbox",
     icon: "inbox",
@@ -79,6 +90,22 @@ export const NAV_ITEMS: readonly NavItem[] = [
     group: "CRM",
     keywords: ["leads", "pipeline"],
     permission: "enquiries.view",
+  },
+  {
+    href: "/doctors",
+    label: "Doctors",
+    icon: "doctors",
+    group: "CRM",
+    keywords: ["specialists", "physicians", "licence", "dha", "working hours", "organisation"],
+    permissions: ["appointments.view", "hr.view"],
+  },
+  {
+    href: "/staff",
+    label: "Staff",
+    icon: "staff",
+    group: "CRM",
+    keywords: ["hr", "team", "employees", "rota", "shifts", "duties", "visa", "organisation"],
+    permission: "hr.view",
   },
   {
     href: "/tasks",

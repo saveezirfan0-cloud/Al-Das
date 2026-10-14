@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-12-02-organisation",
+    date: "2026-10-14",
+    title: "Doctors, Staff, Rota and My day",
+    body: "CRM now holds the organisation as well as patients and enquiries. Doctors lists every doctor with their specialty, branches, services, licence expiry and today's appointments, and opens their calendar. Staff keeps each person's job, department, home branch, manager, duties and visa and licence dates (pay stays in Finance), and the Rota plans who is on at each branch, week by week, refusing two shifts at once for the same person. People who manage staff get a daily reminder of visas and licences that are about to expire (60 days before by default). Doctors have a new My day page with their own patients today, where each one is in the visit, and their tasks. Two new roles are ready to use: Doctor and HR.",
+  },
+  {
     id: "2026-12-01-branch-dimension",
     date: "2026-10-14",
     title: "Branches across Pulse",

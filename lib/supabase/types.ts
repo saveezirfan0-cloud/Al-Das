@@ -19032,6 +19032,81 @@ export type Database = {
           },
         ];
       };
+      rota_shifts: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          ends_at: string;
+          id: string;
+          location_id: string;
+          notes: string | null;
+          org_id: string;
+          role_label: string;
+          room: string | null;
+          staff_member_id: string;
+          starts_at: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          ends_at: string;
+          id?: string;
+          location_id: string;
+          notes?: string | null;
+          org_id: string;
+          role_label?: string;
+          room?: string | null;
+          staff_member_id: string;
+          starts_at: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          ends_at?: string;
+          id?: string;
+          location_id?: string;
+          notes?: string | null;
+          org_id?: string;
+          role_label?: string;
+          room?: string | null;
+          staff_member_id?: string;
+          starts_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "rota_shifts_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "rota_shifts_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "rota_shifts_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "rota_shifts_staff_member_id_fkey";
+            columns: ["staff_member_id"];
+            isOneToOne: false;
+            referencedRelation: "staff_members";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       saved_views: {
         Row: {
           columns: NonNullable<Json>;
@@ -19809,15 +19884,22 @@ export type Database = {
       specialists: {
         Row: {
           active: boolean;
+          bio: string | null;
           created_at: string;
           department_id: string | null;
           external_id: string | null;
           id: string;
+          licence_authority: string;
+          licence_expires_on: string | null;
+          licence_expiry_notified_at: string | null;
+          licence_number: string | null;
           max_per_slot: number;
           name: string;
           org_id: string;
+          phone_ext: string | null;
           photo_path: string | null;
           slot_length_min: number | null;
+          specialty: string | null;
           title: string | null;
           updated_at: string;
           user_id: string | null;
@@ -19825,30 +19907,44 @@ export type Database = {
         ComputedFields: never;
         Insert: {
           active?: boolean;
+          bio?: string | null;
           created_at?: string;
           department_id?: string | null;
           external_id?: string | null;
           id?: string;
+          licence_authority?: string;
+          licence_expires_on?: string | null;
+          licence_expiry_notified_at?: string | null;
+          licence_number?: string | null;
           max_per_slot?: number;
           name: string;
           org_id: string;
+          phone_ext?: string | null;
           photo_path?: string | null;
           slot_length_min?: number | null;
+          specialty?: string | null;
           title?: string | null;
           updated_at?: string;
           user_id?: string | null;
         };
         Update: {
           active?: boolean;
+          bio?: string | null;
           created_at?: string;
           department_id?: string | null;
           external_id?: string | null;
           id?: string;
+          licence_authority?: string;
+          licence_expires_on?: string | null;
+          licence_expiry_notified_at?: string | null;
+          licence_number?: string | null;
           max_per_slot?: number;
           name?: string;
           org_id?: string;
+          phone_ext?: string | null;
           photo_path?: string | null;
           slot_length_min?: number | null;
+          specialty?: string | null;
           title?: string | null;
           updated_at?: string;
           user_id?: string | null;
@@ -19873,6 +19969,200 @@ export type Database = {
             columns: ["user_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      staff_duties: {
+        Row: {
+          active: boolean;
+          created_at: string;
+          frequency: string;
+          id: string;
+          location_id: string | null;
+          org_id: string;
+          sort_order: number;
+          staff_member_id: string;
+          title: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          active?: boolean;
+          created_at?: string;
+          frequency?: string;
+          id?: string;
+          location_id?: string | null;
+          org_id: string;
+          sort_order?: number;
+          staff_member_id: string;
+          title: string;
+          updated_at?: string;
+        };
+        Update: {
+          active?: boolean;
+          created_at?: string;
+          frequency?: string;
+          id?: string;
+          location_id?: string | null;
+          org_id?: string;
+          sort_order?: number;
+          staff_member_id?: string;
+          title?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "staff_duties_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "staff_duties_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "staff_duties_staff_member_id_fkey";
+            columns: ["staff_member_id"];
+            isOneToOne: false;
+            referencedRelation: "staff_members";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      staff_members: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          deleted_at: string | null;
+          department_id: string | null;
+          employment_type: string;
+          end_date: string | null;
+          full_name: string;
+          home_location_id: string | null;
+          id: string;
+          job_title: string | null;
+          licence_expires_on: string | null;
+          licence_expiry_notified_at: string | null;
+          licence_number: string | null;
+          manager_staff_id: string | null;
+          notes: string | null;
+          org_id: string;
+          profile_id: string | null;
+          specialist_id: string | null;
+          start_date: string | null;
+          updated_at: string;
+          visa_expires_on: string | null;
+          visa_expiry_notified_at: string | null;
+          work_email: string | null;
+          work_phone: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          deleted_at?: string | null;
+          department_id?: string | null;
+          employment_type?: string;
+          end_date?: string | null;
+          full_name: string;
+          home_location_id?: string | null;
+          id?: string;
+          job_title?: string | null;
+          licence_expires_on?: string | null;
+          licence_expiry_notified_at?: string | null;
+          licence_number?: string | null;
+          manager_staff_id?: string | null;
+          notes?: string | null;
+          org_id: string;
+          profile_id?: string | null;
+          specialist_id?: string | null;
+          start_date?: string | null;
+          updated_at?: string;
+          visa_expires_on?: string | null;
+          visa_expiry_notified_at?: string | null;
+          work_email?: string | null;
+          work_phone?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          deleted_at?: string | null;
+          department_id?: string | null;
+          employment_type?: string;
+          end_date?: string | null;
+          full_name?: string;
+          home_location_id?: string | null;
+          id?: string;
+          job_title?: string | null;
+          licence_expires_on?: string | null;
+          licence_expiry_notified_at?: string | null;
+          licence_number?: string | null;
+          manager_staff_id?: string | null;
+          notes?: string | null;
+          org_id?: string;
+          profile_id?: string | null;
+          specialist_id?: string | null;
+          start_date?: string | null;
+          updated_at?: string;
+          visa_expires_on?: string | null;
+          visa_expiry_notified_at?: string | null;
+          work_email?: string | null;
+          work_phone?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "staff_members_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "staff_members_department_id_fkey";
+            columns: ["department_id"];
+            isOneToOne: false;
+            referencedRelation: "departments";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "staff_members_home_location_id_fkey";
+            columns: ["home_location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "staff_members_manager_staff_id_fkey";
+            columns: ["manager_staff_id"];
+            isOneToOne: false;
+            referencedRelation: "staff_members";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "staff_members_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "staff_members_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "staff_members_specialist_id_fkey";
+            columns: ["specialist_id"];
+            isOneToOne: false;
+            referencedRelation: "specialists";
             referencedColumns: ["id"];
           },
         ];

@@ -242,6 +242,7 @@ describe.skipIf(!TEST_DATABASE_URL)("jobs framework (db)", () => {
         "housekeeping_integrations",
         "housekeeping_phase3",
         "housekeeping_rate_limits",
+        "hr_maintenance",
         "inbox_housekeeping",
         "kb_ingest",
         "media_fetch",
