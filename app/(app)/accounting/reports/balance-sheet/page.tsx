@@ -2,6 +2,7 @@ import { selectClass } from "@/components/finance/forms";
 import { PageHeader } from "@/components/shell/page-header";
 import { statementQuery } from "@/lib/accounting/statements/params";
 
+import { BranchCodeSelect } from "../../ui";
 import { loadReportPage } from "../load";
 import { DownloadButtons, ProblemNote, ReportView, StatementFilters } from "../report-view";
 
@@ -13,7 +14,7 @@ export default async function BalanceSheetPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { ctx, p, built } = await loadReportPage("balance-sheet", searchParams);
+  const { ctx, p, built, branchOptions } = await loadReportPage("balance-sheet", searchParams);
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
@@ -31,6 +32,7 @@ export default async function BalanceSheetPage({
         toLabel="As at"
         includeAdjustment={p.includeAdjustment}
       >
+        <BranchCodeSelect options={branchOptions} value={p.branch} />
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium">Compare with</span>
           <select name="compare" defaultValue={p.compare} className={`${selectClass} w-48`}>

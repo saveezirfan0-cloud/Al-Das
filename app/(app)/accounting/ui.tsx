@@ -1,3 +1,4 @@
+import { selectClass } from "@/components/finance/forms";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +34,37 @@ export function Balance({ value }: { value: number }) {
 export function Amount({ value }: { value: number }) {
   return <span className="tabular-nums">{value ? money(value) : ""}</span>;
 }
+
+/**
+ * Phase B: the branch filter of a ledger report (a GET field named `branch`). Options are finance branch codes labelled
+ * with the clinical branch using each (lib/branches/codes.ts). Shown only when the organisation has more than one.
+ */
+export function BranchCodeSelect({
+  options,
+  value,
+}: {
+  options: ReadonlyArray<{ code: string; label: string }>;
+  value: string | null;
+}) {
+  if (options.length < 2) return null;
+  return (
+    <label className="flex flex-col gap-1 text-sm">
+      <span className="font-medium">Branch</span>
+      <select name="branch" defaultValue={value ?? ""} className={`${selectClass} w-52`}>
+        <option value="">All branches</option>
+        {options.map((o) => (
+          <option key={o.code} value={o.code}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+/** What a branch view of the ledger means, shown above the figures. */
+export const BRANCH_VIEW_NOTE =
+  "Branch view: only journal lines that name this branch are counted. Bank, VAT, receivable and other control lines often name no branch, so the figures need not balance.";
 
 /** A GET form with a from / to range and any hidden fields to keep (filters, the account). */
 export function RangeForm({

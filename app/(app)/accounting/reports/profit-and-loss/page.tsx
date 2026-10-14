@@ -1,5 +1,8 @@
+import Link from "next/link";
+
 import { selectClass } from "@/components/finance/forms";
 import { PageHeader } from "@/components/shell/page-header";
+import { Button } from "@/components/ui/button";
 import { PL_DIMENSIONS } from "@/lib/accounting/statements/profit-loss";
 import { statementQuery } from "@/lib/accounting/statements/params";
 
@@ -21,6 +24,15 @@ export default async function ProfitAndLossPage({
         title="Profit and loss"
         description="Tally's layout: sales and direct incomes less purchases and direct expenses give the gross profit; indirect incomes and expenses give the net profit. Click a ledger for its general ledger."
       >
+        {p.dimension !== "branch" && (
+          <Button asChild variant="outline" size="sm">
+            <Link
+              href={`/accounting/reports/profit-and-loss?${statementQuery({ ...p, dimension: "branch", compare: "none" })}`}
+            >
+              Branches side by side
+            </Link>
+          </Button>
+        )}
         <DownloadButtons report="profit-and-loss" query={statementQuery(p)} />
       </PageHeader>
       <StatementFilters

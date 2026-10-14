@@ -59,6 +59,10 @@ export const REPORT_PERMISSIONS: Record<StatementReport, readonly string[]> = {
   "corporate-tax": ["accounting.reports.view"],
 };
 
+/** Phase B: why a branch view of a balance-sheet statement does not balance (shown instead of the error warning). */
+export const BRANCH_VIEW_WARNING =
+  "Branch view: only journal lines that name this branch are counted. Bank, VAT, receivable and other control lines often name no branch, so this view need not balance or reconcile.";
+
 export function mayOpenReport(member: MemberLike, report: StatementReport): boolean {
   return canAny(member, REPORT_PERMISSIONS[report]);
 }
@@ -114,6 +118,11 @@ export async function buildStatement(
   const journalHref = (id: string) => (ledger ? `/accounting/journals/${id}` : null);
   const entityText = ctx.entities.length > 1 ? `${ctx.entity?.name ?? "All entities"}. ` : "";
   const adjText = p.includeAdjustment ? "" : " Adjustment period left out.";
+  // Phase B: balance sheet and cash flow may show one branch's journal lines (the caller validated the code).
+  const branchText =
+    p.branch && (report === "balance-sheet" || report === "cash-flow")
+      ? `Branch ${p.branch}. `
+      : "";
   const title = STATEMENT_TITLES[report];
   const doc = (
     d: Omit<ReportDoc, "title" | "warnings" | "notes"> & Partial<ReportDoc>,
@@ -192,6 +201,7 @@ export async function buildStatement(
             p_entity_id: entityId as string,
             p_as_at: asAt,
             p_include_adjustment: p.includeAdjustment,
+            ...(p.branch ? { p_branch_code: p.branch } : {}),
           }),
         );
       const dates = [p.to];
@@ -206,13 +216,15 @@ export async function buildStatement(
       return {
         rows: bs.table.rows.length,
         doc: doc({
-          subtitle: `${entityText}As at ${dateLabel(p.to)}${dates.length > 1 ? `, compared with ${dateLabel(dates[1])}` : ""}.${adjText}`,
+          subtitle: `${entityText}${branchText}As at ${dateLabel(p.to)}${dates.length > 1 ? `, compared with ${dateLabel(dates[1])}` : ""}.${adjText}`,
           provisional: data.some((d) => d.provisional),
           warnings: bs.balanced
             ? []
-            : [
-                "The balance sheet does not balance: assets differ from capital and liabilities. Check imported and opening balances.",
-              ],
+            : p.branch
+              ? [BRANCH_VIEW_WARNING]
+              : [
+                  "The balance sheet does not balance: assets differ from capital and liabilities. Check imported and opening balances.",
+                ],
           tables: [bs.table],
           notes: [
             "The current year's profit and earlier years' profit stay as lines in equity until the year-end close moves them into reserves.",
@@ -228,19 +240,22 @@ export async function buildStatement(
           p_from: p.from,
           p_to: p.to,
           p_include_adjustment: p.includeAdjustment,
+          ...(p.branch ? { p_branch_code: p.branch } : {}),
         }),
       );
       const cf = buildCashFlow(ctx.accounts, data, { hrefFor: ledgerHref(p.from, p.to) });
       return {
         rows: cf.tables[0].rows.length,
         doc: doc({
-          subtitle: `${entityText}${rangeLabel(p.from, p.to)}, indirect method.${adjText}`,
+          subtitle: `${entityText}${branchText}${rangeLabel(p.from, p.to)}, indirect method.${adjText}`,
           provisional: data.provisional,
           warnings: cf.reconciles
             ? []
-            : [
-                "The statement does not reconcile to the cash and bank ledgers. Check each ledger's cash flow class.",
-              ],
+            : p.branch
+              ? [BRANCH_VIEW_WARNING]
+              : [
+                  "The statement does not reconcile to the cash and bank ledgers. Check each ledger's cash flow class.",
+                ],
           tables: cf.tables,
           notes: [
             "Each balance-sheet ledger's class (non-cash, working capital, investing, financing, cash) comes from the chart of accounts (Reporting), else from its Tally group.",
