@@ -40,7 +40,10 @@ const BLOCKED_SUFFIXES = [
   ".arpa",
   ".lan",
   ".home",
+  ".home.arpa",
   ".intranet",
+  ".corp",
+  ".svc",
 ];
 
 export function readHttpSmsConfig(config: Config): HttpSmsConfig {
@@ -75,6 +78,9 @@ export function gatewayUrlProblem(raw: string): string | null {
     return "The gateway address cannot carry a query string; put the key in the token field.";
   if (u.port && u.port !== "443") return "The gateway address must use the standard https port.";
   const host = u.hostname.toLowerCase();
+  // WHATWG URL keeps a trailing dot ("localhost." stays "localhost."), which would slip past every name check below and is
+  // still resolved by DNS: refuse it outright rather than normalise it.
+  if (host.endsWith(".")) return "The gateway address cannot end its host name with a dot.";
   if (
     !host.includes(".") ||
     host === "localhost" ||
