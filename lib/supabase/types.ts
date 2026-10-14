@@ -24728,6 +24728,18 @@ export type Database = {
       show_limit: { Args: Record<PropertyKey, never>; Returns: number };
       show_trgm: { Args: { "": string }; Returns: string[] };
       storage_usage_summary: { Args: { p_org: string }; Returns: Json };
+      unlink_conversation_contact: {
+        Args: {
+          p_conversation_id: string;
+          p_first_name: string;
+          p_keep_household: boolean;
+          p_last_name: string;
+          p_org_id: string;
+          p_relationship: string;
+          p_user_id: string;
+        };
+        Returns: Json;
+      };
       uuid_generate_v1: { Args: Record<PropertyKey, never>; Returns: string };
       uuid_generate_v1mc: { Args: Record<PropertyKey, never>; Returns: string };
       uuid_generate_v3: { Args: { name: string; namespace: string }; Returns: string };

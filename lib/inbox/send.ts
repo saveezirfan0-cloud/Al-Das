@@ -40,6 +40,29 @@ export const sendSpecSchema = z.discriminatedUnion("type", [
     name: z.string().optional(),
     address: z.string().optional(),
   }),
+  // G11: a contact card (WhatsApp `contacts` message). Built by buildContactCard (lib/inbox/extras.ts).
+  z.object({
+    type: z.literal("contacts"),
+    contacts: z
+      .array(
+        z.object({
+          name: z.object({
+            formatted_name: z.string().min(1).max(200),
+            first_name: z.string().max(100).optional(),
+            last_name: z.string().max(100).optional(),
+          }),
+          phones: z
+            .array(
+              z.object({ phone: z.string().min(1).max(32), type: z.string().max(20).optional() }),
+            )
+            .max(1)
+            .optional(),
+          org: z.object({ company: z.string().max(100).optional() }).optional(),
+        }),
+      )
+      .min(1)
+      .max(1),
+  }),
 ]);
 
 export type SendSpec = z.infer<typeof sendSpecSchema>;
@@ -58,6 +81,8 @@ export function kindForSpec(spec: SendSpec): Tables<"messages">["kind"] {
       return "reaction";
     case "location":
       return "location";
+    case "contacts":
+      return "contacts";
   }
 }
 

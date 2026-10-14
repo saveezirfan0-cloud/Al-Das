@@ -331,6 +331,9 @@ export async function deliverOutbound(
           replyTo,
         );
         break;
+      case "contacts":
+        result = await client.sendContacts(to, spec.contacts, replyTo);
+        break;
     }
 
     const waId = result.messages?.[0]?.id;

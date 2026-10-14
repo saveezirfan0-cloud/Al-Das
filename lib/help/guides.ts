@@ -41,10 +41,12 @@ export const GUIDES: readonly Guide[] = [
       "If the 24-hour window has closed, pick a template instead of typing a message.",
       "Use the Patient tab on the right to see the next appointment and any flags without leaving the chat.",
       "Close the conversation when it is finished, with a category if your clinic asks for one. In the same box you can create the patient's enquiry or move theirs on (stage, won, or lost with a reason).",
+      "Extras: forward on a message sends it to another open chat; the buttons by the message box share a contact card or a catalogue product; Call at the top rings the patient from your phone; More, Move chat to a new contact is for a shared phone.",
     ],
     watchOut: [
-      "Never copy patient details into another chat or email.",
+      "Never copy patient details into another chat or email. Forwarding a patient's message to someone else shares it with them: forward only what that person should see.",
       "An internal note is not sent to the patient, but colleagues can read it.",
+      "Forwards, contact cards and products only go out within 24 hours of the patient's last message.",
     ],
   },
   {
