@@ -206,7 +206,7 @@ docs and help guides updated, and the `nav-qa` agent run.
 - **Help.** A guide for every page that lacks one (portal queues, key finance pages) and a first-run checklist per role.
 
 ### Phase E — Front desk and appointments v2 (2 weeks)
-**Status (14 Oct 2026): first slice built** (migration `20261204000100_front_desk_v2.sql`, paste file
+**Status (14 Oct 2026): first slice built** (migration `20261206000100_front_desk_v2.sql`, paste file
 `82_front_desk_v2.sql`; type-checked, linted, unit- and database-tested, production build; not yet driven in a browser,
 on a phone or a printer).
 - Built:
@@ -263,7 +263,7 @@ on a phone or a printer).
   - Later: rooms as bookable resources, a queue-token screen and an arrival kiosk.
 
 ### Phase F — Inbox, CRM and tasks v2 (2 weeks)
-**Status (14 Oct 2026): first slice built** (migration `20261205000100_inbox_tasks_v2.sql`, paste file
+**Status (14 Oct 2026): first slice built** (migration `20261206000200_inbox_tasks_v2.sql`, paste file
 `83_inbox_tasks_v2.sql`; type-checked, linted, unit- and database-tested; not yet driven in a browser).
 - Built:
   - Inbox: Snoozed folder and Snooze menu (`conversations.snoozed_until`, `inbox.unsnooze` scheduled job; a patient's

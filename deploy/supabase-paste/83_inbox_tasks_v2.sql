@@ -9,7 +9,7 @@
 -- Check the project name in the Supabase header first: this is for the Pulse project only.
 
 -- ======================================================================
--- 20261205000100_inbox_tasks_v2.sql
+-- 20261206000200_inbox_tasks_v2.sql
 -- ======================================================================
 -- Phase F (docs/34_CLINIC_OS_PLAN.md): inbox, Patient 360 and tasks v2.
 --
@@ -498,4 +498,4 @@ $$;
 
 select cron.schedule('pulse:tasks_daily', '7 * * * *', $$select app.ping_jobs('tasks_daily')$$);
 
-insert into supabase_migrations.schema_migrations (version, name) values ('20261205000100', 'inbox_tasks_v2') on conflict (version) do nothing;
+insert into supabase_migrations.schema_migrations (version, name) values ('20261206000200', 'inbox_tasks_v2') on conflict (version) do nothing;

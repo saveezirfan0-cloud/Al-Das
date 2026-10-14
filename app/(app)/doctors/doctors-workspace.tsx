@@ -34,10 +34,12 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
+import { performanceHref } from "@/lib/organisation/doctor-links";
 import { doctorCalendarHref } from "@/lib/organisation/doctors";
 import type { BranchOption, DoctorDetail, DoctorRow } from "@/lib/organisation/types";
 
 import { loadDoctorDetailAction, updateDoctorProfileAction } from "./actions";
+import { DoctorFinanceLinkSection } from "./finance-link";
 
 type Can = {
   edit: boolean;
@@ -46,6 +48,10 @@ type Can = {
   rota: boolean;
   revenue: boolean;
   revshare: boolean;
+  /** finance.reference.manage: sees the Finance link section. */
+  financeLink: boolean;
+  /** ...and settings.manage: changes it. */
+  financeLinkManage: boolean;
 };
 
 const ALL = "all";
@@ -377,7 +383,7 @@ function DoctorDrawer({
                     )}
                     {can.revenue && (
                       <Button asChild size="sm" variant="outline">
-                        <Link href="/finance/doctor-performance">Performance</Link>
+                        <Link href={performanceHref(doctor.reportDoctorKey)}>Performance</Link>
                       </Button>
                     )}
                     {can.revshare && (
@@ -389,6 +395,14 @@ function DoctorDrawer({
                 </section>
 
                 <DoctorLinks doctorId={doctor.id} can={can} />
+
+                {can.financeLink && (
+                  <DoctorFinanceLinkSection
+                    key={doctor.id}
+                    doctorId={doctor.id}
+                    canManage={can.financeLinkManage}
+                  />
+                )}
 
                 <section className="grid gap-2" aria-labelledby="doc-hours">
                   <h3 id="doc-hours" className="text-sm font-semibold">

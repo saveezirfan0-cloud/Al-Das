@@ -16,7 +16,8 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 /**
  * The doctors directory (Phase C): every doctor in the branches this person may see, with specialty, branches,
  * services, licence expiry, linked user, working hours and today's appointment count. Read-only data from
- * Settings, Appointments; only the profile and licence fields are edited here (settings.manage or hr.manage).
+ * Settings, Appointments; only the profile and licence fields are edited here (settings.manage or hr.manage), and
+ * the finance link (finance.reference.manage to see it, plus settings.manage to change it).
  */
 export default async function DoctorsPage({
   searchParams,
@@ -42,10 +43,13 @@ export default async function DoctorsPage({
     member,
     branches.map((b) => b.id),
   );
+  const revenue = can(member, "finance.revenue.view");
+  const financeLink = can(member, "finance.reference.manage");
 
   return (
     <DoctorsWorkspace
-      rows={rows}
+      // The report link is finance data: only people who may open doctor performance get it.
+      rows={revenue ? rows : rows.map((r) => ({ ...r, reportDoctorKey: null }))}
       branches={branches}
       today={today}
       leadDays={readOrganisationSettings(org?.settings).expiry_lead_days}
@@ -56,13 +60,15 @@ export default async function DoctorsPage({
         calendar: can(member, "appointments.view"),
         settings: can(member, "settings.manage"),
         rota: canAny(member, ["hr.view", "appointments.view"]),
-        revenue: can(member, "finance.revenue.view"),
+        revenue,
         revshare: canAny(member, [
           "finance.revshare.view",
           "finance.revshare.manage",
           "finance.revshare.verify",
           "finance.revshare.approve",
         ]),
+        financeLink,
+        financeLinkManage: financeLink && can(member, "settings.manage"),
       }}
     />
   );

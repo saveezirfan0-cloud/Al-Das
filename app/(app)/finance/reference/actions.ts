@@ -127,14 +127,28 @@ const doctorSchema = z.object({
   specialty: nullable,
   active: checkbox,
 });
+/**
+ * Updates a finance doctor; the Add form (`adding`) inserts one by hand instead, and a DHA id that already exists is
+ * refused rather than overwriting that doctor. Same fields, same permission.
+ */
 export async function saveDoctor(formData: FormData): Promise<ActionResult> {
   const member = await requirePerm(PERM);
   const p = doctorSchema.safeParse(Object.fromEntries(formData));
   if (!p.success) return { ok: false, error: "Check the doctor fields." };
   const { dha_id, ...patch } = p.data;
-  const { error } = await (
-    await createClient()
-  )
+  const supabase = await createClient();
+  if (formData.get("adding") === "1") {
+    const { error: insertError } = await supabase
+      .from("fin_ref_doctors")
+      .insert({ org_id: member.orgId, dha_id, ...patch });
+    if (insertError?.code === "23505")
+      return { ok: false, error: "A doctor with this DHA id already exists. Edit it in the list." };
+    if (insertError) return failure(insertError);
+    await audit("finance.reference.doctor_added", "fin_ref_doctors", dha_id, patch);
+    revalidatePath("/finance/reference");
+    return { ok: true, message: "Doctor added." };
+  }
+  const { error } = await supabase
     .from("fin_ref_doctors")
     .update(patch)
     .eq("org_id", member.orgId)

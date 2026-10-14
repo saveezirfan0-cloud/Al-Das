@@ -7,7 +7,7 @@
 -- Check the project name in the Supabase header first: this is for the Pulse project only.
 
 -- ======================================================================
--- 20261204000100_front_desk_v2.sql
+-- 20261206000100_front_desk_v2.sql
 -- ======================================================================
 alter table public.contacts
   add column if not exists whatsapp_declined_at timestamptz;
@@ -15,4 +15,4 @@ alter table public.contacts
 comment on column public.contacts.whatsapp_declined_at is
   'Phase E: the patient did not agree to WhatsApp at the desk; no appointment, offer or desk message is queued while set.';
 
-insert into supabase_migrations.schema_migrations (version, name) values ('20261204000100', 'front_desk_v2') on conflict (version) do nothing;
+insert into supabase_migrations.schema_migrations (version, name) values ('20261206000100', 'front_desk_v2') on conflict (version) do nothing;
