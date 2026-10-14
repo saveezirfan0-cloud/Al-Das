@@ -825,7 +825,7 @@ export const GUIDES: readonly Guide[] = [
     steps: [
       "Use Ctrl K to jump straight to a setting.",
       "Users and Roles decide who can do what. Give people the smallest role that lets them work.",
-      "Front desk, Appointment rules and Training mode are under their own pages.",
+      "Front desk, Clinic and appointments and Training mode are under their own pages.",
       "Finance setup and Accounting setup (bank accounts, targets, approval tiers, tax codes, posting rules) are here too, each for the people who hold its permission.",
       "Branches (CRM, Branches): give each branch its finance branch code so ledger reports can show it. Under WhatsApp channels, Edit, choose each WhatsApp number's branch and the team its new chats go to first.",
     ],
@@ -970,7 +970,7 @@ export const GUIDES: readonly Guide[] = [
       "Day book: choose the dates to see each journal with its lines (a year at most).",
       "General ledger: choose an account or a whole group and the dates; open any number to see its journal.",
       "Trial balance: choose the dates; download it as Excel. It must say Balanced.",
-      "Branch (general ledger and trial balance): show only the lines that name one finance branch code. Link each clinic to its code under Settings, Appointment rules, Locations.",
+      "Branch (general ledger and trial balance): show only the lines that name one finance branch code. Link each clinic to its code under Settings, Clinic and appointments, Locations.",
       "Excel on the day book, the general ledger and the journals list downloads every line in the range, read in pages, not only what fits on the screen.",
     ],
     watchOut: [
@@ -1486,7 +1486,7 @@ export const GUIDES: readonly Guide[] = [
     purpose: "The read-only link that brings patients, visits and appointments in from Unite.",
     steps: [
       "Check the last sync and the recent calls to see that data is flowing.",
-      "Patients that could not be matched go to Portal, Sync Review.",
+      "Patients that could not be matched go to Portal, Sync review.",
     ],
     watchOut: ["Pulse never writes to Unite. Change Unite data in Unite."],
   },
@@ -1520,12 +1520,12 @@ export const GUIDES: readonly Guide[] = [
   },
   {
     id: "settings-appointments",
-    title: "Appointment rules and front desk",
+    title: "Clinic and appointments, and front desk",
     pages: ["/settings/appointments", "/settings/front-desk"],
     purpose:
       "Branches, doctors, services, working hours and booking rules, and how the front desk works.",
     steps: [
-      "Appointment rules: tabs for Doctors, Branches, Departments, Services and Booking rules.",
+      "Clinic and appointments: tabs for Branches, Departments, Services, Doctors and hours, and Booking rules.",
       "Give each doctor their branches, services and working hours; the diary offers only those slots.",
       "Booking rules: slot length, reminders and their WhatsApp templates.",
       "Front desk: the waiting-list offers, the desk QR code and the running-late and location messages.",

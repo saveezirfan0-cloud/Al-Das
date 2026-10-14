@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-12-06-menu-keyboard-names",
+    date: "2026-10-14",
+    title: "The menu works from the keyboard, and pages keep one name",
+    body: "On a computer, Tab to an area of the menu and press Enter (or the right arrow) to open its pages; the arrows move between them, Esc brings you back, and Tab past the last page moves on to the next area. Pages now have the same name in the menu, at the top of the page and in the browser tab: Settings, Clinic and appointments (once Appointment rules), Accounting overview (once Dashboard) and Portal, Sync review. Quick search still finds them by their old names. CRM, Branches is now highlighted while you are on the Branches tab.",
+  },
+  {
     id: "2026-12-04-simple-to-use",
     date: "2026-10-14",
     title: "A simpler Pulse: clearer menu, record search and your own home page",

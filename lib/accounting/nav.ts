@@ -11,6 +11,8 @@ export type AccountingNavEntry = {
   label: string;
   section: string;
   permissions: readonly string[];
+  /** Extra words quick search matches on (e.g. a page's earlier name). */
+  keywords?: readonly string[];
 };
 
 /** Fixed assets, depreciation and schedules (22H): managers, the approvers who post runs, and readers. */
@@ -56,9 +58,10 @@ const BANKING = [
 export const ACCOUNTING_NAV: readonly AccountingNavEntry[] = [
   {
     href: "/accounting/dashboard",
-    label: "Dashboard",
+    label: "Accounting overview",
     section: "Overview",
     permissions: ["accounting.view"],
+    keywords: ["dashboard", "accounting dashboard"],
   },
   {
     href: "/accounting/waiting",

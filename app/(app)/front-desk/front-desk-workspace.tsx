@@ -733,7 +733,7 @@ function SlotsPanel({ data, tz }: { data: DeskData; tz: string }) {
   if (data.slots.length === 0)
     return (
       <p className="text-muted-foreground rounded-lg border border-dashed p-6 text-center text-sm">
-        No free slots found in the next week. Check working hours under Settings, Appointment rules.
+        No free slots found in the next week. Check working hours under Settings, Clinic and appointments.
       </p>
     );
   return (

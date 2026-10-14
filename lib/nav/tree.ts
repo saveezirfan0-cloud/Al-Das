@@ -105,40 +105,74 @@ export function buildNavTree<T extends TopItem>(
 const under = (pathname: string, href: string) =>
   pathname === href || pathname.startsWith(href + "/");
 
+/** The current URL's query: a string ("?tab=x" or "tab=x") or anything with `get` (URLSearchParams, useSearchParams). */
+export type SearchLike = string | { get(name: string): string | null } | null | undefined;
+
 /**
- * The top-level item a path sits under: the LONGEST matching href, so /dashboard/management is Management (not
- * Dashboard) and /staff/rota is Rota (not Staff). The top bar's title uses it.
+ * How specifically `href` matches the current location: -1 when it does not, else a score where longer is more
+ * specific. A plain href matches its own path and every path below it. An href with a query (the CRM "Branches" entry,
+ * /settings/appointments?tab=locations) matches only its exact path with every one of its parameters set to the same
+ * value, and then beats the plain href of that path.
+ */
+export function hrefMatch(href: string, pathname: string, search?: SearchLike): number {
+  const q = href.indexOf("?");
+  if (q < 0) return under(pathname, href) ? href.length : -1;
+  if (pathname !== href.slice(0, q)) return -1;
+  const have =
+    typeof search === "string" ? new URLSearchParams(search) : (search ?? new URLSearchParams());
+  let ok = true;
+  new URLSearchParams(href.slice(q + 1)).forEach((value, key) => {
+    if (have.get(key) !== value) ok = false;
+  });
+  return ok ? href.length : -1;
+}
+
+/**
+ * The top-level item a path sits under: the most specific matching href (`hrefMatch`), so /dashboard/management is
+ * Management (not Dashboard) and /staff/rota is Rota (not Staff). The top bar's title uses it.
  */
 export function currentItem<T extends { href: string }>(
   items: readonly T[],
   pathname: string,
+  search?: SearchLike,
 ): T | undefined {
   let node: T | undefined;
-  for (const n of items)
-    if (under(pathname, n.href) && (!node || n.href.length > node.href.length)) node = n;
+  let score = -1;
+  for (const n of items) {
+    const m = hrefMatch(n.href, pathname, search);
+    if (m > score) {
+      node = n;
+      score = m;
+    }
+  }
   return node;
 }
 
 export type ActiveTrail = { item?: string; module?: string; section?: string; page?: string };
 
 /**
- * Where the current path sits in the tree. The most specific module page wins, wherever it is listed (a Settings entry
- * can live under /finance, and a tab group's entry stands for each of its tabs); otherwise the longest matching
- * top-level item.
+ * Where the current location sits in the tree. The most specific module page wins, wherever it is listed (a Settings
+ * entry can live under /finance, and a tab group's entry stands for each of its tabs); otherwise the most specific
+ * top-level item. An entry whose href carries a query is active only when the current URL has the same path and the
+ * same parameter values (`hrefMatch`).
  */
 export function activeTrail(
   tree: ReadonlyArray<{ href: string; sections?: readonly TreeSection[] }>,
   pathname: string,
+  search?: SearchLike,
 ): ActiveTrail {
-  const node = currentItem(tree, pathname);
+  const node = currentItem(tree, pathname, search);
+  const nodeScore = node ? hrefMatch(node.href, pathname, search) : -1;
   let best: { module: string; section: string; page: string; len: number } | undefined;
   for (const n of tree)
     for (const s of n.sections ?? [])
       for (const p of s.pages)
-        for (const h of [p.href, ...(p.tabs ?? []).map((t) => t.href)])
-          if (under(pathname, h) && (!best || h.length > best.len))
-            best = { module: n.href, section: s.key, page: p.href, len: h.length };
-  if (best && (!node || best.len >= node.href.length))
+        for (const h of [p.href, ...(p.tabs ?? []).map((t) => t.href)]) {
+          const m = hrefMatch(h, pathname, search);
+          if (m >= 0 && (!best || m > best.len))
+            best = { module: n.href, section: s.key, page: p.href, len: m };
+        }
+  if (best && (!node || best.len >= nodeScore))
     return { item: best.module, module: best.module, section: best.section, page: best.page };
   if (!node) return {};
   if (!node.sections) return { item: node.href };

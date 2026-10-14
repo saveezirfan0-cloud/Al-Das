@@ -21,7 +21,7 @@ import {
   serializeNavState,
   setOpen,
 } from "@/lib/nav/state";
-import { activeTrail, buildNavTree, sectionKey, treeKeys } from "@/lib/nav/tree";
+import { activeTrail, buildNavTree, hrefMatch, sectionKey, treeKeys } from "@/lib/nav/tree";
 
 const member = (permissions: string[]): MemberLike => ({
   userId: "u",
@@ -141,6 +141,22 @@ describe("activeTrail", () => {
     expect(activeTrail(tree, "/books")).toEqual({ item: "/books", module: "/books" });
     expect(activeTrail(tree, "/tasks/123")).toEqual({ item: "/tasks" });
     expect(activeTrail(tree, "/bookshelf")).toEqual({});
+  });
+
+  it("matches an entry with a query only on its exact path with the same parameter values", () => {
+    expect(hrefMatch("/a/b?tab=x", "/a/b", "?tab=x")).toBe("/a/b?tab=x".length);
+    expect(hrefMatch("/a/b?tab=x", "/a/b", new URLSearchParams("tab=x&y=2"))).toBeGreaterThan(
+      hrefMatch("/a/b", "/a/b", "?tab=x"),
+    );
+    expect(hrefMatch("/a/b?tab=x", "/a/b", "?tab=y")).toBe(-1);
+    expect(hrefMatch("/a/b?tab=x", "/a/b", "")).toBe(-1);
+    expect(hrefMatch("/a/b?tab=x", "/a/b", undefined)).toBe(-1);
+    expect(hrefMatch("/a/b?tab=x", "/a/b/c", "?tab=x")).toBe(-1);
+    expect(hrefMatch("/a/b?tab=x&v=1", "/a/b", "?v=1&tab=x")).toBe("/a/b?tab=x&v=1".length);
+    expect(hrefMatch("/a/b?tab=x&v=1", "/a/b", "?tab=x")).toBe(-1);
+    // a plain href still matches its path and below, whatever the query
+    expect(hrefMatch("/a", "/a/b", "?tab=x")).toBe(2);
+    expect(hrefMatch("/a", "/ab", "")).toBe(-1);
   });
 
   it("collects every module and section key", () => {

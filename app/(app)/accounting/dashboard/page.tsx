@@ -10,7 +10,7 @@ import { requirePerm } from "@/lib/auth/session";
 import { todayIn } from "@/lib/finance/action-support";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-export const metadata = { title: "Accounting" };
+export const metadata = { title: "Accounting overview" };
 export const dynamic = "force-dynamic";
 
 /** Overview: the current period and fiscal year, journals waiting to be posted, drafts, and this month's postings (counts only). */
@@ -78,7 +78,7 @@ export default async function AccountingDashboard() {
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
-        title="Accounting"
+        title="Accounting overview"
         description="The general ledger: every posted journal, from people or from the finance sub-ledgers, in one place."
       />
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

@@ -1,5 +1,5 @@
 /**
- * Resolving a Sync Review item: a reviewer links an unmatched/ambiguous Unite patient to a
+ * Resolving a Sync review item: a reviewer links an unmatched/ambiguous Unite patient to a
  * contact, creates the contact from what Unite sent, or dismisses the item. Linking also attaches
  * the appointments that were waiting on the patient and plans their reminders.
  */
