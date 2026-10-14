@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-11-14-menu-areas",
+    date: "2026-11-14",
+    title: "Menu sorted into areas",
+    body: "The icon bar on the left now has a handful of areas instead of every page: Home, Today, CRM, Growth, Insights, Finance, Accounting and Settings. Point at an icon to see its name. Choosing an area opens a panel with its pages, so CRM holds Patients and Enquiries, and Finance and Accounting fold their sections away. Contacts is now called Patients. Hide the panel with the button at its top. On a phone the menu works as before.",
+  },
+  {
     id: "2026-11-13-al-das-colours",
     date: "2026-11-13",
     title: "Pulse in Al Das colours",

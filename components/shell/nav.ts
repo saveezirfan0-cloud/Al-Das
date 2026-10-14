@@ -22,12 +22,12 @@ export type NavIcon =
   | "accounting"
   | "settings";
 
-export type NavGroup = "Today" | "Patients" | "Growth" | "Insight & back office";
+export type NavGroup = "Today" | "CRM" | "Growth" | "Insight & back office";
 
 /** Section order in the sidebar and command palette. Dashboard and Settings sit outside the groups. */
 export const NAV_GROUPS: readonly NavGroup[] = [
   "Today",
-  "Patients",
+  "CRM",
   "Growth",
   "Insight & back office",
 ];
@@ -66,17 +66,17 @@ export const NAV_ITEMS: readonly NavItem[] = [
   },
   {
     href: "/contacts",
-    label: "Contacts",
+    label: "Patients",
     icon: "contacts",
-    group: "Patients",
-    keywords: ["patients", "crm"],
+    group: "CRM",
+    keywords: ["contacts", "crm", "people"],
     permission: "contacts.view",
   },
   {
     href: "/enquiries",
     label: "Enquiries",
     icon: "enquiries",
-    group: "Patients",
+    group: "CRM",
     keywords: ["leads", "pipeline"],
     permission: "enquiries.view",
   },
