@@ -13,6 +13,8 @@ export const metadata = { title: "Appointments" };
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export default async function AppointmentsPage({
   searchParams,
 }: {
@@ -131,6 +133,8 @@ export default async function AppointmentsPage({
         viewExplicit: !!view,
         date: DATE.test(one("date") ?? "") ? (one("date") as string) : today,
         newContact,
+        // A notification or link can open one appointment: /appointments?appointment=<id> (the drawer loads it under RLS).
+        openId: UUID_RE.test(one("appointment") ?? "") ? (one("appointment") as string) : null,
       }}
     />
   );

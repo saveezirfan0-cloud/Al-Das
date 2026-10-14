@@ -19,6 +19,7 @@ import { enqueue, scheduleJob } from "@/lib/jobs/enqueue";
 import type { JobLogger } from "@/lib/jobs/types";
 import { createNotification, notifyMembersWithPermission } from "@/lib/notifications";
 import type { AdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 import type { Json, Tables } from "@/lib/supabase/types";
 import { retryableErrorCodes } from "@/lib/whatsapp/errors";
 import { renderTemplatePreview } from "@/lib/whatsapp/templates";
@@ -395,13 +396,19 @@ async function checkGuardrails(admin: AdminClient, campaign: LoadedCampaign) {
       .select("id", { count: "exact", head: true })
       .eq("campaign_id", campaign.id)
       .gte("sent_at", since),
-    admin
-      .from("campaign_recipients")
-      .select("error_code")
-      .eq("campaign_id", campaign.id)
-      .eq("status", "failed")
-      .gte("failed_at", since)
-      .limit(5000),
+    // Up to 5,000 failures counted by code, read in pages (PostgREST returns at most 1,000 per request).
+    fetchAll(
+      (from, to) =>
+        admin
+          .from("campaign_recipients")
+          .select("error_code")
+          .eq("campaign_id", campaign.id)
+          .eq("status", "failed")
+          .gte("failed_at", since)
+          .order("id")
+          .range(from, to),
+      { max: 5000 },
+    ),
   ]);
   const byCode = new Map<number | null, number>();
   for (const f of failed.data ?? []) byCode.set(f.error_code, (byCode.get(f.error_code) ?? 0) + 1);

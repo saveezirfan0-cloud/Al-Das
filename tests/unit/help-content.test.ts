@@ -115,3 +115,13 @@ describe("what's new and shortcuts", () => {
     expect(SHORTCUT_GROUPS.flatMap((g) => g.items).some((i) => i.keys.includes("?"))).toBe(true);
   });
 });
+
+describe("what's new dates", () => {
+  it("are newest first and never in the future", async () => {
+    const { WHATS_NEW } = await import("@/lib/help/whats-new");
+    const today = new Date().toISOString().slice(0, 10);
+    const dates = WHATS_NEW.map((e) => e.date);
+    expect(dates.filter((d) => d > today)).toEqual([]);
+    expect([...dates].sort().reverse()).toEqual(dates);
+  });
+});

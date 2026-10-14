@@ -23,6 +23,7 @@ import {
 } from "@/lib/security/activity-view";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -52,14 +53,20 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "this view has no export" }, { status: 400 });
 
   const db = await createClient(); // RLS: only settings.manage may read these tables
-  const range: [number, number] = [0, EXPORT_MAX_ROWS - 1];
+  // PostgREST returns at most 1,000 rows per request, so each export reads pages of the same query up to the cap.
+  const upToCap = async <T>(page: (range: [number, number]) => Promise<T[]>): Promise<T[]> =>
+    (
+      await fetchAll(async (from, to) => ({ data: await page([from, to]), error: null }), {
+        max: EXPORT_MAX_ROWS,
+      })
+    ).data ?? [];
   const names = await memberNames(db, member.orgId);
   const who = (id: string | null) => (id ? (names.get(id) ?? "Former member") : "System");
 
   let csv: string;
   let rows: number;
   if (filters.view === "logins") {
-    const data = await fetchAuthEvents(db, member.orgId, filters, range);
+    const data = await upToCap((range) => fetchAuthEvents(db, member.orgId, filters, range));
     rows = data.length;
     csv = authEventsToCsv(
       data.map((r) => ({
@@ -73,7 +80,7 @@ export async function GET(request: Request) {
       })),
     );
   } else if (filters.view === "access") {
-    const data = await fetchAccessLog(db, member.orgId, filters, range);
+    const data = await upToCap((range) => fetchAccessLog(db, member.orgId, filters, range));
     rows = data.length;
     csv = accessLogToCsv(
       data.map((r) => ({
@@ -90,7 +97,7 @@ export async function GET(request: Request) {
       })),
     );
   } else if (filters.view === "alerts") {
-    const data = await fetchAlerts(db, member.orgId, filters, range);
+    const data = await upToCap((range) => fetchAlerts(db, member.orgId, filters, range));
     rows = data.length;
     csv = alertsToCsv(
       data.map((r) => ({
@@ -101,16 +108,22 @@ export async function GET(request: Request) {
       })),
     );
   } else {
-    let q = db
-      .from("audit_log")
-      .select("user_id, action, entity, entity_id, at")
-      .eq("org_id", member.orgId)
-      .order("at", { ascending: false })
-      .limit(EXPORT_MAX_ROWS);
     const since = periodStart(filters.period);
-    if (since) q = q.gte("at", since);
-    if (filters.actor) q = q.eq("user_id", filters.actor);
-    const { data } = await q;
+    const { data } = await fetchAll(
+      (from, to) => {
+        let q = db
+          .from("audit_log")
+          .select("user_id, action, entity, entity_id, at")
+          .eq("org_id", member.orgId);
+        if (since) q = q.gte("at", since);
+        if (filters.actor) q = q.eq("user_id", filters.actor);
+        return q
+          .order("at", { ascending: false })
+          .order("id", { ascending: false })
+          .range(from, to);
+      },
+      { max: EXPORT_MAX_ROWS },
+    );
     rows = data?.length ?? 0;
     csv = changesToCsv(
       (data ?? []).map((r) => ({

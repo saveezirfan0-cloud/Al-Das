@@ -35,6 +35,7 @@ import { cn } from "@/lib/utils";
 import {
   assignTasksAction,
   deleteTasksAction,
+  getTaskAction,
   listTasks,
   setTasksDoneAction,
   type TaskRow,
@@ -81,6 +82,21 @@ export function TasksWorkspace({ bootstrap }: { bootstrap: TasksBootstrap }) {
   const [columnOrder, setColumnOrder] = React.useState<string[]>([]);
 
   const reload = React.useCallback(() => setReloadKey((k) => k + 1), []);
+
+  // /tasks?task=<id> (from a notification) opens that task once.
+  const taskParam = params.get("task");
+  React.useEffect(() => {
+    if (!taskParam) return;
+    let cancelled = false;
+    getTaskAction(taskParam).then((res) => {
+      if (cancelled) return;
+      if (res.ok) setDraft({ open: true, task: res.data });
+      else toast.error(res.error);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [taskParam]);
 
   function setParam(updates: Record<string, string | null>) {
     const next = new URLSearchParams(params.toString());

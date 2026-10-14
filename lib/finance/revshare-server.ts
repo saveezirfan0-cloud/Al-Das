@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { AdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 
 /**
  * Server side of the revenue share (20F): the service-role reads behind the pages. Callers have run can() on a
@@ -79,11 +80,15 @@ export async function loadLiability(admin: AdminClient, orgId: string): Promise<
 
 /** Service categories Finance has in reference data, plus Unmapped (what a category rate may name). */
 export async function knownCategories(admin: AdminClient, orgId: string): Promise<string[]> {
-  const { data } = await admin
-    .from("fin_ref_services")
-    .select("service_category")
-    .eq("org_id", orgId)
-    .limit(5000);
+  // Every service is read in pages (PostgREST returns at most 1,000 per request), so no category is missed.
+  const { data } = await fetchAll((from, to) =>
+    admin
+      .from("fin_ref_services")
+      .select("service_category")
+      .eq("org_id", orgId)
+      .order("item_code")
+      .range(from, to),
+  );
   const set = new Set<string>(["Unmapped"]);
   for (const r of data ?? []) {
     const c = (r.service_category ?? "").trim();

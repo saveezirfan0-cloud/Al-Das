@@ -13,6 +13,7 @@ import type { ScenarioKey } from "@/lib/parallel-run/diff";
 import { COMPARABLE, SCENARIO_KEYS } from "@/lib/parallel-run/diff";
 import { clinicalMessagingEnabled, settingValue } from "@/lib/recall/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 
 export type ActionResult<T = undefined> =
   { ok: true; message?: string; data: T } | { ok: false; error: string };
@@ -186,17 +187,25 @@ export async function previewProgramme(id: string): Promise<ActionResult<Preview
   type Loose = { select(c: string): { eq(c: string, v: unknown): Loose2 } };
   type Loose2 = {
     eq(c: string, v: unknown): Loose2;
-    limit(n: number): PromiseLike<{
+    order(c: string): Loose2;
+    range(
+      from: number,
+      to: number,
+    ): PromiseLike<{
       data: Array<{ segment_key: string | null }> | null;
       error: { message: string } | null;
     }>;
   };
-  let q = (admin as unknown as { from(v: string): Loose })
-    .from(p.eligibility_view)
-    .select("segment_key")
-    .eq("org_id", member.orgId);
-  if (ELIGIBLE_FLAG_VIEWS.has(p.eligibility_view)) q = q.eq("eligible", true) as never;
-  const { data, error } = await (q as unknown as Loose2).limit(5000);
+  const view = p.eligibility_view;
+  // Counted below, so every row is read in pages (PostgREST returns at most 1,000 per request); one row per contact.
+  const { data, error } = await fetchAll((from, to) => {
+    let q = (admin as unknown as { from(v: string): Loose })
+      .from(view)
+      .select("segment_key")
+      .eq("org_id", member.orgId);
+    if (ELIGIBLE_FLAG_VIEWS.has(view)) q = q.eq("eligible", true);
+    return q.order("contact_id").range(from, to);
+  });
   if (error) return { ok: false, error: "Could not read the eligibility rule." };
   const bySegment: Record<string, number> = {};
   for (const r of data ?? [])

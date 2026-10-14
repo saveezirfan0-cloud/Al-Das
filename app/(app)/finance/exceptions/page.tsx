@@ -17,6 +17,7 @@ import { can } from "@/lib/auth/can";
 import { requirePerm } from "@/lib/auth/session";
 import { isOverdue, RULE_CODES, RULE_INFO, STATUS_LABEL } from "@/lib/finance/rules";
 import { createClient } from "@/lib/supabase/server";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 
 import { ActionButton } from "../reference/row-form";
 import { runRulesNow } from "./actions";
@@ -70,11 +71,15 @@ export default async function ExceptionsPage({ searchParams }: { searchParams: P
   const [{ data, count }, { data: people }, { data: openByRule }] = await Promise.all([
     q,
     supabase.from("profiles").select("id, first_name, last_name"),
-    supabase
-      .from("ops_exceptions")
-      .select("rule_code, due_date, status")
-      .in("status", ["open", "in_progress"])
-      .limit(20_000),
+    // Counted per rule below, so every open exception is read (PostgREST returns at most 1,000 per request).
+    fetchAll((from, to) =>
+      supabase
+        .from("ops_exceptions")
+        .select("rule_code, due_date, status")
+        .in("status", ["open", "in_progress"])
+        .order("id")
+        .range(from, to),
+    ),
   ]);
   const names = new Map(
     (people ?? []).map((p) => [p.id, `${p.first_name} ${p.last_name}`.trim() || "—"]),

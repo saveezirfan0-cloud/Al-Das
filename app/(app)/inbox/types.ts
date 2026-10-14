@@ -113,8 +113,14 @@ export type InboxProps = {
   templates: TemplateInfo[];
   people: Person[];
   settings: { require_category_on_close: boolean; require_summary_on_close: boolean };
+  /** First page of the list (kept live by Realtime refreshes). */
   conversations: ConversationListRow[];
+  /** Cursor for the next (older) page of the list; null when the first page is everything. */
+  conversationsCursor: string | null;
   selected: ConversationDetail | null;
+  /** Latest page of the open thread, oldest first. */
   messages: MessageRow[];
+  /** Cursor for earlier messages of the open thread; null when the thread is complete. */
+  messagesCursor: string | null;
   sidebar: SidebarData | null;
 };

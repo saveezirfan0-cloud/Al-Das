@@ -1,15 +1,15 @@
 import { emit } from "@/lib/events/emit";
-import { contactDisplayName } from "@/lib/inbox/contact-name";
 import { readInboxSettings } from "@/lib/inbox/settings";
 import { enqueue } from "@/lib/jobs/enqueue";
 import { registerTask } from "@/lib/jobs/tasks";
-import { createNotification } from "@/lib/notifications";
+import { notify } from "@/lib/notify/dispatch-db";
 
 /**
  * /api/jobs/inbox_housekeeping (pg_cron every 5 min): per org inbox settings,
  *   - auto-close conversations idle for N hours
  *   - remove conversation labels older than N hours
- *   - email + notify assignees about conversations unread for N minutes
+ *   - notify assignees about conversations unread for N minutes (through notify(): their preferences, generic
+ *     wording, never the patient's name)
  */
 registerTask("inbox_housekeeping", {
   name: "inbox.housekeeping",
@@ -55,9 +55,7 @@ registerTask("inbox_housekeeping", {
         const cutoff = new Date(now - s.unread_alert_minutes * 60_000).toISOString();
         const { data: stale } = await admin
           .from("conversations")
-          .select(
-            "id, assignee_user_id, unread_count, last_inbound_at, unread_alerted_at, contacts(first_name, last_name, wa_profile_name, phone_e164)",
-          )
+          .select("id, assignee_user_id, unread_count, last_inbound_at, unread_alerted_at")
           .eq("org_id", org.id)
           .neq("status", "closed")
           .gt("unread_count", 0)
@@ -68,30 +66,16 @@ registerTask("inbox_housekeeping", {
           if (c.unread_alerted_at && c.last_inbound_at && c.unread_alerted_at >= c.last_inbound_at)
             continue;
           if (!c.assignee_user_id) continue;
-          const { data: profile } = await admin
-            .from("profiles")
-            .select("email, first_name")
-            .eq("id", c.assignee_user_id)
-            .maybeSingle();
-          const who = c.contacts ? contactDisplayName(c.contacts) : "a patient";
-          const title = `Unread conversation with ${who}`;
-          const body = `${c.unread_count} unread message${c.unread_count === 1 ? "" : "s"} waiting for more than ${s.unread_alert_minutes} minutes.`;
-          await createNotification(admin, {
+          await notify(admin, {
             orgId: org.id,
-            userId: c.assignee_user_id,
+            userIds: [c.assignee_user_id],
+            event: "inbox.unread",
             type: "inbox.unread",
-            title,
-            body,
+            title: "Conversation waiting",
+            body: `${c.unread_count} unread message${c.unread_count === 1 ? "" : "s"} waiting for more than ${s.unread_alert_minutes} minutes.`,
             payload: { conversation_id: c.id },
+            ids: { conversation_id: c.id },
           });
-          if (profile?.email) {
-            await enqueue("notifications", {
-              type: "email",
-              to: profile.email,
-              subject: `[${org.name}] ${title}`,
-              text: `${body}\n\nOpen the inbox: ${process.env.APP_URL ?? ""}/inbox?c=${c.id}`,
-            });
-          }
           await admin
             .from("conversations")
             .update({ unread_alerted_at: new Date().toISOString() })

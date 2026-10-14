@@ -79,6 +79,70 @@ describe("evaluateEnv", () => {
   });
 });
 
+describe("evaluateEnv: monitoring, e-mail sender, push and embeddings", () => {
+  const byId = (env: Record<string, string | undefined>, id: string) =>
+    evaluateEnv(env).find((c) => c.id === id);
+
+  it("only claims the Sentry DSN is set, never that reporting works", () => {
+    const ok = byId(goodEnv, "env:sentry")!;
+    expect(ok.ok).toBe(true);
+    expect(ok.name).toMatch(/not tested/);
+    expect(ok.detail).toBe("set");
+    const missing = byId({ ...goodEnv, SENTRY_DSN: " " }, "env:sentry")!;
+    expect(missing).toMatchObject({ ok: false, severity: "warning" });
+    expect(byId(goodEnv, "env:sentry-browser")).toMatchObject({ ok: false, severity: "info" });
+    expect(
+      byId(
+        { ...goodEnv, NEXT_PUBLIC_SENTRY_DSN: "https://k@o1.ingest.sentry.io/1" },
+        "env:sentry-browser",
+      )?.ok,
+    ).toBe(true);
+  });
+
+  it("never echoes a DSN or key value in a detail", () => {
+    const env = {
+      ...goodEnv,
+      SENTRY_DSN: "https://secretkey@o1.ingest.sentry.io/1",
+      NEXT_PUBLIC_SENTRY_DSN: "https://secretkey@o1.ingest.sentry.io/1",
+      VAPID_PUBLIC_KEY: "pubkeyvalue",
+      VAPID_PRIVATE_KEY: "privkeyvalue",
+      EMBEDDINGS_API_KEY: "embkeyvalue",
+    };
+    const text = JSON.stringify(evaluateEnv(env));
+    for (const v of ["secretkey", "pubkeyvalue", "privkeyvalue", "embkeyvalue"])
+      expect(text).not.toContain(v);
+  });
+
+  it("warns about the example.com sender only when e-mail is configured", () => {
+    expect(byId(goodEnv, "env:resend-from")).toMatchObject({ ok: false, severity: "warning" });
+    expect(
+      byId({ ...goodEnv, RESEND_FROM: "Pulse <no-reply@example.com>" }, "env:resend-from")?.ok,
+    ).toBe(false);
+    expect(
+      byId({ ...goodEnv, RESEND_FROM: "Pulse <no-reply@aldas.example.ae>" }, "env:resend-from")?.ok,
+    ).toBe(true);
+    expect(byId({ ...goodEnv, RESEND_API_KEY: "" }, "env:resend-from")).toBeUndefined();
+  });
+
+  it("treats VAPID as informational unless only half the pair is set", () => {
+    expect(byId(goodEnv, "env:vapid")).toMatchObject({ ok: false, severity: "info" });
+    expect(byId({ ...goodEnv, VAPID_PUBLIC_KEY: "p" }, "env:vapid")).toMatchObject({
+      ok: false,
+      severity: "warning",
+    });
+    expect(
+      byId({ ...goodEnv, VAPID_PUBLIC_KEY: "p", VAPID_PRIVATE_KEY: "q" }, "env:vapid")?.ok,
+    ).toBe(true);
+  });
+
+  it("reports EMBEDDINGS_API_KEY as information only", () => {
+    expect(byId(goodEnv, "env:EMBEDDINGS_API_KEY")).toMatchObject({ ok: false, severity: "info" });
+    expect(byId({ ...goodEnv, EMBEDDINGS_API_KEY: "k" }, "env:EMBEDDINGS_API_KEY")?.ok).toBe(true);
+    // None of the new checks can turn a ready environment into NO-GO.
+    expect(failed(evaluateEnv(goodEnv))).toEqual([]);
+  });
+});
+
 describe("evaluateQueues", () => {
   const now = Date.parse("2026-11-02T10:00:00Z");
   const cron = [

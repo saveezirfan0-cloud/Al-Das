@@ -50,6 +50,14 @@ export function classifyQueue(q: Omit<QueueHealth, "status">): QueueHealth["stat
   return "ok";
 }
 
+/** Not-yet-done scheduled jobs, as an exact-count head request (no rows). */
+function scheduledCount(admin: AdminClient) {
+  return admin
+    .from("scheduled_jobs")
+    .select("id", { count: "exact", head: true })
+    .is("done_at", null);
+}
+
 export async function getSystemHealth(admin: AdminClient): Promise<SystemHealth> {
   const handlers = new Map(listHandlers().map((h) => [h.queue, h.name]));
 
@@ -62,7 +70,14 @@ export async function getSystemHealth(admin: AdminClient): Promise<SystemHealth>
       .is("resolved_at", null)
       .order("created_at", { ascending: false })
       .limit(100),
-    admin.from("scheduled_jobs").select("run_at, locked_at").is("done_at", null).limit(5000),
+    // Exact counts (PostgREST returns at most 1,000 rows, so counting fetched rows reads low on a backlog).
+    Promise.all([
+      scheduledCount(admin),
+      scheduledCount(admin)
+        .lt("run_at", new Date(Date.now() - 60_000).toISOString())
+        .is("locked_at", null),
+      scheduledCount(admin).not("locked_at", "is", null),
+    ]).then((res) => res.map((r) => r.count ?? 0)),
     admin.rpc("job_cron_status"),
   ]);
 
@@ -93,14 +108,8 @@ export async function getSystemHealth(admin: AdminClient): Promise<SystemHealth>
     return { ...base, status: classifyQueue(base) };
   });
 
-  const now = Date.now();
-  const sched = schedRes.data ?? [];
-  const scheduled = {
-    pending: sched.length,
-    overdue: sched.filter((s) => new Date(s.run_at).getTime() < now - 60_000 && !s.locked_at)
-      .length,
-    locked: sched.filter((s) => !!s.locked_at).length,
-  };
+  const [pending, overdue, locked] = schedRes;
+  const scheduled = { pending, overdue, locked };
 
   return {
     queues,

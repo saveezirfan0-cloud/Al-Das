@@ -5,6 +5,7 @@ import { readAiSettings } from "@/lib/ai/settings";
 import { can, ForbiddenError } from "@/lib/auth/can";
 import { requireMember } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 
 import { AiSettingsCard } from "./ai-settings-card";
 import { KnowledgeManager } from "./knowledge-manager";
@@ -18,25 +19,46 @@ export default async function KnowledgeBasePage() {
   if (!canSettings && !canKb) throw new ForbiddenError("kb.manage");
 
   const admin = createAdminClient();
-  const monthStart = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1)).toISOString();
+  const monthStart = new Date(
+    Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1),
+  ).toISOString();
   const since30 = new Date(Date.now() - 30 * 86_400_000).toISOString();
 
-  const [{ data: org }, { data: groups }, { data: sources }, { data: usage }, { data: feedback }] = await Promise.all([
-    admin.from("orgs").select("settings").eq("id", member.orgId).single(),
-    admin.from("kb_groups").select("id, name, description").eq("org_id", member.orgId).order("name"),
-    admin
-      .from("kb_sources")
-      .select("id, group_id, kind, name, url, status, error, chunk_count, last_ingested_at, created_at")
-      .eq("org_id", member.orgId)
-      .order("created_at", { ascending: false }),
-    admin
-      .from("ai_usage")
-      .select("feature, status, input_tokens, output_tokens")
-      .eq("org_id", member.orgId)
-      .gte("created_at", monthStart)
-      .limit(20_000),
-    admin.from("kb_feedback").select("feature, positive").eq("org_id", member.orgId).gte("created_at", since30).limit(20_000),
-  ]);
+  const [{ data: org }, { data: groups }, { data: sources }, { data: usage }, { data: feedback }] =
+    await Promise.all([
+      admin.from("orgs").select("settings").eq("id", member.orgId).single(),
+      admin
+        .from("kb_groups")
+        .select("id, name, description")
+        .eq("org_id", member.orgId)
+        .order("name"),
+      admin
+        .from("kb_sources")
+        .select(
+          "id, group_id, kind, name, url, status, error, chunk_count, last_ingested_at, created_at",
+        )
+        .eq("org_id", member.orgId)
+        .order("created_at", { ascending: false }),
+      // Summed below, so every row is read in pages (PostgREST returns at most 1,000 per request).
+      fetchAll((from, to) =>
+        admin
+          .from("ai_usage")
+          .select("feature, status, input_tokens, output_tokens")
+          .eq("org_id", member.orgId)
+          .gte("created_at", monthStart)
+          .order("id")
+          .range(from, to),
+      ),
+      fetchAll((from, to) =>
+        admin
+          .from("kb_feedback")
+          .select("feature, positive")
+          .eq("org_id", member.orgId)
+          .gte("created_at", since30)
+          .order("id")
+          .range(from, to),
+      ),
+    ]);
 
   const settings = readAiSettings(org?.settings);
   const env = aiEnv();
@@ -74,7 +96,9 @@ export default async function KnowledgeBasePage() {
       <Card>
         <CardHeader>
           <CardTitle>This month</CardTitle>
-          <CardDescription>Counts only. Message content is never stored with usage.</CardDescription>
+          <CardDescription>
+            Counts only. Message content is never stored with usage.
+          </CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-2 gap-4 text-sm md:grid-cols-5">
           <Stat label="AI requests" value={totals.calls} />
@@ -90,7 +114,10 @@ export default async function KnowledgeBasePage() {
       {canKb ? (
         <KnowledgeManager groups={groups ?? []} sources={sources ?? []} />
       ) : (
-        <p className="text-muted-foreground text-sm">You can view AI settings; managing the knowledge base needs the “Manage the knowledge base” permission.</p>
+        <p className="text-muted-foreground text-sm">
+          You can view AI settings; managing the knowledge base needs the “Manage the knowledge
+          base” permission.
+        </p>
       )}
     </div>
   );

@@ -60,6 +60,13 @@ export const SETTINGS_PAGES: readonly SettingsPage[] = [
   },
 
   {
+    href: "/settings/readiness",
+    label: "Go-live checklist",
+    section: "Workspace",
+    keywords: ["setup", "go live", "checklist", "readiness", "connections"],
+    allow: admin,
+  },
+  {
     href: "/settings/users",
     label: "Users",
     section: "Workspace",
@@ -191,7 +198,16 @@ export const SETTINGS_PAGES: readonly SettingsPage[] = [
     href: "/settings/front-desk",
     label: "Front desk",
     section: "Clinic operations",
-    keywords: ["waitlist", "waiting list", "offers", "qr", "walk-in", "check in", "running late", "location message"],
+    keywords: [
+      "waitlist",
+      "waiting list",
+      "offers",
+      "qr",
+      "walk-in",
+      "check in",
+      "running late",
+      "location message",
+    ],
     allow: admin,
   },
   {

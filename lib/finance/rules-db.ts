@@ -3,6 +3,7 @@ import "server-only";
 import { buildDigests, type DigestMember, type OpenException } from "@/lib/finance/digest";
 import { enqueue } from "@/lib/jobs/enqueue";
 import type { AdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 
 export type RuleRunResult = Record<string, { opened?: number; closed?: number; skipped?: boolean }>;
 
@@ -22,12 +23,16 @@ export async function sendDigestForOrg(admin: AdminClient, orgId: string): Promi
     .maybeSingle();
   if (!settings?.digest_enabled) return 0;
 
-  const { data: open, error } = await admin
-    .from("ops_exceptions")
-    .select("rule_code, owner_role, due_date, status")
-    .eq("org_id", orgId)
-    .in("status", ["open", "in_progress"])
-    .limit(20_000);
+  // Counted per role in the digest, so every open exception is read in pages (PostgREST returns at most 1,000 per request).
+  const { data: open, error } = await fetchAll((from, to) =>
+    admin
+      .from("ops_exceptions")
+      .select("rule_code, owner_role, due_date, status")
+      .eq("org_id", orgId)
+      .in("status", ["open", "in_progress"])
+      .order("id")
+      .range(from, to),
+  );
   if (error) throw new Error(`digest exceptions: ${error.message}`);
 
   const { data: memberships, error: mErr } = await admin

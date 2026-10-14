@@ -3,6 +3,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 
 import type { AdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 import type { Json } from "@/lib/supabase/types";
 
 import { parseTallyXml, type TallyParseResult } from "./parse";
@@ -23,12 +24,24 @@ const STEP_BUDGET_MS = 20_000;
 
 export async function loadPlanContext(admin: AdminClient, orgId: string): Promise<PlanContext> {
   const [acc, cc, jr] = await Promise.all([
-    admin
-      .from("acc_accounts")
-      .select("id, code, name, is_group, is_system, tally_guid, tally_group, control")
-      .eq("org_id", orgId)
-      .limit(50_000),
-    admin.from("acc_cost_centres").select("id, code, name").eq("org_id", orgId).limit(50_000),
+    // Every account and cost centre (the plan matches against all of them), read in pages: PostgREST returns at most
+    // 1,000 rows per request, and a missed account would be planned as new.
+    fetchAll((from, to) =>
+      admin
+        .from("acc_accounts")
+        .select("id, code, name, is_group, is_system, tally_guid, tally_group, control")
+        .eq("org_id", orgId)
+        .order("id")
+        .range(from, to),
+    ),
+    fetchAll((from, to) =>
+      admin
+        .from("acc_cost_centres")
+        .select("id, code, name")
+        .eq("org_id", orgId)
+        .order("id")
+        .range(from, to),
+    ),
     loadTallyJournals(admin, orgId),
   ]);
   return { accounts: acc.data ?? [], costCentres: cc.data ?? [], tallyJournals: jr };

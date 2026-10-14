@@ -3,6 +3,14 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { FOLDERS, type FolderKey, type InboxQuery } from "@/lib/inbox/folders";
+import {
+  CONVERSATION_PAGE_SIZE,
+  MESSAGE_PAGE_SIZE,
+  conversationAfterFilter,
+  decodeCursor,
+  messagesBeforeFilter,
+  takePage,
+} from "@/lib/inbox/paging";
 import type { Database } from "@/lib/supabase/types";
 
 /**
@@ -70,7 +78,9 @@ export async function mentionConversationIds(
     .eq("user_id", userId)
     .is("read_at", null)
     .limit(500);
-  return [...new Set((data ?? []).map((m) => m.conversation_id).filter((id): id is string => !!id))];
+  return [
+    ...new Set((data ?? []).map((m) => m.conversation_id).filter((id): id is string => !!id)),
+  ];
 }
 
 /** The subset of PostgrestFilterBuilder we use; every method returns the builder itself. */
@@ -150,24 +160,57 @@ function applyFilters<B extends Filterable<B>>(builder: B, q: InboxQuery): B {
   return b;
 }
 
+/**
+ * The label filter is an inner join on a separate, aliased embed so it runs in the database
+ * before paging (D5) while `conversation_labels` above still lists every label of the row.
+ */
+const LABEL_FILTER_EMBED = "label_filter:conversation_labels!inner(tag_id)";
+
+export type ConversationPage = { rows: ConversationListRow[]; nextCursor: string | null };
+
+/**
+ * One page of the conversation list, keyset-paged on (last_message_at, id). `cursor` is the
+ * `nextCursor` of the previous page; an unreadable cursor is refused rather than ignored.
+ */
+export async function listConversationsPage(
+  supabase: UserClient,
+  q: InboxQuery,
+  ctx: QueryContext,
+  opts: { limit?: number; cursor?: string | null } = {},
+): Promise<ConversationPage> {
+  const limit = Math.min(Math.max(opts.limit ?? CONVERSATION_PAGE_SIZE, 1), CONVERSATION_PAGE_SIZE);
+  const cursor = opts.cursor ? decodeCursor(opts.cursor) : null;
+  if (opts.cursor && !cursor) throw new Error("listConversations: invalid cursor");
+  const mentionIds =
+    q.folder === "mentions" && !q.team ? await mentionConversationIds(supabase, ctx.userId) : [];
+  const select: string = q.label
+    ? `${CONVERSATION_LIST_SELECT}, ${LABEL_FILTER_EMBED}`
+    : CONVERSATION_LIST_SELECT;
+  let b = supabase.from("conversations").select(select).eq("org_id", ctx.orgId);
+  b = applyFolder(b, q.folder, q.team, ctx, mentionIds);
+  b = applyFilters(b, q);
+  if (q.label) b = b.eq("label_filter.tag_id", q.label);
+  if (cursor) b = b.or(conversationAfterFilter(cursor, q.sort));
+  const ascending = q.sort === "oldest";
+  const { data, error } = await b
+    .order("last_message_at", { ascending, nullsFirst: ascending })
+    .order("id", { ascending })
+    .limit(limit + 1);
+  if (error) throw new Error(`listConversations: ${error.message}`);
+  const rows = (data ?? []) as unknown as Array<ConversationListRow & { label_filter?: unknown }>;
+  // The filter embed only narrows the rows; the list shows `conversation_labels`.
+  for (const r of rows) delete r.label_filter;
+  return takePage(rows, limit, (r) => ({ at: r.last_message_at, id: r.id }));
+}
+
+/** The first page only (rows), for callers that do not page. */
 export async function listConversations(
   supabase: UserClient,
   q: InboxQuery,
   ctx: QueryContext,
   opts: { limit?: number } = {},
 ): Promise<ConversationListRow[]> {
-  const mentionIds =
-    q.folder === "mentions" && !q.team ? await mentionConversationIds(supabase, ctx.userId) : [];
-  let b = supabase.from("conversations").select(CONVERSATION_LIST_SELECT).eq("org_id", ctx.orgId);
-  b = applyFolder(b, q.folder, q.team, ctx, mentionIds);
-  b = applyFilters(b, q);
-  const { data, error } = await b
-    .order("last_message_at", { ascending: q.sort === "oldest", nullsFirst: q.sort === "oldest" })
-    .limit(opts.limit ?? 100);
-  if (error) throw new Error(`listConversations: ${error.message}`);
-  let rows = (data ?? []) as unknown as ConversationListRow[];
-  if (q.label) rows = rows.filter((r) => r.conversation_labels.some((l) => l.tag_id === q.label));
-  return rows;
+  return (await listConversationsPage(supabase, q, ctx, opts)).rows;
 }
 
 export async function folderCounts(
@@ -223,17 +266,39 @@ export type MessageRow = {
   profiles: { first_name: string; last_name: string } | null;
 };
 
+export type MessagePage = { messages: MessageRow[]; nextCursor: string | null };
+
+/**
+ * The latest messages of a conversation (or, with `before`, the page just older than that
+ * cursor), returned oldest first. `nextCursor` points at still older messages.
+ */
+export async function listMessagesPage(
+  supabase: UserClient,
+  conversationId: string,
+  opts: { limit?: number; before?: string | null } = {},
+): Promise<MessagePage> {
+  const limit = Math.min(Math.max(opts.limit ?? MESSAGE_PAGE_SIZE, 1), MESSAGE_PAGE_SIZE);
+  const before = opts.before ? decodeCursor(opts.before) : null;
+  if (opts.before && (!before || before.at === null))
+    throw new Error("listMessages: invalid cursor");
+  let b = supabase.from("messages").select(MESSAGE_SELECT).eq("conversation_id", conversationId);
+  if (before) b = b.or(messagesBeforeFilter(before));
+  const { data, error } = await b
+    .order("at", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(limit + 1);
+  if (error) throw new Error(`listMessages: ${error.message}`);
+  const page = takePage((data ?? []) as unknown as MessageRow[], limit, (m) => ({
+    at: m.at,
+    id: m.id,
+  }));
+  return { messages: page.rows.reverse(), nextCursor: page.nextCursor };
+}
+
 export async function listMessages(
   supabase: UserClient,
   conversationId: string,
-  limit = 200,
+  limit = MESSAGE_PAGE_SIZE,
 ): Promise<MessageRow[]> {
-  const { data, error } = await supabase
-    .from("messages")
-    .select(MESSAGE_SELECT)
-    .eq("conversation_id", conversationId)
-    .order("at", { ascending: false })
-    .limit(limit);
-  if (error) throw new Error(`listMessages: ${error.message}`);
-  return ((data ?? []) as unknown as MessageRow[]).reverse();
+  return (await listMessagesPage(supabase, conversationId, { limit })).messages;
 }

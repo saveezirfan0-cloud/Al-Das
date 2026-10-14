@@ -124,13 +124,60 @@ export function evaluateEnv(env: EnvLike): Check[] {
       has("RESEND_API_KEY") ? "set" : "missing",
     ),
   );
+  // Only presence is checked here: the DSN is not parsed or sent anything, so a set value can still be wrong.
   out.push(
     c(
       "env:sentry",
-      "SENTRY_DSN is set (error reporting)",
+      "SENTRY_DSN is set (server error reporting; the DSN itself is not tested)",
       has("SENTRY_DSN"),
       "warning",
-      has("SENTRY_DSN") ? "set" : "missing",
+      has("SENTRY_DSN") ? "set" : "missing: server errors are not reported",
+    ),
+  );
+  out.push(
+    c(
+      "env:sentry-browser",
+      "NEXT_PUBLIC_SENTRY_DSN is set at build time (browser error reporting)",
+      has("NEXT_PUBLIC_SENTRY_DSN"),
+      "info",
+      has("NEXT_PUBLIC_SENTRY_DSN")
+        ? "set in this environment (it only takes effect in a build made with it)"
+        : "not set: browser errors are not reported",
+    ),
+  );
+  const resendFrom = env.RESEND_FROM?.trim() ?? "";
+  if (has("RESEND_API_KEY"))
+    out.push(
+      c(
+        "env:resend-from",
+        "RESEND_FROM is a real sender address (not the example.com default)",
+        resendFrom !== "" && !/@example\.(com|org|net)\b/i.test(resendFrom),
+        "warning",
+        resendFrom === ""
+          ? "not set: the example.com default is used"
+          : /@example\.(com|org|net)\b/i.test(resendFrom)
+            ? "uses an example.com address"
+            : "set",
+      ),
+    );
+  const vapid = ["VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY"].filter(has).length;
+  out.push(
+    c(
+      "env:vapid",
+      "VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY are set (Web Push, pnpm push:keys)",
+      vapid === 2,
+      // Half a key pair is a mistake; none at all just means push is off.
+      vapid === 1 ? "warning" : "info",
+      vapid === 2 ? "set" : vapid === 1 ? "only one of the pair is set" : "not set: push is off",
+    ),
+  );
+  out.push(
+    c(
+      "env:EMBEDDINGS_API_KEY",
+      "EMBEDDINGS_API_KEY (knowledge-base search, needed once AI answers are live)",
+      has("EMBEDDINGS_API_KEY"),
+      "info",
+      has("EMBEDDINGS_API_KEY") ? "set" : "not set",
     ),
   );
   out.push(

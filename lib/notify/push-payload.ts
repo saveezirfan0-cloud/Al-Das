@@ -28,6 +28,10 @@ const GENERIC: Record<string, { title: string; body: string }> = {
   "inbox.message": { title: "New message", body: "A patient replied. Open the conversation." },
   "inbox.assigned": { title: "Conversation assigned", body: "A conversation was assigned to you." },
   "inbox.mention": { title: "You were mentioned", body: "A colleague mentioned you in a note." },
+  "inbox.unread": {
+    title: "Conversation waiting",
+    body: "A conversation assigned to you still has unread messages.",
+  },
   "sla.breach": { title: "SLA breached", body: "An enquiry is past its response time." },
   "reminder.failed": {
     title: "Reminder not delivered",
@@ -105,20 +109,24 @@ const cleanId = (v: string | null | undefined) => (v && UUID.test(v) ? v.toLower
 export function pushUrl(event: string, ids: PushIds): string {
   const conversation = cleanId(ids.conversation_id);
   const enquiry = cleanId(ids.enquiry_id);
+  const task = cleanId(ids.task_id);
+  const appointment = cleanId(ids.appointment_id);
   switch (event) {
     case "inbox.message":
     case "inbox.assigned":
     case "inbox.mention":
+    case "inbox.unread":
     case "inbox.emergency":
     case "escalation":
       return conversation ? `/inbox?c=${conversation}` : "/inbox";
     case "sla.breach":
       return enquiry ? `/enquiries?enquiry=${enquiry}` : "/enquiries";
     case "reminder.failed":
+      return appointment ? `/appointments?appointment=${appointment}` : "/tasks";
     case "task.due":
-      return "/tasks";
+      return task ? `/tasks?task=${task}` : "/tasks";
     case "document.expiring":
-      return cleanId(ids.task_id) ? "/tasks" : "/notifications";
+      return task ? `/tasks?task=${task}` : "/notifications";
     case "waitlist.booked":
       return "/front-desk";
     case "esign.update":

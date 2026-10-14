@@ -16,6 +16,7 @@ import { isEnabled, loadAccount, readConfig } from "@/lib/integrations/accounts"
 import type { JobLogger } from "@/lib/jobs/types";
 import { redactText } from "@/lib/redact";
 import type { AdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 import type { Json } from "@/lib/supabase/types";
 
 import {
@@ -201,12 +202,23 @@ export async function loadMappingContext(
   orgId: string,
 ): Promise<MappingContext> {
   const [acc, cc, br] = await Promise.all([
-    admin
-      .from("acc_accounts")
-      .select("id, code, name, tally_guid, tally_name, is_group")
-      .eq("org_id", orgId)
-      .limit(50_000),
-    admin.from("acc_cost_centres").select("id, name").eq("org_id", orgId).limit(50_000),
+    // Every account and cost centre, read in pages (PostgREST returns at most 1,000 rows per request).
+    fetchAll((from, to) =>
+      admin
+        .from("acc_accounts")
+        .select("id, code, name, tally_guid, tally_name, is_group")
+        .eq("org_id", orgId)
+        .order("id")
+        .range(from, to),
+    ),
+    fetchAll((from, to) =>
+      admin
+        .from("acc_cost_centres")
+        .select("id, name")
+        .eq("org_id", orgId)
+        .order("id")
+        .range(from, to),
+    ),
     admin
       .from("fin_ref_tally_ledgers")
       .select("key, ledger_name")

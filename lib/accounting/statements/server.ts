@@ -36,6 +36,7 @@ import type { StatementAccount } from "@/lib/accounting/statements/tree";
 import { buildVatReturn, vatBoxLines, type VatData } from "@/lib/accounting/statements/vat";
 import { can, canAny, type MemberLike } from "@/lib/auth/can";
 import type { AdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 
 /**
  * Server side of the Phase 22G statements: one loader per report that calls the SQL function (service role; the caller
@@ -526,12 +527,16 @@ export async function loadBudget(
     .maybeSingle();
   if (!b) return null;
   const [{ data: lines }, hash] = await Promise.all([
-    admin
-      .from("acc_budget_lines")
-      .select("account_id, month, branch_code, department, amount")
-      .eq("budget_id", b.id)
-      .order("month")
-      .limit(20000),
+    // Every line (the budget is totalled and hashed), read in pages: PostgREST returns at most 1,000 per request.
+    fetchAll((from, to) =>
+      admin
+        .from("acc_budget_lines")
+        .select("account_id, month, branch_code, department, amount")
+        .eq("budget_id", b.id)
+        .order("month")
+        .order("id")
+        .range(from, to),
+    ),
     admin.rpc("acc_budget_hash", { p_budget_id: b.id }),
   ]);
   return {

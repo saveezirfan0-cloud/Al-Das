@@ -52,6 +52,15 @@ too. About 180 pages, ~3,100 unit tests, ~1,390 database tests. All 130 menu lin
 | D7 | Notification links open the list page, not the item (tasks, appointments); push and in-app links disagree | `lib/notify/links.ts`, `push-payload.ts` | S |
 | D8 | 46 What's new entries are dated in the future, so "unseen" counts are wrong | `lib/help/whats-new.ts` | S |
 
+**Status (14 Oct 2026).** Fixed: D1–D8.
+- D3 adds `lib/supabase/fetch-all.ts` and the guard test `tests/unit/no-large-limit.test.ts`.
+- D4: Sentry is wired and off until a DSN is set.
+- Also built: the Go-live checklist at `/settings/readiness`, and the extended preflight.
+
+Still open in Phase A:
+- The live-database check (the Pulse Supabase project is not reachable from this workspace's connector).
+- The signed-in Playwright suite.
+
 ## 3. Target structure (what people will see)
 
 Desktop: a slim rail of areas. Pointing at an area pops its pages out (done in this change). The pin docks that panel,
