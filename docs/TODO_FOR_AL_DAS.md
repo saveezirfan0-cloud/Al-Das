@@ -46,7 +46,7 @@ _Updated 14 Oct 2026. Pulse's code for Phases 20 to 22 is merged into `main` (fi
 ## 7. Decisions (all open questions)
 
 <!-- generated:start -->
-_Generated 14 Oct 2026 by `scripts/compile-todo.py`: 132 open questions, 41 of them blocking a feature._
+_Generated 14 Oct 2026 by `scripts/compile-todo.py`: 142 open questions, 49 of them blocking a feature._
 
 ### Answer these first
 
@@ -139,6 +139,15 @@ _Generated 14 Oct 2026 by `scripts/compile-todo.py`: 132 open questions, 41 of t
 - [ ] **OQ-143** (Finance Manager / CEO, blocking): **Profit levels and allocation keys.** Confirm the six levels (net revenue, expected revenue after denials, doctor contribution, department contribution, clinic contribution, profit after allocation), which costs are direct at each level, and the keys for the rest (proposed: rent by room-hours used, reception by visits, group overhead by net revenue). Decisions (keep, close, hire) use contribution, not profit after allocation _(today: May models allocate 0/5/10% of revenue or by hand; proposed: as proposed)_
 - [ ] **OQ-144** (Finance Manager / Accountant, blocking): **Tally cost centres.** Set up a branch x department cost-centre structure in Tally so every expense is coded when it is entered, and map it once in Pulse _(today: cost centres not tied to branch or department; proposed: branch x department)_
 - [ ] **OQ-145** (CEO / Finance Manager): **Benchmarks and viability.** How are department bands set (proposed: peer percentiles once 12 months exist, clinic-wide where a department has one doctor), what contribution floor counts as viable, and how many months below it trigger a review? _(today: A-band = one doctor's average, B = 70% of A; proposed: percentiles; review after 2 closed months below the floor)_
+- [ ] **OQ-148** (Finance Manager / HR / legal, blocking): **Revenue basis for doctor pay.** The contracts pay on collected net (VAT, refunds, chargebacks excluded). Pulse has invoiced net by invoice date. How are collections (patient payments, insurance remittance) allocated to doctor and category, and does pay follow the service month or the collection month? _(today: invoiced net (fin_revshare_inputs); proposed: pro rata to invoice lines; collection month; refunds netted when refunded)_
+- [ ] **OQ-149** (Finance Manager / HR / legal, blocking): **Threshold basis (GP and Gynae).** Is the pool gross revenue with costs allocated pro rata (generator helper) or revenue net of costs? Does R include categories with no incentive rate (GP retail, radiology)? _(today: revshare: gross, all categories, costs not scaled; proposed: written rule with a worked example signed by both)_
+- [ ] **OQ-150** (Finance Manager, blocking): **Direct costs per category.** Which costs reduce which category (consumables and medicines to procedures, outsourced lab to laboratory, dental materials and lab, aesthetic devices), at the category rate rather than in full, and is each held once (fin_doctor_charges or fin_cost_services, never both for the same cost)? _(today: default rule deducts lab and referral at 100 %; proposed: cost linked to its category (P2))_
+- [ ] **OQ-151** (Finance Manager / HR, blocking): **Category map.** Map Unite SERVICE, PROCEDURES, TEST, RADIOLOGY, DRUGS, RETAIL PRODUCT, VACCINE, PACKAGES/Package, DENTAL PROCEDURES, INTRAVENOUS THERAPY, HOME HEALTHCARE, OTHER SERVICES and NO to the contract categories (consultations, procedures, investigations, retail, inpatient surgery). How are packages split? _(today: service_category per item, many Unmapped; proposed: Finance-signed table; NO stays Unmapped)_
+- [ ] **OQ-152** (Finance Manager, blocking): **Insurance provision.** Rate per doctor or the Finance rate, applied to insurance revenue only, and how is it trued up when remittance and denials arrive? Confirm that Gynae "0 = Finance rate" differs from the general field "0 = 0". _(today: none in Pulse pay; proposed: Finance rate unless the contract states one; quarterly true-up)_
+- [ ] **OQ-153** (Finance Manager / HR / legal, blocking): **Gynae inpatient surgery.** How is an inpatient surgery identified in Unite, and how is after-hours vs scheduled evidenced? Confirm it is excluded from the outpatient pool and from outpatient category shares. _(today: not identifiable by item type; proposed: dedicated item codes per surgery type, two categories)_
+- [ ] **OQ-154** (Finance Manager / legal): **Clinic commitment and policy payments (Aesthetics, Dental, revenue sharing).** What is the comparison base and deduction order for a shortfall against practitionerClinicCommitmentAed, and how are patient-facilitation, workshop and staffing items recorded? _(today: not calculated; proposed: Finance records each as a charge or a separate payment by hand, with the schedule reference)_
+- [ ] **OQ-156** (Finance Manager / HR, blocking): **Doctor fixed cost and proration.** Payroll supplies salary and fixed cost (visa, DHA licence, insurance, malpractice, gratuity accrual) per doctor and month as separate components. For max(S, V) doctors, pay is the approved run payout with no salary row. How are S and T prorated for a mid-month start, end or salary change? _(today: one comp amount per doctor-month; proposed: component column; proration by calendar days)_
+- [ ] **OQ-157** (Finance Manager / HR, blocking): **Who earns the revenue.** Invoice doctor, ordering or performing (doctor_basis)? Radiology and lab are billed under the referring doctor. Does the referrer earn the investigations share? _(today: invoice doctor; proposed: per contract type, as Finance signs)_
 
 ### Marketing, consent and legal
 
@@ -200,6 +209,7 @@ _Generated 14 Oct 2026 by `scripts/compile-todo.py`: 132 open questions, 41 of t
 ### Other
 
 - [ ] **OQ-147** (Owner): **Who sees doctor-level profit.** Confirm doctor pay and doctor-level profit are visible to the owner, CEO and Finance Manager only, and department heads see contribution for their own department only _(proposed: as described)_
+- [ ] **OQ-155** (HR / Finance Manager): **Terms hand-over.** HR sends Finance the terms sheet (fixed field list, no personal data) for every signed contract and amendment within N working days. Finance enters the scheme, and the Finance Manager checks it against the signed contract. Offers are never entered. _(today: none; proposed: terms sheet + scheme note with the generator record id)_
 
 ## 8. Files and samples to send
 
