@@ -260,6 +260,27 @@ export const GUIDES: readonly Guide[] = [
     ],
   },
   {
+    id: "finance-recruitment",
+    title: "Recruitment calculator",
+    pages: ["/finance/recruitment"],
+    purpose:
+      "Checks whether a candidate doctor would pay for themselves: their claimed revenue, reduced by the conservative factor, run through consumables, gateway, their pay under the chosen contract type and the indirect costs, then compared with the clinic's own doctors. Everything on the page is a scenario.",
+    steps: [
+      "Choose the department and the contract type, then enter the salary and/or share the contract would give.",
+      "Enter the claimed monthly revenue and any revenue from the candidate's equipment or nurse. The conservative factor, consumables % and gateway % start from the clinic's defaults (Targets and report lines).",
+      "Enter the indirect costs with the months each covers (12 for a yearly licence); they are spread evenly.",
+      "Read the result: profit, viability, breakeven revenue, safety margin, the band against the department's median and 75th percentile, and the Ramadan, Eid and holiday dates in the first three months.",
+      "Save it with a role label as the title, open it again later, or download it as Excel.",
+    ],
+    watchOut: [
+      "Never type a candidate's name; use a role label.",
+      "A salary is a fixed cost, so breakeven is the revenue that covers the salary and the indirect costs. With salary-backed revenue sharing the doctor gets the higher of the salary and the share, never both.",
+      "When a department has too few doctor-months, or only one doctor, the clinic-wide figures are used and the page says so.",
+      "No seasonal factor is applied: the history is too short. Ramadan and Eid dates are approximate until announced; correct them in the calendar at the bottom of the page.",
+      "Needs the Profitability and Doctor compensation permissions; saving needs Maintain service costs.",
+    ],
+  },
+  {
     id: "finance-collections",
     title: "Collections and data quality",
     pages: ["/finance/collections"],

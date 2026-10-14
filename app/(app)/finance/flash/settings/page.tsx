@@ -13,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { can } from "@/lib/auth/can";
 import { requirePerm } from "@/lib/auth/session";
 import { todayIn } from "@/lib/finance/action-support";
 import { DEFAULT_LATE_INVOICE_DAYS } from "@/lib/finance/collections";
@@ -30,6 +31,7 @@ import {
   DataQualityForm,
   InsuranceReconForm,
   MgmtAlertsForm,
+  RecruitDefaultsForm,
   PerfBandsForm,
   NewLineButton,
   TargetsForm,
@@ -64,7 +66,7 @@ export default async function FlashSettingsPage({
     admin
       .from("fin_ref_finance_settings")
       .select(
-        "flash_share_basis, flash_top_doctors, perf_arpp_target, perf_band_near, perf_band_moderate, dq_late_invoice_days, ins_recon_tolerance, ins_recon_grace_days, alert_report_late_days, alert_revenue_target_pct, alert_revenue_target_days, alert_band_min_patients",
+        "flash_share_basis, flash_top_doctors, perf_arpp_target, perf_band_near, perf_band_moderate, dq_late_invoice_days, ins_recon_tolerance, ins_recon_grace_days, alert_report_late_days, alert_revenue_target_pct, alert_revenue_target_days, alert_band_min_patients, recruit_conservative_pct, recruit_consumables_pct, recruit_gateway_pct, recruit_min_peer_months",
       )
       .eq("org_id", member.orgId)
       .maybeSingle(),
@@ -246,6 +248,22 @@ export default async function FlashSettingsPage({
           />
         </CardContent>
       </Card>
+
+      {can(member, "finance.costs.manage") && settings && (
+        <Card id="recruitment">
+          <CardHeader>
+            <CardTitle className="text-base">Recruitment calculator defaults</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <RecruitDefaultsForm
+              conservative={Number(settings.recruit_conservative_pct)}
+              consumables={Number(settings.recruit_consumables_pct)}
+              gateway={Number(settings.recruit_gateway_pct)}
+              minPeerMonths={Number(settings.recruit_min_peer_months)}
+            />
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

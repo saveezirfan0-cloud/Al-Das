@@ -1591,6 +1591,23 @@ export const PHASE23_SERVICE_ONLY_TABLES = [
   "fin_report_doctor_map",
 ] as const;
 
+/** M4 recruitment calculator: tables with a browser (select) policy; writes are server actions (service role). */
+export const M4A_TABLES = ["fin_recruitment_scenarios", "fin_ref_calendar_events"] as const;
+
+/**
+ * M4: one synthetic scenario per org (the calendar is seeded for every new org by trigger), so the cross-org sweeps are
+ * not vacuous. A role label, no person.
+ */
+export async function seedM4aRows(c: Client, orgId: string) {
+  await asServiceRole(c, async () => {
+    await c.query(
+      "insert into public.fin_recruitment_scenarios (org_id, title, inputs, result) values ($1, 'Seed role', '{}', '{}')",
+      [orgId],
+    );
+    await c.query("select public.fin_seed_calendar_events($1)", [orgId]);
+  });
+}
+
 /**
  * Phase 20i (G13, Meta ads spend): one synthetic row per table for an org, so the cross-org sweeps are not vacuous. Meta's own
  * per-ad figures only (a made-up ad id, amounts and counts); no patient data. Service role only (no write policy).

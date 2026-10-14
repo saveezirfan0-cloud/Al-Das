@@ -20,6 +20,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/types";
 import { reconSettingsSchema } from "@/lib/finance/insurance-billing";
 import { mgmtAlertSettingsSchema } from "@/lib/finance/management-alerts";
+import { recruitSettingsSchema } from "@/lib/finance/recruitment";
 
 /**
  * Reporting lines, targets and display settings for the flash report. Everything here needs finance.targets.manage;
@@ -375,4 +376,34 @@ export async function saveMgmtAlertSettings(values: Record<string, string>): Pro
   });
   revalidatePath("/finance/flash/settings");
   return { ok: true, message: "Alert settings saved." };
+}
+
+/** The recruitment calculator's defaults are cost assumptions: finance.costs.manage, not the targets key. */
+async function gateRecruit() {
+  const member = await requireMember();
+  return can(member, "finance.costs.manage") ? member : null;
+}
+
+/** Recruitment calculator (M4): conservative factor, consumables %, gateway %, minimum peer doctor-months. */
+export async function saveRecruitDefaults(values: Record<string, string>): Promise<ActionResult> {
+  const member = await gateRecruit();
+  if (!member) return fail(DENIED);
+  const parsed = recruitSettingsSchema.safeParse(values);
+  if (!parsed.success) return fail(firstIssue(parsed.error));
+  const admin = createAdminClient(member.userId);
+  const { error } = await admin
+    .from("fin_ref_finance_settings")
+    .upsert({ org_id: member.orgId, ...parsed.data }, { onConflict: "org_id" });
+  if (error) return fail(dbMessage(error, "Could not save the recruitment defaults."));
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "finance.recruitment.defaults_saved",
+    entity: "fin_ref_finance_settings",
+    entityId: member.orgId,
+    diff: parsed.data,
+  });
+  revalidatePath("/finance/flash/settings");
+  revalidatePath("/finance/recruitment");
+  return { ok: true, message: "Recruitment defaults saved." };
 }

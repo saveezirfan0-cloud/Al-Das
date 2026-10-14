@@ -16,6 +16,7 @@ import {
   connect,
   createAuthUser,
   createOrg,
+  M4A_TABLES,
   PHASE13_TABLES,
   PHASE14_TABLES,
   PHASE15_TABLES,
@@ -77,6 +78,7 @@ import {
   seedSf20gRows,
   seedSf20iRows,
   seedPortalTagRows,
+  seedM4aRows,
   seedSecurityRows,
   seedSoftDeleteRows,
   SOFT_DELETE_SERVICE_ONLY_TABLES,
@@ -1070,6 +1072,8 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
     await seedPortalTagRows(c, orgA);
     // Soft delete (docs/35): one item in the bin, so the service-only read check is not vacuous.
     await seedSoftDeleteRows(c, orgA, alice);
+    // M4 (recruitment calculator): a saved scenario and the seeded calendar.
+    await seedM4aRows(c, orgA);
   });
   afterAll(async () => {
     await resetDb(c);
@@ -1082,6 +1086,7 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
 
   it("sweeps every Phase 13 to 22 table (a new table must be added to PHASE13_TABLES ... PHASE22_TABLES and seeded)", () => {
     for (const t of [
+      ...M4A_TABLES,
       ...SF20G_TABLES,
       ...SF20E_TABLES,
       ...SF20I_TABLES,
@@ -1115,6 +1120,7 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
   it("really holds org A rows in the Phase 13 to 21 tables, visible to org A's admin (control for the leak sweep)", async () => {
     await asUser(c, alice, async () => {
       for (const t of [
+        ...M4A_TABLES,
         ...SF20G_TABLES,
         ...SF20E_TABLES,
         ...SF20I_TABLES,
