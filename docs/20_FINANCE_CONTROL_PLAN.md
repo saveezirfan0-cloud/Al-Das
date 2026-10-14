@@ -158,8 +158,8 @@ Send anonymised or synthetic copies where a file contains patient details; heade
 
 | # | File | Used by | Owner |
 |---|---|---|---|
-| D1 | Unite daily revenue download (the one Krishna uses) and the month-end revenue report, cash vs insurance | 20A / 20B | Krishna |
-| D2 | Reception daily collection sheet per branch | 20B / 20C | Krishna |
+| D1 | Unite daily revenue download (the one Krishna uses) and the month-end revenue report, cash vs insurance. **Received 14 Oct 2026** (Unite Daily Collection Multi-Clinic Report, Sep 2026; analysed in `docs/39_UNITE_REPORTS_PLAN.md`, not kept) | 20A / 20B / 23A | Krishna |
+| D2 | Reception daily collection sheet per branch. **Covered by D1** (the same report has the collection per clinic) | 20B / 20C | Krishna |
 | D3 | Bank statement export for each account (CSV or XLSX), one month | 20C | Krishna / Hardik |
 | D4 | Card / EPG settlement report, Tabby payout report, rePG and MX reports | 20C | Krishna |
 | D5 | In-house lab monthly statement and one send-out lab invoice with test list | 20E | Althaf |
@@ -172,6 +172,7 @@ Send anonymised or synthetic copies where a file contains patient details; heade
 | D12 | The targets sheet (daily revenue and patient targets per branch, ARPP target) | 20A | Hardik / Saeed |
 | D13 | ARP report example | 20I | Vineetha |
 | D14 | The full finance meeting transcript | all | Saveez |
+| D15 | A Unite item-wise (service-level) revenue export for one month, and the list of Longevity services, so Longevity can be split per practitioner (OQ-139) | 23C | Krishna / Saeed |
 
 ## 7. Status
 

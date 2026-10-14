@@ -42,6 +42,7 @@ import {
   PHASE22H_TABLES,
   PHASE22J_SERVICE_ONLY_TABLES,
   PHASE22J_TABLES,
+  PHASE23_SERVICE_ONLY_TABLES,
   SF20C_BOOKING_TABLES,
   SF20C_TABLES,
   SF20D_TABLES,
@@ -117,6 +118,10 @@ const SERVICE_ONLY = new Set([
   // Phase 22J: the Tally connectors (pairing-code and device-token hashes); only server code (service role, after the
   // device-token check or can('accounting.settings.manage')) and the acc_tally_bridge_* functions touch them
   "acc_tally_devices",
+  // Phase 23A: the sanitised Unite collection report (uploads and visit rows, PIN-level); only server code (service role,
+  // after can('finance.revenue.import') or can('finance.revenue.view')) and the fin_report_* functions touch them
+  "fin_report_uploads",
+  "fin_report_visits",
   // Finance F2 / Phase 19: provider credentials (config_enc, AES-256-GCM) and token cache; only server code after can('integrations.manage') reads or writes them
   "integration_accounts",
   // Phase 19: idempotency keys of inbound provider webhooks (provider event ids and a short outcome word); claimed by the webhook route, never read by a browser
@@ -1199,6 +1204,7 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
         ...PHASE22I_SERVICE_ONLY_TABLES,
         ...PHASE22J_SERVICE_ONLY_TABLES,
         ...SOFT_DELETE_SERVICE_ONLY_TABLES,
+        ...PHASE23_SERVICE_ONLY_TABLES,
       ]) {
         const { rows } = await c
           .query<{ n: string }>(`select count(*)::text as n from public.${t}`)

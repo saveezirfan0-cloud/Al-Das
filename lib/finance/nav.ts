@@ -15,6 +15,8 @@ export type FinanceNavEntry = {
   section: string;
   permissions: readonly string[];
   badge?: FinanceBadge;
+  /** Extra words quick search matches (the label always matches). */
+  keywords?: readonly string[];
 };
 
 const VOUCHERS = [
@@ -89,6 +91,21 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
     permissions: ["finance.revenue.view"],
   },
   {
+    href: "/finance/doctor-performance",
+    label: "Doctor performance",
+    section: "Overview",
+    permissions: ["finance.revenue.view"],
+    keywords: [
+      "arpp",
+      "revenue per patient",
+      "doctor comparison",
+      "month comparison",
+      "revenue comparison",
+      "target bands",
+      "unite report",
+    ],
+  },
+  {
     href: "/finance/analytics",
     label: "Billing mix and trends",
     section: "Overview",
@@ -114,9 +131,9 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
   },
   {
     href: "/finance/upload",
-    label: "Insurance upload",
+    label: "Uploads (insurance, Unite)",
     section: "Billing and claims",
-    permissions: ["finance.claims.import"],
+    permissions: ["finance.claims.import", "finance.revenue.import"],
   },
   {
     href: "/finance/eligibility",

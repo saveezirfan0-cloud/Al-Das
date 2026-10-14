@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-11-26-doctor-performance",
+    date: "2026-10-14",
+    title: "Doctor performance from the Unite collection report",
+    body: "Finance can upload Unite's Daily Collection report under Finance, Uploads. Pulse checks that the rows add up to the report's own totals before anything is used, keeps no patient names, card numbers or remarks, and does not keep the file. The new Finance, Doctor performance page then shows each doctor and department for a month against the previous one: revenue, patients, revenue per patient against the target (750 by default) with its band, expected revenue and gap, new visits and follow-ups, with an Excel download. The target and the band limits are set under Finance, Targets and report lines.",
+  },
+  {
     id: "2026-11-15-finance-access-window",
     date: "2026-10-14",
     title: "Finance access window",
