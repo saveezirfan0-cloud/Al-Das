@@ -632,6 +632,119 @@ describe.skipIf(!TEST_DATABASE_URL)("Accounting statements (Phase 22G)", () => {
     });
   });
 
+  describe("branch filter (Phase B)", () => {
+    // Direct sums over the journal lines that name the branch: the reports must count exactly those.
+    const sums = async (code: string | null, until: string, since: string | null = null) => {
+      const { rows } = await svc(() =>
+        q(
+          `select a.code, a.nature, sum(l.debit - l.credit)::numeric as dc
+           from public.acc_journal_lines l
+           join public.acc_journals j on j.id = l.journal_id
+           join public.acc_accounts a on a.id = l.account_id
+           where j.org_id = $1 and j.status in ('posted', 'reversed') and j.journal_date <= $2
+             and ($3::date is null or j.journal_date >= $3::date)
+             and ($4::text is null or l.branch_code = $4)
+           group by a.code, a.nature`,
+          [orgA, until, since, code],
+        ),
+      );
+      return new Map(
+        rows.map((r) => [r.code as string, { nature: r.nature as string, dc: num(r.dc) }]),
+      );
+    };
+
+    it("the trial balance counts only the lines naming the branch, and no branch means every line", async () => {
+      const all = await rpc<TrialBalanceData>("acc_trial_balance", [orgA, null, from, to]);
+      const none = await rpc<TrialBalanceData>("acc_trial_balance", [orgA, null, from, to, null]);
+      const blank = await rpc<TrialBalanceData>("acc_trial_balance", [orgA, null, from, to, " "]);
+      expect(none.totals).toEqual(all.totals);
+      expect(blank.totals).toEqual(all.totals);
+      for (const code of ["G", "M"]) {
+        const tb = await rpc<TrialBalanceData & { branch_code: string }>("acc_trial_balance", [
+          orgA,
+          null,
+          from,
+          to,
+          code,
+        ]);
+        expect(tb.branch_code).toBe(code);
+        const moved = await sums(code, to, from);
+        expect(tb.rows.length).toBeGreaterThan(0);
+        for (const r of tb.rows) {
+          const expected = moved.get(r.code)?.dc ?? 0;
+          expect(num(r.debit) - num(r.credit), `${code} ${r.code}`).toBeCloseTo(expected, 2);
+        }
+        expect(num(tb.totals.debit)).toBeLessThan(num(all.totals.debit));
+      }
+      // a code no line names shows nothing
+      const empty = await rpc<TrialBalanceData>("acc_trial_balance", [orgA, null, from, to, "ZZ"]);
+      expect(empty.rows).toEqual([]);
+    });
+
+    it("the balance sheet and the cash flow keep to the branch's lines", async () => {
+      const bs = await rpc<BsData>("acc_balance_sheet", [orgA, null, E.bs.as_at, true, "G"]);
+      const lines = await sums("G", E.bs.as_at);
+      const byCode = Object.fromEntries(bs.rows.map((r) => [codeOf(r.account_id), num(r.balance)]));
+      for (const [code, v] of lines) {
+        if (!["asset", "liability", "equity"].includes(v.nature) || v.dc === 0) continue;
+        const sign = v.nature === "asset" ? 1 : -1;
+        expect(byCode[code] ?? 0, code).toBeCloseTo(sign * v.dc, 2);
+      }
+      const full = await rpc<BsData>("acc_balance_sheet", [orgA, null, E.bs.as_at, true]);
+      const unfiltered = await rpc<BsData>("acc_balance_sheet", [
+        orgA,
+        null,
+        E.bs.as_at,
+        true,
+        null,
+      ]);
+      expect(unfiltered.totals).toEqual(full.totals);
+
+      const cf = await rpc<CfData>("acc_cash_flow", [orgA, null, from, to, true, "M"]);
+      const pl = await sums("M", to, from);
+      const income = [...pl.values()]
+        .filter((v) => v.nature === "income" || v.nature === "expense")
+        .reduce((t, v) => t - v.dc, 0);
+      expect(num(cf.net_profit)).toBeCloseTo(income, 2);
+      const cfAll = await rpc<CfData>("acc_cash_flow", [orgA, null, from, to, true]);
+      expect(num(cfAll.net_profit)).toBe(E.cf.net_profit);
+    });
+
+    it("the general ledger shows only the branch's lines with a running balance over them", async () => {
+      const { rows } = await svc(() =>
+        q(
+          `select l.account_id from public.acc_journal_lines l join public.acc_journals j on j.id = l.journal_id
+           where j.org_id = $1 and l.branch_code = 'G' and j.status = 'posted' limit 1`,
+          [orgA],
+        ),
+      );
+      const account = rows[0].account_id as string;
+      const led = await rpc<{
+        lines: Array<{
+          branch_code: string | null;
+          debit: number;
+          credit: number;
+          balance: number;
+        }>;
+        opening: number;
+        closing: number;
+      }>("acc_ledger", [orgA, account, "2000-01-01", to, 1000, 0, "G"]);
+      expect(led.lines.length).toBeGreaterThan(0);
+      expect(led.lines.every((l) => l.branch_code === "G")).toBe(true);
+      const total = led.lines.reduce((t, l) => t + num(l.debit) - num(l.credit), num(led.opening));
+      expect(num(led.closing)).toBeCloseTo(total, 2);
+      const unfiltered = await rpc<{ total_lines: number }>("acc_ledger", [
+        orgA,
+        account,
+        "2000-01-01",
+        to,
+        1000,
+        0,
+      ]);
+      expect(unfiltered.total_lines).toBeGreaterThanOrEqual(led.lines.length);
+    });
+  });
+
   describe("provisional", () => {
     it("is lifted once every month in range is closed", async () => {
       const periods = (

@@ -724,25 +724,63 @@ export type AgeingView = {
   totals: AgeingRow;
 };
 
+/** Phase B: of these sales invoices, the ones with at least one line naming the finance branch code. */
+async function invoicesNamingBranch(
+  admin: AdminClient,
+  orgId: string,
+  invoiceIds: readonly string[],
+  branchCode: string,
+): Promise<Set<string>> {
+  const keep = new Set<string>();
+  for (let i = 0; i < invoiceIds.length; i += 300) {
+    const { data, error } = await admin
+      .from("acc_sales_invoice_lines")
+      .select("invoice_id")
+      .eq("org_id", orgId)
+      .eq("branch_code", branchCode)
+      .in("invoice_id", invoiceIds.slice(i, i + 300));
+    if (error) throw new Error("ageing branch filter failed");
+    for (const r of data ?? []) keep.add(r.invoice_id);
+  }
+  return keep;
+}
+
 export async function loadAgeing(
   admin: AdminClient,
   orgId: string,
   asOf: string,
+  /**
+   * Phase B: only invoices with a line naming this finance branch code (the whole open amount counts); money on
+   * account names no branch and is left out. Null = everything.
+   */
+  branchCode: string | null = null,
 ): Promise<AgeingView> {
   const [items, customers] = await Promise.all([
     loadOpenItems(admin, orgId, null, asOf),
     loadCustomers(admin, orgId),
   ]);
+  let invoices = items.invoices;
+  let onAccount = items.on_account;
+  if (branchCode) {
+    const keep = await invoicesNamingBranch(
+      admin,
+      orgId,
+      invoices.map((i) => i.id),
+      branchCode,
+    );
+    invoices = invoices.filter((i) => keep.has(i.id));
+    onAccount = [];
+  }
   const byId = new Map(customers.map((c) => [c.id, c]));
   const a = buildAgeing(
     [
-      ...items.invoices.map((i) => ({
+      ...invoices.map((i) => ({
         customerId: i.customer_id,
         kind: "invoice" as const,
         dueDate: i.due_date ?? i.invoice_date,
         open: i.open,
       })),
-      ...items.on_account.map((r) => ({
+      ...onAccount.map((r) => ({
         customerId: r.customer_id,
         kind: "on_account" as const,
         dueDate: null,

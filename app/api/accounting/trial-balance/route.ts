@@ -1,16 +1,22 @@
 import { NextResponse } from "next/server";
 
-import { loadAccounts, loadEntities, loadTrialBalance } from "@/lib/accounting/accounting-server";
+import {
+  loadAccounts,
+  loadBranchCodeOptions,
+  loadEntities,
+  loadTrialBalance,
+} from "@/lib/accounting/accounting-server";
 import { buildTrialBalance, rangeProblem } from "@/lib/accounting/reports";
 import { trialBalanceWorkbook } from "@/lib/accounting/tb-xlsx";
 import { recordAudit } from "@/lib/audit";
 import { can } from "@/lib/auth/can";
 import { getCurrentMember } from "@/lib/auth/session";
+import { pickBranchCode } from "@/lib/branches/codes";
 import { recordExport } from "@/lib/security/access-log";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
- * GET /api/accounting/trial-balance?from=yyyy-mm-dd&to=yyyy-mm-dd[&entity=<id>] -> the trial balance workbook. Requires
+ * GET /api/accounting/trial-balance?from=yyyy-mm-dd&to=yyyy-mm-dd[&entity=<id>][&branch=<code>] -> the trial balance workbook. Requires
  * accounting.reports.view. Account codes, names and amounts only. Written to the audit trail and the export log.
  */
 export async function GET(req: Request) {
@@ -25,16 +31,22 @@ export async function GET(req: Request) {
 
   const admin = createAdminClient(); // service role AFTER the permission check
   try {
-    const [entities, accounts] = await Promise.all([
+    const [entities, accounts, branchOptions] = await Promise.all([
       loadEntities(admin, member.orgId),
       loadAccounts(admin, member.orgId),
+      loadBranchCodeOptions(admin, member.orgId),
     ]);
     const entity = entities.find((e) => e.id === sp.get("entity")) ?? null;
-    const data = await loadTrialBalance(admin, member.orgId, entity?.id ?? null, from, to);
+    const branch = pickBranchCode(sp.get("branch"), branchOptions);
+    const data = await loadTrialBalance(admin, member.orgId, entity?.id ?? null, from, to, branch);
     const tb = buildTrialBalance(accounts, data);
+    const scope = [
+      entities.length > 1 ? (entity?.name ?? "All entities") : null,
+      branch ? `Branch ${branch} (lines naming it)` : null,
+    ].filter((x): x is string => !!x);
     const body = await trialBalanceWorkbook({
       org: member.org.name,
-      entity: entities.length > 1 ? (entity?.name ?? "All entities") : null,
+      entity: scope.length ? scope.join(", ") : null,
       from,
       to,
       tb,
@@ -45,7 +57,7 @@ export async function GET(req: Request) {
       userId: member.userId,
       action: "accounting.trial_balance.exported",
       entity: "acc_journals",
-      diff: { from, to, entity: entity?.id ?? null },
+      diff: { from, to, entity: entity?.id ?? null, branch },
     });
     await recordExport(admin, member, {
       dataset: "accounting:trial_balance",

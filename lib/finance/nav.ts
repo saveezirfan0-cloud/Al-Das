@@ -1,4 +1,5 @@
 import { canAny, type MemberLike } from "@/lib/auth/can";
+import { HUB_NAV_PERMISSIONS } from "@/lib/finance/reports-hub";
 
 /**
  * The Finance section's own navigation, in one list so the layout, the landing redirect and the tests agree. Each entry is
@@ -34,6 +35,13 @@ const CLOSE = [
 ] as const;
 
 export const FINANCE_NAV: readonly FinanceNavEntry[] = [
+  {
+    // Phase G: every report in one place (the page shows each card to holders of that report's own key)
+    href: "/finance/reports",
+    label: "Reports",
+    section: "Overview",
+    permissions: HUB_NAV_PERMISSIONS,
+  },
   {
     href: "/finance/summary",
     label: "Monthly summary",

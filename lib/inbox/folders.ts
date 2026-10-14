@@ -3,6 +3,9 @@
  * saved views and the client (to decide whether a realtime change affects the
  * visible list).
  */
+import { ALL_BRANCHES } from "@/lib/branches/access";
+import { viewBranchIds } from "@/lib/branches/filter";
+
 export const FOLDERS = [
   { key: "open", label: "Open" },
   { key: "mine", label: "My inbox" },
@@ -33,6 +36,11 @@ export type InboxQuery = {
   label: string | null;
   channel: string | null;
   assignee: string | null;
+  /**
+   * Phase B branch filter: a branch id, "all" (every branch the member may see), or null to follow the branch switcher.
+   * Conversations without a branch always stay in the list (numbers not yet tied to a branch).
+   */
+  branch: string | null;
 };
 
 export const DEFAULT_QUERY: InboxQuery = {
@@ -45,6 +53,7 @@ export const DEFAULT_QUERY: InboxQuery = {
   label: null,
   channel: null,
   assignee: null,
+  branch: null,
 };
 
 type ParamsLike = Record<string, string | string[] | undefined>;
@@ -53,6 +62,21 @@ function str(v: string | string[] | undefined): string | null {
   const s = Array.isArray(v) ? v[0] : v;
   return s && s.length ? s : null;
 }
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** A branch filter from a link or a saved view: "all", a branch id, else null (follow the switcher). */
+export function parseBranchParam(v: string | null): string | null {
+  if (v === ALL_BRANCHES) return ALL_BRANCHES;
+  return v && UUID_RE.test(v) ? v.toLowerCase() : null;
+}
+
+/**
+ * The branch ids the conversation list keeps to (plus conversations without a branch), or null for no branch filter
+ * (lib/branches/filter.ts viewBranchIds). Conversations RLS does not depend on the branch (patients write to any
+ * branch's number), so this is a narrowing view, not access control.
+ */
+export const inboxBranchIds = viewBranchIds;
 
 export function parseInboxQuery(params: ParamsLike): InboxQuery {
   const folder = str(params.folder);
@@ -68,6 +92,7 @@ export function parseInboxQuery(params: ParamsLike): InboxQuery {
     label: str(params.label),
     channel: str(params.channel),
     assignee: str(params.assignee),
+    branch: parseBranchParam(str(params.branch)),
   };
 }
 
@@ -82,6 +107,7 @@ export function toSearchParams(q: Partial<InboxQuery>, conversationId?: string |
   if (q.label) p.set("label", q.label);
   if (q.channel) p.set("channel", q.channel);
   if (q.assignee) p.set("assignee", q.assignee);
+  if (q.branch) p.set("branch", q.branch);
   if (conversationId) p.set("c", conversationId);
   const s = p.toString();
   return s ? `?${s}` : "";
@@ -89,8 +115,8 @@ export function toSearchParams(q: Partial<InboxQuery>, conversationId?: string |
 
 /** Saved views store the filter part of a query (never the selected conversation). */
 export function queryToViewFilter(q: InboxQuery): Record<string, unknown> {
-  const { folder, team, status, sort, label, channel, assignee, q: text } = q;
-  return { folder, team, status, sort, label, channel, assignee, q: text };
+  const { folder, team, status, sort, label, channel, assignee, branch, q: text } = q;
+  return { folder, team, status, sort, label, channel, assignee, branch, q: text };
 }
 
 export function viewFilterToQuery(filter: unknown): InboxQuery {
@@ -105,6 +131,7 @@ export function viewFilterToQuery(filter: unknown): InboxQuery {
     label: asStr(f.label) ?? undefined,
     channel: asStr(f.channel) ?? undefined,
     assignee: asStr(f.assignee) ?? undefined,
+    branch: asStr(f.branch) ?? undefined,
     q: asStr(f.q) ?? undefined,
   });
 }

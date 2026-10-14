@@ -103,6 +103,16 @@ export const NOTIFICATION_EVENTS = [
     permission: "documents.manage",
   },
   {
+    key: "staff.document_expiring",
+    group: "Work",
+    label: "A staff visa or licence is about to expire",
+    description:
+      "A staff member's visa or licence, or a doctor's licence, reaches its reminder date (60 days by default; Staff, Reminder days). Push and e-mail say only that one is expiring; open Pulse to see whose.",
+    channels: ALL,
+    defaults: { in_app: true, email: false, push: false },
+    permission: "hr.manage",
+  },
+  {
     key: "esign.update",
     group: "Work",
     label: "A consent form you sent for signature has an update",
@@ -298,6 +308,7 @@ export function categoryForType(type: string): NotificationCategory {
     type.startsWith("enquiry.") ||
     type.startsWith("appointment.") ||
     type.startsWith("document.") ||
+    type.startsWith("staff.") ||
     type === "ai.insights_ready" ||
     type === "finance.preauth_expiring" ||
     type === "finance.denial_deadline" ||
@@ -337,7 +348,7 @@ export function typeFilterForCategory(category: NotificationCategory): {
           "ai.insights_ready",
           "accounting.runs_prepared",
         ],
-        prefixes: ["task.", "enquiry.", "appointment.", "document."],
+        prefixes: ["task.", "enquiry.", "appointment.", "document.", "staff."],
       };
     case "security":
       return { exact: [], prefixes: ["security.", "alert."] };

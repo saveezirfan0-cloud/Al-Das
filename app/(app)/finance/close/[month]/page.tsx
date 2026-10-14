@@ -30,8 +30,12 @@ import { money } from "@/lib/finance/format";
 import { closeSignatures, signingView } from "@/lib/finance/signed-pdfs-server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SigningStatus } from "@/components/finance/signing-status";
+import { EmailDocumentButton } from "@/components/finance/email-document-button";
+import { plausibleEmail } from "@/lib/finance/document-email";
+import { closeSigners } from "@/lib/finance/document-email-server";
 
 import { BuildButton, SignForm, WithdrawButton } from "../close-controls";
+import { emailClosePack } from "../email-actions";
 import { ControlsSummary } from "./controls-summary";
 
 export const metadata = { title: "Month-end close" };
@@ -58,6 +62,9 @@ export default async function CloseMonthPage({ params }: { params: Promise<{ mon
     pack && close && close.status !== "built" ? await liveDriftFor(admin, member.orgId, pack) : [];
   const isLocked = close?.status === "locked";
   const canManage = can(member, "finance.close.manage");
+  // Phase G: the close pack can be e-mailed to the people who signed it (active members with an address)
+  const signers = close && pack ? await closeSigners(admin, member.orgId, close) : [];
+  const mailable = signers.filter((s) => plausibleEmail(s.email));
   // Phase 22C: personal signatures of the sign-offs and the seal of the locked pack, verified now.
   const signing =
     close && pack
@@ -95,6 +102,23 @@ export default async function CloseMonthPage({ params }: { params: Promise<{ mon
             <Button asChild variant="outline" size="sm">
               <a href={`/api/finance/close/${month}/pack?format=pdf`}>PDF</a>
             </Button>
+            <EmailDocumentButton
+              label="E-mail close pack"
+              title="E-mail the close pack to the signers"
+              description={`The ${isLocked ? "locked" : "draft"} pack for ${monthLabel(`${month}-01`)} goes out as the same PDF as the download, to the people who signed it.`}
+              recipients={mailable.map((s) => ({ name: s.name, email: s.email! }))}
+              disabledReason={
+                signers.length === 0
+                  ? "Nobody has signed this month yet."
+                  : mailable.length === 0
+                    ? "The signers have no e-mail address in Pulse."
+                    : null
+              }
+              action={emailClosePack.bind(null, {
+                month,
+                recipients: mailable.map((s) => ({ userId: s.userId, email: s.email! })),
+              })}
+            />
           </>
         )}
       </PageHeader>

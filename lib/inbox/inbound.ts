@@ -6,6 +6,7 @@ import { emit } from "@/lib/events/emit";
 import { matchOrCreateContact, rotateBsuid } from "@/lib/inbox/contacts";
 import { captureAttributionSafely } from "@/lib/integrations/capi/server";
 import { routeConversation, sendTeamAutoReply } from "@/lib/inbox/routing";
+import { routingTeamId } from "@/lib/inbox/routing-rules";
 import { readInboxSettings } from "@/lib/inbox/settings";
 import { notify } from "@/lib/notify/dispatch-db";
 import { scheduleFirstEscalation } from "@/lib/notify/escalation-job";
@@ -165,7 +166,7 @@ export async function processInbound(
       // A retried job after a crash between the message insert and routing: route the conversation if it is open,
       // unowned and was never assigned (someone unassigning it on purpose leaves an assignment event).
       if (
-        settings.default_team_id &&
+        routingTeamId(channel.default_team_id, settings.default_team_id) &&
         conversation.status !== "closed" &&
         !conversation.assignee_team_id &&
         !conversation.assignee_user_id
@@ -174,7 +175,8 @@ export async function processInbound(
           .from("conversation_assignment_events")
           .select("id", { count: "exact", head: true })
           .eq("conversation_id", conversation.id);
-        if (!count) await routeConversation(admin, orgId, conversation.id, settings);
+        if (!count)
+          await routeConversation(admin, orgId, conversation.id, settings, channel.default_team_id);
       }
       return { outcome: "duplicate", messageId: dup.data?.id ?? "" };
     }
@@ -204,7 +206,13 @@ export async function processInbound(
   // team's auto-reply when it lands outside office hours or with nobody online. Neither may fail the webhook job.
   let routedOwner: string | null = null;
   if (needsRouting) {
-    const routed = await routeConversation(admin, orgId, conversation.id, settings);
+    const routed = await routeConversation(
+      admin,
+      orgId,
+      conversation.id,
+      settings,
+      channel.default_team_id,
+    );
     routedOwner = routed?.userId ?? null;
     if (routed && !isReaction) {
       await sendTeamAutoReply(admin, {

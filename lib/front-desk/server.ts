@@ -346,14 +346,18 @@ export async function loadPatientCard(
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
-    admin
-      .from("tasks")
-      .select("id", { count: "exact", head: true })
-      .eq("org_id", orgId)
-      .eq("contact_id", contactId)
-      .eq("type", "call")
-      .eq("done", false)
-      .is("deleted_at", null),
+    // Phase B: tasks follow the branch rule too (tasks.location_id).
+    withBranchFilter(
+      admin
+        .from("tasks")
+        .select("id", { count: "exact", head: true })
+        .eq("org_id", orgId)
+        .eq("contact_id", contactId)
+        .eq("type", "call")
+        .eq("done", false)
+        .is("deleted_at", null),
+      branchIds,
+    ),
     withBranchFilter(
       admin
         .from("waitlist_entries")

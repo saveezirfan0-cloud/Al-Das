@@ -6,6 +6,8 @@ import { z } from "zod";
 import { recordAudit } from "@/lib/audit";
 import { can } from "@/lib/auth/can";
 import { requirePerm, type CurrentMember } from "@/lib/auth/session";
+import { readBranchAccess } from "@/lib/branches/access";
+import { accessFilterIds, withBranchFilter } from "@/lib/branches/filter";
 import { BRANCH_DENIED, branchAllowed } from "@/lib/branches/guard";
 import { searchContactOptions, type ContactOption } from "@/lib/contacts/search-options";
 import { addTimelineEvent } from "@/lib/contacts/timeline";
@@ -302,12 +304,16 @@ export async function getEnquiry(id: string): Promise<ActionResult<EnquiryDetail
       .order("at", { ascending: false })
       .limit(200),
     can(member, "tasks.view")
-      ? admin
-          .from("tasks")
-          .select("id, type, subject, due_at, done, assignee_id")
-          .eq("org_id", member.orgId)
-          .eq("enquiry_id", id)
-          .is("deleted_at", null)
+      ? withBranchFilter(
+          admin
+            .from("tasks")
+            .select("id, type, subject, due_at, done, assignee_id")
+            .eq("org_id", member.orgId)
+            .eq("enquiry_id", id)
+            .is("deleted_at", null),
+          // Phase B: the tasks_select rule (service role here): tasks of hidden branches stay hidden.
+          accessFilterIds(readBranchAccess(member)),
+        )
           .order("done")
           .order("due_at")
           .limit(100)

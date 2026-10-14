@@ -3,7 +3,8 @@ import { ArrowRight, Hourglass } from "lucide-react";
 
 import { PageHeader } from "@/components/shell/page-header";
 import { Badge } from "@/components/ui/badge";
-import { can } from "@/lib/auth/can";
+import { can, canAny } from "@/lib/auth/can";
+import { HUB_PERMISSIONS } from "@/lib/finance/reports-hub";
 import { requirePerm } from "@/lib/auth/session";
 import { REPORTS, reportStatus } from "@/lib/reports/registry";
 import { availableSources } from "@/lib/reports/server";
@@ -19,6 +20,27 @@ export default async function ReportsIndexPage() {
   return (
     <div className="flex flex-col gap-8">
       <PageHeader title="Reports" description="Every report shares the same period and filters, and exports to CSV." />
+      {canAny(member, HUB_PERMISSIONS) && (
+        <section aria-labelledby="g-finance" className="flex flex-col gap-3">
+          <h3 id="g-finance" className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+            Finance
+          </h3>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <Link
+              href="/finance/reports"
+              className="bg-card hover:bg-accent/40 focus-visible:ring-ring flex flex-col gap-1.5 rounded-xl border p-4 transition-colors outline-none focus-visible:ring-2"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-medium">Finance reports</span>
+                <ArrowRight className="text-muted-foreground size-4" aria-hidden />
+              </div>
+              <p className="text-muted-foreground text-sm">
+                Management, accounting, receivables and tax reports in one place, with Excel and PDF downloads.
+              </p>
+            </Link>
+          </div>
+        </section>
+      )}
       {can(member, "ai.insights.view") && (
         <section aria-labelledby="g-ai" className="flex flex-col gap-3">
           <h3 id="g-ai" className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">

@@ -30,6 +30,7 @@ export function AppointmentsSettings({
   channels,
   exclusions,
   users,
+  financeBranches,
 }: {
   orgTimezone: string;
   rules: AppointmentSettings;
@@ -41,6 +42,8 @@ export function AppointmentsSettings({
   channels: ChannelOption[];
   exclusions: Exclusion[];
   users: Array<{ id: string; name: string }>;
+  /** Phase B: finance branch codes the member may read (empty: the code is typed). */
+  financeBranches: Array<{ code: string; name: string }>;
 }) {
   return (
     <Tabs defaultValue="specialists" className="flex flex-col gap-4">
@@ -62,7 +65,11 @@ export function AppointmentsSettings({
         />
       </TabsContent>
       <TabsContent value="locations">
-        <Locations items={locations} defaultTimezone={orgTimezone} />
+        <Locations
+          items={locations}
+          defaultTimezone={orgTimezone}
+          financeBranches={financeBranches}
+        />
       </TabsContent>
       <TabsContent value="departments">
         <Departments items={departments} />
