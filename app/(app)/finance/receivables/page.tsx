@@ -122,7 +122,7 @@ export default async function ReceivablesPage({
           <AlertTitle>Nothing outstanding</AlertTitle>
           <AlertDescription>
             No unpaid insurance claims{branch ? " for this branch" : ""}. Claims appear after a
-            Diligence report is imported (Finance, Insurance upload). A branch is known only for
+            Diligence report is imported (Finance, Claims, Uploads). A branch is known only for
             claims matched to a Unite invoice.
           </AlertDescription>
         </Alert>

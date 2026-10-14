@@ -254,6 +254,21 @@ describe("Finance navigation", () => {
     expect(role("CEO")).not.toContain("finance.followup.manage");
   });
 
+  it("Uploads is listed for both uploads the page takes: the claims file (Insurance) and the Unite report (Finance)", () => {
+    // the page opens with finance.claims.import OR finance.revenue.import (Phase 23A); the menu must agree
+    for (const r of ["Insurance", "Finance", "Finance Manager"])
+      expect(hrefs(member(role(r))), r).toContain("/finance/upload");
+    expect(hrefs(member(["finance.revenue.import"]))).toEqual(["/finance/upload"]);
+    for (const r of ["Billing", "CEO", "Medical Director", "Cost / Payroll"])
+      expect(hrefs(member(role(r))), r).not.toContain("/finance/upload");
+    const tab = FINANCE_NAV.flatMap((e) => e.tabs ?? []).find((t) => t.href === "/finance/upload")!;
+    expect(tab.label).toBe("Uploads"); // the page's heading
+    expect([...tab.permissions].sort()).toEqual([
+      "finance.claims.import",
+      "finance.revenue.import",
+    ]);
+  });
+
   it("invoice changes: Finance, the CEO and Operations see the register; Operations and Finance review, the CEO does not", () => {
     for (const r of ["Finance", "CEO", "Operations"])
       expect(hrefs(member(role(r))), r).toContain("/finance/invoice-changes");

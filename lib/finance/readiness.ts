@@ -79,7 +79,7 @@ export function readinessSteps(i: ReadinessInput): ReadinessStep[] {
       hint:
         i.claimCount > 0
           ? `${i.claimCount.toLocaleString()} claim activities loaded.`
-          : "Finance → Insurance upload. Claimed, remitted, rejected and outstanding come from it.",
+          : "Finance → Claims, Uploads. Claimed, remitted, rejected and outstanding come from it.",
       href: "/finance/upload",
       perm: "finance.claims.import",
     },

@@ -110,7 +110,7 @@ export default async function FinanceInboxPage() {
         Patient reports never go here. Diligence files, remittance advice and lab reports with
         patient names are uploaded on their own pages (
         <Link className="underline" href="/finance/upload">
-          Insurance upload
+          Uploads
         </Link>
         ,{" "}
         <Link className="underline" href="/finance/remittance">
