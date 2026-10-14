@@ -126,11 +126,16 @@ export function Composer({
   windowOpen,
   replyTo,
   onClearReply,
+  onComposing,
+  onStoppedComposing,
 }: InboxProps & {
   selected: ConversationDetail;
   windowOpen: boolean;
   replyTo: MessageRow | null;
   onClearReply: () => void;
+  /** Phase F: tells colleagues on the same chat that someone is writing a reply (no text is shared). */
+  onComposing?: () => void;
+  onStoppedComposing?: () => void;
 }) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("chat");
@@ -242,6 +247,7 @@ export function Composer({
       setText("");
       setAttachment(null);
       onClearReply();
+      onStoppedComposing?.();
     });
   }
 
@@ -421,7 +427,9 @@ export function Composer({
           </span>
         )}
         {mode === "chat" && selected.contact.stop_marketing && (
-          <span className="ml-auto text-xs text-amber-700 dark:text-amber-300">Opted out of marketing</span>
+          <span className="ml-auto text-xs text-amber-700 dark:text-amber-300">
+            Opted out of marketing
+          </span>
         )}
       </div>
 
@@ -497,6 +505,9 @@ export function Composer({
           onChange={(e) => {
             setText(e.target.value);
             setCaret(e.target.selectionStart);
+            // Only patient replies count: an internal note does not clash with anyone.
+            if (mode === "chat" && e.target.value.trim()) onComposing?.();
+            else onStoppedComposing?.();
           }}
           onSelect={(e) => setCaret((e.target as HTMLTextAreaElement).selectionStart)}
           onKeyDown={(e) => {
@@ -519,7 +530,8 @@ export function Composer({
           }
           className={cn(
             "w-full resize-none rounded-md border px-3 py-2 text-base outline-none focus-visible:ring-2 md:text-sm",
-            mode === "comment" && "border-amber-300 dark:border-amber-500/30 bg-amber-50/60 dark:bg-amber-950/20",
+            mode === "comment" &&
+              "border-amber-300 dark:border-amber-500/30 bg-amber-50/60 dark:bg-amber-950/20",
           )}
           aria-label={mode === "comment" ? "Internal note" : "Message"}
           dir="auto"
@@ -714,7 +726,11 @@ export function Composer({
         />
       )}
       {extra === "product" && (
-        <ProductDialog open onOpenChange={(o) => !o && setExtra(null)} conversationId={selected.id} />
+        <ProductDialog
+          open
+          onOpenChange={(o) => !o && setExtra(null)}
+          conversationId={selected.id}
+        />
       )}
       <TemplatePicker
         open={templateOpen}

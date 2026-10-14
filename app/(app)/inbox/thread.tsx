@@ -7,8 +7,10 @@ import {
   Bot,
   Check,
   CheckCheck,
+  ClipboardPlus,
   Clock,
   Forward,
+  PenLine,
   MapPin,
   Phone,
   RotateCcw,
@@ -34,6 +36,7 @@ import { contactDisplayName } from "@/lib/inbox/contact-name";
 import { FORWARD_MEDIA_KINDS, telHref } from "@/lib/inbox/extras";
 import { labelClass } from "@/lib/inbox/labels";
 import { droppedFromLive, mergeMessagePages } from "@/lib/inbox/paging";
+import { composingSentence } from "@/lib/inbox/presence";
 import type { MessageRow } from "@/lib/inbox/queries";
 import { cn } from "@/lib/utils";
 import { CHANNEL_TYPE_LABEL, channelTypeOf, replyWindow } from "@/lib/channels/types";
@@ -51,9 +54,12 @@ import {
 } from "./actions";
 import { dismissAiTag } from "./ai-actions";
 import { loadEarlierMessages } from "./paging-actions";
+import { ChatTaskDialog } from "./chat-task-dialog";
 import { CloseDialog } from "./close-dialog";
 import { Composer } from "./composer";
 import { MediaBubble } from "./media-bubble";
+import { SnoozeMenu } from "./snooze-menu";
+import { useReplyPresence } from "./use-reply-presence";
 import type { ConversationDetail, InboxProps } from "./types";
 
 // G11: the forward dialog is only needed once someone forwards a message.
@@ -208,6 +214,13 @@ export function Thread(props: InboxProps & { selected: ConversationDetail; onBac
   const [replyTo, setReplyTo] = useState<MessageRow | null>(null);
   const [viewer, setViewer] = useState<number | null>(null);
   const [forwarding, setForwarding] = useState<string | null>(null);
+  const [taskOpen, setTaskOpen] = useState(false);
+  // Phase F: colleagues composing a reply on this chat right now (user ids only, never text).
+  const presence = useReplyPresence(props.orgId, selected.id, props.me.userId);
+  const composingNames = presence.others.map(
+    (id) => people.find((p) => p.id === id)?.name.split(" ")[0] ?? "A colleague",
+  );
+  const composingWarning = composingSentence(composingNames);
   const bottom = useRef<HTMLDivElement>(null);
   const contactName = contactDisplayName(selected.contact);
   // G11 employee call: the staff member's own phone or softphone dials the patient (no WhatsApp Calling API).
@@ -471,6 +484,25 @@ export function Thread(props: InboxProps & { selected: ConversationDetail; onBac
                 )}
               </Badge>
             ))}
+          {perms.tasksManage && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setTaskOpen(true)}
+              aria-label="Create a task from this chat"
+              title="Create a task from this chat"
+            >
+              <ClipboardPlus aria-hidden /> <span className="sr-only md:not-sr-only">Task</span>
+            </Button>
+          )}
+          {perms.send && selected.status !== "closed" && (
+            <SnoozeMenu
+              conversationId={selected.id}
+              snoozedUntil={selected.snoozed_until}
+              timezone={props.timezone}
+              disabled={pending}
+            />
+          )}
           {perms.send && (
             <>
               <DropdownMenu>
@@ -741,6 +773,15 @@ export function Thread(props: InboxProps & { selected: ConversationDetail; onBac
         }}
       />
 
+      {composingWarning && (
+        <p
+          role="status"
+          className="flex items-center gap-1.5 border-t bg-amber-50 px-3 py-1.5 text-xs text-amber-900 dark:bg-amber-500/10 dark:text-amber-200"
+        >
+          <PenLine className="size-3.5 shrink-0" aria-hidden />
+          {composingWarning}. Check before you send so the patient does not get two answers.
+        </p>
+      )}
       {perms.send ? (
         <Composer
           {...props}
@@ -748,6 +789,8 @@ export function Thread(props: InboxProps & { selected: ConversationDetail; onBac
           windowOpen={window_.open}
           replyTo={replyTo}
           onClearReply={() => setReplyTo(null)}
+          onComposing={presence.composing}
+          onStoppedComposing={presence.stopped}
         />
       ) : (
         <p className="text-muted-foreground border-t p-3 text-center text-xs">
@@ -760,6 +803,20 @@ export function Thread(props: InboxProps & { selected: ConversationDetail; onBac
           onOpenChange={(o) => !o && setForwarding(null)}
           messageId={forwarding}
           fromConversationId={selected.id}
+        />
+      )}
+      {perms.tasksManage && (
+        <ChatTaskDialog
+          open={taskOpen}
+          onOpenChange={setTaskOpen}
+          conversationId={selected.id}
+          contactName={contactName}
+          timezone={props.timezone}
+          me={props.me.userId}
+          people={people}
+          branchName={
+            selected.location_id ? (props.branchNames[selected.location_id] ?? null) : null
+          }
         />
       )}
       <CloseDialog

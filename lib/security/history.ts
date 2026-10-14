@@ -29,6 +29,7 @@ export const HISTORY_TABLES = {
   acc_assets: "Fixed asset",
   staff_members: "Staff member",
   rota_shifts: "Rota shift",
+  task_checklist_templates: "Daily checklist",
 } as const;
 
 export type HistoryTable = keyof typeof HISTORY_TABLES;
@@ -59,6 +60,7 @@ export const HISTORY_PERMISSION: Partial<Record<HistoryTable, string>> = {
   acc_assets: "accounting.view",
   staff_members: "hr.view",
   rota_shifts: "hr.view",
+  task_checklist_templates: "tasks.view",
 };
 
 export type HistoryChange = { field: string; label: string; from: string; to: string };

@@ -7453,6 +7453,8 @@ export type Database = {
           location_id: string | null;
           opened_at: string;
           org_id: string;
+          snoozed_by: string | null;
+          snoozed_until: string | null;
           status: string;
           summary: string | null;
           unread_alerted_at: string | null;
@@ -7485,6 +7487,8 @@ export type Database = {
           location_id?: string | null;
           opened_at?: string;
           org_id: string;
+          snoozed_by?: string | null;
+          snoozed_until?: string | null;
           status?: string;
           summary?: string | null;
           unread_alerted_at?: string | null;
@@ -7516,6 +7520,8 @@ export type Database = {
           location_id?: string | null;
           opened_at?: string;
           org_id?: string;
+          snoozed_by?: string | null;
+          snoozed_until?: string | null;
           status?: string;
           summary?: string | null;
           unread_alerted_at?: string | null;
@@ -7598,6 +7604,13 @@ export type Database = {
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "conversations_snoozed_by_fkey";
+            columns: ["snoozed_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
             referencedColumns: ["id"];
           },
         ];
@@ -16379,9 +16392,9 @@ export type Database = {
       };
       locations: {
         Row: {
-          branch_code: string | null;
           active: boolean;
           address: string | null;
+          branch_code: string | null;
           created_at: string;
           external_id: string | null;
           id: string;
@@ -16397,9 +16410,9 @@ export type Database = {
         };
         ComputedFields: never;
         Insert: {
-          branch_code?: string | null;
           active?: boolean;
           address?: string | null;
+          branch_code?: string | null;
           created_at?: string;
           external_id?: string | null;
           id?: string;
@@ -16414,9 +16427,9 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
-          branch_code?: string | null;
           active?: boolean;
           address?: string | null;
+          branch_code?: string | null;
           created_at?: string;
           external_id?: string | null;
           id?: string;
@@ -20611,12 +20624,274 @@ export type Database = {
           },
         ];
       };
+      task_attachments: {
+        Row: {
+          added_by: string | null;
+          created_at: string;
+          id: string;
+          media_asset_id: string;
+          org_id: string;
+          task_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          added_by?: string | null;
+          created_at?: string;
+          id?: string;
+          media_asset_id: string;
+          org_id: string;
+          task_id: string;
+        };
+        Update: {
+          added_by?: string | null;
+          created_at?: string;
+          id?: string;
+          media_asset_id?: string;
+          org_id?: string;
+          task_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "task_attachments_added_by_fkey";
+            columns: ["added_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "task_attachments_media_asset_id_fkey";
+            columns: ["media_asset_id"];
+            isOneToOne: false;
+            referencedRelation: "media_assets";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "task_attachments_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "task_attachments_task_id_fkey";
+            columns: ["task_id"];
+            isOneToOne: false;
+            referencedRelation: "tasks";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      task_checklist_items: {
+        Row: {
+          created_at: string;
+          done: boolean;
+          done_at: string | null;
+          done_by: string | null;
+          id: string;
+          org_id: string;
+          sort_order: number;
+          task_id: string;
+          title: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          done?: boolean;
+          done_at?: string | null;
+          done_by?: string | null;
+          id?: string;
+          org_id: string;
+          sort_order?: number;
+          task_id: string;
+          title: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          done?: boolean;
+          done_at?: string | null;
+          done_by?: string | null;
+          id?: string;
+          org_id?: string;
+          sort_order?: number;
+          task_id?: string;
+          title?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "task_checklist_items_done_by_fkey";
+            columns: ["done_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "task_checklist_items_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "task_checklist_items_task_id_fkey";
+            columns: ["task_id"];
+            isOneToOne: false;
+            referencedRelation: "tasks";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      task_checklist_templates: {
+        Row: {
+          active: boolean;
+          assignee_id: string | null;
+          created_at: string;
+          created_by: string | null;
+          due_time: string;
+          generate_at: string;
+          id: string;
+          items: NonNullable<Json>;
+          kind: string;
+          location_id: string;
+          name: string;
+          org_id: string;
+          team_id: string | null;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          active?: boolean;
+          assignee_id?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          due_time?: string;
+          generate_at?: string;
+          id?: string;
+          items: NonNullable<Json>;
+          kind?: string;
+          location_id: string;
+          name: string;
+          org_id: string;
+          team_id?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          active?: boolean;
+          assignee_id?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          due_time?: string;
+          generate_at?: string;
+          id?: string;
+          items?: NonNullable<Json>;
+          kind?: string;
+          location_id?: string;
+          name?: string;
+          org_id?: string;
+          team_id?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "task_checklist_templates_assignee_id_fkey";
+            columns: ["assignee_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "task_checklist_templates_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "task_checklist_templates_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "task_checklist_templates_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "task_checklist_templates_team_id_fkey";
+            columns: ["team_id"];
+            isOneToOne: false;
+            referencedRelation: "teams";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      task_comments: {
+        Row: {
+          author_id: string | null;
+          body: string;
+          created_at: string;
+          id: string;
+          mentioned_user_ids: string[];
+          org_id: string;
+          task_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          author_id?: string | null;
+          body: string;
+          created_at?: string;
+          id?: string;
+          mentioned_user_ids?: string[];
+          org_id: string;
+          task_id: string;
+        };
+        Update: {
+          author_id?: string | null;
+          body?: string;
+          created_at?: string;
+          id?: string;
+          mentioned_user_ids?: string[];
+          org_id?: string;
+          task_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "task_comments_author_id_fkey";
+            columns: ["author_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "task_comments_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "task_comments_task_id_fkey";
+            columns: ["task_id"];
+            isOneToOne: false;
+            referencedRelation: "tasks";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       tasks: {
         Row: {
           appointment_id: string | null;
           assignee_id: string | null;
+          checklist_template_id: string | null;
           completed_by: string | null;
           contact_id: string | null;
+          conversation_id: string | null;
           created_at: string;
           created_by: string | null;
           deleted_at: string | null;
@@ -20628,8 +20903,14 @@ export type Database = {
           id: string;
           location_id: string | null;
           notes: string | null;
+          occurrence_key: string | null;
           org_id: string;
+          priority: string;
+          recurrence: string | null;
+          series_id: string | null;
+          status: string;
           subject: string;
+          team_id: string | null;
           type: string;
           updated_at: string;
         };
@@ -20637,8 +20918,10 @@ export type Database = {
         Insert: {
           appointment_id?: string | null;
           assignee_id?: string | null;
+          checklist_template_id?: string | null;
           completed_by?: string | null;
           contact_id?: string | null;
+          conversation_id?: string | null;
           created_at?: string;
           created_by?: string | null;
           deleted_at?: string | null;
@@ -20650,16 +20933,24 @@ export type Database = {
           id?: string;
           location_id?: string | null;
           notes?: string | null;
+          occurrence_key?: string | null;
           org_id: string;
+          priority?: string;
+          recurrence?: string | null;
+          series_id?: string | null;
+          status?: string;
           subject: string;
+          team_id?: string | null;
           type?: string;
           updated_at?: string;
         };
         Update: {
           appointment_id?: string | null;
           assignee_id?: string | null;
+          checklist_template_id?: string | null;
           completed_by?: string | null;
           contact_id?: string | null;
+          conversation_id?: string | null;
           created_at?: string;
           created_by?: string | null;
           deleted_at?: string | null;
@@ -20671,8 +20962,14 @@ export type Database = {
           id?: string;
           location_id?: string | null;
           notes?: string | null;
+          occurrence_key?: string | null;
           org_id?: string;
+          priority?: string;
+          recurrence?: string | null;
+          series_id?: string | null;
+          status?: string;
           subject?: string;
+          team_id?: string | null;
           type?: string;
           updated_at?: string;
         };
@@ -20696,6 +20993,13 @@ export type Database = {
             columns: ["assignee_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tasks_checklist_template_id_fkey";
+            columns: ["checklist_template_id"];
+            isOneToOne: false;
+            referencedRelation: "task_checklist_templates";
             referencedColumns: ["id"];
           },
           {
@@ -20725,6 +21029,34 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "v_chronic_recall_eligibility";
             referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "tasks_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tasks_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "mv_conversation_facts";
+            referencedColumns: ["conversation_id"];
+          },
+          {
+            foreignKeyName: "tasks_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "v_conversation_engagement";
+            referencedColumns: ["conversation_id"];
+          },
+          {
+            foreignKeyName: "tasks_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "v_sla_breaches_now";
+            referencedColumns: ["conversation_id"];
           },
           {
             foreignKeyName: "tasks_created_by_fkey";
@@ -20759,6 +21091,13 @@ export type Database = {
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tasks_team_id_fkey";
+            columns: ["team_id"];
+            isOneToOne: false;
+            referencedRelation: "teams";
             referencedColumns: ["id"];
           },
         ];
@@ -24762,6 +25101,7 @@ export type Database = {
         };
         Returns: Json;
       };
+      dearmor: { Args: { "": string }; Returns: string };
       demo_wipe_org: { Args: { p_org_id: string }; Returns: Json };
       enquiries_count: {
         Args: { p_org_id: string; p_params: Json; p_q?: string; p_where: string };
@@ -25248,6 +25588,8 @@ export type Database = {
         Returns: Json;
       };
       gcal_clear_busy_blocks: { Args: { p_org: string; p_specialist: string }; Returns: number };
+      gen_random_uuid: { Args: Record<PropertyKey, never>; Returns: string };
+      gen_salt: { Args: { "": string }; Returns: string };
       ins_apply_matches: { Args: { p_matches: Json; p_org_id: string }; Returns: number };
       ins_claims_for_remittance: {
         Args: { p_invoice_keys: string[]; p_numbers: string[]; p_org_id: string };
@@ -25461,6 +25803,7 @@ export type Database = {
         Args: { p_actor: string; p_membership: string; p_org: string; p_reassign_to?: string };
         Returns: Json;
       };
+      pgp_armor_headers: { Args: { "": string }; Returns: Record<string, unknown>[] };
       pick_round_robin_assignee: { Args: { p_org_id: string; p_team_id: string }; Returns: string };
       pick_round_robin_assignee_capped: {
         Args: { p_org_id: string; p_team_id: string };
@@ -25990,6 +26333,16 @@ export type Database = {
         };
         Returns: Json;
       };
+      search_messages: {
+        Args: { p_limit?: number; p_org_id: string; p_query: string };
+        Returns: {
+          at: string;
+          conversation_id: string;
+          direction: string;
+          message_id: string;
+          snippet: string;
+        }[];
+      };
       security_maintenance: { Args: { p_now?: string }; Returns: Json };
       seed_clinical_settings: { Args: { p_org: string }; Returns: undefined };
       seed_clinical_settings_phase21: { Args: { p_org: string }; Returns: undefined };
@@ -26011,6 +26364,16 @@ export type Database = {
         Returns: string[];
       };
       storage_usage_summary: { Args: { p_org: string }; Returns: Json };
+      task_generate_checklists: {
+        Args: { p_now?: string; p_org_id: string };
+        Returns: {
+          task_id: string;
+        }[];
+      };
+      task_spawn_next: {
+        Args: { p_next_due: string; p_org_id: string; p_task_id: string };
+        Returns: string;
+      };
       unlink_conversation_contact: {
         Args: {
           p_conversation_id: string;
@@ -26023,6 +26386,16 @@ export type Database = {
         };
         Returns: Json;
       };
+      uuid_generate_v1: { Args: Record<PropertyKey, never>; Returns: string };
+      uuid_generate_v1mc: { Args: Record<PropertyKey, never>; Returns: string };
+      uuid_generate_v3: { Args: { name: string; namespace: string }; Returns: string };
+      uuid_generate_v4: { Args: Record<PropertyKey, never>; Returns: string };
+      uuid_generate_v5: { Args: { name: string; namespace: string }; Returns: string };
+      uuid_nil: { Args: Record<PropertyKey, never>; Returns: string };
+      uuid_ns_dns: { Args: Record<PropertyKey, never>; Returns: string };
+      uuid_ns_oid: { Args: Record<PropertyKey, never>; Returns: string };
+      uuid_ns_url: { Args: Record<PropertyKey, never>; Returns: string };
+      uuid_ns_x500: { Args: Record<PropertyKey, never>; Returns: string };
       web_chat_receive: {
         Args: {
           p_at?: string;

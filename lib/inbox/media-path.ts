@@ -23,5 +23,7 @@ export function parseMediaPath(path: string): MediaPathParts | null {
 /** True when `path` is a well-formed media path inside exactly this org and conversation. */
 export function isMediaPathFor(path: string, orgId: string, conversationId: string): boolean {
   const p = parseMediaPath(path);
-  return !!p && p.orgId === orgId.toLowerCase() && p.conversationId === conversationId.toLowerCase();
+  return (
+    !!p && p.orgId === orgId.toLowerCase() && p.conversationId === conversationId.toLowerCase()
+  );
 }

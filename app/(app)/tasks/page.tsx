@@ -13,7 +13,7 @@ export const metadata = { title: "Tasks" };
 export default async function TasksPage() {
   const member = await requirePerm("tasks.view");
   const admin = createAdminClient();
-  const [users, { data: locations }] = await Promise.all([
+  const [users, { data: locations }, { data: teams }] = await Promise.all([
     loadOrgUsers(admin, member.orgId),
     admin
       .from("locations")
@@ -21,6 +21,7 @@ export default async function TasksPage() {
       .eq("org_id", member.orgId)
       .eq("active", true)
       .order("name"),
+    admin.from("teams").select("id, name").eq("org_id", member.orgId).order("name"),
   ]);
   // Phase B: new tasks default to the switcher's branch; the list follows it unless a branch is picked.
   const branch = await branchView(
@@ -32,6 +33,7 @@ export default async function TasksPage() {
     userId: member.userId,
     timezone: member.org.timezone,
     users,
+    teams: teams ?? [],
     branches: allowedLocations(locations ?? [], branch.access),
     branchNames: Object.fromEntries((locations ?? []).map((l) => [l.id, l.name])),
     currentBranch: branch.current,
@@ -39,6 +41,8 @@ export default async function TasksPage() {
       manage: can(member, "tasks.manage"),
       contacts: can(member, "contacts.view"),
       enquiries: can(member, "enquiries.view"),
+      settings: can(member, "settings.manage"),
+      media: can(member, "media.view") || can(member, "media.manage"),
     },
   };
   return <TasksWorkspace bootstrap={bootstrap} />;

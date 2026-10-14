@@ -20,6 +20,7 @@ import { createFlowDeps } from "@/lib/flow-engine/supabase-deps";
 import { takeOverFromBot } from "@/lib/flow-engine/takeover";
 import { addTimelineEvent } from "@/lib/contacts/timeline";
 import { contactDisplayName } from "@/lib/inbox/contact-name";
+import { assignConversationRecord } from "@/lib/inbox/assign";
 import { parseMentions } from "@/lib/inbox/mentions";
 import { closeConversationRecord } from "@/lib/inbox/close";
 import { addNote, queueOutbound, type SendSpec } from "@/lib/inbox/send";
@@ -508,35 +509,16 @@ export async function assignConversation(
   if (error || !conversation) return { ok: false, error: error ?? "Conversation not found." };
   // The actor header lets the assignment log (Phase 20c) name who assigned it.
   const admin = createAdminClient(member.userId);
-  const { error: upErr } = await admin
-    .from("conversations")
-    .update({
-      assignee_user_id: parsed.data.user_id,
-      assignee_team_id: parsed.data.team_id,
-      bot_active: false,
-    })
-    .eq("id", conversation.id);
-  if (upErr)
-    return { ok: false, error: "Could not assign (is the user a member of this workspace?)." };
-  await takeOverFromBot(admin, conversation.id);
-  if (parsed.data.user_id && parsed.data.user_id !== member.userId) {
-    await notify(admin, {
-      orgId: member.orgId,
-      userIds: [parsed.data.user_id],
-      event: "inbox.assigned",
-      type: "inbox.assigned",
-      title: "Conversation assigned to you",
-      body: conversation.contacts ? `With ${contactDisplayName(conversation.contacts)}` : null,
-      payload: { conversation_id: conversation.id },
-      ids: { conversation_id: conversation.id },
-    });
-  }
-  await emit(member.orgId, "conversation.assigned", {
-    conversation_id: conversation.id,
-    user_id: parsed.data.user_id,
-    team_id: parsed.data.team_id,
-    by: member.userId,
+  const assigned = await assignConversationRecord(admin, {
+    orgId: member.orgId,
+    actorId: member.userId,
+    conversationId: conversation.id,
+    contact: conversation.contacts,
+    userId: parsed.data.user_id,
+    teamId: parsed.data.team_id,
   });
+  if (!assigned)
+    return { ok: false, error: "Could not assign (is the user a member of this workspace?)." };
   refresh();
   return { ok: true, message: "Assigned.", data: undefined };
 }

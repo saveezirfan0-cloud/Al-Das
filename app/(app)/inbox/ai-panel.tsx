@@ -1,7 +1,15 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { AlertTriangle, ClipboardCopy, Loader2, Sparkles, ThumbsDown, ThumbsUp, Undo2 } from "lucide-react";
+import {
+  AlertTriangle,
+  ClipboardCopy,
+  Loader2,
+  Sparkles,
+  ThumbsDown,
+  ThumbsUp,
+  Undo2,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -78,7 +86,8 @@ export function AiPanel({
       if (apply) {
         setPrevious(text);
         onText(r.data.text);
-        if (kind === "suggest" && r.data.usageId) onSuggestion?.({ usageId: r.data.usageId, text: r.data.text });
+        if (kind === "suggest" && r.data.usageId)
+          onSuggestion?.({ usageId: r.data.usageId, text: r.data.text });
         if (r.data.needsReview) toast.warning("Read this draft carefully before sending.");
       }
     });
@@ -106,7 +115,11 @@ export function AiPanel({
           <Sparkles /> AI
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" side="top" className="w-96 max-w-[calc(100vw-2rem)] space-y-3 p-3">
+      <PopoverContent
+        align="start"
+        side="top"
+        className="w-96 max-w-[calc(100vw-2rem)] space-y-3 p-3"
+      >
         <p className="text-muted-foreground text-xs">
           Drafts only. You review and send. Never relied on for medical advice.
         </p>
@@ -115,7 +128,9 @@ export function AiPanel({
           size="sm"
           className="w-full"
           disabled={working}
-          onClick={() => run("suggest", () => aiSuggestReply({ conversation_id: conversationId }), true)}
+          onClick={() =>
+            run("suggest", () => aiSuggestReply({ conversation_id: conversationId }), true)
+          }
         >
           {busy === "suggest" ? <Loader2 className="animate-spin" /> : <Sparkles />} Suggest a reply
         </Button>
@@ -124,7 +139,8 @@ export function AiPanel({
           className="flex gap-2"
           onSubmit={(e) => {
             e.preventDefault();
-            if (question.trim()) run("ask", () => aiAsk({ conversation_id: conversationId, question }), false);
+            if (question.trim())
+              run("ask", () => aiAsk({ conversation_id: conversationId, question }), false);
           }}
         >
           <Input
@@ -145,7 +161,9 @@ export function AiPanel({
           variant="outline"
           className="w-full"
           disabled={working}
-          onClick={() => run("summarize", () => aiSummarize({ conversation_id: conversationId }), false)}
+          onClick={() =>
+            run("summarize", () => aiSummarize({ conversation_id: conversationId }), false)
+          }
         >
           {busy === "summarize" && <Loader2 className="animate-spin" />} Summarize conversation
         </Button>
@@ -162,7 +180,16 @@ export function AiPanel({
                 variant="outline"
                 disabled={working || !hasDraft}
                 onClick={() =>
-                  run("rewrite", () => aiRewrite({ conversation_id: conversationId, draft: text, mode: { kind: "tone", tone } }), true)
+                  run(
+                    "rewrite",
+                    () =>
+                      aiRewrite({
+                        conversation_id: conversationId,
+                        draft: text,
+                        mode: { kind: "tone", tone },
+                      }),
+                    true,
+                  )
                 }
               >
                 {TONE_LABEL[tone]}
@@ -177,7 +204,16 @@ export function AiPanel({
                 variant="outline"
                 disabled={working || !hasDraft}
                 onClick={() =>
-                  run("rewrite", () => aiRewrite({ conversation_id: conversationId, draft: text, mode: { kind: "language", language } }), true)
+                  run(
+                    "rewrite",
+                    () =>
+                      aiRewrite({
+                        conversation_id: conversationId,
+                        draft: text,
+                        mode: { kind: "language", language },
+                      }),
+                    true,
+                  )
                 }
               >
                 Translate → {LANGUAGE_LABEL[language]}
@@ -188,13 +224,24 @@ export function AiPanel({
               variant="outline"
               disabled={working || !hasDraft}
               onClick={() =>
-                run("rewrite", () => aiRewrite({ conversation_id: conversationId, draft: text, mode: { kind: "grammar" } }), true)
+                run(
+                  "rewrite",
+                  () =>
+                    aiRewrite({
+                      conversation_id: conversationId,
+                      draft: text,
+                      mode: { kind: "grammar" },
+                    }),
+                  true,
+                )
               }
             >
               Fix spelling &amp; grammar
             </Button>
           </div>
-          {!hasDraft && <p className="text-muted-foreground text-xs">Type a message first to use these.</p>}
+          {!hasDraft && (
+            <p className="text-muted-foreground text-xs">Type a message first to use these.</p>
+          )}
         </div>
 
         {error && (
@@ -220,7 +267,9 @@ export function AiPanel({
               </p>
             )}
             {(shown.kind === "suggest" || shown.kind === "rewrite") && (
-              <p className="text-muted-foreground text-xs">Draft placed in the message box. Edit it before sending.</p>
+              <p className="text-muted-foreground text-xs">
+                Draft placed in the message box. Edit it before sending.
+              </p>
             )}
             <div className="flex flex-wrap items-center gap-1">
               {(shown.kind === "suggest" || shown.kind === "rewrite") && previous !== null && (
@@ -245,7 +294,9 @@ export function AiPanel({
                   size="xs"
                   variant="ghost"
                   onClick={() => {
-                    void navigator.clipboard.writeText(shown.text).then(() => toast.success("Copied."));
+                    void navigator.clipboard
+                      .writeText(shown.text)
+                      .then(() => toast.success("Copied."));
                   }}
                 >
                   <ClipboardCopy /> Copy
@@ -258,7 +309,10 @@ export function AiPanel({
                   disabled={pending}
                   onClick={() =>
                     startTransition(async () => {
-                      const r = await saveConversationSummary({ conversation_id: conversationId, summary: shown.text });
+                      const r = await saveConversationSummary({
+                        conversation_id: conversationId,
+                        summary: shown.text,
+                      });
                       if (r.ok) toast.success(r.message ?? "Summary saved.");
                       else toast.error(r.error);
                     })

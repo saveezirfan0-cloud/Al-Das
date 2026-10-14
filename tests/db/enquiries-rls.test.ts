@@ -397,9 +397,21 @@ describe.skipIf(!TEST_DATABASE_URL)("enquiries + tasks RLS and SQL functions", (
 
   it("keeps task done and done_at in step", async () => {
     await asServiceRole(c, async () => {
+      // Phase F: ticking done alone fills done_at and the status (tasks_status_sync) ...
+      await c.query("update public.tasks set done = true where id = $1", [a.task]);
+      const row = (
+        await c.query<{ done_at: string | null; status: string }>(
+          "select done_at, status from public.tasks where id = $1",
+          [a.task],
+        )
+      ).rows[0];
+      expect(row.done_at).not.toBeNull();
+      expect(row.status).toBe("done");
+      // ... but clearing done_at on a finished task is still refused.
       await expect(
-        c.query("update public.tasks set done = true where id = $1", [a.task]),
+        c.query("update public.tasks set done_at = null where id = $1", [a.task]),
       ).rejects.toThrow(/check/);
+      await c.query("update public.tasks set done = false, done_at = null where id = $1", [a.task]);
       await c.query("update public.tasks set done = true, done_at = now() where id = $1", [a.task]);
       await c.query("update public.tasks set done = false, done_at = null where id = $1", [a.task]);
     });

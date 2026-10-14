@@ -38,6 +38,11 @@ const GENERIC: Record<string, { title: string; body: string }> = {
     body: "Call the patient to confirm the appointment.",
   },
   "task.due": { title: "Task due", body: "A task assigned to you is due." },
+  "task.assigned": { title: "Task assigned", body: "A task was assigned to you. Open Pulse to see it." },
+  "task.mentioned": {
+    title: "Mentioned on a task",
+    body: "A colleague mentioned you on a task. Open Pulse to read it.",
+  },
   "document.expiring": {
     title: "Insurance card expiring",
     body: "A patient's insurance card is about to expire. Open Pulse to see whose.",
@@ -128,6 +133,8 @@ export function pushUrl(event: string, ids: PushIds): string {
     case "reminder.failed":
       return appointment ? `/appointments?appointment=${appointment}` : "/tasks";
     case "task.due":
+    case "task.assigned":
+    case "task.mentioned":
       return task ? `/tasks?task=${task}` : "/tasks";
     case "document.expiring":
       return task ? `/tasks?task=${task}` : "/notifications";

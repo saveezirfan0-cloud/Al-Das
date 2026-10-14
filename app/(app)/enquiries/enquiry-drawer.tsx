@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { ContactConversations } from "@/app/(app)/contacts/contact-conversations";
 import { CustomFieldInput } from "@/app/(app)/contacts/custom-field-input";
 import { Timeline } from "@/components/timeline/timeline";
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -97,6 +98,7 @@ export function EnquiryDrawer({
   const [dirty, setDirty] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [pending, startTransition] = React.useTransition();
+  const [confirm, confirmDialog] = useConfirm();
   const [note, setNote] = React.useState("");
   const [reasonFor, setReasonFor] = React.useState<EnquiryStatus | null>(null);
   const [movePipelineId, setMovePipelineId] = React.useState<string | null>(null);
@@ -181,6 +183,7 @@ export function EnquiryDrawer({
   return (
     <Sheet open={!!enquiryId} onOpenChange={(o) => !o && onClose()}>
       <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-5xl">
+        {confirmDialog}
         {loading && !detail ? (
           <div className="text-muted-foreground flex flex-1 items-center justify-center">
             <Loader2 className="size-5 animate-spin" />
@@ -235,13 +238,15 @@ export function EnquiryDrawer({
                       size="icon-sm"
                       aria-label="Delete enquiry"
                       className="text-destructive"
-                      onClick={() => {
-                        if (
-                          confirm(
-                            "Delete this enquiry? It disappears from lists and boards and can be restored from Settings, Recently deleted for a while.",
-                          )
-                        )
-                          run(() => removeEnquiries([e.id]), onClose);
+                      onClick={async () => {
+                        const ok = await confirm({
+                          title: "Delete this enquiry?",
+                          description:
+                            "It disappears from lists and boards and can be restored from Settings, Recently deleted for a while.",
+                          confirmLabel: "Delete",
+                          destructive: true,
+                        });
+                        if (ok) run(() => removeEnquiries([e.id]), onClose);
                       }}
                     >
                       <Trash2 />

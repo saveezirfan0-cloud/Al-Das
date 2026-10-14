@@ -150,6 +150,8 @@ export const AUDIT_EXEMPT: Record<string, string> = {
   "app/(app)/inbox/actions.ts::setBotActive":
     "Conversation lifecycle is recorded on the contact timeline.",
   "app/(app)/inbox/actions.ts::startConversation": "The queued message carries sent_by_user_id.",
+  "app/(app)/inbox/work-actions.ts::searchMessageText":
+    "Read-only: search_messages() runs with the caller's own rights (RLS) and writes nothing. The search is recorded in record_access_log (counts only); the query text is never stored or logged.",
   "app/(app)/inbox/actions.ts::saveInboxView": "Caller's own saved view.",
   "app/(app)/inbox/actions.ts::deleteInboxView": "Caller's own saved view.",
   "app/(app)/inbox/ai-actions.ts::aiFeedback":

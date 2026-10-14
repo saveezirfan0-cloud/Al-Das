@@ -36,10 +36,10 @@ export const GUIDES: readonly Guide[] = [
     pages: ["/inbox"],
     purpose: "Answer patients on WhatsApp together, without two people replying to the same chat.",
     steps: [
-      "Take a conversation with the Take button, or wait for it to be assigned to you. With more than one branch, each chat shows the branch of its number and the list follows the branch switcher (Filters picks another branch, or All my branches).",
+      "Take a conversation with the Take button, or wait for it to be assigned to you. \"waiting 12 m\" on a row is how long the patient has waited for a reply (amber, then red). The tick-box button at the top selects several chats to assign or close together.",
       "Type / in the message box to use a quick reply. Names and appointment details fill in for you.",
       "If the 24-hour window has closed, pick a template instead of typing a message.",
-      "Use the Patient tab on the right to see the next appointment and any flags without leaving the chat.",
+      "Use the Patient tab on the right to see the next appointment and any flags without leaving the chat. Task at the top makes a follow-up task linked to the patient and this chat; Snooze hides the chat until a time you pick (it comes back sooner if the patient writes).",
       "Close the conversation when it is finished, with a category if your clinic asks for one. In the same box you can create the patient's enquiry or move theirs on (stage, won, or lost with a reason).",
       "Extras: forward on a message sends it to another open chat; the buttons by the message box share a contact card or a catalogue product; Call at the top rings the patient from your phone; More, Move chat to a new contact is for a shared phone.",
     ],
@@ -47,6 +47,7 @@ export const GUIDES: readonly Guide[] = [
       "Never copy patient details into another chat or email. Forwarding a patient's message to someone else shares it with them: forward only what that person should see.",
       "An internal note is not sent to the patient, but colleagues can read it.",
       "Forwards, contact cards and products only go out within 24 hours of the patient's last message.",
+      "\"Someone is replying\" above the message box means a colleague is typing in the same chat: check before you send. Message text under the search box finds words in chats you can open.",
     ],
   },
   {
@@ -142,6 +143,7 @@ export const GUIDES: readonly Guide[] = [
       "Two records for the same person? Use Merge. Two people who share a phone (a parent and child) are linked as a household instead.",
       "Home branch on the record says which branch usually sees the patient; add the Home branch column or filter by it. Patients can still book and message any branch.",
       "The Documents tab (if you have access) keeps referral letters, lab reports, insurance cards and consent forms. Add one with a title, a category and, for an insurance card, its expiry date.",
+      "History shows messages, appointments, enquiries, tasks and notes in one list; Tasks lists the patient's tasks (open first) and Invoices (finance access only) the Unite invoices for their PIN.",
     ],
     watchOut: [
       "Phone numbers must include the country code if they are not UAE numbers.",
@@ -155,13 +157,14 @@ export const GUIDES: readonly Guide[] = [
     pages: ["/tasks"],
     purpose: "Things somebody has to do: calls, follow-ups, reminders.",
     steps: [
-      "Tasks assigned to you are listed first, oldest due date at the top.",
-      "Open a task to see the patient and notes. Tick it off when it is done and write the outcome.",
-      "A call logged from the Front desk shows up here until you close it.",
+      "Tasks assigned to you are listed first, oldest due date at the top. List, Board and Calendar switch the view; on the Board drag a card to change its status.",
+      "Open a task to set its status, priority, team and whether it repeats, tick its checklist, add comments (type @ to mention a colleague) and attach files from the Media Library.",
+      "A call logged from the Front desk, or a task made from a chat, shows up here until you close it.",
+      "Daily checklists: each branch's opening and closing list becomes a task every morning. Checklists only shows them; administrators edit the lists under Daily checklists.",
       "With more than one branch, a new task starts in the branch chosen in the switcher (change it in the task). The list follows the switcher; pick another branch or All my branches above the list.",
     ],
     watchOut: [
-      "Overdue tasks show a red badge in the menu.",
+      "Overdue tasks show a red badge in the menu. A repeating task makes the next one when it is done, or at its due time if nobody ticks it off.",
       "People limited to some branches only see those branches' tasks and tasks without a branch.",
     ],
   },
@@ -174,8 +177,12 @@ export const GUIDES: readonly Guide[] = [
       "Drag a card to the next stage as the conversation moves forward.",
       "Create an enquiry from a conversation with Create enquiry.",
       "Mark it won when the patient books, or lost with a reason.",
+      "Import CSV adds many at once: match the columns, check the rows with problems, then import. Running the same file again adds nothing twice.",
     ],
-    watchOut: ["The first reply is timed. A breached SLA notifies the team."],
+    watchOut: [
+      "The first reply is timed. A breached SLA notifies the team.",
+      "An imported row whose phone belongs to several patients is skipped: merge or link them first.",
+    ],
   },
   {
     id: "campaigns",

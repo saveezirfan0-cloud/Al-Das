@@ -23,7 +23,7 @@ type UserClient = SupabaseClient<Database>;
 export const CONVERSATION_LIST_SELECT = `
   id, org_id, channel_id, contact_id, status, assignee_user_id, assignee_team_id, bot_active,
   last_inbound_at, last_outbound_at, last_message_at, last_message_preview, last_message_direction,
-  unread_count, category_id, summary, ai_tags, ad_referral, opened_at, closed_at, location_id,
+  unread_count, category_id, summary, ai_tags, ad_referral, opened_at, closed_at, location_id, snoozed_until,
   contacts!inner(id, first_name, last_name, wa_profile_name, phone_e164, wa_bsuid, stop_marketing),
   channels(id, name, display_phone),
   conversation_labels(tag_id, tags(id, name, color))
@@ -53,6 +53,8 @@ export type ConversationListRow = {
   closed_at: string | null;
   /** Phase B: the branch of the number the conversation runs on (null = no branch). */
   location_id: string | null;
+  /** Phase F: snoozed until this time (null = not snoozed). */
+  snoozed_until: string | null;
   contacts: {
     id: string;
     first_name: string;
@@ -97,6 +99,7 @@ type Filterable<B> = {
   eq(column: string, value: unknown): B;
   neq(column: string, value: unknown): B;
   is(column: string, value: null): B;
+  not(column: string, operator: string, value: unknown): B;
   gt(column: string, value: number): B;
   in(column: string, values: string[]): B;
   or(filters: string, options?: { referencedTable?: string }): B;
@@ -113,6 +116,11 @@ function applyFolder<B extends Filterable<B>>(
   let b = builder.eq("campaign_only", false) as B;
   // Phase B: the branch view narrows every folder and team queue alike.
   b = withBranchFilter(b, ctx.branchIds);
+  if (folder === "snoozed" && !team)
+    return b.neq("status", "closed").not("snoozed_until", "is", null) as B;
+  // Phase F: snoozed chats leave the working folders and team queues until the job wakes them (Mentions and Closed
+  // keep them; lib/inbox/folders.ts matchesFolder mirrors this).
+  if (folder !== "mentions" && folder !== "closed") b = b.is("snoozed_until", null) as B;
   if (team) return b.neq("status", "closed").eq("assignee_team_id", team) as B;
   switch (folder) {
     case "open":
@@ -149,6 +157,8 @@ function applyFolder<B extends Filterable<B>>(
       break;
     case "closed":
       b = b.eq("status", "closed") as B;
+      break;
+    case "snoozed":
       break;
   }
   return b;
