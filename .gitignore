@@ -49,6 +49,8 @@ supabase/.branches
 supabase/.temp
 test-results
 playwright-report
+# signed-in e2e: saved sessions and the seed file (throwaway passwords of local test users)
+tests/e2e/.auth/
 !.env.example
 supabase/test/ext-stubs/pgmq--*.sql
 docs/audit/import-report-*.md
