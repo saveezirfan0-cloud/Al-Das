@@ -16,6 +16,7 @@ import {
   type ForwardSource,
 } from "@/lib/inbox/extras";
 import { kindForSpec, sendSpecSchema } from "@/lib/inbox/send";
+import { SENDER_ERRORS, checkChatSender, senderOf } from "@/lib/inbox/unlink";
 import { WhatsAppClient } from "@/lib/whatsapp/client";
 
 const base: ForwardSource = {
@@ -311,5 +312,48 @@ describe("Cloud API bodies (fake fetch, Meta never reached)", () => {
       type: "interactive",
       interactive: { type: "product_list", action: { catalog_id: "1" } },
     });
+  });
+});
+
+describe("checkChatSender (move chat to a new contact)", () => {
+  const main = { phone_e164: "+447700900311", wa_bsuid: null };
+  it("accepts the contact's main phone or BSUID", () => {
+    expect(checkChatSender("447700900311", main)).toEqual({ ok: true });
+    expect(checkChatSender("AE.demo-1", { phone_e164: null, wa_bsuid: "AE.demo-1" })).toEqual({
+      ok: true,
+    });
+    expect(
+      checkChatSender("AE.demo-1", { phone_e164: "+447700900311", wa_bsuid: "AE.demo-1" }),
+    ).toEqual({ ok: true });
+  });
+  it("refuses an alternate number, a foreign BSUID or no inbound sender", () => {
+    expect(checkChatSender("447700900312", main)).toEqual({
+      ok: false,
+      error: SENDER_ERRORS.other,
+    });
+    expect(checkChatSender("AE.other", main)).toEqual({ ok: false, error: SENDER_ERRORS.other });
+    expect(checkChatSender(null, main)).toEqual({ ok: false, error: SENDER_ERRORS.none });
+    expect(checkChatSender("  ", main)).toEqual({ ok: false, error: SENDER_ERRORS.none });
+  });
+  it("reads Meta's `from` from a stored payload", () => {
+    expect(senderOf({ from: "447700900311", id: "wamid.x" })).toBe("447700900311");
+    expect(senderOf({ source: "whatsapp" })).toBe(null);
+    expect(senderOf(null)).toBe(null);
+  });
+});
+
+describe("contact card name parts", () => {
+  it("caps first and last name at 100 so the send schema always accepts the card", () => {
+    const r = buildContactCard({
+      name: `${"a".repeat(120)} ${"b".repeat(70)}`,
+      phone: "+447700900124",
+    });
+    if (!r.ok) throw new Error("card");
+    expect(r.card.name.first_name).toHaveLength(100);
+    expect(sendSpecSchema.safeParse({ type: "contacts", contacts: [r.card] }).success).toBe(true);
+    const r2 = buildContactCard({ name: `a ${"b".repeat(150)}`, phone: "+447700900124" });
+    if (!r2.ok) throw new Error("card");
+    expect(r2.card.name.last_name).toHaveLength(100);
+    expect(sendSpecSchema.safeParse({ type: "contacts", contacts: [r2.card] }).success).toBe(true);
   });
 });

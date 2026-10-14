@@ -122,7 +122,7 @@ export function ForwardDialog({
             />
           </div>
           <div
-            role="radiogroup"
+            role="group"
             aria-label="Conversation to forward to"
             className="flex max-h-72 flex-col gap-1 overflow-y-auto"
           >
@@ -137,8 +137,7 @@ export function ForwardDialog({
                 <button
                   key={t.id}
                   type="button"
-                  role="radio"
-                  aria-checked={picked === t.id}
+                  aria-pressed={picked === t.id}
                   onClick={() => setPicked(t.id)}
                   className={cn(
                     "hover:bg-accent flex min-h-11 items-center justify-between gap-2 rounded-md border px-3 py-2 text-left text-sm",
