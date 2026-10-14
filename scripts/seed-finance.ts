@@ -38,6 +38,8 @@ async function main() {
   if (rules.error) throw new Error(rules.error.message);
   const chart = await admin.rpc("acc_seed_chart", { p_org_id: org.id }); // Phase 22A: entity, groups, ledgers, tax codes
   if (chart.error) throw new Error(chart.error.message);
+  const cal = await admin.rpc("fin_seed_calendar_events", { p_org_id: org.id }); // M4: Ramadan and Eid (approximate)
+  if (cal.error) throw new Error(cal.error.message);
   const roles = await admin.rpc("seed_finance_roles", {
     p_org_id: org.id,
     p_roles: [...FINANCE_ROLES, ...ACCOUNTING_ROLES].map((r) => ({

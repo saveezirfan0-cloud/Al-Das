@@ -9,6 +9,7 @@ import { requireMember } from "@/lib/auth/session";
 import { DENIED, dbMessage, fail, firstIssue, type ActionResult } from "@/lib/finance/action-support";
 import { perfSettingsSchema } from "@/lib/finance/doctor-performance";
 import { LINE_CODE_RE, monthOf, parseTargetInput } from "@/lib/finance/flash";
+import { recruitSettingsSchema } from "@/lib/finance/recruitment";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/types";
 
@@ -229,6 +230,36 @@ export async function savePerfBands(values: Record<string, string>): Promise<Act
   refresh();
   revalidatePath("/finance/doctor-performance");
   return { ok: true, message: "Target and bands saved." };
+}
+
+/** The recruitment calculator's defaults are cost assumptions: finance.costs.manage, not the targets key. */
+async function gateRecruit() {
+  const member = await requireMember();
+  return can(member, "finance.costs.manage") ? member : null;
+}
+
+/** Recruitment calculator (M4): conservative factor, consumables %, gateway %, minimum peer doctor-months. */
+export async function saveRecruitDefaults(values: Record<string, string>): Promise<ActionResult> {
+  const member = await gateRecruit();
+  if (!member) return fail(DENIED);
+  const parsed = recruitSettingsSchema.safeParse(values);
+  if (!parsed.success) return fail(firstIssue(parsed.error));
+  const admin = createAdminClient(member.userId);
+  const { error } = await admin
+    .from("fin_ref_finance_settings")
+    .upsert({ org_id: member.orgId, ...parsed.data }, { onConflict: "org_id" });
+  if (error) return fail(dbMessage(error, "Could not save the recruitment defaults."));
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "finance.recruitment.defaults_saved",
+    entity: "fin_ref_finance_settings",
+    entityId: member.orgId,
+    diff: parsed.data,
+  });
+  revalidatePath("/finance/flash/settings");
+  revalidatePath("/finance/recruitment");
+  return { ok: true, message: "Recruitment defaults saved." };
 }
 
 const displaySchema = z.object({

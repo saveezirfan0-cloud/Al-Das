@@ -8,6 +8,7 @@ import {
   deleteReportLine,
   saveFlashDisplay,
   savePerfBands,
+  saveRecruitDefaults,
   saveReportLine,
   saveTargets,
 } from "./actions";
@@ -210,6 +211,37 @@ export function PerfBandsForm({ target, near, moderate }: { target: number; near
         Revenue per patient at or above the target is Achieved; from Near Target up to the target is Near Target; from
         Moderate up to Near Target is Moderate; below Moderate is Below Target. Each band starts exactly at its number,
         so nothing falls between bands. Expected revenue is patients times the target.
+      </p>
+    </ActionForm>
+  );
+}
+
+export function RecruitDefaultsForm(v: {
+  conservative: number;
+  consumables: number;
+  gateway: number;
+  minPeerMonths: number;
+}) {
+  return (
+    <ActionForm action={saveRecruitDefaults} submitLabel="Save recruitment defaults">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Field label="Conservative factor on claimed revenue (%)">
+          <Input name="recruit_conservative_pct" inputMode="decimal" defaultValue={v.conservative} required />
+        </Field>
+        <Field label="Consumables (% of revenue)">
+          <Input name="recruit_consumables_pct" inputMode="decimal" defaultValue={v.consumables} required />
+        </Field>
+        <Field label="Payment gateway (% of revenue)">
+          <Input name="recruit_gateway_pct" inputMode="decimal" defaultValue={v.gateway} required />
+        </Field>
+        <Field label="Doctor-months for a department benchmark">
+          <Input name="recruit_min_peer_months" inputMode="numeric" defaultValue={v.minPeerMonths} required />
+        </Field>
+      </div>
+      <p className="text-muted-foreground text-xs">
+        The recruitment calculator starts every scenario with these (each scenario can change them). A department is
+        compared with its own doctors only when the Unite report holds at least this many doctor-months from two or
+        more doctors; otherwise the clinic-wide figures are used.
       </p>
     </ActionForm>
   );

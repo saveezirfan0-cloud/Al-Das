@@ -167,6 +167,18 @@ describe("Finance navigation", () => {
     }
   });
 
+  it("the recruitment calculator needs BOTH profit and compensation: Finance yes; the CEO and Cost / Payroll no", () => {
+    for (const r of ["Finance", "Finance Manager"])
+      expect(hrefs(member(role(r))), r).toContain("/finance/recruitment");
+    for (const r of ["CEO", "Cost / Payroll", "Medical Director", "Billing"])
+      expect(hrefs(member(role(r))), r).not.toContain("/finance/recruitment");
+    expect(hrefs(member(["finance.profit.view"]))).not.toContain("/finance/recruitment");
+    expect(hrefs(member(["finance.costs.compensation"]))).not.toContain("/finance/recruitment");
+    expect(hrefs(member(["finance.profit.view", "finance.costs.compensation"]))).toContain(
+      "/finance/recruitment",
+    );
+  });
+
   it("the Medical Director sees revenue and scorecards only", () => {
     expect(hrefs(member(role("Medical Director"))).sort()).toEqual(
       [

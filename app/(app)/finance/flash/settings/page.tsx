@@ -13,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { can } from "@/lib/auth/can";
 import { requirePerm } from "@/lib/auth/session";
 import { todayIn } from "@/lib/finance/action-support";
 import { DEFAULT_PERF_SETTINGS } from "@/lib/finance/doctor-performance";
@@ -26,6 +27,7 @@ import {
   EditLineButton,
   PerfBandsForm,
   NewLineButton,
+  RecruitDefaultsForm,
   TargetsForm,
   type LineView,
 } from "./forms";
@@ -57,7 +59,9 @@ export default async function FlashSettingsPage({
       .eq("month", month),
     admin
       .from("fin_ref_finance_settings")
-      .select("flash_share_basis, flash_top_doctors, perf_arpp_target, perf_band_near, perf_band_moderate")
+      .select(
+        "flash_share_basis, flash_top_doctors, perf_arpp_target, perf_band_near, perf_band_moderate, recruit_conservative_pct, recruit_consumables_pct, recruit_gateway_pct, recruit_min_peer_months",
+      )
       .eq("org_id", member.orgId)
       .maybeSingle(),
   ]);
@@ -198,6 +202,22 @@ export default async function FlashSettingsPage({
           />
         </CardContent>
       </Card>
+
+      {can(member, "finance.costs.manage") && settings && (
+        <Card id="recruitment">
+          <CardHeader>
+            <CardTitle className="text-base">Recruitment calculator defaults</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <RecruitDefaultsForm
+              conservative={Number(settings.recruit_conservative_pct)}
+              consumables={Number(settings.recruit_consumables_pct)}
+              gateway={Number(settings.recruit_gateway_pct)}
+              minPeerMonths={Number(settings.recruit_min_peer_months)}
+            />
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

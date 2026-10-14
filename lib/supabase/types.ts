@@ -11851,6 +11851,52 @@ export type Database = {
           },
         ];
       };
+      fin_recruitment_scenarios: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          inputs: Json;
+          org_id: string;
+          result: Json;
+          title: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          inputs: Json;
+          org_id: string;
+          result: Json;
+          title: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          inputs?: Json;
+          org_id?: string;
+          result?: Json;
+          title?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_recruitment_scenarios_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_recruitment_scenarios_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       fin_ref_account_map: {
         Row: {
           account_code: string;
@@ -11998,6 +12044,58 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "fin_ref_branches_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      fin_ref_calendar_events: {
+        Row: {
+          approximate: boolean;
+          created_at: string;
+          created_by: string | null;
+          ends_on: string;
+          id: string;
+          kind: string;
+          label: string;
+          org_id: string;
+          starts_on: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          approximate?: boolean;
+          created_at?: string;
+          created_by?: string | null;
+          ends_on: string;
+          id?: string;
+          kind: string;
+          label: string;
+          org_id: string;
+          starts_on: string;
+        };
+        Update: {
+          approximate?: boolean;
+          created_at?: string;
+          created_by?: string | null;
+          ends_on?: string;
+          id?: string;
+          kind?: string;
+          label?: string;
+          org_id?: string;
+          starts_on?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_ref_calendar_events_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_ref_calendar_events_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
@@ -12203,6 +12301,10 @@ export type Database = {
           perf_arpp_target: number;
           perf_band_moderate: number;
           perf_band_near: number;
+          recruit_conservative_pct: number;
+          recruit_consumables_pct: number;
+          recruit_gateway_pct: number;
+          recruit_min_peer_months: number;
           preauth_expiry_lead_days: number;
           preauth_task_enabled: boolean;
           ready_grace_days: number;
@@ -12289,6 +12391,10 @@ export type Database = {
           perf_arpp_target?: number;
           perf_band_moderate?: number;
           perf_band_near?: number;
+          recruit_conservative_pct?: number;
+          recruit_consumables_pct?: number;
+          recruit_gateway_pct?: number;
+          recruit_min_peer_months?: number;
           preauth_expiry_lead_days?: number;
           preauth_task_enabled?: boolean;
           ready_grace_days?: number;
@@ -12374,6 +12480,10 @@ export type Database = {
           perf_arpp_target?: number;
           perf_band_moderate?: number;
           perf_band_near?: number;
+          recruit_conservative_pct?: number;
+          recruit_consumables_pct?: number;
+          recruit_gateway_pct?: number;
+          recruit_min_peer_months?: number;
           preauth_expiry_lead_days?: number;
           preauth_task_enabled?: boolean;
           ready_grace_days?: number;
@@ -24717,6 +24827,10 @@ export type Database = {
         Returns: Json;
       };
       fin_rederive_branches: { Args: { p_org_id: string }; Returns: number };
+      fin_recruitment_benchmarks: {
+        Args: { p_branches?: string[]; p_org_id: string };
+        Returns: Json;
+      };
       fin_report_commit: {
         Args: { p_org_id: string; p_upload_id: string; p_user_id: string };
         Returns: Json;
@@ -24824,6 +24938,7 @@ export type Database = {
         }[];
       };
       fin_run_exception_rules: { Args: { p_org_id: string }; Returns: Json };
+      fin_seed_calendar_events: { Args: { p_org_id: string }; Returns: number };
       fin_seed_settlement_rules: { Args: { p_org_id: string }; Returns: undefined };
       fin_selfpay_balances: {
         Args: { p_limit?: number; p_min_balance?: number; p_min_days?: number; p_org_id: string };

@@ -1,4 +1,4 @@
-import { canAny, type MemberLike } from "@/lib/auth/can";
+import { canAll, canAny, type MemberLike } from "@/lib/auth/can";
 
 /**
  * The Finance section's own navigation, in one list so the layout, the landing redirect and the tests agree. Each entry is
@@ -17,7 +17,13 @@ export type FinanceNavEntry = {
   badge?: FinanceBadge;
   /** Extra words quick search matches (the label always matches). */
   keywords?: readonly string[];
+  /** When set, decides visibility instead of "any of `permissions`" (a page that needs two keys). */
+  allow?: (member: MemberLike) => boolean;
 };
+
+/** Visible to this member: `allow` when the entry has one, else any of its permissions. */
+const visible = (member: MemberLike, e: FinanceNavEntry) =>
+  e.allow ? e.allow(member) : canAny(member, e.permissions);
 
 const VOUCHERS = [
   "finance.payables.view",
@@ -116,6 +122,15 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
     label: "Profitability",
     section: "Overview",
     permissions: ["finance.profit.view"],
+  },
+  {
+    // M4 scenario: profit figures and a candidate's pay terms, so BOTH keys (the page checks them again)
+    href: "/finance/recruitment",
+    label: "Recruitment calculator",
+    section: "Overview",
+    permissions: ["finance.profit.view", "finance.costs.compensation"],
+    allow: (m) => canAll(m, ["finance.profit.view", "finance.costs.compensation"]),
+    keywords: ["recruitment", "hiring", "new doctor", "viability", "breakeven", "scenario", "candidate"],
   },
   {
     href: "/finance/invoices",
@@ -336,7 +351,7 @@ export function financeNavFor(
   member: MemberLike,
   badges: NavBadges = {},
 ): Array<{ href: string; label: string; section: string; badge?: number }> {
-  return FINANCE_NAV.filter((e) => canAny(member, e.permissions)).map((e) => ({
+  return FINANCE_NAV.filter((e) => visible(member, e)).map((e) => ({
     href: e.href,
     label: e.label,
     section: e.section,
@@ -353,7 +368,7 @@ export function financeLanding(member: MemberLike): string | null {
 export function badgesNeeded(member: MemberLike): FinanceBadge[] {
   return [
     ...new Set(
-      FINANCE_NAV.filter((e) => e.badge && canAny(member, e.permissions)).map((e) => e.badge!),
+      FINANCE_NAV.filter((e) => e.badge && visible(member, e)).map((e) => e.badge!),
     ),
   ];
 }
