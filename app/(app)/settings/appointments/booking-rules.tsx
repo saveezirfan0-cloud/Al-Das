@@ -251,6 +251,16 @@ export function BookingRules({
             <Row label="Auto-confirm" hint="New bookings start as Confirmed instead of Awaiting.">
               <Switch checked={s.auto_confirm} onCheckedChange={(c) => set("auto_confirm", c)} />
             </Row>
+            <Row
+              label="Show taken times"
+              hint="The booking drawer also lists booked, blocked and full times, greyed out."
+            >
+              <Switch
+                checked={s.show_busy}
+                onCheckedChange={(c) => set("show_busy", c)}
+                aria-label="Show taken times"
+              />
+            </Row>
             <div className="flex flex-col gap-2 rounded-md border px-3 py-2 text-sm">
               <span className="font-medium">Working days</span>
               <span className="text-muted-foreground text-xs">

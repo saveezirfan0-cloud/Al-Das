@@ -4276,6 +4276,54 @@ export type Database = {
           },
         ];
       };
+      ad_insights_daily: {
+        Row: {
+          ad_id: string;
+          ad_name: string | null;
+          campaign_name: string | null;
+          clicks: number;
+          currency: string;
+          day: string;
+          impressions: number;
+          org_id: string;
+          pulled_at: string;
+          spend_milli: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          ad_id: string;
+          ad_name?: string | null;
+          campaign_name?: string | null;
+          clicks?: number;
+          currency: string;
+          day: string;
+          impressions?: number;
+          org_id: string;
+          pulled_at?: string;
+          spend_milli: number;
+        };
+        Update: {
+          ad_id?: string;
+          ad_name?: string | null;
+          campaign_name?: string | null;
+          clicks?: number;
+          currency?: string;
+          day?: string;
+          impressions?: number;
+          org_id?: string;
+          pulled_at?: string;
+          spend_milli?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ad_insights_daily_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       ai_message_intents: {
         Row: {
           conversation_id: string;
@@ -5138,6 +5186,62 @@ export type Database = {
           },
         ];
       };
+      campaign_ab_variants: {
+        Row: {
+          campaign_id: string;
+          created_at: string;
+          fallbacks: NonNullable<Json>;
+          id: string;
+          org_id: string;
+          split_pct: number;
+          template_id: string;
+          variable_map: NonNullable<Json>;
+        };
+        ComputedFields: never;
+        Insert: {
+          campaign_id: string;
+          created_at?: string;
+          fallbacks?: NonNullable<Json>;
+          id?: string;
+          org_id: string;
+          split_pct: number;
+          template_id: string;
+          variable_map?: NonNullable<Json>;
+        };
+        Update: {
+          campaign_id?: string;
+          created_at?: string;
+          fallbacks?: NonNullable<Json>;
+          id?: string;
+          org_id?: string;
+          split_pct?: number;
+          template_id?: string;
+          variable_map?: NonNullable<Json>;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "campaign_ab_variants_campaign_id_fkey";
+            columns: ["campaign_id"];
+            isOneToOne: true;
+            referencedRelation: "campaigns";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "campaign_ab_variants_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "campaign_ab_variants_template_id_fkey";
+            columns: ["template_id"];
+            isOneToOne: false;
+            referencedRelation: "wa_templates";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       campaign_archive: {
         Row: {
           created_at: string;
@@ -5317,6 +5421,7 @@ export type Database = {
           skip_reason: string | null;
           status: string;
           updated_at: string;
+          variant: string | null;
           vars: NonNullable<Json>;
           wa_message_id: string | null;
         };
@@ -5342,6 +5447,7 @@ export type Database = {
           skip_reason?: string | null;
           status?: string;
           updated_at?: string;
+          variant?: string | null;
           vars?: NonNullable<Json>;
           wa_message_id?: string | null;
         };
@@ -5366,6 +5472,7 @@ export type Database = {
           skip_reason?: string | null;
           status?: string;
           updated_at?: string;
+          variant?: string | null;
           vars?: NonNullable<Json>;
           wa_message_id?: string | null;
         };
@@ -23278,6 +23385,14 @@ export type Database = {
         Args: { p_org: string; p_since: string; p_window_days?: number };
         Returns: Json;
       };
+      ad_insights_replace: {
+        Args: { p_org: string; p_rows: Json; p_since: string; p_until: string };
+        Returns: Json;
+      };
+      ad_spend_report: {
+        Args: { p_org: string; p_since: string };
+        Returns: Json;
+      };
       ai_add_conversation_tags: {
         Args: { p_conversation: string; p_org: string; p_tags: string[] };
         Returns: string[];
@@ -23359,6 +23474,7 @@ export type Database = {
         };
       };
       calendar_feed_touch: { Args: { p_id: string }; Returns: undefined };
+      campaign_ab_funnel: { Args: { p_campaign_id: string }; Returns: Json };
       campaign_add_csv_rows: {
         Args: {
           p_campaign_id: string;
@@ -24728,6 +24844,18 @@ export type Database = {
       show_limit: { Args: Record<PropertyKey, never>; Returns: number };
       show_trgm: { Args: { "": string }; Returns: string[] };
       storage_usage_summary: { Args: { p_org: string }; Returns: Json };
+      unlink_conversation_contact: {
+        Args: {
+          p_conversation_id: string;
+          p_first_name: string;
+          p_keep_household: boolean;
+          p_last_name: string;
+          p_org_id: string;
+          p_relationship: string;
+          p_user_id: string;
+        };
+        Returns: Json;
+      };
       uuid_generate_v1: { Args: Record<PropertyKey, never>; Returns: string };
       uuid_generate_v1mc: { Args: Record<PropertyKey, never>; Returns: string };
       uuid_generate_v3: { Args: { name: string; namespace: string }; Returns: string };

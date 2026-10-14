@@ -60,6 +60,9 @@ describe("catalogue", () => {
     expect(integrationDef("tally_bridge").confirmWord).toBe("CONNECT TALLY");
     expect(integrationDef("tally_bridge").sharesData).toBe(false);
     expect(integrationDef("tally_bridge").outbound).toBe(false);
+    // Phase 20h: MM Lite changes how marketing messages reach patients
+    expect(integrationDef("wa_mm_lite").confirmWord).toBe("SEND MARKETING THROUGH MM LITE");
+    expect(integrationDef("wa_mm_lite").contactsPatients).toBe(true);
   });
 
   it("marks every credential as secret and keeps identifiers out of the encrypted blob", () => {
@@ -70,6 +73,8 @@ describe("catalogue", () => {
       // api_key: Daily (video rooms) and Dropbox Sign (e-signature); Phase 20e: Instagram and Messenger (page token, app secret,
       // verify token each) and the Google OAuth client secret
       [
+        "access_token",
+        // Phase 20i: the Meta ads spend integration's ads_read token
         "access_token",
         "api_key",
         "api_key",
@@ -89,6 +94,8 @@ describe("catalogue", () => {
         "verify_token",
         "verify_token",
         "client_secret",
+        // Phase 20h: the generic HTTP SMS gateway's bearer token or Basic password
+        "gateway_secret",
       ].sort(),
     );
     for (const i of INTEGRATIONS)
@@ -98,7 +105,10 @@ describe("catalogue", () => {
 
   it("looks providers up, falling back to the only one", () => {
     expect(providerDef("sms", "twilio")?.id).toBe("twilio");
-    expect(providerDef("sms", null)?.id).toBe("twilio");
+    // Phase 20h: SMS has a second provider (generic HTTP), so it no longer falls back; saved rows always carry their provider.
+    expect(providerDef("sms", "http")?.id).toBe("http");
+    expect(providerDef("sms", null)).toBeNull();
+    expect(providerDef("wa_mm_lite", null)?.id).toBe("meta");
     expect(providerDef("payments", null)).toBeNull();
     expect(providerDef("payments", "paytabs")?.id).toBe("paytabs");
   });

@@ -32,6 +32,7 @@ import {
   resumeCampaign,
   startCampaign,
 } from "@/lib/campaigns/engine";
+import { AB_SPLIT_MAX, AB_SPLIT_MIN, variantProblem } from "@/lib/campaigns/ab";
 import { isMarketingCategory } from "@/lib/campaigns/recipients";
 import { checkRecurrenceSchedule, describeCron, nextCronRun } from "@/lib/campaigns/recurrence";
 import { scheduleRecurrenceRun } from "@/lib/campaigns/recurring";
@@ -90,6 +91,15 @@ const createSchema = z.object({
   retry_rounds: z.number().int().min(0).max(3).default(0),
   retry_delay_minutes: z.number().int().min(5).max(1440).default(60),
   guardrails: guardrailsSchema,
+  /** Phase 20g A/B test: version B and the share of the audience that gets it. One-off campaigns only. */
+  variant_b: z
+    .object({
+      template_id: uuid,
+      variable_map: mapSchema.default({}),
+      fallbacks: mapSchema.default({}),
+      split_pct: z.number().int().min(AB_SPLIT_MIN).max(AB_SPLIT_MAX),
+    })
+    .optional(),
 });
 export type CreateCampaignInput = z.input<typeof createSchema>;
 
@@ -280,6 +290,39 @@ export async function createCampaign(
   if (mediaProblem) return fail(mediaProblem);
   const marketing = isMarketingCategory(template.category);
 
+  // Phase 20g A/B test: version B goes through the same checks as A (approved, same account, mapping, library files).
+  const variantB = v.variant_b ?? null;
+  if (variantB) {
+    const ctxB = await loadSendContext(admin, member.orgId, v.channel_id, variantB.template_id);
+    if (!ctxB.ok) return fail(`Version B: ${ctxB.error}`);
+    const componentsB = ctxB.template.components as unknown as MetaTemplateComponent[];
+    const problemB =
+      variantProblem({
+        a: { templateId: template.id, category: template.category },
+        b: { templateId: ctxB.template.id, category: ctxB.template.category },
+        aMap: v.variable_map,
+        bMap: variantB.variable_map,
+        aFallbacks: v.fallbacks,
+        bFallbacks: variantB.fallbacks,
+        splitPct: variantB.split_pct,
+      }) ??
+      mappingError(
+        componentsB,
+        variantB.variable_map,
+        stringMap(ctxB.template.variable_map),
+        variantB.fallbacks,
+      ) ??
+      (await checkMediaReferences(
+        admin,
+        member.orgId,
+        componentsB,
+        variantB.variable_map,
+        stringMap(ctxB.template.variable_map),
+      ));
+    if (problemB)
+      return fail(problemB.startsWith("Version B") ? problemB : `Version B: ${problemB}`);
+  }
+
   let scheduledAt: Date | null = null;
   if (v.schedule.mode === "later") {
     if (!v.schedule.at_local) return fail("Pick a date and time.");
@@ -322,6 +365,22 @@ export async function createCampaign(
     .single();
   if (insertErr || !created) return fail("Could not create the campaign.");
   const id = created.id;
+
+  // Variant B is stored before the audience: the recipient trigger reads it to assign each person A or B.
+  if (variantB) {
+    const { error: abErr } = await admin.from("campaign_ab_variants").insert({
+      org_id: member.orgId,
+      campaign_id: id,
+      template_id: variantB.template_id,
+      variable_map: variantB.variable_map as Json as NonNullable<Json>,
+      fallbacks: variantB.fallbacks as Json as NonNullable<Json>,
+      split_pct: variantB.split_pct,
+    });
+    if (abErr) {
+      await admin.from("campaigns").delete().eq("id", id);
+      return fail("Could not save version B.");
+    }
+  }
 
   try {
     const snapshot =
@@ -383,6 +442,9 @@ export async function createCampaign(
       channel_id: channel.id,
       audience: v.audience.type,
       scheduled: !!scheduledAt,
+      ...(variantB
+        ? { ab: { template_id: variantB.template_id, split_pct: variantB.split_pct } }
+        : {}),
     },
   });
   revalidatePath("/campaigns");

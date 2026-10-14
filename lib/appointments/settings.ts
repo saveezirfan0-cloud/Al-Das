@@ -48,6 +48,11 @@ export const appointmentSettingsSchema = z.object({
     .default(120),
   /** New portal / bot bookings start as Confirmed instead of Awaiting. */
   auto_confirm: z.boolean().default(false),
+  /**
+   * ShowBusy (Phase 20g, G6): the booking drawer's slot list also shows taken times greyed out with the reason
+   * (booked, blocked, full). Display only; off = only free times, as before.
+   */
+  show_busy: z.boolean().default(false),
   /** Slot list step in minutes. */
   slot_granularity_min: z.number().int().min(5).max(120).default(15),
   /** ISO weekdays the clinic works (1 = Monday … 7 = Sunday). OQ-07: configurable until signed off. */

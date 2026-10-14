@@ -2,7 +2,7 @@ import "server-only";
 
 import { serverEnv } from "@/lib/env";
 import { bumpUsage } from "@/lib/integrations/accounts";
-import { smsCallbackBase } from "@/lib/integrations/sms/config";
+import { readSmsConfig, smsCallbackBase } from "@/lib/integrations/sms/config";
 import { fromProviderStatus, previousStatusesFor } from "@/lib/integrations/sms/status";
 import { verifyTwilioSignature } from "@/lib/integrations/sms/twilio";
 import { parseForm } from "@/lib/integrations/webhook";
@@ -79,6 +79,9 @@ export function smsWebhookSpec(): WebhookSpec {
     kind: "sms",
     provider: "twilio",
     verify(ctx) {
+      // Phase 20h: only the Twilio-style gateway signs receipts. The generic HTTP gateway has none, so nothing posted to this
+      // address for such an account is ever believed (it is answered like any bad signature).
+      if (readSmsConfig(ctx.config).provider !== "twilio") return false;
       const url = smsCallbackBase(serverEnv().APP_URL, ctx.account.id) + ctx.search;
       return verifyTwilioSignature(
         ctx.secrets.auth_token ?? "",

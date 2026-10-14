@@ -116,10 +116,15 @@ async function loadBusyContext(
         bufferBeforeMin: a.services?.buffer_before_min ?? 0,
         bufferAfterMin: a.services?.buffer_after_min ?? 0,
         capacity: Math.min(a.services?.capacity ?? 1, maxPerSlot),
+        kind: "booking" as const,
       })),
     ...(blocks.data ?? [])
       .filter((b) => !b.location_id || b.location_id === q.locationId)
-      .map((b) => ({ start: new Date(b.starts_at), end: new Date(b.ends_at) })),
+      .map((b) => ({
+        start: new Date(b.starts_at),
+        end: new Date(b.ends_at),
+        kind: "block" as const,
+      })),
   ];
   return {
     busy,
@@ -181,9 +186,17 @@ export async function loadSlotInput(admin: AdminClient, q: DayQuery): Promise<Sl
   };
 }
 
-export async function slotsForDay(admin: AdminClient, q: DayQuery): Promise<Slot[]> {
+/**
+ * The slot list for one day. `includeTaken` (ShowBusy, G6) also lists the refused slots inside working hours, marked
+ * `taken` with a display reason; the caller decides from the org's `show_busy` booking setting.
+ */
+export async function slotsForDay(
+  admin: AdminClient,
+  q: DayQuery,
+  opts: { includeTaken?: boolean } = {},
+): Promise<Slot[]> {
   const input = await loadSlotInput(admin, q);
-  return input ? generateSlots(input) : [];
+  return input ? generateSlots(input, { includeTaken: !!opts.includeTaken }) : [];
 }
 
 /**

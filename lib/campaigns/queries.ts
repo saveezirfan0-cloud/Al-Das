@@ -1,5 +1,6 @@
 import "server-only";
 
+import { parseAbFunnel, type AbFunnel } from "@/lib/campaigns/ab";
 import { parseFunnel, type Funnel } from "@/lib/campaigns/funnel";
 import { contactDisplayName } from "@/lib/inbox/contact-name";
 import type { AdminClient } from "@/lib/supabase/admin";
@@ -88,7 +89,16 @@ export type CampaignDetail = CampaignListRow &
     | "paused_at"
     | "cancelled_at"
     | "csv_opt_in_confirmed"
-  > & { segmentName: string | null };
+  > & {
+    segmentName: string | null;
+    /** Phase 20g A/B test: version B and both versions' live numbers; null for an ordinary campaign. */
+    ab: {
+      splitPct: number;
+      template: { id: string; name: string; language: string } | null;
+      variableMap: Record<string, string>;
+      funnel: AbFunnel;
+    } | null;
+  };
 
 export async function getCampaignDetail(
   supabase: UserClient,
@@ -99,7 +109,7 @@ export async function getCampaignDetail(
   const { data, error } = await supabase
     .from("campaigns")
     .select(
-      `${LIST_SELECT}, org_id, channel_id, template_id, segment_id, variable_map, fallbacks, guardrails, retry_delay_minutes, paused_at, cancelled_at, csv_opt_in_confirmed, segments(name)`,
+      `${LIST_SELECT}, org_id, channel_id, template_id, segment_id, variable_map, fallbacks, guardrails, retry_delay_minutes, paused_at, cancelled_at, csv_opt_in_confirmed, segments(name), campaign_ab_variants(split_pct, variable_map, template_id)`,
     )
     .eq("org_id", orgId)
     .eq("id", id)
@@ -120,10 +130,31 @@ export async function getCampaignDetail(
       | "paused_at"
       | "cancelled_at"
       | "csv_opt_in_confirmed"
-    > & { segments: { name: string } | null };
-  const base = toRow(raw);
+    > & {
+      segments: { name: string } | null;
+      campaign_ab_variants: {
+        split_pct: number;
+        variable_map: unknown;
+        template_id: string;
+      } | null;
+    };
+  const { segments, campaign_ab_variants: variant, ...rowFields } = raw;
+  const base = toRow(rowFields as RawRow);
   // Live numbers while the drawer is open (the stored snapshot lags by up to 30 s).
-  const { data: live } = await admin.rpc("campaign_funnel", { p_campaign_id: id });
+  // Version B's template name is read with the service role (the campaign row was already authorised by RLS), so a
+  // member with campaigns.view but no template access still sees which template B is.
+  const [{ data: live }, abLive, abTemplate] = await Promise.all([
+    admin.rpc("campaign_funnel", { p_campaign_id: id }),
+    variant ? admin.rpc("campaign_ab_funnel", { p_campaign_id: id }) : Promise.resolve(null),
+    variant
+      ? admin
+          .from("wa_templates")
+          .select("id, name, language")
+          .eq("id", variant.template_id)
+          .eq("org_id", orgId)
+          .maybeSingle()
+      : Promise.resolve(null),
+  ]);
   if (live) base.funnel = parseFunnel(live);
   return {
     ...base,
@@ -138,8 +169,23 @@ export async function getCampaignDetail(
     paused_at: raw.paused_at,
     cancelled_at: raw.cancelled_at,
     csv_opt_in_confirmed: raw.csv_opt_in_confirmed,
-    segmentName: raw.segments?.name ?? null,
+    segmentName: segments?.name ?? null,
+    ab: variant
+      ? {
+          splitPct: variant.split_pct,
+          template: abTemplate?.data ?? null,
+          variableMap: stringMap(variant.variable_map),
+          funnel: parseAbFunnel(abLive?.data ?? null),
+        }
+      : null,
   };
+}
+
+function stringMap(raw: unknown): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (raw && typeof raw === "object" && !Array.isArray(raw))
+    for (const [k, v] of Object.entries(raw)) if (typeof v === "string") out[k] = v;
+  return out;
 }
 
 export type RecipientRow = {

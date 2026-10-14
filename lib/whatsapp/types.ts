@@ -63,6 +63,27 @@ export type InteractiveObject =
       body: { text: string };
       footer?: { text: string };
       action: { name: "cta_url"; parameters: { display_text: string; url: string } };
+    }
+  | {
+      /** One catalogue product (no header allowed by Meta). */
+      type: "product";
+      body?: { text: string };
+      footer?: { text: string };
+      action: { catalog_id: string; product_retailer_id: string };
+    }
+  | {
+      /** Several catalogue products (header and body required by Meta; max 30 items, 10 sections). */
+      type: "product_list";
+      header: { type: "text"; text: string };
+      body: { text: string };
+      footer?: { text: string };
+      action: {
+        catalog_id: string;
+        sections: Array<{
+          title: string;
+          product_items: Array<{ product_retailer_id: string }>;
+        }>;
+      };
     };
 
 export type TemplateParameter =

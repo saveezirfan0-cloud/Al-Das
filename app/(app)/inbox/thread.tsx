@@ -8,7 +8,9 @@ import {
   Check,
   CheckCheck,
   Clock,
+  Forward,
   MapPin,
+  Phone,
   RotateCcw,
   Tag,
   UserPlus,
@@ -29,6 +31,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { INTENT_LABELS, type Intent } from "@/lib/ai/intent/labels";
 import { contactDisplayName } from "@/lib/inbox/contact-name";
+import { FORWARD_MEDIA_KINDS, telHref } from "@/lib/inbox/extras";
 import { labelClass } from "@/lib/inbox/labels";
 import type { MessageRow } from "@/lib/inbox/queries";
 import { cn } from "@/lib/utils";
@@ -50,6 +53,18 @@ import { CloseDialog } from "./close-dialog";
 import { Composer } from "./composer";
 import { MediaBubble } from "./media-bubble";
 import type { ConversationDetail, InboxProps } from "./types";
+
+// G11: the forward dialog is only needed once someone forwards a message.
+const ForwardDialog = dynamic(() => import("./extras-dialogs").then((m) => m.ForwardDialog), {
+  ssr: false,
+});
+
+/** Messages that can be forwarded: text, and files that finished downloading (lib/inbox/extras.ts decides). */
+function forwardable(m: MessageRow): boolean {
+  if (m.direction === "note") return false;
+  if (m.kind === "text") return !!m.body?.trim();
+  return (FORWARD_MEDIA_KINDS as readonly string[]).includes(m.kind) && !!m.media_path;
+}
 
 // The picture viewer is only needed once someone taps a picture.
 const Lightbox = dynamic(() => import("@/components/media/lightbox").then((m) => m.Lightbox), {
@@ -95,8 +110,11 @@ export function Thread(props: InboxProps & { selected: ConversationDetail; onBac
   const [closeOpen, setCloseOpen] = useState(false);
   const [replyTo, setReplyTo] = useState<MessageRow | null>(null);
   const [viewer, setViewer] = useState<number | null>(null);
+  const [forwarding, setForwarding] = useState<string | null>(null);
   const bottom = useRef<HTMLDivElement>(null);
   const contactName = contactDisplayName(selected.contact);
+  // G11 employee call: the staff member's own phone or softphone dials the patient (no WhatsApp Calling API).
+  const callHref = telHref(selected.contact.phone_e164);
   // Phase 20e: the website chat has no reply window; Instagram and Messenger allow 24 hours and have no templates.
   const channelType = channelTypeOf(props.channels.find((c) => c.id === selected.channel_id)?.type);
   const window_ = replyWindow(channelType, {
@@ -170,6 +188,13 @@ export function Thread(props: InboxProps & { selected: ConversationDetail; onBac
           </p>
         </div>
         <div className="ml-auto flex flex-wrap items-center gap-1">
+          {callHref && (
+            <Button variant="outline" size="sm" asChild>
+              <a href={callHref} aria-label={`Call ${contactName} from your phone`}>
+                <Phone aria-hidden /> <span className="sr-only md:not-sr-only">Call</span>
+              </a>
+            </Button>
+          )}
           {selected.bot_active && (
             <Badge variant="outline" className="gap-1">
               <Bot className="size-3" /> bot
@@ -554,14 +579,28 @@ export function Thread(props: InboxProps & { selected: ConversationDetail; onBac
                       )}
                     </div>
                   )}
-                  {!note && m.wa_message_id && perms.send && (
-                    <button
-                      type="button"
-                      className="text-muted-foreground absolute -top-2 right-1 hidden rounded bg-white/90 px-1 text-[10px] shadow group-hover:block pointer-coarse:block dark:bg-black/60"
-                      onClick={() => setReplyTo(m)}
-                    >
-                      reply
-                    </button>
+                  {!note && perms.send && (m.wa_message_id || forwardable(m)) && (
+                    <div className="absolute -top-2 right-1 hidden gap-1 group-focus-within:flex group-hover:flex pointer-coarse:relative pointer-coarse:top-0 pointer-coarse:right-0 pointer-coarse:mt-1 pointer-coarse:flex pointer-coarse:justify-end">
+                      {m.wa_message_id && (
+                        <button
+                          type="button"
+                          className="text-muted-foreground rounded bg-white/90 px-1 text-[10px] shadow pointer-coarse:min-h-11 pointer-coarse:px-3 pointer-coarse:text-xs dark:bg-black/60"
+                          onClick={() => setReplyTo(m)}
+                        >
+                          reply
+                        </button>
+                      )}
+                      {forwardable(m) && (
+                        <button
+                          type="button"
+                          className="text-muted-foreground inline-flex items-center gap-0.5 rounded bg-white/90 px-1 text-[10px] shadow pointer-coarse:min-h-11 pointer-coarse:px-3 pointer-coarse:text-xs dark:bg-black/60"
+                          aria-label="Forward this message"
+                          onClick={() => setForwarding(m.id)}
+                        >
+                          <Forward className="size-3" aria-hidden /> forward
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
@@ -594,6 +633,14 @@ export function Thread(props: InboxProps & { selected: ConversationDetail; onBac
         <p className="text-muted-foreground border-t p-3 text-center text-xs">
           You can read this conversation but not reply (needs the “Send messages” permission).
         </p>
+      )}
+      {forwarding !== null && (
+        <ForwardDialog
+          open
+          onOpenChange={(o) => !o && setForwarding(null)}
+          messageId={forwarding}
+          fromConversationId={selected.id}
+        />
       )}
       <CloseDialog
         open={closeOpen}

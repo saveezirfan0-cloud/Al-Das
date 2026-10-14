@@ -8,7 +8,12 @@
 import type { Client } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { expandRecurringBlocks, slotFits, type BusyInterval } from "@/lib/appointments/slots";
+import {
+  expandRecurringBlocks,
+  slotFits,
+  slotTakenReason,
+  type BusyInterval,
+} from "@/lib/appointments/slots";
 
 import {
   asServiceRole,
@@ -463,6 +468,22 @@ describe.skipIf(!TEST_DATABASE_URL)("booking capacity (SQL)", () => {
           busy,
         );
         expect({ sid, m, fits: sql === null }).toEqual({ sid, m, fits: ts });
+        // ShowBusy (20g): the display reason agrees with the SQL reason ('booked' is SQL's 'full').
+        const reason = slotTakenReason(
+          {
+            start,
+            end,
+            bufferBeforeMin: s.buffer_before_min,
+            bufferAfterMin: s.buffer_after_min,
+            capacity: Math.min(s.capacity, spec.max_per_slot),
+          },
+          busy,
+        );
+        expect({ sid, m, reason: sql }).toEqual({
+          sid,
+          m,
+          reason: reason === "booked" ? "full" : reason,
+        });
         compared++;
         if (ts) fits++;
       }

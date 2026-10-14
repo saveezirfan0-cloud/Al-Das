@@ -283,10 +283,13 @@ export default async function IntegrationPage({
 
   const webhookUrl =
     kind === "sms"
-      ? smsCallbackBase(
-          app,
-          row.view.exists ? await accountId(admin, member.orgId, kind) : "<account id>",
-        )
+      ? // Phase 20h: the generic HTTP SMS gateway sends no delivery receipts, so there is no address to give it.
+        view.provider === "http"
+        ? null
+        : smsCallbackBase(
+            app,
+            row.view.exists ? await accountId(admin, member.orgId, kind) : "<account id>",
+          )
       : kind === "payments"
         ? paymentWebhookBase(
             app,

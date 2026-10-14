@@ -19,6 +19,7 @@ import type { SmsProvider } from "@/lib/integrations/sms/types";
 import { enqueue } from "@/lib/jobs/enqueue";
 import { PermanentJobError } from "@/lib/jobs/types";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { redactText } from "@/lib/redact";
 import type { AdminClient } from "@/lib/supabase/admin";
 import { isTrainingOrg } from "@/lib/training/mode";
 
@@ -182,17 +183,29 @@ export async function processSmsJob(
 
   if (result.ok) {
     const parts = result.segments ?? smsLength(body).segments;
-    await admin
-      .from("sms_messages")
-      .update({
-        status: "sent",
-        provider_message_id: result.providerMessageId.slice(0, 80),
-        segments: Math.min(20, Math.max(1, parts)),
-        sent_at: now.toISOString(),
-        error_code: null,
-      })
-      .eq("id", sms.id)
-      .eq("status", "sending");
+    const markSent = (providerMessageId: string) =>
+      admin
+        .from("sms_messages")
+        .update({
+          status: "sent",
+          provider_message_id: providerMessageId.slice(0, 80),
+          segments: Math.min(20, Math.max(1, parts)),
+          sent_at: now.toISOString(),
+          error_code: null,
+        })
+        .eq("id", sms.id)
+        .eq("status", "sending");
+    const { error: markError } = await markSent(result.providerMessageId);
+    if (markError) {
+      // The SMS has left: never leave the row "sending" (it would look stalled and could be sent again). A provider id that
+      // is already taken (unique per provider, e.g. a misconfigured id field on the generic gateway) is replaced by one
+      // derived from our own row id, which cannot collide.
+      console.warn("[sms] provider message id not stored; using the row id", {
+        code: markError.code ?? null,
+        error: redactText(markError.message, 120),
+      });
+      await markSent(`dup:${sms.id}`);
+    }
     await bumpUsage(admin, orgId, "sms", "sent");
     await bumpUsage(admin, orgId, "sms", "segments", parts);
     await recordOk(admin, orgId, "sms");

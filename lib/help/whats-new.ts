@@ -9,6 +9,12 @@ export const WHATS_NEW: readonly WhatsNewEntry[] = [
     body: "Pulse now uses the clinic's own colours: Al Das teal for buttons and links, the bronze accent, and the teal-navy of the website for the menu and for dark mode. Every colour still meets the contrast standard for easy reading. The app icon on phones and computers is teal too (reinstall or refresh the app if it still shows the old one).",
   },
   {
+    id: "2026-11-12-inbox-campaigns-ads",
+    date: "2026-11-12",
+    title: "Inbox extras, campaign A/B tests and ad spend",
+    body: "In the Inbox you can forward a message to another open chat, share a contact card, send products from your WhatsApp catalogue, call the patient from your phone, and move a chat to a new contact when two people share a phone. New campaigns can send a second version to part of the audience and compare results side by side. Turn on 'Show taken times' in Settings, Appointments to see booked, blocked and full times greyed out when booking. Ad attribution can show what each Meta ad cost per conversation, enquiry and booking. SMS reminders can use any SMS gateway that accepts a simple web request, and campaign marketing messages can go through Meta's Marketing Messages Lite. The ad, SMS and Marketing Messages Lite options are off until an administrator switches them on under Settings, Integrations.",
+  },
+  {
     id: "2026-11-12-new-menu",
     date: "2026-11-12",
     title: "A new, tidier menu",

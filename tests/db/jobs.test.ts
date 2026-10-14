@@ -213,6 +213,7 @@ describe.skipIf(!TEST_DATABASE_URL)("jobs framework (db)", () => {
         "accounting_assets",
         "accounting_post",
         "accounting_tally_bridge",
+        "ads_insights_sync",
         "ai_insights",
         "ai_quality_weekly",
         "appointments",

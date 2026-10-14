@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { CalendarPlus, KanbanSquare, Loader2, Merge } from "lucide-react";
+import { CalendarPlus, KanbanSquare, Loader2, Merge, Unlink } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { channelTypeOf } from "@/lib/channels/types";
+import { contactDisplayName } from "@/lib/inbox/contact-name";
 import { cn } from "@/lib/utils";
 
 import { mergeContacts, updateContactFromInbox } from "./actions";
@@ -38,10 +40,16 @@ const PatientCardView = dynamic(
   },
 );
 
+// G11: moving a chat to a new contact is rare; its dialog loads on demand.
+const UnlinkDialog = dynamic(() => import("./extras-dialogs").then((m) => m.UnlinkDialog), {
+  ssr: false,
+});
+
 export function Sidebar({
   selected,
   sidebar,
   perms,
+  channels,
   className,
 }: InboxProps & { selected: ConversationDetail; className?: string }) {
   const c = selected.contact;
@@ -49,6 +57,9 @@ export function Sidebar({
   const desk = sidebar?.desk ?? null;
   const [form, setForm] = useState(toForm(c));
   const [pending, startTransition] = useTransition();
+  const [unlinkOpen, setUnlinkOpen] = useState(false);
+  const isWhatsApp =
+    channelTypeOf(channels.find((ch) => ch.id === selected.channel_id)?.type) === "whatsapp";
   useEffect(() => setForm(toForm(c)), [c]);
   const editable = perms.contactsManage;
 
@@ -320,6 +331,19 @@ export function Sidebar({
               <Button variant="outline" size="sm" disabled title="You need permission to book">
                 <CalendarPlus /> Book appointment
               </Button>
+            )}
+            {perms.contactsManage && perms.send && isWhatsApp && (
+              <Button variant="outline" size="sm" onClick={() => setUnlinkOpen(true)}>
+                <Unlink aria-hidden /> Move chat to a new contact
+              </Button>
+            )}
+            {unlinkOpen && (
+              <UnlinkDialog
+                open
+                onOpenChange={setUnlinkOpen}
+                conversationId={selected.id}
+                currentName={contactDisplayName(c)}
+              />
             )}
           </TabsContent>
         </ScrollArea>
