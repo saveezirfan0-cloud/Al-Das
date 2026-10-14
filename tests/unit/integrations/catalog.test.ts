@@ -74,6 +74,8 @@ describe("catalogue", () => {
       // verify token each) and the Google OAuth client secret
       [
         "access_token",
+        // Phase 20i: the Meta ads spend integration's ads_read token
+        "access_token",
         "api_key",
         "api_key",
         "auth_token",

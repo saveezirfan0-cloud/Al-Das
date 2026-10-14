@@ -10,6 +10,7 @@ import "@/lib/jobs/handlers/outbound";
 import "@/lib/jobs/handlers/sms-outbound";
 import "@/lib/jobs/handlers/capi-events";
 import "@/lib/jobs/handlers/integration-sweeps";
+import "@/lib/jobs/handlers/ads-insights";
 import "@/lib/jobs/handlers/inbox-housekeeping";
 import "@/lib/jobs/handlers/campaign-fanout";
 import "@/lib/jobs/handlers/campaign-tick";

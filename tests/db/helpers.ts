@@ -1578,3 +1578,19 @@ export const PHASE22J_TABLES = [
 
 /** Phase 22J service-only tables: RLS on, no policy (the connectors' pairing-code and token hashes). */
 export const PHASE22J_SERVICE_ONLY_TABLES = ["acc_tally_devices"] as const;
+
+/**
+ * Phase 20i (G13, Meta ads spend): one synthetic row per table for an org, so the cross-org sweeps are not vacuous. Meta's own
+ * per-ad figures only (a made-up ad id, amounts and counts); no patient data. Service role only (no write policy).
+ */
+export async function seedSf20iRows(c: Client, orgId: string) {
+  await asServiceRole(c, async () => {
+    await c.query(
+      "insert into public.ad_insights_daily (org_id, ad_id, day, ad_name, campaign_name, currency, spend_milli, impressions, clicks) values ($1, '120299999999999', current_date - 1, 'Seed ad', 'Seed campaign', 'AED', 12340, 1000, 12) on conflict do nothing",
+      [orgId],
+    );
+  });
+}
+
+/** Phase 20i tables with a browser (select) policy (ads.view). */
+export const SF20I_TABLES = ["ad_insights_daily"] as const;

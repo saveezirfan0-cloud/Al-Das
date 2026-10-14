@@ -32,6 +32,7 @@ import { loadReadinessInput } from "@/lib/integrations/readiness-server";
 import { buildCapiClientFor } from "@/lib/integrations/capi/server";
 import { clearAllBusyBlocks } from "@/lib/integrations/gcal/server";
 import { buildMessagingClientFor } from "@/lib/integrations/meta-messaging/server";
+import { buildMetaAdsClientFor } from "@/lib/integrations/meta-ads/server";
 import { buildSmsProvider } from "@/lib/integrations/sms/provider";
 import { buildEsignProvider } from "@/lib/integrations/esign/server";
 import { buildTelehealthProvider } from "@/lib/integrations/telehealth/server";
@@ -184,6 +185,12 @@ export async function testIntegration(kindInput: string): Promise<ActionResult> 
         : { ok: false, code: "unsupported" };
   } else if (kind === "meta_capi") {
     result = (await buildCapiClientFor(admin, account)?.verify()) ?? {
+      ok: false,
+      code: "incomplete",
+    };
+  } else if (kind === "meta_ads") {
+    // Reads the ad account's id and currency only: no insights, nothing written.
+    result = (await buildMetaAdsClientFor(admin, account)?.verify()) ?? {
       ok: false,
       code: "incomplete",
     };

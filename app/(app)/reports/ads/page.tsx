@@ -7,6 +7,12 @@ import { requirePerm } from "@/lib/auth/session";
 import { loadAccount, readConfig } from "@/lib/integrations/accounts";
 import { readCapiConfig } from "@/lib/integrations/capi/config";
 import { loadAdReport } from "@/lib/integrations/capi/server";
+import {
+  formatMilli,
+  mergeAdPerformance,
+  totalsByCurrency,
+} from "@/lib/integrations/meta-ads/cost";
+import { loadAdSpend } from "@/lib/integrations/meta-ads/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const metadata = { title: "Ad attribution" };
@@ -25,6 +31,8 @@ const SKIP_LABEL: Record<string, string> = {
   integration_off: "Switched off",
 };
 
+const count = (n: number | null) => (n === null ? "n/a" : n.toLocaleString("en"));
+
 export default async function AdReportPage({
   searchParams,
 }: {
@@ -34,13 +42,26 @@ export default async function AdReportPage({
   const sp = await searchParams;
   const days = PERIODS.includes(Number(sp.days) as 30 | 90) ? Number(sp.days) : 30;
   const admin = createAdminClient();
-  const account = await loadAccount(admin, member.orgId, "meta_capi");
+  const [account, adsAccount] = await Promise.all([
+    loadAccount(admin, member.orgId, "meta_capi"),
+    loadAccount(admin, member.orgId, "meta_ads"),
+  ]);
   const cfg = readCapiConfig(readConfig(account));
   const on = account?.enabled === true;
-  const rows = on ? await loadAdReport(admin, member.orgId, days, cfg.windowDays) : [];
+  const spendOn = adsAccount?.enabled === true;
   const since = new Date(Date.now() - days * 86_400_000).toISOString();
+  const [attribution, spendRows] = await Promise.all([
+    on ? loadAdReport(admin, member.orgId, days, cfg.windowDays) : Promise.resolve([]),
+    spendOn ? loadAdSpend(admin, member.orgId, since.slice(0, 10)) : Promise.resolve([]),
+  ]);
+  const rows = mergeAdPerformance(attribution, spendRows);
+  const currencyTotals = totalsByCurrency(rows);
+  const lastPulled = spendRows.reduce<string | null>(
+    (a, r) => (r.pulled_at && (!a || r.pulled_at > a) ? r.pulled_at : a),
+    null,
+  );
 
-  const count = async (status: string) =>
+  const countEvents = async (status: string) =>
     (
       await admin
         .from("capi_events")
@@ -50,7 +71,12 @@ export default async function AdReportPage({
         .gte("created_at", since)
     ).count ?? 0;
   const [queued, sent, failed, skipped] = on
-    ? await Promise.all([count("queued"), count("sent"), count("failed"), count("skipped")])
+    ? await Promise.all([
+        countEvents("queued"),
+        countEvents("sent"),
+        countEvents("failed"),
+        countEvents("skipped"),
+      ])
     : [0, 0, 0, 0];
   const { data: skips } = on
     ? await admin
@@ -78,26 +104,28 @@ export default async function AdReportPage({
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Ad attribution"
-        description={`Which Meta ads started WhatsApp conversations in the last ${days} days, and how many of those patients then became an enquiry or a booking within ${cfg.windowDays} days of the click. Counts only: no patient is named.`}
+        description={`Which Meta ads started WhatsApp conversations in the last ${days} days, how many of those patients then became an enquiry or a booking within ${cfg.windowDays} days of the click, and what the ads cost. Counts and amounts only: no patient is named.`}
       />
       <div className="flex gap-2 text-sm">
         {PERIODS.map((p) => (
           <Link
             key={p}
             href={`/reports/ads?days=${p}`}
+            aria-current={p === days ? "page" : undefined}
             className={`rounded-md border px-3 py-1 ${p === days ? "bg-accent" : "hover:bg-accent/40"}`}
           >
             Last {p} days
           </Link>
         ))}
       </div>
-      {!on ? (
+      {!on && !spendOn ? (
         <Card>
           <CardHeader>
             <CardTitle>Not switched on</CardTitle>
             <CardDescription>
               Ad attribution is off. An administrator can switch it on under Settings, Integrations,
-              Meta ad attribution. Clicks are recorded only from then on.
+              Meta ad attribution (conversations, enquiries and bookings per ad) and Meta ads spend
+              (cost per ad). Clicks are recorded only from then on.
             </CardDescription>
           </CardHeader>
         </Card>
@@ -107,82 +135,167 @@ export default async function AdReportPage({
             <CardHeader>
               <CardTitle>By ad</CardTitle>
               <CardDescription>
-                {total.conversations} conversations, {total.enquiries} enquiries and{" "}
-                {total.appointments} bookings in total. A booking counts for an ad when it was
-                created after the click, for the same patient, inside the window; cancelled bookings
-                are not counted.
+                {on ? (
+                  <>
+                    {total.conversations} conversations, {total.enquiries} enquiries and{" "}
+                    {total.appointments} bookings in total. A booking counts for an ad when it was
+                    created after the click, for the same patient, inside the window; cancelled
+                    bookings are not counted.
+                  </>
+                ) : (
+                  <>
+                    Meta ad attribution is off, so conversations, enquiries and bookings are not
+                    counted and no cost per result can be worked out.
+                  </>
+                )}
+                {spendOn ? (
+                  <>
+                    {" "}
+                    Spend, impressions and clicks are Meta&apos;s own figures, read once a day for
+                    the days in this period (Meta&apos;s day, in the ad account&apos;s time zone)
+                    {lastPulled
+                      ? `, last read ${lastPulled.slice(0, 16).replace("T", " ")} UTC`
+                      : ""}
+                    .
+                  </>
+                ) : (
+                  <> Meta ads spend is off, so no cost is shown.</>
+                )}
               </CardDescription>
             </CardHeader>
-            <CardContent className="overflow-x-auto">
-              {rows.length === 0 ? (
-                <p className="text-muted-foreground text-sm">No ad conversations in this period.</p>
-              ) : (
-                <table className="w-full text-left text-sm">
-                  <thead className="text-muted-foreground">
-                    <tr>
-                      <th className="py-1 pr-4 font-medium">Ad</th>
-                      <th className="py-1 pr-4 font-medium">Conversations</th>
-                      <th className="py-1 pr-4 font-medium">Patients</th>
-                      <th className="py-1 pr-4 font-medium">Enquiries</th>
-                      <th className="py-1 font-medium">Bookings</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((r) => (
-                      <tr key={`${r.source_type}:${r.source_id}`} className="border-t">
-                        <td className="py-1 pr-4">
-                          <div>{r.headline ?? "(no headline)"}</div>
-                          <div className="text-muted-foreground text-xs">
-                            {r.source_type} {r.source_id}
-                          </div>
-                        </td>
-                        <td className="py-1 pr-4 tabular-nums">{r.conversations}</td>
-                        <td className="py-1 pr-4 tabular-nums">{r.patients}</td>
-                        <td className="py-1 pr-4 tabular-nums">{r.enquiries}</td>
-                        <td className="py-1 tabular-nums">{r.appointments}</td>
+            <CardContent className="flex flex-col gap-4">
+              {currencyTotals.map((t) => (
+                <dl key={t.currency} className="grid gap-x-8 gap-y-1 text-sm sm:grid-cols-2">
+                  <div className="flex justify-between gap-4 border-b py-1">
+                    <dt className="text-muted-foreground">Spend ({t.currency})</dt>
+                    <dd className="tabular-nums">{formatMilli(t.spendMilli, t.currency)}</dd>
+                  </div>
+                  <div className="flex justify-between gap-4 border-b py-1">
+                    <dt className="text-muted-foreground">Cost per conversation</dt>
+                    <dd className="tabular-nums">
+                      {formatMilli(t.costPerConversationMilli, t.currency)}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-4 border-b py-1">
+                    <dt className="text-muted-foreground">Cost per enquiry</dt>
+                    <dd className="tabular-nums">
+                      {formatMilli(t.costPerEnquiryMilli, t.currency)}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-4 border-b py-1">
+                    <dt className="text-muted-foreground">Cost per booking</dt>
+                    <dd className="tabular-nums">
+                      {formatMilli(t.costPerBookingMilli, t.currency)}
+                    </dd>
+                  </div>
+                </dl>
+              ))}
+              <div className="overflow-x-auto">
+                {rows.length === 0 ? (
+                  <p className="text-muted-foreground text-sm">
+                    No ad conversations or ad spend in this period.
+                  </p>
+                ) : (
+                  <table className="w-full text-left text-sm">
+                    <thead className="text-muted-foreground">
+                      <tr>
+                        <th className="py-1 pr-4 font-medium">Ad</th>
+                        <th className="py-1 pr-4 font-medium">Conversations</th>
+                        <th className="py-1 pr-4 font-medium">Patients</th>
+                        <th className="py-1 pr-4 font-medium">Enquiries</th>
+                        <th className="py-1 pr-4 font-medium">Bookings</th>
+                        {spendOn ? (
+                          <>
+                            <th className="py-1 pr-4 font-medium">Spend</th>
+                            <th className="py-1 pr-4 font-medium">Impressions</th>
+                            <th className="py-1 pr-4 font-medium">Clicks</th>
+                            <th className="py-1 pr-4 font-medium">Per conversation</th>
+                            <th className="py-1 pr-4 font-medium">Per enquiry</th>
+                            <th className="py-1 font-medium">Per booking</th>
+                          </>
+                        ) : null}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
+                    </thead>
+                    <tbody>
+                      {rows.map((r) => (
+                        <tr key={r.key} className="border-t">
+                          <td className="py-1 pr-4">
+                            <div>{r.label}</div>
+                            <div className="text-muted-foreground text-xs">
+                              {r.campaignName ? `${r.campaignName} · ` : ""}
+                              {r.sourceType} {r.sourceId}
+                            </div>
+                          </td>
+                          <td className="py-1 pr-4 tabular-nums">{r.conversations}</td>
+                          <td className="py-1 pr-4 tabular-nums">{r.patients}</td>
+                          <td className="py-1 pr-4 tabular-nums">{r.enquiries}</td>
+                          <td className="py-1 pr-4 tabular-nums">{r.appointments}</td>
+                          {spendOn ? (
+                            <>
+                              <td className="py-1 pr-4 tabular-nums">
+                                {r.mixedCurrency
+                                  ? "Several currencies"
+                                  : formatMilli(r.spendMilli, r.currency)}
+                              </td>
+                              <td className="py-1 pr-4 tabular-nums">{count(r.impressions)}</td>
+                              <td className="py-1 pr-4 tabular-nums">{count(r.clicks)}</td>
+                              <td className="py-1 pr-4 tabular-nums">
+                                {formatMilli(r.costPerConversationMilli, r.currency)}
+                              </td>
+                              <td className="py-1 pr-4 tabular-nums">
+                                {formatMilli(r.costPerEnquiryMilli, r.currency)}
+                              </td>
+                              <td className="py-1 tabular-nums">
+                                {formatMilli(r.costPerBookingMilli, r.currency)}
+                              </td>
+                            </>
+                          ) : null}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                Events sent to Meta
-                <Badge variant="outline">
-                  {cfg.mode === "send_events" ? "Sending" : "Report only"}
-                </Badge>
-              </CardTitle>
-              <CardDescription>
-                {cfg.mode === "send_events"
-                  ? "Contact, Lead and Schedule events for patients who came from an ad."
-                  : "Nothing is sent to Meta in report-only mode."}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-x-8 gap-y-1 text-sm sm:grid-cols-2">
-              {[
-                ["Waiting to be sent", queued],
-                ["Sent", sent],
-                ["Meta refused or failed", failed],
-                ["Not sent (see reasons)", skipped],
-              ].map(([label, n]) => (
-                <div key={String(label)} className="flex justify-between gap-4 border-b py-1">
-                  <span className="text-muted-foreground">{label}</span>
-                  <span className="tabular-nums">{n}</span>
-                </div>
-              ))}
-              {Object.entries(byReason).map(([reason, n]) => (
-                <div key={reason} className="flex justify-between gap-4 border-b py-1">
-                  <span className="text-muted-foreground">
-                    Not sent: {SKIP_LABEL[reason] ?? reason}
-                  </span>
-                  <span className="tabular-nums">{n}</span>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
+          {on ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  Events sent to Meta
+                  <Badge variant="outline">
+                    {cfg.mode === "send_events" ? "Sending" : "Report only"}
+                  </Badge>
+                </CardTitle>
+                <CardDescription>
+                  {cfg.mode === "send_events"
+                    ? "Contact, Lead and Schedule events for patients who came from an ad."
+                    : "Nothing is sent to Meta in report-only mode."}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-x-8 gap-y-1 text-sm sm:grid-cols-2">
+                {[
+                  ["Waiting to be sent", queued],
+                  ["Sent", sent],
+                  ["Meta refused or failed", failed],
+                  ["Not sent (see reasons)", skipped],
+                ].map(([label, n]) => (
+                  <div key={String(label)} className="flex justify-between gap-4 border-b py-1">
+                    <span className="text-muted-foreground">{label}</span>
+                    <span className="tabular-nums">{n}</span>
+                  </div>
+                ))}
+                {Object.entries(byReason).map(([reason, n]) => (
+                  <div key={reason} className="flex justify-between gap-4 border-b py-1">
+                    <span className="text-muted-foreground">
+                      Not sent: {SKIP_LABEL[reason] ?? reason}
+                    </span>
+                    <span className="tabular-nums">{n}</span>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          ) : null}
         </>
       )}
     </div>

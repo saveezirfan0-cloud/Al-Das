@@ -13,6 +13,7 @@ export const INTEGRATION_KINDS = [
   "payments",
   "google_reviews",
   "meta_capi",
+  "meta_ads",
   "telehealth",
   "esign",
   "web_chat",
@@ -506,6 +507,61 @@ export const INTEGRATIONS: readonly IntegrationDef[] = [
     ],
     consequence:
       "Pulse will keep a record of which Meta ad each WhatsApp conversation came from. In 'send events' mode it also sends Meta the event name (Contact, Lead or Schedule), the ad click id and, if you choose, a hashed phone number, only for patients who opted in (or under the basis your administrator confirms). Meta's rules for health advertisers apply to you.",
+  },
+  {
+    // Phase 20i (G13): a read-only daily pull of Meta's own per-ad figures. Nothing about a patient is sent anywhere, so no typed words.
+    kind: "meta_ads",
+    outbound: true,
+    title: "Meta ads spend",
+    description:
+      "Once a day, reads what each Meta (Facebook or Instagram) ad cost, how often it was shown and clicked, from your ad account, so the Ad attribution report can show cost per conversation, per enquiry and per booking. Read only: Pulse sends Meta nothing about patients and never changes your ads.",
+    contactsPatients: false,
+    movesMoney: false,
+    sharesData: false,
+    confirmWord: null,
+    viewPermission: "integrations.manage",
+    providers: [
+      {
+        id: "meta_ads",
+        label: "Meta Marketing API (ad insights, read only)",
+        fields: [
+          {
+            key: "ad_account_id",
+            label: "Ad account ID",
+            type: "text",
+            required: true,
+            max: 30,
+            pattern: "^(act_)?\\d{5,25}$",
+            patternHint:
+              "The ad account ID is a number from Meta Ads Manager (with or without act_).",
+            help: "Ads Manager, account menu: the number shown next to the ad account name.",
+          },
+          {
+            key: "access_token",
+            label: "Access token",
+            type: "password",
+            secret: true,
+            required: true,
+            max: 400,
+            help: "A system user token with only the ads_read permission on that ad account. Stored encrypted; never shown again.",
+          },
+        ],
+      },
+    ],
+    commonFields: [
+      {
+        key: "lookback_days",
+        label: "Days to read each time",
+        type: "number",
+        min: 1,
+        max: 28,
+        default: 7,
+        help: "Each daily pull reads this many past days again and replaces them, so late corrections from Meta are picked up.",
+      },
+      graphVersionField(),
+    ],
+    consequence:
+      "Once a day Pulse will read spend, impressions and clicks per ad from this Meta ad account and show them on the Ad attribution report. It only reads: nothing about patients is sent to Meta and your ads are never changed.",
   },
   {
     kind: "telehealth",

@@ -630,10 +630,12 @@ export const GUIDES: readonly Guide[] = [
       "Pick the period. Each row is one ad: its headline, conversations, patients, enquiries and bookings.",
       "A booking counts for an ad when it was made after the click, for the same patient, inside the attribution window.",
       "Events sent to Meta shows how many were sent, are waiting, failed, or were skipped and why.",
+      "With Meta ads spend switched on, each ad also shows its spend, impressions and clicks, and the cost per conversation, per enquiry and per booking.",
     ],
     watchOut: [
-      "Counts only: no patient is named here.",
+      "Counts and amounts only: no patient is named here.",
       "The report starts when ad attribution is switched on; earlier conversations are not included.",
+      "Spend is Meta's own figure, read once a day for the past few days (Meta's day, in the ad account's time zone), so today's spend is not in it yet.",
     ],
   },
   {
