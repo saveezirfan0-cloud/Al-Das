@@ -8,7 +8,7 @@
 --   * fin_report_uploads: one row per uploaded file (sha256 only, never the file), with the report's own totals and
 --     the reconciliation result. A file that does not reconcile is never committed.
 --   * fin_report_visits: one sanitised row per report row. NEVER stored: patient name, insurance card number,
---     insurer text, remarks, referral or staff names. Amounts in AED.
+--     insurer text, remarks, referral or staff names. Amounts in AED to three decimals, as Unite keeps them.
 --   * Committing an upload makes its rows current and supersedes the current rows of earlier uploads whose report
 --     date falls in its range (nothing is deleted).
 --   * Both tables have RLS and no policies: service role only, read through SECURITY DEFINER functions after can().
@@ -81,23 +81,23 @@ create table public.fin_report_visits (
   selfpay_invoice_no text,
   insurance_invoice_no text,
   categories jsonb not null default '{}'::jsonb,       -- Unite service category -> amount
-  gross numeric(14, 2) not null default 0,
-  discount numeric(14, 2) not null default 0,
-  vat numeric(14, 2) not null default 0,
-  net numeric(14, 2) not null default 0,               -- Unite "Net Billing" (after discount, before VAT)
-  total numeric(14, 2) not null default 0,
-  cash numeric(14, 2) not null default 0,
-  card numeric(14, 2) not null default 0,
-  bank_transfer numeric(14, 2) not null default 0,
-  payment_gateway numeric(14, 2) not null default 0,
-  other_payment numeric(14, 2) not null default 0,
-  patient_share numeric(14, 2) not null default 0,
-  insurance_claim numeric(14, 2) not null default 0,
-  advance_consumed numeric(14, 2) not null default 0,
-  credit_note_consumed numeric(14, 2) not null default 0,
-  outstanding_credit numeric(14, 2) not null default 0,
-  write_off numeric(14, 2) not null default 0,
-  refund numeric(14, 2) not null default 0,
+  gross numeric(14, 3) not null default 0,
+  discount numeric(14, 3) not null default 0,
+  vat numeric(14, 3) not null default 0,
+  net numeric(14, 3) not null default 0,               -- Unite "Net Billing" (after discount, before VAT)
+  total numeric(14, 3) not null default 0,
+  cash numeric(14, 3) not null default 0,
+  card numeric(14, 3) not null default 0,
+  bank_transfer numeric(14, 3) not null default 0,
+  payment_gateway numeric(14, 3) not null default 0,
+  other_payment numeric(14, 3) not null default 0,
+  patient_share numeric(14, 3) not null default 0,
+  insurance_claim numeric(14, 3) not null default 0,
+  advance_consumed numeric(14, 3) not null default 0,
+  credit_note_consumed numeric(14, 3) not null default 0,
+  outstanding_credit numeric(14, 3) not null default 0,
+  write_off numeric(14, 3) not null default 0,
+  refund numeric(14, 3) not null default 0,
   is_cancelled boolean not null default false,         -- Unite status "Cancel"; still in Unite's totals
   is_current boolean not null default false,
   created_at timestamptz not null default now(),

@@ -16,7 +16,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { UniteReportFlow, type RecentReportUpload } from "./unite-report-flow";
 import { UploadFlow } from "./upload-flow";
 
-export const metadata = { title: "Insurance upload" };
+export const metadata = { title: "Uploads" };
 export const dynamic = "force-dynamic";
 
 const VARIANT = { committed: "success", validated: "warning", rejected: "destructive" } as const;
@@ -45,7 +45,7 @@ export default async function UploadPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Insurance upload"
+        title="Uploads"
         description={
           claims && revenue
             ? "Upload the Diligence claims report weekly and at month end, and the Unite collection report."

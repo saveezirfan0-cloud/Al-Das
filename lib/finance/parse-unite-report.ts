@@ -1,6 +1,6 @@
 import { cellToPrimitive } from "@/lib/finance/parse-diligence";
 import {
-  amountFils,
+  amountMils,
   CATEGORY_END_BEFORE,
   CATEGORY_START_AFTER,
   cleanText,
@@ -92,7 +92,9 @@ const headerText = (v: unknown) =>
   typeof v === "string" ? v.trim() : v == null ? "" : String(v).trim();
 const blankCell = (v: unknown) => v == null || (typeof v === "string" && v.trim() === "");
 const ymd = (d: Date) => d.toISOString().slice(0, 10);
-const aed = (fils: number) => fils / 100;
+const aed = (mils: number) => mils / 1000;
+/** Thousandths -> whole fils, half up (Unite prints its totals to the fils). */
+const toFils = (mils: number) => Math.round(mils / 10);
 
 function readTitle(summary: SheetTable): { fromDate: string; toDate: string } {
   for (const row of summary.slice(0, TITLE_SEARCH_ROWS)) {
@@ -132,10 +134,10 @@ function readReportTotals(summary: SheetTable): ReportTotals {
   const { row, i } = totalRows[0];
   const totals = {} as ReportTotals;
   for (const key of RECONCILED_TOTAL_KEYS) {
-    const fils = amountFils(row[col.get(key)!]);
-    if (fils === "invalid")
+    const mils = amountMils(row[col.get(key)!]);
+    if (mils === "invalid")
       fail(`Clinic Summary row ${i + 1}: '${RECONCILED_TOTALS[key]}' is not a number.`);
-    totals[key] = aed(fils as number);
+    totals[key] = aed(mils as number);
   }
   return totals;
 }
@@ -197,7 +199,7 @@ export function parseUniteReportTables(summary: SheetTable, raw: SheetTable): Un
   if (dataRows.length > MAX_REPORT_ROWS)
     fail(`The RawData sheet has more than ${MAX_REPORT_ROWS} rows; upload one month at a time.`);
 
-  const sumFils = Object.fromEntries(RECONCILED_TOTAL_KEYS.map((k) => [k, 0])) as ReportTotals;
+  const sumMils = Object.fromEntries(RECONCILED_TOTAL_KEYS.map((k) => [k, 0])) as ReportTotals;
   const rows: UniteReportRow[] = [];
   let outOfRange = 0;
   let noDoctor = 0;
@@ -251,16 +253,16 @@ export function parseUniteReportTables(summary: SheetTable, raw: SheetTable): Un
     if (!doctor) noDoctor++;
     const amounts = {} as Record<ReportAmountField, number>;
     for (const field of REPORT_AMOUNT_FIELDS) {
-      const fils = amountFils(cells[layout.amount[field]]);
-      if (fils === "invalid") fail(`${where(RAW_AMOUNT_COLUMNS[field])} is not a number.`);
-      amounts[field] = aed(fils as number);
-      if (field in sumFils) sumFils[field as ReconciledTotal] += fils as number;
+      const mils = amountMils(cells[layout.amount[field]]);
+      if (mils === "invalid") fail(`${where(RAW_AMOUNT_COLUMNS[field])} is not a number.`);
+      amounts[field] = aed(mils as number);
+      if (field in sumMils) sumMils[field as ReconciledTotal] += mils as number;
     }
     const categories: Record<string, number> = {};
     for (const { label, idx } of layout.categories) {
-      const fils = amountFils(cells[idx]);
-      if (fils === "invalid") fail(`${where(label)} is not a number.`);
-      if (fils !== 0) categories[label] = aed(fils as number);
+      const mils = amountMils(cells[idx]);
+      if (mils === "invalid") fail(`${where(label)} is not a number.`);
+      if (mils !== 0) categories[label] = aed(mils as number);
     }
 
     rows.push({
@@ -289,8 +291,8 @@ export function parseUniteReportTables(summary: SheetTable, raw: SheetTable): Un
   const rowTotals = {} as ReportTotals;
   const problems: string[] = [];
   for (const key of RECONCILED_TOTAL_KEYS) {
-    rowTotals[key] = aed(sumFils[key]);
-    if (sumFils[key] !== Math.round(reportTotals[key] * 100))
+    rowTotals[key] = toFils(sumMils[key]) / 100;
+    if (toFils(sumMils[key]) !== Math.round(reportTotals[key] * 100))
       problems.push(
         `${RECONCILED_TOTALS[key]}: the rows do not add up to the report's Invoice Total.`,
       );

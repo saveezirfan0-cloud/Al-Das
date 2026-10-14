@@ -114,9 +114,9 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
   },
   {
     href: "/finance/upload",
-    label: "Insurance upload",
+    label: "Uploads (insurance, Unite)",
     section: "Billing and claims",
-    permissions: ["finance.claims.import"],
+    permissions: ["finance.claims.import", "finance.revenue.import"],
   },
   {
     href: "/finance/eligibility",

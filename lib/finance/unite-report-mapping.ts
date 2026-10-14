@@ -211,15 +211,18 @@ export function recordCancelled(v: unknown): boolean | "invalid" {
   return "invalid";
 }
 
-/** Amount cell -> integer fils; blank -> 0; "invalid" for anything that is not a number. */
-export function amountFils(v: unknown): number | "invalid" {
+/**
+ * Amount cell -> integer thousandths of an AED; blank -> 0; "invalid" for anything that is not a number. Unite keeps
+ * some amounts to three decimals (e.g. 178799.245), so rounding each row to the fils would drift from its totals.
+ */
+export function amountMils(v: unknown): number | "invalid" {
   if (v == null) return 0;
-  if (typeof v === "number") return Number.isFinite(v) ? Math.round(v * 100) : "invalid";
+  if (typeof v === "number") return Number.isFinite(v) ? Math.round(v * 1000) : "invalid";
   if (typeof v === "string") {
     const s = v.replace(/,/g, "").trim();
     if (s === "" || s === "-") return 0;
     if (!/^-?\d+(\.\d+)?$/.test(s)) return "invalid";
-    return Math.round(Number(s) * 100);
+    return Math.round(Number(s) * 1000);
   }
   return "invalid";
 }

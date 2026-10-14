@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { parseUniteReport, UniteReportError } from "@/lib/finance/parse-unite-report";
 import {
-  amountFils,
+  amountMils,
   normaliseDoctorKey,
   recordCancelled,
   visitStatus,
@@ -125,6 +125,23 @@ describe("parseUniteReport (synthetic workbook)", () => {
       payment_gateway: 50,
       other_payment: 55,
     });
+  });
+
+  it("keeps Unite's three-decimal amounts and still reconciles to the fils", async () => {
+    // the real September export has rows such as 178799.245 and 125662.975: rounding each row to the fils first
+    // drifts the sum by 0.01 and would refuse a correct file
+    const rows = DEFAULT_ROWS.map((r, i) =>
+      i === 0
+        ? { ...r, gross: 178799.245, net: 176290.745 }
+        : i === 2
+          ? { ...r, gross: 125662.975, net: 123278.375 }
+          : r,
+    );
+    const r = await parseUniteReport(await buildUniteReportWorkbook({ rows }));
+    expect(r.problems).toEqual([]);
+    expect(r.reconciled).toBe(true);
+    expect(r.rowTotals).toEqual(r.reportTotals);
+    expect(r.rows[0]).toMatchObject({ gross: 178799.245, net: 176290.745 });
   });
 
   it("does not reconcile when a report total is off by one fils, and names the column", async () => {
@@ -297,11 +314,12 @@ describe("unite-report-mapping helpers", () => {
     expect(recordCancelled("Pending")).toBe("invalid");
   });
 
-  it("reads amounts in integer fils", () => {
-    expect(amountFils(null)).toBe(0);
-    expect(amountFils(0.1 + 0.2)).toBe(30);
-    expect(amountFils("1,234.56")).toBe(123456);
-    expect(amountFils("abc")).toBe("invalid");
-    expect(amountFils(new Date())).toBe("invalid");
+  it("reads amounts in integer thousandths (Unite keeps some amounts to three decimals)", () => {
+    expect(amountMils(null)).toBe(0);
+    expect(amountMils(0.1 + 0.2)).toBe(300);
+    expect(amountMils(178799.245)).toBe(178799245);
+    expect(amountMils("1,234.56")).toBe(1234560);
+    expect(amountMils("abc")).toBe("invalid");
+    expect(amountMils(new Date())).toBe("invalid");
   });
 });

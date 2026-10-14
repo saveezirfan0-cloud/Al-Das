@@ -147,9 +147,10 @@ begin
     patient_share numeric, insurance_claim numeric, advance_consumed numeric, credit_note_consumed numeric,
     outstanding_credit numeric, write_off numeric, refund numeric, is_cancelled boolean);
 
-  -- the database's own sums of the 12 reconciled columns (stored values, so to the fils)
+  -- the database's own sums of the 12 reconciled columns, rounded to the fils
   foreach k in array v_keys loop
-    execute format('select coalesce(sum(%I), 0) from public.fin_report_visits where upload_id = $1', k)
+    -- rows keep Unite's three decimals; the report prints its totals to the fils
+    execute format('select round(coalesce(sum(%I), 0), 2) from public.fin_report_visits where upload_id = $1', k)
       into v_sum using v_id;
     v_rows := v_rows || jsonb_build_object(k, v_sum);
     if (v_report ->> k) is null or (v_report ->> k)::numeric is distinct from v_sum then
