@@ -13,6 +13,13 @@ import {
 import type { CallRecord } from "@/lib/integrations/client";
 import { CALL_PROVIDERS } from "@/lib/integrations/health";
 import { confirmationMatches, readinessProblems } from "@/lib/integrations/readiness";
+import {
+  lastAttemptMs,
+  mayStartWorkspace,
+  orderByLastAttempt,
+  pageTimeoutMs,
+  TASK_DEADLINE_MS,
+} from "@/lib/integrations/meta-ads/budget";
 import { createMetaAdsClient, insightsUrl } from "@/lib/integrations/meta-ads/client";
 import { normalizeAdAccountId, readMetaAdsConfig } from "@/lib/integrations/meta-ads/config";
 import {
@@ -269,7 +276,12 @@ describe("pure insight parsing", () => {
 describe("the adapter", () => {
   function harness(
     responses: Array<Response | Error>,
-    extra: { maxPages?: number; graphVersion?: string } = {},
+    extra: {
+      maxPages?: number;
+      graphVersion?: string;
+      now?: () => number;
+      deadlineAt?: number;
+    } = {},
   ) {
     const calls: CallRecord[] = [];
     const requests: Array<{ url: string; init?: RequestInit }> = [];
@@ -280,6 +292,8 @@ describe("the adapter", () => {
       accessToken: TOKEN,
       graphVersion: extra.graphVersion ?? "v21.0",
       maxPages: extra.maxPages,
+      now: extra.now,
+      deadlineAt: extra.deadlineAt,
       fetchFn: (async (url: string, init?: RequestInit) => {
         requests.push({ url: String(url), init });
         const next = responses[Math.min(i++, responses.length - 1)];
@@ -436,23 +450,53 @@ describe("the adapter", () => {
     });
   });
 
-  it("retries a 5xx, a 429 and a timeout with back-off (a GET is safe to repeat), then gives up with a retryable code", async () => {
-    const h = harness([
-      json(503, {}),
-      new DOMException("t", "TimeoutError"),
-      json(200, page([adRow("111111", "2026-10-12")])),
-    ]);
+  it("retries a 5xx or a timeout once (a GET is safe to repeat), then gives up with a retryable code", async () => {
+    const h = harness([json(503, {}), json(200, page([adRow("111111", "2026-10-12")]))]);
     expect(await h.client.fetchInsights(RANGE)).toMatchObject({ ok: true });
-    expect(h.requests).toHaveLength(3);
-    expect(h.sleeps).toHaveLength(2);
-    const down = harness([json(429, {}), json(500, {}), json(502, {})]);
+    expect(h.requests).toHaveLength(2);
+    expect(h.sleeps).toHaveLength(1);
+    const down = harness([new DOMException("t", "TimeoutError"), json(502, {}), json(200, {})]);
     expect(await down.client.fetchInsights(RANGE)).toEqual({
       ok: false,
       code: "server_error",
       retryable: true,
       auth: false,
     });
-    expect(down.requests).toHaveLength(3);
+    expect(down.requests).toHaveLength(2);
+  });
+
+  it("never pauses longer than 2 s between attempts, even when Graph asks for more", async () => {
+    const h = harness([
+      new Response("{}", { status: 429, headers: { "Retry-After": "10" } }),
+      json(200, page([])),
+    ]);
+    expect(await h.client.fetchInsights(RANGE)).toMatchObject({ ok: true });
+    expect(h.sleeps).toHaveLength(1);
+    expect(h.sleeps[0]).toBeLessThanOrEqual(2_000);
+  });
+
+  it("starts no page when too little time is left before the task's deadline", async () => {
+    let t = 1_000_000;
+    const late = harness([json(200, page([]))], { now: () => t, deadlineAt: t + 4_000 });
+    expect(await late.client.fetchInsights(RANGE)).toEqual({
+      ok: false,
+      code: "deadline",
+      retryable: true,
+      auth: false,
+    });
+    expect(late.requests).toHaveLength(0);
+    // the first page fits, then the clock passes the budget before the second one
+    const h = harness(
+      [
+        json(200, page([adRow("111111", "2026-10-12")], "C1")),
+        json(200, page([adRow("222222", "2026-10-12")])),
+      ],
+      { now: () => t, deadlineAt: t + 20_000 },
+    );
+    const first = h.client.fetchInsights(RANGE);
+    t += 16_000;
+    expect(await first).toMatchObject({ ok: false, code: "deadline" });
+    expect(h.requests).toHaveLength(1);
   });
 
   it("never leaves the Graph host, even with a hostile version string", async () => {
@@ -638,5 +682,126 @@ describe("cost per result (pure)", () => {
     expect(plain(formatMilli(7_125, "KWD"))).toBe("KWD 7.125");
     expect(formatMilli(null, "AED")).toBe("n/a");
     expect(formatMilli(1, null)).toBe("n/a");
+  });
+});
+
+describe("time budget and fairness of the daily sync (pure)", () => {
+  it("fits two attempts and one pause into what is left, at most 15 s each, and starts nothing with under 5 s left", () => {
+    expect(pageTimeoutMs(60_000)).toBe(15_000);
+    expect(pageTimeoutMs(32_000)).toBe(15_000);
+    expect(pageTimeoutMs(20_000)).toBe(9_000);
+    expect(pageTimeoutMs(5_000)).toBe(1_500);
+    expect(pageTimeoutMs(4_999)).toBeNull();
+    expect(pageTimeoutMs(-1)).toBeNull();
+    expect(pageTimeoutMs(Number.NaN)).toBeNull();
+    // worst case of one page (two attempts plus the longest pause) never passes the deadline
+    for (const left of [5_000, 9_999, 20_000, 31_999, 45_000]) {
+      const t = pageTimeoutMs(left)!;
+      expect(2 * t + 2_000, String(left)).toBeLessThanOrEqual(left);
+    }
+  });
+
+  it("stops starting workspaces before the 45 s deadline, well inside the route's 60 s", () => {
+    expect(TASK_DEADLINE_MS).toBe(45_000);
+    expect(mayStartWorkspace(0, 0)).toBe(true);
+    expect(mayStartWorkspace(0, 39_999)).toBe(true);
+    expect(mayStartWorkspace(0, 40_000)).toBe(false);
+    expect(mayStartWorkspace(0, 50_000)).toBe(false);
+  });
+
+  it("takes never-tried workspaces first, then the one whose last attempt (success or failure) is oldest", () => {
+    const a = (org: string, ok: string | null, err: string | null) => ({
+      org_id: org,
+      last_ok_at: ok,
+      last_error_at: err,
+    });
+    expect(lastAttemptMs(a("x", null, null))).toBeNull();
+    expect(lastAttemptMs(a("x", "2026-10-10T00:00:00Z", "2026-10-12T00:00:00Z"))).toBe(
+      Date.parse("2026-10-12T00:00:00Z"),
+    );
+    const rows = [
+      // succeeded long ago but was cut off yesterday: its attempt is recent, so it goes to the back
+      a("stuck", "2026-10-01T04:17:00Z", "2026-10-13T04:17:05Z"),
+      a("ok-yesterday", "2026-10-13T04:17:02Z", null),
+      a("new-b", null, null),
+      a("failed-long-ago", null, "2026-10-05T04:17:00Z"),
+      a("new-a", null, null),
+    ];
+    expect(orderByLastAttempt(rows).map((r) => r.org_id)).toEqual([
+      "new-a",
+      "new-b",
+      "failed-long-ago",
+      "ok-yesterday",
+      "stuck",
+    ]);
+    expect(rows[0].org_id).toBe("stuck"); // the input is not reordered
+  });
+});
+
+describe("cost per result divides like periods", () => {
+  it("uses the counts for clicks inside the period that has spend, and shows the whole period's counts beside them", () => {
+    const whole: AttributionCounts[] = [
+      {
+        source_id: "120211111111111",
+        source_type: "ad",
+        headline: "Synthetic",
+        conversations: 90,
+        patients: 80,
+        enquiries: 30,
+        appointments: 9,
+      },
+    ];
+    const sinceSpend: AttributionCounts[] = [
+      { ...whole[0], conversations: 20, patients: 18, enquiries: 5, appointments: 2 },
+    ];
+    const spendRows: SpendTotals[] = [
+      {
+        ad_id: "120211111111111",
+        currency: "AED",
+        ad_name: null,
+        campaign_name: null,
+        spend_milli: 400_000,
+        impressions: 1,
+        clicks: 1,
+        days: 7,
+        pulled_at: null,
+      },
+      {
+        ad_id: "120299999999999",
+        currency: "AED",
+        ad_name: "No clicks yet",
+        campaign_name: null,
+        spend_milli: 50_000,
+        impressions: 1,
+        clicks: 0,
+        days: 7,
+        pulled_at: null,
+      },
+    ];
+    const rows = mergeAdPerformance(whole, spendRows, sinceSpend);
+    expect(rows[0]).toMatchObject({
+      conversations: 90,
+      enquiries: 30,
+      appointments: 9,
+      costBasis: { conversations: 20, enquiries: 5, appointments: 2 },
+      costPerConversationMilli: 20_000,
+      costPerEnquiryMilli: 80_000,
+      costPerBookingMilli: 200_000,
+    });
+    expect(rows[1]).toMatchObject({
+      key: "ad:120299999999999",
+      costBasis: { conversations: 0, enquiries: 0, appointments: 0 },
+      costPerConversationMilli: null,
+    });
+    expect(totalsByCurrency(rows)).toEqual([
+      expect.objectContaining({
+        spendMilli: 450_000,
+        conversations: 20,
+        costPerConversationMilli: 22_500,
+        costPerBookingMilli: 225_000,
+      }),
+    ]);
+    // without separate counts the whole period is the basis (spend covers it)
+    expect(mergeAdPerformance(whole, spendRows)[0].costPerConversationMilli).toBe(4_444);
   });
 });
