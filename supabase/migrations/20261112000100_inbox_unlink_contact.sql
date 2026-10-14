@@ -12,7 +12,9 @@
 --      messages still reach the shared phone and name the patient;
 --   4. both contacts get a timeline event (ids only).
 -- Refused when the old contact has household links (move or remove them first), when the conversation is not on a
--- WhatsApp number, or when there is no WhatsApp identity to move. Service role only, called after can().
+-- WhatsApp number, when there is no WhatsApp identity to move, or when the latest inbound sender of the chat is not
+-- the old contact's main phone / BSUID (a chat on an alternate number would hand the main number to the wrong
+-- person). Service role only, called after can().
 
 create or replace function public.unlink_conversation_contact(
   p_org_id uuid,
@@ -34,6 +36,8 @@ declare
   old public.contacts;
   new_id uuid;
   moved uuid[];
+  v_contact_id uuid;
+  v_from text;
 begin
   if coalesce(btrim(p_first_name), '') = '' and coalesce(btrim(p_last_name), '') = '' then
     raise exception 'the new contact needs a name' using errcode = 'check_violation';
@@ -42,10 +46,22 @@ begin
     raise exception 'unknown relationship' using errcode = 'check_violation';
   end if;
 
+  -- Lock order as merge_contacts: the contact first (its id from a plain read), then the conversation.
+  select c.contact_id into v_contact_id from public.conversations c
+   where c.id = p_conversation_id and c.org_id = p_org_id;
+  if v_contact_id is null then
+    raise exception 'conversation not found' using errcode = 'no_data_found';
+  end if;
+  select * into old from public.contacts
+   where id = v_contact_id and org_id = p_org_id and deleted_at is null
+   for update;
+  if old.id is null then
+    raise exception 'contact not found' using errcode = 'no_data_found';
+  end if;
   select * into conv from public.conversations
    where id = p_conversation_id and org_id = p_org_id
    for update;
-  if conv.id is null then
+  if conv.id is null or conv.contact_id is distinct from old.id then
     raise exception 'conversation not found' using errcode = 'no_data_found';
   end if;
   select ch.type into ch_type from public.channels ch where ch.id = conv.channel_id and ch.org_id = p_org_id;
@@ -53,14 +69,21 @@ begin
     raise exception 'only WhatsApp chats can be moved to a new contact' using errcode = 'check_violation';
   end if;
 
-  select * into old from public.contacts
-   where id = conv.contact_id and org_id = p_org_id and deleted_at is null
-   for update;
-  if old.id is null then
-    raise exception 'contact not found' using errcode = 'no_data_found';
-  end if;
   if old.phone_e164 is null and old.wa_bsuid is null then
     raise exception 'the contact has no WhatsApp number to move' using errcode = 'check_violation';
+  end if;
+  -- The person writing must be on the contact's MAIN identity (not an alternate number from contact_phones),
+  -- because that is what the new contact takes over. Meta's `from` of the latest inbound message: phone digits,
+  -- or the BSUID for username users.
+  select m.payload ->> 'from' into v_from from public.messages m
+   where m.conversation_id = conv.id and m.direction = 'in'
+   order by m.at desc limit 1;
+  if coalesce(v_from, '') = '' then
+    raise exception 'nobody has written in this chat yet' using errcode = 'check_violation';
+  end if;
+  if not ((old.wa_bsuid is not null and v_from = old.wa_bsuid)
+          or (old.phone_e164 is not null and '+' || v_from = old.phone_e164)) then
+    raise exception 'the chat runs on a different number from the contact''s main number' using errcode = 'check_violation';
   end if;
   if exists (
     select 1 from public.household_links h

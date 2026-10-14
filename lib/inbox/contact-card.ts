@@ -26,8 +26,8 @@ export function buildContactCard(
   const card: ContactObject = {
     name: {
       formatted_name: name,
-      first_name: space === -1 ? name : name.slice(0, space),
-      ...(space === -1 ? {} : { last_name: name.slice(space + 1) }),
+      first_name: (space === -1 ? name : name.slice(0, space)).slice(0, 100),
+      ...(space === -1 ? {} : { last_name: name.slice(space + 1).slice(0, 100) }),
     },
     phones: [{ phone, type: "WORK" }],
     ...(company ? { org: { company } } : {}),

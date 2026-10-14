@@ -134,8 +134,8 @@ describe.skipIf(!TEST_DATABASE_URL)("unlink_conversation_contact", () => {
     webConv = await conv(web, "open", new Date().toISOString());
     for (const cv of [live, live, liveB, closedA, webConv])
       await c.query(
-        "insert into public.messages (org_id, conversation_id, direction, kind, body, status) values ($1, $2, 'in', 'text', 'synthetic', 'received')",
-        [orgA, cv],
+        "insert into public.messages (org_id, conversation_id, direction, kind, body, status, payload, at) values ($1, $2, 'in', 'text', 'synthetic', 'received', $3::jsonb, now() - interval '1 hour')",
+        [orgA, cv, JSON.stringify({ from: PHONE.slice(1), id: "wamid.demo" })],
       );
     const chB = await id(
       "insert into public.channels (org_id, name, waba_id, phone_number_id) values ($1, 'B', 'WABA2', '109900000000021')",
@@ -272,6 +272,32 @@ describe.skipIf(!TEST_DATABASE_URL)("unlink_conversation_contact", () => {
       if (!r.ok) expect(r.message).toMatch(re);
     }
     expect(await snapshot()).toEqual(before);
+  });
+
+  it("refuses a chat whose latest inbound sender is an alternate number, or a chat nobody wrote in", async () => {
+    // The person now writes from the contact's alternate number (+447700900312, in contact_phones).
+    await c.query(
+      "insert into public.messages (org_id, conversation_id, direction, kind, body, status, payload) values ($1, $2, 'in', 'text', 'synthetic', 'received', $3::jsonb)",
+      [orgA, live, JSON.stringify({ from: "447700900312", id: "wamid.alt" })],
+    );
+    const before = await snapshot();
+    const r = await tryUnlink({});
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.message).toMatch(/different number/);
+    expect(await snapshot()).toEqual(before);
+
+    await c.query("delete from public.messages where conversation_id = $1", [live]);
+    const r2 = await tryUnlink({});
+    expect(r2.ok).toBe(false);
+    if (!r2.ok) expect(r2.message).toMatch(/nobody has written/);
+  });
+
+  it("accepts a username user whose BSUID is the contact's", async () => {
+    await c.query(
+      "insert into public.messages (org_id, conversation_id, direction, kind, body, status, payload) values ($1, $2, 'in', 'text', 'synthetic', 'received', $3::jsonb)",
+      [orgA, live, JSON.stringify({ from: "AE.demo-bsuid-1", id: "wamid.bsuid" })],
+    );
+    expect((await tryUnlink({})).ok).toBe(true);
   });
 
   it("refuses a contact with no WhatsApp identity", async () => {

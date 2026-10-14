@@ -19,6 +19,7 @@ import {
 } from "@/lib/inbox/extras";
 import { isMediaPathFor } from "@/lib/inbox/media-path";
 import { queueOutbound, type SendSpec } from "@/lib/inbox/send";
+import { SENDER_ERRORS, checkChatSender, senderOf } from "@/lib/inbox/unlink";
 import { MEDIA_BUCKET, extensionFor } from "@/lib/jobs/handlers/media-fetch";
 import { redactText } from "@/lib/redact";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -166,6 +167,7 @@ export async function forwardMessage(
   const admin = createAdminClient();
   let spec: SendSpec;
   let body: string | null;
+  let copied: string | null = null;
   if (plan.kind === "text") {
     spec = { type: "text", body: plan.body };
     body = plan.body;
@@ -176,6 +178,7 @@ export async function forwardMessage(
     const path = `${member.orgId}/${target.id}/${randomUUID()}.${extensionFor(plan.mime, plan.filename)}`;
     const { error: copyErr } = await admin.storage.from(MEDIA_BUCKET).copy(plan.sourcePath, path);
     if (copyErr) return { ok: false, error: "Could not prepare the file for forwarding." };
+    copied = path;
     spec = {
       type: "media",
       media_type: plan.mediaType,
@@ -186,14 +189,22 @@ export async function forwardMessage(
     };
     body = plan.caption;
   }
+  let msg: Awaited<ReturnType<typeof queueOutbound>>;
+  try {
+    msg = await queueOutbound(admin, {
+      orgId: member.orgId,
+      conversationId: target.id,
+      spec,
+      body,
+      sentByUserId: member.userId,
+    });
+  } catch (err) {
+    // Nothing was queued: do not leave the copied file behind.
+    if (copied) await admin.storage.from(MEDIA_BUCKET).remove([copied]);
+    throw err;
+  }
+  // Only once something is actually queued does a person take the chat over from the bot.
   await takeOverFromBot(admin, target.id);
-  const msg = await queueOutbound(admin, {
-    orgId: member.orgId,
-    conversationId: target.id,
-    spec,
-    body,
-    sentByUserId: member.userId,
-  });
   await recordAudit(admin, {
     orgId: member.orgId,
     userId: member.userId,
@@ -240,7 +251,6 @@ export async function sendContactCard(
   const built = buildContactCard(parsed.data);
   if (!built.ok) return { ok: false, error: built.error };
   const admin = createAdminClient();
-  await takeOverFromBot(admin, conversation.id);
   const msg = await queueOutbound(admin, {
     orgId: member.orgId,
     conversationId: conversation.id,
@@ -248,6 +258,7 @@ export async function sendContactCard(
     body: built.label,
     sentByUserId: member.userId,
   });
+  await takeOverFromBot(admin, conversation.id);
   await recordAudit(admin, {
     orgId: member.orgId,
     userId: member.userId,
@@ -299,7 +310,6 @@ export async function sendCatalogProduct(
   });
   if (!built.ok) return { ok: false, error: built.error };
   const admin = createAdminClient();
-  await takeOverFromBot(admin, conversation.id);
   const msg = await queueOutbound(admin, {
     orgId: member.orgId,
     conversationId: conversation.id,
@@ -307,6 +317,7 @@ export async function sendCatalogProduct(
     body: built.label,
     sentByUserId: member.userId,
   });
+  await takeOverFromBot(admin, conversation.id);
   await recordAudit(admin, {
     orgId: member.orgId,
     userId: member.userId,
@@ -337,6 +348,8 @@ const UNLINK_ERRORS: Array<[RegExp, string]> = [
   [/only WhatsApp chats/, "Only WhatsApp chats can be moved to a new contact."],
   [/no WhatsApp number/, "This contact has no WhatsApp number to move."],
   [/family links/, "This contact has family links. Remove them in the contact record first."],
+  [/nobody has written/, SENDER_ERRORS.none],
+  [/different number/, SENDER_ERRORS.other],
   [/not found/, "Conversation not found."],
 ];
 
@@ -361,6 +374,30 @@ export async function unlinkConversationContact(
   if (!conversation) return { ok: false, error: "Conversation not found." };
   if (channelTypeOf(conversation.channels?.type) !== "whatsapp")
     return { ok: false, error: "Only WhatsApp chats can be moved to a new contact." };
+
+  // The new contact takes over the old contact's MAIN number: only right when the person writing in this chat uses
+  // that number (not one of the contact's alternate numbers). The SQL function repeats this check.
+  const supabase = await createClient();
+  const [{ data: owner }, { data: lastIn }] = await Promise.all([
+    supabase
+      .from("contacts")
+      .select("phone_e164, wa_bsuid")
+      .eq("id", conversation.contact_id)
+      .eq("org_id", member.orgId)
+      .maybeSingle(),
+    supabase
+      .from("messages")
+      .select("payload")
+      .eq("conversation_id", conversation.id)
+      .eq("org_id", member.orgId)
+      .eq("direction", "in")
+      .order("at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+  if (!owner) return { ok: false, error: "Conversation not found." };
+  const sender = checkChatSender(senderOf(lastIn?.payload), owner);
+  if (!sender.ok) return { ok: false, error: sender.error };
 
   const admin = createAdminClient(member.userId);
   const { data, error } = await admin.rpc("unlink_conversation_contact", {

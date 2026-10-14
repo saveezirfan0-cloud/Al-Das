@@ -22,6 +22,8 @@ const state = vi.hoisted(() => ({
   rpc: [] as Array<[string, Record<string, unknown>]>,
   rpcResult: null as { data: unknown; error: { message: string; code?: string } | null } | null,
   takeovers: [] as string[],
+  removed: [] as string[],
+  queueFails: false,
 }));
 
 const ORG = "00000000-0000-4000-8000-000000000002";
@@ -96,6 +98,10 @@ vi.mock("@/lib/supabase/admin", () => ({
             state.copies.push([from, to]);
             return { data: {}, error: null };
           },
+          remove: async (paths: string[]) => {
+            state.removed.push(...paths);
+            return { data: [], error: null };
+          },
         }),
       },
       rpc: async (name: string, args: Record<string, unknown>) => {
@@ -107,6 +113,7 @@ vi.mock("@/lib/supabase/admin", () => ({
 }));
 vi.mock("@/lib/inbox/send", () => ({
   queueOutbound: async (_admin: unknown, input: Record<string, unknown>) => {
+    if (state.queueFails) throw new Error("queueOutbound: insert failed");
     state.queued.push(input);
     return { id: "00000000-0000-4000-8000-0000000000e1" };
   },
@@ -124,6 +131,7 @@ vi.mock("@/lib/audit", () => ({
 }));
 
 import * as extras from "@/app/(app)/inbox/extras-actions";
+import { SENDER_ERRORS } from "@/lib/inbox/unlink";
 
 const recent = () => new Date(Date.now() - 60 * 60 * 1000).toISOString();
 const old = () => new Date(Date.now() - 30 * 60 * 60 * 1000).toISOString();
@@ -152,9 +160,24 @@ function setup(...permissions: string[]) {
   state.rpc = [];
   state.rpcResult = null;
   state.takeovers = [];
+  state.removed = [];
+  state.queueFails = false;
   state.rows = {
     conversations: [conv(SRC_CONV), conv(DST_CONV)],
+    contacts: [{ id: OLD_CONTACT, org_id: ORG, phone_e164: "+447700900311", wa_bsuid: null }],
     messages: [
+      {
+        id: "00000000-0000-4000-8000-0000000000a3",
+        org_id: ORG,
+        conversation_id: DST_CONV,
+        direction: "in",
+        kind: "text",
+        body: "synthetic",
+        payload: { from: "447700900311" },
+        media_path: null,
+        media_mime: null,
+        media_filename: null,
+      },
       {
         id: MSG,
         org_id: ORG,
@@ -261,12 +284,24 @@ describe("forwardMessage", () => {
   });
 
   it("refuses a file whose stored path is outside the source conversation", async () => {
-    (state.rows.messages[1] as Row).media_path =
+    (state.rows.messages.find((m) => m.id === MEDIA_MSG) as Row).media_path =
       `${ORG}/${DST_CONV}/00000000-0000-4000-8000-0000000000f9.jpg`;
     const r = await forward(MEDIA_MSG);
     expect(r.ok).toBe(false);
     expect(state.copies).toHaveLength(0);
     expect(state.queued).toHaveLength(0);
+  });
+
+  it("removes the copied file and leaves the bot alone when queueing fails", async () => {
+    state.queueFails = true;
+    await expect(forward(MEDIA_MSG)).rejects.toThrow(/queueOutbound/);
+    expect(state.copies).toHaveLength(1);
+    expect(state.removed).toEqual([state.copies[0][1]]);
+    expect(state.takeovers).toHaveLength(0);
+    expect(state.audits).toHaveLength(0);
+    await expect(card()).rejects.toThrow();
+    await expect(product()).rejects.toThrow();
+    expect(state.takeovers).toHaveLength(0);
   });
 
   it("refuses outside the 24-hour window with no template fallback", async () => {
@@ -422,6 +457,27 @@ describe("unlinkConversationContact", () => {
     });
     spy.mockRestore();
     expect(state.audits).toHaveLength(0);
+  });
+
+  it("refuses a chat on one of the contact's alternate numbers, or with no inbound message", async () => {
+    state.rows.messages[0].payload = { from: "447700900312" }; // an alternate number, not the main one
+    expect(await unlink()).toEqual({ ok: false, error: SENDER_ERRORS.other });
+    state.rows.messages = state.rows.messages.filter((m) => m.conversation_id !== DST_CONV);
+    expect(await unlink()).toEqual({ ok: false, error: SENDER_ERRORS.none });
+    expect(state.rpc).toHaveLength(0);
+    expect(state.adminCalls).toBe(0);
+  });
+
+  it("accepts a username (BSUID) user whose BSUID is the contact's", async () => {
+    state.rows.contacts = [
+      { id: OLD_CONTACT, org_id: ORG, phone_e164: null, wa_bsuid: "AE.demo-1" },
+    ];
+    state.rows.messages[0].payload = { from: "AE.demo-1" };
+    state.rpcResult = {
+      data: { contact_id: NEW_CONTACT, old_contact_id: OLD_CONTACT, conversation_ids: [DST_CONV] },
+      error: null,
+    };
+    expect((await unlink()).ok).toBe(true);
   });
 
   it("refuses a nameless contact and a non-WhatsApp chat before calling the database", async () => {

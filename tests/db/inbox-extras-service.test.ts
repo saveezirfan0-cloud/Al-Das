@@ -159,6 +159,11 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)(
     });
 
     it("moves the chat to a new contact through supabase-js", async () => {
+      // The patient wrote from the contact's main number (Meta's `from` is the phone without +).
+      await c.query(
+        "insert into public.messages (org_id, conversation_id, direction, kind, body, status, payload) values ($1, $2, 'in', 'text', 'synthetic', 'received', $3::jsonb)",
+        [org, conv, JSON.stringify({ from: "447700900321", id: "wamid.svc" })],
+      );
       const { data, error } = await admin.rpc("unlink_conversation_contact", {
         p_org_id: org,
         p_conversation_id: conv,
@@ -182,7 +187,7 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)(
         "select count(*)::int as n from public.messages where conversation_id = $1",
         [conv],
       );
-      expect(msgs[0].n).toBe(3);
+      expect(msgs[0].n).toBe(4);
     });
   },
 );
