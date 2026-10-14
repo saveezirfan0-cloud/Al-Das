@@ -226,6 +226,33 @@ docs and help guides updated, and the `nav-qa` agent run.
 - **Enquiries.** CSV import.
 
 ### Phase G — Finance and accounting for the finance team (2 weeks)
+**Status (14 Oct 2026): first slice built (type-checked, linted, unit-tested; not yet driven in a browser or against
+Resend).**
+- Built:
+  - Reports hub `/finance/reports` (first under Finance, Overview; a card under Insights, Reports): Management,
+    Accounting, Receivables/RCM and Tax cards, each shown to holders of that report's own key. One picker (branch from
+    the switcher or chosen, month / quarter / year, compare with the period before) that passes only the parameters each
+    page already reads, with View and the existing Excel / CSV / PDF downloads (`lib/finance/reports-hub.ts`).
+  - Invoice view: payer and TPA, insurer vs patient (or company) share and balance due from the ledger's own split
+    (`splitReceivable` in `lib/accounting/posting/builders.ts`, used by `lib/finance/invoice-shares.ts`), the ledger
+    posting status with the journal link (accounting readers), Print, and the internal PDF
+    `/api/finance/invoices/<id>/pdf` ("Internal copy - not a tax invoice", `finance.invoices.view`, access and export
+    logged, audited).
+  - E-mail out: attachments in `lib/email.ts` (Resend shape, PDF / Excel / CSV only, size cap, idempotency key, the
+    no-key behaviour kept), sent by the `notifications` queue (`finance_document_email` job: ids, dates and the SHA-256
+    of the confirmed address only; the job re-reads the recipient, refuses a changed address and renders the document
+    from stored data). Buttons with a confirmation naming the recipient: E-mail statement and E-mail balance
+    confirmation (Accounting, Statements; business customers' `acc_customers.email`), E-mail close pack (Finance,
+    Month-end close; the signers only). Each send checks the export's permission, is rate limited, audited and logged as
+    an export.
+  - Payables ageing and supplier statements (Accounting, Purchases & payables; `lib/accounting/payables-ageing.ts`, pure)
+    over the 20D supplier invoices and paid vouchers, with Excel downloads; read with the existing ledger/report keys
+    (`PAYABLES_READ`, no new key, no migration).
+  - Excel downloads (every row, read in pages with `fetchAll`) of the invoices, claims, denials, journals, day book and
+    general ledger lists.
+- Still to do in this phase: scheduled report e-mails (daily flash, monthly summary), e-mailing a customer invoice, the
+  one upload component, PDF and e-mail on more hub cards, and a run against a Resend sandbox (Phase H).
+
 - **Reports hub.** One page of report cards (Management, Accounting, Receivables/RCM, Tax), with a shared branch,
   period and comparison picker. Each card can View, Excel, PDF and E-mail. Also listed in Insights.
 - **Invoice view.** Payer, patient vs insurer share, balance due, posting status with journal link, Print and an internal PDF.

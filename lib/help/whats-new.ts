@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-12-03-finance-reports-hub",
+    date: "2026-10-14",
+    title: "Finance reports in one place, invoice view and e-mailed statements",
+    body: "Finance, Reports lists every management, accounting, receivables and tax report you may open. Pick the branch and the month, quarter or year once, tick Compare if you want the period before, and open or download each report with those choices (also under Insights, Reports). An invoice now shows who pays (payer and TPA, the insurer's and the patient's share, the balance due), whether it is posted in the ledger with a link to the journal, a Print button and an internal PDF copy (not a tax invoice). Accounting statements can be e-mailed to a business customer, with a balance-confirmation letter, and the month-end close pack to the people who signed it; Pulse shows the address before sending. New: Payables ageing and Supplier statements under Accounting, and Excel downloads of the invoices, claims, denials, journals, day book and general ledger lists, with every row.",
+  },
+  {
     id: "2026-12-02-organisation",
     date: "2026-10-14",
     title: "Doctors, Staff, Rota and My day",

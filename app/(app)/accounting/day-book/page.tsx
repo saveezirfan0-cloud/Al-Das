@@ -3,6 +3,7 @@ import Link from "next/link";
 import { selectClass } from "@/components/finance/forms";
 import { PageHeader } from "@/components/shell/page-header";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
@@ -49,7 +50,15 @@ export default async function DayBookPage({ searchParams }: { searchParams: Prom
       <PageHeader
         title="Day book"
         description="Every posted journal in date order, with its lines. Reversed journals stay, next to their reversal."
-      />
+      >
+        <Button asChild variant="outline" size="sm">
+          <a
+            href={`/api/accounting/day-book/export?from=${from}&to=${to}${entity ? `&entity=${entity}` : ""}`}
+          >
+            Excel
+          </a>
+        </Button>
+      </PageHeader>
       <RangeForm from={from} to={to}>
         {entities.length > 1 && (
           <label className="flex flex-col gap-1 text-sm">

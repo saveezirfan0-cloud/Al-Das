@@ -73,6 +73,8 @@ export const RATE_RULES = {
   tallyBridgePerDevice: { limit: 240, windowSec: 60, failOpen: true },
   /** Phase 22J: creating a pairing code, retrying or changing the bridge, per person. */
   tallyBridgeManagePerUser: { limit: 20, windowSec: 60, failOpen: false },
+  /** Phase G: e-mailing a statement, a balance confirmation or a close pack (each one sends a document out). */
+  financeDocumentEmailPerUser: { limit: 20, windowSec: 3600, failOpen: false },
   /** Phase 19: sending payment links by staff. */
   paymentLinkPerUser: { limit: 20, windowSec: 60, failOpen: false },
   /** Phase 10 /api/public/v1, per API key. */

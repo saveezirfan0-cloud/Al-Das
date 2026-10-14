@@ -1,14 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { RECEIVABLES_READ } from "@/lib/accounting/nav";
-import {
-  customerBlock,
-  loadSeller,
-  loadStatement,
-  sellerBlock,
-} from "@/lib/accounting/receivables-server";
-import { statementPdf } from "@/lib/accounting/sales-pdf";
-import { statementWorkbook } from "@/lib/accounting/statement-xlsx";
+import { renderCustomerStatement } from "@/lib/accounting/receivable-documents-server";
 import { recordAudit } from "@/lib/audit";
 import { canAny } from "@/lib/auth/can";
 import { getCurrentMember } from "@/lib/auth/session";
@@ -44,32 +37,20 @@ export async function GET(req: Request) {
 
   const admin = createAdminClient(); // service role AFTER the permission check
   try {
-    const s = await loadStatement(admin, member.orgId, customerId, from, to);
-    if (!s) return NextResponse.json({ error: "not found" }, { status: 404 });
-    const seller = await loadSeller(admin, member.orgId, null);
-    const input = {
-      seller: sellerBlock(seller),
-      customer: customerBlock(s.customer),
-      from,
-      to,
-      opening: s.opening,
-      rows: s.rows,
-      closing: s.closing,
-      paymentInstructions: seller.paymentInstructions,
-      builtAt: new Date().toISOString(),
-    };
-    const body = format === "xlsx" ? await statementWorkbook(input) : await statementPdf(input);
+    const doc = await renderCustomerStatement(admin, member.orgId, customerId, from, to, format);
+    if (!doc) return NextResponse.json({ error: "not found" }, { status: 404 });
+    const body = doc.body;
     await recordAudit(admin, {
       orgId: member.orgId,
       userId: member.userId,
       action: "accounting.statement.exported",
       entity: "acc_customers",
       entityId: customerId,
-      diff: { from, to, format, rows: s.rows.length },
+      diff: { from, to, format, rows: doc.rows },
     });
     await recordExport(admin, member, {
       dataset: "accounting:customer_statement",
-      rows: s.rows.length,
+      rows: doc.rows,
       format,
     });
     return new NextResponse(new Uint8Array(body), {

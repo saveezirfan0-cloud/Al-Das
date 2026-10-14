@@ -76,7 +76,15 @@ export default async function LedgerPage({ searchParams }: { searchParams: Promi
       <PageHeader
         title="General ledger"
         description="One account (or a whole group) with its opening balance, every posted line and the running balance. Income and expense accounts open at the start of the fiscal year."
-      />
+      >
+        {ledger && (
+          <Button asChild variant="outline" size="sm">
+            <a href={`/api/accounting/ledger/export?account=${accountId}&from=${from}&to=${to}`}>
+              Excel
+            </a>
+          </Button>
+        )}
+      </PageHeader>
       <RangeForm from={from} to={to}>
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium">Account</span>
