@@ -6,6 +6,7 @@ import {
   daysLeft,
   readRestoreWindowDays,
   SOFT_DELETE_BROADCAST_EVENT,
+  SOFT_DELETE_CHANNEL_CONFIG,
   SOFT_DELETE_ENTITIES,
   softDeleteChannelName,
   type SoftDeleteEntity,
@@ -45,8 +46,8 @@ type BroadcastChannel = {
 
 /**
  * Tells other open screens of the org that rows left their lists (their postgres_changes subscription never sees the
- * UPDATE: RLS hides the new row from them). One REST broadcast, ids only, best effort: a failure only means another
- * person's list refreshes on its next load.
+ * UPDATE: RLS hides the new row from them). One REST broadcast on the org's PRIVATE channel, ids only, best effort: a
+ * failure only means another person's list refreshes on its next load.
  */
 export async function announceSoftDelete(
   admin: AdminClient,
@@ -56,12 +57,13 @@ export async function announceSoftDelete(
 ): Promise<void> {
   if (ids.length === 0) return;
   const client = admin as unknown as {
-    channel?: (name: string) => BroadcastChannel;
+    channel?: (name: string, opts?: { config: { private: boolean } }) => BroadcastChannel;
     removeChannel?: (ch: unknown) => Promise<unknown>;
   };
   if (typeof client.channel !== "function") return;
   try {
-    const ch = client.channel(softDeleteChannelName(orgId));
+    // Private channel (Realtime Authorization): only active members of the org may receive it; the service role sends.
+    const ch = client.channel(softDeleteChannelName(orgId), SOFT_DELETE_CHANNEL_CONFIG);
     if (typeof ch?.httpSend !== "function") return;
     await ch.httpSend(SOFT_DELETE_BROADCAST_EVENT, { entity, ids }, { timeout: 2000 });
     await client.removeChannel?.(ch);

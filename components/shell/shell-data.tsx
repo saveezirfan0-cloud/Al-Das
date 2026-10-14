@@ -21,6 +21,7 @@ import { stripBadge, withBadge } from "@/lib/shell/title-badge";
 import {
   parseSoftDeleteSignal,
   SOFT_DELETE_BROADCAST_EVENT,
+  SOFT_DELETE_CHANNEL_CONFIG,
   SOFT_DELETE_WINDOW_EVENT,
   softDeleteChannelName,
 } from "@/lib/soft-delete/rules";
@@ -310,12 +311,13 @@ export function ShellDataProvider({
   }, [orgId, userId, canTasks, debounced, loadNotifications, loadInbox, loadOverdue]);
 
   // Soft delete (docs/35): a row moved to Recently deleted by someone else never reaches postgres_changes here (RLS hides
-  // the new row), so the server broadcasts ids only on the org channel. Refresh the overdue badge and relay it to the open
-  // workspace as a window event. Anyone on the channel could send one, so the payload is parsed and only triggers reloads.
+  // the new row), so the server broadcasts ids only on the org's PRIVATE channel (only members receive; only the server
+  // sends). Refresh the overdue badge and relay it to the open workspace as a window event. The payload is still parsed
+  // strictly and only ever triggers reloads.
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase
-      .channel(softDeleteChannelName(orgId))
+      .channel(softDeleteChannelName(orgId), SOFT_DELETE_CHANNEL_CONFIG)
       .on("broadcast", { event: SOFT_DELETE_BROADCAST_EVENT }, ({ payload }) => {
         const signal = parseSoftDeleteSignal(payload);
         if (!signal) return;

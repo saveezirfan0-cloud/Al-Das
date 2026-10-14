@@ -490,6 +490,54 @@ describe.skipIf(!TEST_DATABASE_URL)("soft delete and restore window", () => {
     expect(await softDelete(orgA, "contact", [ids.contact], alice)).toEqual([]);
   });
 
+  it("parses the private channel topic strictly (only 'soft-delete:<uuid>' names an org)", async () => {
+    const { rows } = await c.query<{ ok: string | null; bad: string[] }>(
+      `select app.soft_delete_topic_org('soft-delete:' || $1::text)::text as ok,
+              array[
+                coalesce(app.soft_delete_topic_org('soft-delete:not-a-uuid')::text, 'null'),
+                coalesce(app.soft_delete_topic_org('soft-delete:' || $1::text || 'x')::text, 'null'),
+                coalesce(app.soft_delete_topic_org('tasks:' || $1::text)::text, 'null'),
+                coalesce(app.soft_delete_topic_org(null)::text, 'null')
+              ] as bad`,
+      [orgA],
+    );
+    expect(rows[0]).toEqual({ ok: orgA, bad: ["null", "null", "null", "null"] });
+  });
+
+  it("lets only active org members receive the soft-delete broadcast, and nobody send (Supabase Realtime only)", async (ctx) => {
+    const { rows } = await c.query<{ present: boolean }>(
+      "select to_regclass('realtime.messages') is not null as present",
+    );
+    if (!rows[0].present) ctx.skip(); // plain-Postgres harness: no realtime schema
+    const { rows: pol } = await c.query<{ cmd: string; roles: string }>(
+      "select cmd, roles::text from pg_policies where schemaname = 'realtime' and tablename = 'messages' and policyname = 'soft_delete_broadcast_receive'",
+    );
+    expect(pol).toEqual([{ cmd: "SELECT", roles: "{authenticated}" }]);
+    const topicA = `soft-delete:${orgA}`;
+    await c.query(
+      "insert into realtime.messages (topic, extension, event, payload, private) values ($1, 'broadcast', 'deleted', '{}'::jsonb, true)",
+      [topicA],
+    );
+    const seen = (user: string) =>
+      asUser(c, user, async () => {
+        await c.query("select set_config('realtime.topic', $1, false)", [topicA]);
+        const n = await count(c, "select 1 from realtime.messages where topic = $1", [topicA]);
+        await c.query("select set_config('realtime.topic', '', false)");
+        return n;
+      });
+    expect(await seen(alice)).toBeGreaterThan(0);
+    expect(await seen(bob)).toBe(0);
+    const err = await asUser(c, alice, () =>
+      c
+        .query(
+          "insert into realtime.messages (topic, extension, event, payload, private) values ($1, 'broadcast', 'deleted', '{}'::jsonb, true)",
+          [topicA],
+        )
+        .then(() => null, (e: { code?: string }) => e),
+    );
+    expect(err?.code).toBe("42501");
+  });
+
   it("exposes the four functions to the service role only", async () => {
     const { rows } = await c.query<{ name: string; anon: boolean; auth: boolean; svc: boolean }>(
       `select p.proname as name,

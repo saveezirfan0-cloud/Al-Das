@@ -57,8 +57,11 @@ export function canOpenRecentlyDeleted(member: MemberLike | null | undefined): b
 /**
  * Realtime after a soft delete (docs/35). Other members' lists listen with postgres_changes, but the UPDATE that hides a
  * row is filtered out for them by RLS, so the server also sends one broadcast on this org channel with ids only, never
- * titles. The shell (components/shell/shell-data.tsx) listens and re-dispatches it as a window event.
+ * titles. The channel is PRIVATE (Realtime Authorization): the policy soft_delete_broadcast_receive on realtime.messages
+ * lets only active members of the org receive it, and browsers have no policy to send. The shell
+ * (components/shell/shell-data.tsx) listens and re-dispatches it as a window event.
  */
+export const SOFT_DELETE_CHANNEL_CONFIG = { config: { private: true } } as const;
 export const SOFT_DELETE_BROADCAST_EVENT = "deleted";
 export const SOFT_DELETE_WINDOW_EVENT = "pulse:soft-deleted";
 export function softDeleteChannelName(orgId: string): string {

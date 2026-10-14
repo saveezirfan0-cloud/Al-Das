@@ -450,4 +450,39 @@ create trigger contacts_erase_soft_delete after update of erased_at on public.co
   for each row when (old.erased_at is null and new.erased_at is not null)
   execute function app.erase_contact_soft_delete();
 
+-- ---------------------------------------------------------------------------
+-- 8. Realtime: after a soft delete the server broadcasts {entity, ids} on the PRIVATE channel 'soft-delete:<org id>'
+--    (Realtime Authorization), so other members' open lists reload (RLS hides the UPDATE from postgres_changes).
+--    Receiving needs an active membership of that org; there is no INSERT policy, so browsers cannot send (the service
+--    role sends). Only created where Supabase Realtime is installed (the plain-Postgres test harness has no realtime
+--    schema); the topic parser below exists everywhere and is tested.
+-- ---------------------------------------------------------------------------
+create or replace function app.soft_delete_topic_org(p_topic text)
+returns uuid
+language sql
+immutable
+set search_path = ''
+as $$
+  select case
+    when p_topic ~ '^soft-delete:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+      then substr(p_topic, 13)::uuid
+  end;
+$$;
+grant execute on function app.soft_delete_topic_org(text) to authenticated, service_role;
+
+do $$
+begin
+  if to_regclass('realtime.messages') is not null then
+    execute 'drop policy if exists soft_delete_broadcast_receive on realtime.messages';
+    execute $p$
+      create policy soft_delete_broadcast_receive on realtime.messages for select to authenticated
+      using (
+        extension = 'broadcast'
+        and app.soft_delete_topic_org((select realtime.topic())) is not null
+        and app.is_org_member(app.soft_delete_topic_org((select realtime.topic())))
+      )
+    $p$;
+  end if;
+end $$;
+
 select cron.schedule('pulse:soft_delete_purge', '50 3 * * *', $$select app.ping_jobs('soft_delete_purge')$$);
