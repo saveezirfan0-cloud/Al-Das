@@ -1641,3 +1641,35 @@ export async function seedSoftDeleteRows(c: Client, orgId: string, userId: strin
     await c.query("select public.soft_delete_records($1, 'task', array[$2]::uuid[], $3)", [orgId, rows[0].id, userId]);
   });
 }
+
+/**
+ * Phase C (organisation, docs/34): one synthetic staff member with a duty and a shift for an org, so the cross-org
+ * sweeps are not vacuous for these tables. Service role, like the server actions that write them.
+ */
+export async function seedOrganisationRows(c: Client, orgId: string) {
+  await asServiceRole(c, async () => {
+    const loc = (
+      await c.query<{ id: string }>(
+        "insert into public.locations (org_id, name) values ($1, 'Sweep branch') on conflict (org_id, name) do update set address = excluded.address returning id::text",
+        [orgId],
+      )
+    ).rows[0].id;
+    const staff = (
+      await c.query<{ id: string }>(
+        "insert into public.staff_members (org_id, full_name, job_title, home_location_id) values ($1, 'Sweep Staff-01', 'Receptionist', $2) returning id::text",
+        [orgId, loc],
+      )
+    ).rows[0].id;
+    await c.query(
+      "insert into public.staff_duties (org_id, staff_member_id, title) values ($1, $2, 'Open the desk')",
+      [orgId, staff],
+    );
+    await c.query(
+      "insert into public.rota_shifts (org_id, location_id, staff_member_id, starts_at, ends_at, role_label) values ($1, $2, $3, now() + interval '1 day', now() + interval '1 day 8 hours', 'front_desk')",
+      [orgId, loc, staff],
+    );
+  });
+}
+
+/** Phase C tables with a browser (select) policy (hr.view; the rota also appointments.view). */
+export const ORGANISATION_TABLES = ["rota_shifts", "staff_duties", "staff_members"] as const;

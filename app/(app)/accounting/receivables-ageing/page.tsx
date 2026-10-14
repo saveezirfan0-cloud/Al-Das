@@ -14,15 +14,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { RECEIVABLES_READ } from "@/lib/accounting/nav";
+import { loadBranchCodeOptions } from "@/lib/accounting/accounting-server";
 import { loadAgeing } from "@/lib/accounting/receivables-server";
 import { AGEING_BUCKETS, CUSTOMER_KIND_LABELS } from "@/lib/accounting/sales";
 import { canAny, ForbiddenError } from "@/lib/auth/can";
 import { requireMember } from "@/lib/auth/session";
+import { pickBranchCode } from "@/lib/branches/codes";
 import { money } from "@/lib/finance/format";
 import { recordAccess } from "@/lib/security/access-log";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-import { dateParam } from "../ui";
+import { BranchCodeSelect, dateParam } from "../ui";
 
 export const metadata = { title: "Receivables ageing" };
 export const dynamic = "force-dynamic";
@@ -30,14 +32,17 @@ export const dynamic = "force-dynamic";
 export default async function ReceivablesAgeingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ as_of?: string }>;
+  searchParams: Promise<{ as_of?: string; branch?: string }>;
 }) {
   const member = await requireMember();
   if (!canAny(member, RECEIVABLES_READ)) throw new ForbiddenError("accounting.reports.view");
   const sp = await searchParams;
   const asOf = dateParam(sp.as_of, new Date().toISOString().slice(0, 10));
   const admin = createAdminClient(); // service role AFTER the permission check
-  const a = await loadAgeing(admin, member.orgId, asOf);
+  // Phase B: one branch's invoices (a line naming its finance code); money on account names no branch.
+  const branchOptions = await loadBranchCodeOptions(admin, member.orgId);
+  const branch = pickBranchCode(sp.branch, branchOptions);
+  const a = await loadAgeing(admin, member.orgId, asOf, branch);
   await recordAccess(admin, member, { entity: "accounting_receivable", action: "list" });
 
   return (
@@ -51,10 +56,17 @@ export default async function ReceivablesAgeingPage({
           <span className="font-medium">As at</span>
           <Input type="date" name="as_of" defaultValue={asOf} className="w-40" />
         </label>
+        <BranchCodeSelect options={branchOptions} value={branch} />
         <Button type="submit" variant="secondary">
           Show
         </Button>
       </form>
+      {branch && (
+        <p className="text-muted-foreground text-sm">
+          Branch {branch}: invoices with a line for this branch, at their full open amount. Money on account names no
+          branch and is not shown.
+        </p>
+      )}
       <Card>
         <CardContent className="overflow-x-auto pt-6">
           <Table>

@@ -100,17 +100,25 @@ docs and help guides updated, and the `nav-qa` agent run.
   reply (simulator), book and move an appointment, a synthetic Diligence/bank upload, and the tax invoice PDF. Run it in CI.
 
 ### Phase B — Branches as a workspace dimension (2 weeks)
-**Status (14 Oct 2026): first slice built.**
+**Status (14 Oct 2026): second slice built.**
 - Built:
   - Branch access per member (all branches, or one or several) with a home branch, under Settings, Users.
-  - Enforcement in RLS and in the service-role loaders: front desk, appointments, enquiries, waiting list and handover notes.
+  - Enforcement in RLS and in the service-role loaders: front desk, appointments, enquiries, waiting list, handover notes
+    and tasks.
   - The branch switcher in the rail and the phone drawer.
-  - `locations.branch_code`.
+  - `locations.branch_code`, set under Settings, Appointment rules, Locations (picker of the finance codes, unique, audited).
+  - `location_id` on channels, teams, contacts (home branch), tasks and conversations; `channels.default_team_id`.
+    New conversations take their number's branch and route to its team first.
+  - Inbox: branch filter (follows the switcher; "All my branches" or one branch), branch chip on rows, counts per branch.
+  - Tasks: branch column and filter, new tasks default to the current branch, RLS and service-role reads by branch.
+  - Contacts: home branch in the drawer, a column and a filter field.
+  - Branch checks on `deleteBlock`, the quick-reply appointment lookup and the enquiry location pickers.
+  - Ledger reports: branch filter (finance code) on trial balance, general ledger, balance sheet, cash flow and
+    receivables ageing; the P&L's existing branch split is offered as "Branches side by side".
 - Still to do in this phase:
-  - A UI to set `branch_code`.
-  - Branch for channels, teams, contacts, tasks and conversations.
-  - Per-branch reports and settings.
-  - Branch checks on `deleteBlock`, the quick-reply appointment lookup, and the enquiry location pickers.
+  - Branch filter on claims and denials (Finance reports hub, built separately).
+  - Settings per branch (working week and holidays, desk number and QR, reminder channel).
+  - Front desk live updates through Realtime.
 
 - **Data model.**
   - `locations.branch_code` → `fin_ref_branches.code`, so the clinical and finance branch lists meet. Needed before the
@@ -134,6 +142,24 @@ docs and help guides updated, and the `nav-qa` agent run.
 - **Optional.** Enforce branch scope in RLS (`app.location_visible_to()`, like `enquiry_scope`) once OQ-119 is answered.
 
 ### Phase C — Organisation: doctors and staff in CRM (2 weeks)
+**Status (14 Oct 2026): first slice built** (migration `20261202000100_organisation.sql`, paste file `81_organisation.sql`).
+- Built:
+  - Doctors directory (`/doctors`): specialty, branches, services, licence number/authority/expiry with a warning badge,
+    linked user, working hours per branch, upcoming time off, today's count, calendar link
+    (`/appointments?view=calendar&specialist=…`), performance and revenue-share links for finance holders. Licence and
+    profile fields editable with `settings.manage` or `hr.manage`.
+  - Staff (`/staff`): HR record without pay, duties checklist, shifts tab, history, archive and restore; `hr.view` /
+    `hr.manage`; branch rule on the home branch.
+  - Rota (`/staff/rota`): week grid per branch, add/edit/remove shifts, overlaps refused by the database.
+  - Daily visa and licence reminders (`staff.document_expiring`, 60 days by default, set on the Staff page).
+  - Doctor and HR roles; My day (`/my-day`) with the Doctor role landing there.
+- Still to do in this phase:
+  - Staff documents in a private bucket (same rules as patient documents).
+  - Doctor photo in the directory.
+  - Feeding the rota into the front-desk staffing view and the escalation on-call list.
+  - Moving Teams and Branches pages from Settings into CRM.
+  - Nurse preset; follow-up count on My day.
+
 - **Doctors.**
   - Directory page built on `specialists`: photo, specialty, branches and days, services, working hours, linked
     Pulse user, licence number and expiry (DHA), upcoming leave.
@@ -200,6 +226,33 @@ docs and help guides updated, and the `nav-qa` agent run.
 - **Enquiries.** CSV import.
 
 ### Phase G — Finance and accounting for the finance team (2 weeks)
+**Status (14 Oct 2026): first slice built (type-checked, linted, unit-tested; not yet driven in a browser or against
+Resend).**
+- Built:
+  - Reports hub `/finance/reports` (first under Finance, Overview; a card under Insights, Reports): Management,
+    Accounting, Receivables/RCM and Tax cards, each shown to holders of that report's own key. One picker (branch from
+    the switcher or chosen, month / quarter / year, compare with the period before) that passes only the parameters each
+    page already reads, with View and the existing Excel / CSV / PDF downloads (`lib/finance/reports-hub.ts`).
+  - Invoice view: payer and TPA, insurer vs patient (or company) share and balance due from the ledger's own split
+    (`splitReceivable` in `lib/accounting/posting/builders.ts`, used by `lib/finance/invoice-shares.ts`), the ledger
+    posting status with the journal link (accounting readers), Print, and the internal PDF
+    `/api/finance/invoices/<id>/pdf` ("Internal copy - not a tax invoice", `finance.invoices.view`, access and export
+    logged, audited).
+  - E-mail out: attachments in `lib/email.ts` (Resend shape, PDF / Excel / CSV only, size cap, idempotency key, the
+    no-key behaviour kept), sent by the `notifications` queue (`finance_document_email` job: ids, dates and the SHA-256
+    of the confirmed address only; the job re-reads the recipient, refuses a changed address and renders the document
+    from stored data). Buttons with a confirmation naming the recipient: E-mail statement and E-mail balance
+    confirmation (Accounting, Statements; business customers' `acc_customers.email`), E-mail close pack (Finance,
+    Month-end close; the signers only). Each send checks the export's permission, is rate limited, audited and logged as
+    an export.
+  - Payables ageing and supplier statements (Accounting, Purchases & payables; `lib/accounting/payables-ageing.ts`, pure)
+    over the 20D supplier invoices and paid vouchers, with Excel downloads; read with the existing ledger/report keys
+    (`PAYABLES_READ`, no new key, no migration).
+  - Excel downloads (every row, read in pages with `fetchAll`) of the invoices, claims, denials, journals, day book and
+    general ledger lists.
+- Still to do in this phase: scheduled report e-mails (daily flash, monthly summary), e-mailing a customer invoice, the
+  one upload component, PDF and e-mail on more hub cards, and a run against a Resend sandbox (Phase H).
+
 - **Reports hub.** One page of report cards (Management, Accounting, Receivables/RCM, Tax), with a shared branch,
   period and comparison picker. Each card can View, Excel, PDF and E-mail. Also listed in Insights.
 - **Invoice view.** Payer, patient vs insurer share, balance due, posting status with journal link, Print and an internal PDF.

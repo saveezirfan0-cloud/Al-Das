@@ -67,15 +67,19 @@ export async function loadEndOfDay(
       .eq("last_message_direction", "in")
       .order("last_message_at")
       .limit(60),
-    admin
-      .from("tasks")
-      .select(
-        "id, subject, due_at, contacts(full_name), profiles:profiles!tasks_assignee_id_fkey(first_name, last_name)",
-      )
-      .eq("org_id", orgId)
-      .eq("type", "call")
-      .eq("done", false)
-      .is("deleted_at", null)
+    // Phase B: open call tasks keep to the branch filter too (tasks.location_id).
+    withBranchFilter(
+      admin
+        .from("tasks")
+        .select(
+          "id, subject, due_at, contacts(full_name), profiles:profiles!tasks_assignee_id_fkey(first_name, last_name)",
+        )
+        .eq("org_id", orgId)
+        .eq("type", "call")
+        .eq("done", false)
+        .is("deleted_at", null),
+      branchIds,
+    )
       .order("due_at")
       .limit(60),
     admin

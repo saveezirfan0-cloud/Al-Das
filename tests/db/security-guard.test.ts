@@ -51,6 +51,7 @@ import {
   SF20G_TABLES,
   SF20I_TABLES,
   PORTAL_TAGS_TABLES,
+  ORGANISATION_TABLES,
   resetDb,
   seedPhase13Rows,
   seedPhase14Rows,
@@ -77,6 +78,7 @@ import {
   seedSf20gRows,
   seedSf20iRows,
   seedPortalTagRows,
+  seedOrganisationRows,
   seedSecurityRows,
   seedSoftDeleteRows,
   SOFT_DELETE_SERVICE_ONLY_TABLES,
@@ -1065,6 +1067,8 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
     await seedPortalTagRows(c, orgA);
     // Soft delete (docs/35): one item in the bin, so the service-only read check is not vacuous.
     await seedSoftDeleteRows(c, orgA, alice);
+    // Phase C (organisation): a staff member, a duty and a shift.
+    await seedOrganisationRows(c, orgA);
   });
   afterAll(async () => {
     await resetDb(c);
@@ -1081,6 +1085,7 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
       ...SF20E_TABLES,
       ...SF20I_TABLES,
       ...PORTAL_TAGS_TABLES,
+      ...ORGANISATION_TABLES,
       ...SF20D_TABLES,
       ...SF20C_BOOKING_TABLES,
       ...SF20C_TABLES,
@@ -1114,6 +1119,7 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
         ...SF20E_TABLES,
         ...SF20I_TABLES,
         ...PORTAL_TAGS_TABLES,
+        ...ORGANISATION_TABLES,
         ...SF20D_TABLES,
         ...SF20C_BOOKING_TABLES,
         ...SF20C_TABLES,

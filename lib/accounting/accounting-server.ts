@@ -3,6 +3,7 @@ import "server-only";
 import type { AccountNature, AccountRow, ControlKind } from "@/lib/accounting/accounts";
 import type { JournalStatus, VoucherType } from "@/lib/accounting/journal";
 import type { DayBookData, LedgerData, TrialBalanceData } from "@/lib/accounting/reports";
+import { branchCodeOptions, type BranchCodeOption } from "@/lib/branches/codes";
 import { peopleNames } from "@/lib/finance/vouchers-server";
 import type { AdminClient } from "@/lib/supabase/admin";
 import { fetchAll } from "@/lib/supabase/fetch-all";
@@ -304,12 +305,15 @@ export async function loadTrialBalance(
   entityId: string | null,
   from: string,
   to: string,
+  /** Phase B: only journal lines that name this finance branch code; null = every line. */
+  branchCode: string | null = null,
 ): Promise<TrialBalanceData> {
   const { data, error } = await admin.rpc("acc_trial_balance", {
     p_org_id: orgId,
     p_entity_id: entityId as string,
     p_from: from,
     p_to: to,
+    ...(branchCode ? { p_branch_code: branchCode } : {}),
   });
   if (error || !data) throw new Error("trial balance failed");
   return data as unknown as TrialBalanceData;
@@ -323,6 +327,8 @@ export async function loadLedger(
   to: string,
   limit: number,
   offset: number,
+  /** Phase B: only lines that name this finance branch code; null = every line. */
+  branchCode: string | null = null,
 ): Promise<LedgerData | null> {
   const { data, error } = await admin.rpc("acc_ledger", {
     p_org_id: orgId,
@@ -331,9 +337,25 @@ export async function loadLedger(
     p_to: to,
     p_limit: limit,
     p_offset: offset,
+    ...(branchCode ? { p_branch_code: branchCode } : {}),
   });
   if (error || !data) return null;
   return data as unknown as LedgerData;
+}
+
+/**
+ * Phase B: the branch filter of the ledger reports. Finance branch codes (fin_ref_branches) labelled with the clinical
+ * branch that uses each (locations.branch_code). Codes and names only; the caller ran can() for the report.
+ */
+export async function loadBranchCodeOptions(
+  admin: AdminClient,
+  orgId: string,
+): Promise<BranchCodeOption[]> {
+  const [{ data: finance }, { data: locations }] = await Promise.all([
+    admin.from("fin_ref_branches").select("code, name").eq("org_id", orgId).order("code"),
+    admin.from("locations").select("id, name, branch_code").eq("org_id", orgId).order("name"),
+  ]);
+  return branchCodeOptions(finance ?? [], locations ?? []);
 }
 
 export async function loadDayBook(

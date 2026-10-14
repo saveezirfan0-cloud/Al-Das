@@ -1,14 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { RECEIVABLES_READ } from "@/lib/accounting/nav";
-import {
-  customerBlock,
-  loadCustomer,
-  loadOpenItems,
-  loadSeller,
-  sellerBlock,
-} from "@/lib/accounting/receivables-server";
-import { balanceConfirmationPdf } from "@/lib/accounting/sales-pdf";
+import { renderBalanceConfirmation } from "@/lib/accounting/receivable-documents-server";
 import { recordAudit } from "@/lib/audit";
 import { canAny } from "@/lib/auth/can";
 import { getCurrentMember } from "@/lib/auth/session";
@@ -34,36 +27,9 @@ export async function GET(req: Request) {
 
   const admin = createAdminClient(); // service role AFTER the permission check
   try {
-    const customer = await loadCustomer(admin, member.orgId, customerId);
-    if (!customer) return NextResponse.json({ error: "not found" }, { status: 404 });
-    const [items, seller] = await Promise.all([
-      loadOpenItems(admin, member.orgId, customerId, asOf),
-      loadSeller(admin, member.orgId, null),
-    ]);
-    const balance =
-      Math.round(
-        (items.invoices.reduce((s, i) => s + i.open, 0) -
-          items.on_account.reduce((s, r) => s + r.unallocated, 0)) *
-          100,
-      ) / 100;
-    const pdf = await balanceConfirmationPdf({
-      seller: sellerBlock(seller),
-      customer: customerBlock(customer),
-      asOf,
-      balance,
-      invoices: items.invoices.map((i) => ({
-        number: i.number,
-        date: i.invoice_date,
-        due: i.due_date,
-        open: i.open,
-      })),
-      onAccount: items.on_account.map((r) => ({
-        number: r.number,
-        date: r.receipt_date,
-        amount: r.unallocated,
-      })),
-      builtAt: new Date().toISOString(),
-    });
+    const doc = await renderBalanceConfirmation(admin, member.orgId, customerId, asOf);
+    if (!doc) return NextResponse.json({ error: "not found" }, { status: 404 });
+    const { body: pdf, balance } = doc;
     await recordAudit(admin, {
       orgId: member.orgId,
       userId: member.userId,
@@ -74,7 +40,7 @@ export async function GET(req: Request) {
     });
     await recordExport(admin, member, {
       dataset: "accounting:balance_confirmation",
-      rows: items.invoices.length + items.on_account.length,
+      rows: doc.rows,
       format: "pdf",
     });
     return new NextResponse(new Uint8Array(pdf), {

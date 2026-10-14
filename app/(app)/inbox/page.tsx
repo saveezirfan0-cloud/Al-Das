@@ -1,14 +1,20 @@
 import { readAiSettings } from "@/lib/ai/settings";
 import { can } from "@/lib/auth/can";
 import { requireMember } from "@/lib/auth/session";
-import { accessFilterIds } from "@/lib/branches/filter";
-import { memberBranchView } from "@/lib/branches/guard";
+import { allowedLocations } from "@/lib/branches/access";
+import { accessFilterIds, withBranchFilter } from "@/lib/branches/filter";
+import { branchView } from "@/lib/branches/server";
 import { formatCardTime, loadPatientCard } from "@/lib/front-desk/server";
 import { loadDeskOptions } from "@/lib/front-desk/options";
 import { quickReplyAppointmentValues } from "@/lib/front-desk/patient-card";
 import { contactDisplayName } from "@/lib/inbox/contact-name";
 import type { QuickReplyContext } from "@/lib/inbox/quick-reply";
-import { parseInboxQuery, viewFilterToQuery, type InboxQuery } from "@/lib/inbox/folders";
+import {
+  inboxBranchIds,
+  parseInboxQuery,
+  viewFilterToQuery,
+  type InboxQuery,
+} from "@/lib/inbox/folders";
 import {
   folderCounts,
   listConversationsPage,
@@ -48,6 +54,7 @@ export default async function InboxPage({
     { data: templates },
     { data: members },
     { data: org },
+    { data: locations },
   ] = await Promise.all([
     supabase
       .from("team_members")
@@ -100,16 +107,34 @@ export default async function InboxPage({
       .eq("org_id", member.orgId)
       .eq("status", "active"),
     supabase.from("orgs").select("settings").eq("id", member.orgId).single(),
+    // Phase B: branch names for the filter and the row chips (names only).
+    admin
+      .from("locations")
+      .select("id, name")
+      .eq("org_id", member.orgId)
+      .eq("active", true)
+      .order("name"),
   ]);
 
   const teamIds = (myTeams ?? []).map((t) => t.team_id);
-  const ctx = { userId: member.userId, orgId: member.orgId, teamIds };
 
   let query: InboxQuery = parseInboxQuery(params);
   if (query.view) {
     const v = (views ?? []).find((x) => x.id === query.view);
     if (v) query = { ...viewFilterToQuery(v.filter), view: v.id };
   }
+  // Phase B: the list follows the branch switcher unless a branch is chosen in the filter (or a saved view).
+  const branchList = locations ?? [];
+  const branch = await branchView(
+    member,
+    branchList.map((l) => l.id),
+  );
+  const ctx = {
+    userId: member.userId,
+    orgId: member.orgId,
+    teamIds,
+    branchIds: inboxBranchIds(query.branch, branch),
+  };
 
   const selectedId = typeof params.c === "string" ? params.c : null;
   const [{ rows: conversations, nextCursor: conversationsCursor }, counts, selectedRow] =
@@ -250,11 +275,10 @@ export default async function InboxPage({
     const showDesk = can(member, "frontdesk.use") && can(member, "appointments.view");
     const tz = member.org.timezone || "Asia/Dubai";
     // Phase B: the card and the desk dialogs keep to the branches this member may work in.
-    const branch = showDesk ? await memberBranchView(admin, member) : null;
-    const card = branch
+    const card = showDesk
       ? await loadPatientCard(admin, member.orgId, c.id, new Date(), accessFilterIds(branch.access))
       : null;
-    const desk = branch
+    const desk = showDesk
       ? {
           card,
           options: await loadDeskOptions(admin, member.orgId, tz, {
@@ -270,7 +294,13 @@ export default async function InboxPage({
         }
       : null;
     const apptValues = quickReplyAppointmentValues(
-      card?.next_appointment ?? (await nextAppointmentForReplies(admin, member.orgId, c.id)),
+      card?.next_appointment ??
+        (await nextAppointmentForReplies(
+          admin,
+          member.orgId,
+          c.id,
+          accessFilterIds(branch.access),
+        )),
       (iso) => formatCardTime(iso, tz),
     );
     quickReplyContext = {
@@ -369,6 +399,9 @@ export default async function InboxPage({
       require_category_on_close: settings.require_category_on_close,
       require_summary_on_close: settings.require_summary_on_close,
     },
+    branches: allowedLocations(branchList, branch.access),
+    branchNames: Object.fromEntries(branchList.map((l) => [l.id, l.name])),
+    currentBranch: branch.current,
     conversations,
     conversationsCursor,
     selected,
@@ -380,19 +413,24 @@ export default async function InboxPage({
   return <InboxShell {...props} />;
 }
 
-/** Next live appointment of a patient, for {{doctor}} / {{appointment_time}} when the desk card is not loaded. */
+/**
+ * Next live appointment of a patient, for {{doctor}} / {{appointment_time}} when the desk card is not loaded. Phase B:
+ * only in the branches this member may see (service role, so the rule is applied here like RLS would).
+ */
 async function nextAppointmentForReplies(
   admin: ReturnType<typeof createAdminClient>,
   orgId: string,
   contactId: string,
+  branchIds: string[] | null,
 ) {
-  const { data } = await admin
+  const query = admin
     .from("appointments")
     .select("starts_at, specialists(name), locations(name)")
     .eq("org_id", orgId)
     .eq("contact_id", contactId)
     .in("status", ["awaiting", "confirmed"])
-    .gte("starts_at", new Date().toISOString())
+    .gte("starts_at", new Date().toISOString());
+  const { data } = await withBranchFilter(query, branchIds)
     .order("starts_at")
     .limit(1)
     .maybeSingle();

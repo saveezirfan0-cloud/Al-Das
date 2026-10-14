@@ -11,16 +11,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { EmailDocumentButton } from "@/components/finance/email-document-button";
 import { selectClass } from "@/components/finance/forms";
 import { RECEIVABLES_READ } from "@/lib/accounting/nav";
 import { loadCustomers, loadStatement } from "@/lib/accounting/receivables-server";
 import { canAny, ForbiddenError } from "@/lib/auth/can";
 import { requireMember } from "@/lib/auth/session";
+import { customerEmailProblem } from "@/lib/finance/document-email";
 import { money } from "@/lib/finance/format";
 import { recordAccess } from "@/lib/security/access-log";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import { dateParam, RangeForm } from "../ui";
+import { emailBalanceConfirmation, emailCustomerStatement } from "./actions";
 
 export const metadata = { title: "Customer statements" };
 export const dynamic = "force-dynamic";
@@ -46,6 +49,8 @@ export default async function StatementsPage({
     customerId && from <= to ? await loadStatement(admin, member.orgId, customerId, from, to) : null;
   if (s) await recordAccess(admin, member, { entity: "accounting_receivable", action: "list" });
   const qs = s ? `customer=${s.customer.id}&from=${from}&to=${to}` : "";
+  const emailProblem = s ? customerEmailProblem(s.customer) : null;
+  const recipients = s?.customer.email ? [{ name: s.customer.name, email: s.customer.email }] : [];
 
   return (
     <div className="flex flex-col gap-4">
@@ -66,6 +71,31 @@ export default async function StatementsPage({
                 Balance confirmation
               </a>
             </Button>
+            <EmailDocumentButton
+              label="E-mail statement"
+              title="E-mail the statement"
+              description={`The statement for ${from} to ${to} goes out as a PDF from Pulse's address. Replies come back to the finance team.`}
+              recipients={recipients}
+              disabledReason={emailProblem}
+              action={emailCustomerStatement.bind(null, {
+                customerId: s.customer.id,
+                from,
+                to,
+                recipient: s.customer.email ?? "",
+              })}
+            />
+            <EmailDocumentButton
+              label="E-mail balance confirmation"
+              title="E-mail the balance confirmation"
+              description={`The balance-confirmation letter as at ${to} goes out as a PDF, asking the customer to confirm the balance or report a difference.`}
+              recipients={recipients}
+              disabledReason={emailProblem}
+              action={emailBalanceConfirmation.bind(null, {
+                customerId: s.customer.id,
+                asOf: to,
+                recipient: s.customer.email ?? "",
+              })}
+            />
           </>
         )}
       </PageHeader>

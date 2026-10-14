@@ -24,6 +24,7 @@ import {
 import { can, canAny, ForbiddenError } from "@/lib/auth/can";
 import { requireMember } from "@/lib/auth/session";
 import { money } from "@/lib/finance/format";
+import { exportQuery } from "@/lib/finance/list-exports";
 import { recordAccess } from "@/lib/security/access-log";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -71,6 +72,11 @@ export default async function JournalsPage({ searchParams }: { searchParams: Pro
         title="Journals"
         description="Every journal, manual or posted from a source. A posted journal never changes; it is corrected by a reversal."
       >
+        <Button asChild variant="outline" size="sm">
+          <a href={`/api/accounting/journals/export${exportQuery(sp, ["status", "type", "from", "to"])}`}>
+            Excel
+          </a>
+        </Button>
         {can(member, "accounting.journals.prepare") && (
           <Button asChild>
             <Link href="/accounting/journals/new">New journal</Link>

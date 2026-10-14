@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/shell/page-header";
 import { statementQuery } from "@/lib/accounting/statements/params";
 
+import { BranchCodeSelect } from "../../ui";
 import { loadReportPage } from "../load";
 import { DownloadButtons, ProblemNote, ReportView, StatementFilters } from "../report-view";
 
@@ -12,7 +13,7 @@ export default async function CashFlowPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { ctx, p, built } = await loadReportPage("cash-flow", searchParams);
+  const { ctx, p, built, branchOptions } = await loadReportPage("cash-flow", searchParams);
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
@@ -27,7 +28,9 @@ export default async function CashFlowPage({
         from={p.from}
         to={p.to}
         includeAdjustment={p.includeAdjustment}
-      />
+      >
+        <BranchCodeSelect options={branchOptions} value={p.branch} />
+      </StatementFilters>
       <ProblemNote problem={p.problem} />
       <ReportView doc={built.doc} />
     </div>

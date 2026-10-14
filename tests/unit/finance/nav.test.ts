@@ -175,6 +175,8 @@ describe("Finance navigation", () => {
         "/finance/doctor-performance", // Phase 23B: follows finance.revenue.view (docs/39 §4)
         "/finance/doctors",
         "/finance/flash",
+        // Phase G: the reports hub, which shows them only the cards of the keys above (no costs or profit)
+        "/finance/reports",
         "/finance/revenue",
         "/finance/scorecards",
         "/finance/summary",

@@ -21,7 +21,9 @@ export default async function FinanceLayout({ children }: { children: React.Reac
   return (
     <div className="flex flex-col gap-6 md:flex-row md:gap-10">
       {/* phones keep this menu; from md up the sidebar tree lists the same pages and shows these counts */}
-      <SettingsNav items={items} label="Finance" mobileOnly />
+      <div className="contents print:hidden">
+        <SettingsNav items={items} label="Finance" mobileOnly />
+      </div>
       <PublishNavBadges
         counts={Object.fromEntries(items.filter((i) => i.badge).map((i) => [i.href, i.badge!]))}
       />

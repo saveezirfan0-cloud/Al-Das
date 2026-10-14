@@ -36,7 +36,7 @@ export const GUIDES: readonly Guide[] = [
     pages: ["/inbox"],
     purpose: "Answer patients on WhatsApp together, without two people replying to the same chat.",
     steps: [
-      "Take a conversation with the Take button, or wait for it to be assigned to you.",
+      "Take a conversation with the Take button, or wait for it to be assigned to you. With more than one branch, each chat shows the branch of its number and the list follows the branch switcher (Filters picks another branch, or All my branches).",
       "Type / in the message box to use a quick reply. Names and appointment details fill in for you.",
       "If the 24-hour window has closed, pick a template instead of typing a message.",
       "Use the Patient tab on the right to see the next appointment and any flags without leaving the chat.",
@@ -67,6 +67,71 @@ export const GUIDES: readonly Guide[] = [
     ],
   },
   {
+    id: "my-day",
+    title: "My day",
+    pages: ["/my-day"],
+    purpose: "A doctor's own list for today: who is coming, who is waiting, and what else is due.",
+    steps: [
+      "The tiles count today's appointments: still to come, waiting (arrived at the desk), with you, and seen.",
+      "The highlighted row is your next patient: the first one waiting, or the next one booked.",
+      "Open a row to see the appointment. The desk moves patients through Arrived, With doctor and Done.",
+      "Your tasks due today (and any overdue) are listed below; the follow-up queue link opens clinical follow-ups.",
+    ],
+    watchOut: [
+      "The page only knows your appointments once your Pulse user is linked to your doctor record (Settings, Appointments).",
+      "Press Refresh to see the latest check-in states; the page does not update by itself.",
+    ],
+  },
+  {
+    id: "doctors",
+    title: "Doctors",
+    pages: ["/doctors"],
+    purpose:
+      "One directory of the clinic's doctors: specialty, branches, services, licence and today's list.",
+    steps: [
+      "Search by name or specialty, or pick a branch to see who works there.",
+      "The licence column turns amber when a licence expires within the reminder days and red once it has expired.",
+      "Open a doctor to see their working hours per branch, upcoming time off and how many patients they have today.",
+      "Open calendar shows that doctor's diary. People who manage settings or staff can edit the specialty, licence, extension and short bio.",
+    ],
+    watchOut: [
+      "Working hours, services and branches are changed under Settings, Appointments, not here.",
+      "Keep the bio short and professional; it is not a place for patient details.",
+    ],
+  },
+  {
+    id: "staff",
+    title: "Staff",
+    pages: ["/staff"],
+    purpose: "Everyone who works at the clinic, their duties and their visa and licence dates.",
+    steps: [
+      "Add staff member with a name, job, department and home branch; the rest can follow.",
+      "Link the person to their Pulse user, and to their doctor record if they are a doctor.",
+      "The Duties tab is their checklist (daily, weekly, monthly or once). The Rota tab shows their next four weeks of shifts.",
+      "Expiring or expired only filters the visas and licences that need action. Reminder days sets how early everyone is told.",
+      "Archive someone who has left: they leave the lists and the rota, and Restore brings them back.",
+    ],
+    watchOut: [
+      "Pay is never recorded here; it stays in Finance with its own permission.",
+      "Notes are for work matters only. Do not write medical, pay or patient details.",
+    ],
+  },
+  {
+    id: "rota",
+    title: "Rota",
+    pages: ["/staff/rota"],
+    purpose: "Who is on, where and when: one branch, one week at a time.",
+    steps: [
+      "Pick the branch and use the arrows to move between weeks.",
+      "Press + in a day to add a shift for that person, or Add shift at the top. Choose the role (front desk, doctor, nurse) and the room.",
+      "Click a shift to change or remove it. An end time before the start means the shift runs past midnight.",
+    ],
+    watchOut: [
+      "A person cannot have two shifts at the same time, even in different branches; Pulse refuses the second one.",
+      "Times are in the branch's own timezone.",
+    ],
+  },
+  {
     id: "contacts",
     title: "Contacts",
     pages: ["/contacts"],
@@ -75,6 +140,7 @@ export const GUIDES: readonly Guide[] = [
       "Search by name or phone, or build a saved view with filters.",
       "Open a row to edit details, add tags and see the timeline.",
       "Two records for the same person? Use Merge. Two people who share a phone (a parent and child) are linked as a household instead.",
+      "Home branch on the record says which branch usually sees the patient; add the Home branch column or filter by it. Patients can still book and message any branch.",
       "The Documents tab (if you have access) keeps referral letters, lab reports, insurance cards and consent forms. Add one with a title, a category and, for an insurance card, its expiry date.",
     ],
     watchOut: [
@@ -92,8 +158,12 @@ export const GUIDES: readonly Guide[] = [
       "Tasks assigned to you are listed first, oldest due date at the top.",
       "Open a task to see the patient and notes. Tick it off when it is done and write the outcome.",
       "A call logged from the Front desk shows up here until you close it.",
+      "With more than one branch, a new task starts in the branch chosen in the switcher (change it in the task). The list follows the switcher; pick another branch or All my branches above the list.",
     ],
-    watchOut: ["Overdue tasks show a red badge in the menu."],
+    watchOut: [
+      "Overdue tasks show a red badge in the menu.",
+      "People limited to some branches only see those branches' tasks and tasks without a branch.",
+    ],
   },
   {
     id: "enquiries",
@@ -203,6 +273,42 @@ export const GUIDES: readonly Guide[] = [
     watchOut: ["Finance data never shows patient names, only the Unite PIN."],
   },
   {
+    id: "finance-reports",
+    title: "Finance reports",
+    pages: ["/finance/reports"],
+    purpose:
+      "Every finance and accounting report on one page: management, accounting, receivables and tax, each opening with the branch and period you picked.",
+    steps: [
+      "Pick the branch, then Month, Quarter or Year and which one. Tick Compare to set the reports that can compare against the period before.",
+      "Press View on a card to open the report with those choices, or Excel, CSV or PDF to download the same view.",
+      "Each card shows what it takes from the picker. A card that says Shows all branches or no comparison cannot narrow that way.",
+      "A running month or quarter stops at today; the daily flash opens on the period's last day (yesterday at the latest).",
+    ],
+    watchOut: [
+      "You only see the reports your role may open; ask an administrator if one is missing.",
+      "Finance figures are for the whole organisation. The branch narrows the reports that support it; it never widens what you may see.",
+    ],
+  },
+  {
+    id: "finance-invoices",
+    title: "Invoices and claims",
+    pages: ["/finance/invoices", "/finance/claims"],
+    purpose:
+      "The invoices captured from Unite and the insurance claims matched to them, with who owes what and where each invoice stands in the ledger.",
+    steps: [
+      "Filter the list (number, dates, branch, doctor, type) and press Excel to download every matching invoice, not only the page shown.",
+      "Open an invoice: Who pays shows the payer and TPA, the insurer's and the patient's (or company's) share, what was paid and the balance due. It is the same split the ledger posts.",
+      "Ledger shows whether the invoice is posted, with a link to its journal, or why it is waiting (accounting readers only).",
+      "Print prints the page without the menus. Internal PDF downloads a copy marked Internal copy - not a tax invoice.",
+      "Claims: filter and press Excel for every matching claim activity.",
+    ],
+    watchOut: [
+      "The internal copy is for finance files only. The patient's invoice is the one Unite issued; never send the internal copy as a tax invoice.",
+      "Until a Diligence claim is matched, the whole insurance invoice waits on the insurer and the patient's copay is not known yet.",
+      "Downloads are logged with your name.",
+      ],
+    },
+    {
     id: "finance-doctor-performance",
     title: "Doctor performance",
     pages: ["/finance/doctor-performance"],
@@ -439,7 +545,8 @@ export const GUIDES: readonly Guide[] = [
       "Eligibility lists what is not ready to bill and why. Fix it before the invoice goes out.",
       "Denials: assign each case, write the appeal and send it yourself. Pulse only drafts the letter.",
       "Remittance: upload the payer's file, check the proposed matches, then commit. The original file is deleted.",
-      "Month-end close: build the pack, finance signs, then the CEO signs the same version. The month is then locked.",
+      "Month-end close: build the pack, finance signs, then the CEO signs the same version. The month is then locked. E-mail close pack sends the same PDF as the download to the people who signed it, after you confirm the recipients.",
+      "Denials: Excel downloads every case that matches the filters.",
       "Cash-up: count each branch at the end of the day, submit, and note any difference.",
     ],
     watchOut: [
@@ -683,6 +790,7 @@ export const GUIDES: readonly Guide[] = [
       "Use Ctrl K to jump straight to a setting.",
       "Users and Roles decide who can do what. Give people the smallest role that lets them work.",
       "Front desk, Appointment rules and Training mode are under their own pages.",
+      "Branches: under Appointment rules, Locations, give each branch its finance branch code so ledger reports can show it. Under WhatsApp channels, Edit, choose each WhatsApp number's branch and the team its new chats go to first.",
     ],
     watchOut: [
       "Changes apply to everyone at once and are written to the Activity log.",
@@ -825,10 +933,13 @@ export const GUIDES: readonly Guide[] = [
       "Day book: choose the dates to see each journal with its lines (a year at most).",
       "General ledger: choose an account or a whole group and the dates; open any number to see its journal.",
       "Trial balance: choose the dates; download it as Excel. It must say Balanced.",
+      "Branch (general ledger and trial balance): show only the lines that name one finance branch code. Link each clinic to its code under Settings, Appointment rules, Locations.",
+      "Excel on the day book, the general ledger and the journals list downloads every line in the range, read in pages, not only what fits on the screen.",
     ],
     watchOut: [
       "Income and expense accounts start again each fiscal year; earlier years' profit shows on one line until the year-end close.",
       "Reversed journals stay in the books next to their reversal, so both show.",
+      "A branch view need not balance: bank, VAT and other control lines often name no branch.",
     ],
   },
   {
@@ -865,12 +976,30 @@ export const GUIDES: readonly Guide[] = [
       "Receipts, New receipt: choose the customer, the date, the amount and the bank or cash account. Pulse allocates it to the oldest open invoice first; change the amounts to allocate by hand. Anything left stays on account.",
       "A receipt by cheque: register the cheque first (Banking, Cheques), then choose it on the receipt. The receipt posts it on the cheque's date, so it is never posted twice; a post-dated cheque's receipt posts on that date.",
       "Open a receipt to change its allocation, or Void it: its journal is reversed and the invoices are open again. A receipt paid by a registered cheque is voided by bouncing or cancelling the cheque.",
-      "Receivables ageing shows each customer's open amounts as at a date: current, 1-30, 31-60, 61-90, 91-120 and over 120 days past due.",
+      "Receivables ageing shows each customer's open amounts as at a date: current, 1-30, 31-60, 61-90, 91-120 and over 120 days past due. Branch keeps the invoices with a line for that branch; money on account names no branch and is left out.",
       "Statements: choose the customer and dates; download it as PDF or Excel, or a balance-confirmation letter for the auditors.",
+      "E-mail statement and E-mail balance confirmation send the PDF to the customer's e-mail address (set it under Customers). The box shows the address before anything is sent.",
     ],
     watchOut: [
+      "Only business customers (insurers, companies, tenants) are e-mailed, never patients. If the address changes after you confirm, the e-mail is not sent and Pulse tells you.",
       "Insurance remittances are matched in Finance, Remittances, not recorded here.",
       "Only Pulse's own sales invoices are aged here; insurance claims from Unite are aged in Finance.",
+    ],
+  },
+  {
+    id: "accounting-payables",
+    title: "Payables ageing and supplier statements",
+    pages: ["/accounting/payables-ageing", "/accounting/supplier-statements"],
+    purpose:
+      "What the clinic owes each supplier and for how long, and each supplier's statement to compare with theirs, from the supplier invoices and payment vouchers in Finance.",
+    steps: [
+      "Payables ageing: choose the date. Each supplier's open invoices fall into current, 1-30, 31-60, 61-90, 91-120 and over 120 days past due; vouchers paid without an invoice show as paid on account.",
+      "Most overdue invoices lists the oldest ones; Excel lists every open invoice.",
+      "Supplier statements: choose the supplier and dates to see each invoice and payment with the running balance owed; download it as Excel.",
+    ],
+    watchOut: [
+      "An invoice counts as paid once its payment voucher is recorded as paid; the statement uses the voucher's amount, so a small difference stays on the statement.",
+      "Invoices in a currency other than AED are left out of the totals and counted below them.",
     ],
   },
   {
@@ -981,7 +1110,8 @@ export const GUIDES: readonly Guide[] = [
     purpose:
       "The profit and loss, balance sheet, cash flow, ratios and exception lists, all read from the posted ledger, with Excel and PDF downloads.",
     steps: [
-      "Profit and loss: choose the dates; split the columns by month, branch, department or doctor, or compare with the previous period or the same period last year. Click a ledger to open its general ledger.",
+      "Profit and loss: choose the dates; split the columns by month, branch, department or doctor, or compare with the previous period or the same period last year. Branches side by side puts every branch in its own column. Click a ledger to open its general ledger.",
+      "Balance sheet and cash flow: Branch shows only the lines that name one finance branch code (such a view need not balance).",
       "Balance sheet: choose the date; this year's profit shows as a line in equity until the year-end close. It must balance; a difference is shown in red.",
       "Cash flow: net profit, non-cash items, working capital, investing and financing, reconciled to the cash and bank ledgers. Set a ledger's class under Chart of accounts, Reporting.",
       "Exceptions: look at these before closing a month (late postings, cash below zero, balances on the wrong side, suspense, large manual journals, missing branch or cost centre).",

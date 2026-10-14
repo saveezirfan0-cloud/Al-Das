@@ -26,6 +26,23 @@ export const CLIPS: readonly Clip[] = [
     pages: ["/dashboard", "/notifications", "/help"],
   },
   {
+    id: "my-day",
+    title: "Your day as a doctor",
+    summary: "Today's list, who is waiting, the next patient, your tasks and the follow-up queue.",
+    minutes: 3,
+    roles: ["Doctor"],
+    pages: ["/my-day"],
+  },
+  {
+    id: "staff-rota",
+    title: "Staff records, duties and the rota",
+    summary:
+      "Adding a person, their duties, visa and licence reminders, and planning a week of shifts.",
+    minutes: 5,
+    roles: ["HR"],
+    pages: ["/staff"],
+  },
+  {
     id: "front-desk-board",
     title: "Running the day from the Today board",
     summary: "Arrivals by time, confirmed and unconfirmed, check-in steps, no-shows and walk-ins.",

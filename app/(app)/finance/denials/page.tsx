@@ -30,6 +30,8 @@ import { createClient } from "@/lib/supabase/server";
 
 import { SyncButton } from "./denial-controls";
 
+import { exportQuery } from "@/lib/finance/list-exports";
+
 export const metadata = { title: "Denials" };
 export const dynamic = "force-dynamic";
 
@@ -101,6 +103,15 @@ export default async function DenialsPage({ searchParams }: { searchParams: Prom
         description={`${total.toLocaleString()} case(s). Each denied claim becomes a case with an owner and a resubmission deadline; draft an appeal letter from the case (drafts only, never sent by Pulse).`}
       >
         <SyncButton />
+        {total > 0 && (
+          <Button asChild variant="outline" size="sm">
+            <a
+              href={`/api/finance/denials/export${exportQuery(sp, ["q", "status", "payer", "mine", "due"])}`}
+            >
+              Excel
+            </a>
+          </Button>
+        )}
       </PageHeader>
       {!settings.denialCasesStartDate && (
         <Card>

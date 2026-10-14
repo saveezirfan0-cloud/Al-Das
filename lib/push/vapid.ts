@@ -10,6 +10,12 @@ export function generateVapidKeys(): { publicKey: string; privateKey: string } {
   ecdh.generateKeys();
   return {
     publicKey: ecdh.getPublicKey().toString("base64url"),
-    privateKey: ecdh.getPrivateKey().toString("base64url"),
+    // getPrivateKey() drops leading zero bytes (about 1 key in 256 comes back 31 bytes); VAPID needs exactly 32.
+    privateKey: leftPad(ecdh.getPrivateKey(), 32).toString("base64url"),
   };
+}
+
+function leftPad(buf: Buffer, size: number): Buffer {
+  if (buf.length >= size) return buf;
+  return Buffer.concat([Buffer.alloc(size - buf.length), buf]);
 }

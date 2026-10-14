@@ -7,16 +7,16 @@ import { toWinAnsi } from "@/lib/finance/close-pdf";
  * "readable and paginated", not against a printed sample.
  */
 
-const PAGE_W = 595.28;
+export const PAGE_W = 595.28;
 const PAGE_H = 841.89;
-const MARGIN = 40;
+export const MARGIN = 40;
 
 const fmt = (n: number) =>
   n.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-type Col = { label: string; width: number; align?: "left" | "right" };
+export type Col = { label: string; width: number; align?: "left" | "right" };
 
-async function makeDoc(title: string, when: Date) {
+export async function makeDoc(title: string, when: Date) {
   const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");
   const doc = await PDFDocument.create();
   doc.setTitle(toWinAnsi(title));

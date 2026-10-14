@@ -4,7 +4,8 @@ import { z } from "zod";
 
 import { canAny } from "@/lib/auth/can";
 import { requireMember } from "@/lib/auth/session";
-import { parseInboxQuery } from "@/lib/inbox/folders";
+import { memberBranchView } from "@/lib/branches/guard";
+import { inboxBranchIds, parseInboxQuery } from "@/lib/inbox/folders";
 import {
   listConversationsPage,
   listMessagesPage,
@@ -39,6 +40,7 @@ const olderConversationsSchema = z.object({
     label: optionalId,
     channel: optionalId,
     assignee: optionalId,
+    branch: z.union([z.literal("all"), uuid]).nullish(),
   }),
   cursor,
 });
@@ -61,6 +63,7 @@ export async function loadOlderConversations(
     label: raw.label ?? undefined,
     channel: raw.channel ?? undefined,
     assignee: raw.assignee ?? undefined,
+    branch: raw.branch ?? undefined,
   });
   const supabase = await createClient();
   const { data: myTeams } = await supabase
@@ -68,10 +71,13 @@ export async function loadOlderConversations(
     .select("team_id")
     .eq("org_id", member.orgId)
     .eq("user_id", member.userId);
+  // Phase B: the same branch view as the first page (switcher, or the filter's branch).
+  const branch = await memberBranchView(createAdminClient(), member);
   const ctx = {
     userId: member.userId,
     orgId: member.orgId,
     teamIds: (myTeams ?? []).map((t) => t.team_id),
+    branchIds: inboxBranchIds(query.branch, branch),
   };
   let page: ConversationPage;
   try {

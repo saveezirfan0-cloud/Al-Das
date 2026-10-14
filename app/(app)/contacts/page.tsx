@@ -1,5 +1,6 @@
 import { can } from "@/lib/auth/can";
 import { requirePerm } from "@/lib/auth/session";
+import { canSeeLocation, readBranchAccess } from "@/lib/branches/access";
 import { loadContactContext } from "@/lib/contacts/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -13,7 +14,7 @@ export default async function ContactsPage() {
   const member = await requirePerm("contacts.view");
   const admin = createAdminClient();
   const canDrip = can(member, "contacts.manage") && can(member, "flows.manage");
-  const [ctx, { data: prefs }, { data: dripFlows }] = await Promise.all([
+  const [ctx, { data: prefs }, { data: dripFlows }, { data: locations }] = await Promise.all([
     loadContactContext(admin, member.orgId),
     admin
       .from("user_grid_prefs")
@@ -30,7 +31,14 @@ export default async function ContactsPage() {
           .eq("trigger_type", "segment_joined")
           .order("name")
       : Promise.resolve({ data: [] as Array<{ id: string; name: string; status: string }> }),
+    admin
+      .from("locations")
+      .select("id, name")
+      .eq("org_id", member.orgId)
+      .eq("active", true)
+      .order("name"),
   ]);
+  const access = readBranchAccess(member);
 
   const bootstrap: ContactsBootstrap = {
     userId: member.userId,
@@ -64,6 +72,11 @@ export default async function ContactsPage() {
     tags: ctx.tags,
     segments: ctx.segments,
     users: ctx.users,
+    branches: (locations ?? []).map((l) => ({
+      id: l.id,
+      name: l.name,
+      allowed: canSeeLocation(access, l.id),
+    })),
     gridPrefs: (prefs?.prefs as GridPrefs | null) ?? null,
   };
 

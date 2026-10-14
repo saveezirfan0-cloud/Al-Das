@@ -12,6 +12,7 @@ export const PERMISSION_GROUPS = [
   "Enquiries & tasks",
   "Appointments",
   "Front desk",
+  "Organisation",
   "Campaigns & templates",
   "Media & documents",
   "Flows",
@@ -72,6 +73,20 @@ export const PERMISSIONS = [
     label: "Use the Front desk workspace",
     description:
       "Today board and check-in, waitlist, walk-in registration, household links, end-of-day sheet and handover notes. Bookings, cancellations and messages still need their own permissions.",
+  },
+  {
+    key: "hr.view",
+    group: "Organisation",
+    label: "View staff records and the rota",
+    description:
+      "The staff directory (job, department, home branch, manager, employment type, visa and licence dates), their duties and the rota. Never pay amounts: those stay in Finance.",
+  },
+  {
+    key: "hr.manage",
+    group: "Organisation",
+    label: "Manage staff records, duties and the rota",
+    description:
+      "Add, edit and archive staff, their duties and shifts, edit doctors' licence details, and set the expiry reminder days. Audited.",
   },
   { key: "campaigns.view", group: "Campaigns & templates", label: "View campaigns" },
   { key: "campaigns.create", group: "Campaigns & templates", label: "Create and send campaigns" },
@@ -1063,6 +1078,25 @@ export const SYSTEM_ROLES: readonly RolePreset[] = [
       "reports.view",
       "ads.view",
     ],
+  },
+  {
+    name: "Doctor",
+    description:
+      "Sees their own day: today's appointments and check-in states, their tasks and the clinical follow-up queue. Read-only on the diary.",
+    permissions: [
+      "appointments.view",
+      "contacts.view",
+      "tasks.view",
+      "tasks.manage",
+      "portal.clinical_followups.read",
+      "portal.clinical_visits.read",
+    ],
+  },
+  {
+    name: "HR",
+    description:
+      "Staff records, duties and the rota, and the visa and licence reminders. No pay amounts (those stay in Finance).",
+    permissions: ["hr.view", "hr.manage"],
   },
   ...FINANCE_ROLES,
   ...ACCOUNTING_ROLES,

@@ -20,7 +20,7 @@ export type PlDimension = "none" | "month" | "branch" | "department" | "doctor";
 export const PL_DIMENSIONS: Array<{ value: PlDimension; label: string }> = [
   { value: "none", label: "One column" },
   { value: "month", label: "By month" },
-  { value: "branch", label: "By branch" },
+  { value: "branch", label: "Branches side by side" },
   { value: "department", label: "By department" },
   { value: "doctor", label: "By doctor" },
 ];

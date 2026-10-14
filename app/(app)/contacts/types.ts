@@ -27,5 +27,7 @@ export type ContactsBootstrap = {
   tags: TagOption[];
   segments: SegmentSummary[];
   users: Array<{ id: string; label: string }>;
+  /** Phase B: every active branch (names for the column and filter) and the ones this member may pick as home branch. */
+  branches: Array<{ id: string; name: string; allowed: boolean }>;
   gridPrefs: GridPrefs | null;
 };

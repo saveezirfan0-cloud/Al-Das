@@ -23,6 +23,7 @@ import { contactDisplayName } from "@/lib/inbox/contact-name";
 import { parseMentions } from "@/lib/inbox/mentions";
 import { closeConversationRecord } from "@/lib/inbox/close";
 import { addNote, queueOutbound, type SendSpec } from "@/lib/inbox/send";
+import { routingTeamId } from "@/lib/inbox/routing-rules";
 import { readInboxSettings } from "@/lib/inbox/settings";
 import { enqueue } from "@/lib/jobs/enqueue";
 import { MEDIA_BUCKET, extensionFor } from "@/lib/jobs/handlers/media-fetch";
@@ -548,12 +549,20 @@ export async function autoAssignConversation(conversationId: string): Promise<Ac
   const admin = createAdminClient();
   let teamId = conversation.assignee_team_id;
   if (!teamId) {
-    const { data: org } = await admin
-      .from("orgs")
-      .select("settings")
-      .eq("id", member.orgId)
-      .single();
-    teamId = readInboxSettings(org?.settings).default_team_id;
+    // Phase B: the number's own team first, then the workspace default.
+    const [{ data: org }, { data: channel }] = await Promise.all([
+      admin.from("orgs").select("settings").eq("id", member.orgId).single(),
+      admin
+        .from("channels")
+        .select("default_team_id")
+        .eq("id", conversation.channel_id)
+        .eq("org_id", member.orgId)
+        .maybeSingle(),
+    ]);
+    teamId = routingTeamId(
+      channel?.default_team_id,
+      readInboxSettings(org?.settings).default_team_id,
+    );
   }
   if (!teamId)
     return {

@@ -108,3 +108,66 @@ export function ConfirmDialog({
     </Dialog>
   );
 }
+
+export type ConfirmOptions = {
+  title: string;
+  description?: React.ReactNode;
+  confirmLabel?: string;
+  destructive?: boolean;
+};
+
+/**
+ * The in-app replacement for the browser's `confirm()`: `const [confirm, confirmDialog] = useConfirm();` then
+ * `if (!(await confirm({ title: "Mark as no-show?" }))) return;` and render `{confirmDialog}` once in the component.
+ * Cancel, Escape and clicking outside all answer false.
+ */
+export function useConfirm(): [(options: ConfirmOptions) => Promise<boolean>, React.ReactNode] {
+  const [request, setRequest] = React.useState<
+    (ConfirmOptions & { resolve: (ok: boolean) => void }) | null
+  >(null);
+
+  const confirm = React.useCallback(
+    (options: ConfirmOptions) =>
+      new Promise<boolean>((resolve) => {
+        setRequest({ ...options, resolve });
+      }),
+    [],
+  );
+
+  function answer(ok: boolean) {
+    request?.resolve(ok);
+    setRequest(null);
+  }
+
+  const dialog = (
+    <Dialog open={request !== null} onOpenChange={(o) => !o && answer(false)}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{request?.title}</DialogTitle>
+          {request?.description ? (
+            <DialogDescription asChild>
+              <div>{request.description}</div>
+            </DialogDescription>
+          ) : (
+            <DialogDescription className="sr-only">Confirm or cancel.</DialogDescription>
+          )}
+        </DialogHeader>
+        <DialogFooter>
+          <Button type="button" variant="ghost" onClick={() => answer(false)}>
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            variant={request?.destructive ? "destructive" : "default"}
+            onClick={() => answer(true)}
+            autoFocus
+          >
+            {request?.confirmLabel ?? "Continue"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+
+  return [confirm, dialog];
+}
