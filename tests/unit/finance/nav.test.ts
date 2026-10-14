@@ -134,13 +134,23 @@ describe("Finance navigation", () => {
     );
     expect(role("CEO")).not.toContain("finance.bank.signoff");
     for (const r of ["Billing", "Insurance", "Medical Director", "Cost / Payroll"])
-      expect(hrefs(member(role(r))).filter((h) => h.startsWith("/finance/bank")), r).toEqual([]);
+      expect(
+        hrefs(member(role(r))).filter((h) => h.startsWith("/finance/bank")),
+        r,
+      ).toEqual([]);
   });
 
   it("the Finance inbox is for Finance and the Finance Manager only, next to Supplier invoices, with a badge", () => {
     for (const r of ["Finance", "Finance Manager"])
       expect(hrefs(member(role(r))), r).toContain("/finance/inbox");
-    for (const r of ["CEO", "Department head", "Billing", "Insurance", "Medical Director", "Cost / Payroll"])
+    for (const r of [
+      "CEO",
+      "Department head",
+      "Billing",
+      "Insurance",
+      "Medical Director",
+      "Cost / Payroll",
+    ])
       expect(hrefs(member(role(r))), r).not.toContain("/finance/inbox");
     // its own key: neither payables nor voucher rights imply it, and it implies nothing else
     expect(hrefs(member(["finance.payables.manage"]))).not.toContain("/finance/inbox");
@@ -156,14 +166,22 @@ describe("Finance navigation", () => {
       expect(hrefs(member(role(r))), r).toEqual(
         expect.arrayContaining(["/finance/labs", "/finance/labs/settings"]),
       );
-      expect(role(r), r).toEqual(expect.arrayContaining(["finance.labs.view", "finance.labs.manage"]));
+      expect(role(r), r).toEqual(
+        expect.arrayContaining(["finance.labs.view", "finance.labs.manage"]),
+      );
     }
     expect(hrefs(member(role("CEO")))).toContain("/finance/labs");
     expect(hrefs(member(role("CEO")))).not.toContain("/finance/labs/settings");
     expect(role("CEO")).not.toContain("finance.labs.manage");
     for (const r of ["Billing", "Insurance", "Medical Director", "Cost / Payroll", "Operations"]) {
-      expect(hrefs(member(role(r))).filter((h) => h.startsWith("/finance/labs")), r).toEqual([]);
-      expect(role(r).filter((p) => p.startsWith("finance.labs.")), r).toEqual([]);
+      expect(
+        hrefs(member(role(r))).filter((h) => h.startsWith("/finance/labs")),
+        r,
+      ).toEqual([]);
+      expect(
+        role(r).filter((p) => p.startsWith("finance.labs.")),
+        r,
+      ).toEqual([]);
     }
   });
 
@@ -185,6 +203,7 @@ describe("Finance navigation", () => {
         "/finance/analytics",
         "/finance/branches",
         "/finance/collections", // Phase 23D: follows finance.revenue.view
+        "/finance/capacity", // M3: follows finance.revenue.view; room costs stay hidden (no cost permission)
         "/finance/doctor-performance", // Phase 23B: follows finance.revenue.view (docs/39 §4)
         "/finance/doctors",
         "/finance/flash",
@@ -249,7 +268,10 @@ describe("Finance navigation", () => {
       expect(hrefs(member(role(r))), r).toContain("/finance/revenue-share");
     for (const r of ["Medical Director", "Billing", "Insurance", "Cost / Payroll"]) {
       expect(hrefs(member(role(r))), r).not.toContain("/finance/revenue-share");
-      expect(role(r).filter((p) => p.startsWith("finance.revshare.")), r).toEqual([]);
+      expect(
+        role(r).filter((p) => p.startsWith("finance.revshare.")),
+        r,
+      ).toEqual([]);
     }
     // maker (Finance) and checker (Finance Manager) are different roles; the CEO approves
     expect(role("Finance")).toEqual(
@@ -258,7 +280,9 @@ describe("Finance navigation", () => {
     expect(role("Finance")).not.toContain("finance.revshare.verify");
     expect(role("Finance Manager")).toContain("finance.revshare.verify");
     expect(role("Finance")).not.toContain("finance.revshare.approve");
-    expect(role("CEO")).toEqual(expect.arrayContaining(["finance.revshare.view", "finance.revshare.approve"]));
+    expect(role("CEO")).toEqual(
+      expect.arrayContaining(["finance.revshare.view", "finance.revshare.approve"]),
+    );
     expect(role("CEO")).not.toContain("finance.revshare.verify");
     expect(role("CEO")).not.toContain("finance.revshare.manage");
     expect(hrefs(member(["finance.revshare.approve"]))).toEqual(["/finance/revenue-share"]);
@@ -266,7 +290,10 @@ describe("Finance navigation", () => {
 
   it("cost and profit pages follow the blueprint's separation of duties", () => {
     // Cost / Payroll: costs (and its own close steps), no revenue, branch, doctor or profit pages
-    expect(hrefs(member(role("Cost / Payroll")))).toEqual(["/finance/close/timetable", "/finance/costs"]);
+    expect(hrefs(member(role("Cost / Payroll")))).toEqual([
+      "/finance/close/timetable",
+      "/finance/costs",
+    ]);
     // CEO sees profitability but not the cost inputs
     const ceo = hrefs(member(role("CEO")));
     expect(ceo).toContain("/finance/profitability");

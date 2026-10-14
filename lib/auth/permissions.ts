@@ -67,6 +67,13 @@ export const PERMISSIONS = [
   { key: "appointments.view", group: "Appointments", label: "View appointments" },
   { key: "appointments.manage", group: "Appointments", label: "Book and change appointments" },
   {
+    key: "rooms.manage",
+    group: "Appointments",
+    label: "Manage rooms",
+    description:
+      "Add and edit the rooms of a branch (kind and monthly cost). Never changes bookings.",
+  },
+  {
     key: "frontdesk.use",
     group: "Front desk",
     label: "Use the Front desk workspace",
@@ -970,6 +977,7 @@ export const SYSTEM_ROLES: readonly RolePreset[] = [
       "appointments.view",
       "appointments.manage",
       "frontdesk.use",
+      "rooms.manage",
       "campaigns.view",
       "campaigns.create",
       "templates.manage",
