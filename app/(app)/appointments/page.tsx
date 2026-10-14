@@ -92,6 +92,7 @@ export default async function AppointmentsPage({
       manage: can(member, "appointments.manage"),
       export: can(member, "contacts.export"),
       contacts: can(member, "contacts.manage"),
+      settings: can(member, "settings.manage"),
     },
     locations: myLocations,
     departments: departments ?? [],
