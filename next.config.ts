@@ -57,7 +57,16 @@ const securityHeaders = [
   { key: "Content-Security-Policy-Report-Only", value: csp },
 ];
 
+/**
+ * Vercel's build machine has 8 GB. With the Sentry source-map upload on, Next's own type and lint pass after the compile
+ * runs it out of memory (SIGKILL). GitHub CI gates every pull request on `pnpm typecheck`, `pnpm lint` and a full
+ * `pnpm build` that still runs that pass, so only the Vercel build skips the repeat (docs/38_HOSTING_SETUP.md).
+ */
+const onVercel = process.env.VERCEL === "1";
+
 const nextConfig: NextConfig = {
+  typescript: { ignoreBuildErrors: onVercel },
+  eslint: { ignoreDuringBuilds: onVercel },
   // unpdf bundles pdf.js, which uses `import.meta` in ways webpack cannot bundle. Load it from
   // node_modules at runtime instead (used only by the kb_ingest handler for PDF sources).
   serverExternalPackages: ["unpdf"],
