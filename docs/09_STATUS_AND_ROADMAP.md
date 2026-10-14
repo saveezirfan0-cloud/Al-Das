@@ -6,6 +6,29 @@ This is the single document to work from. Section 1 says where we are, 2 says wh
 
 ---
 
+## 0b. Update, 14 Oct 2026: Phase 22 (Pulse replaces Tally) merged
+
+**Everything the clinic still has to do, decide or send is in one list: `docs/TODO_FOR_AL_DAS.md`.**
+
+Merged to `main` through PR #45 (Phases 20 and 21 part 1), PR #46 (Phase 22A to 22I, 22K integration, 21B chronic recall alignment) and PR #49 (22J Tally bridge). Plan: `docs/22_ACCOUNTING_PLAN.md`; one notes file per slice (`docs/22_PHASE_22*_NOTES.md`, `docs/21_PHASE_21B_NOTES.md`).
+
+| Slice | What it gives the clinic |
+|---|---|
+| 22A | General ledger: one entity with three branches, fiscal year July to June (calendar year as a setting), Tally-compatible chart, tax codes, journals with maker and checker, gap-free numbering, day book, general ledger, trial balance; Accountant, Chief Accountant and Auditor roles |
+| 22B | ERP-style menu: modules open as a tree, sections and groups can be minimised and are remembered, flyouts on the narrow rail, every page in Ctrl+K |
+| 22C | Digital signatures: organisation seal (PAdES) on the voucher approval certificate and the locked close pack, optional personal certificate per approval step |
+| 22D | Posting engine: ledger start date, posting rules, journals from Unite invoices and payments, remittances, denials, bills, vouchers, revenue share, labs, cash-ups and settlements; waiting list and posting preview |
+| 22E | Receivables: customers, UAE tax invoices and credit notes, receipts and allocations, statements, ageing, balance confirmations |
+| 22F | Banking and cash: bank ledgers and position, transfers, bank entries, petty cash, cheque register with post-dated cheques |
+| 22G | Statements: P&L in Tally's layout, balance sheet, cash flow, budgets, VAT 201 working paper, ratios, exceptions, corporate tax bridge |
+| 22H | Fixed assets, depreciation runs, disposals, prepayment / accrual / deferred revenue schedules |
+| 22I | Tally import (masters, opening balances, voucher history) with dry run and reconciliation; year-end close |
+| 22J | Tally bridge: on-premise connector that keeps Tally and Pulse in step until cut-over |
+| 22K | Integration pass: one journal per event (cheques), one meaning per account code, shared SQL functions reconciled |
+| 21B | Chronic recall selects patients the way Airtable did (chronic-flagged diagnoses only, Unite last-visit date, booked patients off the call list) |
+
+Database: paste files `deploy/supabase-paste/21a_`, `21b_` and `22_` to `53_`, in number order (24 unused; 52 must follow 51). **None is applied to the live project yet**, so the new Finance and Accounting pages need them before they work in production. Every merge passed typecheck, lint, `pnpm audit:security`, the unit suite, the database suite (with PostgREST, as CI) and the build; nothing has been clicked in a browser or run against Unite, Postmark, TallyPrime, a real certificate or a model.
+
 ## 0a. Update, 13 Oct 2026: Phase 20 (finance control) and Phase 21 part 1
 
 Branch `claude/funny-clarke-6t7gee` (not merged to `main`, no pull request yet). Built from the finance meeting transcripts, the deck "The next stage of financial & management control" and the CEO's zero-paper directive; the plan, the files still needed from the clinic (D1 to D14) and the slice table are in `docs/20_FINANCE_CONTROL_PLAN.md`; each slice has its notes file (`docs/20_PHASE_20*_NOTES.md`, `docs/21_PHASE_21A_NOTES.md`).
