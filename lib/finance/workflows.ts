@@ -15,6 +15,7 @@ import { runFollowupTasks } from "@/lib/finance/followup-server";
 import { runCloseTimetable } from "@/lib/finance/close-timetable-server";
 import { runRecovery } from "@/lib/finance/recovery-server";
 import { loadFinanceSettings } from "@/lib/finance/settings-db";
+import { runManagementAlerts } from "@/lib/finance/management-alerts-server";
 import type { JobLogger } from "@/lib/jobs/types";
 import { memberIdsWithPermission, notify } from "@/lib/notify/dispatch-db";
 import type { AdminClient } from "@/lib/supabase/admin";
@@ -341,5 +342,11 @@ async function oneOrg(
     totals.banking_posted += r.posted;
     totals.banking_stale += r.stale;
     totals.banking_failed += r.failed.length;
+  });
+
+  // ---- 7. management alerts (M1, docs/23_PHASE_23E_NOTES.md): report late, revenue behind target, band ----------
+  await contained(log, "management alerts step", async () => {
+    const r = await runManagementAlerts(admin, org, now);
+    if (r.raised > 0 || r.cleared > 0 || r.failed > 0) log.info("management alerts", r);
   });
 }

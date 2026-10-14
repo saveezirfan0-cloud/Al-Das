@@ -1580,7 +1580,11 @@ export const PHASE22J_TABLES = [
 export const PHASE22J_SERVICE_ONLY_TABLES = ["acc_tally_devices"] as const;
 
 /** Phase 23A (Unite collection report upload): sanitised report rows, service role only (no policies). */
-export const PHASE23_SERVICE_ONLY_TABLES = ["fin_report_uploads", "fin_report_visits"] as const;
+export const PHASE23_SERVICE_ONLY_TABLES = [
+  "fin_report_uploads",
+  "fin_report_visits",
+  "fin_mgmt_alert_state",
+] as const;
 
 /**
  * Phase 20i (G13, Meta ads spend): one synthetic row per table for an org, so the cross-org sweeps are not vacuous. Meta's own

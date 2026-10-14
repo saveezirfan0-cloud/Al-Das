@@ -122,6 +122,8 @@ const SERVICE_ONLY = new Set([
   // after can('finance.revenue.import') or can('finance.revenue.view')) and the fin_report_* functions touch them
   "fin_report_uploads",
   "fin_report_visits",
+  // M1 management alerts: which (rule, scope, period) was announced; only the daily job (fin_mgmt_alert_claim) touches it
+  "fin_mgmt_alert_state",
   // Finance F2 / Phase 19: provider credentials (config_enc, AES-256-GCM) and token cache; only server code after can('integrations.manage') reads or writes them
   "integration_accounts",
   // Phase 19: idempotency keys of inbound provider webhooks (provider event ids and a short outcome word); claimed by the webhook route, never read by a browser
