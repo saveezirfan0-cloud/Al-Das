@@ -42,6 +42,7 @@ export const GUIDES: readonly Guide[] = [
       "Use the Patient tab on the right to see the next appointment and any flags without leaving the chat.",
       "Close the conversation when it is finished, with a category if your clinic asks for one. In the same box you can create the patient's enquiry or move theirs on (stage, won, or lost with a reason).",
       "Extras: forward on a message sends it to another open chat; the buttons by the message box share a contact card or a catalogue product; Call at the top rings the patient from your phone; More, Move chat to a new contact is for a shared phone.",
+      "With more than one branch, each chat shows the branch of the number it came in on. The list follows the branch switcher; choose another branch, or All my branches, under Filters. Folders keep working inside it.",
     ],
     watchOut: [
       "Never copy patient details into another chat or email. Forwarding a patient's message to someone else shares it with them: forward only what that person should see.",
@@ -75,6 +76,7 @@ export const GUIDES: readonly Guide[] = [
       "Search by name or phone, or build a saved view with filters.",
       "Open a row to edit details, add tags and see the timeline.",
       "Two records for the same person? Use Merge. Two people who share a phone (a parent and child) are linked as a household instead.",
+      "Home branch on the record says which branch usually sees the patient; add the Home branch column or filter by it. Patients can still book and message any branch.",
       "The Documents tab (if you have access) keeps referral letters, lab reports, insurance cards and consent forms. Add one with a title, a category and, for an insurance card, its expiry date.",
     ],
     watchOut: [
@@ -92,8 +94,12 @@ export const GUIDES: readonly Guide[] = [
       "Tasks assigned to you are listed first, oldest due date at the top.",
       "Open a task to see the patient and notes. Tick it off when it is done and write the outcome.",
       "A call logged from the Front desk shows up here until you close it.",
+      "With more than one branch, a new task starts in the branch chosen in the switcher (change it in the task). The list follows the switcher; pick another branch or All my branches above the list.",
     ],
-    watchOut: ["Overdue tasks show a red badge in the menu."],
+    watchOut: [
+      "Overdue tasks show a red badge in the menu.",
+      "People limited to some branches only see those branches' tasks and tasks without a branch.",
+    ],
   },
   {
     id: "enquiries",
@@ -664,6 +670,7 @@ export const GUIDES: readonly Guide[] = [
       "Use Ctrl K to jump straight to a setting.",
       "Users and Roles decide who can do what. Give people the smallest role that lets them work.",
       "Front desk, Appointment rules and Training mode are under their own pages.",
+      "Branches: under Appointment rules, Locations, give each branch its finance branch code so ledger reports can show it. Under WhatsApp channels, Edit, choose each WhatsApp number's branch and the team its new chats go to first.",
     ],
     watchOut: [
       "Changes apply to everyone at once and are written to the Activity log.",
@@ -806,10 +813,12 @@ export const GUIDES: readonly Guide[] = [
       "Day book: choose the dates to see each journal with its lines (a year at most).",
       "General ledger: choose an account or a whole group and the dates; open any number to see its journal.",
       "Trial balance: choose the dates; download it as Excel. It must say Balanced.",
+      "Branch (general ledger and trial balance): show only the lines that name one finance branch code. Link each clinic to its code under Settings, Appointment rules, Locations.",
     ],
     watchOut: [
       "Income and expense accounts start again each fiscal year; earlier years' profit shows on one line until the year-end close.",
       "Reversed journals stay in the books next to their reversal, so both show.",
+      "A branch view need not balance: bank, VAT and other control lines often name no branch.",
     ],
   },
   {
@@ -846,7 +855,7 @@ export const GUIDES: readonly Guide[] = [
       "Receipts, New receipt: choose the customer, the date, the amount and the bank or cash account. Pulse allocates it to the oldest open invoice first; change the amounts to allocate by hand. Anything left stays on account.",
       "A receipt by cheque: register the cheque first (Banking, Cheques), then choose it on the receipt. The receipt posts it on the cheque's date, so it is never posted twice; a post-dated cheque's receipt posts on that date.",
       "Open a receipt to change its allocation, or Void it: its journal is reversed and the invoices are open again. A receipt paid by a registered cheque is voided by bouncing or cancelling the cheque.",
-      "Receivables ageing shows each customer's open amounts as at a date: current, 1-30, 31-60, 61-90, 91-120 and over 120 days past due.",
+      "Receivables ageing shows each customer's open amounts as at a date: current, 1-30, 31-60, 61-90, 91-120 and over 120 days past due. Branch keeps the invoices with a line for that branch; money on account names no branch and is left out.",
       "Statements: choose the customer and dates; download it as PDF or Excel, or a balance-confirmation letter for the auditors.",
     ],
     watchOut: [
@@ -962,7 +971,8 @@ export const GUIDES: readonly Guide[] = [
     purpose:
       "The profit and loss, balance sheet, cash flow, ratios and exception lists, all read from the posted ledger, with Excel and PDF downloads.",
     steps: [
-      "Profit and loss: choose the dates; split the columns by month, branch, department or doctor, or compare with the previous period or the same period last year. Click a ledger to open its general ledger.",
+      "Profit and loss: choose the dates; split the columns by month, branch, department or doctor, or compare with the previous period or the same period last year. Branches side by side puts every branch in its own column. Click a ledger to open its general ledger.",
+      "Balance sheet and cash flow: Branch shows only the lines that name one finance branch code (such a view need not balance).",
       "Balance sheet: choose the date; this year's profit shows as a line in equity until the year-end close. It must balance; a difference is shown in red.",
       "Cash flow: net profit, non-cash items, working capital, investing and financing, reconciled to the cash and bank ledgers. Set a ledger's class under Chart of accounts, Reporting.",
       "Exceptions: look at these before closing a month (late postings, cash below zero, balances on the wrong side, suspense, large manual journals, missing branch or cost centre).",

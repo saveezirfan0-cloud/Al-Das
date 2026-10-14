@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-12-01-branch-dimension",
+    date: "2026-10-14",
+    title: "Branches across Pulse",
+    body: "Each WhatsApp number can now belong to a branch and send its new chats to that branch's team first (Settings, WhatsApp channels, Edit). Chats show their branch, and the Inbox, Tasks and their counts follow the branch switcher, with a Branch filter to look at another branch or all of yours. New tasks start in your current branch, and people limited to some branches only see those branches' tasks. Patients have a home branch on their record and in the list filters. In Accounting, the trial balance, general ledger, balance sheet, cash flow and receivables ageing can show one branch, and the profit and loss has Branches side by side; each branch's finance code is set under Settings, Appointment rules, Locations.",
+  },
+  {
     id: "2026-11-15-finance-access-window",
     date: "2026-10-14",
     title: "Finance access window",

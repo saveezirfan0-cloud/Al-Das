@@ -97,17 +97,25 @@ docs and help guides updated, and the `nav-qa` agent run.
   reply (simulator), book and move an appointment, a synthetic Diligence/bank upload, and the tax invoice PDF. Run it in CI.
 
 ### Phase B — Branches as a workspace dimension (2 weeks)
-**Status (14 Oct 2026): first slice built.**
+**Status (14 Oct 2026): second slice built.**
 - Built:
   - Branch access per member (all branches, or one or several) with a home branch, under Settings, Users.
-  - Enforcement in RLS and in the service-role loaders: front desk, appointments, enquiries, waiting list and handover notes.
+  - Enforcement in RLS and in the service-role loaders: front desk, appointments, enquiries, waiting list, handover notes
+    and tasks.
   - The branch switcher in the rail and the phone drawer.
-  - `locations.branch_code`.
+  - `locations.branch_code`, set under Settings, Appointment rules, Locations (picker of the finance codes, unique, audited).
+  - `location_id` on channels, teams, contacts (home branch), tasks and conversations; `channels.default_team_id`.
+    New conversations take their number's branch and route to its team first.
+  - Inbox: branch filter (follows the switcher; "All my branches" or one branch), branch chip on rows, counts per branch.
+  - Tasks: branch column and filter, new tasks default to the current branch, RLS and service-role reads by branch.
+  - Contacts: home branch in the drawer, a column and a filter field.
+  - Branch checks on `deleteBlock`, the quick-reply appointment lookup and the enquiry location pickers.
+  - Ledger reports: branch filter (finance code) on trial balance, general ledger, balance sheet, cash flow and
+    receivables ageing; the P&L's existing branch split is offered as "Branches side by side".
 - Still to do in this phase:
-  - A UI to set `branch_code`.
-  - Branch for channels, teams, contacts, tasks and conversations.
-  - Per-branch reports and settings.
-  - Branch checks on `deleteBlock`, the quick-reply appointment lookup, and the enquiry location pickers.
+  - Branch filter on claims and denials (Finance reports hub, built separately).
+  - Settings per branch (working week and holidays, desk number and QR, reminder channel).
+  - Front desk live updates through Realtime.
 
 - **Data model.**
   - `locations.branch_code` → `fin_ref_branches.code`, so the clinical and finance branch lists meet. Needed before the
