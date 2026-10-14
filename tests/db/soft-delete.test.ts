@@ -238,6 +238,126 @@ describe.skipIf(!TEST_DATABASE_URL)("soft delete and restore window", () => {
     });
   });
 
+  it("checks the parent row itself: deleted before this release, already purged, erased or merged", async () => {
+    // A contact deleted before this release has deleted_at but no bin row.
+    await softDelete(orgA, "enquiry", [ids.enquiry], alice);
+    await softDelete(orgA, "task", [ids.taskOnEnquiry], alice);
+    await asServiceRole(c, () => c.query("update public.contacts set deleted_at = now() where id = $1", [ids.contact]));
+    expect(await restore(orgA, "enquiry", ids.enquiry)).toBe("parent_deleted");
+    expect(await restore(orgA, "task", ids.taskOnEnquiry)).toBe("parent_deleted");
+    await asServiceRole(c, () => c.query("update public.contacts set deleted_at = null where id = $1", [ids.contact]));
+    expect(await restore(orgA, "enquiry", ids.enquiry)).toBe("restored");
+    expect(await restore(orgA, "task", ids.taskOnEnquiry)).toBe("restored");
+
+    // A task whose enquiry was deleted before this release (no bin row for the enquiry).
+    await softDelete(orgA, "task", [ids.taskOnEnquiry], alice);
+    await asServiceRole(c, () => c.query("update public.enquiries set deleted_at = now() where id = $1", [ids.enquiry]));
+    expect(await restore(orgA, "task", ids.taskOnEnquiry)).toBe("parent_deleted");
+    await asServiceRole(c, () => c.query("update public.enquiries set deleted_at = null where id = $1", [ids.enquiry]));
+    expect(await restore(orgA, "task", ids.taskOnEnquiry)).toBe("restored");
+  });
+
+  it("refuses a child whose contact's bin row was purged first", async () => {
+    await softDelete(orgA, "contact", [ids.contact], alice);
+    await softDelete(orgA, "enquiry", [ids.enquiry], alice);
+    await ageBinRow("contact", ids.contact, 31);
+    await purge();
+    expect(await restore(orgA, "contact", ids.contact)).toBe("not_found");
+    expect(await restore(orgA, "enquiry", ids.enquiry)).toBe("parent_deleted");
+  });
+
+  it("refuses a child of an erased or a merged patient", async () => {
+    await softDelete(orgA, "enquiry", [ids.enquiry], alice);
+    await asServiceRole(c, () => c.query("select public.erase_contact($1, $2, $3)", [orgA, ids.contact, alice]));
+    expect(await restore(orgA, "enquiry", ids.enquiry)).toBe("parent_deleted");
+
+    const task = await asServiceRole(c, () =>
+      one(
+        "insert into public.tasks (org_id, subject, due_at, contact_id) values ($1, 'Merged patient task', now(), $2) returning id",
+        [orgA, ids.contact2],
+      ),
+    );
+    await softDelete(orgA, "task", [task], alice);
+    const survivor = await asServiceRole(c, () =>
+      one("insert into public.contacts (org_id, first_name, phone_e164) values ($1, 'Survivor', '+447700900104') returning id", [orgA]),
+    );
+    // A task still pointing at a merged contact (merged_into_id set; the row is hidden).
+    await asServiceRole(c, () =>
+      c.query("update public.contacts set merged_into_id = $2 where id = $1", [ids.contact2, survivor]),
+    );
+    expect(await restore(orgA, "task", task)).toBe("parent_deleted");
+  });
+
+  it("lets no browser hard-delete contacts, enquiries, tasks or website entry points", async () => {
+    await asUser(c, alice, async () => {
+      for (const [table, id] of [
+        ["contacts", ids.contact],
+        ["enquiries", ids.enquiry],
+        ["tasks", ids.task],
+        ["website_entry_points", ids.entry],
+      ] as const) {
+        const r = await c.query(`delete from public.${table} where id = $1`, [id]);
+        expect(r.rowCount, table).toBe(0);
+      }
+    });
+    await asServiceRole(c, async () => {
+      expect(await count(c, "select 1 from public.tasks where id = $1", [ids.task])).toBe(1);
+      expect(await count(c, "select 1 from public.contacts where id = $1", [ids.contact])).toBe(1);
+    });
+  });
+
+  it("lists the bin per member: only the kinds asked for, enquiries in their view, paged newest first", async () => {
+    const carol = await createAuthUser(c, "carol@example.test");
+    await asServiceRole(c, () =>
+      c.query(
+        "insert into public.memberships (org_id, user_id, role_id, enquiry_scope) select $1, $2, id, 'own' from public.roles where org_id = $1 and name = 'Agent'",
+        [orgA, carol],
+      ),
+    );
+    await softDelete(orgA, "task", [ids.task], alice);
+    await softDelete(orgA, "enquiry", [ids.enquiry], alice);
+    await softDelete(orgA, "website_entry_point", [ids.entry], alice);
+    await softDelete(orgA, "contact", [ids.contact2], alice);
+    await ageBinRow("task", ids.task, 3);
+    await ageBinRow("enquiry", ids.enquiry, 2);
+    await ageBinRow("website_entry_point", ids.entry, 1);
+    const list = (user: string, kinds: string[], limit = 100, offset = 0) =>
+      asServiceRole(c, async () =>
+        (
+          await c.query<{ entity: string; record_id: string; title: string }>(
+            "select entity, record_id, title from public.list_deleted_items($1, $2, $3::text[], $4, $5)",
+            [orgA, user, kinds, limit, offset],
+          )
+        ).rows,
+      );
+    const all = await list(alice, ["contact", "enquiry", "task", "website_entry_point"]);
+    expect(all.map((r) => r.entity)).toEqual(["contact", "website_entry_point", "enquiry", "task"]);
+    expect(all.map((r) => r.title)).toEqual([
+      "Omar Demo-02",
+      "01. General: Synthetic source",
+      expect.stringMatching(/^#\d+ Synthetic enquiry$/),
+      "Order supplies",
+    ]);
+    expect((await list(alice, ["task"])).map((r) => r.record_id)).toEqual([ids.task]);
+    // Carol sees only her own enquiries: this one was created by nobody and is unassigned.
+    expect((await list(carol, ["enquiry", "task"])).map((r) => r.entity)).toEqual(["task"]);
+    // Paging.
+    expect((await list(alice, ["contact", "enquiry", "task", "website_entry_point"], 2, 0)).map((r) => r.entity)).toEqual([
+      "contact",
+      "website_entry_point",
+    ]);
+    expect((await list(alice, ["contact", "enquiry", "task", "website_entry_point"], 2, 2)).map((r) => r.entity)).toEqual([
+      "enquiry",
+      "task",
+    ]);
+    // Another org sees nothing of it.
+    expect(
+      await asServiceRole(c, () =>
+        count(c, "select 1 from public.list_deleted_items($1, $2, array['task','enquiry','contact','website_entry_point'], 100, 0)", [orgB, bob]),
+      ),
+    ).toBe(0);
+  });
+
   it("refuses a restore that would clash with a live record", async () => {
     await softDelete(orgA, "contact", [ids.contact], alice);
     // The number was freed, so a new contact may take it.
@@ -370,7 +490,7 @@ describe.skipIf(!TEST_DATABASE_URL)("soft delete and restore window", () => {
     expect(await softDelete(orgA, "contact", [ids.contact], alice)).toEqual([]);
   });
 
-  it("exposes the three functions to the service role only", async () => {
+  it("exposes the four functions to the service role only", async () => {
     const { rows } = await c.query<{ name: string; anon: boolean; auth: boolean; svc: boolean }>(
       `select p.proname as name,
               has_function_privilege('anon', p.oid, 'execute') as anon,
@@ -378,9 +498,10 @@ describe.skipIf(!TEST_DATABASE_URL)("soft delete and restore window", () => {
               has_function_privilege('service_role', p.oid, 'execute') as svc
        from pg_proc p join pg_namespace n on n.oid = p.pronamespace
        where n.nspname = 'public' and p.proname = any ($1) order by 1`,
-      [["purge_deleted_records", "restore_deleted_record", "soft_delete_records"]],
+      [["list_deleted_items", "purge_deleted_records", "restore_deleted_record", "soft_delete_records"]],
     );
     expect(rows).toEqual([
+      { name: "list_deleted_items", anon: false, auth: false, svc: true },
       { name: "purge_deleted_records", anon: false, auth: false, svc: true },
       { name: "restore_deleted_record", anon: false, auth: false, svc: true },
       { name: "soft_delete_records", anon: false, auth: false, svc: true },

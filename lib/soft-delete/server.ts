@@ -1,12 +1,13 @@
 import "server-only";
 
-import { can, type MemberLike } from "@/lib/auth/can";
-import { enquiryViewer, visibleEnquiryIds } from "@/lib/enquiries/visibility";
+import type { MemberLike } from "@/lib/auth/can";
 import {
+  canRestore,
   daysLeft,
-  ENTITY_RULES,
   readRestoreWindowDays,
+  SOFT_DELETE_BROADCAST_EVENT,
   SOFT_DELETE_ENTITIES,
+  softDeleteChannelName,
   type SoftDeleteEntity,
 } from "@/lib/soft-delete/rules";
 import type { AdminClient } from "@/lib/supabase/admin";
@@ -29,7 +30,44 @@ export async function softDelete(
     p_actor: args.userId ?? undefined,
   });
   if (error) throw new Error(`soft_delete_records failed (${error.code ?? "unknown"})`);
-  return (data ?? []) as string[];
+  const moved = (data ?? []) as string[];
+  await announceSoftDelete(admin, args.orgId, args.entity, moved);
+  return moved;
+}
+
+type BroadcastChannel = {
+  httpSend: (
+    event: string,
+    payload: unknown,
+    opts?: { timeout?: number },
+  ) => Promise<{ success: boolean }>;
+};
+
+/**
+ * Tells other open screens of the org that rows left their lists (their postgres_changes subscription never sees the
+ * UPDATE: RLS hides the new row from them). One REST broadcast, ids only, best effort: a failure only means another
+ * person's list refreshes on its next load.
+ */
+export async function announceSoftDelete(
+  admin: AdminClient,
+  orgId: string,
+  entity: SoftDeleteEntity,
+  ids: string[],
+): Promise<void> {
+  if (ids.length === 0) return;
+  const client = admin as unknown as {
+    channel?: (name: string) => BroadcastChannel;
+    removeChannel?: (ch: unknown) => Promise<unknown>;
+  };
+  if (typeof client.channel !== "function") return;
+  try {
+    const ch = client.channel(softDeleteChannelName(orgId));
+    if (typeof ch?.httpSend !== "function") return;
+    await ch.httpSend(SOFT_DELETE_BROADCAST_EVENT, { entity, ids }, { timeout: 2000 });
+    await client.removeChannel?.(ch);
+  } catch {
+    // Best effort; nothing logged (no ids or titles either way).
+  }
 }
 
 export async function loadRestoreWindowDays(admin: AdminClient, orgId: string): Promise<number> {
@@ -37,9 +75,9 @@ export async function loadRestoreWindowDays(admin: AdminClient, orgId: string): 
   return readRestoreWindowDays(data?.settings);
 }
 
-/** The kinds of deleted record this member may see and restore (the record's own manage permission). */
+/** The kinds of deleted record this member may see and restore. */
 export function restorableEntities(member: MemberLike): SoftDeleteEntity[] {
-  return SOFT_DELETE_ENTITIES.filter((e) => can(member, ENTITY_RULES[e].restorePerm));
+  return SOFT_DELETE_ENTITIES.filter((e) => canRestore(member, e));
 }
 
 export type DeletedItemView = {
@@ -51,107 +89,55 @@ export type DeletedItemView = {
   daysLeft: number;
 };
 
-const LIST_LIMIT = 300;
+export const DELETED_PAGE_SIZE = 100;
 
 /**
- * The bin as this member may see it: only kinds they can restore, enquiries only inside their enquiry view, newest first.
- * Titles come from the record itself; nothing here is logged.
+ * One page of the bin as this member may see it, newest first. The database (public.list_deleted_items) filters by the
+ * kinds they may restore and by their enquiry view before paging, so older items stay reachable page by page.
  */
 export async function listDeletedItems(
   admin: AdminClient,
-  member: MemberLike & { enquiryScope?: string | null },
+  member: MemberLike,
   windowDays: number,
-  now: Date = new Date(),
-): Promise<DeletedItemView[]> {
+  opts: { offset?: number; limit?: number; now?: Date } = {},
+): Promise<{ items: DeletedItemView[]; hasMore: boolean }> {
   const kinds = restorableEntities(member);
-  if (kinds.length === 0) return [];
-  const { data: items, error } = await admin
-    .from("deleted_items")
-    .select("entity, record_id, deleted_by, deleted_at")
-    .eq("org_id", member.orgId)
-    .in("entity", kinds)
-    .order("deleted_at", { ascending: false })
-    .limit(LIST_LIMIT);
-  if (error) throw new Error(`deleted_items read failed (${error.code ?? "unknown"})`);
-  const rows = (items ?? []).filter((r) =>
+  if (kinds.length === 0) return { items: [], hasMore: false };
+  const limit = Math.min(500, Math.max(1, opts.limit ?? DELETED_PAGE_SIZE));
+  const { data, error } = await admin.rpc("list_deleted_items", {
+    p_org: member.orgId,
+    p_user: member.userId,
+    p_kinds: kinds,
+    p_limit: limit + 1,
+    p_offset: Math.max(0, opts.offset ?? 0),
+  });
+  if (error) throw new Error(`list_deleted_items failed (${error.code ?? "unknown"})`);
+  const rows = (data ?? []).filter((r) =>
     (SOFT_DELETE_ENTITIES as readonly string[]).includes(r.entity),
   );
-  const idsOf = (e: SoftDeleteEntity) => rows.filter((r) => r.entity === e).map((r) => r.record_id);
-
-  const titles = new Map<string, string>();
-  const key = (e: string, id: string) => `${e}:${id}`;
-
-  const contactIds = idsOf("contact");
-  if (contactIds.length) {
-    const { data } = await admin
-      .from("contacts")
-      .select("id, full_name")
-      .eq("org_id", member.orgId)
-      .in("id", contactIds);
-    for (const c of data ?? []) titles.set(key("contact", c.id), c.full_name || "Unnamed contact");
-  }
-
-  let enquiryIds = idsOf("enquiry");
-  if (enquiryIds.length) {
-    enquiryIds = await visibleEnquiryIds(
-      admin,
-      member.orgId,
-      await enquiryViewer(admin, member),
-      enquiryIds,
-    );
-    if (enquiryIds.length) {
-      const { data } = await admin
-        .from("enquiries")
-        .select("id, number, title")
-        .eq("org_id", member.orgId)
-        .in("id", enquiryIds);
-      for (const e of data ?? [])
-        titles.set(key("enquiry", e.id), `#${e.number} ${e.title || "Untitled enquiry"}`.trim());
-    }
-  }
-
-  const taskIds = idsOf("task");
-  if (taskIds.length) {
-    const { data } = await admin
-      .from("tasks")
-      .select("id, subject")
-      .eq("org_id", member.orgId)
-      .in("id", taskIds);
-    for (const t of data ?? []) titles.set(key("task", t.id), t.subject || "Untitled task");
-  }
-
-  const entryIds = idsOf("website_entry_point");
-  if (entryIds.length) {
-    const { data } = await admin
-      .from("website_entry_points")
-      .select("id, section, source_key")
-      .eq("org_id", member.orgId)
-      .in("id", entryIds);
-    for (const w of data ?? [])
-      titles.set(key("website_entry_point", w.id), `${w.section}: ${w.source_key}`);
-  }
+  const page = rows.slice(0, limit);
 
   const people = new Map<string, string>();
-  const by = [...new Set(rows.map((r) => r.deleted_by).filter((x): x is string => !!x))];
+  const by = [...new Set(page.map((r) => r.deleted_by).filter((x): x is string => !!x))];
   if (by.length) {
-    const { data } = await admin.from("profiles").select("id, first_name, last_name").in("id", by);
-    for (const p of data ?? [])
+    const { data: profiles } = await admin
+      .from("profiles")
+      .select("id, first_name, last_name")
+      .in("id", by);
+    for (const p of profiles ?? [])
       people.set(p.id, `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim() || "A team member");
   }
 
-  const out: DeletedItemView[] = [];
-  for (const r of rows) {
-    // No title means the record is gone or (enquiries) outside this member's view: not listed.
-    const title = titles.get(key(r.entity, r.record_id));
-    if (title === undefined) continue;
-    out.push({
+  const now = opts.now ?? new Date();
+  return {
+    items: page.map((r) => ({
       entity: r.entity as SoftDeleteEntity,
       recordId: r.record_id,
-      title,
+      title: r.title,
       deletedBy: r.deleted_by ? (people.get(r.deleted_by) ?? "A former member") : null,
       deletedAt: r.deleted_at,
       daysLeft: daysLeft(r.deleted_at, windowDays, now),
-    });
-  }
-  return out;
+    })),
+    hasMore: rows.length > limit,
+  };
 }

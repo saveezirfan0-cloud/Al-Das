@@ -24733,6 +24733,16 @@ export type Database = {
         Args: { p_chunks: Json; p_content_hash: string; p_org_id: string; p_source_id: string };
         Returns: number;
       };
+      list_deleted_items: {
+        Args: { p_kinds: string[]; p_limit?: number; p_offset?: number; p_org: string; p_user: string };
+        Returns: {
+          deleted_at: string;
+          deleted_by: string | null;
+          entity: string;
+          record_id: string;
+          title: string;
+        }[];
+      };
       mark_all_notifications_read: { Args: { p_org_id: string }; Returns: number };
       media_asset_usage: {
         Args: { p_asset: string; p_org: string };

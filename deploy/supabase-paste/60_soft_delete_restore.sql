@@ -2,7 +2,7 @@
 -- Run the files in numeric order. A failed file rolls back as a whole, so it is safe to retry.
 -- Soft delete with a restore window: Settings, Recently deleted (docs/35_SOFT_DELETE_NOTES.md). Needs every earlier
 -- file first, up to and including 58_pin_function_search_path.sql. Adds the deleted_items bin, tasks.deleted_at and
--- website_entry_points.deleted_at, the soft delete / restore / purge functions and the nightly pulse:soft_delete_purge job.
+-- website_entry_points.deleted_at, the soft delete / restore / list / purge functions and the nightly pulse:soft_delete_purge job.
 -- Check the project name in the Supabase header first: this is for the Pulse project only.
 
 -- ======================================================================
@@ -34,7 +34,9 @@
 -- re-creating the same entry point is told to restore it instead.
 --
 -- Default reads: the SELECT policies of enquiries, tasks and website_entry_points now hide deleted rows, and their UPDATE
--- policies refuse a deleted row (so a browser cannot delete or restore around the bin). contacts_select is unchanged on
+-- policies refuse a deleted row (so a browser cannot delete or restore around the bin). The browser DELETE policies of
+-- contacts, enquiries, tasks and website_entry_points are dropped: deletes go only through the server actions and
+-- soft_delete_records (no browser code deleted these rows). contacts_select is unchanged on
 -- purpose: conversations, appointments and history legitimately show merged, erased and deleted patients, and contact lists
 -- already filter deleted_at. Service-role reads filter deleted_at explicitly.
 
@@ -113,6 +115,13 @@ drop policy if exists website_entry_points_update on public.website_entry_points
 create policy website_entry_points_update on public.website_entry_points for update to authenticated
   using (app.has_perm_wild(org_id, 'portal.website_entry_points.write') and deleted_at is null)
   with check (app.has_perm_wild(org_id, 'portal.website_entry_points.write') and deleted_at is null);
+
+-- Deletes go only through the bin (server action, then soft_delete_records): a browser can no longer remove these rows.
+-- (A patient's details are removed only by erase_contact, two people.)
+drop policy if exists contacts_delete on public.contacts;
+drop policy if exists enquiries_delete on public.enquiries;
+drop policy if exists tasks_delete on public.tasks;
+drop policy if exists website_entry_points_delete on public.website_entry_points;
 
 -- ---------------------------------------------------------------------------
 -- 4. Delete into the bin. Service role only; the server action ran can() and records the audit row.
@@ -193,7 +202,9 @@ grant execute on function public.soft_delete_records(uuid, text, uuid[], uuid) t
 --      expired         past the restore window (the nightly purge will take it)
 --      conflict        a live record now holds its phone / WhatsApp id / Unite PIN, or (task) the appointment already
 --                      has an open call task
---      parent_deleted  its contact (or, for a task, its enquiry) is in the bin: restore that first
+--      parent_deleted  its contact (or, for a task, its enquiry) is deleted, merged or erased: the parent row itself is
+--                      checked, so this also covers parents deleted before this release, parents already purged from
+--                      the bin and erased patients. A parent in the bin can be restored first.
 -- ---------------------------------------------------------------------------
 create or replace function public.restore_deleted_record(p_org uuid, p_entity text, p_id uuid, p_actor uuid default null)
 returns text
@@ -253,7 +264,9 @@ begin
       return 'not_found';
     end if;
     if v_enquiry.contact_id is not null and exists (
-      select 1 from public.deleted_items d where d.org_id = p_org and d.entity = 'contact' and d.record_id = v_enquiry.contact_id
+      select 1 from public.contacts c
+       where c.id = v_enquiry.contact_id
+         and (c.deleted_at is not null or c.erased_at is not null or c.merged_into_id is not null)
     ) then
       return 'parent_deleted';
     end if;
@@ -265,12 +278,12 @@ begin
       delete from public.deleted_items where id = v_item.id;
       return 'not_found';
     end if;
-    if exists (
-      select 1 from public.deleted_items d
-       where d.org_id = p_org
-         and ((d.entity = 'contact' and d.record_id = v_task.contact_id)
-           or (d.entity = 'enquiry' and d.record_id = v_task.enquiry_id))
-    ) then
+    if (v_task.contact_id is not null and exists (
+          select 1 from public.contacts c
+           where c.id = v_task.contact_id
+             and (c.deleted_at is not null or c.erased_at is not null or c.merged_into_id is not null)))
+       or (v_task.enquiry_id is not null and exists (
+          select 1 from public.enquiries e where e.id = v_task.enquiry_id and e.deleted_at is not null)) then
       return 'parent_deleted';
     end if;
     begin
@@ -296,6 +309,47 @@ end;
 $$;
 revoke all on function public.restore_deleted_record(uuid, text, uuid, uuid) from public, anon, authenticated;
 grant execute on function public.restore_deleted_record(uuid, text, uuid, uuid) to service_role;
+
+-- ---------------------------------------------------------------------------
+-- 5b. The Recently deleted list for one member: only the kinds they may restore (p_kinds, decided by the server after
+--     can()), enquiries only inside their enquiry view (app.enquiry_visible_to), records that still exist and are still
+--     deleted; newest first, paged. Service role only; titles leave only through the page that ran can().
+-- ---------------------------------------------------------------------------
+create or replace function public.list_deleted_items(
+  p_org uuid, p_user uuid, p_kinds text[], p_limit integer default 100, p_offset integer default 0
+)
+returns table (entity text, record_id uuid, deleted_by uuid, deleted_at timestamptz, title text)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select d.entity, d.record_id, d.deleted_by, d.deleted_at,
+         case d.entity
+           when 'contact' then coalesce(nullif(c.full_name, ''), 'Unnamed contact')
+           when 'enquiry' then '#' || e.number::text || ' ' || coalesce(nullif(e.title, ''), 'Untitled enquiry')
+           when 'task' then coalesce(nullif(t.subject, ''), 'Untitled task')
+           else w.section || ': ' || w.source_key
+         end as title
+    from public.deleted_items d
+    left join public.contacts c
+      on d.entity = 'contact' and c.id = d.record_id and c.org_id = p_org and c.deleted_at is not null
+    left join public.enquiries e
+      on d.entity = 'enquiry' and e.id = d.record_id and e.org_id = p_org and e.deleted_at is not null
+     and app.enquiry_visible_to(e.org_id, p_user, e.assignee_id, e.created_by)
+    left join public.tasks t
+      on d.entity = 'task' and t.id = d.record_id and t.org_id = p_org and t.deleted_at is not null
+    left join public.website_entry_points w
+      on d.entity = 'website_entry_point' and w.id = d.record_id and w.org_id = p_org and w.deleted_at is not null
+   where d.org_id = p_org
+     and d.entity = any (coalesce(p_kinds, '{}'))
+     and (c.id is not null or e.id is not null or t.id is not null or w.id is not null)
+   order by d.deleted_at desc, d.id
+   limit greatest(1, least(coalesce(p_limit, 100), 500))
+  offset greatest(0, coalesce(p_offset, 0));
+$$;
+revoke all on function public.list_deleted_items(uuid, uuid, text[], integer, integer) from public, anon, authenticated;
+grant execute on function public.list_deleted_items(uuid, uuid, text[], integer, integer) to service_role;
 
 -- ---------------------------------------------------------------------------
 -- 6. Nightly purge (pulse:soft_delete_purge → /api/jobs/soft_delete_purge). Takes at most p_batch bin rows past each

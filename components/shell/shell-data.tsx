@@ -18,6 +18,12 @@ import {
   PRESENCE_EVENT,
 } from "@/lib/presence/idle";
 import { stripBadge, withBadge } from "@/lib/shell/title-badge";
+import {
+  parseSoftDeleteSignal,
+  SOFT_DELETE_BROADCAST_EVENT,
+  SOFT_DELETE_WINDOW_EVENT,
+  softDeleteChannelName,
+} from "@/lib/soft-delete/rules";
 import { createClient } from "@/lib/supabase/client";
 
 import { markAllNotificationsRead, markNotificationRead } from "./actions";
@@ -302,6 +308,25 @@ export function ShellDataProvider({
       pending.clear();
     };
   }, [orgId, userId, canTasks, debounced, loadNotifications, loadInbox, loadOverdue]);
+
+  // Soft delete (docs/35): a row moved to Recently deleted by someone else never reaches postgres_changes here (RLS hides
+  // the new row), so the server broadcasts ids only on the org channel. Refresh the overdue badge and relay it to the open
+  // workspace as a window event. Anyone on the channel could send one, so the payload is parsed and only triggers reloads.
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel(softDeleteChannelName(orgId))
+      .on("broadcast", { event: SOFT_DELETE_BROADCAST_EVENT }, ({ payload }) => {
+        const signal = parseSoftDeleteSignal(payload);
+        if (!signal) return;
+        if (signal.entity === "task" && canTasks) debounced("t", loadOverdue);
+        window.dispatchEvent(new CustomEvent(SOFT_DELETE_WINDOW_EVENT, { detail: signal }));
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [orgId, canTasks, debounced, loadOverdue]);
 
   // Phase 20c presence heartbeat: while the person is using Pulse (recent input, tab visible) tell the database at most
   // once a minute. With auto-away on (Settings, Inbox) an online member without heartbeats counts as away and a pg_cron

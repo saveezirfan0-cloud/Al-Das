@@ -452,6 +452,33 @@ export async function deleteEnquiries(ctx: Ctx, ids: string[]): Promise<number> 
   return moved.length;
 }
 
+/**
+ * After a restore from Recently deleted: an open, untouched enquiry with an SLA gets its SLA job back (the one that fell
+ * due in the bin was skipped by the handler). Due now when the deadline passed meanwhile; the handler re-checks
+ * everything (open, untouched, not yet breached) at fire time, and the dedupe key keeps a still-pending job single.
+ */
+export async function afterEnquiryRestored(ctx: Ctx, id: string): Promise<void> {
+  const { data: e } = await ctx.admin
+    .from("enquiries")
+    .select("id, status, sla_due_at, sla_breached_at, first_touch_at")
+    .eq("org_id", ctx.orgId)
+    .eq("id", id)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (!e || e.status !== "open" || !e.sla_due_at || e.sla_breached_at || e.first_touch_at) return;
+  const due = new Date(e.sla_due_at);
+  const now = new Date();
+  await scheduleJob({
+    kind: "enquiry.sla",
+    orgId: ctx.orgId,
+    runAt: due > now ? due : now,
+    payload: { enquiry_id: e.id },
+    dedupeKey: `enquiry_sla:${e.id}`,
+  }).catch((err) =>
+    console.error("[enquiries] sla schedule failed", err instanceof Error ? err.message : err),
+  );
+}
+
 export type BulkOp =
   | { type: "assign"; assigneeId: string | null }
   | { type: "stage"; stageId: string }

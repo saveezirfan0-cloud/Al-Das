@@ -4,8 +4,9 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { recordAudit } from "@/lib/audit";
-import { can } from "@/lib/auth/can";
+import { canAny } from "@/lib/auth/can";
 import { requireMember, requirePerm } from "@/lib/auth/session";
+import { afterEnquiryRestored } from "@/lib/enquiries/service";
 import { canSeeEnquiry, enquiryViewer } from "@/lib/enquiries/visibility";
 import {
   ENTITY_RULES,
@@ -31,15 +32,16 @@ const LIST_PATHS = {
 } as const;
 
 /**
- * Restores one record from the bin. Needs the record's own manage permission (and, for an enquiry, the member's
- * enquiry view must include it). The database refuses past the window, on a clash and when its parent is in the bin.
+ * Restores one record from the bin. Needs the record's own manage permission (enquiries: manage or delete) and, for an
+ * enquiry, the member's enquiry view must include it. Then reminders come back: a task's due reminder, an enquiry's SLA. The database refuses past the window, on a clash and when its parent is in the bin.
  */
 export async function restoreDeletedItem(entity: string, id: string): Promise<ActionResult> {
   const member = await requireMember();
   if (!isSoftDeleteEntity(entity) || !z.string().uuid().safeParse(id).success)
     return { ok: false, error: "Invalid request" };
   const rule = ENTITY_RULES[entity];
-  if (!can(member, rule.restorePerm))
+  // The record's own manage key (enquiries: manage or delete), as canRestore() in lib/soft-delete/rules.ts.
+  if (!canAny(member, rule.restorePerms))
     return { ok: false, error: "You do not have permission to restore this." };
   const admin = createAdminClient(member.userId);
   if (
@@ -68,6 +70,8 @@ export async function restoreDeletedItem(entity: string, id: string): Promise<Ac
   });
   if (entity === "task")
     await afterTaskRestored({ admin, orgId: member.orgId, userId: member.userId }, id);
+  if (entity === "enquiry")
+    await afterEnquiryRestored({ admin, orgId: member.orgId, userId: member.userId }, id);
   revalidatePath(PATH);
   revalidatePath(LIST_PATHS[entity]);
   return { ok: true, message: res.message };

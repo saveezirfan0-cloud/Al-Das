@@ -27,6 +27,7 @@ import { UnknownFieldError } from "@/lib/filters/field-registry";
 import { normalizePhone } from "@/lib/phone";
 import { recordAccess } from "@/lib/security/access-log";
 import { deletedMessage, readRestoreWindowDays } from "@/lib/soft-delete/rules";
+import { announceSoftDelete } from "@/lib/soft-delete/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json, Tables, TablesUpdate } from "@/lib/supabase/types";
 
@@ -503,6 +504,7 @@ export async function deleteContacts(ids: string[]): Promise<ActionResult> {
   });
   if (error) return fail("Could not delete the contacts.");
   const moved = (data ?? []) as string[];
+  await announceSoftDelete(admin, member.orgId, "contact", moved);
   await recordAudit(admin, {
     orgId: member.orgId,
     userId: member.userId,

@@ -15,38 +15,63 @@ export const DEFAULT_RESTORE_WINDOW_DAYS = 30;
 export const MIN_RESTORE_WINDOW_DAYS = 1;
 export const MAX_RESTORE_WINDOW_DAYS = 90;
 
-/** What each kind of record is called, and the permission that may restore it (the record's own manage key). */
+/**
+ * What each kind of record is called, and the permissions that may restore it: the record's own manage key, plus (for
+ * enquiries) the separate delete key, since whoever may delete may undo it. Any one of them is enough.
+ */
 export const ENTITY_RULES: Record<
   SoftDeleteEntity,
-  { label: string; plural: string; restorePerm: string; auditEntity: string }
+  { label: string; plural: string; restorePerms: readonly string[]; auditEntity: string }
 > = {
   contact: {
     label: "Contact",
     plural: "contacts",
-    restorePerm: "contacts.manage",
+    restorePerms: ["contacts.manage"],
     auditEntity: "contact",
   },
   enquiry: {
     label: "Enquiry",
     plural: "enquiries",
-    restorePerm: "enquiries.manage",
+    restorePerms: ["enquiries.manage", "enquiries.delete"],
     auditEntity: "enquiry",
   },
-  task: { label: "Task", plural: "tasks", restorePerm: "tasks.manage", auditEntity: "task" },
+  task: { label: "Task", plural: "tasks", restorePerms: ["tasks.manage"], auditEntity: "task" },
   website_entry_point: {
     label: "Website entry point",
     plural: "website entry points",
-    restorePerm: "portal.website_entry_points.write",
+    restorePerms: ["portal.website_entry_points.write"],
     auditEntity: "website_entry_points",
   },
 };
 
+/** May this member restore (and so see in Recently deleted) this kind of record? */
+export function canRestore(member: MemberLike | null | undefined, entity: SoftDeleteEntity): boolean {
+  return ENTITY_RULES[entity].restorePerms.some((p) => can(member, p));
+}
+
 /** Who may open Settings, Recently deleted: anyone who can restore one kind of record, or set the window. */
 export function canOpenRecentlyDeleted(member: MemberLike | null | undefined): boolean {
-  return (
-    can(member, "security.manage") ||
-    SOFT_DELETE_ENTITIES.some((e) => can(member, ENTITY_RULES[e].restorePerm))
-  );
+  return can(member, "security.manage") || SOFT_DELETE_ENTITIES.some((e) => canRestore(member, e));
+}
+
+/**
+ * Realtime after a soft delete (docs/35). Other members' lists listen with postgres_changes, but the UPDATE that hides a
+ * row is filtered out for them by RLS, so the server also sends one broadcast on this org channel with ids only, never
+ * titles. The shell (components/shell/shell-data.tsx) listens and re-dispatches it as a window event.
+ */
+export const SOFT_DELETE_BROADCAST_EVENT = "deleted";
+export const SOFT_DELETE_WINDOW_EVENT = "pulse:soft-deleted";
+export function softDeleteChannelName(orgId: string): string {
+  return `soft-delete:${orgId}`;
+}
+export type SoftDeleteSignal = { entity: SoftDeleteEntity; ids: string[] };
+/** Parses a broadcast payload (untrusted: anyone on the channel could send one); null when it is not a valid signal. */
+export function parseSoftDeleteSignal(payload: unknown): SoftDeleteSignal | null {
+  if (!payload || typeof payload !== "object") return null;
+  const p = payload as Record<string, unknown>;
+  if (!isSoftDeleteEntity(p.entity) || !Array.isArray(p.ids)) return null;
+  const ids = p.ids.filter((x): x is string => typeof x === "string" && /^[0-9a-f-]{36}$/i.test(x)).slice(0, 500);
+  return ids.length ? { entity: p.entity, ids } : null;
 }
 
 export function isSoftDeleteEntity(v: unknown): v is SoftDeleteEntity {
@@ -147,7 +172,7 @@ export function restoreOutcomeMessage(entity: SoftDeleteEntity, outcome: string)
         ok: false,
         message:
           entity === "contact"
-            ? "Another contact now uses this phone number, WhatsApp account or Unite PIN. Merge or change that contact first."
+            ? "Another contact now uses this phone number, WhatsApp account or Unite PIN. Change or remove it on that contact first, then restore this one."
             : entity === "task"
               ? "That appointment already has an open call task. Close it first."
               : "A live record conflicts with this one.",
@@ -157,8 +182,8 @@ export function restoreOutcomeMessage(entity: SoftDeleteEntity, outcome: string)
         ok: false,
         message:
           entity === "task"
-            ? "Its contact or enquiry is also in Recently deleted. Restore that first."
-            : "Its contact is also in Recently deleted. Restore the contact first.",
+            ? "Its contact or enquiry has been deleted, merged or erased. If it is in Recently deleted, restore it first; otherwise this task cannot be restored."
+            : "Its contact has been deleted, merged or erased. If the contact is in Recently deleted, restore it first; otherwise this enquiry cannot be restored.",
       };
     default:
       return { ok: false, message: "This item is no longer in Recently deleted." };

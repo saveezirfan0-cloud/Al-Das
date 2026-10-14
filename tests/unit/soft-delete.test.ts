@@ -3,6 +3,9 @@ import { describe, expect, it } from "vitest";
 import { SETTINGS_PAGES, visibleSettingsPages } from "@/components/shell/settings-pages";
 import {
   canOpenRecentlyDeleted,
+  canRestore,
+  parseSoftDeleteSignal,
+  softDeleteChannelName,
   canStillRestore,
   daysLeft,
   DEFAULT_RESTORE_WINDOW_DAYS,
@@ -82,10 +85,15 @@ describe("days left", () => {
 describe("entities, permissions and messages", () => {
   it("restores each kind with the record's own manage permission", () => {
     expect(SOFT_DELETE_ENTITIES).toEqual(["contact", "enquiry", "task", "website_entry_point"]);
-    expect(ENTITY_RULES.contact.restorePerm).toBe("contacts.manage");
-    expect(ENTITY_RULES.enquiry.restorePerm).toBe("enquiries.manage");
-    expect(ENTITY_RULES.task.restorePerm).toBe("tasks.manage");
-    expect(ENTITY_RULES.website_entry_point.restorePerm).toBe("portal.website_entry_points.write");
+    expect(ENTITY_RULES.contact.restorePerms).toEqual(["contacts.manage"]);
+    expect(ENTITY_RULES.enquiry.restorePerms).toEqual(["enquiries.manage", "enquiries.delete"]);
+    expect(ENTITY_RULES.task.restorePerms).toEqual(["tasks.manage"]);
+    expect(ENTITY_RULES.website_entry_point.restorePerms).toEqual(["portal.website_entry_points.write"]);
+    // Whoever may delete an enquiry may undo it.
+    expect(canRestore(member(["enquiries.delete"]), "enquiry")).toBe(true);
+    expect(canRestore(member(["enquiries.manage"]), "enquiry")).toBe(true);
+    expect(canRestore(member(["enquiries.view"]), "enquiry")).toBe(false);
+    expect(canRestore(member(["enquiries.delete"]), "task")).toBe(false);
     expect(isSoftDeleteEntity("task")).toBe(true);
     expect(isSoftDeleteEntity("appointment")).toBe(false);
     expect(isSoftDeleteEntity(null)).toBe(false);
@@ -117,8 +125,25 @@ describe("entities, permissions and messages", () => {
     expect(restoreOutcomeMessage("task", "restored")).toEqual({ ok: true, message: "Task restored." });
     for (const w of ["expired", "conflict", "parent_deleted", "not_found", "something_else", ""])
       expect(restoreOutcomeMessage("contact", w).ok).toBe(false);
-    expect(restoreOutcomeMessage("contact", "conflict").message).toMatch(/phone number/);
+    expect(restoreOutcomeMessage("contact", "conflict").message).toMatch(/Change or remove it on that contact/);
+    expect(restoreOutcomeMessage("contact", "conflict").message).not.toMatch(/[Mm]erge/);
     expect(restoreOutcomeMessage("task", "parent_deleted").message).toMatch(/contact or enquiry/);
+  });
+});
+
+describe("soft-delete broadcast", () => {
+  const id = "11111111-1111-4111-8111-111111111111";
+
+  it("uses one channel per org", () => {
+    expect(softDeleteChannelName("org-1")).toBe("soft-delete:org-1");
+  });
+
+  it("accepts ids only and refuses anything else (the channel is untrusted)", () => {
+    expect(parseSoftDeleteSignal({ entity: "task", ids: [id] })).toEqual({ entity: "task", ids: [id] });
+    expect(parseSoftDeleteSignal({ entity: "task", ids: [id, "Layla", 5, null] })).toEqual({ entity: "task", ids: [id] });
+    for (const bad of [null, "x", {}, { entity: "appointment", ids: [id] }, { entity: "task", ids: "x" }, { entity: "task", ids: [] }])
+      expect(parseSoftDeleteSignal(bad)).toBeNull();
+    expect(parseSoftDeleteSignal({ entity: "task", ids: Array(900).fill(id) })?.ids).toHaveLength(500);
   });
 });
 
