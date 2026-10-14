@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 
 import { addTimelineEvent } from "@/lib/contacts/timeline";
 import { emit } from "@/lib/events/emit";
-import { crmPort } from "@/lib/flow-engine/crm-registry";
+import { createCrmAdapters } from "@/lib/flow-engine/crm-adapters";
 import type {
   ContactView,
   ConversationView,
@@ -17,6 +17,7 @@ import type {
   TemplateView,
 } from "@/lib/flow-engine/deps";
 import { guardedHttp } from "@/lib/flow-engine/http-action";
+import { parseWaFlowReply } from "@/lib/flow-engine/wa-flow";
 import {
   graphSchema,
   type FlowGraph,
@@ -216,9 +217,14 @@ export function supabaseStore(admin: AdminClient): FlowStore {
       return view;
     },
     async getConversation(id) {
-      const { data } = await admin.from("conversations").select("*").eq("id", id).maybeSingle();
+      const { data } = await admin
+        .from("conversations")
+        .select("*, channels(type)")
+        .eq("id", id)
+        .maybeSingle();
       if (!data) return null;
       const view: ConversationView = {
+        channel_type: data.channels?.type ?? null,
         id: data.id,
         org_id: data.org_id,
         channel_id: data.channel_id,
@@ -291,7 +297,7 @@ export function supabaseStore(admin: AdminClient): FlowStore {
       const { data } = await admin
         .from("messages")
         .select(
-          "id, org_id, conversation_id, kind, body, payload, reply_to_wa_message_id, conversations(contact_id)",
+          "id, org_id, conversation_id, kind, body, payload, at, reply_to_wa_message_id, conversations(contact_id)",
         )
         .eq("id", messageId)
         .eq("direction", "in")
@@ -313,6 +319,7 @@ export function supabaseStore(admin: AdminClient): FlowStore {
         const send = (orig?.payload as { send?: { template_id?: string } } | null)?.send;
         templateId = send?.template_id ?? null;
       }
+      const form = data.kind === "interactive" ? parseWaFlowReply(raw) : null;
       return {
         id: data.id,
         conversation_id: data.conversation_id,
@@ -321,6 +328,9 @@ export function supabaseStore(admin: AdminClient): FlowStore {
         body: data.body,
         reply_id: replyId,
         template_id: templateId,
+        at: data.at,
+        form: form ? form.fields : null,
+        form_token: form?.token ?? null,
       };
     },
     async getFirstInboundText(conversationId) {
@@ -333,6 +343,47 @@ export function supabaseStore(admin: AdminClient): FlowStore {
         .limit(1)
         .maybeSingle();
       return data?.body ?? null;
+    },
+    async hasRunSince(flowId, conversationId, since) {
+      const { data } = await admin
+        .from("flow_runs")
+        .select("id")
+        .eq("flow_id", flowId)
+        .eq("conversation_id", conversationId)
+        .gte("started_at", since.toISOString())
+        .limit(1);
+      return (data?.length ?? 0) > 0;
+    },
+    async getSegmentDrip(segmentId, contactId) {
+      const { data: seg } = await admin
+        .from("segments")
+        .select("org_id, kind, drip_flow_id")
+        .eq("id", segmentId)
+        .maybeSingle();
+      if (!seg) return null;
+      const [{ data: member }, { data: contact }] = await Promise.all([
+        admin
+          .from("segment_members")
+          .select("contact_id")
+          .eq("segment_id", segmentId)
+          .eq("contact_id", contactId)
+          .maybeSingle(),
+        admin
+          .from("contacts")
+          .select("id")
+          .eq("id", contactId)
+          .eq("org_id", seg.org_id)
+          .is("deleted_at", null)
+          .is("erased_at", null)
+          .is("merged_into_id", null)
+          .maybeSingle(),
+      ]);
+      return {
+        org_id: seg.org_id,
+        kind: seg.kind,
+        drip_flow_id: seg.drip_flow_id,
+        member: !!member && !!contact,
+      };
     },
   };
 }
@@ -532,6 +583,9 @@ export function createFlowDeps(admin: AdminClient): FlowDeps {
           dedupeKey: `flow.resume:${runId}:${token}`,
         });
       },
+      async scheduleTrigger({ orgId, kind, payload, runAt, dedupeKey }) {
+        await scheduleJob({ kind, orgId, runAt, payload, dedupeKey });
+      },
     },
     lock: {
       async claim(key, owner) {
@@ -547,7 +601,7 @@ export function createFlowDeps(admin: AdminClient): FlowDeps {
         await admin.rpc("release_flow_lock", { p_key: key, p_owner: owner });
       },
     },
-    crm: crmPort(),
+    crm: createCrmAdapters(admin),
     now: () => new Date(),
     uuid: () => randomUUID(),
     timezone: "Asia/Dubai",

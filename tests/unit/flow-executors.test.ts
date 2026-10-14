@@ -510,17 +510,39 @@ describe("update_contact_field", () => {
 });
 
 describe("CRM port nodes", () => {
-  for (const [type, method] of [
-    ["create_enquiry", "createEnquiry"],
-    ["add_task", "addTask"],
-    ["portal_record", "upsertPortalRecord"],
-    ["book_appointment", "bookAppointment"],
-  ] as const) {
+  const SVC = "00000000-0000-4000-8000-00000000a5e1";
+  const cases = [
+    [
+      "create_enquiry",
+      "createEnquiry",
+      { title: "Call {contact.first_name}" },
+      { title: "Call Sara" },
+    ],
+    ["add_task", "addTask", { subject: "Call {contact.first_name}" }, { subject: "Call Sara" }],
+    [
+      "portal_record",
+      "upsertPortalRecord",
+      { object: "ref_diagnoses", values: { name: "{contact.first_name}" } },
+      { object: "ref_diagnoses", values: { name: "Sara" } },
+    ],
+    [
+      "book_appointment",
+      "bookAppointment",
+      {
+        service_id: SVC,
+        specialist_id: SVC,
+        location_id: SVC,
+        starts_at: "2026-10-12T06:00:00.000Z",
+      },
+      { starts_at: "2026-10-12T06:00:00.000Z" },
+    ],
+  ] as const;
+  for (const [type, method, data, expected] of cases) {
     it(`${type} fails closed with no adapter and calls the adapter when present`, async () => {
       const none = harness();
-      const o = await exec(none, type, { title: "x" });
+      const o = await exec(none, type, data);
       expect(o).toMatchObject({ kind: "fail" });
-      expect((o as { error: string }).error).toContain("not available yet");
+      expect((o as { error: string }).error).toContain("not available");
 
       const calls: Array<Record<string, unknown>> = [];
       const h = harness({
@@ -531,9 +553,10 @@ describe("CRM port nodes", () => {
           ),
         },
       });
-      const ok = await exec(h, type, { title: "Call {contact.first_name}" });
+      const ok = await exec(h, type, data);
       expect(ok).toMatchObject({ kind: "next", output: { id: "rec-1" } });
-      expect(calls[0]).toEqual({ title: "Call Sara" });
+      expect(calls).toHaveLength(1);
+      expect(calls[0]).toMatchObject(expected);
     });
   }
 });

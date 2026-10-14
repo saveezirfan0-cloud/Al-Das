@@ -18,9 +18,11 @@ import { TeamDialog, type TeamForm } from "./team-dialog";
 export function TeamActions({
   team,
   people,
+  teams,
 }: {
   team: TeamForm & { id: string };
   people: Array<{ id: string; label: string }>;
+  teams: Array<{ id: string; name: string }>;
 }) {
   const [editing, setEditing] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -58,6 +60,7 @@ export function TeamActions({
         mode="edit"
         team={team}
         people={people}
+        teams={teams}
         open={editing}
         onOpenChange={setEditing}
       />

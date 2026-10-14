@@ -18,19 +18,57 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 
-import { createTeam, updateTeam } from "./actions";
+import { createTeam, updateTeam, type TeamInput } from "./actions";
 
 export type TeamForm = {
   name: string;
   description: string;
   round_robin: boolean;
   member_ids: string[];
+  auto_reply_text: string;
+  office_days: string[];
+  office_start: string;
+  office_end: string;
+  fallback_team_id: string | null;
 };
 
-type Props = { people: Array<{ id: string; label: string }> } & (
+const EMPTY: TeamForm = {
+  name: "",
+  description: "",
+  round_robin: false,
+  member_ids: [],
+  auto_reply_text: "",
+  office_days: [],
+  office_start: "08:00",
+  office_end: "20:00",
+  fallback_team_id: null,
+};
+
+const DAY_LABELS: Array<[string, string]> = [
+  ["mon", "Mon"],
+  ["tue", "Tue"],
+  ["wed", "Wed"],
+  ["thu", "Thu"],
+  ["fri", "Fri"],
+  ["sat", "Sat"],
+  ["sun", "Sun"],
+];
+const NO_FALLBACK = "__none__";
+
+type Props = {
+  people: Array<{ id: string; label: string }>;
+  teams: Array<{ id: string; name: string }>;
+} & (
   | { mode: "create"; team?: undefined; open?: undefined; onOpenChange?: undefined }
   | {
       mode: "edit";
@@ -45,18 +83,33 @@ export function TeamDialog(props: Props) {
   const open = props.mode === "edit" ? props.open : internalOpen;
   const setOpen = props.mode === "edit" ? props.onOpenChange : setInternalOpen;
 
-  const initial = props.team ?? { name: "", description: "", round_robin: false, member_ids: [] };
+  const initial = props.team ?? EMPTY;
   const [name, setName] = useState(initial.name);
   const [description, setDescription] = useState(initial.description);
   const [roundRobin, setRoundRobin] = useState(initial.round_robin);
   const [memberIds, setMemberIds] = useState<string[]>(initial.member_ids);
+  const [autoReply, setAutoReply] = useState(initial.auto_reply_text);
+  const [officeDays, setOfficeDays] = useState<string[]>(initial.office_days);
+  const [officeStart, setOfficeStart] = useState(initial.office_start);
+  const [officeEnd, setOfficeEnd] = useState(initial.office_end);
+  const [fallbackId, setFallbackId] = useState<string | null>(initial.fallback_team_id);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    const input = { name, description, round_robin: roundRobin, member_ids: memberIds };
+    const input = {
+      name,
+      description,
+      round_robin: roundRobin,
+      member_ids: memberIds,
+      auto_reply_text: autoReply,
+      office_days: officeDays as TeamInput["office_days"],
+      office_start: officeStart,
+      office_end: officeEnd,
+      fallback_team_id: fallbackId,
+    };
     startTransition(async () => {
       const res =
         props.mode === "create" ? await createTeam(input) : await updateTeam(props.team.id, input);
@@ -71,6 +124,9 @@ export function TeamDialog(props: Props) {
         setDescription("");
         setRoundRobin(false);
         setMemberIds([]);
+        setAutoReply("");
+        setOfficeDays([]);
+        setFallbackId(null);
       }
     });
   }
@@ -84,7 +140,7 @@ export function TeamDialog(props: Props) {
           </Button>
         </DialogTrigger>
       )}
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {props.mode === "create" ? "New team" : `Edit ${props.team.name}`}
@@ -146,6 +202,89 @@ export function TeamDialog(props: Props) {
               </ScrollArea>
             )}
           </div>
+          <fieldset className="grid gap-3 rounded-md border p-3">
+            <legend className="px-1 text-sm font-medium">Routing</legend>
+            <div className="grid gap-2">
+              <Label htmlFor="team-fallback">Fallback team</Label>
+              <Select
+                value={fallbackId ?? NO_FALLBACK}
+                onValueChange={(v) => setFallbackId(v === NO_FALLBACK ? null : v)}
+              >
+                <SelectTrigger id="team-fallback">
+                  <SelectValue placeholder="None" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NO_FALLBACK}>None</SelectItem>
+                  {props.teams
+                    .filter((t) => t.id !== props.team?.id)
+                    .map((t) => (
+                      <SelectItem key={t.id} value={t.id}>
+                        {t.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              <p className="text-muted-foreground text-xs">
+                New conversations go here when nobody in this team is online, or everyone has
+                reached their open conversation limit.
+              </p>
+            </div>
+            <div className="grid gap-2">
+              <Label>Office hours</Label>
+              <div className="flex flex-wrap gap-2">
+                {DAY_LABELS.map(([key, label]) => (
+                  <label key={key} className="flex items-center gap-1 text-sm">
+                    <Checkbox
+                      checked={officeDays.includes(key)}
+                      onCheckedChange={(c) =>
+                        setOfficeDays((prev) =>
+                          c ? [...prev, key] : prev.filter((d) => d !== key),
+                        )
+                      }
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <Input
+                  type="time"
+                  aria-label="Opens at"
+                  className="w-32"
+                  value={officeStart}
+                  onChange={(e) => setOfficeStart(e.target.value)}
+                  disabled={officeDays.length === 0}
+                />
+                <span className="text-muted-foreground">to</span>
+                <Input
+                  type="time"
+                  aria-label="Closes at"
+                  className="w-32"
+                  value={officeEnd}
+                  onChange={(e) => setOfficeEnd(e.target.value)}
+                  disabled={officeDays.length === 0}
+                />
+              </div>
+              <p className="text-muted-foreground text-xs">
+                In the workspace timezone. No days ticked means always open.
+              </p>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="team-auto-reply">Auto-reply message</Label>
+              <Textarea
+                id="team-auto-reply"
+                value={autoReply}
+                onChange={(e) => setAutoReply(e.target.value)}
+                rows={3}
+                maxLength={1024}
+                placeholder="e.g. Thank you for your message. Our team will reply as soon as we are back."
+              />
+              <p className="text-muted-foreground text-xs">
+                Sent once per conversation when a new chat lands in this team outside office hours
+                or while nobody in it is online. Leave empty for no auto-reply.
+              </p>
+            </div>
+          </fieldset>
           {error && (
             <p className="text-destructive text-sm" role="alert">
               {error}

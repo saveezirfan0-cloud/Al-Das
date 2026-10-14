@@ -42,6 +42,11 @@ import {
   PHASE22H_TABLES,
   PHASE22J_SERVICE_ONLY_TABLES,
   PHASE22J_TABLES,
+  SF20C_BOOKING_TABLES,
+  SF20C_TABLES,
+  SF20D_TABLES,
+  SF20E_SERVICE_ONLY_TABLES,
+  SF20E_TABLES,
   resetDb,
   seedPhase13Rows,
   seedPhase14Rows,
@@ -61,6 +66,10 @@ import {
   seedPhase22FRows,
   seedPhase22HRows,
   seedPhase22JRows,
+  seedSf20cBookingRows,
+  seedSf20cRows,
+  seedSf20dRows,
+  seedSf20eRows,
   seedSecurityRows,
   TEST_DATABASE_URL,
 } from "./helpers";
@@ -106,6 +115,11 @@ const SERVICE_ONLY = new Set([
   "integration_webhook_events",
   // Phase 19b: the encrypted token of each video room (the link itself); staff get the link through a server action that checks appointments.view
   "telehealth_rooms",
+  // Phase 20e: website chat visitor token hashes (the widget routes run as the service role after the origin and rate checks)
+  "web_chat_sessions",
+  // Phase 20e: Google Calendar refresh/access tokens (AES-256-GCM) and one-time OAuth states; server code after can('integrations.calendar')
+  "gcal_connections",
+  "gcal_oauth_states",
   "unite_api_calls",
   "job_runs",
   // Phase 8: salted hashes of Make's daily output for the parallel run, written by the importer script only
@@ -118,7 +132,8 @@ const SERVICE_ONLY = new Set([
 ]);
 
 /** SECURITY DEFINER functions in `public` that signed-in users may call directly (each uses auth.uid() inside). */
-const AUTHENTICATED_RPCS = new Set(["mark_all_notifications_read", "set_presence"]);
+// presence_heartbeat (Phase 20c): the browser shell's own heartbeat; it only touches the caller's own membership.
+const AUTHENTICATED_RPCS = new Set(["mark_all_notifications_read", "presence_heartbeat", "set_presence"]);
 
 /**
  * Phase 15 SECURITY DEFINER functions that are service-role only (they act across a whole org after the
@@ -166,6 +181,14 @@ const PHASE19_SERVICE_FUNCTIONS = [
   "calendar_feed_touch",
   "integration_call_stats",
   "integration_usage_bump",
+];
+
+/** Phase 20e SECURITY DEFINER functions that only server code (service role) may run. */
+const SF20E_SERVICE_FUNCTIONS = [
+  "channel_receive_social",
+  "gcal_apply_busy_blocks",
+  "gcal_clear_busy_blocks",
+  "web_chat_receive",
 ];
 
 /**
@@ -355,6 +378,14 @@ const PHASE17_SERVICE_FUNCTIONS = ["ai_add_conversation_tags"];
 
 /** Phase 14 SECURITY DEFINER functions that only server code (service role) may run. */
 const PHASE14_SERVICE_FUNCTIONS = ["accept_slot_offer", "demo_wipe_org"];
+
+/** Phase 20c (routing) SECURITY DEFINER functions that only server code (service role) or pg_cron may run. */
+const SF20C_SERVICE_FUNCTIONS = [
+  "enquiry_ids_visible_to",
+  "pick_round_robin_assignee_capped",
+  "presence_auto_away_sweep",
+  "route_conversation",
+];
 
 /**
  * Tables whose BEFORE-INSERT triggers (cross-org consistency checks, system-role protection)
@@ -554,6 +585,33 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 18 service-role functions", () => {
   });
 });
 
+describe.skipIf(!TEST_DATABASE_URL)("phase 20e service-role functions", () => {
+  it("exist and are executable by the service role only", async () => {
+    const c = await connect();
+    try {
+      const { rows } = await c.query<{ name: string; anon: boolean; auth: boolean; svc: boolean }>(
+        `select p.proname as name,
+                has_function_privilege('anon', p.oid, 'execute') as anon,
+                has_function_privilege('authenticated', p.oid, 'execute') as auth,
+                has_function_privilege('service_role', p.oid, 'execute') as svc
+         from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+         where n.nspname = 'public' and p.proname = any ($1)`,
+        [SF20E_SERVICE_FUNCTIONS],
+      );
+      expect(rows.map((r) => r.name).sort()).toEqual([...SF20E_SERVICE_FUNCTIONS].sort());
+      for (const r of rows)
+        expect({ name: r.name, anon: r.anon, auth: r.auth, svc: r.svc }).toEqual({
+          name: r.name,
+          anon: false,
+          auth: false,
+          svc: true,
+        });
+    } finally {
+      await c.end();
+    }
+  });
+});
+
 describe.skipIf(!TEST_DATABASE_URL)("phase 19 service-role functions", () => {
   it("exist and are executable by the service role only", async () => {
     const c = await connect();
@@ -709,6 +767,33 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 22G service-role functions", () => {
         [PHASE22G_SERVICE_FUNCTIONS],
       );
       expect(rows.map((r) => r.name).sort()).toEqual([...PHASE22G_SERVICE_FUNCTIONS].sort());
+      for (const r of rows)
+        expect({ name: r.name, anon: r.anon, auth: r.auth, svc: r.svc }).toEqual({
+          name: r.name,
+          anon: false,
+          auth: false,
+          svc: true,
+        });
+    } finally {
+      await c.end();
+    }
+  });
+});
+
+describe.skipIf(!TEST_DATABASE_URL)("phase 20c (Sanoflow parity) service-role functions", () => {
+  it("exist and are executable by the service role only", async () => {
+    const c = await connect();
+    try {
+      const { rows } = await c.query<{ name: string; anon: boolean; auth: boolean; svc: boolean }>(
+        `select p.proname as name,
+                has_function_privilege('anon', p.oid, 'execute') as anon,
+                has_function_privilege('authenticated', p.oid, 'execute') as auth,
+                has_function_privilege('service_role', p.oid, 'execute') as svc
+         from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+         where n.nspname = 'public' and p.proname = any ($1)`,
+        [SF20C_SERVICE_FUNCTIONS],
+      );
+      expect(rows.map((r) => r.name).sort()).toEqual([...SF20C_SERVICE_FUNCTIONS].sort());
       for (const r of rows)
         expect({ name: r.name, anon: r.anon, auth: r.auth, svc: r.svc }).toEqual({
           name: r.name,
@@ -919,6 +1004,14 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
     await seedPhase22HRows(c, orgA);
     // Phase 22J (Tally bridge) tables likewise.
     await seedPhase22JRows(c, orgA);
+    // Phase 20c booking-capacity tables likewise.
+    await seedSf20cBookingRows(c, orgA);
+    // Phase 20c tables likewise.
+    await seedSf20cRows(c, orgA, alice);
+    // Phase 20d tables likewise.
+    await seedSf20dRows(c, orgA);
+    // Phase 20e tables likewise.
+    await seedSf20eRows(c, orgA, alice);
   });
   afterAll(async () => {
     await resetDb(c);
@@ -931,6 +1024,10 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
 
   it("sweeps every Phase 13 to 22 table (a new table must be added to PHASE13_TABLES ... PHASE22_TABLES and seeded)", () => {
     for (const t of [
+      ...SF20E_TABLES,
+      ...SF20D_TABLES,
+      ...SF20C_BOOKING_TABLES,
+      ...SF20C_TABLES,
       ...PHASE22G_TABLES,
       ...PHASE22I_TABLES,
       ...PHASE22_TABLES,
@@ -957,6 +1054,10 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
   it("really holds org A rows in the Phase 13 to 21 tables, visible to org A's admin (control for the leak sweep)", async () => {
     await asUser(c, alice, async () => {
       for (const t of [
+        ...SF20E_TABLES,
+        ...SF20D_TABLES,
+        ...SF20C_BOOKING_TABLES,
+        ...SF20C_TABLES,
         ...PHASE22G_TABLES,
         ...PHASE22I_TABLES,
         ...PHASE22_TABLES,
@@ -1037,6 +1138,7 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
         "scheduled_jobs",
         ...PHASE18_SERVICE_ONLY_TABLES,
         ...PHASE19_SERVICE_ONLY_TABLES,
+        ...SF20E_SERVICE_ONLY_TABLES,
         ...PHASE20D_SERVICE_ONLY_TABLES,
         ...PHASE22C_SERVICE_ONLY_TABLES,
         ...PHASE22_SERVICE_ONLY_TABLES,

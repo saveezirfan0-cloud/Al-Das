@@ -1,4 +1,5 @@
 /** Node catalogue shared by the builder (palette, node cards, defaults) and tests. Framework-free. */
+import { INTENT_LABELS, type Intent } from "@/lib/ai/intent/labels";
 import type { NodeType } from "@/lib/flow-engine/types";
 
 export type NodeGroup = "Messaging" | "Logic" | "Conversation" | "CRM" | "Integrations";
@@ -35,6 +36,8 @@ export const NODE_DEFS: readonly NodeDef[] = [
         { id: "no", title: "No" },
       ],
       variable: "answer",
+      reask_max: 1,
+      reask_text: "Sorry, I did not catch that. Please choose one of the options.",
     },
   },
   {
@@ -112,6 +115,14 @@ export const NODE_DEFS: readonly NodeDef[] = [
     defaults: { target: { type: "team", id: "" } },
   },
   {
+    type: "set_label",
+    label: "Set label",
+    group: "Conversation",
+    description: "Add or remove a conversation label.",
+    keywords: ["tag", "label", "inbox"],
+    defaults: { tag_id: "", action: "add" },
+  },
+  {
     type: "close_conversation",
     label: "Close conversation",
     group: "Conversation",
@@ -139,33 +150,51 @@ export const NODE_DEFS: readonly NodeDef[] = [
     type: "create_enquiry",
     label: "Create / update enquiry",
     group: "CRM",
-    description: "Create or move an enquiry (available when Enquiries is installed).",
-    keywords: ["lead", "pipeline", "stage"],
-    defaults: {},
+    description:
+      "Open an enquiry for this patient, or move their open one (no duplicates). Later steps can update it.",
+    keywords: ["lead", "pipeline", "stage", "crm"],
+    defaults: { title: "WhatsApp enquiry", if_open: "update" },
+  },
+  {
+    type: "update_enquiry",
+    label: "Update enquiry",
+    group: "CRM",
+    description:
+      "Move the enquiry's stage or pipeline, set its status (with a lost reason) or a field.",
+    keywords: ["lead", "pipeline", "stage", "status", "lost", "won", "field", "crm"],
+    defaults: { action: "stage", stage_id: "" },
   },
   {
     type: "add_task",
     label: "Add task",
     group: "CRM",
-    description: "Create a task for the team (available when Tasks is installed).",
-    keywords: ["todo", "reminder"],
-    defaults: {},
+    description: "Create a follow-up task for the team, linked to this patient.",
+    keywords: ["todo", "reminder", "call back", "crm"],
+    defaults: { subject: "Call {contact.first_name} back", type: "call", due_in_hours: 4 },
   },
   {
     type: "portal_record",
     label: "Portal record",
     group: "CRM",
-    description: "Create or update a back-office record (available with the Portal).",
-    keywords: ["airtable", "back office"],
-    defaults: {},
+    description:
+      "Create or update a back-office record. Runs with the publisher's portal permissions.",
+    keywords: ["airtable", "back office", "crm"],
+    defaults: { object: "", mode: "create", values: {} },
   },
   {
     type: "book_appointment",
-    label: "Book / update appointment",
+    label: "Book appointment",
     group: "CRM",
-    description: "Book or change an appointment (available with Appointments).",
-    keywords: ["booking", "calendar"],
-    defaults: {},
+    description:
+      "Book a free slot for this patient (time usually from a variable). Never writes to Unite.",
+    keywords: ["booking", "calendar", "crm"],
+    defaults: {
+      service_id: "",
+      specialist_id: "",
+      location_id: "",
+      starts_at: "{vars.slot}",
+      notify: true,
+    },
   },
   {
     type: "api_action",
@@ -182,6 +211,33 @@ export const NODE_DEFS: readonly NodeDef[] = [
     description: "Notify a person, team or role inside Pulse.",
     keywords: ["alert", "notify"],
     defaults: { target: { type: "role", id: "Manager" }, title: "Needs attention", body: "" },
+  },
+  {
+    type: "payment_link",
+    label: "Payment link",
+    group: "Integrations",
+    description:
+      "Send a payment link for an invoice of this patient (Payment links integration; never in training mode).",
+    keywords: ["pay", "invoice", "stripe", "money", "finance"],
+    defaults: { invoice_number: "{vars.invoice}", amount: "{vars.amount}" },
+  },
+  {
+    type: "meta_event",
+    label: "Meta ad event",
+    group: "Integrations",
+    description:
+      "Report Contact, Lead or Schedule to Meta for a patient who came from an ad (consent rules apply).",
+    keywords: ["conversions api", "capi", "facebook", "instagram", "ads", "attribution"],
+    defaults: { event_name: "Lead" },
+  },
+  {
+    type: "ai_router",
+    label: "AI router",
+    group: "Logic",
+    description:
+      "Route on what the patient's last message is about (booking, price, complaint, report). Else when AI is off.",
+    keywords: ["intent", "classify", "ai", "route", "understand"],
+    defaults: { intents: ["booking", "price"] },
   },
 ];
 
@@ -237,6 +293,15 @@ export function outputsFor(
           ? opts.map((o) => ({ id: `option:${o.id}`, label: o.title || o.id }))
           : [{ id: "default", label: "Answered" }]),
         { id: "fallback", label: "No / other answer" },
+      ];
+    }
+    case "ai_router": {
+      const intents = (Array.isArray(data.intents) ? data.intents : []).filter(
+        (i): i is Intent => typeof i === "string" && i in INTENT_LABELS,
+      );
+      return [
+        ...intents.map((i) => ({ id: `intent:${i}`, label: INTENT_LABELS[i] })),
+        { id: "else", label: "Else" },
       ];
     }
     case "wait":

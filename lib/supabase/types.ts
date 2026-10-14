@@ -5265,6 +5265,36 @@ export type Database = {
           },
         ];
       };
+      campaign_budget_months: {
+        Row: {
+          month: string;
+          org_id: string;
+          updated_at: string;
+          used: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          month: string;
+          org_id: string;
+          updated_at?: string;
+          used?: number;
+        };
+        Update: {
+          month?: string;
+          org_id?: string;
+          updated_at?: string;
+          used?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "campaign_budget_months_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       campaign_recipients: {
         Row: {
           attempts: number;
@@ -5391,6 +5421,125 @@ export type Database = {
           },
         ];
       };
+      campaign_recurrences: {
+        Row: {
+          channel_id: string;
+          created_at: string;
+          created_by: string | null;
+          cron: string;
+          fallbacks: NonNullable<Json>;
+          guardrails: NonNullable<Json>;
+          id: string;
+          last_campaign_id: string | null;
+          last_run_at: string | null;
+          last_run_outcome: string | null;
+          name: string;
+          next_run_at: string | null;
+          org_id: string;
+          retry_delay_minutes: number;
+          retry_rounds: number;
+          runs: number;
+          segment_id: string | null;
+          status: string;
+          template_id: string;
+          timezone: string;
+          updated_at: string;
+          variable_map: NonNullable<Json>;
+        };
+        ComputedFields: never;
+        Insert: {
+          channel_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          cron: string;
+          fallbacks?: NonNullable<Json>;
+          guardrails?: NonNullable<Json>;
+          id?: string;
+          last_campaign_id?: string | null;
+          last_run_at?: string | null;
+          last_run_outcome?: string | null;
+          name: string;
+          next_run_at?: string | null;
+          org_id: string;
+          retry_delay_minutes?: number;
+          retry_rounds?: number;
+          runs?: number;
+          segment_id?: string | null;
+          status?: string;
+          template_id: string;
+          timezone: string;
+          updated_at?: string;
+          variable_map?: NonNullable<Json>;
+        };
+        Update: {
+          channel_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          cron?: string;
+          fallbacks?: NonNullable<Json>;
+          guardrails?: NonNullable<Json>;
+          id?: string;
+          last_campaign_id?: string | null;
+          last_run_at?: string | null;
+          last_run_outcome?: string | null;
+          name?: string;
+          next_run_at?: string | null;
+          org_id?: string;
+          retry_delay_minutes?: number;
+          retry_rounds?: number;
+          runs?: number;
+          segment_id?: string | null;
+          status?: string;
+          template_id?: string;
+          timezone?: string;
+          updated_at?: string;
+          variable_map?: NonNullable<Json>;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "campaign_recurrences_channel_id_fkey";
+            columns: ["channel_id"];
+            isOneToOne: false;
+            referencedRelation: "channels";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "campaign_recurrences_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "campaign_recurrences_last_campaign_id_fkey";
+            columns: ["last_campaign_id"];
+            isOneToOne: false;
+            referencedRelation: "campaigns";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "campaign_recurrences_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "campaign_recurrences_segment_id_fkey";
+            columns: ["segment_id"];
+            isOneToOne: false;
+            referencedRelation: "segments";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "campaign_recurrences_template_id_fkey";
+            columns: ["template_id"];
+            isOneToOne: false;
+            referencedRelation: "wa_templates";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       campaigns: {
         Row: {
           audience_type: string;
@@ -5411,9 +5560,11 @@ export type Database = {
           paused_at: string | null;
           paused_reason: string | null;
           quality_at_start: string | null;
+          recurrence_id: string | null;
           retry_delay_minutes: number;
           retry_round: number;
           retry_rounds: number;
+          run_key: string | null;
           scheduled_at: string | null;
           segment_id: string | null;
           started_at: string | null;
@@ -5444,9 +5595,11 @@ export type Database = {
           paused_at?: string | null;
           paused_reason?: string | null;
           quality_at_start?: string | null;
+          recurrence_id?: string | null;
           retry_delay_minutes?: number;
           retry_round?: number;
           retry_rounds?: number;
+          run_key?: string | null;
           scheduled_at?: string | null;
           segment_id?: string | null;
           started_at?: string | null;
@@ -5476,9 +5629,11 @@ export type Database = {
           paused_at?: string | null;
           paused_reason?: string | null;
           quality_at_start?: string | null;
+          recurrence_id?: string | null;
           retry_delay_minutes?: number;
           retry_round?: number;
           retry_rounds?: number;
+          run_key?: string | null;
           scheduled_at?: string | null;
           segment_id?: string | null;
           started_at?: string | null;
@@ -5490,6 +5645,13 @@ export type Database = {
           variable_map?: NonNullable<Json>;
         };
         Relationships: [
+          {
+            foreignKeyName: "campaigns_recurrence_id_fkey";
+            columns: ["recurrence_id"];
+            isOneToOne: false;
+            referencedRelation: "campaign_recurrences";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "campaigns_channel_id_fkey";
             columns: ["channel_id"];
@@ -6494,6 +6656,62 @@ export type Database = {
           },
         ];
       };
+      contact_channel_identities: {
+        Row: {
+          channel_id: string;
+          contact_id: string;
+          created_at: string;
+          external_id: string;
+          id: string;
+          last_seen_at: string;
+          org_id: string;
+          platform: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          channel_id: string;
+          contact_id: string;
+          created_at?: string;
+          external_id: string;
+          id?: string;
+          last_seen_at?: string;
+          org_id: string;
+          platform: string;
+        };
+        Update: {
+          channel_id?: string;
+          contact_id?: string;
+          created_at?: string;
+          external_id?: string;
+          id?: string;
+          last_seen_at?: string;
+          org_id?: string;
+          platform?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "contact_channel_identities_channel_id_fkey";
+            columns: ["channel_id"];
+            isOneToOne: false;
+            referencedRelation: "channels";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "contact_channel_identities_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "contact_channel_identities_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       contact_phones: {
         Row: {
           contact_id: string;
@@ -6817,6 +7035,64 @@ export type Database = {
           },
         ];
       };
+      conversation_assignment_events: {
+        Row: {
+          actor_id: string | null;
+          at: string;
+          conversation_id: string;
+          from_team_id: string | null;
+          from_user_id: string | null;
+          id: number;
+          kind: string;
+          org_id: string;
+          source: string;
+          to_team_id: string | null;
+          to_user_id: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          actor_id?: string | null;
+          at?: string;
+          conversation_id: string;
+          from_team_id?: string | null;
+          from_user_id?: string | null;
+          id?: never;
+          kind: string;
+          org_id: string;
+          source: string;
+          to_team_id?: string | null;
+          to_user_id?: string | null;
+        };
+        Update: {
+          actor_id?: string | null;
+          at?: string;
+          conversation_id?: string;
+          from_team_id?: string | null;
+          from_user_id?: string | null;
+          id?: never;
+          kind?: string;
+          org_id?: string;
+          source?: string;
+          to_team_id?: string | null;
+          to_user_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "conversation_assignment_events_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "conversation_assignment_events_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       conversation_labels: {
         Row: {
           added_at: string;
@@ -6891,6 +7167,7 @@ export type Database = {
           ai_tags: string[];
           assignee_team_id: string | null;
           assignee_user_id: string | null;
+          auto_reply_sent_at: string | null;
           bot_active: boolean;
           campaign_only: boolean;
           category_id: string | null;
@@ -6921,6 +7198,7 @@ export type Database = {
           ai_tags?: string[];
           assignee_team_id?: string | null;
           assignee_user_id?: string | null;
+          auto_reply_sent_at?: string | null;
           bot_active?: boolean;
           campaign_only?: boolean;
           category_id?: string | null;
@@ -6950,6 +7228,7 @@ export type Database = {
           ai_tags?: string[];
           assignee_team_id?: string | null;
           assignee_user_id?: string | null;
+          auto_reply_sent_at?: string | null;
           bot_active?: boolean;
           campaign_only?: boolean;
           category_id?: string | null;
@@ -13653,6 +13932,204 @@ export type Database = {
           },
         ];
       };
+      gcal_connections: {
+        Row: {
+          access_enc: string | null;
+          access_expires_at: string | null;
+          calendar_id: string;
+          connected_at: string;
+          connected_by: string | null;
+          consecutive_failures: number;
+          created_at: string;
+          id: string;
+          last_error: string | null;
+          last_pull_at: string | null;
+          last_push_at: string | null;
+          next_sync_at: string;
+          org_id: string;
+          refresh_enc: string | null;
+          revoked_at: string | null;
+          specialist_id: string;
+          status: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          access_enc?: string | null;
+          access_expires_at?: string | null;
+          calendar_id?: string;
+          connected_at?: string;
+          connected_by?: string | null;
+          consecutive_failures?: number;
+          created_at?: string;
+          id?: string;
+          last_error?: string | null;
+          last_pull_at?: string | null;
+          last_push_at?: string | null;
+          next_sync_at?: string;
+          org_id: string;
+          refresh_enc?: string | null;
+          revoked_at?: string | null;
+          specialist_id: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          access_enc?: string | null;
+          access_expires_at?: string | null;
+          calendar_id?: string;
+          connected_at?: string;
+          connected_by?: string | null;
+          consecutive_failures?: number;
+          created_at?: string;
+          id?: string;
+          last_error?: string | null;
+          last_pull_at?: string | null;
+          last_push_at?: string | null;
+          next_sync_at?: string;
+          org_id?: string;
+          refresh_enc?: string | null;
+          revoked_at?: string | null;
+          specialist_id?: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "gcal_connections_connected_by_fkey";
+            columns: ["connected_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "gcal_connections_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "gcal_connections_specialist_id_fkey";
+            columns: ["specialist_id"];
+            isOneToOne: false;
+            referencedRelation: "specialists";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      gcal_event_links: {
+        Row: {
+          appointment_id: string | null;
+          connection_id: string;
+          created_at: string;
+          event_id: string;
+          id: string;
+          last_synced_at: string;
+          org_id: string;
+          status: string;
+          synced_hash: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          appointment_id?: string | null;
+          connection_id: string;
+          created_at?: string;
+          event_id: string;
+          id?: string;
+          last_synced_at?: string;
+          org_id: string;
+          status?: string;
+          synced_hash: string;
+        };
+        Update: {
+          appointment_id?: string | null;
+          connection_id?: string;
+          created_at?: string;
+          event_id?: string;
+          id?: string;
+          last_synced_at?: string;
+          org_id?: string;
+          status?: string;
+          synced_hash?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "gcal_event_links_appointment_id_fkey";
+            columns: ["appointment_id"];
+            isOneToOne: false;
+            referencedRelation: "appointments";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "gcal_event_links_connection_id_fkey";
+            columns: ["connection_id"];
+            isOneToOne: false;
+            referencedRelation: "gcal_connections";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "gcal_event_links_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      gcal_oauth_states: {
+        Row: {
+          created_at: string;
+          expires_at: string;
+          org_id: string;
+          specialist_id: string;
+          state_hash: string;
+          used_at: string | null;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          expires_at: string;
+          org_id: string;
+          specialist_id: string;
+          state_hash: string;
+          used_at?: string | null;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          expires_at?: string;
+          org_id?: string;
+          specialist_id?: string;
+          state_hash?: string;
+          used_at?: string | null;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "gcal_oauth_states_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "gcal_oauth_states_specialist_id_fkey";
+            columns: ["specialist_id"];
+            isOneToOne: false;
+            referencedRelation: "specialists";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "gcal_oauth_states_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       handover_notes: {
         Row: {
           body: string;
@@ -15561,13 +16038,56 @@ export type Database = {
           },
         ];
       };
+      member_presence_events: {
+        Row: {
+          at: string;
+          id: number;
+          org_id: string;
+          presence: string;
+          previous: string | null;
+          source: string;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          at?: string;
+          id?: never;
+          org_id: string;
+          presence: string;
+          previous?: string | null;
+          source: string;
+          user_id: string;
+        };
+        Update: {
+          at?: string;
+          id?: never;
+          org_id?: string;
+          presence?: string;
+          previous?: string | null;
+          source?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "member_presence_events_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       memberships: {
         Row: {
           created_at: string;
+          enquiry_scope: string;
           id: string;
+          last_seen_at: string | null;
+          max_open_conversations: number | null;
           org_id: string;
           presence: string;
           presence_at: string | null;
+          presence_auto: boolean;
           role_id: string;
           status: string;
           updated_at: string;
@@ -15576,10 +16096,14 @@ export type Database = {
         ComputedFields: never;
         Insert: {
           created_at?: string;
+          enquiry_scope?: string;
           id?: string;
+          last_seen_at?: string | null;
+          max_open_conversations?: number | null;
           org_id: string;
           presence?: string;
           presence_at?: string | null;
+          presence_auto?: boolean;
           role_id: string;
           status?: string;
           updated_at?: string;
@@ -15587,10 +16111,14 @@ export type Database = {
         };
         Update: {
           created_at?: string;
+          enquiry_scope?: string;
           id?: string;
+          last_seen_at?: string | null;
+          max_open_conversations?: number | null;
           org_id?: string;
           presence?: string;
           presence_at?: string | null;
+          presence_auto?: boolean;
           role_id?: string;
           status?: string;
           updated_at?: string;
@@ -15748,6 +16276,7 @@ export type Database = {
           org_id: string;
           payload: NonNullable<Json>;
           reply_to_wa_message_id: string | null;
+          retry_of_message_id: string | null;
           sent_by_user_id: string | null;
           status: string;
           updated_at: string;
@@ -15773,6 +16302,7 @@ export type Database = {
           org_id: string;
           payload?: NonNullable<Json>;
           reply_to_wa_message_id?: string | null;
+          retry_of_message_id?: string | null;
           sent_by_user_id?: string | null;
           status?: string;
           updated_at?: string;
@@ -15797,12 +16327,20 @@ export type Database = {
           org_id?: string;
           payload?: NonNullable<Json>;
           reply_to_wa_message_id?: string | null;
+          retry_of_message_id?: string | null;
           sent_by_user_id?: string | null;
           status?: string;
           updated_at?: string;
           wa_message_id?: string | null;
         };
         Relationships: [
+          {
+            foreignKeyName: "messages_retry_of_message_id_fkey";
+            columns: ["retry_of_message_id"];
+            isOneToOne: false;
+            referencedRelation: "messages";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "messages_campaign_recipient_id_fkey";
             columns: ["campaign_recipient_id"];
@@ -18330,6 +18868,9 @@ export type Database = {
       services: {
         Row: {
           active: boolean;
+          buffer_after_min: number;
+          buffer_before_min: number;
+          capacity: number;
           created_at: string;
           default_visit_mode: string;
           department_id: string | null;
@@ -18343,6 +18884,9 @@ export type Database = {
         ComputedFields: never;
         Insert: {
           active?: boolean;
+          buffer_after_min?: number;
+          buffer_before_min?: number;
+          capacity?: number;
           created_at?: string;
           default_visit_mode?: string;
           department_id?: string | null;
@@ -18355,6 +18899,9 @@ export type Database = {
         };
         Update: {
           active?: boolean;
+          buffer_after_min?: number;
+          buffer_before_min?: number;
+          capacity?: number;
           created_at?: string;
           default_visit_mode?: string;
           department_id?: string | null;
@@ -18666,6 +19213,68 @@ export type Database = {
           },
         ];
       };
+      specialist_recurring_blocks: {
+        Row: {
+          created_at: string;
+          end_min: number;
+          id: string;
+          location_id: string | null;
+          org_id: string;
+          reason: string | null;
+          specialist_id: string;
+          start_min: number;
+          updated_at: string;
+          weekday: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          end_min: number;
+          id?: string;
+          location_id?: string | null;
+          org_id: string;
+          reason?: string | null;
+          specialist_id: string;
+          start_min: number;
+          updated_at?: string;
+          weekday: number;
+        };
+        Update: {
+          created_at?: string;
+          end_min?: number;
+          id?: string;
+          location_id?: string | null;
+          org_id?: string;
+          reason?: string | null;
+          specialist_id?: string;
+          start_min?: number;
+          updated_at?: string;
+          weekday?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "specialist_recurring_blocks_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "specialist_recurring_blocks_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "specialist_recurring_blocks_specialist_id_fkey";
+            columns: ["specialist_id"];
+            isOneToOne: false;
+            referencedRelation: "specialists";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       specialist_services: {
         Row: {
           org_id: string;
@@ -18714,9 +19323,11 @@ export type Database = {
           department_id: string | null;
           external_id: string | null;
           id: string;
+          max_per_slot: number;
           name: string;
           org_id: string;
           photo_path: string | null;
+          slot_length_min: number | null;
           title: string | null;
           updated_at: string;
           user_id: string | null;
@@ -18728,9 +19339,11 @@ export type Database = {
           department_id?: string | null;
           external_id?: string | null;
           id?: string;
+          max_per_slot?: number;
           name: string;
           org_id: string;
           photo_path?: string | null;
+          slot_length_min?: number | null;
           title?: string | null;
           updated_at?: string;
           user_id?: string | null;
@@ -18741,9 +19354,11 @@ export type Database = {
           department_id?: string | null;
           external_id?: string | null;
           id?: string;
+          max_per_slot?: number;
           name?: string;
           org_id?: string;
           photo_path?: string | null;
+          slot_length_min?: number | null;
           title?: string | null;
           updated_at?: string;
           user_id?: string | null;
@@ -19190,37 +19805,53 @@ export type Database = {
       };
       teams: {
         Row: {
+          auto_reply_text: string | null;
           created_at: string;
           description: string | null;
+          fallback_team_id: string | null;
           id: string;
           lead_user_id: string | null;
           name: string;
+          office_hours: Json | null;
           org_id: string;
           round_robin: boolean;
           updated_at: string;
         };
         ComputedFields: never;
         Insert: {
+          auto_reply_text?: string | null;
           created_at?: string;
           description?: string | null;
+          fallback_team_id?: string | null;
           id?: string;
           lead_user_id?: string | null;
           name: string;
+          office_hours?: Json | null;
           org_id: string;
           round_robin?: boolean;
           updated_at?: string;
         };
         Update: {
+          auto_reply_text?: string | null;
           created_at?: string;
           description?: string | null;
+          fallback_team_id?: string | null;
           id?: string;
           lead_user_id?: string | null;
           name?: string;
+          office_hours?: Json | null;
           org_id?: string;
           round_robin?: boolean;
           updated_at?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "teams_fallback_team_id_fkey";
+            columns: ["fallback_team_id"];
+            isOneToOne: false;
+            referencedRelation: "teams";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "teams_lead_user_id_fkey";
             columns: ["lead_user_id"];
@@ -19329,10 +19960,12 @@ export type Database = {
           created_at: string;
           created_by: string | null;
           ends_at: string;
+          external_key: string | null;
           id: string;
           location_id: string | null;
           org_id: string;
           reason: string | null;
+          source: string;
           specialist_id: string;
           starts_at: string;
           updated_at: string;
@@ -19342,10 +19975,12 @@ export type Database = {
           created_at?: string;
           created_by?: string | null;
           ends_at: string;
+          external_key?: string | null;
           id?: string;
           location_id?: string | null;
           org_id: string;
           reason?: string | null;
+          source?: string;
           specialist_id: string;
           starts_at: string;
           updated_at?: string;
@@ -19354,10 +19989,12 @@ export type Database = {
           created_at?: string;
           created_by?: string | null;
           ends_at?: string;
+          external_key?: string | null;
           id?: string;
           location_id?: string | null;
           org_id?: string;
           reason?: string | null;
+          source?: string;
           specialist_id?: string;
           starts_at?: string;
           updated_at?: string;
@@ -20070,8 +20707,10 @@ export type Database = {
           quality: string | null;
           rejected_reason: string | null;
           retry_on_fail: boolean;
+          sms_fallback: boolean;
           status: string;
           submitted_at: string | null;
+          ttl_seconds: number | null;
           type: string;
           updated_at: string;
           variable_map: NonNullable<Json>;
@@ -20098,8 +20737,10 @@ export type Database = {
           quality?: string | null;
           rejected_reason?: string | null;
           retry_on_fail?: boolean;
+          sms_fallback?: boolean;
           status?: string;
           submitted_at?: string | null;
+          ttl_seconds?: number | null;
           type?: string;
           updated_at?: string;
           variable_map?: NonNullable<Json>;
@@ -20125,8 +20766,10 @@ export type Database = {
           quality?: string | null;
           rejected_reason?: string | null;
           retry_on_fail?: boolean;
+          sms_fallback?: boolean;
           status?: string;
           submitted_at?: string | null;
+          ttl_seconds?: number | null;
           type?: string;
           updated_at?: string;
           variable_map?: NonNullable<Json>;
@@ -20272,6 +20915,69 @@ export type Database = {
             columns: ["specialist_id"];
             isOneToOne: false;
             referencedRelation: "specialists";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      web_chat_sessions: {
+        Row: {
+          channel_id: string;
+          contact_id: string;
+          conversation_id: string | null;
+          created_at: string;
+          id: string;
+          last_seen_at: string;
+          org_id: string;
+          token_hash: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          channel_id: string;
+          contact_id: string;
+          conversation_id?: string | null;
+          created_at?: string;
+          id?: string;
+          last_seen_at?: string;
+          org_id: string;
+          token_hash: string;
+        };
+        Update: {
+          channel_id?: string;
+          contact_id?: string;
+          conversation_id?: string | null;
+          created_at?: string;
+          id?: string;
+          last_seen_at?: string;
+          org_id?: string;
+          token_hash?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "web_chat_sessions_channel_id_fkey";
+            columns: ["channel_id"];
+            isOneToOne: false;
+            referencedRelation: "channels";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "web_chat_sessions_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "web_chat_sessions_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "web_chat_sessions_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
             referencedColumns: ["id"];
           },
         ];
@@ -20863,6 +21569,23 @@ export type Database = {
           },
         ];
       };
+      v_assignment_events: {
+        Row: {
+          at: string | null;
+          conversation_id: string | null;
+          day: string | null;
+          from_team_id: string | null;
+          from_user_id: string | null;
+          id: number | null;
+          kind: string | null;
+          org_id: string | null;
+          source: string | null;
+          to_team_id: string | null;
+          to_user_id: string | null;
+        };
+        ComputedFields: never;
+        Relationships: [];
+      };
       v_birthday_today: {
         Row: {
           age_today: number | null;
@@ -20963,6 +21686,24 @@ export type Database = {
           pulse_last_visit_date: string | null;
           unite_last_visit_date: string | null;
           visit_count: number | null;
+        };
+        ComputedFields: never;
+        Relationships: [];
+      };
+      v_conversation_engagement: {
+        Row: {
+          ai_assisted: boolean | null;
+          assignee_team_id: string | null;
+          assignee_user_id: string | null;
+          automated_reply: boolean | null;
+          bot_engaged: boolean | null;
+          channel_id: string | null;
+          closed_at: string | null;
+          closed_day: string | null;
+          conversation_id: string | null;
+          human_replied: boolean | null;
+          org_id: string | null;
+          status: string | null;
         };
         ComputedFields: never;
         Relationships: [];
@@ -21633,6 +22374,19 @@ export type Database = {
           },
         ];
       };
+      v_presence_events: {
+        Row: {
+          at: string | null;
+          id: number | null;
+          org_id: string | null;
+          presence: string | null;
+          previous: string | null;
+          source: string | null;
+          user_id: string | null;
+        };
+        ComputedFields: never;
+        Relationships: [];
+      };
       v_recall_call_list: {
         Row: {
           assigned_user_id: string | null;
@@ -21820,6 +22574,24 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      v_template_message_facts: {
+        Row: {
+          at: string | null;
+          channel_id: string | null;
+          conversation_id: string | null;
+          day: string | null;
+          error_code: number | null;
+          from_campaign: boolean | null;
+          id: string | null;
+          is_retry: boolean | null;
+          org_id: string | null;
+          status: string | null;
+          template_key: string | null;
+          wa_message_id: string | null;
+        };
+        ComputedFields: never;
+        Relationships: [];
       };
       v_unclassified_medications: {
         Row: {
@@ -22524,6 +23296,13 @@ export type Database = {
         };
         Returns: boolean;
       };
+      appointment_capacity_conflicts: {
+        Args: { p_ids: string[]; p_org_id: string };
+        Returns: {
+          appointment_id: string;
+          reason: string;
+        }[];
+      };
       book_appointment: {
         Args: {
           p_contact_id: string;
@@ -22592,6 +23371,18 @@ export type Database = {
         };
         Returns: Json;
       };
+      campaign_budget_claim: {
+        Args: { p_org: string; p_requested: number };
+        Returns: number;
+      };
+      campaign_budget_refund: {
+        Args: { p_count: number; p_org: string };
+        Returns: undefined;
+      };
+      campaign_budget_status: {
+        Args: { p_org: string };
+        Returns: { month: string; monthly_limit: number | null; used: number }[];
+      };
       campaign_dispatch: {
         Args: { p_campaign_id: string; p_items: Json };
         Returns: {
@@ -22600,6 +23391,15 @@ export type Database = {
         }[];
       };
       campaign_funnel: { Args: { p_campaign_id: string }; Returns: Json };
+      campaign_recurrence_claim: {
+        Args: {
+          p_next_run_at: string;
+          p_recurrence_id: string;
+          p_run_at: string;
+          p_skip_reason?: string;
+        };
+        Returns: string | null;
+      };
       campaign_requeue_failed: {
         Args: { p_campaign_id: string; p_codes: number[] };
         Returns: number;
@@ -22613,6 +23413,19 @@ export type Database = {
           p_org_id: string;
           p_params: Json;
           p_where: string;
+        };
+        Returns: Json;
+      };
+      channel_receive_social: {
+        Args: {
+          p_at?: string;
+          p_body: string;
+          p_channel: string;
+          p_external_id: string;
+          p_kind: string;
+          p_message_id: string;
+          p_org: string;
+          p_platform: string;
         };
         Returns: Json;
       };
@@ -22737,6 +23550,10 @@ export type Database = {
       };
       dearmor: { Args: { "": string }; Returns: string };
       demo_wipe_org: { Args: { p_org_id: string }; Returns: Json };
+      enquiry_ids_visible_to: {
+        Args: { p_ids: string[]; p_org_id: string; p_user_id: string };
+        Returns: string[];
+      };
       enquiries_count: {
         Args: { p_org_id: string; p_params: Json; p_q?: string; p_where: string };
         Returns: number;
@@ -23184,6 +24001,11 @@ export type Database = {
         };
         Returns: Json;
       };
+      gcal_apply_busy_blocks: {
+        Args: { p_blocks: Json; p_from: string; p_org: string; p_specialist: string; p_to: string };
+        Returns: Json;
+      };
+      gcal_clear_busy_blocks: { Args: { p_org: string; p_specialist: string }; Returns: number };
       gen_random_uuid: { Args: Record<PropertyKey, never>; Returns: string };
       gen_salt: { Args: { "": string }; Returns: string };
       ins_apply_matches: { Args: { p_matches: Json; p_org_id: string }; Returns: number };
@@ -23384,6 +24206,10 @@ export type Database = {
       };
       pgp_armor_headers: { Args: { "": string }; Returns: Record<string, unknown>[] };
       pick_round_robin_assignee: { Args: { p_org_id: string; p_team_id: string }; Returns: string };
+      pick_round_robin_assignee_capped: {
+        Args: { p_org_id: string; p_team_id: string };
+        Returns: string;
+      };
       portal_count: {
         Args: { p_object_key: string; p_org_id: string; p_params: Json; p_where: string };
         Returns: number;
@@ -23413,6 +24239,8 @@ export type Database = {
           total: number;
         }[];
       };
+      presence_auto_away_sweep: { Args: Record<PropertyKey, never>; Returns: number };
+      presence_heartbeat: { Args: { p_org_id: string }; Returns: string };
       rate_limit_hit: {
         Args: { p_key: string; p_limit: number; p_window_seconds: number };
         Returns: {
@@ -23425,6 +24253,24 @@ export type Database = {
       reconcile_snapshot: { Args: { p_org_id: string }; Returns: Json };
       refresh_metrics: { Args: { p_name?: string }; Returns: string[] };
       release_flow_lock: { Args: { p_key: string; p_owner: string }; Returns: undefined };
+      report_ai_engagement: {
+        Args: {
+          p_channels?: string[];
+          p_from: string;
+          p_org: string;
+          p_teams?: string[];
+          p_to: string;
+        };
+        Returns: {
+          ai_assisted: number;
+          bot_engaged: number;
+          closed: number;
+          closed_without_human: number;
+          closed_without_reply: number;
+          engaged: number;
+          handled_by_automation: number;
+        }[];
+      };
       report_agents: {
         Args: {
           p_from: string;
@@ -23441,6 +24287,25 @@ export type Database = {
           messages_sent: number;
           name: string;
           user_id: string;
+        }[];
+      };
+      report_assignment_close: {
+        Args: {
+          p_from: string;
+          p_org: string;
+          p_teams?: string[];
+          p_to: string;
+          p_users?: string[];
+        };
+        Returns: {
+          closed: number;
+          first_avg_seconds: number | null;
+          first_median_seconds: number | null;
+          is_total: boolean;
+          last_avg_seconds: number | null;
+          last_median_seconds: number | null;
+          user_id: string | null;
+          with_assignment: number;
         }[];
       };
       report_appointments_by_day: {
@@ -23621,6 +24486,19 @@ export type Database = {
           created: number;
         }[];
       };
+      report_enquiry_cohorts: {
+        Args: { p_from: string; p_org: string; p_to: string; p_users?: string[] };
+        Returns: {
+          created: number;
+          disqualified: number;
+          lost: number;
+          median_days_to_close: number | null;
+          month: string;
+          open: number;
+          won: number;
+          won_value: number;
+        }[];
+      };
       report_enquiry_funnel: {
         Args: {
           p_from: string;
@@ -23666,6 +24544,28 @@ export type Database = {
           hour: number;
           inbound_messages: number;
         }[];
+      };
+      report_owner_removed: {
+        Args: {
+          p_from: string;
+          p_org: string;
+          p_teams?: string[];
+          p_to: string;
+          p_users?: string[];
+        };
+        Returns: {
+          by_routing_or_system: number;
+          by_staff: number;
+          is_total: boolean;
+          reassigned: number;
+          removed: number;
+          unassigned: number;
+          user_id: string | null;
+        }[];
+      };
+      report_presence_events: {
+        Args: { p_from: string; p_org: string; p_to: string; p_users?: string[] };
+        Returns: Json;
       };
       report_recall_week: {
         Args: { p_org: string; p_week_start: string };
@@ -23732,6 +24632,31 @@ export type Database = {
         }[];
       };
       report_sources_available: { Args: Record<PropertyKey, never>; Returns: string[] };
+      report_template_performance: {
+        Args: {
+          p_channels?: string[];
+          p_from: string;
+          p_org: string;
+          p_template?: string;
+          p_to: string;
+        };
+        Returns: {
+          category: string;
+          clicked: number;
+          delivered: number;
+          failed: number;
+          from_campaigns: number;
+          language: string;
+          messages: number;
+          name: string;
+          pending: number;
+          read_count: number;
+          replied: number;
+          retries: number;
+          sent: number;
+          template_id: string;
+        }[];
+      };
       report_unite_appointments_by_day: {
         Args: { p_from: string; p_org: string; p_to: string };
         Returns: {
@@ -23790,6 +24715,15 @@ export type Database = {
       seed_recall_programmes: { Args: { p_org: string }; Returns: undefined };
       seed_reminder_exclusions: { Args: { p_org: string }; Returns: undefined };
       seed_unite_appointment_status_map: { Args: { p_org: string }; Returns: undefined };
+      route_conversation: {
+        Args: {
+          p_conversation_id: string;
+          p_org_id: string;
+          p_round_robin: boolean;
+          p_team_id: string;
+        };
+        Returns: Json;
+      };
       set_presence: { Args: { p_org_id: string; p_presence: string }; Returns: undefined };
       show_limit: { Args: Record<PropertyKey, never>; Returns: number };
       show_trgm: { Args: { "": string }; Returns: string[] };
@@ -23804,6 +24738,19 @@ export type Database = {
       uuid_ns_oid: { Args: Record<PropertyKey, never>; Returns: string };
       uuid_ns_url: { Args: Record<PropertyKey, never>; Returns: string };
       uuid_ns_x500: { Args: Record<PropertyKey, never>; Returns: string };
+      web_chat_receive: {
+        Args: {
+          p_at?: string;
+          p_body: string;
+          p_channel: string;
+          p_client_id: string;
+          p_create: boolean;
+          p_name: string;
+          p_org: string;
+          p_token_hash: string;
+        };
+        Returns: Json;
+      };
       workdays_between: {
         Args: { p_from: string; p_location?: string; p_org: string; p_to: string };
         Returns: number;

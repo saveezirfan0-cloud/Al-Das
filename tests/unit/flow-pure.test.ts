@@ -247,13 +247,16 @@ describe("graph validation", () => {
   });
   it("enforces question limits and unique option ids", () => {
     const opts4 = ["a", "b", "c", "d"].map((id) => ({ id, title: id }));
-    const q = (data: Record<string, unknown>) =>
-      validateGraph(
+    // Unconnected options are a separate (setup) error; this test is about the structure.
+    const q = (data: Record<string, unknown>) => {
+      const r = validateGraph(
         graph(
           [node("t", "trigger"), node("q", "question", { text: "Pick one", ...data })],
           [edge("t", "q")],
         ),
       );
+      return { ...r, issues: r.issues.filter((i) => i.kind !== "setup") };
+    };
     expect(hasErrors(q({ style: "buttons", options: opts4 }).issues)).toBe(true);
     expect(hasErrors(q({ style: "list", options: opts4 }).issues)).toBe(false);
     expect(

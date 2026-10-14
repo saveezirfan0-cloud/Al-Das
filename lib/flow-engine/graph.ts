@@ -1,4 +1,6 @@
 /** Graph validation (run on Save for warnings, on Publish as a hard gate) and traversal helpers. */
+import { INTENTS } from "@/lib/ai/intent/labels";
+import { patternProblem } from "@/lib/flow-engine/node-options";
 import {
   graphSchema,
   type FlowEdge,
@@ -7,7 +9,7 @@ import {
   type NodeType,
 } from "@/lib/flow-engine/types";
 
-/** "structure": the graph itself is malformed. "setup": a node still needs its settings filled in. Both block publishing when level is "error". */
+/** "structure": the graph itself is malformed. "setup": a node still needs its settings filled in or an output connected. Both block publishing when level is "error". */
 export type GraphIssue = {
   level: "error" | "warning";
   nodeId?: string;
@@ -37,6 +39,11 @@ const HANDLES: Partial<Record<NodeType, string[]>> = {
   book_appointment: ["default", "fallback"],
   api_action: ["default", "fallback"],
   send_notification: ["default", "fallback"],
+  update_enquiry: ["default", "fallback"],
+  set_label: ["default", "fallback"],
+  payment_link: ["default", "fallback"],
+  meta_event: ["default", "fallback"],
+  ai_router: ["else"],
 };
 
 export function validateGraph(raw: unknown): { graph: FlowGraph | null; issues: GraphIssue[] } {
@@ -95,7 +102,9 @@ export function validateGraph(raw: unknown): { graph: FlowGraph | null; issues: 
     }
     const handle = e.sourceHandle ?? "default";
     const allowed = HANDLES[src.type] ?? [];
-    const okOption = src.type === "question" && handle.startsWith("option:");
+    const okOption =
+      (src.type === "question" && handle.startsWith("option:")) ||
+      (src.type === "ai_router" && handle.startsWith("intent:"));
     if (!allowed.includes(handle) && !okOption) {
       issues.push({
         level: "error",
@@ -149,15 +158,66 @@ export function validateGraph(raw: unknown): { graph: FlowGraph | null; issues: 
       issues.push({ level: "error", nodeId: n.id, message: "Lists are limited to 10 rows" });
     if (new Set(opts.map((o) => o.id)).size !== opts.length)
       issues.push({ level: "error", nodeId: n.id, message: "Option ids must be unique" });
+    // Every option needs somewhere to go: an answer with no output would quietly end the run.
     for (const o of opts) {
       if (!graph.edges.some((e) => e.source === n.id && e.sourceHandle === `option:${o.id}`)) {
         issues.push({
-          level: "warning",
+          level: "error",
           nodeId: n.id,
           message: `Option "${o.title}" is not connected`,
+          kind: "setup",
         });
       }
     }
+    for (const e of graph.edges.filter((x) => x.source === n.id)) {
+      const h = e.sourceHandle ?? "default";
+      if (h.startsWith("option:") && !opts.some((o) => `option:${o.id}` === h))
+        issues.push({
+          level: "error",
+          nodeId: n.id,
+          message: `An output points at an option that no longer exists`,
+          kind: "structure",
+        });
+    }
+    if (!graph.edges.some((e) => e.source === n.id && e.sourceHandle === "fallback")) {
+      issues.push({
+        level: "warning",
+        nodeId: n.id,
+        message:
+          "Connect 'No / other answer': without it the flow stops when an answer does not fit or nobody replies",
+      });
+    }
+  }
+
+  // AI router: one output per label, each label once, every label connected, plus Else.
+  for (const n of graph.nodes.filter((x) => x.type === "ai_router")) {
+    const intents = Array.isArray(n.data.intents) ? (n.data.intents as unknown[]) : [];
+    for (const i of intents) {
+      if (!graph.edges.some((e) => e.source === n.id && e.sourceHandle === `intent:${String(i)}`))
+        issues.push({
+          level: "error",
+          nodeId: n.id,
+          message: `Route "${String(i)}" is not connected`,
+          kind: "setup",
+        });
+    }
+    for (const e of graph.edges.filter((x) => x.source === n.id)) {
+      const h = e.sourceHandle ?? "default";
+      if (h.startsWith("intent:") && !intents.includes(h.slice("intent:".length)))
+        issues.push({
+          level: "error",
+          nodeId: n.id,
+          message: `An output points at a label this router does not use`,
+          kind: "structure",
+        });
+    }
+    if (!graph.edges.some((e) => e.source === n.id && e.sourceHandle === "else"))
+      issues.push({
+        level: "error",
+        nodeId: n.id,
+        message: "Connect the Else output (it runs when AI is off or no label fits)",
+        kind: "setup",
+      });
   }
 
   for (const n of graph.nodes) issues.push(...setupIssues(n));
@@ -167,6 +227,7 @@ export function validateGraph(raw: unknown): { graph: FlowGraph | null; issues: 
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const nonEmpty = (v: unknown) => typeof v === "string" && v.trim() !== "";
+const isUuid = (v: unknown) => typeof v === "string" && UUID.test(v);
 
 /** Required settings per node type. Missing ones would only fail at run time, so they block Publish instead. */
 export function setupIssues(n: FlowNode): GraphIssue[] {
@@ -174,8 +235,21 @@ export function setupIssues(n: FlowNode): GraphIssue[] {
   const need = (ok: boolean, message: string): GraphIssue[] =>
     ok ? [] : [{ level: "error", nodeId: n.id, message, kind: "setup" }];
   switch (n.type) {
+    case "question": {
+      const regex =
+        d.style === "text" && d.answer_type === "regex"
+          ? patternProblem(typeof d.pattern === "string" ? d.pattern : "")
+          : null;
+      return [
+        ...need(nonEmpty(d.text), "Write the message text"),
+        ...need(!regex, regex ?? ""),
+        ...need(
+          d.save_to !== "email" || (d.style === "text" && d.answer_type === "email"),
+          "Only an e-mail answer can be saved to the e-mail field",
+        ),
+      ];
+    }
     case "message":
-    case "question":
     case "quick_reply":
       return need(nonEmpty(d.text), "Write the message text");
     case "add_comment":
@@ -213,6 +287,60 @@ export function setupIssues(n: FlowNode): GraphIssue[] {
       return [
         ...need(nonEmpty(d.title), "Write the notification title"),
         ...need(nonEmpty(t.id), "Choose who to notify"),
+      ];
+    }
+    case "create_enquiry":
+      return need(nonEmpty(d.title), "Write the enquiry title");
+    case "update_enquiry": {
+      const a = d.action;
+      if (a === "stage") return need(isUuid(d.stage_id), "Choose the stage");
+      if (a === "pipeline") return need(isUuid(d.pipeline_id), "Choose the pipeline");
+      if (a === "status")
+        return need(
+          ["open", "won", "lost", "disqualified"].includes(String(d.status)),
+          "Choose the status",
+        );
+      if (a === "field") return need(nonEmpty(d.field), "Choose the field");
+      return need(false, "Choose what to change");
+    }
+    case "add_task":
+      return need(nonEmpty(d.subject), "Write the task subject");
+    case "portal_record":
+      return [
+        ...need(nonEmpty(d.object), "Choose the portal object"),
+        ...need(d.mode !== "update" || nonEmpty(d.record_id), "Enter the record id to update"),
+      ];
+    case "book_appointment":
+      return [
+        ...need(
+          isUuid(d.service_id) && isUuid(d.specialist_id) && isUuid(d.location_id),
+          "Choose the service, specialist and location",
+        ),
+        ...need(nonEmpty(d.starts_at), "Set the appointment time (usually a variable)"),
+      ];
+    case "set_label":
+      return need(isUuid(d.tag_id), "Choose the label");
+    case "payment_link":
+      return need(nonEmpty(d.invoice_number) && nonEmpty(d.amount), "Set the invoice and amount");
+    case "meta_event":
+      return need(
+        ["Contact", "Lead", "Schedule"].includes(String(d.event_name)),
+        "Choose the event",
+      );
+    case "ai_router": {
+      const intents = Array.isArray(d.intents) ? d.intents : [];
+      return [
+        ...need(intents.length > 0, "Choose at least one label to route on"),
+        ...need(
+          intents.every(
+            (i) =>
+              typeof i === "string" &&
+              i !== "emergency" &&
+              (INTENTS as readonly string[]).includes(i),
+          ),
+          "A possible emergency is never routed: it always goes to a person",
+        ),
+        ...need(new Set(intents).size === intents.length, "Each label can only have one output"),
       ];
     }
     default:

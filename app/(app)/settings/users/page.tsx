@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/shell/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requirePerm } from "@/lib/auth/session";
+import { parseEnquiryScope } from "@/lib/enquiries/scope";
 import { inviteState } from "@/lib/invites/token";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -24,7 +25,7 @@ export default async function UsersPage() {
     admin
       .from("memberships")
       .select(
-        "id, user_id, status, presence, presence_at, created_at, role_id, roles(name), profiles:profiles!memberships_user_id_fkey(first_name, last_name, email, designation)",
+        "id, user_id, status, presence, presence_at, created_at, role_id, max_open_conversations, enquiry_scope, roles(name), profiles:profiles!memberships_user_id_fkey(first_name, last_name, email, designation)",
       )
       .eq("org_id", member.orgId)
       .order("created_at"),
@@ -59,6 +60,8 @@ export default async function UsersPage() {
     presence: m.presence as "online" | "away" | "offline",
     teams: teamsByUser.get(m.user_id) ?? [],
     isSelf: m.id === member.membershipId,
+    maxOpen: m.max_open_conversations,
+    enquiryScope: parseEnquiryScope(m.enquiry_scope),
   }));
 
   const pending = (invites ?? []).map((i) => ({

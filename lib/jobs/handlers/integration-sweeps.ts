@@ -1,4 +1,5 @@
 import { sweepCapi } from "@/lib/integrations/capi/server";
+import { sweepGcal } from "@/lib/integrations/gcal/server";
 import { sweepReviewRequests } from "@/lib/integrations/reviews/server";
 import { registerTask } from "@/lib/jobs/tasks";
 
@@ -25,6 +26,17 @@ registerTask("capi_sweep", {
   async run(admin, log) {
     const r = await sweepCapi(admin);
     log.info("capi sweep", r);
+    return r;
+  },
+});
+
+// Phase 20e: Google Calendar busy sync per connected specialist (busy times in, "Busy" events out). A workspace whose integration is
+// off makes no Google call and has its mirrored busy times removed.
+registerTask("gcal_sync", {
+  name: "gcal.sync",
+  async run(admin, log) {
+    const r = await sweepGcal(admin);
+    log.info("google calendar sync", r);
     return r;
   },
 });

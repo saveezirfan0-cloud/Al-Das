@@ -32,7 +32,8 @@ import { contactDisplayName } from "@/lib/inbox/contact-name";
 import { labelClass } from "@/lib/inbox/labels";
 import type { MessageRow } from "@/lib/inbox/queries";
 import { cn } from "@/lib/utils";
-import { formatRemaining, serviceWindow } from "@/lib/whatsapp/window";
+import { CHANNEL_TYPE_LABEL, channelTypeOf, replyWindow } from "@/lib/channels/types";
+import { formatRemaining } from "@/lib/whatsapp/window";
 
 import {
   assignConversation,
@@ -96,7 +97,9 @@ export function Thread(props: InboxProps & { selected: ConversationDetail; onBac
   const [viewer, setViewer] = useState<number | null>(null);
   const bottom = useRef<HTMLDivElement>(null);
   const contactName = contactDisplayName(selected.contact);
-  const window_ = serviceWindow({
+  // Phase 20e: the website chat has no reply window; Instagram and Messenger allow 24 hours and have no templates.
+  const channelType = channelTypeOf(props.channels.find((c) => c.id === selected.channel_id)?.type);
+  const window_ = replyWindow(channelType, {
     lastInboundAt: selected.last_inbound_at,
     adOpenedAt: selected.ad_referral ? selected.opened_at : null,
   });
@@ -154,11 +157,16 @@ export function Thread(props: InboxProps & { selected: ConversationDetail; onBac
         <div className="min-w-0">
           <h2 className="truncate text-sm font-semibold">{contactName}</h2>
           <p className="text-muted-foreground truncate text-xs">
-            {selected.contact.phone_e164 ?? "WhatsApp username user"} · via{" "}
-            {selected.channels?.name ?? "WhatsApp"}
-            {window_.open
-              ? ` · window closes in ${formatRemaining(window_.remainingMs)}`
-              : " · 24h window closed"}
+            {selected.contact.phone_e164 ??
+              (channelType === "whatsapp"
+                ? "WhatsApp username user"
+                : `${CHANNEL_TYPE_LABEL[channelType]} contact`)}{" "}
+            · via {selected.channels?.name ?? CHANNEL_TYPE_LABEL[channelType]}
+            {window_.kind === "none"
+              ? ""
+              : window_.open
+                ? ` · window closes in ${formatRemaining(window_.remainingMs)}`
+                : " · 24h window closed"}
           </p>
         </div>
         <div className="ml-auto flex flex-wrap items-center gap-1">
@@ -594,6 +602,7 @@ export function Thread(props: InboxProps & { selected: ConversationDetail; onBac
         categories={props.categories}
         settings={props.settings}
         aiAvailable={props.ai.available}
+        enquiriesManage={perms.enquiriesManage}
       />
     </div>
   );

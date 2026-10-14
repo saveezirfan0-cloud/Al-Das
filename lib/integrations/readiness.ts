@@ -1,3 +1,4 @@
+import { parseAllowedDomains } from "@/lib/channels/web/policy";
 import { validateRoomTemplate } from "@/lib/integrations/telehealth/url";
 import {
   allFields,
@@ -79,6 +80,12 @@ export function readinessProblems(input: ReadinessInput): string[] {
     if (!String(input.config.dataset_id ?? "").trim()) problems.push("Dataset ID is missing.");
     if (!input.secretsStored.access_token) problems.push("Access token is missing.");
   }
+  if (
+    input.kind === "web_chat" &&
+    input.config.allowed_domains &&
+    !parseAllowedDomains(input.config.allowed_domains)
+  )
+    problems.push("The allowed websites are not valid host names.");
   if (input.kind === "document_seal") {
     if (input.seal) problems.push(...input.seal.problems);
     else if (input.secretsStored.certificate && input.secretsStored.passphrase)

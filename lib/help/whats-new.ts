@@ -3,6 +3,30 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-11-11-channels-calendar",
+    date: "2026-11-11",
+    title: "Website chat, Instagram, Messenger and Google Calendar",
+    body: "Patients can now write to the clinic from a chat button on your website, on Instagram or on Messenger, and the messages arrive in the Inbox like WhatsApp chats (text replies only; Instagram and Messenger allow replies for 24 hours after the patient's last message). Doctors can connect their Google Calendar: their appointments appear there as private Busy times with no patient details, and time they are busy in Google can no longer be booked. Each is off until an administrator switches it on in Settings, Integrations.",
+  },
+  {
+    id: "2026-11-11-templates-campaigns",
+    date: "2026-11-11",
+    title: "Template delivery settings, recurring campaigns and closing with an enquiry",
+    body: "Each template can now retry a failed message, give up after a time limit, and turn the reminder text-message fallback off; its row menu also shows delivery, read, reply and click rates. Carousel templates can be sent. Campaigns can repeat on a schedule from a segment, and an administrator can set a monthly message budget that pauses campaigns when it is used up. Closing a conversation can create or update the patient's enquiry in the same step.",
+  },
+  {
+    id: "2026-11-11-routing-booking",
+    date: "2026-11-11",
+    title: "Smarter routing and booking rules",
+    body: "Teams can have a fallback team, office hours and an automatic reply, and each person can have a limit on open conversations. People who go idle are shown as away and stop receiving new chats. Managers can limit someone to their own or their team's enquiries. Services can have preparation and clean-up time and take several patients at once, and specialists can have their own slot length and weekly blocks such as lunch. New reports cover time to close, cohorts and the status log.",
+  },
+  {
+    id: "2026-11-11-flows",
+    date: "2026-11-11",
+    title: "More flow building blocks",
+    body: "Flows can now create and update enquiries, add tasks, write portal records and book appointments. New starts: any new message in an open conversation, a WhatsApp form reply, the 24-hour window about to close, and a patient joining a segment with a drip flow. Questions can check the answer (number, phone, e-mail, date or a pattern), ask again and save straight to a patient field. New steps send a payment link, record an ad event, set a label and sort a message by its intent.",
+  },
+  {
     id: "2026-11-10-accounting-tally-bridge",
     date: "2026-11-10",
     title: "Accounting: the Tally bridge",

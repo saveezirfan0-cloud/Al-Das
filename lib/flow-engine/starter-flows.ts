@@ -68,7 +68,7 @@ export const STARTER_FLOWS: readonly StarterFlow[] = [
     key: "recall_book_now",
     name: "Recall: patient taps “Book now”",
     description:
-      "Opens an enquiry (when Enquiries is installed), tells the care team and reassures the patient.",
+      "Opens an enquiry (or moves the patient's open one), tells the care team and reassures the patient.",
     replaces: "Make “Chronic Update” (booking intent) and the Sanoflow follow-up flow",
     trigger_type: "template_button",
     trigger_config: { button_text: "Book now", conditions: { logic: "and", conditions: [] } },
@@ -86,7 +86,7 @@ export const STARTER_FLOWS: readonly StarterFlow[] = [
         }),
         n("end", "end_flow", 940, 140),
       ],
-      // If Enquiries is not installed yet the step fails and the flow still notifies the team.
+      // If the enquiry step fails (for example no pipeline is set up yet) the flow still notifies the team.
       edges: [
         e("trigger", "enquiry"),
         e("enquiry", "reply"),
@@ -133,6 +133,25 @@ export const STARTER_FLOWS: readonly StarterFlow[] = [
         e("closed", "team2"),
         e("closed", "team2", "fallback"),
       ].filter((x, i, a) => a.findIndex((y) => y.id === x.id) === i),
+    },
+  },
+  {
+    key: "window_closing_check_in",
+    name: "Before the 24-hour window closes: one last check-in",
+    description:
+      "An hour before the patient's 24-hour window ends, asks once whether they need anything else. If they reply, the window reopens and the team carries on as usual.",
+    replaces: "Sanoflow “Messaging window exit” flow",
+    trigger_type: "window_closing",
+    trigger_config: { minutes_before: 60, conditions: { logic: "and", conditions: [] } },
+    graph: {
+      nodes: [
+        n("trigger", "trigger", 0, 120),
+        n("ask", "message", 300, 120, {
+          text: "Hello {contact.first_name}, is there anything else we can help you with? Just reply here and our team will answer.",
+        }),
+        n("end", "end_flow", 620, 120),
+      ],
+      edges: [e("trigger", "ask"), e("ask", "end"), e("ask", "end", "fallback")],
     },
   },
   {

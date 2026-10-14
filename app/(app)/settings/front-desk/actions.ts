@@ -47,6 +47,7 @@ export async function saveFrontDeskSettings(input: unknown): Promise<ActionResul
       .select("id")
       .eq("id", next.desk_channel_id)
       .eq("org_id", member.orgId)
+      .eq("type", "whatsapp")
       .maybeSingle();
     if (!data) return { ok: false, error: "That WhatsApp number does not exist here." };
   }

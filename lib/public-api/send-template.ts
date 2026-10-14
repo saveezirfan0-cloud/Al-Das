@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { emit } from "@/lib/events/emit";
 import { findContactsByPhone } from "@/lib/public-api/contacts";
-import { routeNewConversation } from "@/lib/inbox/inbound";
+import { routeConversation } from "@/lib/inbox/routing";
 import { queueOutbound } from "@/lib/inbox/send";
 import { readInboxSettings } from "@/lib/inbox/settings";
 import type { AdminClient } from "@/lib/supabase/admin";
@@ -45,7 +45,7 @@ export async function sendTemplateViaApi(admin: AdminClient, orgId: string, inpu
   if (!phone) return fail(422, "invalid_phone", "That phone number is not valid. Use international format, e.g. +971501234567.");
 
   // 1. Which WhatsApp number sends it
-  const { data: channels } = await admin.from("channels").select("id, waba_id, status").eq("org_id", orgId).eq("status", "active");
+  const { data: channels } = await admin.from("channels").select("id, waba_id, status").eq("org_id", orgId).eq("type", "whatsapp").eq("status", "active");
   let channel = (channels ?? [])[0];
   if (input.channel_id) {
     channel = (channels ?? []).find((c) => c.id === input.channel_id) as typeof channel;
@@ -106,14 +106,14 @@ export async function sendTemplateViaApi(admin: AdminClient, orgId: string, inpu
     conversationId = live.id;
   } else {
     const { data: org } = await admin.from("orgs").select("settings").eq("id", orgId).single();
-    const route = await routeNewConversation(admin, orgId, readInboxSettings(org?.settings));
     const { data: conv, error } = await admin
       .from("conversations")
-      .insert({ org_id: orgId, channel_id: channel.id, contact_id: contact.id, status: "open", assignee_team_id: route.teamId, assignee_user_id: route.userId })
+      .insert({ org_id: orgId, channel_id: channel.id, contact_id: contact.id, status: "open" })
       .select("id")
       .single();
     if (error || !conv) return fail(500, "internal_error", "Could not open the conversation.");
     conversationId = conv.id;
+    await routeConversation(admin, orgId, conv.id, readInboxSettings(org?.settings));
     await emit(orgId, "conversation.opened", { conversation_id: conv.id, contact_id: contact.id, channel_id: channel.id, via: "api" });
   }
 

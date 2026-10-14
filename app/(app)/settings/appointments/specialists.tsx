@@ -30,6 +30,14 @@ import type { Department, Location, Service } from "./catalogue";
 import { minutesToTime, NONE, timeToMinutes, useRun, WEEKDAYS } from "./shared";
 
 type Hours = { location_id: string; weekday: number; start_min: number; end_min: number };
+/** Phase 20c: weekly unavailable time; location_id null = every location. */
+type WeeklyBlock = {
+  location_id: string | null;
+  weekday: number;
+  start_min: number;
+  end_min: number;
+  reason: string | null;
+};
 
 export type SpecialistRow = {
   id: string;
@@ -42,6 +50,9 @@ export type SpecialistRow = {
   location_ids: string[];
   service_ids: string[];
   working_hours: Hours[];
+  slot_length_min: number | null;
+  max_per_slot: number;
+  recurring_blocks: WeeklyBlock[];
 };
 
 type Form = {
@@ -55,6 +66,9 @@ type Form = {
   location_ids: string[];
   service_ids: string[];
   working_hours: Hours[];
+  slot_length_min: number | null;
+  max_per_slot: number;
+  recurring_blocks: WeeklyBlock[];
 };
 
 const blank: Form = {
@@ -68,7 +82,115 @@ const blank: Form = {
   location_ids: [],
   service_ids: [],
   working_hours: [],
+  slot_length_min: null,
+  max_per_slot: 1,
+  recurring_blocks: [],
 };
+
+const ALL_LOCATIONS = "__all__";
+
+function WeeklyBlocksEditor({
+  blocks,
+  locations,
+  onChange,
+}: {
+  blocks: WeeklyBlock[];
+  locations: Location[];
+  onChange: (next: WeeklyBlock[]) => void;
+}) {
+  const update = (i: number, patch: Partial<WeeklyBlock>) =>
+    onChange(blocks.map((b, j) => (j === i ? { ...b, ...patch } : b)));
+  return (
+    <div className="flex flex-col gap-2 rounded-md border p-3">
+      {blocks.length === 0 && (
+        <p className="text-muted-foreground text-xs">
+          None. Add a weekly block for a lunch break or admin time; no slots are offered in it.
+        </p>
+      )}
+      {blocks.map((b, i) => (
+        <div key={i} className="flex flex-wrap items-center gap-2 text-sm">
+          <Select
+            value={String(b.weekday)}
+            onValueChange={(v) => update(i, { weekday: Number(v) })}
+          >
+            <SelectTrigger className="w-24" aria-label="Weekday">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {WEEKDAYS.map((d) => (
+                <SelectItem key={d.value} value={String(d.value)}>
+                  {d.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Input
+            type="time"
+            className="w-28"
+            aria-label="Block start"
+            value={minutesToTime(b.start_min)}
+            onChange={(e) => update(i, { start_min: timeToMinutes(e.target.value) })}
+          />
+          –
+          <Input
+            type="time"
+            className="w-28"
+            aria-label="Block end"
+            value={minutesToTime(b.end_min === 1440 ? 1439 : b.end_min)}
+            onChange={(e) => update(i, { end_min: timeToMinutes(e.target.value, true) })}
+          />
+          <Select
+            value={b.location_id ?? ALL_LOCATIONS}
+            onValueChange={(v) => update(i, { location_id: v === ALL_LOCATIONS ? null : v })}
+          >
+            <SelectTrigger className="w-40" aria-label="Location">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL_LOCATIONS}>Every location</SelectItem>
+              {locations.map((l) => (
+                <SelectItem key={l.id} value={l.id}>
+                  {l.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Input
+            className="w-40"
+            aria-label="Reason"
+            placeholder="e.g. Lunch"
+            maxLength={120}
+            value={b.reason ?? ""}
+            onChange={(e) => update(i, { reason: e.target.value || null })}
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Remove weekly block"
+            onClick={() => onChange(blocks.filter((_, j) => j !== i))}
+          >
+            <Trash2 />
+          </Button>
+        </div>
+      ))}
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="w-fit"
+        onClick={() =>
+          onChange([
+            ...blocks,
+            { location_id: null, weekday: 1, start_min: 13 * 60, end_min: 14 * 60, reason: null },
+          ])
+        }
+      >
+        <Plus /> Add weekly block
+      </Button>
+    </div>
+  );
+}
 
 function HoursEditor({
   location,
@@ -177,12 +299,15 @@ export function Specialists({
   departments,
   services,
   users,
+  defaultSlotMin,
 }: {
   specialists: SpecialistRow[];
   locations: Location[];
   departments: Department[];
   services: Service[];
   users: Array<{ id: string; name: string }>;
+  /** The org's slot step (Booking rules), shown when a specialist has no own slot length. */
+  defaultSlotMin: number;
 }) {
   const [form, setForm] = useState<Form | null>(null);
   const { pending, run } = useRun();
@@ -233,6 +358,11 @@ export function Specialists({
                       {s.location_ids.map(locName).join(", ") || "No locations"}
                       {s.external_id ? ` · Unite ${s.external_id}` : ""}
                       {` · ${s.working_hours.length} working-hour block${s.working_hours.length === 1 ? "" : "s"}`}
+                      {s.recurring_blocks.length
+                        ? ` · ${s.recurring_blocks.length} weekly block${s.recurring_blocks.length === 1 ? "" : "s"}`
+                        : ""}
+                      {s.slot_length_min ? ` · ${s.slot_length_min}-min slots` : ""}
+                      {s.max_per_slot > 1 ? ` · up to ${s.max_per_slot} per slot` : ""}
                     </span>
                   </span>
                   <span className="flex shrink-0 gap-1">
@@ -372,6 +502,9 @@ export function Specialists({
                         working_hours: form.working_hours.filter((h) =>
                           ids.includes(h.location_id),
                         ),
+                        recurring_blocks: form.recurring_blocks.filter(
+                          (b) => !b.location_id || ids.includes(b.location_id),
+                        ),
                       })
                     }
                     placeholder="Choose locations"
@@ -406,6 +539,56 @@ export function Specialists({
                       onChange={(working_hours) => setForm({ ...form, working_hours })}
                     />
                   ))}
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="slot-length">Slot length (minutes)</Label>
+                  <Input
+                    id="slot-length"
+                    type="number"
+                    min={5}
+                    max={240}
+                    step={5}
+                    placeholder={`Clinic default (${defaultSlotMin})`}
+                    value={form.slot_length_min ?? ""}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        slot_length_min: e.target.value === "" ? null : Number(e.target.value),
+                      })
+                    }
+                  />
+                  <span className="text-muted-foreground text-xs">
+                    How far apart the offered start times are. Empty uses the clinic default from
+                    Booking rules.
+                  </span>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="max-per-slot">Bookings per slot</Label>
+                  <Input
+                    id="max-per-slot"
+                    type="number"
+                    min={1}
+                    max={50}
+                    value={form.max_per_slot}
+                    onChange={(e) =>
+                      setForm({ ...form, max_per_slot: Math.max(1, Number(e.target.value) || 1) })
+                    }
+                  />
+                  <span className="text-muted-foreground text-xs">
+                    More than 1 lets this specialist take several patients at once, but only for
+                    services whose concurrent patients allow it too. Unite bookings are never
+                    refused; ones that break these rules are flagged.
+                  </span>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label>Weekly blocks (location time)</Label>
+                <WeeklyBlocksEditor
+                  blocks={form.recurring_blocks}
+                  locations={locations.filter((l) => form.location_ids.includes(l.id))}
+                  onChange={(recurring_blocks) => setForm({ ...form, recurring_blocks })}
+                />
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setForm(null)}>

@@ -5,7 +5,7 @@ import { Activity } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getCurrentMember, getCurrentUser } from "@/lib/auth/session";
+import { getCurrentMember, getCurrentUser, isMemberLookupError } from "@/lib/auth/session";
 import { serverEnv } from "@/lib/env";
 
 import { CreateWorkspaceForm } from "./create-form";
@@ -15,7 +15,15 @@ export const metadata: Metadata = { title: "Set up workspace" };
 export default async function OnboardingPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  const member = await getCurrentMember();
+  // A failed lookup must never offer "create a workspace": the person may already belong to one.
+  let member = null;
+  let lookupFailed = false;
+  try {
+    member = await getCurrentMember();
+  } catch (e) {
+    if (!isMemberLookupError(e)) throw e;
+    lookupFailed = true;
+  }
   if (member) redirect("/dashboard");
 
   const allowed = serverEnv().ALLOW_WORKSPACE_CREATION;
@@ -30,16 +38,28 @@ export default async function OnboardingPage() {
       </div>
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>No workspace yet</CardTitle>
+          <CardTitle>
+            {lookupFailed ? "Couldn’t load your workspace" : "No workspace yet"}
+          </CardTitle>
           <CardDescription>
             Signed in as {user.email}.{" "}
-            {allowed
-              ? "Create the clinic workspace to get started."
-              : "You need an invite from an administrator."}
+            {lookupFailed
+              ? "Pulse could not check which workspaces you belong to."
+              : allowed
+                ? "Create the clinic workspace to get started."
+                : "You need an invite from an administrator."}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          {allowed ? (
+          {lookupFailed ? (
+            <Alert variant="destructive">
+              <AlertTitle>This is a server problem, not your account</AlertTitle>
+              <AlertDescription>
+                Try again in a minute. If it keeps happening, the administrator should check that
+                the latest database update has been applied.
+              </AlertDescription>
+            </Alert>
+          ) : allowed ? (
             <CreateWorkspaceForm />
           ) : (
             <Alert>

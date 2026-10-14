@@ -33,6 +33,7 @@ import { cn } from "@/lib/utils";
 
 import { saveGridPrefs } from "../contacts/actions";
 import { exportAppointments, listAppointments } from "./actions";
+import { ConflictIcon } from "./conflict-badge";
 import { dateTimeLabel, REMINDER_LABELS, STATUS_STYLES, timeLabel } from "./format";
 import type { AppointmentsBootstrap, ApptRow, ListQuery } from "./types";
 
@@ -75,16 +76,19 @@ function buildColumns(b: AppointmentsBootstrap): DataGridColumn<ApptRow>[] {
       "status",
       "Status",
       (r) => (
-        <span
-          className={cn(
-            "rounded border px-1.5 py-0.5 text-xs",
-            STATUS_STYLES[r.status].replace("line-through", ""),
-          )}
-        >
-          {STATUS_LABELS[r.status]}
+        <span className="inline-flex items-center gap-1">
+          <span
+            className={cn(
+              "rounded border px-1.5 py-0.5 text-xs",
+              STATUS_STYLES[r.status].replace("line-through", ""),
+            )}
+          >
+            {STATUS_LABELS[r.status]}
+          </span>
+          <ConflictIcon conflict={r.conflict} />
         </span>
       ),
-      { sortKey: "status", size: 110 },
+      { sortKey: "status", size: 130 },
     ),
     col("starts", "Starts", (r) => dateTimeLabel(r.starts_at, b.timezone), {
       sortKey: "starts_at",

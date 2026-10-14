@@ -1112,6 +1112,160 @@ export const PHASE20A_TABLES = [
 ] as const;
 
 /**
+ * Phase 20c booking capacity (weekly blocks): one synthetic row, so the cross-org sweeps are not vacuous for it.
+ * Service role, like the settings action that writes it.
+ */
+export async function seedSf20cBookingRows(c: Client, orgId: string) {
+  const ids: Record<string, string> = {};
+  await asServiceRole(c, async () => {
+    const one = async (sql: string, params: unknown[]) =>
+      (await c.query<{ id: string }>(sql + " returning id::text", params)).rows[0].id;
+    ids.specialist = await one(
+      "insert into public.specialists (org_id, name) values ($1, 'Dr Seed 20cb')",
+      [orgId],
+    );
+    ids.block = await one(
+      "insert into public.specialist_recurring_blocks (org_id, specialist_id, weekday, start_min, end_min, reason) values ($1, $2, 1, 780, 840, 'Lunch')",
+      [orgId, ids.specialist],
+    );
+  });
+  return ids;
+}
+
+/** Phase 20c booking-capacity tables with a browser (select) policy. */
+export const SF20C_BOOKING_TABLES = ["specialist_recurring_blocks"] as const;
+
+/**
+ * Phase 20c (routing): one row in each new log table for an org, written the way production writes them (the triggers
+ * on conversations.assignee_* and memberships.presence), so the cross-org sweeps are not vacuous for them.
+ */
+export async function seedSf20cRows(c: Client, orgId: string, userId: string) {
+  const ids: Record<string, string> = {};
+  await asServiceRole(c, async () => {
+    const one = async (sql: string, params: unknown[]) =>
+      (await c.query<{ id: string }>(sql + " returning id::text", params)).rows[0].id;
+    const contact = await one(
+      "insert into public.contacts (org_id, first_name, phone_e164) values ($1, 'Layla Demo-21', '+447700900421')",
+      [orgId],
+    );
+    const channel = await one(
+      "insert into public.channels (org_id, name, waba_id, phone_number_id) values ($1, 'Sweep 20c', 'waba-20c-' || gen_random_uuid(), 'pn-20c-' || gen_random_uuid())",
+      [orgId],
+    );
+    ids.conversation = await one(
+      "insert into public.conversations (org_id, channel_id, contact_id, assignee_user_id) values ($1, $2, $3, $4)",
+      [orgId, channel, contact, userId],
+    );
+    await c.query("update public.memberships set presence = 'away' where org_id = $1 and user_id = $2", [orgId, userId]);
+  });
+  return ids;
+}
+
+/** Phase 20c tables with a browser (select) policy. */
+export const SF20C_TABLES = ["conversation_assignment_events", "member_presence_events"] as const;
+
+/**
+ * Phase 20d tables (recurring campaigns, monthly campaign budget): one synthetic row each, so the cross-org sweeps are
+ * not vacuous for them. Service role, like the server actions and jobs that write them. `suffix` keeps the channel's
+ * globally unique phone_number_id distinct when several orgs are seeded.
+ */
+export async function seedSf20dRows(c: Client, orgId: string, suffix = "a") {
+  const ids: Record<string, string> = {};
+  await asServiceRole(c, async () => {
+    const one = async (sql: string, params: unknown[]) =>
+      (await c.query<{ id: string }>(sql + " returning id::text", params)).rows[0].id;
+    ids.channel = await one(
+      "insert into public.channels (org_id, name, waba_id, phone_number_id) values ($1, 'Sweep 20d', $2, $3)",
+      [orgId, `waba-20d-${suffix}`, `pn-20d-${suffix}`],
+    );
+    ids.template = await one(
+      "insert into public.wa_templates (org_id, channel_id, waba_id, name, language, status, category) values ($1, $2, $3, 'sweep_20d', 'en', 'APPROVED', 'UTILITY')",
+      [orgId, ids.channel, `waba-20d-${suffix}`],
+    );
+    ids.segment = await one(
+      "insert into public.segments (org_id, name, kind) values ($1, 'Sweep 20d', 'static')",
+      [orgId],
+    );
+    ids.recurrence = await one(
+      `insert into public.campaign_recurrences (org_id, name, channel_id, template_id, segment_id, cron, timezone, next_run_at)
+       values ($1, 'Sweep recurring', $2, $3, $4, '0 10 * * 1', 'Asia/Dubai', now() + interval '1 day')`,
+      [orgId, ids.channel, ids.template, ids.segment],
+    );
+    await c.query(
+      "insert into public.campaign_budget_months (org_id, month, used) values ($1, date_trunc('month', now())::date, 3) on conflict do nothing",
+      [orgId],
+    );
+  });
+  return ids;
+}
+
+/** Phase 20d (Sanoflow parity) tables with a browser (select) policy. */
+export const SF20D_TABLES = ["campaign_budget_months", "campaign_recurrences"] as const;
+
+/** Phase 20e tables with a browser (select) policy. */
+export const SF20E_TABLES = ["contact_channel_identities", "gcal_event_links"] as const;
+
+/** Phase 20e tables that only the service role may touch (visitor token hashes, Google tokens, OAuth states). */
+export const SF20E_SERVICE_ONLY_TABLES = [
+  "gcal_connections",
+  "gcal_oauth_states",
+  "web_chat_sessions",
+] as const;
+
+/** One synthetic row in each Phase 20e table of `orgId` (no real people, ids and hashes only). */
+export async function seedSf20eRows(c: Client, orgId: string, userId: string) {
+  const ids: Record<string, string> = {};
+  await asServiceRole(c, async () => {
+    const one = async (sql: string, params: unknown[]) =>
+      (await c.query<{ id: string }>(sql + " returning id::text", params)).rows[0].id;
+    const contact = await one(
+      "insert into public.contacts (org_id, first_name, last_name, source) values ($1, 'Instagram', 'user', 'instagram')",
+      [orgId],
+    );
+    const ig = await one(
+      "insert into public.channels (org_id, type, name, waba_id, phone_number_id) values ($1, 'instagram', 'Instagram', '', 'instagram:' || replace(gen_random_uuid()::text, '-', ''))",
+      [orgId],
+    );
+    ids.identity = await one(
+      "insert into public.contact_channel_identities (org_id, channel_id, contact_id, platform, external_id) values ($1, $2, $3, 'instagram', '1780000000000001')",
+      [orgId, ig, contact],
+    );
+    const web = await one(
+      "insert into public.channels (org_id, type, name, waba_id, phone_number_id) values ($1, 'web', 'Website chat', '', $2)",
+      [orgId, `web:seed:${orgId}`],
+    );
+    await c.query(
+      "insert into public.web_chat_sessions (org_id, channel_id, contact_id, token_hash) values ($1, $2, $3, encode(sha256(gen_random_uuid()::text::bytea), 'hex'))",
+      [orgId, web, contact],
+    );
+    const specialist = await one(
+      "insert into public.specialists (org_id, name) values ($1, 'Dr Seed 20e')",
+      [orgId],
+    );
+    const conn = await one(
+      "insert into public.gcal_connections (org_id, specialist_id, refresh_enc, connected_by) values ($1, $2, 'v1:seed:seed:seed', $3)",
+      [orgId, specialist, userId],
+    );
+    await c.query(
+      "insert into public.gcal_oauth_states (state_hash, org_id, specialist_id, user_id, expires_at) values (encode(sha256(gen_random_uuid()::text::bytea), 'hex'), $1, $2, $3, now() + interval '10 minutes')",
+      [orgId, specialist, userId],
+    );
+    const appt = await one(
+      "insert into public.appointments (org_id, contact_id, specialist_id, starts_at, ends_at, status) values ($1, $2, $3, now() + interval '1 day', now() + interval '1 day 30 minutes', 'confirmed')",
+      [orgId, contact, specialist],
+    );
+    ids.link = await one(
+      "insert into public.gcal_event_links (org_id, connection_id, appointment_id, event_id, synced_hash) values ($1, $2, $3, $4, encode(sha256('seed'::bytea), 'hex'))",
+      [orgId, conn, appt, `pulse${"0a1b2c3d".repeat(6)}`],
+    );
+    ids.contact = contact;
+    ids.specialist = specialist;
+    ids.connection = conn;
+  });
+  return ids;
+}
+
+/**
  * Phase 22C (digital signatures): one row in each signing table for an org, so the cross-org sweeps are not vacuous.
  * The signature row is attached to a voucher of the org (made by seedPhase20DRows when there is none) and holds
  * placeholder bytes (the database does not verify CMS; lib/signing/verify.ts does). Synthetic values only; service role.

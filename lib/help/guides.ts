@@ -40,7 +40,7 @@ export const GUIDES: readonly Guide[] = [
       "Type / in the message box to use a quick reply. Names and appointment details fill in for you.",
       "If the 24-hour window has closed, pick a template instead of typing a message.",
       "Use the Patient tab on the right to see the next appointment and any flags without leaving the chat.",
-      "Close the conversation when it is finished, with a category if your clinic asks for one.",
+      "Close the conversation when it is finished, with a category if your clinic asks for one. In the same box you can create the patient's enquiry or move theirs on (stage, won, or lost with a reason).",
     ],
     watchOut: [
       "Never copy patient details into another chat or email.",
@@ -116,9 +116,11 @@ export const GUIDES: readonly Guide[] = [
       "Send now or schedule. Watch delivery and replies on the campaign page.",
       "Campaigns sent from Sanoflow before the move are under Campaign history (read-only).",
       "Stuck? The Campaign Copilot turns a sentence into an audience with its size, and suggests English and Arabic wording. In Flows, Describe a bot drafts a flow and Dry run tries it with sample messages.",
+      "To send the same campaign on a schedule, choose Repeat under When and how; Recurring lists them with play and pause. On Templates, the row menu has Delivery settings (retry, SMS fallback for reminders, time limit) and Performance.",
     ],
     watchOut: [
       "Patients who opted out of marketing are always left out.",
+      "An administrator can set a monthly campaign budget. When it is used up, campaigns pause until it is raised.",
       "Send a small test to your own number first.",
       "AI drafts are never published or sent for you. An AI flow needs your review before it can be published.",
     ],
@@ -558,6 +560,65 @@ export const GUIDES: readonly Guide[] = [
     ],
   },
   {
+    id: "web-chat-setup",
+    title: "Website chat",
+    pages: ["/settings/integrations/web_chat"],
+    purpose:
+      "Put a chat button on your own website. Visitors' messages arrive in the Inbox and your replies appear in their browser.",
+    steps: [
+      "List the websites that may show the chat (host names such as www.example.com, separated by commas), choose the title, colour and welcome text, and save.",
+      "Switch on with the typed words.",
+      "Give your web developer the line under 'Add the chat to your website'. It goes before </body> on each page of the listed websites.",
+      "Open your website, send a test message and answer it from the Inbox (it shows 'Website chat').",
+    ],
+    watchOut: [
+      "Replies are text only: no templates, files or voice notes. There is no 24-hour limit.",
+      "A visitor is identified only by a random code kept in their own browser. If they clear it, their next message starts a new chat and a new patient record (merge them if needed).",
+      "Visitors are not verified: check who you are talking to before sharing anything personal.",
+      "The chat does not work in a training workspace.",
+    ],
+  },
+  {
+    id: "meta-messaging-setup",
+    title: "Instagram and Messenger",
+    pages: ["/settings/integrations/instagram", "/settings/integrations/messenger"],
+    purpose:
+      "Answer Instagram direct messages and Facebook Messenger conversations from the Inbox.",
+    steps: [
+      "In your Meta app, connect the Facebook Page (and the Instagram professional account linked to it) and create a long-lived Page access token with the messaging permission.",
+      "Enter the Page ID (and the Instagram account ID), the Page token, the app secret and a verify token of your choice, then save and press Test connection.",
+      "Switch on with the typed words.",
+      "In the Meta app's Webhooks settings, subscribe the Page (or Instagram) object's messages with the webhook address shown on this page and the same verify token.",
+      "Send a message to the account from a test profile and answer it from the Inbox.",
+    ],
+    watchOut: [
+      "Meta only allows a reply within 24 hours of the person's last message. After that Pulse refuses the reply; there are no templates on these channels.",
+      "Replies are text only. Photos and files people send show as an attachment notice; open the conversation in Instagram or Messenger to see them.",
+      "People are matched by the id Meta gives them on your account, never by phone number. Merge records by hand if the same patient also writes on WhatsApp.",
+      "Nothing is sent from a training workspace.",
+    ],
+  },
+  {
+    id: "google-calendar-setup",
+    title: "Google Calendar sync",
+    pages: ["/settings/integrations/google_calendar"],
+    purpose:
+      "Keep a doctor's Google Calendar and Pulse in step: Google busy times block bookings in Pulse, and Pulse appointments show in Google as 'Busy'.",
+    steps: [
+      "In the Google Cloud console create an OAuth client (web application), add the redirect address shown on this page, and enable the Google Calendar API.",
+      "Enter the client ID and secret, choose what to sync and how many days ahead, and save.",
+      "Switch on with the typed words.",
+      "For each doctor press Connect. The doctor signs in to their own Google account on that screen and allows access.",
+      "Within five minutes their busy times appear as blocked time in Pulse and their appointments appear in Google as 'Busy'.",
+    ],
+    watchOut: [
+      "Google receives only the start and end time of each appointment, titled 'Busy': never the patient, service or notes.",
+      "Pulse reads only when the doctor is busy, never what their events are. Events marked 'Free' in Google do not block bookings.",
+      "Busy times from Google cannot be edited in Pulse; change them in Google. Disconnect removes them and stops the sync.",
+      "Unite appointments are never changed by this sync.",
+    ],
+  },
+  {
     id: "ad-report",
     title: "Ad attribution report",
     pages: ["/reports/ads"],
@@ -603,6 +664,24 @@ export const GUIDES: readonly Guide[] = [
     watchOut: [
       "Changes apply to everyone at once and are written to the Activity log.",
       "Training mode stops all WhatsApp sending for the whole workspace.",
+    ],
+  },
+  {
+    id: "routing",
+    title: "Teams and routing",
+    pages: ["/settings/teams", "/settings/users"],
+    purpose:
+      "Decide who gets new WhatsApp conversations, what patients hear when nobody is free, and who sees which enquiries.",
+    steps: [
+      "In Teams, switch on round-robin to share new conversations among the members who are online.",
+      "Pick a fallback team: it takes new conversations when nobody in the team is online or everyone is at their limit.",
+      "Set office hours and an auto-reply. It is sent once per conversation when a chat arrives outside those hours or while nobody in the team is online.",
+      "In Users, open a member's menu, Routing and enquiry view, to limit how many open conversations round-robin gives them and which enquiries they see.",
+      "In Settings, Inbox, switch on 'Set people away when idle' so people who walk away stop receiving new chats.",
+    ],
+    watchOut: [
+      "The auto-reply is plain text, so it only goes out inside 24 hours of the patient's message. Keep it short and never promise a time you cannot keep.",
+      "A restricted enquiry view also applies to exports and searches. You can still assign more conversations by hand than the limit allows.",
     ],
   },
   {

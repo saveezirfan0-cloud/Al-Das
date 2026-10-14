@@ -294,6 +294,8 @@ async function slotOk(
     locationId: string;
     startsAt: Date;
     durationMin: number;
+    /** Its buffers and concurrent patients apply (Phase 20c). */
+    serviceId: string | null;
     excludeAppointmentId?: string;
   },
 ): Promise<boolean> {
@@ -310,6 +312,7 @@ async function slotOk(
     locationId: args.locationId,
     date: localDate(args.startsAt, location.timezone),
     durationMin: args.durationMin,
+    serviceId: args.serviceId,
     excludeAppointmentId: args.excludeAppointmentId,
   });
   if (!input) return false;
@@ -378,6 +381,7 @@ export async function createAppointment(
       locationId: input.locationId,
       startsAt: input.startsAt,
       durationMin: service.duration_min,
+      serviceId: service.id,
     });
     if (!ok) return { ok: false, error: "That time is not available for this specialist." };
   }
@@ -565,6 +569,7 @@ export async function rescheduleAppointment(
       locationId,
       startsAt: input.startsAt,
       durationMin,
+      serviceId: current.service_id,
       excludeAppointmentId: current.id,
     });
     if (!ok) return { ok: false, error: "That time is not available for this specialist." };

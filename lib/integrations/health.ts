@@ -69,6 +69,11 @@ export const CALL_PROVIDERS: Record<IntegrationKind, readonly string[]> = {
   meta_capi: ["meta_capi"],
   telehealth: ["daily"],
   esign: ["dropbox_sign"],
+  // Phase 20e: the website chat calls nobody (the visitor's browser fetches replies).
+  web_chat: [],
+  instagram: ["instagram"],
+  messenger: ["messenger"],
+  google_calendar: ["google_calendar"],
   // Inbound only: the mail service posts to Pulse; Pulse never calls it.
   finance_mailbox: [],
   // Signing is local (the stored certificate, node:crypto); there is no provider and no call to record.

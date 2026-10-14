@@ -55,6 +55,10 @@ export type Service = {
   price: number | null;
   active: boolean;
   default_visit_mode: string;
+  /** Phase 20c booking capacity. */
+  buffer_before_min: number;
+  buffer_after_min: number;
+  capacity: number;
 };
 
 function Field({
@@ -427,6 +431,9 @@ export function Services({ items, departments }: { items: Service[]; departments
     price: null as number | null,
     active: true,
     default_visit_mode: "in_person",
+    buffer_before_min: 0,
+    buffer_after_min: 0,
+    capacity: 1,
   };
   const [form, setForm] = useState<typeof blank | null>(null);
   const { pending, run } = useRun();
@@ -448,6 +455,10 @@ export function Services({ items, departments }: { items: Service[]; departments
               {!s.active && <Badge variant="outline">Inactive</Badge>}
               <span className="text-muted-foreground block text-xs">
                 {s.duration_min} min
+                {s.buffer_before_min || s.buffer_after_min
+                  ? ` · buffers ${s.buffer_before_min}/${s.buffer_after_min} min`
+                  : ""}
+                {s.capacity > 1 ? ` · ${s.capacity} at once` : ""}
                 {s.default_visit_mode === "video" ? " · Video" : ""}
                 {deptName(s.department_id) ? ` · ${deptName(s.department_id)}` : ""}
                 {s.price !== null ? ` · ${s.price}` : ""}
@@ -528,6 +539,49 @@ export function Services({ items, departments }: { items: Service[]; departments
                 />
               </Field>
             </div>
+            <div className="grid grid-cols-3 gap-3">
+              <Field label="Buffer before (min)">
+                <Input
+                  type="number"
+                  min={0}
+                  max={240}
+                  step={5}
+                  value={form.buffer_before_min}
+                  onChange={(e) =>
+                    setForm({ ...form, buffer_before_min: Number(e.target.value) || 0 })
+                  }
+                />
+              </Field>
+              <Field label="Buffer after (min)">
+                <Input
+                  type="number"
+                  min={0}
+                  max={240}
+                  step={5}
+                  value={form.buffer_after_min}
+                  onChange={(e) =>
+                    setForm({ ...form, buffer_after_min: Number(e.target.value) || 0 })
+                  }
+                />
+              </Field>
+              <Field label="Concurrent patients">
+                <Input
+                  type="number"
+                  min={1}
+                  max={50}
+                  value={form.capacity}
+                  onChange={(e) =>
+                    setForm({ ...form, capacity: Math.max(1, Number(e.target.value) || 1) })
+                  }
+                />
+              </Field>
+            </div>
+            <p className="text-muted-foreground -mt-1 text-xs">
+              Buffers keep the specialist free before and after this service (preparation,
+              cleaning); they apply between bookings and blocks, not at the edges of working hours.
+              Concurrent patients above 1 also needs the specialist&apos;s bookings per slot raised.
+              Unite bookings are never refused; ones that break these rules are flagged.
+            </p>
             <Field
               label="Visit type"
               hint="Video services get a private video link (Settings, Integrations, Video visits). A single booking can still be changed on the appointment."

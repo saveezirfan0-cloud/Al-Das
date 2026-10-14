@@ -9,6 +9,7 @@ import { localDate } from "@/lib/appointments/slots";
 import { cn } from "@/lib/utils";
 
 import { listRange } from "./actions";
+import { ConflictIcon } from "./conflict-badge";
 import { dayLabel, shiftDate, STATUS_STYLES, timeLabel } from "./format";
 import type { ApptRow, SpecialistOption } from "./types";
 
@@ -137,6 +138,7 @@ export function AgendaList({
                             : ""}
                         </span>
                       </span>
+                      <ConflictIcon conflict={a.conflict} />
                       {a.reminder === "failed" && (
                         <PhoneOff
                           className="size-4 shrink-0 text-rose-600 dark:text-rose-400"

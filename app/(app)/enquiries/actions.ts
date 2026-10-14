@@ -37,6 +37,7 @@ import {
   viewSchema,
 } from "@/lib/enquiries/schemas";
 import { loadEnquiryContext } from "@/lib/enquiries/server";
+import { canSeeEnquiry, enquiryViewer, visibleEnquiryIds } from "@/lib/enquiries/visibility";
 import { buildEnquiryFilter, isScope, type EnquiryScope } from "@/lib/enquiries/views";
 import { FilterCompileError, InvalidOperatorError } from "@/lib/filters";
 import { filterSchema } from "@/lib/filters/ast";
@@ -72,6 +73,15 @@ function refresh() {
   revalidatePath("/enquiries");
 }
 
+/** Phase 20c: may this member act on this enquiry under their restricted enquiry view? */
+async function mayTouch(
+  member: { userId: string; orgId: string; enquiryScope?: string | null },
+  id: string,
+) {
+  const admin = createAdminClient(member.userId);
+  return canSeeEnquiry(admin, member.orgId, await enquiryViewer(admin, member), id);
+}
+
 // ---------------------------------------------------------------------------
 // Listing: table + board
 // ---------------------------------------------------------------------------
@@ -103,6 +113,7 @@ export async function listEnquiries(
       registry: ctx.registry,
       filter: buildEnquiryFilter(parsed.data),
       search: parsed.data.search,
+      viewer: await enquiryViewer(admin, member),
       sort: parsed.data.sort,
       page: parsed.data.page,
       pageSize: parsed.data.pageSize,
@@ -145,6 +156,7 @@ export async function getBoard(raw: BoardInput): Promise<ActionResult<{ columns:
       filter: buildEnquiryFilter(parsed.data),
       search: parsed.data.search,
       timezone: member.org.timezone,
+      viewer: await enquiryViewer(admin, member),
     };
     const counts = await stageCounts(admin, base);
     const columns = await Promise.all(
@@ -184,6 +196,7 @@ export async function getBoardColumnPage(
       filter: buildEnquiryFilter(parsed.data),
       search: parsed.data.search,
       timezone: member.org.timezone,
+      viewer: await enquiryViewer(admin, member),
       stageId: parsed.data.stageId,
       page: parsed.data.page,
       pageSize: COLUMN_PAGE,
@@ -211,6 +224,7 @@ export async function listMatchingEnquiryIds(
         filter: buildEnquiryFilter(parsed.data),
         search: parsed.data.search,
         timezone: member.org.timezone,
+        viewer: await enquiryViewer(admin, member),
       },
       20_000,
     );
@@ -237,6 +251,7 @@ export async function previewEnquiryFilterCount(
       registry: ctx.registry,
       filter: buildEnquiryFilter({ scope, pipelineId, filter: parsed.data }),
       timezone: member.org.timezone,
+      viewer: await enquiryViewer(admin, member),
     });
     return { ok: true, data: { count } };
   } catch (e) {
@@ -269,6 +284,8 @@ export async function getEnquiry(id: string): Promise<ActionResult<EnquiryDetail
   const member = await requirePerm("enquiries.view");
   if (!uuid.safeParse(id).success) return fail("Invalid enquiry id");
   const admin = createAdminClient(member.userId);
+  if (!(await canSeeEnquiry(admin, member.orgId, await enquiryViewer(admin, member), id)))
+    return fail("Enquiry not found");
   await recordAccess(admin, member, { entity: "enquiry", entityId: id, action: "view" });
   const [rows, { data: events }, tasks, { data: tagRows }] = await Promise.all([
     fetchEnquiriesByIds(admin, member.orgId, [id]),
@@ -376,6 +393,8 @@ export async function updateEnquiryDetails(id: string, input: unknown): Promise<
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid input");
   const d = parsed.data;
   const admin = createAdminClient(member.userId);
+  if (!(await canSeeEnquiry(admin, member.orgId, await enquiryViewer(admin, member), id)))
+    return fail("Enquiry not found.");
   try {
     let custom: Record<string, unknown> | undefined;
     if (d.custom) {
@@ -421,6 +440,7 @@ export async function updateEnquiryDetails(id: string, input: unknown): Promise<
 export async function changeStage(id: string, stageId: string): Promise<ActionResult> {
   const member = await requirePerm("enquiries.manage");
   if (!uuid.safeParse(id).success || !uuid.safeParse(stageId).success) return fail("Invalid id");
+  if (!(await mayTouch(member, id))) return fail("Enquiry not found.");
   try {
     await moveStage(
       { admin: createAdminClient(member.userId), orgId: member.orgId, userId: member.userId },
@@ -439,6 +459,7 @@ export async function changeStatus(id: string, input: unknown): Promise<ActionRe
   const parsed = statusSchema.safeParse(input);
   if (!uuid.safeParse(id).success || !parsed.success)
     return fail(parsed.success ? "Invalid id" : "Invalid status");
+  if (!(await mayTouch(member, id))) return fail("Enquiry not found.");
   try {
     await setStatus(
       { admin: createAdminClient(member.userId), orgId: member.orgId, userId: member.userId },
@@ -460,6 +481,7 @@ export async function changePipeline(
 ): Promise<ActionResult> {
   const member = await requirePerm("enquiries.manage");
   if (!uuid.safeParse(id).success || !uuid.safeParse(pipelineId).success) return fail("Invalid id");
+  if (!(await mayTouch(member, id))) return fail("Enquiry not found.");
   try {
     await movePipeline(
       { admin: createAdminClient(member.userId), orgId: member.orgId, userId: member.userId },
@@ -480,6 +502,8 @@ export async function addEnquiryNote(id: string, text: string): Promise<ActionRe
   if (!uuid.safeParse(id).success || !note || note.length > 4000)
     return fail("Write a note first.");
   const admin = createAdminClient(member.userId);
+  if (!(await canSeeEnquiry(admin, member.orgId, await enquiryViewer(admin, member), id)))
+    return fail("Enquiry not found.");
   const { data: e } = await admin
     .from("enquiries")
     .select("id, contact_id")
@@ -551,11 +575,15 @@ export async function bulkEnquiries(
   }
   const admin = createAdminClient(member.userId);
   try {
-    const res = await bulkApply(
-      { admin, orgId: member.orgId, userId: member.userId },
+    // Phase 20c: a member with a restricted enquiry view can only change the enquiries they can see.
+    const ids = await visibleEnquiryIds(
+      admin,
+      member.orgId,
+      await enquiryViewer(admin, member),
       idsParsed.data,
-      op,
     );
+    if (ids.length === 0) return fail("Select at least one enquiry.");
+    const res = await bulkApply({ admin, orgId: member.orgId, userId: member.userId }, ids, op);
     refresh();
     const failed = res.failed.length;
     return {
@@ -575,10 +603,15 @@ export async function removeEnquiries(ids: string[]): Promise<ActionResult> {
   const parsed = uuids.safeParse(ids);
   if (!parsed.success) return fail("Select at least one enquiry.");
   try {
-    const n = await deleteEnquiries(
-      { admin: createAdminClient(member.userId), orgId: member.orgId, userId: member.userId },
+    const admin = createAdminClient(member.userId);
+    const ids = await visibleEnquiryIds(
+      admin,
+      member.orgId,
+      await enquiryViewer(admin, member),
       parsed.data,
     );
+    if (ids.length === 0) return fail("Select at least one enquiry.");
+    const n = await deleteEnquiries({ admin, orgId: member.orgId, userId: member.userId }, ids);
     refresh();
     return { ok: true, message: `${n} enquir${n === 1 ? "y" : "ies"} deleted.` };
   } catch (e) {
@@ -687,6 +720,27 @@ export async function getPipelineCounts(
   if (!isScope(scope)) return fail("Invalid scope");
   const admin = createAdminClient(member.userId);
   const { data: pipelines } = await admin.from("pipelines").select("id").eq("org_id", member.orgId);
+  const viewer = await enquiryViewer(admin, member);
+  if (viewer.scope !== "all") {
+    // Restricted view (Phase 20c): count through the same predicate as the list.
+    const ctx = await loadEnquiryContext(admin, member.orgId);
+    const restricted = await Promise.all(
+      (pipelines ?? []).map(
+        async (p) =>
+          [
+            p.id,
+            await countEnquiries(admin, {
+              orgId: member.orgId,
+              registry: ctx.registry,
+              filter: buildEnquiryFilter({ scope, pipelineId: p.id }),
+              timezone: member.org.timezone,
+              viewer,
+            }),
+          ] as const,
+      ),
+    );
+    return { ok: true, data: { counts: Object.fromEntries(restricted) } };
+  }
   const entries = await Promise.all(
     (pipelines ?? []).map(async (p) => {
       let q = admin
@@ -793,18 +847,29 @@ export async function listContactEnquiries(
   ]);
   const stage = new Map((stages ?? []).map((s) => [s.id, s.name]));
   const pipeline = new Map((pipelines ?? []).map((p) => [p.id, p.name]));
+  // Phase 20c: only the enquiries this member may see under their restricted enquiry view.
+  const visible = new Set(
+    await visibleEnquiryIds(
+      admin,
+      member.orgId,
+      await enquiryViewer(admin, member),
+      (data ?? []).map((e) => e.id),
+    ),
+  );
   return {
     ok: true,
     data: {
-      rows: (data ?? []).map((e) => ({
-        id: e.id,
-        number: e.number,
-        title: e.title,
-        status: e.status,
-        stage: stage.get(e.stage_id) ?? null,
-        pipeline: pipeline.get(e.pipeline_id) ?? null,
-        created_at: e.created_at,
-      })),
+      rows: (data ?? [])
+        .filter((e) => visible.has(e.id))
+        .map((e) => ({
+          id: e.id,
+          number: e.number,
+          title: e.title,
+          status: e.status,
+          stage: stage.get(e.stage_id) ?? null,
+          pipeline: pipeline.get(e.pipeline_id) ?? null,
+          created_at: e.created_at,
+        })),
     },
   };
 }
@@ -856,7 +921,7 @@ export async function setEnquiryTags(enquiryId: string, tagIds: string[]): Promi
     .eq("org_id", member.orgId)
     .is("deleted_at", null)
     .maybeSingle();
-  if (!enquiry) return fail("Enquiry not found");
+  if (!enquiry || !(await mayTouch(member, enquiry.id))) return fail("Enquiry not found");
   const want = [...new Set(parsed.data.tags)];
   if (want.length) {
     const { count } = await admin

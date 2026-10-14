@@ -5,6 +5,7 @@ import { screenInboundMessage } from "@/lib/ai/intent/server";
 import { emit } from "@/lib/events/emit";
 import { matchOrCreateContact, rotateBsuid } from "@/lib/inbox/contacts";
 import { captureAttributionSafely } from "@/lib/integrations/capi/server";
+import { routeConversation, sendTeamAutoReply } from "@/lib/inbox/routing";
 import { readInboxSettings } from "@/lib/inbox/settings";
 import { notify } from "@/lib/notify/dispatch-db";
 import { scheduleFirstEscalation } from "@/lib/notify/escalation-job";
@@ -88,7 +89,7 @@ export async function processInbound(
     .maybeSingle();
 
   if (!conversation) {
-    const routing = await routeNewConversation(admin, orgId, settings);
+    // Phase 20c: routed after the insert (routeConversation below), in one SQL transaction.
     const { data: created, error } = await admin
       .from("conversations")
       .insert({
@@ -96,8 +97,6 @@ export async function processInbound(
         channel_id: channel.id,
         contact_id: contact.id,
         status: "open",
-        assignee_team_id: routing.teamId,
-        assignee_user_id: routing.userId,
         ad_referral: (event.referral as Json) ?? null,
         opened_at: event.timestamp.toISOString(),
       })
@@ -125,16 +124,13 @@ export async function processInbound(
   // A campaign send created this conversation hidden; the first reply makes it a normal one and routes it.
   let campaignPatch: Partial<ConversationRow> = {};
   if (!opened && conversation.campaign_only) {
-    const routing = await routeNewConversation(admin, orgId, settings);
     campaignPatch = {
       campaign_only: false,
       opened_at: event.timestamp.toISOString(),
-      ...(!conversation.assignee_team_id && !conversation.assignee_user_id
-        ? { assignee_team_id: routing.teamId, assignee_user_id: routing.userId }
-        : {}),
     };
     opened = true;
   }
+  const needsRouting = opened && !conversation.assignee_team_id && !conversation.assignee_user_id;
 
   const isReaction = event.type === "reaction";
   const preview = previewFor(event.type, event.body, event.media?.filename ?? null);
@@ -166,6 +162,20 @@ export async function processInbound(
         .select("id")
         .eq("wa_message_id", event.waMessageId)
         .single();
+      // A retried job after a crash between the message insert and routing: route the conversation if it is open,
+      // unowned and was never assigned (someone unassigning it on purpose leaves an assignment event).
+      if (
+        settings.default_team_id &&
+        conversation.status !== "closed" &&
+        !conversation.assignee_team_id &&
+        !conversation.assignee_user_id
+      ) {
+        const { count } = await admin
+          .from("conversation_assignment_events")
+          .select("id", { count: "exact", head: true })
+          .eq("conversation_id", conversation.id);
+        if (!count) await routeConversation(admin, orgId, conversation.id, settings);
+      }
       return { outcome: "duplicate", messageId: dup.data?.id ?? "" };
     }
     throw new Error(`message insert failed: ${msgErr.message}`);
@@ -189,6 +199,23 @@ export async function processInbound(
     delete patch.last_message_direction;
   }
   await admin.from("conversations").update(patch).eq("id", conversation.id);
+
+  // Phase 20c: route a newly opened, unowned conversation (capacity-aware round-robin, fallback team), then send the
+  // team's auto-reply when it lands outside office hours or with nobody online. Neither may fail the webhook job.
+  let routedOwner: string | null = null;
+  if (needsRouting) {
+    const routed = await routeConversation(admin, orgId, conversation.id, settings);
+    routedOwner = routed?.userId ?? null;
+    if (routed && !isReaction) {
+      await sendTeamAutoReply(admin, {
+        orgId,
+        conversationId: conversation.id,
+        outcome: routed,
+        alreadySentAt: conversation.auto_reply_sent_at,
+        lastInboundAt: event.timestamp,
+      });
+    }
+  }
 
   if (event.media) {
     await enqueue("media_fetch", { message_id: message.id });
@@ -228,6 +255,8 @@ export async function processInbound(
     message_id: message.id,
     contact_id: contact.id,
     kind: event.type,
+    // This message opened (or re-opened) the conversation: the conversation_opened flows own it, not message_received.
+    opened,
     // Lets listeners react to template button replies (appointment Confirm / Reschedule / Cancel).
     reply_to_wa_message_id: event.replyToWaMessageId,
     interactive: event.interactive
@@ -250,7 +279,7 @@ export async function processInbound(
   // Phase 13: tell the owner about the first unread message, or start the escalation ladder when nobody owns
   // the conversation. Neither may fail the webhook job: both swallow their own errors.
   if (!isReaction) {
-    const ownerId = campaignPatch.assignee_user_id ?? conversation.assignee_user_id;
+    const ownerId = routedOwner ?? conversation.assignee_user_id;
     if (ownerId) {
       if (conversation.unread_count === 0) {
         await notify(admin, {
@@ -274,31 +303,6 @@ export async function processInbound(
   }
 
   return { outcome: "stored", messageId: message.id, conversationId: conversation.id, opened };
-}
-
-/** Default team + round-robin for a freshly opened conversation. */
-export async function routeNewConversation(
-  admin: AdminClient,
-  orgId: string,
-  settings: ReturnType<typeof readInboxSettings>,
-): Promise<{ teamId: string | null; userId: string | null }> {
-  if (!settings.default_team_id) return { teamId: null, userId: null };
-  const { data: team } = await admin
-    .from("teams")
-    .select("id, round_robin")
-    .eq("id", settings.default_team_id)
-    .eq("org_id", orgId)
-    .maybeSingle();
-  if (!team) return { teamId: null, userId: null };
-  let userId: string | null = null;
-  if (settings.auto_assign === "round_robin" && team.round_robin) {
-    const { data } = await admin.rpc("pick_round_robin_assignee", {
-      p_org_id: orgId,
-      p_team_id: team.id,
-    });
-    userId = (data as string | null) ?? null;
-  }
-  return { teamId: team.id, userId };
 }
 
 // ---------------------------------------------------------------------------
