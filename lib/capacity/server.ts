@@ -4,7 +4,7 @@ import { readAppointmentSettings } from "@/lib/appointments/settings";
 import type { CurrentMember } from "@/lib/auth/session";
 import { branchFilterIds, canSeeLocation } from "@/lib/branches/access";
 import { branchView } from "@/lib/branches/server";
-import { availableMinutes, monthRange, openDates, rotaMinutes } from "@/lib/capacity/hours";
+import { availableMinutes, monthRange, openDates } from "@/lib/capacity/hours";
 import { buildCapacityReport, revenueByDoctor, type CapacityReport } from "@/lib/capacity/measures";
 import {
   allowedBranchCodes,
@@ -17,7 +17,7 @@ import { fetchAll } from "@/lib/supabase/fetch-all";
 
 /**
  * Loads the capacity page (M3). Service role only, so every caller checks finance.revenue.view first. Branch-bound
- * (Phase B): hours, rooms and rota are kept to the branches the member may see (and the page's branch choice); revenue
+ * (Phase B): hours and rooms are kept to the branches the member may see (and the page's branch choice); revenue
  * is kept to their finance branch codes exactly as the doctor performance report does (lib/finance/doctor-performance-
  * server.ts), and is shown as unavailable for a branch with no finance branch code rather than guessed.
  */
@@ -179,25 +179,11 @@ export async function loadCapacity(
   if (perfR.error) throw new Error("Could not load the revenue figures.");
 
   const rooms = need(roomsR, "the rooms");
-  const rotaR = await fetchAll((lo, hi) =>
-    admin
-      .from("room_rota")
-      .select("id, room_id, specialist_id, weekday, start_min, end_min")
-      .eq("org_id", orgId)
-      .in(
-        "room_id",
-        rooms.length > 0 ? rooms.map((r) => r.id) : ["00000000-0000-0000-0000-000000000000"],
-      )
-      .order("id")
-      .range(lo, hi),
-  );
-
   const specialists = need(specialistsR, "the doctors");
   const keyRows = need(linksR, "the doctor links");
   const hours = need(hoursR, "the working hours");
   const weekly = need(weeklyR, "the weekly blocks");
   const blocks = need(blocksR, "the time blocks");
-  const rota = need(rotaR, "the room rota");
 
   const appt = readAppointmentSettings(org.data?.settings);
   const open = openDates(month, appt.working_weekdays, appt.holidays);
@@ -215,10 +201,9 @@ export async function loadCapacity(
   const revenue = revenueByDoctor(reportRows, keyLinks);
   const linked = new Set(keyRows.map((k) => k.specialist_id));
 
-  // Doctors in scope: working hours or rota in the branches shown, or linked revenue there.
+  // Doctors in scope: working hours in the branches shown, or linked revenue there.
   const inScope = new Set<string>([
     ...hours.map((h) => h.specialist_id),
-    ...rota.map((r) => r.specialist_id),
     ...revenue.bySpecialist.keys(),
   ]);
 
@@ -263,7 +248,6 @@ export async function loadCapacity(
       locationName: locationName.get(r.location_id) ?? "",
       monthlyCost: r.monthly_cost === null ? null : Number(r.monthly_cost),
     })),
-    rota: rotaMinutes(rota, open),
   });
 
   const nameOfKey = new Map(reportRows.map((r) => [r.doctorKey, r.doctorName]));

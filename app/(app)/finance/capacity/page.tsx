@@ -35,9 +35,9 @@ type Search = { month?: string; location?: string };
 
 const num = "text-right tabular-nums whitespace-nowrap";
 const hrs = (v: number) => v.toLocaleString("en-GB", { maximumFractionDigits: 1 });
-const pct = (v: number | null) =>
-  v === null ? "—" : `${(v * 100).toLocaleString("en-GB", { maximumFractionDigits: 1 })}%`;
 const NEEDS_UNITE = "Needs Unite appointments";
+// Room hours come from the staff rota (rota_shifts, PR #72) once its room is linked to a room here.
+const NEEDS_ROTA = "Needs the rota (PR #72)";
 
 export default async function CapacityPage({ searchParams }: { searchParams: Promise<Search> }) {
   const member = await requirePerm("finance.revenue.view");
@@ -60,21 +60,16 @@ export default async function CapacityPage({ searchParams }: { searchParams: Pro
   const r = cap.report;
   const t = r.totals;
   const chosenName = scope.locations.find((l) => l.id === scope.chosen)?.name ?? null;
-  const occupancy = t.openHours > 0 ? t.rotaHours / t.openHours : null;
-  // Headline revenue per hour: linked doctors who also have available hours (both sides of the ratio known).
-  const paired = r.doctors.filter((d) => d.revenue !== null && d.availableHours > 0);
-  const pairedHours = paired.reduce((s, d) => s + d.availableHours, 0);
-  const pairedRevenue = paired.reduce((s, d) => s + (d.revenue ?? 0), 0);
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Capacity"
-        description="Doctors' available hours and rooms' rota hours for a month, set against Unite revenue: revenue per available hour, room occupancy and revenue per room-hour. Activity measures, not a judgement of clinical quality."
+        description="Doctors' available hours for a month set against Unite revenue (revenue per available hour), and the rooms of each branch. Activity measures, not a judgement of clinical quality."
       >
         {can(member, "rooms.manage") && (
           <Button asChild variant="outline">
-            <Link href="/settings/rooms">Rooms and rota</Link>
+            <Link href="/settings/rooms">Rooms</Link>
           </Button>
         )}
       </PageHeader>
@@ -142,14 +137,10 @@ export default async function CapacityPage({ searchParams }: { searchParams: Pro
         />
         <KpiTile
           label="Revenue per available hour (AED)"
-          value={pairedHours > 0 ? Math.round(pairedRevenue / pairedHours) : null}
+          value={t.revenuePerAvailableHour === null ? null : Math.round(t.revenuePerAvailableHour)}
           hint="Linked doctors with working hours"
         />
-        <KpiTile
-          label="Room occupancy (%)"
-          value={occupancy === null ? null : Math.round(occupancy * 1000) / 10}
-          hint={`${hrs(t.rotaHours)} rota hours of ${hrs(t.openHours)} open`}
-        />
+        <KpiTile label="Room occupancy (%)" value={null} hint={NEEDS_ROTA} />
         <KpiTile label="Appointment utilisation" value={null} hint={NEEDS_UNITE} />
       </section>
 
@@ -165,7 +156,7 @@ export default async function CapacityPage({ searchParams }: { searchParams: Pro
         <CardContent>
           {r.doctors.length === 0 ? (
             <p className="text-muted-foreground text-sm">
-              No doctor has working hours, a rota or linked revenue in this scope.
+              No doctor has working hours or linked revenue in this scope.
             </p>
           ) : (
             <Table>
@@ -174,7 +165,6 @@ export default async function CapacityPage({ searchParams }: { searchParams: Pro
                 <TableRow>
                   <TableHead>Doctor</TableHead>
                   <TableHead className="text-right">Available hours</TableHead>
-                  <TableHead className="text-right">Room rota hours</TableHead>
                   <TableHead className="text-right">Revenue (AED)</TableHead>
                   <TableHead className="text-right">Revenue / available hour</TableHead>
                   <TableHead>Booked vs available</TableHead>
@@ -187,7 +177,6 @@ export default async function CapacityPage({ searchParams }: { searchParams: Pro
                       {d.name}
                     </TableHead>
                     <TableCell className={num}>{hrs(d.availableHours)}</TableCell>
-                    <TableCell className={num}>{hrs(d.rotaHours)}</TableCell>
                     <TableCell className={num}>
                       {d.revenue === null ? (
                         <span className="text-muted-foreground">
@@ -211,10 +200,9 @@ export default async function CapacityPage({ searchParams }: { searchParams: Pro
         <CardHeader>
           <CardTitle className="text-base">Rooms, {title}</CardTitle>
           <CardDescription>
-            Rota hours are the weekly room rota counted on open days. Occupancy is rota hours over
-            open hours ({hrs(cap.openHoursPerDay)} hours on each of {cap.openDays} open days). A
-            doctor&apos;s revenue is shared over their rooms by their rota hours in each.
-            {seeCost && " Cost per rota hour is the monthly cost over the rota hours."}
+            Open hours are {hrs(cap.openHoursPerDay)} hours on each of {cap.openDays} open days.
+            Rota hours, occupancy and revenue per room-hour need the staff rota (PR #72) with its
+            rooms linked to these rooms.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -236,18 +224,14 @@ export default async function CapacityPage({ searchParams }: { searchParams: Pro
             </p>
           ) : (
             <Table>
-              <caption className="sr-only">
-                Rota hours, occupancy and revenue per room, {title}
-              </caption>
+              <caption className="sr-only">Rooms and their open hours, {title}</caption>
               <TableHeader>
                 <TableRow>
                   <TableHead>Room</TableHead>
                   <TableHead>Branch</TableHead>
-                  <TableHead className="text-right">Rota hours</TableHead>
-                  <TableHead className="text-right">Occupancy</TableHead>
-                  <TableHead className="text-right">Revenue (AED)</TableHead>
-                  <TableHead className="text-right">Revenue / room-hour</TableHead>
-                  {seeCost && <TableHead className="text-right">Cost / rota hour</TableHead>}
+                  <TableHead className="text-right">Open hours</TableHead>
+                  <TableHead>Rota hours, occupancy, revenue / room-hour</TableHead>
+                  {seeCost && <TableHead className="text-right">Monthly cost (AED)</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -260,16 +244,14 @@ export default async function CapacityPage({ searchParams }: { searchParams: Pro
                       </span>
                     </TableHead>
                     <TableCell>{room.locationName}</TableCell>
-                    <TableCell className={num}>{hrs(room.rotaHours)}</TableCell>
-                    <TableCell className={num}>{pct(room.occupancy)}</TableCell>
-                    <TableCell className={num}>{money(room.revenue)}</TableCell>
-                    <TableCell className={num}>{money(room.revenuePerRoomHour)}</TableCell>
+                    <TableCell className={num}>{hrs(room.openHours)}</TableCell>
+                    <TableCell className="text-muted-foreground text-xs">{NEEDS_ROTA}</TableCell>
                     {seeCost && (
                       <TableCell className={num}>
                         {room.monthlyCost === null ? (
                           <span className="text-muted-foreground">Cost unknown</span>
                         ) : (
-                          money(room.costPerRotaHour)
+                          money(room.monthlyCost)
                         )}
                       </TableCell>
                     )}
@@ -277,12 +259,6 @@ export default async function CapacityPage({ searchParams }: { searchParams: Pro
                 ))}
               </TableBody>
             </Table>
-          )}
-          {t.unattributedRevenue !== null && t.unattributedRevenue !== 0 && (
-            <p className="text-muted-foreground mt-3 text-xs">
-              AED {money(t.unattributedRevenue)} of linked doctors&apos; revenue is not on any room
-              rota in this scope, so it is not attributed to a room.
-            </p>
           )}
         </CardContent>
       </Card>
@@ -293,7 +269,7 @@ export default async function CapacityPage({ searchParams }: { searchParams: Pro
             <CardTitle className="text-base">Unite doctors and Pulse doctors</CardTitle>
             <CardDescription>
               The Unite report names doctors its own way. Link each Unite doctor to the Pulse doctor
-              whose hours and rota they match; a Pulse doctor may have several Unite spellings.
+              whose hours they match; a Pulse doctor may have several Unite spellings.
               {!canLink && " Finance staff with reference data rights make the links."}
             </CardDescription>
           </CardHeader>
@@ -351,8 +327,8 @@ export default async function CapacityPage({ searchParams }: { searchParams: Pro
           <CardHeader>
             <CardTitle className="text-base">Room opening hours</CardTitle>
             <CardDescription>
-              Branches have no opening hours in Pulse yet, so occupancy uses this number of hours on
-              every open day.
+              Branches have no opening hours in Pulse yet, so room open hours (and occupancy, once
+              the rota is linked) use this number of hours on every open day.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -369,8 +345,7 @@ export default async function CapacityPage({ searchParams }: { searchParams: Pro
         {t.revenue !== null && (
           <span>
             Linked revenue for {title}
-            {chosenName ? ` (${chosenName})` : ""}: AED {money(t.revenue)}, of which AED{" "}
-            {money(t.attributedRevenue)} is attributed to rooms.
+            {chosenName ? ` (${chosenName})` : ""}: AED {money(t.revenue)}.
           </span>
         )}
       </footer>

@@ -6,11 +6,11 @@ import { z } from "zod";
 import { recordAudit } from "@/lib/audit";
 import { requirePerm, type CurrentMember } from "@/lib/auth/session";
 import { canSeeLocation, readBranchAccess } from "@/lib/branches/access";
-import { roomSchema, rotaErrorMessage, rotaSchema } from "@/lib/capacity/rooms";
+import { roomSchema } from "@/lib/capacity/rooms";
 import { createAdminClient, type AdminClient } from "@/lib/supabase/admin";
 
 /**
- * Rooms and the weekly room rota (M3). Every action needs rooms.manage and keeps to the branches the member may see
+ * Rooms (M3). Every action needs rooms.manage and keeps to the branches the member may see
  * (Phase B); writes use the service role after the check and are audited. Nothing here touches bookings.
  */
 
@@ -44,7 +44,7 @@ export async function saveRoom(values: Record<string, string>): Promise<ActionRe
   const admin = createAdminClient(member.userId);
 
   if (id) {
-    // The branch of an existing room is fixed here (its rota names doctors of that branch).
+    // The branch of an existing room is fixed here: a room is recreated rather than moved.
     if (!(await roomInScope(admin, member, id))) return { ok: false, error: "Room not found." };
     const { error } = await admin.from("rooms").update(row).eq("id", id).eq("org_id", member.orgId);
     if (error)
@@ -125,64 +125,5 @@ export async function deleteRoom(id: string): Promise<ActionResult> {
     diff: { name: room.name },
   });
   refresh();
-  return { ok: true, message: "Room deleted, with its rota." };
-}
-
-export async function addRotaRow(values: Record<string, string>): Promise<ActionResult> {
-  const member = await requirePerm(PERM);
-  const parsed = rotaSchema.safeParse(values);
-  if (!parsed.success)
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid rota time." };
-  const admin = createAdminClient(member.userId);
-  if (!(await roomInScope(admin, member, parsed.data.room_id)))
-    return { ok: false, error: "Room not found." };
-  // The database refuses a double-booked room and a doctor who does not work at the room's branch.
-  const { data, error } = await admin
-    .from("room_rota")
-    .insert({ ...parsed.data, org_id: member.orgId })
-    .select("id")
-    .single();
-  if (error || !data) return { ok: false, error: rotaErrorMessage(error) };
-  await recordAudit(admin, {
-    orgId: member.orgId,
-    userId: member.userId,
-    action: "rooms.rota_added",
-    entity: "room_rota",
-    entityId: data.id,
-    diff: parsed.data,
-  });
-  refresh();
-  return { ok: true, message: "Added to the rota." };
-}
-
-export async function deleteRotaRow(id: string): Promise<ActionResult> {
-  const member = await requirePerm(PERM);
-  if (!uuid.safeParse(id).success) return { ok: false, error: "Invalid rota row." };
-  const admin = createAdminClient(member.userId);
-  const { data: row } = await admin
-    .from("room_rota")
-    .select("id, room_id, specialist_id, weekday, start_min, end_min")
-    .eq("id", id)
-    .eq("org_id", member.orgId)
-    .maybeSingle();
-  if (!row || !(await roomInScope(admin, member, row.room_id)))
-    return { ok: false, error: "Rota row not found." };
-  const { error } = await admin.from("room_rota").delete().eq("id", id).eq("org_id", member.orgId);
-  if (error) return { ok: false, error: "Could not remove the rota row." };
-  await recordAudit(admin, {
-    orgId: member.orgId,
-    userId: member.userId,
-    action: "rooms.rota_removed",
-    entity: "room_rota",
-    entityId: id,
-    diff: {
-      room_id: row.room_id,
-      specialist_id: row.specialist_id,
-      weekday: row.weekday,
-      start_min: row.start_min,
-      end_min: row.end_min,
-    },
-  });
-  refresh();
-  return { ok: true, message: "Removed from the rota." };
+  return { ok: true, message: "Room deleted." };
 }

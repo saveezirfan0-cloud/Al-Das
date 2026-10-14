@@ -69,9 +69,9 @@ export const PERMISSIONS = [
   {
     key: "rooms.manage",
     group: "Appointments",
-    label: "Manage rooms and the room rota",
+    label: "Manage rooms",
     description:
-      "Add rooms to a branch (kind and monthly cost) and plan which doctor uses which room on each weekday. Never changes bookings.",
+      "Add and edit the rooms of a branch (kind and monthly cost). Never changes bookings.",
   },
   {
     key: "frontdesk.use",

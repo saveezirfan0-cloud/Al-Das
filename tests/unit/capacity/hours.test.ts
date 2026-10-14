@@ -5,7 +5,6 @@ import {
   monthDates,
   monthRange,
   openDates,
-  rotaMinutes,
   subtractIntervals,
   unionIntervals,
 } from "@/lib/capacity/hours";
@@ -143,22 +142,5 @@ describe("available hours", () => {
 
   it("is zero with no working hours", () => {
     expect(availableMinutes({ ...base, locations: [] })).toBe(0);
-  });
-});
-
-describe("rota minutes", () => {
-  it("counts each weekly row on every open day with that weekday", () => {
-    const open = openDates(MONTH, MON_SAT, ["2026-09-07"]); // a Monday holiday
-    const m = rotaMinutes(
-      [
-        { room_id: "r1", specialist_id: "d1", weekday: 1, start_min: 540, end_min: 720 },
-        { room_id: "r1", specialist_id: "d2", weekday: 2, start_min: 540, end_min: 600 },
-        { room_id: "r2", specialist_id: "d1", weekday: 7, start_min: 540, end_min: 600 }, // Sunday: closed
-      ],
-      open,
-    );
-    expect(m.get("r1")?.get("d1")).toBe(3 * 180); // 14, 21, 28 Sep
-    expect(m.get("r1")?.get("d2")).toBe(5 * 60); // 1, 8, 15, 22, 29 Sep
-    expect(m.has("r2")).toBe(false);
   });
 });

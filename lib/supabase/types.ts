@@ -19259,65 +19259,6 @@ export type Database = {
           },
         ];
       };
-      room_rota: {
-        Row: {
-          created_at: string;
-          end_min: number;
-          id: string;
-          org_id: string;
-          room_id: string;
-          specialist_id: string;
-          start_min: number;
-          updated_at: string;
-          weekday: number;
-        };
-        ComputedFields: never;
-        Insert: {
-          created_at?: string;
-          end_min: number;
-          id?: string;
-          org_id: string;
-          room_id: string;
-          specialist_id: string;
-          start_min: number;
-          updated_at?: string;
-          weekday: number;
-        };
-        Update: {
-          created_at?: string;
-          end_min?: number;
-          id?: string;
-          org_id?: string;
-          room_id?: string;
-          specialist_id?: string;
-          start_min?: number;
-          updated_at?: string;
-          weekday?: number;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "room_rota_org_id_fkey";
-            columns: ["org_id"];
-            isOneToOne: false;
-            referencedRelation: "orgs";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "room_rota_room_id_fkey";
-            columns: ["room_id"];
-            isOneToOne: false;
-            referencedRelation: "rooms";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "room_rota_specialist_id_fkey";
-            columns: ["specialist_id"];
-            isOneToOne: false;
-            referencedRelation: "specialists";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
       rooms: {
         Row: {
           active: boolean;

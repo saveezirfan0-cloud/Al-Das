@@ -112,12 +112,9 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
     permissions: ["finance.revenue.view"],
     keywords: [
       "rooms",
-      "room rota",
       "available hours",
       "revenue per hour",
-      "occupancy",
       "utilisation",
-      "room-hour",
     ],
   },
   {

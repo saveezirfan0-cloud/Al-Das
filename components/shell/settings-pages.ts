@@ -199,7 +199,7 @@ export const SETTINGS_PAGES: readonly SettingsPage[] = [
     href: "/settings/rooms",
     label: "Rooms",
     section: "Clinic operations",
-    keywords: ["rota", "room rota", "consultation room", "procedure room", "room cost", "capacity"],
+    keywords: ["consultation room", "procedure room", "dental room", "room cost", "capacity"],
     allow: (m) => can(m, "rooms.manage"),
   },
   {

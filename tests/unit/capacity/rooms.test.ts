@@ -3,16 +3,8 @@ import { describe, expect, it } from "vitest";
 import { PERMISSION_KEYS, SYSTEM_ROLES } from "@/lib/auth/permissions";
 import { visibleSettingsPages } from "@/components/shell/settings-pages";
 import { financeNavFor } from "@/lib/finance/nav";
-import {
-  formatTime,
-  parseTime,
-  roomSchema,
-  rotaErrorMessage,
-  rotaSchema,
-} from "@/lib/capacity/rooms";
+import { roomSchema } from "@/lib/capacity/rooms";
 
-const ROOM = "11111111-1111-4111-8111-111111111111";
-const DOC = "22222222-2222-4222-8222-222222222222";
 const member = (permissions: string[]) => ({
   userId: "u",
   orgId: "o",
@@ -38,39 +30,6 @@ describe("room input", () => {
       false,
     );
     expect(roomSchema.safeParse({ name: " ", kind: "other" }).success).toBe(false);
-  });
-});
-
-describe("rota input", () => {
-  it("parses times, with an end of 00:00 meaning midnight", () => {
-    expect(parseTime("09:30")).toBe(570);
-    expect(parseTime("00:00", true)).toBe(1440);
-    expect(parseTime("24:00")).toBe(1440);
-    expect(parseTime("25:00")).toBeNull();
-    expect(parseTime("9.30")).toBeNull();
-    expect(formatTime(1440)).toBe("24:00");
-  });
-
-  it("refuses an end before the start and a bad day", () => {
-    const row = { room_id: ROOM, specialist_id: DOC, weekday: "2", start: "09:00", end: "13:00" };
-    expect(rotaSchema.parse(row)).toEqual({
-      room_id: ROOM,
-      specialist_id: DOC,
-      weekday: 2,
-      start_min: 540,
-      end_min: 780,
-    });
-    expect(rotaSchema.safeParse({ ...row, end: "08:00" }).success).toBe(false);
-    expect(rotaSchema.safeParse({ ...row, weekday: "0" }).success).toBe(false);
-    expect(rotaSchema.safeParse({ ...row, weekday: "8" }).success).toBe(false);
-  });
-
-  it("turns the database refusals into plain words", () => {
-    expect(rotaErrorMessage({ message: "room_double_booked: x" })).toMatch(/already on the rota/);
-    expect(rotaErrorMessage({ message: "specialist_not_at_room_location: x" })).toMatch(
-      /does not work at this room's branch/,
-    );
-    expect(rotaErrorMessage(null)).toMatch(/Could not save/);
   });
 });
 

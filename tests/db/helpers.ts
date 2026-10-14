@@ -1643,7 +1643,7 @@ export async function seedSoftDeleteRows(c: Client, orgId: string, userId: strin
 }
 
 /**
- * M3 rooms and capacity (docs/23_PHASE_M3A_NOTES.md): one room, rota row and Unite doctor-key link for an org, so the
+ * M3 rooms and capacity (docs/23_PHASE_M3A_NOTES.md): one room and one Unite doctor-key link for an org, so the
  * cross-org sweeps are not vacuous for them. Service role, like the server actions that write them.
  */
 export async function seedM3Rows(c: Client, orgId: string) {
@@ -1652,18 +1652,10 @@ export async function seedM3Rows(c: Client, orgId: string) {
       (await c.query<{ id: string }>(sql + " returning id::text", params)).rows[0].id;
     const location = await one("insert into public.locations (org_id, name) values ($1, 'Sweep M3')", [orgId]);
     const doctor = await one("insert into public.specialists (org_id, name) values ($1, 'Dr Sweep M3')", [orgId]);
-    await c.query(
-      "insert into public.specialist_locations (org_id, specialist_id, location_id) values ($1, $2, $3)",
-      [orgId, doctor, location],
-    );
-    const room = await one(
-      "insert into public.rooms (org_id, location_id, name) values ($1, $2, 'Sweep room')",
-      [orgId, location],
-    );
-    await c.query(
-      "insert into public.room_rota (org_id, room_id, specialist_id, weekday, start_min, end_min) values ($1, $2, $3, 1, 540, 600)",
-      [orgId, room, doctor],
-    );
+    await c.query("insert into public.rooms (org_id, location_id, name) values ($1, $2, 'Sweep room')", [
+      orgId,
+      location,
+    ]);
     await c.query(
       "insert into public.fin_ref_doctor_keys (org_id, doctor_key, specialist_id) values ($1, 'sweep m3', $2)",
       [orgId, doctor],
@@ -1672,4 +1664,4 @@ export async function seedM3Rows(c: Client, orgId: string) {
 }
 
 /** M3 tables with a browser (select) policy. */
-export const M3_TABLES = ["rooms", "room_rota", "fin_ref_doctor_keys"] as const;
+export const M3_TABLES = ["rooms", "fin_ref_doctor_keys"] as const;

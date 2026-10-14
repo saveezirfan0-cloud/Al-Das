@@ -76,26 +76,6 @@ const TABLES: Record<string, Row[]> = {
       active: true,
     },
   ],
-  room_rota: [
-    {
-      id: "x1",
-      org_id: "org",
-      room_id: "r-north",
-      specialist_id: ALPHA,
-      weekday: 1,
-      start_min: 540,
-      end_min: 780,
-    },
-    {
-      id: "x2",
-      org_id: "org",
-      room_id: "r-south",
-      specialist_id: BETA,
-      weekday: 2,
-      start_min: 540,
-      end_min: 660,
-    },
-  ],
 };
 
 const PERF = {
@@ -178,9 +158,10 @@ describe("capacity loader", () => {
       { doctorKey: "gamma demo", doctorName: "GAMMA DEMO", revenue: 900 },
     ]);
     const north = cap.report.rooms.find((r) => r.id === "r-north")!;
-    expect(north.revenue).toBe(1600);
     expect(north.openHours).toBe(26 * 8);
-    expect(north.costPerRotaHour).toBe(100);
+    expect(north.monthlyCost).toBe(1600);
+    expect(cap.report.rooms.find((r) => r.id === "r-south")!.monthlyCost).toBeNull();
+    expect(cap.report.totals.revenuePerAvailableHour).toBe(100);
     expect(cap.coverage.full).toBe(true);
   });
 

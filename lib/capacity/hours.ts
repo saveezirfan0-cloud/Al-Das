@@ -5,13 +5,10 @@
  * (lunch, admin) and one-off time blocks (leave, training). The windows, the open-day rule (working week and holidays)
  * and the weekly-block expansion come from the slot engine (lib/appointments/slots.ts), so "available" here means
  * exactly the time the booking drawer would offer before any appointment is booked. Nothing here changes booking.
- *
- * A room's rota hours are its weekly rota rows (wall-clock minutes, like working hours) counted on each open day.
  */
 import {
   expandRecurringBlocks,
   isOpenDay,
-  isoWeekday,
   shiftLocalDate,
   workingWindows,
   type RecurringBlockRow,
@@ -128,31 +125,4 @@ export function monthRange(month: string): { from: string; to: string } {
     from: `${shiftLocalDate(dates[0], -1)}T00:00:00Z`,
     to: `${shiftLocalDate(dates[dates.length - 1], 2)}T00:00:00Z`,
   };
-}
-
-export type RotaRow = {
-  room_id: string;
-  specialist_id: string;
-  weekday: number;
-  start_min: number;
-  end_min: number;
-};
-
-/** Minutes per (room, doctor) in the month: each weekly row counted on every open date with its weekday. */
-export function rotaMinutes(
-  rows: readonly RotaRow[],
-  open: readonly string[],
-): Map<string, Map<string, number>> {
-  const perWeekday = new Map<number, number>();
-  for (const d of open) perWeekday.set(isoWeekday(d), (perWeekday.get(isoWeekday(d)) ?? 0) + 1);
-  const out = new Map<string, Map<string, number>>();
-  for (const r of rows) {
-    const days = perWeekday.get(r.weekday) ?? 0;
-    const mins = Math.max(0, r.end_min - r.start_min) * days;
-    if (mins === 0) continue;
-    const room = out.get(r.room_id) ?? new Map<string, number>();
-    room.set(r.specialist_id, (room.get(r.specialist_id) ?? 0) + mins);
-    out.set(r.room_id, room);
-  }
-  return out;
 }
