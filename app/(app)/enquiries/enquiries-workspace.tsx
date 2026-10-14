@@ -30,6 +30,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { parseSoftDeleteSignal, SOFT_DELETE_WINDOW_EVENT } from "@/lib/soft-delete/rules";
 import { createClient } from "@/lib/supabase/client";
 import { CARD_FIELD_OPTIONS } from "@/lib/enquiries/constants";
 import type { EnquiryRow } from "@/lib/enquiries/query";
@@ -276,6 +277,19 @@ export function EnquiriesWorkspace({ bootstrap }: { bootstrap: EnquiriesBootstra
       if (timer.current) clearTimeout(timer.current);
     };
   }, [bootstrap.orgId, reload]);
+
+  // A row someone else moved to Recently deleted: RLS hides that UPDATE from postgres_changes, so the shell relays the
+  // org's soft-delete broadcast (ids only) as a window event (docs/35).
+  React.useEffect(() => {
+    const onDeleted = (e: Event) => {
+      const signal = parseSoftDeleteSignal((e as CustomEvent).detail);
+      if (signal?.entity !== "enquiry") return;
+      if (timer.current) clearTimeout(timer.current);
+      timer.current = setTimeout(reload, 500);
+    };
+    window.addEventListener(SOFT_DELETE_WINDOW_EVENT, onDeleted);
+    return () => window.removeEventListener(SOFT_DELETE_WINDOW_EVENT, onDeleted);
+  }, [reload]);
 
   // "Create enquiry" from the inbox / a contact: /enquiries?new=1&contact=<id>
   const handledNew = React.useRef(false);

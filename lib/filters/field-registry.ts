@@ -293,7 +293,7 @@ export const CONTACT_RELATIONS: Record<RelationKey, RelationDef> = {
     table: "public.tasks",
     contactColumn: "contact_id",
     columns: { due_at: "timestamptz", done: "boolean" },
-    extraWhere: "r.done = false",
+    extraWhere: "r.done = false and r.deleted_at is null",
   },
 };
 

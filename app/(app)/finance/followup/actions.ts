@@ -106,6 +106,7 @@ export async function addFollowup(raw: Record<string, string>): Promise<ActionRe
         })
         .eq("org_id", member.orgId)
         .in("id", ids)
+        .is("deleted_at", null)
         .eq("done", false)
         .select("id");
       closed = done?.length ?? 0;

@@ -199,7 +199,7 @@ These are the most valuable things to do before any client sees the product, bec
 | Public API | Rate limit is per key and fixed-window; reads are audited but sampled (one row per key and resource per 15 minutes); marketing opt-in through the API needs `consent` evidence; URLs limited to port 443. Open: marketing sends still check `stop_marketing` only |
 | AI | Limits are atomic (per user per minute, plus a workspace daily cap). Rate limits count calls, not tokens |
 | Finance | Several thresholds are placeholders until Sharaf agrees them; Unite IP allow-listing may need a fixed-IP relay (Vercel has no fixed outbound IPs) |
-| Security | **Built in Phase 15, unproven live:** MFA by role, session list, login history, record access log (see 4.11). Backup and restore drill written (`docs/37_BACKUP_RESTORE_DRILL.md`; first rehearsal still to run). Still open: working-hours or IP restriction for finance, soft-delete with a restore window, the Supabase Auth dashboard settings (password policy, leaked-password protection, TOTP switched on) |
+| Security | **Built in Phase 15, unproven live:** MFA by role, session list, login history, record access log (see 4.11). Backup and restore drill written (`docs/37_BACKUP_RESTORE_DRILL.md`; first rehearsal still to run). Soft delete with a restore window built (`docs/35_SOFT_DELETE_NOTES.md`): deleted contacts, enquiries, tasks and website entry points go to Settings, Recently deleted for 30 days (1 to 90 per org), then a nightly purge; erasure is unchanged. Still open: working-hours or IP restriction for finance, the Supabase Auth dashboard settings (password policy, leaked-password protection, TOTP switched on) |
 
 ### 2.4 Housekeeping
 
@@ -454,7 +454,7 @@ Rule that stays: Unite is the system of record, Pulse mirrors and flags. The del
 | No periodic review | **(done, Phase 15)** Access review page with dormant detection, API-key owners and a signed quarterly attestation |
 | Anyone with the role keeps access until removed | **(done, Phase 15)** One-step off-boarding. Not done: working-hours or IP restriction for finance |
 | Alerts on job failures | **(done, Phase 15)** Anomaly alerts: bulk export, off-hours access, five failed sign-ins, role changes, bulk API reads |
-| Delete and merge exist | **(done, Phase 15)** Patient data export and erasure with a two-person rule. Not done: soft-delete with a restore window |
+| Delete and merge exist | **(done, Phase 15)** Patient data export and erasure with a two-person rule. **(done)** Soft delete with a restore window: Settings, Recently deleted (`docs/35_SOFT_DELETE_NOTES.md`) |
 | Backups are the host's | Written backup and restore drill, PITR on, annual test |
 
 ---

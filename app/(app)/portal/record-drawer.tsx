@@ -142,7 +142,11 @@ export function RecordDrawer({
   function remove() {
     if (
       !detail ||
-      !confirm(`Delete this ${def.label.toLowerCase()} record? This cannot be undone.`)
+      !confirm(
+        def.softDeleteEntity
+          ? `Delete this ${def.label.toLowerCase()} record? It can be restored from Settings, Recently deleted for a while.`
+          : `Delete this ${def.label.toLowerCase()} record? This cannot be undone.`,
+      )
     )
       return;
     startTransition(async () => {
@@ -151,7 +155,7 @@ export function RecordDrawer({
         toast.error(res.error);
         return;
       }
-      toast.success("Deleted.");
+      toast.success(res.message ?? "Deleted.");
       onClose();
       onChanged();
     });

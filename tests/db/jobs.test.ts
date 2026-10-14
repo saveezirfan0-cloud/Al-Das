@@ -259,6 +259,7 @@ describe.skipIf(!TEST_DATABASE_URL)("jobs framework (db)", () => {
         "security_maintenance",
         "sms_outbound",
         "sms_stalled",
+        "soft_delete_purge",
         "templates_sync",
         "unite_enqueue",
         "unite_housekeeping",

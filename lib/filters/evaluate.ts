@@ -305,14 +305,16 @@ export function evaluateCondition(
   if (s.kind === "count") {
     const rows = record.relations?.[s.relation] ?? [];
     const rel = registry.relations[s.relation];
-    const n = rel.extraWhere ? rows.filter((r) => r.done !== true).length : rows.length;
+    const n = rel.extraWhere
+      ? rows.filter((r) => r.done !== true && !r.deleted_at).length
+      : rows.length;
     return scalarMatches(field, c.op, c.value, n, opts);
   }
 
   if (s.kind === "relation") {
     const rel = registry.relations[s.relation];
     let rows = record.relations?.[s.relation] ?? [];
-    if (rel.extraWhere) rows = rows.filter((r) => r.done !== true);
+    if (rel.extraWhere) rows = rows.filter((r) => r.done !== true && !r.deleted_at);
     if (field.type === "set") {
       const have = rows.map((r) => str(r[s.column])).filter((v) => v !== "");
       return setMatches(c.op, c.value, [...new Set(have)]);

@@ -14,6 +14,7 @@ export const WEBSITE_ENTRY_POINTS: PortalObjectDef = {
   sort: 70,
   allowCreate: true,
   allowDelete: true,
+  softDeleteEntity: "website_entry_point",
   defaultSort: [{ field: "priority_key", dir: "asc" }],
   searchColumns: ["section", "source_key", "route_to", "prefill_message"],
   columns: [

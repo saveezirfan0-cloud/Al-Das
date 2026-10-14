@@ -238,7 +238,7 @@ export function EnquiryDrawer({
                       onClick={() => {
                         if (
                           confirm(
-                            "Delete this enquiry? It disappears from lists and boards; the audit log keeps a record.",
+                            "Delete this enquiry? It disappears from lists and boards and can be restored from Settings, Recently deleted for a while.",
                           )
                         )
                           run(() => removeEnquiries([e.id]), onClose);

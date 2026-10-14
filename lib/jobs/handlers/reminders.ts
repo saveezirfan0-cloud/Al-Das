@@ -63,6 +63,7 @@ async function handleTaskDue(
     .select("id, subject, done, due_at, assignee_id, created_by, enquiry_id, contact_id, due_notified_for")
     .eq("org_id", orgId)
     .eq("id", p.task_id)
+    .is("deleted_at", null)
     .maybeSingle();
   if (!task || !reminderStillValid(task, p.due_at)) return "skipped";
   if (task.due_notified_for && new Date(task.due_notified_for).getTime() === new Date(task.due_at).getTime())

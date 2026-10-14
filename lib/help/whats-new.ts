@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-11-15-recently-deleted",
+    date: "2026-10-14",
+    title: "Undo a delete: Recently deleted",
+    body: "Deleting a contact, enquiry, task or website entry point no longer removes it straight away. It goes to Settings, Recently deleted, where anyone allowed to manage that kind of record can restore it, with its links and history, for 30 days. After that it is removed overnight. Administrators with security rights can change the number of days (1 to 90). Erasing a patient's details is still done through Patient data requests, with a second administrator's approval.",
+  },
+  {
     id: "2026-10-14-go-live-checklist",
     date: "2026-10-14",
     title: "Go-live checklist, older chats and complete reports",

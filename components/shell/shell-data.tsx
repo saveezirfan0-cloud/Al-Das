@@ -18,6 +18,13 @@ import {
   PRESENCE_EVENT,
 } from "@/lib/presence/idle";
 import { stripBadge, withBadge } from "@/lib/shell/title-badge";
+import {
+  parseSoftDeleteSignal,
+  SOFT_DELETE_BROADCAST_EVENT,
+  SOFT_DELETE_CHANNEL_CONFIG,
+  SOFT_DELETE_WINDOW_EVENT,
+  softDeleteChannelName,
+} from "@/lib/soft-delete/rules";
 import { createClient } from "@/lib/supabase/client";
 
 import { markAllNotificationsRead, markNotificationRead } from "./actions";
@@ -185,6 +192,7 @@ export function ShellDataProvider({
       .eq("org_id", orgId)
       .eq("assignee_id", userId)
       .eq("done", false)
+      .is("deleted_at", null)
       .lt("due_at", new Date().toISOString());
     if (count !== null) setOverdueTasks(count);
   }, [canTasks, orgId, userId]);
@@ -301,6 +309,26 @@ export function ShellDataProvider({
       pending.clear();
     };
   }, [orgId, userId, canTasks, debounced, loadNotifications, loadInbox, loadOverdue]);
+
+  // Soft delete (docs/35): a row moved to Recently deleted by someone else never reaches postgres_changes here (RLS hides
+  // the new row), so the server broadcasts ids only on the org's PRIVATE channel (only members receive; only the server
+  // sends). Refresh the overdue badge and relay it to the open workspace as a window event. The payload is still parsed
+  // strictly and only ever triggers reloads.
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel(softDeleteChannelName(orgId), SOFT_DELETE_CHANNEL_CONFIG)
+      .on("broadcast", { event: SOFT_DELETE_BROADCAST_EVENT }, ({ payload }) => {
+        const signal = parseSoftDeleteSignal(payload);
+        if (!signal) return;
+        if (signal.entity === "task" && canTasks) debounced("t", loadOverdue);
+        window.dispatchEvent(new CustomEvent(SOFT_DELETE_WINDOW_EVENT, { detail: signal }));
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [orgId, canTasks, debounced, loadOverdue]);
 
   // Phase 20c presence heartbeat: while the person is using Pulse (recent input, tab visible) tell the database at most
   // once a minute. With auto-away on (Settings, Inbox) an online member without heartbeats counts as away and a pg_cron

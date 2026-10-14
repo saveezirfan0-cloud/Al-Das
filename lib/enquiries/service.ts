@@ -10,6 +10,7 @@ import { resolveStatusChange } from "@/lib/enquiries/status";
 import { recordAudit } from "@/lib/audit";
 import { emit } from "@/lib/events/emit";
 import { scheduleJob } from "@/lib/jobs/enqueue";
+import { softDelete } from "@/lib/soft-delete/server";
 import type { AdminClient } from "@/lib/supabase/admin";
 import type { Json, Tables, TablesUpdate } from "@/lib/supabase/types";
 
@@ -428,25 +429,54 @@ export async function movePipeline(ctx: Ctx, id: string, pipelineId: string, sta
 // Delete + bulk
 // ---------------------------------------------------------------------------
 
-/** Soft-deletes enquiries (they vanish from lists; the audit trail keeps the record). */
+/**
+ * Soft-deletes enquiries into the bin (docs/35): they vanish from lists and can be restored from Settings, Recently
+ * deleted until the org's restore window ends; the nightly purge then removes them (their tasks and timeline stay).
+ */
 export async function deleteEnquiries(ctx: Ctx, ids: string[]): Promise<number> {
   if (ids.length === 0) return 0;
-  const { data, error } = await ctx.admin
-    .from("enquiries")
-    .update({ deleted_at: new Date().toISOString() })
-    .eq("org_id", ctx.orgId)
-    .in("id", ids)
-    .is("deleted_at", null)
-    .select("id");
-  if (error) throw dbError(error, "Could not delete the enquiries.");
+  let moved: string[];
+  try {
+    moved = await softDelete(ctx.admin, { orgId: ctx.orgId, userId: ctx.userId, entity: "enquiry", ids });
+  } catch {
+    throw new EnquiryError("Could not delete the enquiries.");
+  }
   await recordAudit(ctx.admin, {
     orgId: ctx.orgId,
     userId: ctx.userId,
     action: "enquiry.deleted",
     entity: "enquiry",
-    diff: { count: data?.length ?? 0 },
+    entityId: moved.length === 1 ? moved[0] : undefined,
+    diff: { count: moved.length, restorable: true },
   });
-  return data?.length ?? 0;
+  return moved.length;
+}
+
+/**
+ * After a restore from Recently deleted: an open, untouched enquiry with an SLA gets its SLA job back (the one that fell
+ * due in the bin was skipped by the handler). Due now when the deadline passed meanwhile; the handler re-checks
+ * everything (open, untouched, not yet breached) at fire time, and the dedupe key keeps a still-pending job single.
+ */
+export async function afterEnquiryRestored(ctx: Ctx, id: string): Promise<void> {
+  const { data: e } = await ctx.admin
+    .from("enquiries")
+    .select("id, status, sla_due_at, sla_breached_at, first_touch_at")
+    .eq("org_id", ctx.orgId)
+    .eq("id", id)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (!e || e.status !== "open" || !e.sla_due_at || e.sla_breached_at || e.first_touch_at) return;
+  const due = new Date(e.sla_due_at);
+  const now = new Date();
+  await scheduleJob({
+    kind: "enquiry.sla",
+    orgId: ctx.orgId,
+    runAt: due > now ? due : now,
+    payload: { enquiry_id: e.id },
+    dedupeKey: `enquiry_sla:${e.id}`,
+  }).catch((err) =>
+    console.error("[enquiries] sla schedule failed", err instanceof Error ? err.message : err),
+  );
 }
 
 export type BulkOp =

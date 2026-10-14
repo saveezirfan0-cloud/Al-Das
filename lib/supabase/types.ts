@@ -7656,6 +7656,52 @@ export type Database = {
         };
         Relationships: [];
       };
+      deleted_items: {
+        Row: {
+          deleted_at: string;
+          deleted_by: string | null;
+          entity: string;
+          id: string;
+          org_id: string;
+          record_id: string;
+          restore_data: Json;
+        };
+        ComputedFields: never;
+        Insert: {
+          deleted_at?: string;
+          deleted_by?: string | null;
+          entity: string;
+          id?: string;
+          org_id: string;
+          record_id: string;
+          restore_data?: Json;
+        };
+        Update: {
+          deleted_at?: string;
+          deleted_by?: string | null;
+          entity?: string;
+          id?: string;
+          org_id?: string;
+          record_id?: string;
+          restore_data?: Json;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "deleted_items_deleted_by_fkey";
+            columns: ["deleted_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "deleted_items_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       departments: {
         Row: {
           active: boolean;
@@ -20015,6 +20061,7 @@ export type Database = {
           contact_id: string | null;
           created_at: string;
           created_by: string | null;
+          deleted_at: string | null;
           done: boolean;
           done_at: string | null;
           due_at: string;
@@ -20035,6 +20082,7 @@ export type Database = {
           contact_id?: string | null;
           created_at?: string;
           created_by?: string | null;
+          deleted_at?: string | null;
           done?: boolean;
           done_at?: string | null;
           due_at: string;
@@ -20054,6 +20102,7 @@ export type Database = {
           contact_id?: string | null;
           created_at?: string;
           created_by?: string | null;
+          deleted_at?: string | null;
           done?: boolean;
           done_at?: string | null;
           due_at?: string;
@@ -21592,6 +21641,7 @@ export type Database = {
           channel_id: string | null;
           channel_phone: string | null;
           created_at: string;
+          deleted_at: string | null;
           id: string;
           is_dynamic: boolean;
           org_id: string;
@@ -21608,6 +21658,7 @@ export type Database = {
           channel_id?: string | null;
           channel_phone?: string | null;
           created_at?: string;
+          deleted_at?: string | null;
           id?: string;
           is_dynamic?: boolean;
           org_id: string;
@@ -21623,6 +21674,7 @@ export type Database = {
           channel_id?: string | null;
           channel_phone?: string | null;
           created_at?: string;
+          deleted_at?: string | null;
           id?: string;
           is_dynamic?: boolean;
           org_id?: string;
@@ -24751,6 +24803,16 @@ export type Database = {
         Args: { p_chunks: Json; p_content_hash: string; p_org_id: string; p_source_id: string };
         Returns: number;
       };
+      list_deleted_items: {
+        Args: { p_kinds: string[]; p_limit?: number; p_offset?: number; p_org: string; p_user: string };
+        Returns: {
+          deleted_at: string;
+          deleted_by: string | null;
+          entity: string;
+          record_id: string;
+          title: string;
+        }[];
+      };
       mark_all_notifications_read: { Args: { p_org_id: string }; Returns: number };
       media_asset_usage: {
         Args: { p_asset: string; p_org: string };
@@ -24876,6 +24938,7 @@ export type Database = {
       };
       presence_auto_away_sweep: { Args: Record<PropertyKey, never>; Returns: number };
       presence_heartbeat: { Args: { p_org_id: string }; Returns: string };
+      purge_deleted_records: { Args: { p_batch?: number; p_now?: string }; Returns: Json };
       rate_limit_hit: {
         Args: { p_key: string; p_limit: number; p_window_seconds: number };
         Returns: {
@@ -25340,6 +25403,10 @@ export type Database = {
         Returns: boolean;
       };
       reserve_send_slot: { Args: { p_cap: number; p_channel_id: string }; Returns: number };
+      restore_deleted_record: {
+        Args: { p_actor?: string; p_entity: string; p_id: string; p_org: string };
+        Returns: string;
+      };
       review_request_stats: { Args: { p_org: string; p_since: string }; Returns: Json };
       route_conversation: {
         Args: {
@@ -25366,6 +25433,10 @@ export type Database = {
       set_presence: { Args: { p_org_id: string; p_presence: string }; Returns: undefined };
       show_limit: { Args: Record<PropertyKey, never>; Returns: number };
       show_trgm: { Args: { "": string }; Returns: string[] };
+      soft_delete_records: {
+        Args: { p_actor?: string; p_entity: string; p_ids: string[]; p_org: string };
+        Returns: string[];
+      };
       storage_usage_summary: { Args: { p_org: string }; Returns: Json };
       unlink_conversation_contact: {
         Args: {
