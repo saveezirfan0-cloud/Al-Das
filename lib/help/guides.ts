@@ -36,13 +36,12 @@ export const GUIDES: readonly Guide[] = [
     pages: ["/inbox"],
     purpose: "Answer patients on WhatsApp together, without two people replying to the same chat.",
     steps: [
-      "Take a conversation with the Take button, or wait for it to be assigned to you.",
+      "Take a conversation with the Take button, or wait for it to be assigned to you. With more than one branch, each chat shows the branch of its number and the list follows the branch switcher (Filters picks another branch, or All my branches).",
       "Type / in the message box to use a quick reply. Names and appointment details fill in for you.",
       "If the 24-hour window has closed, pick a template instead of typing a message.",
       "Use the Patient tab on the right to see the next appointment and any flags without leaving the chat.",
       "Close the conversation when it is finished, with a category if your clinic asks for one. In the same box you can create the patient's enquiry or move theirs on (stage, won, or lost with a reason).",
       "Extras: forward on a message sends it to another open chat; the buttons by the message box share a contact card or a catalogue product; Call at the top rings the patient from your phone; More, Move chat to a new contact is for a shared phone.",
-      "With more than one branch, each chat shows the branch of the number it came in on. The list follows the branch switcher; choose another branch, or All my branches, under Filters. Folders keep working inside it.",
     ],
     watchOut: [
       "Never copy patient details into another chat or email. Forwarding a patient's message to someone else shares it with them: forward only what that person should see.",
