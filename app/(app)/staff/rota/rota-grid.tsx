@@ -3,10 +3,11 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, Loader2, Plus, Save, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, MapPin, Plus, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { OptionSelect } from "@/app/(app)/enquiries/option-select";
+import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Button } from "@/components/ui/button";
 import {
@@ -62,6 +63,7 @@ export function RotaGrid({
   staffOptions,
   canManage,
   canStaff,
+  canSettings,
 }: {
   branches: BranchOption[];
   branchId: string | null;
@@ -74,6 +76,8 @@ export function RotaGrid({
   staffOptions: Option[];
   canManage: boolean;
   canStaff: boolean;
+  /** May open Settings, Appointments, where branches are added: the empty state links there. */
+  canSettings: boolean;
 }) {
   const router = useRouter();
   const [draft, setDraft] = React.useState<Draft | null>(null);
@@ -145,9 +149,18 @@ export function RotaGrid({
       </PageHeader>
 
       {branches.length === 0 ? (
-        <p className="text-muted-foreground text-sm">
-          No branches to show. Branches are set under Settings, Appointments.
-        </p>
+        <EmptyState
+          icon={MapPin}
+          title="No branches to show"
+          description="The rota is planned per branch. Branches (locations) are added under Settings, Appointments."
+          action={
+            canSettings && (
+              <Button asChild size="sm">
+                <Link href="/settings/appointments?tab=locations">Add a branch</Link>
+              </Button>
+            )
+          }
+        />
       ) : (
         <>
           <div className="flex flex-wrap items-center gap-2">

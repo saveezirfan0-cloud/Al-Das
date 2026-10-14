@@ -3,10 +3,14 @@ import { KpiTile } from "@/components/charts/kpi-tile";
 import { PageHeader } from "@/components/shell/page-header";
 import { can } from "@/lib/auth/can";
 import { requireMember } from "@/lib/auth/session";
+import { loadClinicSetupFacts } from "@/lib/golive/clinic-setup-server";
+import { clinicSetupRows, setupProgress } from "@/lib/golive/readiness";
 import { parseDashboardOverview } from "@/lib/reports/dashboard-tiles";
 import { addDays, resolveRange } from "@/lib/reports/range";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+
+import { SetupCard } from "./setup-card";
 
 export const metadata = { title: "Dashboard" };
 
@@ -53,12 +57,30 @@ export default async function DashboardPage() {
     trend = (data ?? []).map((d) => ({ day: d.day, opened: d.opened, closed: d.closed }));
   }
 
+  // First-run card: the clinic set-up steps, for people who can do them, until every one is done.
+  let setup = null;
+  if (can(member, "settings.manage")) {
+    const facts = await loadClinicSetupFacts(createAdminClient(), member.orgId, {
+      staff: can(member, "hr.view"),
+    });
+    const progress = setupProgress(clinicSetupRows(facts.clinic, facts.whatsapp));
+    if (!progress.complete) setup = progress;
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title={`Welcome back${member.profile.first_name ? `, ${member.profile.first_name}` : ""}`}
         description="Your conversations, tasks and enquiries right now."
       />
+      {setup && (
+        <SetupCard
+          done={setup.done}
+          total={setup.total}
+          next={setup.next}
+          allowed={(perm) => !perm || can(member, perm)}
+        />
+      )}
       <section aria-labelledby="dash-conversations" className="flex flex-col gap-3">
         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
           <h3 id="dash-conversations" className="text-sm font-semibold">
