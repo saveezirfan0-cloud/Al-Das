@@ -1202,6 +1202,38 @@ export async function seedSf20dRows(c: Client, orgId: string, suffix = "a") {
 /** Phase 20d (Sanoflow parity) tables with a browser (select) policy. */
 export const SF20D_TABLES = ["campaign_budget_months", "campaign_recurrences"] as const;
 
+/** Phase 20g (campaign A/B tests) tables with a browser (select) policy. */
+export const SF20G_TABLES = ["campaign_ab_variants"] as const;
+
+/**
+ * One synthetic A/B campaign in `orgId` (variant B row, no recipients), so the cross-org sweeps are not vacuous for the
+ * Phase 20g table. Service role, like the createCampaign action. `suffix` keeps the channel's phone_number_id unique.
+ */
+export async function seedSf20gRows(c: Client, orgId: string, suffix = "a") {
+  const ids: Record<string, string> = {};
+  await asServiceRole(c, async () => {
+    const one = async (sql: string, params: unknown[]) =>
+      (await c.query<{ id: string }>(sql + " returning id::text", params)).rows[0].id;
+    ids.channel = await one(
+      "insert into public.channels (org_id, name, waba_id, phone_number_id) values ($1, 'Sweep 20g', $2, $3)",
+      [orgId, `waba-20g-${suffix}`, `pn-20g-${suffix}`],
+    );
+    ids.template = await one(
+      "insert into public.wa_templates (org_id, channel_id, waba_id, name, language, status, category) values ($1, $2, $3, 'sweep_20g', 'en', 'APPROVED', 'UTILITY')",
+      [orgId, ids.channel, `waba-20g-${suffix}`],
+    );
+    ids.campaign = await one(
+      "insert into public.campaigns (org_id, name, channel_id, template_id, audience_type) values ($1, 'Sweep A/B', $2, $3, 'csv')",
+      [orgId, ids.channel, ids.template],
+    );
+    ids.variant = await one(
+      "insert into public.campaign_ab_variants (org_id, campaign_id, template_id, variable_map, split_pct) values ($1, $2, $3, '{\"body.1\":\"text:Friend\"}', 50)",
+      [orgId, ids.campaign, ids.template],
+    );
+  });
+  return ids;
+}
+
 /** Phase 20e tables with a browser (select) policy. */
 export const SF20E_TABLES = ["contact_channel_identities", "gcal_event_links"] as const;
 

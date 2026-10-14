@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { AB_SPLIT_DEFAULT, AB_SPLIT_MAX, AB_SPLIT_MIN } from "@/lib/campaigns/ab";
 import { DEFAULT_GUARDRAILS, MAX_RECIPIENTS, skipReasonLabel } from "@/lib/campaigns/constants";
 import {
   checkRecurrenceSchedule,
@@ -129,6 +130,13 @@ export function NewCampaignForm({
   const [pauseOnQuality, setPauseOnQuality] = useState(true);
   const [testPhone, setTestPhone] = useState("");
   const [pickerFor, setPickerFor] = useState<string | null>(null);
+  // Phase 20g A/B test (one-off campaigns only): version B and the share of the audience that gets it.
+  const [abOn, setAbOn] = useState(false);
+  const [abTemplateId, setAbTemplateId] = useState("");
+  const [abMap, setAbMap] = useState<Record<string, string>>({});
+  const [abFallbacks, setAbFallbacks] = useState<Record<string, string>>({});
+  const [abSplit, setAbSplit] = useState(AB_SPLIT_DEFAULT);
+  const [previewSide, setPreviewSide] = useState<"a" | "b">("a");
 
   const [preview, setPreview] = useState<AudiencePreviewResult | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
@@ -145,11 +153,43 @@ export function NewCampaignForm({
   const template = channelTemplates.find((t) => t.id === templateId) ?? null;
   const vars = useMemo(() => (template ? templateVariables(template.components) : []), [template]);
   const marketing = template?.category.toUpperCase() === "MARKETING";
+  // Version B: same number, same category as A (consent is decided by A's category).
+  const abTemplates = useMemo(
+    () =>
+      template
+        ? channelTemplates.filter(
+            (t) => t.category.toUpperCase() === template.category.toUpperCase(),
+          )
+        : [],
+    [channelTemplates, template],
+  );
+  const abActive = abOn && mode !== "repeat";
+  const abTemplate = abActive ? (abTemplates.find((t) => t.id === abTemplateId) ?? null) : null;
+  const abVars = useMemo(
+    () => (abTemplate ? templateVariables(abTemplate.components) : []),
+    [abTemplate],
+  );
 
   // Keep the selected template valid for the chosen number.
   useEffect(() => {
     if (templateId && !channelTemplates.some((t) => t.id === templateId)) setTemplateId("");
   }, [channelTemplates, templateId]);
+
+  useEffect(() => {
+    if (abTemplateId && !abTemplates.some((t) => t.id === abTemplateId)) setAbTemplateId("");
+  }, [abTemplates, abTemplateId]);
+
+  // Version B starts from its template's own variable_map.
+  useEffect(() => {
+    if (!abTemplate) return;
+    const next: Record<string, string> = {};
+    for (const v of templateVariables(abTemplate.components)) {
+      const m = abTemplate.variableMap[v.key];
+      if (m && parseSource(m)) next[v.key] = m;
+    }
+    setAbMap(next);
+    setAbFallbacks({});
+  }, [abTemplate]);
 
   // Starting point for the mapping: the template's own variable_map.
   useEffect(() => {
@@ -201,39 +241,56 @@ export function NewCampaignForm({
   ];
 
   const sample = preview?.sample ?? null;
+  // The preview and the test send show version A, or version B when it is chosen above the preview.
+  const showB = previewSide === "b" && !!abTemplate;
+  const shownTemplate = showB ? abTemplate : template;
+  const shownMap = showB ? abMap : map;
+  const shownFallbacks = showB ? abFallbacks : fallbacks;
   const resolved = useMemo(() => {
-    if (!template) return null;
+    if (!shownTemplate) return null;
     return resolveVariables({
-      components: template.components,
-      map,
-      templateMap: template.variableMap,
-      fallbacks,
+      components: shownTemplate.components,
+      map: shownMap,
+      templateMap: shownTemplate.variableMap,
+      fallbacks: shownFallbacks,
       contact: sample ?? {},
       csv: sample?.csv ?? {},
     });
-  }, [template, map, fallbacks, sample]);
+  }, [shownTemplate, shownMap, shownFallbacks, sample]);
 
   const phonePreview = useMemo(() => {
-    if (!template || !resolved) return null;
+    if (!shownTemplate || !resolved) return null;
     // Unresolved variables show the template's example so the bubble reads naturally.
     const values = { ...resolved.values };
-    for (const v of templateVariables(template.components))
+    for (const v of templateVariables(shownTemplate.components))
       if (!values[v.key]) values[v.key] = v.example ?? `{{${v.name}}}`;
-    return renderTemplatePreview(template.components, values);
-  }, [template, resolved]);
+    return renderTemplatePreview(shownTemplate.components, values);
+  }, [shownTemplate, resolved]);
 
   const unmapped = template
     ? unmappedVariables(template.components, map, template.variableMap).filter(
         (v) => !fallbacks[v.key],
       )
     : [];
-  const badMedia = vars.some((v) => {
-    if (v.kind !== "image" && v.kind !== "video" && v.kind !== "document") return false;
-    const src = parseSource(map[v.key] ?? template?.variableMap[v.key]);
-    if (src?.kind === "media") return false;
-    const url = src?.kind === "text" ? src.value : fallbacks[v.key];
-    return !url || !/^https:\/\//i.test(url);
-  });
+  const mediaMissing = (
+    list: ReturnType<typeof templateVariables>,
+    m: Record<string, string>,
+    templateMap: Record<string, string> | undefined,
+    fb: Record<string, string>,
+  ) =>
+    list.some((v) => {
+      if (v.kind !== "image" && v.kind !== "video" && v.kind !== "document") return false;
+      const src = parseSource(m[v.key] ?? templateMap?.[v.key]);
+      if (src?.kind === "media") return false;
+      const url = src?.kind === "text" ? src.value : fb[v.key];
+      return !url || !/^https:\/\//i.test(url);
+    });
+  const badMedia = mediaMissing(vars, map, template?.variableMap, fallbacks);
+  const abUnmapped = abTemplate
+    ? unmappedVariables(abTemplate.components, abMap, abTemplate.variableMap).filter(
+        (v) => !abFallbacks[v.key],
+      )
+    : [];
 
   const eligible = preview?.counts.eligible ?? 0;
   const tierLimit = preview?.tierLimit ?? null;
@@ -254,6 +311,15 @@ export function NewCampaignForm({
   if (mode === "repeat" && audienceType !== "segment")
     problems.push("A recurring campaign needs a segment (it is re-read on every run).");
   if (mode === "repeat" && cronProblem) problems.push(cronProblem);
+  if (abActive) {
+    if (!abTemplate) problems.push("Choose the template for version B.");
+    else {
+      if (abUnmapped.length)
+        problems.push(`Version B: map ${abUnmapped.map((v) => v.key).join(", ")}.`);
+      if (mediaMissing(abVars, abMap, abTemplate.variableMap, abFallbacks))
+        problems.push("Version B: the header media needs a Media Library file or a https:// link.");
+    }
+  }
 
   function onFile(file: File | undefined) {
     if (!file) return;
@@ -269,8 +335,12 @@ export function NewCampaignForm({
     reader.readAsText(file);
   }
 
-  function setSource(key: string, value: string) {
-    setMap((prev) => {
+  function setSourceIn(
+    setter: React.Dispatch<React.SetStateAction<Record<string, string>>>,
+    key: string,
+    value: string,
+  ) {
+    setter((prev) => {
       const next = { ...prev };
       if (value === NONE) delete next[key];
       else if (value === TEXT) next[key] = "text:";
@@ -311,8 +381,10 @@ export function NewCampaignForm({
       return;
     }
     const when = mode === "later" ? `at ${atLocal.replace("T", " ")} (${timezone})` : "now";
-    if (!window.confirm(`Send "${template.name}" to ${eligible.toLocaleString()} people ${when}?`))
-      return;
+    const what = abTemplate
+      ? `"${template.name}" (A) and "${abTemplate.name}" (B, about ${abSplit}%)`
+      : `"${template.name}"`;
+    if (!window.confirm(`Send ${what} to ${eligible.toLocaleString()} people ${when}?`)) return;
     startCreate(async () => {
       const r = await createCampaign({
         name,
@@ -331,6 +403,14 @@ export function NewCampaignForm({
         retry_rounds: retryRounds,
         retry_delay_minutes: retryDelay,
         guardrails: { max_failure_pct: maxFailure, pause_on_quality_drop: pauseOnQuality },
+        variant_b: abTemplate
+          ? {
+              template_id: abTemplate.id,
+              variable_map: abMap,
+              fallbacks: abFallbacks,
+              split_pct: abSplit,
+            }
+          : undefined,
       });
       if (!r.ok) {
         toast.error(r.error);
@@ -342,19 +422,221 @@ export function NewCampaignForm({
   }
 
   function test() {
-    if (!template || !channel) return;
+    if (!shownTemplate || !channel) return;
     startTest(async () => {
       const r = await sendTestMessage({
         channel_id: channel.id,
-        template_id: template.id,
+        template_id: shownTemplate.id,
         phone: testPhone,
-        variable_map: map,
-        fallbacks,
+        variable_map: shownMap,
+        fallbacks: shownFallbacks,
         csv_sample: sample?.csv ?? {},
       });
       if (r.ok) toast.success(r.message ?? "Test queued.");
       else toast.error(r.error);
     });
+  }
+
+  type MappingSide = {
+    id: "a" | "b";
+    title: string;
+    vars: ReturnType<typeof templateVariables>;
+    map: Record<string, string>;
+    setMap: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+    fallbacks: Record<string, string>;
+    setFallbacks: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  };
+
+  /** Phase 20g A/B test: version B (template, share, its own variable mapping). Not offered for repeats. */
+  function renderAbCard() {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>A/B test</CardTitle>
+          <CardDescription>
+            Send a second version to part of the audience and compare sent, delivered, read, replied
+            and clicked. Each person always gets the same version, also in retry rounds.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <label className="flex items-center gap-2 text-sm">
+            <Switch checked={abOn} onCheckedChange={setAbOn} />
+            Test a second version (B)
+          </label>
+          {abOn && (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-1.5">
+                <Label>Version B template</Label>
+                <Select value={abTemplateId} onValueChange={setAbTemplateId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a template" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {abTemplates.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>
+                        {t.name} · {t.language}
+                        {t.id === template?.id ? " (same as A)" : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-muted-foreground text-xs">
+                  Same category as version A. Pick the same template to test other variable values.
+                </p>
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="ab-split">Share that gets version B (%)</Label>
+                <Input
+                  id="ab-split"
+                  type="number"
+                  min={AB_SPLIT_MIN}
+                  max={AB_SPLIT_MAX}
+                  value={abSplit}
+                  onChange={(e) =>
+                    setAbSplit(
+                      Math.min(
+                        AB_SPLIT_MAX,
+                        Math.max(AB_SPLIT_MIN, Math.round(Number(e.target.value) || 0)),
+                      ),
+                    )
+                  }
+                  className="w-24"
+                />
+                <p className="text-muted-foreground text-xs">
+                  About {abSplit}% get B and {100 - abSplit}% get A. Who gets which is fixed per
+                  person.
+                </p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  /** The variable mapping card, for version A and (A/B test) version B. */
+  function renderMapping(side: MappingSide) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>{side.title}</CardTitle>
+          <CardDescription>
+            Each variable is filled per recipient. A fallback is used when the value is blank.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          {side.vars.map((v) => {
+            const isMedia = v.kind === "image" || v.kind === "video" || v.kind === "document";
+            const current = side.map[v.key] ?? undefined;
+            const kind = isMedia ? TEXT : sourceKind(current);
+            return (
+              <div
+                key={v.key}
+                className="grid gap-2 rounded-md border p-3 sm:grid-cols-[8rem_1fr_9rem]"
+              >
+                <div>
+                  <code className="text-xs">{v.key}</code>
+                  {v.example && (
+                    <span className="text-muted-foreground block truncate text-xs">
+                      e.g. {v.example}
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-col gap-2">
+                  {isMedia ? (
+                    <>
+                      {current?.startsWith("media:") ? (
+                        <div className="flex flex-wrap items-center gap-2 text-sm">
+                          <span>A Media Library file will be sent with every message.</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              side.setMap((p) => {
+                                const next = { ...p };
+                                delete next[v.key];
+                                return next;
+                              })
+                            }
+                          >
+                            Use a link instead
+                          </Button>
+                        </div>
+                      ) : (
+                        <Input
+                          value={current?.startsWith("text:") ? current.slice(5) : ""}
+                          onChange={(e) =>
+                            side.setMap((p) => ({ ...p, [v.key]: `text:${e.target.value}` }))
+                          }
+                          placeholder={`https://… public ${v.kind} link`}
+                        />
+                      )}
+                      {canMedia && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="w-fit"
+                          onClick={() => setPickerFor(side.id + v.key)}
+                        >
+                          Choose from the Media Library
+                        </Button>
+                      )}
+                      {pickerFor === side.id + v.key && (
+                        <MediaPicker
+                          open
+                          onOpenChange={(o) => !o && setPickerFor(null)}
+                          kind={v.kind as "image" | "video" | "document"}
+                          mimes={TEMPLATE_HEADER_TYPES[v.kind as "image" | "video" | "document"]}
+                          title="Choose the header file"
+                          onPick={(a) => side.setMap((p) => ({ ...p, [v.key]: mediaSource(a.id) }))}
+                        />
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <Select
+                        value={kind}
+                        onValueChange={(val) => setSourceIn(side.setMap, v.key, val)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Choose a source" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={NONE}>Not mapped</SelectItem>
+                          {sourceOptions.map((o) => (
+                            <SelectItem key={o.value} value={o.value}>
+                              {o.group}: {o.label}
+                            </SelectItem>
+                          ))}
+                          <SelectItem value={TEXT}>Fixed text…</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {kind === TEXT && (
+                        <Input
+                          value={current?.startsWith("text:") ? current.slice(5) : ""}
+                          onChange={(e) =>
+                            side.setMap((p) => ({ ...p, [v.key]: `text:${e.target.value}` }))
+                          }
+                          placeholder="Same text for everyone"
+                        />
+                      )}
+                    </>
+                  )}
+                </div>
+                <Input
+                  value={side.fallbacks[v.key] ?? ""}
+                  onChange={(e) => side.setFallbacks((p) => ({ ...p, [v.key]: e.target.value }))}
+                  placeholder="Fallback"
+                  aria-label={`Fallback for ${v.key}${side.id === "b" ? " (version B)" : ""}`}
+                />
+              </div>
+            );
+          })}
+        </CardContent>
+      </Card>
+    );
   }
 
   if (channels.length === 0)
@@ -568,126 +850,31 @@ export function NewCampaignForm({
           </CardContent>
         </Card>
 
-        {template && vars.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Template variables</CardTitle>
-              <CardDescription>
-                Each variable is filled per recipient. A fallback is used when the value is blank.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-3">
-              {vars.map((v) => {
-                const isMedia = v.kind === "image" || v.kind === "video" || v.kind === "document";
-                const current = map[v.key] ?? undefined;
-                const kind = isMedia ? TEXT : sourceKind(current);
-                return (
-                  <div
-                    key={v.key}
-                    className="grid gap-2 rounded-md border p-3 sm:grid-cols-[8rem_1fr_9rem]"
-                  >
-                    <div>
-                      <code className="text-xs">{v.key}</code>
-                      {v.example && (
-                        <span className="text-muted-foreground block truncate text-xs">
-                          e.g. {v.example}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      {isMedia ? (
-                        <>
-                          {current?.startsWith("media:") ? (
-                            <div className="flex flex-wrap items-center gap-2 text-sm">
-                              <span>A Media Library file will be sent with every message.</span>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() =>
-                                  setMap((p) => {
-                                    const next = { ...p };
-                                    delete next[v.key];
-                                    return next;
-                                  })
-                                }
-                              >
-                                Use a link instead
-                              </Button>
-                            </div>
-                          ) : (
-                            <Input
-                              value={current?.startsWith("text:") ? current.slice(5) : ""}
-                              onChange={(e) =>
-                                setMap((p) => ({ ...p, [v.key]: `text:${e.target.value}` }))
-                              }
-                              placeholder={`https://… public ${v.kind} link`}
-                            />
-                          )}
-                          {canMedia && (
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="w-fit"
-                              onClick={() => setPickerFor(v.key)}
-                            >
-                              Choose from the Media Library
-                            </Button>
-                          )}
-                          {pickerFor === v.key && (
-                            <MediaPicker
-                              open
-                              onOpenChange={(o) => !o && setPickerFor(null)}
-                              kind={v.kind as "image" | "video" | "document"}
-                              mimes={
-                                TEMPLATE_HEADER_TYPES[v.kind as "image" | "video" | "document"]
-                              }
-                              title="Choose the header file"
-                              onPick={(a) => setMap((p) => ({ ...p, [v.key]: mediaSource(a.id) }))}
-                            />
-                          )}
-                        </>
-                      ) : (
-                        <>
-                          <Select value={kind} onValueChange={(val) => setSource(v.key, val)}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Choose a source" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value={NONE}>Not mapped</SelectItem>
-                              {sourceOptions.map((o) => (
-                                <SelectItem key={o.value} value={o.value}>
-                                  {o.group}: {o.label}
-                                </SelectItem>
-                              ))}
-                              <SelectItem value={TEXT}>Fixed text…</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          {kind === TEXT && (
-                            <Input
-                              value={current?.startsWith("text:") ? current.slice(5) : ""}
-                              onChange={(e) =>
-                                setMap((p) => ({ ...p, [v.key]: `text:${e.target.value}` }))
-                              }
-                              placeholder="Same text for everyone"
-                            />
-                          )}
-                        </>
-                      )}
-                    </div>
-                    <Input
-                      value={fallbacks[v.key] ?? ""}
-                      onChange={(e) => setFallbacks((p) => ({ ...p, [v.key]: e.target.value }))}
-                      placeholder="Fallback"
-                      aria-label={`Fallback for ${v.key}`}
-                    />
-                  </div>
-                );
-              })}
-            </CardContent>
-          </Card>
-        )}
+        {template &&
+          vars.length > 0 &&
+          renderMapping({
+            id: "a",
+            title: abTemplate ? "Template variables (version A)" : "Template variables",
+            vars,
+            map,
+            setMap,
+            fallbacks,
+            setFallbacks,
+          })}
+
+        {template && mode !== "repeat" && renderAbCard()}
+
+        {abTemplate &&
+          abVars.length > 0 &&
+          renderMapping({
+            id: "b",
+            title: "Template variables (version B)",
+            vars: abVars,
+            map: abMap,
+            setMap: setAbMap,
+            fallbacks: abFallbacks,
+            setFallbacks: setAbFallbacks,
+          })}
 
         <Card>
           <CardHeader>
@@ -881,6 +1068,22 @@ export function NewCampaignForm({
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
+            {abTemplate && (
+              <div className="flex gap-2" role="group" aria-label="Version shown">
+                {(["a", "b"] as const).map((sd) => (
+                  <Button
+                    key={sd}
+                    type="button"
+                    size="sm"
+                    variant={previewSide === sd ? "default" : "outline"}
+                    aria-pressed={previewSide === sd}
+                    onClick={() => setPreviewSide(sd)}
+                  >
+                    Version {sd.toUpperCase()}
+                  </Button>
+                ))}
+              </div>
+            )}
             {phonePreview ? (
               <PhonePreview preview={phonePreview} />
             ) : (
@@ -911,7 +1114,7 @@ export function NewCampaignForm({
             <Button
               type="button"
               variant="outline"
-              disabled={!template || !testPhone.trim() || testing}
+              disabled={!shownTemplate || !testPhone.trim() || testing}
               onClick={test}
             >
               {testing ? <Loader2 className="animate-spin" /> : <Send />} Send

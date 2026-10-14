@@ -5138,6 +5138,62 @@ export type Database = {
           },
         ];
       };
+      campaign_ab_variants: {
+        Row: {
+          campaign_id: string;
+          created_at: string;
+          fallbacks: NonNullable<Json>;
+          id: string;
+          org_id: string;
+          split_pct: number;
+          template_id: string;
+          variable_map: NonNullable<Json>;
+        };
+        ComputedFields: never;
+        Insert: {
+          campaign_id: string;
+          created_at?: string;
+          fallbacks?: NonNullable<Json>;
+          id?: string;
+          org_id: string;
+          split_pct: number;
+          template_id: string;
+          variable_map?: NonNullable<Json>;
+        };
+        Update: {
+          campaign_id?: string;
+          created_at?: string;
+          fallbacks?: NonNullable<Json>;
+          id?: string;
+          org_id?: string;
+          split_pct?: number;
+          template_id?: string;
+          variable_map?: NonNullable<Json>;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "campaign_ab_variants_campaign_id_fkey";
+            columns: ["campaign_id"];
+            isOneToOne: true;
+            referencedRelation: "campaigns";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "campaign_ab_variants_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "campaign_ab_variants_template_id_fkey";
+            columns: ["template_id"];
+            isOneToOne: false;
+            referencedRelation: "wa_templates";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       campaign_archive: {
         Row: {
           created_at: string;
@@ -5317,6 +5373,7 @@ export type Database = {
           skip_reason: string | null;
           status: string;
           updated_at: string;
+          variant: string | null;
           vars: NonNullable<Json>;
           wa_message_id: string | null;
         };
@@ -5342,6 +5399,7 @@ export type Database = {
           skip_reason?: string | null;
           status?: string;
           updated_at?: string;
+          variant?: string | null;
           vars?: NonNullable<Json>;
           wa_message_id?: string | null;
         };
@@ -5366,6 +5424,7 @@ export type Database = {
           skip_reason?: string | null;
           status?: string;
           updated_at?: string;
+          variant?: string | null;
           vars?: NonNullable<Json>;
           wa_message_id?: string | null;
         };
@@ -23359,6 +23418,7 @@ export type Database = {
         };
       };
       calendar_feed_touch: { Args: { p_id: string }; Returns: undefined };
+      campaign_ab_funnel: { Args: { p_campaign_id: string }; Returns: Json };
       campaign_add_csv_rows: {
         Args: {
           p_campaign_id: string;
