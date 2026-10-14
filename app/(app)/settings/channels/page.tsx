@@ -15,7 +15,12 @@ export default async function ChannelsPage() {
   const admin = createAdminClient();
   const env = serverEnv();
   const [{ data: channels }, { data: secrets }, { data: templateCounts }] = await Promise.all([
-    admin.from("channels").select("*").eq("org_id", member.orgId).order("created_at"),
+    admin
+      .from("channels")
+      .select("*")
+      .eq("org_id", member.orgId)
+      .eq("type", "whatsapp")
+      .order("created_at"),
     admin.from("channel_secrets").select("channel_id"),
     admin
       .from("wa_templates")

@@ -180,8 +180,16 @@ export class FakeStore implements FlowStore {
       error: null,
     };
     this.runs.set(run.id, run);
+    if (run.conversation_id)
+      this.runStarts.push({
+        flowId: run.flow_id,
+        conversationId: run.conversation_id,
+        at: this.clock(),
+      });
     return structuredClone(run);
   }
+  /** Set by harness() so run start times follow the fake clock. */
+  clock: () => Date = () => new Date();
   async getContact(id: string) {
     return this.contacts.get(id) ?? null;
   }
@@ -226,6 +234,27 @@ export class FakeStore implements FlowStore {
   }
   async getFirstInboundText() {
     return this.firstInboundText;
+  }
+  /** Start times of runs (flow_id + conversation_id), for the message_received debounce. */
+  runStarts: Array<{ flowId: string; conversationId: string; at: Date }> = [];
+  async hasRunSince(flowId: string, conversationId: string, since: Date) {
+    return this.runStarts.some(
+      (r) => r.flowId === flowId && r.conversationId === conversationId && r.at >= since,
+    );
+  }
+  segments = new Map<
+    string,
+    { org_id: string; kind: string; drip_flow_id: string | null; members: Set<string> }
+  >();
+  async getSegmentDrip(segmentId: string, contactId: string) {
+    const seg = this.segments.get(segmentId);
+    if (!seg) return null;
+    return {
+      org_id: seg.org_id,
+      kind: seg.kind,
+      drip_flow_id: seg.drip_flow_id,
+      member: seg.members.has(contactId),
+    };
   }
 }
 
@@ -278,6 +307,22 @@ export class FakeActions implements FlowActions {
 export class FakeJobs {
   steps: string[] = [];
   resumes: Array<{ runId: string; token: string; runAt: Date }> = [];
+  triggers: Array<{
+    orgId: string;
+    kind: string;
+    payload: Record<string, string>;
+    runAt: Date;
+    dedupeKey: string;
+  }> = [];
+  async scheduleTrigger(i: {
+    orgId: string;
+    kind: string;
+    payload: Record<string, string>;
+    runAt: Date;
+    dedupeKey: string;
+  }) {
+    if (!this.triggers.some((t) => t.dedupeKey === i.dedupeKey)) this.triggers.push(i);
+  }
   async enqueueStep(runId: string) {
     this.steps.push(runId);
   }
@@ -316,6 +361,7 @@ export function harness(opts: { crm?: CrmPort; now?: Date } = {}): Harness {
   const jobs = new FakeJobs();
   const lock = new FakeLock();
   const clock = { now: opts.now ?? NOW };
+  store.clock = () => clock.now;
   let n = 0;
   const deps: FlowDeps = {
     store,

@@ -133,6 +133,7 @@ async function ownChannel(orgId: string, channelId: string) {
     .select("*")
     .eq("id", channelId)
     .eq("org_id", orgId)
+    .eq("type", "whatsapp")
     .maybeSingle();
   return { admin, channel: data };
 }

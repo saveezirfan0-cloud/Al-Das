@@ -6,7 +6,9 @@ import { useRouter } from "next/navigation";
 import {
   Archive,
   ArchiveRestore,
+  ChartColumn,
   Copy,
+  RotateCcw,
   MoreHorizontal,
   Pencil,
   Shuffle,
@@ -24,22 +26,31 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import { archiveTemplate, deleteTemplate, duplicateTemplate } from "./actions";
+import { DeliveryDialog, type DeliveryTemplate } from "./delivery-dialog";
 import { MapDialog, type MapTemplate } from "./map-dialog";
+import { PerformanceDialog } from "./performance-dialog";
 
 export function RowActions({
   id,
   editHref,
   archived,
   map,
+  delivery,
+  today,
 }: {
   id: string;
   editHref: string;
   archived: boolean;
   map: MapTemplate;
+  delivery: DeliveryTemplate;
+  /** Today in the workspace timezone, for the performance date range. */
+  today: string;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [mapOpen, setMapOpen] = useState(false);
+  const [deliveryOpen, setDeliveryOpen] = useState(false);
+  const [perfOpen, setPerfOpen] = useState(false);
 
   function run(
     fn: () => Promise<{ ok: boolean; error?: string; message?: string }>,
@@ -73,6 +84,12 @@ export function RowActions({
           <DropdownMenuItem onSelect={() => setMapOpen(true)}>
             <Shuffle /> Map variables
           </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => setDeliveryOpen(true)}>
+            <RotateCcw /> Delivery settings
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => setPerfOpen(true)}>
+            <ChartColumn /> Performance
+          </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => run(() => duplicateTemplate(id))}>
             <Copy /> Duplicate
           </DropdownMenuItem>
@@ -94,6 +111,16 @@ export function RowActions({
         </DropdownMenuContent>
       </DropdownMenu>
       <MapDialog open={mapOpen} onOpenChange={setMapOpen} template={map} />
+      {deliveryOpen && <DeliveryDialog open onOpenChange={setDeliveryOpen} template={delivery} />}
+      {perfOpen && (
+        <PerformanceDialog
+          open
+          onOpenChange={setPerfOpen}
+          templateId={id}
+          name={delivery.name}
+          today={today}
+        />
+      )}
     </>
   );
 }

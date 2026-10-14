@@ -1,4 +1,5 @@
 import { startCampaign } from "@/lib/campaigns/engine";
+import { runOverdueRecurrences } from "@/lib/campaigns/recurring";
 import { enqueue } from "@/lib/jobs/enqueue";
 import { registerTask } from "@/lib/jobs/tasks";
 
@@ -57,10 +58,14 @@ registerTask("campaign_tick", {
       .lt("created_at", new Date(now - 30 * 60_000).toISOString())
       .select("id");
 
+    // Phase 20d: recurring runs whose scheduled job never fired (idempotent: the run is claimed in SQL).
+    const recurring = await runOverdueRecurrences(admin, log);
+
     return {
       stats_ops: ids.length,
       started_overdue: started,
       abandoned: abandoned?.length ?? 0,
+      recurring_overdue: recurring,
     };
   },
 });

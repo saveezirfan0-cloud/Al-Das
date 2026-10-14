@@ -30,6 +30,8 @@ import { loadPaymentTemplate } from "@/lib/integrations/payments/request-server"
 import { confirmationMatches, readinessProblems } from "@/lib/integrations/readiness";
 import { loadReadinessInput } from "@/lib/integrations/readiness-server";
 import { buildCapiClientFor } from "@/lib/integrations/capi/server";
+import { clearAllBusyBlocks } from "@/lib/integrations/gcal/server";
+import { buildMessagingClientFor } from "@/lib/integrations/meta-messaging/server";
 import { buildSmsProvider } from "@/lib/integrations/sms/provider";
 import { buildEsignProvider } from "@/lib/integrations/esign/server";
 import { buildTelehealthProvider } from "@/lib/integrations/telehealth/server";
@@ -137,6 +139,8 @@ export async function setIntegrationEnabled(
     enabled,
   });
   if (!done.ok) return done;
+  // Phase 20e: busy times mirrored from Google must not keep blocking bookings once the sync is off.
+  if (!enabled && kind === "google_calendar") await clearAllBusyBlocks(admin, member.orgId);
   await recordAudit(admin, {
     orgId: member.orgId,
     userId: member.userId,
@@ -191,6 +195,11 @@ export async function testIntegration(kindInput: string): Promise<ActionResult> 
   } else if (kind === "telehealth") {
     const provider = buildTelehealthProvider(admin, account);
     result = provider?.verify ? await provider.verify() : { ok: false, code: "incomplete" };
+  } else if (kind === "instagram" || kind === "messenger") {
+    result = (await buildMessagingClientFor(admin, account, kind)?.verify()) ?? {
+      ok: false,
+      code: "incomplete",
+    };
   } else return { ok: false, error: "Nothing to test for this integration." };
 
   await recordAudit(admin, {

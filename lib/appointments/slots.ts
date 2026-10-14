@@ -1,9 +1,18 @@
 /**
- * Slot engine (pure, timezone-aware).
+ * Slot engine (pure, timezone-aware). This is the ONE slot generator: the booking drawer, the front desk's
+ * next free slots, the waiting-list offers and the server-side re-check all go through generateSlots /
+ * slotFits (Phase 20c, G6; docs/25_PHASE_20C_BOOKING_NOTES.md).
  *
- * Working hours are wall-clock minutes in the location's timezone, so "09:00" stays 09:00 across a
- * DST change. Everything else is absolute instants. Appointments (portal and Unite alike) and time
- * blocks occupy time; nothing here touches the database.
+ * Working hours and recurring blocks are wall-clock minutes in the location's timezone, so "09:00" stays
+ * 09:00 across a DST change. Everything else is absolute instants. Appointments (portal and Unite alike) and
+ * time blocks occupy time; nothing here touches the database.
+ *
+ * Capacity rule (mirrored in SQL by app.slot_conflict, 20261110000400_booking_capacity.sql): every interval
+ * is widened by its own buffers. A candidate fits when the number n of busy intervals whose widened interval
+ * overlaps the candidate's widened interval is 0, or n < the smallest `capacity` among the candidate and
+ * every overlapping interval. A time block (or a booking without a capacity) counts as capacity 1, so nothing
+ * may overlap it. With every default (capacity 1, no buffers) any overlap refuses the slot, exactly as before.
+ * Buffers keep bookings and blocks apart; they do not have to fit inside working hours.
  */
 import { addDays, format, parseISO } from "date-fns";
 import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
@@ -15,7 +24,21 @@ export type WorkingHoursRow = {
   end_min: number;
 };
 
-export type BusyInterval = { start: Date; end: Date };
+/** A weekly unavailable time (lunch, admin) in the location's wall clock; same shape as working hours. */
+export type RecurringBlockRow = WorkingHoursRow;
+
+export type BusyInterval = {
+  start: Date;
+  end: Date;
+  /** The specialist is busy this long before / after (the booked service's buffers). Blocks have none. */
+  bufferBeforeMin?: number;
+  bufferAfterMin?: number;
+  /**
+   * Places this booking allows at once: least(service concurrent patients, specialist max per slot).
+   * Absent = 1, which is also what a time block is: nothing may overlap it.
+   */
+  capacity?: number;
+};
 
 export type Slot = {
   start: Date;
@@ -29,6 +52,7 @@ export type SlotInput = {
   date: string;
   timezone: string;
   durationMin: number;
+  /** Step of the slot list: the specialist's slot length, else the org's slot granularity. */
   granularityMin: number;
   /** Rows for this specialist at this location (any weekday; the engine filters). */
   workingHours: readonly WorkingHoursRow[];
@@ -40,6 +64,21 @@ export type SlotInput = {
   workingWeekdays?: readonly number[];
   /** "YYYY-MM-DD" dates the clinic is closed. */
   holidays?: readonly string[];
+  /** The booked service's buffers in minutes. Default 0. */
+  bufferBeforeMin?: number;
+  bufferAfterMin?: number;
+  /** least(service concurrent patients, specialist max per slot). Default 1. */
+  capacity?: number;
+  /** Weekly blocks for this specialist at this location (any weekday; the engine expands them). */
+  recurringBlocks?: readonly RecurringBlockRow[];
+};
+
+export type SlotCandidate = {
+  start: Date;
+  end: Date;
+  bufferBeforeMin?: number;
+  bufferAfterMin?: number;
+  capacity?: number;
 };
 
 const MIN_MS = 60_000;
@@ -56,11 +95,15 @@ export function localDate(instant: Date, timezone: string): string {
   return formatInTimeZone(instant, timezone, "yyyy-MM-dd");
 }
 
+/** YYYY-MM-DD shifted by whole calendar days. */
+export function shiftLocalDate(date: string, days: number): string {
+  return format(addDays(parseISO(`${date}T00:00:00`), days), "yyyy-MM-dd");
+}
+
 /** Instant for "minutes after local midnight" on a local date. 1440 = next midnight. */
 export function localMinutesToInstant(date: string, minutes: number, timezone: string): Date {
   if (minutes >= 1440) {
-    const next = format(addDays(parseISO(`${date}T00:00:00`), 1), "yyyy-MM-dd");
-    return fromZonedTime(`${next}T00:00:00`, timezone);
+    return fromZonedTime(`${shiftLocalDate(date, 1)}T00:00:00`, timezone);
   }
   const hh = String(Math.floor(minutes / 60)).padStart(2, "0");
   const mm = String(minutes % 60).padStart(2, "0");
@@ -80,6 +123,55 @@ export function isOpenDay(
   return workingWeekdays.includes(isoWeekday(date)) && !holidays.includes(date);
 }
 
+/** Weekly blocks as instants on every local date from `fromDate` to `toDate` (inclusive). */
+export function expandRecurringBlocks(
+  rows: readonly RecurringBlockRow[],
+  fromDate: string,
+  toDate: string,
+  timezone: string,
+): BusyInterval[] {
+  const out: BusyInterval[] = [];
+  if (rows.length === 0) return out;
+  for (let d = fromDate, guard = 0; d <= toDate && guard < 62; d = shiftLocalDate(d, 1), guard++) {
+    const weekday = isoWeekday(d);
+    for (const r of rows) {
+      if (r.weekday !== weekday || r.end_min <= r.start_min) continue;
+      out.push({
+        start: localMinutesToInstant(d, r.start_min, timezone),
+        end: localMinutesToInstant(d, r.end_min, timezone),
+      });
+    }
+  }
+  return out;
+}
+
+const places = (n: number | undefined) => Math.max(1, Math.floor(n ?? 1));
+const widen = (i: {
+  start: Date;
+  end: Date;
+  bufferBeforeMin?: number;
+  bufferAfterMin?: number;
+}) => ({
+  start: i.start.getTime() - Math.max(0, i.bufferBeforeMin ?? 0) * MIN_MS,
+  end: i.end.getTime() + Math.max(0, i.bufferAfterMin ?? 0) * MIN_MS,
+});
+
+/** The capacity rule for one candidate interval (see the file header). Mirrors app.slot_conflict. */
+export function slotFits(candidate: SlotCandidate, busy: readonly BusyInterval[]): boolean {
+  const c = widen(candidate);
+  let n = 0;
+  let limit = places(candidate.capacity);
+  for (const b of busy) {
+    const w = widen(b);
+    if (w.start < c.end && w.end > c.start) {
+      n++;
+      limit = Math.min(limit, places(b.capacity));
+      if (n >= limit) return false;
+    }
+  }
+  return true;
+}
+
 /** Bookable slots for one specialist at one location on one local date, ordered by start. */
 export function generateSlots(input: SlotInput): Slot[] {
   const { date, timezone, durationMin, granularityMin } = input;
@@ -90,6 +182,16 @@ export function generateSlots(input: SlotInput): Slot[] {
   const earliest = input.now.getTime() + input.leadTimeMin * MIN_MS;
   const stepMs = granularityMin * MIN_MS;
   const durationMs = durationMin * MIN_MS;
+  // Buffers can reach across midnight, so the neighbouring days' weekly blocks count too.
+  const busy: BusyInterval[] = [
+    ...input.busy,
+    ...expandRecurringBlocks(
+      input.recurringBlocks ?? [],
+      shiftLocalDate(date, -1),
+      shiftLocalDate(date, 1),
+      timezone,
+    ),
+  ];
   const seen = new Set<number>();
   const slots: Slot[] = [];
 
@@ -101,7 +203,17 @@ export function generateSlots(input: SlotInput): Slot[] {
       if (t < earliest || seen.has(t)) continue;
       const start = new Date(t);
       const end = new Date(t + durationMs);
-      if (input.busy.some((b) => overlaps(start, end, b.start, b.end))) continue;
+      const fits = slotFits(
+        {
+          start,
+          end,
+          bufferBeforeMin: input.bufferBeforeMin,
+          bufferAfterMin: input.bufferAfterMin,
+          capacity: input.capacity,
+        },
+        busy,
+      );
+      if (!fits) continue;
       seen.add(t);
       slots.push({ start, end, label: formatInTimeZone(start, timezone, "HH:mm") });
     }

@@ -9,7 +9,7 @@ import type { Tables } from "@/lib/supabase/types";
 export type OrgUserOption = { id: string; label: string };
 export type SegmentSummary = Pick<
   Tables<"segments">,
-  "id" | "name" | "kind" | "member_count" | "count_refreshed_at"
+  "id" | "name" | "kind" | "member_count" | "count_refreshed_at" | "drip_flow_id"
 > & {
   filter: unknown;
 };
@@ -65,7 +65,7 @@ export async function loadContactContext(
       .order("name"),
     admin
       .from("segments")
-      .select("id, name, kind, filter, member_count, count_refreshed_at")
+      .select("id, name, kind, filter, member_count, count_refreshed_at, drip_flow_id")
       .eq("org_id", orgId)
       .order("name"),
     admin

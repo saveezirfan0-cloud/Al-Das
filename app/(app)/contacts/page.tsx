@@ -12,7 +12,8 @@ export const metadata = { title: "Contacts" };
 export default async function ContactsPage() {
   const member = await requirePerm("contacts.view");
   const admin = createAdminClient();
-  const [ctx, { data: prefs }] = await Promise.all([
+  const canDrip = can(member, "contacts.manage") && can(member, "flows.manage");
+  const [ctx, { data: prefs }, { data: dripFlows }] = await Promise.all([
     loadContactContext(admin, member.orgId),
     admin
       .from("user_grid_prefs")
@@ -21,6 +22,14 @@ export default async function ContactsPage() {
       .eq("user_id", member.userId)
       .eq("grid_key", "contacts")
       .maybeSingle(),
+    canDrip
+      ? admin
+          .from("flows")
+          .select("id, name, status")
+          .eq("org_id", member.orgId)
+          .eq("trigger_type", "segment_joined")
+          .order("name")
+      : Promise.resolve({ data: [] as Array<{ id: string; name: string; status: string }> }),
   ]);
 
   const bootstrap: ContactsBootstrap = {
@@ -32,7 +41,13 @@ export default async function ContactsPage() {
       enquiriesView: can(member, "enquiries.view"),
       enquiriesManage: can(member, "enquiries.manage"),
       documentsView: can(member, "documents.view"),
+      drip: canDrip,
     },
+    dripFlows: (dripFlows ?? []).map((f) => ({
+      id: f.id,
+      name: f.name,
+      active: f.status === "active",
+    })),
     customFields: ctx.customFields,
     fields: ctx.registry
       .list()

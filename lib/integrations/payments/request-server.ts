@@ -189,6 +189,7 @@ async function pickChannel(
     .from("channels")
     .select("id, waba_id")
     .eq("org_id", orgId)
+    .eq("type", "whatsapp")
     .eq("status", "active");
   const ids = (channels ?? [])
     .filter((c) => !template.waba_id || c.waba_id === template.waba_id)
@@ -200,7 +201,10 @@ async function pickChannel(
 
 export type CreateRequestInput = {
   orgId: string;
-  actorId: string;
+  /** The staff member who asked; null when a flow's Payment link step asked (Phase 20b). */
+  actorId: string | null;
+  /** A flow step may only send a link for an invoice of the run's own patient (or a dependant they are guardian of). */
+  expectContactId?: string | null;
   invoiceNumber: string;
   /** Plain decimal in the integration's currency, e.g. "150.00". */
   amount: string;
@@ -253,6 +257,12 @@ export async function createPaymentRequest(
     await loadHouseholdLink(admin, input.orgId, patient.id),
   );
   if (!target) return { ok: false, error: "The patient has no WhatsApp number on file." };
+  if (
+    input.expectContactId &&
+    patient.id !== input.expectContactId &&
+    target.recipient.id !== input.expectContactId
+  )
+    return { ok: false, error: "That invoice belongs to another patient." };
   const channelId = await pickChannel(admin, input.orgId, template);
   if (!channelId) return { ok: false, error: "No active WhatsApp number can send this template." };
 
@@ -395,7 +405,7 @@ export async function createPaymentRequest(
     orgId: input.orgId,
     contactId: patient.id,
     type: "finance.payment_link_sent",
-    actorType: "user",
+    actorType: input.actorId ? "user" : "system",
     actorId: input.actorId,
     payload: { request_id: requestId },
   });

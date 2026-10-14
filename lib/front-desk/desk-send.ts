@@ -101,6 +101,7 @@ export async function sendDeskMessage(
       .from("channels")
       .select("id")
       .eq("org_id", input.orgId)
+      .eq("type", "whatsapp")
       .eq("status", "active");
     const ids = (channels ?? []).map((c) => c.id);
     const channelId =

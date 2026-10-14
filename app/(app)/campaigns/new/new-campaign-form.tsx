@@ -22,6 +22,12 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { DEFAULT_GUARDRAILS, MAX_RECIPIENTS, skipReasonLabel } from "@/lib/campaigns/constants";
 import {
+  checkRecurrenceSchedule,
+  describeCron,
+  RECURRENCE_PRESETS,
+  upcomingRuns,
+} from "@/lib/campaigns/recurrence";
+import {
   CONTACT_SOURCES,
   parseSource,
   resolveVariables,
@@ -34,6 +40,7 @@ import type { MetaTemplateComponent } from "@/lib/whatsapp/types";
 
 import {
   createCampaign,
+  createRecurringCampaign,
   previewAudience,
   sendTestMessage,
   type AudiencePreviewResult,
@@ -81,6 +88,7 @@ export function NewCampaignForm({
   customFields,
   timezone,
   canMedia = false,
+  initialMode = "now",
 }: {
   channels: FormChannel[];
   templates: FormTemplate[];
@@ -89,6 +97,8 @@ export function NewCampaignForm({
   timezone: string;
   /** May this person pick from the Media Library (media.view)? */
   canMedia?: boolean;
+  /** "repeat" when opened from Recurring campaigns. */
+  initialMode?: "now" | "later" | "repeat";
 }) {
   const router = useRouter();
   const [name, setName] = useState("");
@@ -101,8 +111,18 @@ export function NewCampaignForm({
   const [optIn, setOptIn] = useState(false);
   const [map, setMap] = useState<Record<string, string>>({});
   const [fallbacks, setFallbacks] = useState<Record<string, string>>({});
-  const [mode, setMode] = useState<"now" | "later">("now");
+  const [mode, setMode] = useState<"now" | "later" | "repeat">(initialMode);
   const [atLocal, setAtLocal] = useState("");
+  const [cron, setCron] = useState(RECURRENCE_PRESETS[2]!.cron);
+  const cronSummary = useMemo(() => describeCron(cron), [cron]);
+  const cronProblem = useMemo(
+    () => (mode === "repeat" ? checkRecurrenceSchedule(cron, timezone, new Date()) : null),
+    [mode, cron, timezone],
+  );
+  const nextRuns = useMemo(
+    () => (mode === "repeat" && !cronProblem ? upcomingRuns(cron, new Date(), timezone, 3) : []),
+    [mode, cron, cronProblem, timezone],
+  );
   const [retryRounds, setRetryRounds] = useState(0);
   const [retryDelay, setRetryDelay] = useState(60);
   const [maxFailure, setMaxFailure] = useState(DEFAULT_GUARDRAILS.max_failure_pct);
@@ -231,6 +251,9 @@ export function NewCampaignForm({
   if (badMedia)
     problems.push("The header media needs a Media Library file or a public https:// link.");
   if (mode === "later" && !atLocal) problems.push("Pick a send time.");
+  if (mode === "repeat" && audienceType !== "segment")
+    problems.push("A recurring campaign needs a segment (it is re-read on every run).");
+  if (mode === "repeat" && cronProblem) problems.push(cronProblem);
 
   function onFile(file: File | undefined) {
     if (!file) return;
@@ -258,6 +281,35 @@ export function NewCampaignForm({
 
   function start() {
     if (!template || !channel || problems.length) return;
+    if (mode === "repeat") {
+      if (
+        !window.confirm(
+          `Send "${template.name}" to the segment ${(cronSummary ?? cron).toLowerCase()} (${timezone})? Each run re-reads the segment; about ${eligible.toLocaleString()} people today.`,
+        )
+      )
+        return;
+      startCreate(async () => {
+        const r = await createRecurringCampaign({
+          name,
+          channel_id: channel.id,
+          template_id: template.id,
+          segment_id: segmentId,
+          variable_map: map,
+          fallbacks,
+          cron,
+          retry_rounds: retryRounds,
+          retry_delay_minutes: retryDelay,
+          guardrails: { max_failure_pct: maxFailure, pause_on_quality_drop: pauseOnQuality },
+        });
+        if (!r.ok) {
+          toast.error(r.error);
+          return;
+        }
+        toast.success(r.message ?? "Recurring campaign saved.");
+        router.push("/campaigns/recurring");
+      });
+      return;
+    }
     const when = mode === "later" ? `at ${atLocal.replace("T", " ")} (${timezone})` : "now";
     if (!window.confirm(`Send "${template.name}" to ${eligible.toLocaleString()} people ${when}?`))
       return;
@@ -272,7 +324,10 @@ export function NewCampaignForm({
             : { type: "csv", csv_text: csvText, opt_in_confirmed: optIn },
         variable_map: map,
         fallbacks,
-        schedule: { mode, at_local: mode === "later" ? atLocal : undefined },
+        schedule: {
+          mode: mode === "later" ? "later" : "now",
+          at_local: mode === "later" ? atLocal : undefined,
+        },
         retry_rounds: retryRounds,
         retry_delay_minutes: retryDelay,
         guardrails: { max_failure_pct: maxFailure, pause_on_quality_drop: pauseOnQuality },
@@ -640,15 +695,18 @@ export function NewCampaignForm({
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <div className="flex flex-wrap items-center gap-3">
-              {(["now", "later"] as const).map((m) => (
+              {(["now", "later", "repeat"] as const).map((m) => (
                 <Button
                   key={m}
                   type="button"
                   size="sm"
                   variant={mode === m ? "default" : "outline"}
-                  onClick={() => setMode(m)}
+                  onClick={() => {
+                    setMode(m);
+                    if (m === "repeat") setAudienceType("segment");
+                  }}
                 >
-                  {m === "now" ? "Send immediately" : "Schedule"}
+                  {m === "now" ? "Send immediately" : m === "later" ? "Schedule" : "Repeat"}
                 </Button>
               ))}
               {mode === "later" && (
@@ -663,6 +721,76 @@ export function NewCampaignForm({
                 </span>
               )}
             </div>
+
+            {mode === "repeat" && (
+              <div className="grid gap-2 rounded-lg border p-3">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="grid gap-1.5">
+                    <Label>Repeat</Label>
+                    <Select
+                      value={RECURRENCE_PRESETS.find((p) => p.cron === cron)?.key ?? "custom"}
+                      onValueChange={(k) => {
+                        const p = RECURRENCE_PRESETS.find((x) => x.key === k);
+                        if (p) setCron(p.cron);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {RECURRENCE_PRESETS.map((p) => (
+                          <SelectItem key={p.key} value={p.key}>
+                            {p.label}
+                          </SelectItem>
+                        ))}
+                        <SelectItem value="custom">Custom schedule</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="repeat-cron">
+                      Schedule (cron: minute hour day month weekday)
+                    </Label>
+                    <Input
+                      id="repeat-cron"
+                      value={cron}
+                      onChange={(e) => setCron(e.target.value)}
+                      className="font-mono"
+                      spellCheck={false}
+                    />
+                  </div>
+                </div>
+                <p className="text-sm">
+                  {cronSummary ?? "Not a valid schedule"}{" "}
+                  <span className="text-muted-foreground text-xs">({timezone})</span>
+                </p>
+                {cronProblem ? (
+                  <p className="text-destructive text-xs">{cronProblem}</p>
+                ) : (
+                  nextRuns.length > 0 && (
+                    <p className="text-muted-foreground text-xs">
+                      Next runs:{" "}
+                      {nextRuns
+                        .map((d) =>
+                          d.toLocaleString("en-GB", {
+                            timeZone: timezone,
+                            weekday: "short",
+                            day: "numeric",
+                            month: "short",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          }),
+                        )
+                        .join(" · ")}
+                    </p>
+                  )
+                )}
+                <p className="text-muted-foreground text-xs">
+                  Every run reads the segment again, checks the number, template and monthly budget,
+                  and is skipped while the previous run is still sending. At most one run a day.
+                </p>
+              </div>
+            )}
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="grid gap-1.5">
@@ -801,7 +929,11 @@ export function NewCampaignForm({
           )}
           <Button disabled={problems.length > 0 || creating || checking} onClick={start}>
             {creating && <Loader2 className="animate-spin" />}
-            {mode === "later" ? "Schedule campaign" : "Start campaign"}
+            {mode === "repeat"
+              ? "Save recurring campaign"
+              : mode === "later"
+                ? "Schedule campaign"
+                : "Start campaign"}
           </Button>
         </div>
       </div>

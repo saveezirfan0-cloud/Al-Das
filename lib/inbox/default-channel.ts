@@ -20,6 +20,7 @@ export async function resolveChannelId(
     .from("channels")
     .select("id")
     .eq("org_id", orgId)
+    .eq("type", "whatsapp")
     .eq("status", "active")
     .order("created_at", { ascending: true })
     .limit(1)

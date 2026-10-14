@@ -1,6 +1,6 @@
 import "server-only";
 
-import { routeNewConversation } from "@/lib/inbox/inbound";
+import { routeConversation } from "@/lib/inbox/routing";
 import { readInboxSettings } from "@/lib/inbox/settings";
 import type { AdminClient } from "@/lib/supabase/admin";
 import type { Tables } from "@/lib/supabase/types";
@@ -29,7 +29,6 @@ export async function ensureConversation(
   if (existing.data) return existing.data;
 
   const { data: org } = await admin.from("orgs").select("settings").eq("id", orgId).single();
-  const routing = await routeNewConversation(admin, orgId, readInboxSettings(org?.settings));
   const { data: created, error } = await admin
     .from("conversations")
     .insert({
@@ -37,8 +36,6 @@ export async function ensureConversation(
       channel_id: channelId,
       contact_id: contactId,
       status: "open",
-      assignee_team_id: routing.teamId,
-      assignee_user_id: routing.userId,
     })
     .select("*")
     .single();
@@ -49,5 +46,13 @@ export async function ensureConversation(
     }
     throw new Error(`ensureConversation: ${error.message}`);
   }
-  return created;
+  // Phase 20c: route after the insert, in one SQL transaction (capacity-aware round-robin, fallback team).
+  const routed = await routeConversation(
+    admin,
+    orgId,
+    created.id,
+    readInboxSettings(org?.settings),
+  );
+  if (!routed) return created;
+  return { ...created, assignee_team_id: routed.teamId, assignee_user_id: routed.userId };
 }

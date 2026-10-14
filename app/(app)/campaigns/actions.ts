@@ -33,6 +33,8 @@ import {
   startCampaign,
 } from "@/lib/campaigns/engine";
 import { isMarketingCategory } from "@/lib/campaigns/recipients";
+import { checkRecurrenceSchedule, describeCron, nextCronRun } from "@/lib/campaigns/recurrence";
+import { scheduleRecurrenceRun } from "@/lib/campaigns/recurring";
 import { checkMediaReferences } from "@/lib/media/resolve";
 import { parseSource, resolveVariables, unmappedVariables } from "@/lib/campaigns/variables";
 import { enqueue, scheduleJob } from "@/lib/jobs/enqueue";
@@ -104,6 +106,7 @@ async function loadSendContext(
       .select("id, name, status, waba_id, quality_rating, messaging_limit_tier")
       .eq("org_id", orgId)
       .eq("id", channelId)
+      .eq("type", "whatsapp")
       .maybeSingle(),
     admin
       .from("wa_templates")
@@ -119,8 +122,6 @@ async function loadSendContext(
     return { ok: false as const, error: "That number is paused or disconnected." };
   if (!template) return { ok: false as const, error: "Choose a template." };
   if (template.archived_at) return { ok: false as const, error: "That template is archived." };
-  if (template.type === "carousel")
-    return { ok: false as const, error: "Carousel templates can't be used in campaigns yet." };
   if (template.status !== "APPROVED")
     return {
       ok: false as const,
@@ -389,6 +390,118 @@ export async function createCampaign(
     ok: true,
     data: { id },
     message: scheduledAt ? "Campaign scheduled." : "Campaign started.",
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Recurring campaigns (Phase 20d)
+// ---------------------------------------------------------------------------
+
+const recurringSchema = z.object({
+  name: z.string().trim().min(1, "Give the campaign a name.").max(120),
+  channel_id: uuid,
+  template_id: uuid,
+  /** Recurring campaigns re-read a segment on every run; an uploaded list cannot change, so it is not offered. */
+  segment_id: uuid,
+  variable_map: mapSchema.default({}),
+  fallbacks: mapSchema.default({}),
+  /** 5-field cron in the workspace timezone. */
+  cron: z.string().trim().min(9).max(120),
+  retry_rounds: z.number().int().min(0).max(3).default(0),
+  retry_delay_minutes: z.number().int().min(5).max(1440).default(60),
+  guardrails: guardrailsSchema,
+});
+export type CreateRecurringInput = z.input<typeof recurringSchema>;
+
+/**
+ * Creates a recurring campaign. Nothing is sent now: the first run is scheduled, and every run re-checks the number,
+ * template, segment, library files and budget, then builds its audience from the segment as it is at that moment.
+ */
+export async function createRecurringCampaign(
+  input: z.input<typeof recurringSchema>,
+): Promise<ActionResult<{ id: string }>> {
+  const member = await requirePerm("campaigns.create");
+  const parsed = recurringSchema.safeParse(input);
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid input");
+  const v = parsed.data;
+  const admin = createAdminClient();
+
+  const ctx = await loadSendContext(admin, member.orgId, v.channel_id, v.template_id);
+  if (!ctx.ok) return fail(ctx.error);
+  const { channel, template } = ctx;
+  const components = template.components as unknown as MetaTemplateComponent[];
+  const problem = mappingError(
+    components,
+    v.variable_map,
+    stringMap(template.variable_map),
+    v.fallbacks,
+  );
+  if (problem) return fail(problem);
+  const mediaProblem = await checkMediaReferences(
+    admin,
+    member.orgId,
+    components,
+    v.variable_map,
+    stringMap(template.variable_map),
+  );
+  if (mediaProblem) return fail(mediaProblem);
+  const { data: segment } = await admin
+    .from("segments")
+    .select("id")
+    .eq("org_id", member.orgId)
+    .eq("id", v.segment_id)
+    .maybeSingle();
+  if (!segment) return fail("Choose a segment.");
+
+  const timezone = member.org.timezone || "Asia/Dubai";
+  const now = new Date();
+  const scheduleProblem = checkRecurrenceSchedule(v.cron, timezone, now);
+  if (scheduleProblem) return fail(scheduleProblem);
+  const next = nextCronRun(v.cron, now, timezone);
+  if (!next) return fail("That schedule never runs in the next year.");
+
+  const { data: created, error } = await admin
+    .from("campaign_recurrences")
+    .insert({
+      org_id: member.orgId,
+      name: v.name,
+      channel_id: channel.id,
+      template_id: template.id,
+      segment_id: segment.id,
+      variable_map: v.variable_map as Json as NonNullable<Json>,
+      fallbacks: v.fallbacks as Json as NonNullable<Json>,
+      retry_rounds: v.retry_rounds,
+      retry_delay_minutes: v.retry_delay_minutes,
+      guardrails: v.guardrails as Json as NonNullable<Json>,
+      cron: v.cron,
+      timezone,
+      status: "active",
+      next_run_at: next.toISOString(),
+      created_by: member.userId,
+    })
+    .select("id, org_id")
+    .single();
+  if (error || !created) return fail("Could not create the recurring campaign.");
+  await scheduleRecurrenceRun(created, next);
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "campaign_recurrence.created",
+    entity: "campaign_recurrence",
+    entityId: created.id,
+    diff: {
+      template_id: template.id,
+      channel_id: channel.id,
+      segment_id: segment.id,
+      cron: v.cron,
+      timezone,
+    },
+  });
+  revalidatePath("/campaigns/recurring");
+  return {
+    ok: true,
+    data: { id: created.id },
+    message: `Recurring campaign saved. ${describeCron(v.cron) ?? ""} (${timezone}).`.trim(),
   };
 }
 

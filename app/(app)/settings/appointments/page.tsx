@@ -24,6 +24,7 @@ export default async function AppointmentSettingsPage() {
     { data: channels },
     { data: exclusions },
     { data: members },
+    { data: weekly },
   ] = await Promise.all([
     admin.from("orgs").select("settings, timezone").eq("id", org).single(),
     admin.from("locations").select("*").eq("org_id", org).order("name"),
@@ -42,7 +43,12 @@ export default async function AppointmentSettingsPage() {
       .eq("org_id", org)
       .is("archived_at", null)
       .order("name"),
-    admin.from("channels").select("id, name, display_phone").eq("org_id", org).order("name"),
+    admin
+      .from("channels")
+      .select("id, name, display_phone")
+      .eq("org_id", org)
+      .eq("type", "whatsapp")
+      .order("name"),
     admin
       .from("reminder_exclusions")
       .select("id, kind, match_type, value, reason, active")
@@ -54,6 +60,12 @@ export default async function AppointmentSettingsPage() {
       .select("user_id, profiles(first_name, last_name)")
       .eq("org_id", org)
       .eq("status", "active"),
+    admin
+      .from("specialist_recurring_blocks")
+      .select("specialist_id, location_id, weekday, start_min, end_min, reason")
+      .eq("org_id", org)
+      .order("weekday")
+      .order("start_min"),
   ]);
 
   return (
@@ -77,6 +89,15 @@ export default async function AppointmentSettingsPage() {
             .filter((l) => l.specialist_id === s.id)
             .map((l) => l.service_id),
           working_hours: (hours ?? []).filter((h) => h.specialist_id === s.id),
+          recurring_blocks: (weekly ?? [])
+            .filter((b) => b.specialist_id === s.id)
+            .map(({ location_id, weekday, start_min, end_min, reason }) => ({
+              location_id,
+              weekday,
+              start_min,
+              end_min,
+              reason,
+            })),
         }))}
         templates={templates ?? []}
         channels={channels ?? []}

@@ -168,6 +168,26 @@ const serviceSchema = z.object({
     .string()
     .refine((v) => v === "in_person" || v === "video", "Choose in person or video")
     .default("in_person"),
+  /** Phase 20c: the specialist is busy this long before / after the visit. */
+  buffer_before_min: z
+    .number()
+    .int()
+    .min(0, "Buffers are 0 to 240 minutes")
+    .max(240, "Buffers are 0 to 240 minutes")
+    .default(0),
+  buffer_after_min: z
+    .number()
+    .int()
+    .min(0, "Buffers are 0 to 240 minutes")
+    .max(240, "Buffers are 0 to 240 minutes")
+    .default(0),
+  /** Phase 20c: patients one session can take at once (also limited by the specialist's max per slot). */
+  capacity: z
+    .number()
+    .int()
+    .min(1, "Concurrent patients is 1 to 50")
+    .max(50, "Concurrent patients is 1 to 50")
+    .default(1),
 });
 
 export async function saveService(input: z.input<typeof serviceSchema>): Promise<ActionResult> {
@@ -196,7 +216,13 @@ export async function saveService(input: z.input<typeof serviceSchema>): Promise
     action: "appointments.service_saved",
     entity: "service",
     entityId: id ?? undefined,
-    diff: { name: row.name } as Json,
+    diff: {
+      name: row.name,
+      duration_min: row.duration_min,
+      buffer_before_min: row.buffer_before_min,
+      buffer_after_min: row.buffer_after_min,
+      capacity: row.capacity,
+    } as Json,
   });
   refresh();
   return { ok: true, message: "Service saved." };
@@ -230,6 +256,17 @@ const hoursRow = z
   })
   .refine((h) => h.end_min > h.start_min, "Working hours must end after they start");
 
+/** Phase 20c: weekly unavailable time (lunch, admin). location_id null = every location. */
+const recurringBlockRow = z
+  .object({
+    location_id: uuid.nullable(),
+    weekday: z.number().int().min(1).max(7),
+    start_min: z.number().int().min(0).max(1439),
+    end_min: z.number().int().min(1).max(1440),
+    reason: optionalText(120),
+  })
+  .refine((b) => b.end_min > b.start_min, "A weekly block must end after it starts");
+
 const specialistSchema = z.object({
   id: uuid.nullish(),
   name: z.string().trim().min(1, "Enter a name").max(120),
@@ -241,6 +278,22 @@ const specialistSchema = z.object({
   location_ids: z.array(uuid).max(50),
   service_ids: z.array(uuid).max(200),
   working_hours: z.array(hoursRow).max(300),
+  /** Phase 20c: step of their slot list (null = the org's slot step). */
+  slot_length_min: z
+    .number()
+    .int()
+    .min(5, "Slot length is 5 to 240 minutes")
+    .max(240, "Slot length is 5 to 240 minutes")
+    .nullish()
+    .transform((v) => v ?? null),
+  /** Phase 20c: bookings they accept in one slot (also limited by each service's concurrent patients). */
+  max_per_slot: z
+    .number()
+    .int()
+    .min(1, "Bookings per slot is 1 to 50")
+    .max(50, "Bookings per slot is 1 to 50")
+    .default(1),
+  recurring_blocks: z.array(recurringBlockRow).max(100).default([]),
 });
 
 export async function saveSpecialist(
@@ -249,7 +302,7 @@ export async function saveSpecialist(
   const member = await requirePerm("settings.manage");
   const parsed = specialistSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid" };
-  const { id, location_ids, service_ids, working_hours, ...row } = parsed.data;
+  const { id, location_ids, service_ids, working_hours, recurring_blocks, ...row } = parsed.data;
   const admin = createAdminClient();
 
   // Everything referenced must belong to this org.
@@ -286,6 +339,8 @@ export async function saveSpecialist(
   const allowedLocations = new Set(location_ids);
   if (working_hours.some((h) => !allowedLocations.has(h.location_id)))
     return { ok: false, error: "Working hours can only be set for the specialist's locations." };
+  if (recurring_blocks.some((b) => b.location_id && !allowedLocations.has(b.location_id)))
+    return { ok: false, error: "Weekly blocks can only be set for the specialist's locations." };
 
   const values = {
     name: row.name,
@@ -294,7 +349,19 @@ export async function saveSpecialist(
     external_id: row.external_id,
     user_id: row.user_id ?? null,
     active: row.active,
+    slot_length_min: row.slot_length_min,
+    max_per_slot: row.max_per_slot,
   };
+  if (id) {
+    // Never let a forged id touch another organisation's links below.
+    const { data: own } = await admin
+      .from("specialists")
+      .select("id")
+      .eq("id", id)
+      .eq("org_id", member.orgId)
+      .maybeSingle();
+    if (!own) return { ok: false, error: "Specialist not found." };
+  }
   let specialistId = id ?? null;
   if (specialistId) {
     const { error } = await admin
@@ -318,6 +385,11 @@ export async function saveSpecialist(
     admin.from("specialist_locations").delete().eq("specialist_id", specialistId),
     admin.from("specialist_services").delete().eq("specialist_id", specialistId),
     admin.from("working_hours").delete().eq("specialist_id", specialistId),
+    admin
+      .from("specialist_recurring_blocks")
+      .delete()
+      .eq("specialist_id", specialistId)
+      .eq("org_id", member.orgId),
   ]);
   if (location_ids.length)
     await admin.from("specialist_locations").insert(
@@ -341,6 +413,14 @@ export async function saveSpecialist(
       .insert(
         working_hours.map((h) => ({ ...h, org_id: member.orgId, specialist_id: specialistId })),
       );
+  if (recurring_blocks.length) {
+    const { error } = await admin
+      .from("specialist_recurring_blocks")
+      .insert(
+        recurring_blocks.map((b) => ({ ...b, org_id: member.orgId, specialist_id: specialistId })),
+      );
+    if (error) return { ok: false, error: "Could not save the weekly blocks. Please try again." };
+  }
 
   await recordAudit(admin, {
     orgId: member.orgId,
@@ -348,7 +428,14 @@ export async function saveSpecialist(
     action: id ? "appointments.specialist_updated" : "appointments.specialist_created",
     entity: "specialist",
     entityId: specialistId,
-    diff: { name: row.name, locations: location_ids.length, services: service_ids.length } as Json,
+    diff: {
+      name: row.name,
+      locations: location_ids.length,
+      services: service_ids.length,
+      slot_length_min: row.slot_length_min,
+      max_per_slot: row.max_per_slot,
+      weekly_blocks: recurring_blocks.length,
+    } as Json,
   });
   refresh();
   return { ok: true, message: "Specialist saved." };
@@ -400,6 +487,7 @@ export async function saveBookingRules(input: unknown): Promise<ActionResult> {
       .select("id")
       .eq("id", s.channel_id)
       .eq("org_id", member.orgId)
+      .eq("type", "whatsapp")
       .maybeSingle();
     if (!data) return { ok: false, error: "That WhatsApp number does not exist." };
   }

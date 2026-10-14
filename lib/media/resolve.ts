@@ -1,6 +1,6 @@
 import "server-only";
 
-import { headerAssetId, headerMediaKind } from "@/lib/media/header";
+import { headerMediaSlots, slotAssetId } from "@/lib/media/header";
 import { validateMedia, type MediaKind } from "@/lib/media/limits";
 import { LIBRARY_BUCKET, isLibraryPathFor } from "@/lib/media/paths";
 import { isServable } from "@/lib/media/scan";
@@ -53,8 +53,9 @@ export async function loadUsableAsset(
 }
 
 /**
- * Called by the outbound job just before a template is sent: swaps a `media:<id>` header reference for a signed
- * URL valid for an hour. Values without a library reference are returned untouched.
+ * Called by the outbound job just before a template is sent: swaps every `media:<id>` header reference (the
+ * message header and, for a carousel, each card's header) for a signed URL valid for an hour. Values without a
+ * library reference are returned untouched.
  */
 export async function resolveHeaderMedia(
   admin: AdminClient,
@@ -62,16 +63,20 @@ export async function resolveHeaderMedia(
   components: MetaTemplateComponent[],
   values: Record<string, string>,
 ): Promise<Record<string, string>> {
-  const assetId = headerAssetId(values);
-  if (!assetId) return values;
-  const kind = headerMediaKind(components);
-  if (!kind) return values; // a text-only template ignores the mapping
-  const asset = await loadUsableAsset(admin, orgId, assetId, kind);
-  const { data, error } = await admin.storage
-    .from(LIBRARY_BUCKET)
-    .createSignedUrl(asset.storage_path, 3600);
-  if (error || !data?.signedUrl) throw new MediaUseError("The library file could not be reached.");
-  return { ...values, "header.media": data.signedUrl };
+  let out = values;
+  // A text-only template ignores a stray mapping: only the template's own header slots are resolved.
+  for (const slot of headerMediaSlots(components)) {
+    const assetId = slotAssetId(slot.key, values);
+    if (!assetId) continue;
+    const asset = await loadUsableAsset(admin, orgId, assetId, slot.kind);
+    const { data, error } = await admin.storage
+      .from(LIBRARY_BUCKET)
+      .createSignedUrl(asset.storage_path, 3600);
+    if (error || !data?.signedUrl)
+      throw new MediaUseError("The library file could not be reached.");
+    out = { ...out, [slot.key]: data.signedUrl };
+  }
+  return out;
 }
 
 /** Checks every `media:` reference in a campaign or template mapping before anything is sent. Returns an error or null. */
@@ -81,14 +86,14 @@ export async function checkMediaReferences(
   components: MetaTemplateComponent[],
   ...maps: Array<Record<string, string> | null | undefined>
 ): Promise<string | null> {
-  const assetId = headerAssetId(...maps);
-  if (!assetId) return null;
-  const kind = headerMediaKind(components);
-  if (!kind) return null;
-  try {
-    await loadUsableAsset(admin, orgId, assetId, kind);
-    return null;
-  } catch (err) {
-    return err instanceof MediaUseError ? err.message : "The library file could not be checked.";
+  for (const slot of headerMediaSlots(components)) {
+    const assetId = slotAssetId(slot.key, ...maps);
+    if (!assetId) continue;
+    try {
+      await loadUsableAsset(admin, orgId, assetId, slot.kind);
+    } catch (err) {
+      return err instanceof MediaUseError ? err.message : "The library file could not be checked.";
+    }
   }
+  return null;
 }

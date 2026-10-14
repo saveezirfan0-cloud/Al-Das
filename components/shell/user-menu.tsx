@@ -26,6 +26,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { isPresence, PRESENCE_EVENT } from "@/lib/presence/idle";
 import {
   applyTheme,
   DARK_QUERY,
@@ -116,6 +117,16 @@ export function UserMenu({
       });
     }
   }, [initialPresence]);
+
+  // Auto-away (Phase 20c): the shell's heartbeat reports when the database brought us back from an automatic away.
+  useEffect(() => {
+    const onPresence = (e: Event) => {
+      const next = (e as CustomEvent<unknown>).detail;
+      if (isPresence(next)) setLocalPresence(next);
+    };
+    window.addEventListener(PRESENCE_EVENT, onPresence);
+    return () => window.removeEventListener(PRESENCE_EVENT, onPresence);
+  }, []);
 
   function changePresence(value: string) {
     const next = value as Presence;

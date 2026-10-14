@@ -4,7 +4,11 @@ import { readCopilotSettings, tagMayStartFlows } from "@/lib/ai/copilot/settings
 import { readAiSettings } from "@/lib/ai/settings";
 import { createFlowDeps } from "@/lib/flow-engine/supabase-deps";
 import { advance, finishRun, resumeFromTimer } from "@/lib/flow-engine/run";
-import { handleTriggerEvent } from "@/lib/flow-engine/triggers";
+import {
+  handleSegmentJoined,
+  handleTriggerEvent,
+  handleWindowClosing,
+} from "@/lib/flow-engine/triggers";
 import { enqueue } from "@/lib/jobs/enqueue";
 import { registerHandler } from "@/lib/jobs/registry";
 import { PermanentJobError } from "@/lib/jobs/types";
@@ -14,6 +18,8 @@ import { PermanentJobError } from "@/lib/jobs/types";
  *   { type:'step', run_id }                         run exactly one node
  *   { type:'trigger', org_id, event, payload }      a domain event that may start / resume flows
  *   { kind:'flow.resume', payload:{run_id, token} } scheduler envelope for timers and timeouts
+ *   { kind:'flow.window_closing', org_id, payload:{flow_id, conversation_id, inbound_at} }   window_closing trigger check
+ *   { kind:'flow.drip', org_id, payload:{segment_id, contact_id, flow_id} }  a contact joined a drip segment (DB trigger)
  */
 const stepJob = z.object({ type: z.literal("step"), run_id: z.string().uuid() });
 const triggerJob = z.object({
@@ -26,7 +32,25 @@ const resumeJob = z.object({
   kind: z.literal("flow.resume"),
   payload: z.object({ run_id: z.string().uuid(), token: z.string().min(1) }),
 });
-const jobSchema = z.union([stepJob, triggerJob, resumeJob]);
+const windowJob = z.object({
+  kind: z.literal("flow.window_closing"),
+  org_id: z.string().uuid(),
+  payload: z.object({
+    flow_id: z.string().uuid(),
+    conversation_id: z.string().uuid(),
+    inbound_at: z.string().min(1).max(64),
+  }),
+});
+const dripJob = z.object({
+  kind: z.literal("flow.drip"),
+  org_id: z.string().uuid(),
+  payload: z.object({
+    segment_id: z.string().uuid(),
+    contact_id: z.string().uuid(),
+    flow_id: z.string().uuid(),
+  }),
+});
+const jobSchema = z.union([stepJob, triggerJob, resumeJob, windowJob, dripJob]);
 
 const MAX_READS = 5;
 
@@ -77,6 +101,28 @@ registerHandler({
         started: out.started.length,
         resumed: out.resumed,
       });
+      return;
+    }
+
+    if ("kind" in job && job.kind === "flow.window_closing") {
+      const r = await handleWindowClosing(deps, {
+        orgId: job.org_id,
+        flowId: job.payload.flow_id,
+        conversationId: job.payload.conversation_id,
+        inboundAt: job.payload.inbound_at,
+      });
+      ctx.log.info("flow.window_closing", { started: r.started, reason: r.reason });
+      return;
+    }
+
+    if ("kind" in job && job.kind === "flow.drip") {
+      const r = await handleSegmentJoined(deps, {
+        orgId: job.org_id,
+        segmentId: job.payload.segment_id,
+        contactId: job.payload.contact_id,
+        flowId: job.payload.flow_id,
+      });
+      ctx.log.info("flow.drip", { started: r.started, reason: r.reason });
       return;
     }
 

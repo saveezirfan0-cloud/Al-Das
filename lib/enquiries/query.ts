@@ -1,6 +1,7 @@
 import "server-only";
 
 import { ENQUIRY_ALIAS } from "@/lib/enquiries/registry";
+import { enquiryScopeSql, type EnquiryViewer } from "@/lib/enquiries/scope";
 import type { Filter } from "@/lib/filters/ast";
 import type { FieldRegistry } from "@/lib/filters/field-registry";
 import {
@@ -32,6 +33,8 @@ export type EnquiryQuery = {
   /** Restrict to one stage (Kanban column fetch). */
   stageId?: string | null;
   timezone?: string;
+  /** Phase 20c: the member's restricted enquiry view (own / team). Omit only for system callers (jobs, public API). */
+  viewer?: EnquiryViewer | null;
 };
 
 export type EnquiryPage = { rows: EnquiryRow[]; total: number; page: number; pageSize: number };
@@ -41,10 +44,12 @@ export function compileEnquiryPredicate(
   registry: FieldRegistry,
   filter: Filter | null | undefined,
   timezone = "UTC",
+  viewer?: EnquiryViewer | null,
 ): { sql: string; params: unknown[] } {
   const bag = new ParamBag();
   const f = compileFilter(filter, registry, { timezone, alias: ENQUIRY_ALIAS }, bag);
-  return { sql: f.sql, params: bag.params };
+  const scope = enquiryScopeSql(viewer, (v) => bag.text(v), ENQUIRY_ALIAS);
+  return { sql: scope ? `(${f.sql}) and ${scope}` : f.sql, params: bag.params };
 }
 
 /** Escapes LIKE wildcards for the RPC's free-text search; blank → null. */
@@ -88,7 +93,7 @@ export async function fetchEnquiriesByIds(
 export async function queryEnquiries(admin: AdminClient, q: EnquiryQuery): Promise<EnquiryPage> {
   const page = Math.max(1, Math.floor(q.page ?? 1));
   const pageSize = Math.min(MAX_PAGE_SIZE, Math.max(1, Math.floor(q.pageSize ?? 100)));
-  const { sql, params } = compileEnquiryPredicate(q.registry, q.filter, q.timezone);
+  const { sql, params } = compileEnquiryPredicate(q.registry, q.filter, q.timezone, q.viewer);
   const orderBy = compileOrderBy(q.sort, q.registry, { alias: ENQUIRY_ALIAS });
   const { data, error } = await admin.rpc("enquiries_search", {
     p_org_id: q.orgId,
@@ -108,9 +113,9 @@ export async function queryEnquiries(admin: AdminClient, q: EnquiryQuery): Promi
 
 export async function countEnquiries(
   admin: AdminClient,
-  q: Pick<EnquiryQuery, "orgId" | "registry" | "filter" | "search" | "timezone">,
+  q: Pick<EnquiryQuery, "orgId" | "registry" | "filter" | "search" | "timezone" | "viewer">,
 ): Promise<number> {
-  const { sql, params } = compileEnquiryPredicate(q.registry, q.filter, q.timezone);
+  const { sql, params } = compileEnquiryPredicate(q.registry, q.filter, q.timezone, q.viewer);
   const { data, error } = await admin.rpc("enquiries_count", {
     p_org_id: q.orgId,
     p_where: sql,
@@ -124,9 +129,9 @@ export async function countEnquiries(
 /** Per-stage counts for the Kanban headers (same filter + search). */
 export async function stageCounts(
   admin: AdminClient,
-  q: Pick<EnquiryQuery, "orgId" | "registry" | "filter" | "search" | "timezone">,
+  q: Pick<EnquiryQuery, "orgId" | "registry" | "filter" | "search" | "timezone" | "viewer">,
 ): Promise<Record<string, number>> {
-  const { sql, params } = compileEnquiryPredicate(q.registry, q.filter, q.timezone);
+  const { sql, params } = compileEnquiryPredicate(q.registry, q.filter, q.timezone, q.viewer);
   const { data, error } = await admin.rpc("enquiries_stage_counts", {
     p_org_id: q.orgId,
     p_where: sql,
@@ -140,10 +145,10 @@ export async function stageCounts(
 /** All ids matching a filter (bulk "select all N", export). Capped. */
 export async function matchingEnquiryIds(
   admin: AdminClient,
-  q: Pick<EnquiryQuery, "orgId" | "registry" | "filter" | "search" | "timezone">,
+  q: Pick<EnquiryQuery, "orgId" | "registry" | "filter" | "search" | "timezone" | "viewer">,
   limit = 50_000,
 ): Promise<string[]> {
-  const { sql, params } = compileEnquiryPredicate(q.registry, q.filter, q.timezone);
+  const { sql, params } = compileEnquiryPredicate(q.registry, q.filter, q.timezone, q.viewer);
   const { data, error } = await admin.rpc("enquiries_ids", {
     p_org_id: q.orgId,
     p_where: sql,

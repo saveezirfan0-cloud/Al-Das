@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { slotsForDay } from "@/lib/appointments/availability";
+import { loadCapacityConflicts } from "@/lib/appointments/conflicts";
 import {
   changeAppointmentStatus,
   createAppointment,
@@ -100,6 +101,23 @@ async function orgTimezone(admin: AdminClient, orgId: string): Promise<string> {
   return data?.timezone ?? "Asia/Dubai";
 }
 
+/**
+ * Phase 20c: marks rows that break the capacity rules today (blocks, buffers, places), e.g. a Unite
+ * appointment booked in Unite over a lunch block. Read-only and display only (lib/appointments/conflicts.ts).
+ */
+async function withConflicts(
+  admin: AdminClient,
+  orgId: string,
+  rows: ApptRow[],
+): Promise<ApptRow[]> {
+  const ids = rows
+    .filter((r) => r.specialist_id && (r.status === "awaiting" || r.status === "confirmed"))
+    .map((r) => r.id);
+  if (ids.length === 0) return rows;
+  const byId = await loadCapacityConflicts(admin, orgId, ids);
+  return rows.map((r) => ({ ...r, conflict: byId.get(r.id) ?? null }));
+}
+
 /** [from 00:00, to+1 00:00) of local dates in a timezone, as ISO instants. */
 function dayRange(from: string, to: string, tz: string): { gte: string; lt: string } {
   return {
@@ -174,7 +192,11 @@ export async function listRange(input: {
   return {
     ok: true,
     data: {
-      appointments: ((appts ?? []) as unknown as JoinedAppointment[]).map(toRow),
+      appointments: await withConflicts(
+        admin,
+        member.orgId,
+        ((appts ?? []) as unknown as JoinedAppointment[]).map(toRow),
+      ),
       blocks: blocks ?? [],
     },
   };
@@ -261,7 +283,14 @@ export async function listAppointments(
   });
   return {
     ok: true,
-    data: { rows: ((data ?? []) as unknown as JoinedAppointment[]).map(toRow), total: count ?? 0 },
+    data: {
+      rows: await withConflicts(
+        admin,
+        member.orgId,
+        ((data ?? []) as unknown as JoinedAppointment[]).map(toRow),
+      ),
+      total: count ?? 0,
+    },
   };
 }
 
@@ -372,6 +401,7 @@ export async function getFreeSlots(input: {
     locationId: p.data.locationId,
     date: p.data.date,
     durationMin: service.duration_min,
+    serviceId: p.data.serviceId,
     excludeAppointmentId: p.data.excludeAppointmentId,
     ignoreLeadTime: true,
   });
@@ -413,7 +443,9 @@ export async function getAppointmentDetail(id: string): Promise<ActionResult<App
   return {
     ok: true,
     data: {
-      appointment: toRow(a as unknown as JoinedAppointment),
+      appointment: (
+        await withConflicts(admin, member.orgId, [toRow(a as unknown as JoinedAppointment)])
+      )[0],
       reminders: reminders ?? [],
       history: (history ?? [])
         .filter((h) => (h.payload as Record<string, unknown>)?.appointment_id === id)
@@ -516,7 +548,17 @@ export async function deleteBlock(id: string): Promise<ActionResult> {
   const member = await requirePerm("appointments.manage");
   if (!uuid.safeParse(id).success) return fail("Invalid block.");
   const admin = createAdminClient(member.userId);
-  await admin.from("time_blocks").delete().eq("id", id).eq("org_id", member.orgId);
+  const { data: removed, error } = await admin
+    .from("time_blocks")
+    .delete()
+    .eq("id", id)
+    .eq("org_id", member.orgId)
+    .select("id");
+  // A busy time mirrored from Google Calendar (Phase 20e) is removed only by the sync.
+  if (error || !removed?.length)
+    return fail(
+      "This block cannot be removed here (busy times from Google Calendar follow the calendar).",
+    );
   await recordAudit(admin, {
     orgId: member.orgId,
     userId: member.userId,

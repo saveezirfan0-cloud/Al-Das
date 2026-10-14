@@ -8,6 +8,7 @@ import {
   tierDailyLimit,
   type CampaignStatus,
 } from "@/lib/campaigns/constants";
+import { applyBudgetGrant, BUDGET_PAUSE_REASON } from "@/lib/campaigns/budget";
 import { parseFunnel, unresolved } from "@/lib/campaigns/funnel";
 import { evaluateGuardrails, parseGuardrails } from "@/lib/campaigns/guardrails";
 import { classifyRecipient, isMarketingCategory } from "@/lib/campaigns/recipients";
@@ -317,15 +318,43 @@ export async function runFanout(
       });
     }
 
+    // Phase 20d monthly budget: claim room BEFORE dispatching (atomic per org and month). What is not granted stays
+    // pending and the campaign pauses; room claimed for recipients that were then skipped is given back.
+    const sendable = items.filter((i) => !("skip" in i)).length;
+    let granted = 0;
+    if (sendable > 0) {
+      const { data: g, error: budgetErr } = await admin.rpc("campaign_budget_claim", {
+        p_org: campaign.org_id,
+        p_requested: sendable,
+      });
+      if (budgetErr) throw new Error(`campaign_budget_claim failed: ${budgetErr.message}`);
+      granted = Math.max(0, Number(g ?? 0));
+    }
+    const batchItems = applyBudgetGrant(items, granted);
+
     const { data: out, error: dispatchErr } = await admin.rpc("campaign_dispatch", {
       p_campaign_id: id,
-      p_items: items as unknown as Json,
+      p_items: batchItems.items as unknown as Json,
     });
-    if (dispatchErr) throw new Error(`campaign_dispatch failed: ${dispatchErr.message}`);
+    if (dispatchErr) {
+      if (granted > 0)
+        await admin.rpc("campaign_budget_refund", { p_org: campaign.org_id, p_count: granted });
+      throw new Error(`campaign_dispatch failed: ${dispatchErr.message}`);
+    }
     const messageIds = (out ?? []).map((o) => o.message_id);
+    if (granted > messageIds.length)
+      await admin.rpc("campaign_budget_refund", {
+        p_org: campaign.org_id,
+        p_count: granted - messageIds.length,
+      });
     await enqueueOutboundBatch(admin, messageIds);
     dispatched += messageIds.length;
-    skipped += items.length - messageIds.length;
+    skipped += batchItems.items.length - messageIds.length;
+    if (batchItems.heldBack > 0) {
+      await pauseCampaign(admin, campaign, BUDGET_PAUSE_REASON, { auto: true });
+      log.warn("campaign paused: monthly budget reached", { campaignId: id });
+      return { dispatched, skipped, state: "budget_reached" };
+    }
     if (messageIds.length === 0 && items.length === 0)
       return { dispatched, skipped, state: "drained" };
   }

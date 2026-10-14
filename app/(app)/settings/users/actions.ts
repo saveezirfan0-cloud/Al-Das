@@ -10,6 +10,7 @@ import { requirePerm } from "@/lib/auth/session";
 import { sendEmail } from "@/lib/email";
 import { serverEnv } from "@/lib/env";
 import { generateInviteToken, inviteExpiry, inviteUrl } from "@/lib/invites/token";
+import { enquiryViewScopeSchema } from "@/lib/enquiries/scope";
 import { createNotification } from "@/lib/notifications";
 import { raiseAlert } from "@/lib/security/alerts";
 import { roleChangeAlert } from "@/lib/security/anomaly";
@@ -338,6 +339,60 @@ export async function setMemberStatus(
   });
   revalidatePath("/settings/users");
   return { ok: true, message: status === "suspended" ? "Access suspended." : "Access restored." };
+}
+
+const memberRoutingSchema = z.object({
+  membershipId: z.string().uuid(),
+  max_open_conversations: z.number().int().min(1).max(500).nullable(),
+  enquiry_scope: enquiryViewScopeSchema,
+});
+
+/**
+ * Phase 20c: a member's open conversation limit (round-robin skips them at the limit; people can still assign by hand)
+ * and their enquiry view (all / team / own, enforced in RLS by app.enquiry_visible_to).
+ */
+export async function setMemberRouting(
+  membershipId: string,
+  input: { max_open_conversations: number | null; enquiry_scope: string },
+): Promise<ActionResult> {
+  const member = await requirePerm("settings.manage");
+  const parsed = memberRoutingSchema.safeParse({ membershipId, ...input });
+  if (!parsed.success)
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  const admin = createAdminClient(member.userId);
+  const { data: target } = await admin
+    .from("memberships")
+    .select("id, user_id, max_open_conversations, enquiry_scope")
+    .eq("id", parsed.data.membershipId)
+    .eq("org_id", member.orgId)
+    .maybeSingle();
+  if (!target) return { ok: false, error: "Member not found." };
+  const { error } = await admin
+    .from("memberships")
+    .update({
+      max_open_conversations: parsed.data.max_open_conversations,
+      enquiry_scope: parsed.data.enquiry_scope,
+    })
+    .eq("id", target.id)
+    .eq("org_id", member.orgId);
+  if (error) return { ok: false, error: "Could not save the member's routing settings." };
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "membership.routing_updated",
+    entity: "membership",
+    entityId: target.id,
+    diff: {
+      user_id: target.user_id,
+      max_open_conversations: {
+        from: target.max_open_conversations,
+        to: parsed.data.max_open_conversations,
+      },
+      enquiry_scope: { from: target.enquiry_scope, to: parsed.data.enquiry_scope },
+    },
+  });
+  revalidatePath("/settings/users");
+  return { ok: true, message: "Routing settings saved." };
 }
 
 export async function removeMember(membershipId: string): Promise<ActionResult> {

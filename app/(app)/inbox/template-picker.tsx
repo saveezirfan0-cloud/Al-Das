@@ -21,7 +21,11 @@ import { MediaPicker } from "@/components/media/media-picker";
 import { PhonePreview } from "@/components/phone-preview/phone-preview";
 import { TEMPLATE_HEADER_TYPES } from "@/lib/media/limits";
 import { mediaSource } from "@/lib/media/paths";
-import { renderTemplatePreview, templateVariables } from "@/lib/whatsapp/templates";
+import {
+  isHeaderMediaKey,
+  renderTemplatePreview,
+  templateVariables,
+} from "@/lib/whatsapp/templates";
 import { cn } from "@/lib/utils";
 
 import { sendTemplateMessage } from "./actions";
@@ -41,7 +45,7 @@ function defaults(t: TemplateInfo, c: ConversationDetail): Record<string, string
     const mapped = t.variable_map[v.key];
     if (mapped && mapped in source && source[mapped]) out[v.key] = source[mapped];
     // A header file chosen from the Media Library travels as a reference; the outbound job makes it a fresh link.
-    else if (mapped && v.key === "header.media" && mapped.startsWith("media:")) out[v.key] = mapped;
+    else if (mapped && isHeaderMediaKey(v.key) && mapped.startsWith("media:")) out[v.key] = mapped;
   }
   return out;
 }
@@ -199,7 +203,7 @@ export function TemplatePicker({
                             placeholder={v.example ?? ""}
                           />
                         )}
-                        {canMedia && v.key === "header.media" && (
+                        {canMedia && isHeaderMediaKey(v.key) && (
                           <Button
                             type="button"
                             variant="outline"

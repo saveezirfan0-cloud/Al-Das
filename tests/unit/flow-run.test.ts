@@ -328,7 +328,7 @@ describe("question → reply", () => {
     expect(run(h, id).context.vars.answer).toBeUndefined();
   });
 
-  it("unmatched text without a fallback keeps waiting", async () => {
+  it("unmatched text without a fallback or re-ask keeps waiting (unchanged for published flows)", async () => {
     const h = harness();
     const noFallback = graph(
       g.nodes.filter((n) => n.id !== "fb"),

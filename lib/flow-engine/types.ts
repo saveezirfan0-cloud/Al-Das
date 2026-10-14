@@ -2,7 +2,7 @@
  * Flow graph model. The builder stores React Flow JSON; this file is the contract the
  * engine validates at publish time and again when a run starts.
  *
- * Edge handles (sourceHandle): default | fallback | option:<id> | inside | outside | true | false
+ * Edge handles (sourceHandle): default | fallback | option:<id> | inside | outside | true | false | intent:<label> | else
  */
 import { z } from "zod";
 
@@ -32,9 +32,15 @@ export const NODE_TYPES = [
   "add_task",
   "portal_record",
   "book_appointment",
+  "update_enquiry",
+  "set_label",
   // integrations
   "api_action",
   "send_notification",
+  "payment_link",
+  "meta_event",
+  // AI (draft-safe: routes on a closed list of labels, never writes or sends model text)
+  "ai_router",
 ] as const;
 export type NodeType = (typeof NODE_TYPES)[number];
 
@@ -54,8 +60,26 @@ export const TRIGGER_TYPES = [
   "appointment_status_changed",
   /** An AI tag (booking, price, complaint, report_request) was put on a conversation. Only fires once the clinical lead has signed it off. */
   "conversation_ai_tagged",
+  /** Phase 20b: any inbound message on a conversation that was already open (debounced; keyword / source conditions). */
+  "message_received",
+  /** Phase 20b: N minutes before the 24-hour customer-service window ends, unless the patient wrote again. */
+  "window_closing",
+  /** Phase 20b: the patient submitted a WhatsApp (Meta) Flow form (nfm_reply); the answers become run variables. */
+  "wa_flow_completed",
+  /** Phase 20b: a contact was added to a static segment whose drip flow is this flow (segments.drip_flow_id). */
+  "segment_joined",
 ] as const;
 export type TriggerType = (typeof TRIGGER_TYPES)[number];
+
+/** Triggers that take Source / Keyword / Ad conditions (keyword = the patient's first message, or this message for message_received). */
+export const CONDITION_TRIGGER_TYPES: readonly TriggerType[] = [
+  "conversation_opened",
+  "conversation_closed",
+  "conversation_waiting",
+  "template_button",
+  "message_received",
+  "window_closing",
+];
 
 export const nodeSchema = z.object({
   id: z.string().min(1).max(64),
@@ -140,6 +164,8 @@ export type RunContext = {
   trigger: Record<string, unknown>;
   steps: Record<string, { response?: unknown; [k: string]: unknown }>;
   depth?: number;
+  /** Question node id → how many times it has re-asked after an answer it could not accept. */
+  asks?: Record<string, number>;
 };
 
 export function emptyContext(trigger: Record<string, unknown> = {}, depth = 0): RunContext {

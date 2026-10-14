@@ -47,6 +47,7 @@ export function SegmentDialog({
   initialFilter,
   fields,
   options,
+  dripFlows,
   onSaved,
 }: {
   open: boolean;
@@ -55,12 +56,15 @@ export function SegmentDialog({
   initialFilter: Filter | null;
   fields: ClientField[];
   options: OptionSources;
+  /** Flows that can run as this segment's drip (null = the person may not choose one). */
+  dripFlows?: Array<{ id: string; name: string; active: boolean }> | null;
   onSaved: (segment: SegmentSummary) => void;
 }) {
   const [name, setName] = React.useState("");
   const [kind, setKind] = React.useState<"static" | "dynamic">("static");
   const [filter, setFilter] = React.useState<Filter>(emptyFilter());
   const [excluding, setExcluding] = React.useState(false);
+  const [dripFlowId, setDripFlowId] = React.useState<string | null>(null);
   const [pending, startTransition] = React.useTransition();
 
   React.useEffect(() => {
@@ -73,6 +77,7 @@ export function SegmentDialog({
     );
     setFilter(f);
     setExcluding(!!f.exclude && countConditions(f.exclude) > 0);
+    setDripFlowId(segment?.drip_flow_id ?? null);
   }, [open, segment, initialFilter]);
 
   function submit(e: React.FormEvent) {
@@ -90,6 +95,8 @@ export function SegmentDialog({
         name,
         kind,
         filter: kind === "dynamic" ? effective : null,
+        // Only sent when the person may choose it; the server re-checks flows.manage.
+        ...(dripFlows ? { drip_flow_id: kind === "static" ? dripFlowId : null } : {}),
       });
       if (!res.ok) {
         toast.error(res.error);
@@ -103,6 +110,11 @@ export function SegmentDialog({
         filter: kind === "dynamic" ? effective : null,
         member_count: segment?.member_count ?? 0,
         count_refreshed_at: new Date().toISOString(),
+        drip_flow_id: dripFlows
+          ? kind === "static"
+            ? dripFlowId
+            : null
+          : (segment?.drip_flow_id ?? null),
       });
       onOpenChange(false);
     });
@@ -174,6 +186,32 @@ export function SegmentDialog({
             <p className="text-muted-foreground text-sm">
               Add contacts from the grid with the bulk action &ldquo;Add to segment&rdquo;.
             </p>
+          )}
+          {kind === "static" && dripFlows && (
+            <div className="grid gap-2">
+              <Label>Drip flow</Label>
+              <Select
+                value={dripFlowId ?? "none"}
+                onValueChange={(v) => setDripFlowId(v === "none" ? null : v)}
+              >
+                <SelectTrigger className="w-72" aria-label="Drip flow">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No drip flow</SelectItem>
+                  {dripFlows.map((f) => (
+                    <SelectItem key={f.id} value={f.id}>
+                      {f.active ? f.name : `${f.name} (not published)`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-muted-foreground text-xs">
+                Starts the flow once for each contact added from now on (not for those already in
+                it). Only flows that start with &ldquo;Contact added to a segment (drip)&rdquo; are
+                listed, and only published ones run.
+              </p>
+            </div>
           )}
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
