@@ -327,9 +327,11 @@ describe.skipIf(!TEST_DATABASE_URL)("Unite collection report upload (Phase 23A)"
          from pg_proc p join pg_namespace n on n.oid = p.pronamespace
         where n.nspname = 'public' and p.proname like 'fin_report_%' order by 1`,
     );
+    // every fin_report_* function, including 23B's fin_report_latest_month, is service role only
     expect(fns.rows.map((r) => r.proname)).toEqual([
       "fin_report_commit",
       "fin_report_discard",
+      "fin_report_latest_month",
       "fin_report_stage",
       "fin_report_upload_summary",
     ]);
