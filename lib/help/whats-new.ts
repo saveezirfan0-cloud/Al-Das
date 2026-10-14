@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-12-06-menu-keyboard-names",
+    date: "2026-10-14",
+    title: "The menu works from the keyboard, and pages keep one name",
+    body: "On a computer, Tab to an area of the menu and press Enter (or the right arrow) to open its pages; the arrows move between them, Esc brings you back, and Tab past the last page moves on to the next area. Pages now have the same name in the menu, at the top of the page and in the browser tab: Settings, Clinic and appointments (once Appointment rules), Accounting overview (once Dashboard) and Portal, Sync review. Quick search still finds them by their old names. CRM, Branches is now highlighted while you are on the Branches tab.",
+  },
+  {
     id: "2026-12-04-simple-to-use",
     date: "2026-10-14",
     title: "A simpler Pulse: clearer menu, record search and your own home page",
@@ -42,7 +48,7 @@ export const WHATS_NEW: readonly WhatsNewEntry[] = [
     id: "2026-12-01-branch-dimension",
     date: "2026-10-14",
     title: "Branches across Pulse",
-    body: "Each WhatsApp number can now belong to a branch and send its new chats to that branch's team first (Settings, WhatsApp channels, Edit). Chats show their branch, and the Inbox, Tasks and their counts follow the branch switcher, with a Branch filter to look at another branch or all of yours. New tasks start in your current branch, and people limited to some branches only see those branches' tasks. Patients have a home branch on their record and in the list filters. In Accounting, the trial balance, general ledger, balance sheet, cash flow and receivables ageing can show one branch, and the profit and loss has Branches side by side; each branch's finance code is set under Settings, Appointment rules, Locations.",
+    body: "Each WhatsApp number can now belong to a branch and send its new chats to that branch's team first (Settings, WhatsApp channels, Edit). Chats show their branch, and the Inbox, Tasks and their counts follow the branch switcher, with a Branch filter to look at another branch or all of yours. New tasks start in your current branch, and people limited to some branches only see those branches' tasks. Patients have a home branch on their record and in the list filters. In Accounting, the trial balance, general ledger, balance sheet, cash flow and receivables ageing can show one branch, and the profit and loss has Branches side by side; each branch's finance code is set under Settings, Clinic and appointments, Branches.",
   },
   {
     id: "2026-11-26-doctor-performance",

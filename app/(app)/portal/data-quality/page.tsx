@@ -158,7 +158,7 @@ export default async function DataQualityPage() {
           </div>
         )}
         <p className="text-muted-foreground text-xs">
-          A visit with no matched patient waits in Portal → Sync Review until someone links it.
+          A visit with no matched patient waits in Portal → Sync review until someone links it.
         </p>
       </section>
 

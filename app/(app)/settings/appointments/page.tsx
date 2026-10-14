@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 
 import { AppointmentsSettings } from "./appointments-settings";
 
-export const metadata = { title: "Appointment settings" };
+export const metadata = { title: "Clinic and appointments" };
 
 export default async function AppointmentSettingsPage({
   searchParams,

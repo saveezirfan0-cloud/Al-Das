@@ -279,7 +279,7 @@ export function AppointmentDrawer({
                   <span>
                     {a.contact_name}{" "}
                     <span className="text-muted-foreground text-xs font-normal">
-                      (in Sync Review)
+                      (in Sync review)
                     </span>
                   </span>
                 )}

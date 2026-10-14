@@ -163,6 +163,24 @@ describe("active trail and tabs", () => {
     expect(activeTrail(admin, "/dashboard").item).toBe("/dashboard");
   });
 
+  it("highlights CRM, Branches on the Locations tab of Clinic and appointments, and Settings on its other tabs", () => {
+    const branches = "/settings/appointments?tab=locations";
+    for (const search of ["?tab=locations", "tab=locations", new URLSearchParams("tab=locations")])
+      expect(activeTrail(admin, "/settings/appointments", search)).toEqual({ item: branches });
+    // the same page on another tab, or with no tab, is the Settings entry
+    for (const search of ["?tab=services", "", undefined]) {
+      const t = activeTrail(admin, "/settings/appointments", search);
+      expect(t.item).toBe("/settings");
+      expect(t.page).toBe("/settings/appointments");
+    }
+    // extra parameters do not matter; the same parameter on another path does not match
+    expect(activeTrail(admin, "/settings/appointments", "?tab=locations&x=1").item).toBe(branches);
+    expect(activeTrail(admin, "/settings/teams", "?tab=locations").item).toBe("/settings/teams");
+    // and the area that owns the entry is CRM
+    const { top } = buildAreas(admin);
+    expect(top.find((a) => a.items.some((i) => i.href === branches))?.key).toBe("CRM");
+  });
+
   it("titles the top bar with the most specific item, not the first prefix", () => {
     const title = (path: string) => currentItem(admin, path)?.label;
     expect(title("/dashboard/management")).toBe("Management");

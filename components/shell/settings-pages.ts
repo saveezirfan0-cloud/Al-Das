@@ -199,9 +199,13 @@ export const SETTINGS_PAGES: readonly SettingsPage[] = [
 
   {
     href: "/settings/appointments",
-    label: "Appointment rules",
+    label: "Clinic and appointments",
     section: "Clinic operations",
     keywords: [
+      // the page's earlier names
+      "appointment rules",
+      "appointment settings",
+      "booking rules",
       "hours",
       "reminders",
       "slots",

@@ -113,7 +113,7 @@ docs and help guides updated, and the `nav-qa` agent run.
   - Enforcement in RLS and in the service-role loaders: front desk, appointments, enquiries, waiting list, handover notes
     and tasks.
   - The branch switcher in the rail and the phone drawer.
-  - `locations.branch_code`, set under Settings, Appointment rules, Locations (picker of the finance codes, unique, audited).
+  - `locations.branch_code`, set under Settings, Clinic and appointments, Branches (picker of the finance codes, unique, audited).
   - `location_id` on channels, teams, contacts (home branch), tasks and conversations; `channels.default_team_id`.
     New conversations take their number's branch and route to its team first.
   - Inbox: branch filter (follows the switcher; "All my branches" or one branch), branch chip on rows, counts per branch.

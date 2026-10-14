@@ -65,7 +65,7 @@ export function BranchWeek({
       <EmptyState
         icon={CalendarDays}
         title="No doctors work at this branch yet"
-        description="Add doctors and their working hours under Settings, Appointment rules."
+        description="Add doctors and their working hours under Settings, Clinic and appointments."
       />
     );
 
