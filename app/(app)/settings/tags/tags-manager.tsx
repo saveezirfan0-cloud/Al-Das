@@ -28,7 +28,7 @@ import { deleteTag, saveTag } from "./actions";
 
 type Row = { id: string; name: string; color: string; count: number };
 
-const USED_ON = { contact: "Contacts", enquiry: "Enquiries", portal: "Records" } as const;
+const USED_ON = { contact: "Patients", enquiry: "Enquiries", portal: "Records" } as const;
 
 export function TagsManager({
   tags,

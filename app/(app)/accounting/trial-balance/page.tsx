@@ -2,6 +2,7 @@ import { selectClass } from "@/components/finance/forms";
 import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Term } from "@/components/shell/term";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -130,8 +131,12 @@ export default async function TrialBalancePage({
                 <TableHead>Code</TableHead>
                 <TableHead>Account</TableHead>
                 <TableHead className="text-right">Opening</TableHead>
-                <TableHead className="text-right">Debit</TableHead>
-                <TableHead className="text-right">Credit</TableHead>
+                <TableHead className="text-right">
+                  <Term k="debit" />
+                </TableHead>
+                <TableHead className="text-right">
+                  <Term k="credit" />
+                </TableHead>
                 <TableHead className="text-right">Closing</TableHead>
               </TableRow>
             </TableHeader>

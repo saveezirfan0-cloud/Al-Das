@@ -8,7 +8,7 @@ export type PermissionKey = (typeof PERMISSIONS)[number]["key"];
 
 export const PERMISSION_GROUPS = [
   "Inbox",
-  "Contacts",
+  "Patients",
   "Enquiries & tasks",
   "Appointments",
   "Front desk",
@@ -41,13 +41,13 @@ export const PERMISSIONS = [
     label: "Send messages",
     description: "Reply to patients in the inbox",
   },
-  { key: "contacts.view", group: "Contacts", label: "View contacts" },
-  { key: "contacts.manage", group: "Contacts", label: "Create and edit contacts" },
+  { key: "contacts.view", group: "Patients", label: "View patients" },
+  { key: "contacts.manage", group: "Patients", label: "Create and edit patients" },
   {
     key: "contacts.export",
-    group: "Contacts",
-    label: "Export contacts",
-    description: "Download contact data as CSV",
+    group: "Patients",
+    label: "Export patients",
+    description: "Download patient records as CSV",
   },
   { key: "enquiries.view", group: "Enquiries & tasks", label: "View enquiries" },
   { key: "enquiries.manage", group: "Enquiries & tasks", label: "Create and move enquiries" },
@@ -117,7 +117,7 @@ export const PERMISSIONS = [
     group: "Media & documents",
     label: "View patient documents",
     description:
-      "Open referral letters, lab reports, insurance cards and consent forms on a patient. Patient health data: not included in contacts.view.",
+      "Open referral letters, lab reports, insurance cards and consent forms on a patient. Patient health data: not included in View patients.",
   },
   {
     key: "documents.manage",

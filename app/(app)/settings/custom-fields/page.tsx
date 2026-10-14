@@ -29,7 +29,7 @@ export default async function CustomFieldsPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Custom fields"
-        description="Extra contact fields shown in the contact drawer, the grid, filters, imports and exports."
+        description="Extra patient fields shown in the patient drawer, the grid, filters, imports and exports."
       >
         <CustomFieldDialog mode="create" />
       </PageHeader>

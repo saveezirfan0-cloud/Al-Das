@@ -381,9 +381,9 @@ export async function saveSpecialist(
   if (!usr.data) return { ok: false, error: "That user is not in this workspace." };
   const allowedLocations = new Set(location_ids);
   if (working_hours.some((h) => !allowedLocations.has(h.location_id)))
-    return { ok: false, error: "Working hours can only be set for the specialist's locations." };
+    return { ok: false, error: "Working hours can only be set for the doctor's branches." };
   if (recurring_blocks.some((b) => b.location_id && !allowedLocations.has(b.location_id)))
-    return { ok: false, error: "Weekly blocks can only be set for the specialist's locations." };
+    return { ok: false, error: "Weekly blocks can only be set for the doctor's branches." };
 
   const values = {
     name: row.name,
@@ -403,7 +403,7 @@ export async function saveSpecialist(
       .eq("id", id)
       .eq("org_id", member.orgId)
       .maybeSingle();
-    if (!own) return { ok: false, error: "Specialist not found." };
+    if (!own) return { ok: false, error: "Doctor not found." };
   }
   let specialistId = id ?? null;
   if (specialistId) {
@@ -412,14 +412,14 @@ export async function saveSpecialist(
       .update(values)
       .eq("id", specialistId)
       .eq("org_id", member.orgId);
-    if (error) return fail(error, "Another specialist already has that Unite doctor id.");
+    if (error) return fail(error, "Another doctor already has that Unite doctor id.");
   } else {
     const { data, error } = await admin
       .from("specialists")
       .insert({ ...values, org_id: member.orgId })
       .select("id")
       .single();
-    if (error) return fail(error, "Another specialist already has that Unite doctor id.");
+    if (error) return fail(error, "Another doctor already has that Unite doctor id.");
     specialistId = data.id;
   }
 
@@ -481,19 +481,19 @@ export async function saveSpecialist(
     } as Json,
   });
   refresh();
-  return { ok: true, message: "Specialist saved." };
+  return { ok: true, message: "Doctor saved." };
 }
 
 export async function deleteSpecialist(id: string): Promise<ActionResult> {
   const member = await requirePerm("settings.manage");
-  if (!uuid.safeParse(id).success) return { ok: false, error: "Invalid specialist." };
+  if (!uuid.safeParse(id).success) return { ok: false, error: "Invalid doctor." };
   const admin = createAdminClient();
   const { error } = await admin
     .from("specialists")
     .delete()
     .eq("id", id)
     .eq("org_id", member.orgId);
-  if (error) return { ok: false, error: "Could not delete the specialist." };
+  if (error) return { ok: false, error: "Could not delete the doctor." };
   await recordAudit(admin, {
     orgId: member.orgId,
     userId: member.userId,
@@ -502,7 +502,7 @@ export async function deleteSpecialist(id: string): Promise<ActionResult> {
     entityId: id,
   });
   refresh();
-  return { ok: true, message: "Specialist deleted." };
+  return { ok: true, message: "Doctor deleted." };
 }
 
 // --- Booking rules & template mapping ---------------------------------------

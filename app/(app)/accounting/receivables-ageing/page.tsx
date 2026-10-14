@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { PageHeader } from "@/components/shell/page-header";
+import { Term } from "@/components/shell/term";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -92,7 +93,9 @@ export default async function ReceivablesAgeingPage({
                     {b.label}
                   </TableHead>
                 ))}
-                <TableHead className="text-right">On account</TableHead>
+                <TableHead className="text-right">
+                  <Term k="on-account" />
+                </TableHead>
                 <TableHead className="text-right">Total</TableHead>
               </TableRow>
             </TableHeader>

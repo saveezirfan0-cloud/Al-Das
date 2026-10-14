@@ -149,7 +149,7 @@ export const GUIDES: readonly Guide[] = [
   },
   {
     id: "contacts",
-    title: "Contacts",
+    title: "Patients",
     pages: ["/contacts"],
     purpose: "Every patient and enquirer in one searchable list.",
     steps: [

@@ -48,7 +48,7 @@ const REASONS: Record<string, string> = {
   multiple_name_dob_matches: "More than one patient has this name and date of birth",
   multiple_matches: "More than one patient matches",
   appointment_contact_not_found: "No patient in Pulse for this appointment",
-  appointment_slot_taken: "The specialist is busy at this time in Pulse",
+  appointment_slot_taken: "The doctor is busy at this time in Pulse",
 };
 
 function ReviewCard({ item, canResolve }: { item: ReviewItem; canResolve: boolean }) {

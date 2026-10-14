@@ -762,7 +762,7 @@ export function NewCampaignForm({
                   </SelectContent>
                 </Select>
                 <p className="text-muted-foreground text-xs">
-                  Build segments in Contacts. The audience is frozen when you start the campaign.
+                  Build segments in Patients. The audience is frozen when you start the campaign.
                 </p>
               </div>
             ) : (

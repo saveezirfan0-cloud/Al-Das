@@ -1,3 +1,4 @@
+import { Term } from "@/components/shell/term";
 import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -115,7 +116,9 @@ export default async function DepreciationPage({
                   <TableHead>Asset</TableHead>
                   <TableHead>Class</TableHead>
                   <TableHead>Branch</TableHead>
-                  <TableHead className="text-right">Depreciation</TableHead>
+                  <TableHead className="text-right">
+                    <Term k="depreciation" />
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

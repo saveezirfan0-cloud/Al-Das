@@ -111,7 +111,7 @@ export const CLIPS: readonly Clip[] = [
   },
   {
     id: "contacts",
-    title: "Patients and the contact record",
+    title: "Patients and the patient record",
     summary: "Searching, editing, tags, merging duplicates and consent flags.",
     minutes: 5,
     roles: ["Receptionist", "Agent", "Manager"],
