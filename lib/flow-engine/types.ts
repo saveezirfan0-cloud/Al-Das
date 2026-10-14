@@ -9,6 +9,15 @@ import { z } from "zod";
 export const MAX_STEPS = 200;
 export const MAX_FLOW_DEPTH = 3;
 
+/**
+ * The idempotency key of one flow step (run id + step seq; flow_steps is unique on both, and a replay reuses the same row).
+ * Every message a step queues carries it (messages.flow_step_key, unique), so a step replayed after a crash between
+ * "queued" and "step recorded" gets its first message back instead of sending a second copy.
+ */
+export function flowStepKey(runId: string, seq: number): string {
+  return `${runId}:${seq}`;
+}
+
 export const NODE_TYPES = [
   "trigger",
   // messaging

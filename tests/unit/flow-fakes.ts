@@ -259,7 +259,11 @@ export class FakeStore implements FlowStore {
 }
 
 export class FakeActions implements FlowActions {
-  sent: Array<{ spec: SendSpec; body: string | null }> = [];
+  sent: Array<{ spec: SendSpec; body: string | null; stepKey: string }> = [];
+  /** Every send call, including the ones a step key answered with an earlier message (a replay). */
+  sendCalls: string[] = [];
+  /** Mirrors messages.flow_step_key (unique): the same step key returns the message it queued first. */
+  private byStepKey = new Map<string, string>();
   assigned: Array<{ type: string; id?: string }> = [];
   closed = 0;
   comments: string[] = [];
@@ -273,9 +277,14 @@ export class FakeActions implements FlowActions {
   }> = [];
   httpResponse: { status: number; body: unknown } = { status: 200, body: { ok: true } };
 
-  async send(_run: RunRecord, spec: SendSpec, body: string | null) {
-    this.sent.push({ spec, body });
-    return { messageId: `m${this.sent.length}` };
+  async send(_run: RunRecord, spec: SendSpec, body: string | null, opts: { stepKey: string }) {
+    this.sendCalls.push(opts.stepKey);
+    const earlier = this.byStepKey.get(opts.stepKey);
+    if (earlier) return { messageId: earlier };
+    this.sent.push({ spec, body, stepKey: opts.stepKey });
+    const messageId = `m${this.sent.length}`;
+    this.byStepKey.set(opts.stepKey, messageId);
+    return { messageId };
   }
   async assign(_run: RunRecord, target: { type: string; id?: string }) {
     this.assigned.push(target);

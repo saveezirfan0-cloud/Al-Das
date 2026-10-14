@@ -107,6 +107,12 @@ export type QueueOutboundInput = {
   retryOf?: { messageId: string; attempt: number; originAt: string };
   /** Hold the queue message back this long (durable pgmq visibility delay). */
   delaySeconds?: number;
+  /**
+   * The flow step that sends this message (`flowStepKey()` in lib/flow-engine/types.ts: run id and step seq).
+   * messages.flow_step_key is unique, so a replayed step (crash between "queued" and "step recorded") gets the message it
+   * already queued back instead of a copy.
+   */
+  flowStepKey?: string;
 };
 
 /** The failed message already has its retry (another worker or listener queued it first). */
@@ -133,6 +139,7 @@ export async function queueOutbound(
       body: input.body,
       payload: payload as unknown as NonNullable<Json>,
       retry_of_message_id: input.retryOf?.messageId ?? null,
+      flow_step_key: input.flowStepKey ?? null,
       media_path: spec.type === "media" ? spec.media_path : null,
       media_mime: spec.type === "media" ? spec.mime_type : null,
       media_filename: spec.type === "media" ? (spec.filename ?? null) : null,
@@ -145,8 +152,16 @@ export async function queueOutbound(
     })
     .select("*")
     .single();
+  const queue = input.priority === false ? "outbound" : "outbound_priority";
   if (error) {
     if (input.retryOf && error.code === "23505") throw new RetryExistsError("retry already queued");
+    if (input.flowStepKey && error.code === "23505") {
+      const existing = await flowStepMessage(admin, input.orgId, input.flowStepKey);
+      if (existing) {
+        await requeueIfLost(admin, existing, queue);
+        return existing;
+      }
+    }
     throw new Error(`queueOutbound: ${error.message}`);
   }
 
@@ -165,11 +180,45 @@ export async function queueOutbound(
       .eq("id", input.conversationId);
   }
 
-  const queue = input.priority === false ? "outbound" : "outbound_priority";
   if (input.delaySeconds)
     await enqueue(queue, { message_id: message.id }, { delaySeconds: input.delaySeconds });
   else await enqueue(queue, { message_id: message.id });
   return message;
+}
+
+/** The message a flow step already queued (messages.flow_step_key), or null. */
+async function flowStepMessage(
+  admin: AdminClient,
+  orgId: string,
+  key: string,
+): Promise<Tables<"messages"> | null> {
+  const { data, error } = await admin
+    .from("messages")
+    .select("*")
+    .eq("org_id", orgId)
+    .eq("flow_step_key", key)
+    .maybeSingle();
+  if (error) throw new Error(`queueOutbound: ${error.message}`);
+  return data;
+}
+
+/**
+ * A replayed flow step found its message. If the first attempt stopped between the insert and the enqueue, the row is still
+ * 'queued' with no outbound job: requeue_lost_flow_message claims it (once, on the locked row) and queues it in the same
+ * transaction. A row that is waiting in a queue, sending, sent, failed or already re-queued is left alone, so a message is
+ * never queued twice.
+ */
+async function requeueIfLost(
+  admin: AdminClient,
+  message: Tables<"messages">,
+  queue: "outbound" | "outbound_priority",
+): Promise<void> {
+  if (message.status !== "queued" || message.wa_message_id) return;
+  const { error } = await admin.rpc("requeue_lost_flow_message", {
+    p_message_id: message.id,
+    p_queue: queue,
+  });
+  if (error) throw new Error(`queueOutbound: ${error.message}`);
 }
 
 /** Internal note (Comment): stored, never sent. Mentions are created by the caller. */
