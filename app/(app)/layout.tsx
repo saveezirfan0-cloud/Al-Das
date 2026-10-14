@@ -143,7 +143,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </div>
           </div>
           <MobileTabs items={items} />
-          <CommandPalette links={quickLinks} />
+          <CommandPalette
+            links={quickLinks}
+            searchRecords={
+              can(member, "contacts.view") ||
+              can(member, "enquiries.view") ||
+              can(member, "tasks.view")
+            }
+          />
         </NavBadgesProvider>
       </ShellDataProvider>
     </TooltipProvider>
