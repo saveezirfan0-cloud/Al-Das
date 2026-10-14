@@ -12198,6 +12198,8 @@ export type Database = {
           forecast_horizon_weeks: number;
           forecast_min_history: number;
           forecast_tail_weeks: number;
+          ins_recon_grace_days: number;
+          ins_recon_tolerance: number;
           lab_date_window_days: number;
           lab_price_tolerance: number;
           org_id: string;
@@ -12285,6 +12287,8 @@ export type Database = {
           forecast_horizon_weeks?: number;
           forecast_min_history?: number;
           forecast_tail_weeks?: number;
+          ins_recon_grace_days?: number;
+          ins_recon_tolerance?: number;
           lab_date_window_days?: number;
           lab_price_tolerance?: number;
           org_id: string;
@@ -12371,6 +12375,8 @@ export type Database = {
           forecast_horizon_weeks?: number;
           forecast_min_history?: number;
           forecast_tail_weeks?: number;
+          ins_recon_grace_days?: number;
+          ins_recon_tolerance?: number;
           lab_date_window_days?: number;
           lab_price_tolerance?: number;
           org_id?: string;
@@ -24654,6 +24660,10 @@ export type Database = {
       };
       fin_forecast_history: { Args: { p_mature_days?: number; p_org_id: string }; Returns: Json };
       fin_forecast_outstanding: { Args: { p_org_id: string }; Returns: Json };
+      fin_insurance_billing_recon_inputs: {
+        Args: { p_branch?: string; p_branches?: string[]; p_month: string; p_org_id: string };
+        Returns: Json;
+      };
       fin_insurance_overview: {
         Args: { p_from: string; p_org_id: string; p_to: string };
         Returns: Json;

@@ -19,6 +19,7 @@ import { DEFAULT_LATE_INVOICE_DAYS } from "@/lib/finance/collections";
 import { DEFAULT_PERF_SETTINGS } from "@/lib/finance/doctor-performance";
 import { monthOf, targetFromRow } from "@/lib/finance/flash";
 import { monthTitle } from "@/lib/finance/flash-xlsx";
+import { DEFAULT_RECON_SETTINGS } from "@/lib/finance/insurance-billing";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import {
@@ -26,6 +27,7 @@ import {
   DisplayForm,
   EditLineButton,
   DataQualityForm,
+  InsuranceReconForm,
   PerfBandsForm,
   NewLineButton,
   TargetsForm,
@@ -60,7 +62,7 @@ export default async function FlashSettingsPage({
     admin
       .from("fin_ref_finance_settings")
       .select(
-        "flash_share_basis, flash_top_doctors, perf_arpp_target, perf_band_near, perf_band_moderate, dq_late_invoice_days",
+        "flash_share_basis, flash_top_doctors, perf_arpp_target, perf_band_near, perf_band_moderate, dq_late_invoice_days, ins_recon_tolerance, ins_recon_grace_days",
       )
       .eq("org_id", member.orgId)
       .maybeSingle(),
@@ -95,9 +97,10 @@ export default async function FlashSettingsPage({
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           <p className="text-muted-foreground text-sm">
-            A line matches invoices by branch code or by department. A department line (Chiro) takes its invoices from
-            every branch. Lines not counted in the main total are shown separately, as Chiro and the leased Dental unit
-            are on the current sheets. With no lines at all, each branch code is its own line.
+            A line matches invoices by branch code or by department. A department line (Chiro) takes
+            its invoices from every branch. Lines not counted in the main total are shown
+            separately, as Chiro and the leased Dental unit are on the current sheets. With no lines
+            at all, each branch code is its own line.
           </p>
           <Table>
             <TableHeader>
@@ -131,7 +134,8 @@ export default async function FlashSettingsPage({
                       )}
                     </TableCell>
                     <TableCell className="text-xs">
-                      {l.matchKind === "department" ? "Department" : "Branch"}: {l.matchValues.join(", ")}
+                      {l.matchKind === "department" ? "Department" : "Branch"}:{" "}
+                      {l.matchValues.join(", ")}
                     </TableCell>
                     <TableCell>{l.inCore ? "Yes" : "Separate"}</TableCell>
                     <TableCell className="text-right">
@@ -208,7 +212,21 @@ export default async function FlashSettingsPage({
           <CardTitle className="text-base">Collections: data quality</CardTitle>
         </CardHeader>
         <CardContent>
-          <DataQualityForm lateInvoiceDays={settings?.dq_late_invoice_days ?? DEFAULT_LATE_INVOICE_DAYS} />
+          <DataQualityForm
+            lateInvoiceDays={settings?.dq_late_invoice_days ?? DEFAULT_LATE_INVOICE_DAYS}
+          />
+        </CardContent>
+      </Card>
+
+      <Card id="insurance-billing">
+        <CardHeader>
+          <CardTitle className="text-base">Insurance billed vs claimed</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <InsuranceReconForm
+            tolerance={Number(settings?.ins_recon_tolerance ?? DEFAULT_RECON_SETTINGS.tolerance)}
+            graceDays={Number(settings?.ins_recon_grace_days ?? DEFAULT_RECON_SETTINGS.graceDays)}
+          />
         </CardContent>
       </Card>
     </div>

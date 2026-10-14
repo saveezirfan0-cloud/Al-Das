@@ -198,6 +198,13 @@ describe("Finance navigation", () => {
       expect(hrefs(member(role(name))), name).not.toContain("/finance/insurance");
   });
 
+  it("insurance billed vs claimed needs claim access: Insurance, Finance and the CEO, not Billing or the Medical Director", () => {
+    for (const r of ["Insurance", "Finance", "CEO"])
+      expect(hrefs(member(role(r))), r).toContain("/finance/insurance-billing");
+    for (const r of ["Billing", "Medical Director", "Cost / Payroll"])
+      expect(hrefs(member(role(r))), r).not.toContain("/finance/insurance-billing");
+  });
+
   it("insurance follow-up and receivables by age need claim access: Insurance, Finance and the CEO, not Billing or the Medical Director", () => {
     for (const r of ["Insurance", "Finance", "CEO"]) {
       expect(hrefs(member(role(r))), r).toContain("/finance/followup");

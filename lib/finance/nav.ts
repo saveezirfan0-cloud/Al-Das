@@ -144,6 +144,20 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
     permissions: ["finance.claims.view"],
   },
   {
+    href: "/finance/insurance-billing",
+    label: "Billed vs claimed",
+    section: "Billing and claims",
+    permissions: ["finance.claims.view"],
+    keywords: [
+      "insurance billing",
+      "billed not submitted",
+      "unsubmitted claims",
+      "claim reconciliation",
+      "diligence vs unite",
+      "money at risk",
+    ],
+  },
+  {
     href: "/finance/upload",
     label: "Uploads (insurance, Unite)",
     section: "Billing and claims",

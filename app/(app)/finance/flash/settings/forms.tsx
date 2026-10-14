@@ -7,6 +7,7 @@ import {
   copyPreviousTargets,
   deleteReportLine,
   saveDataQualitySettings,
+  saveInsuranceRecon,
   saveFlashDisplay,
   savePerfBands,
   saveReportLine,
@@ -40,13 +41,23 @@ function LineFields({ line }: { line?: LineView }) {
   return (
     <>
       <Field label="Code" hint="Capital letters, digits or _ (for example PALM, CHIRO).">
-        <Input name="code" defaultValue={line?.code ?? ""} readOnly={!!line} maxLength={12} required />
+        <Input
+          name="code"
+          defaultValue={line?.code ?? ""}
+          readOnly={!!line}
+          maxLength={12}
+          required
+        />
       </Field>
       <Field label="Name on the report">
         <Input name="label" defaultValue={line?.label ?? ""} maxLength={60} required />
       </Field>
       <Field label="Match invoices by">
-        <select name="match_kind" defaultValue={line?.matchKind ?? "branch"} className={selectClass}>
+        <select
+          name="match_kind"
+          defaultValue={line?.matchKind ?? "branch"}
+          className={selectClass}
+        >
           <option value="branch">Branch code</option>
           <option value="department">Department (wins over branch)</option>
         </select>
@@ -161,8 +172,8 @@ export function TargetsForm({
         <Input name="total_arpp" inputMode="decimal" defaultValue={total?.arpp ?? ""} />
       </Field>
       <p className="text-muted-foreground text-xs">
-        Targets are daily rates. The month-to-date target is the daily target times the calendar days elapsed. Leave
-        a box blank for no target.
+        Targets are daily rates. The month-to-date target is the daily target times the calendar
+        days elapsed. Leave a box blank for no target.
       </p>
     </ActionForm>
   );
@@ -170,11 +181,19 @@ export function TargetsForm({
 
 export function CopyTargetsButton({ month }: { month: string }) {
   return (
-    <RunButton action={() => copyPreviousTargets({ month })}>Copy last month&apos;s targets</RunButton>
+    <RunButton action={() => copyPreviousTargets({ month })}>
+      Copy last month&apos;s targets
+    </RunButton>
   );
 }
 
-export function DisplayForm({ shareBasis, topDoctors }: { shareBasis: string; topDoctors: number }) {
+export function DisplayForm({
+  shareBasis,
+  topDoctors,
+}: {
+  shareBasis: string;
+  topDoctors: number;
+}) {
   return (
     <ActionForm action={saveFlashDisplay} submitLabel="Save">
       <div className="grid gap-3 sm:grid-cols-2">
@@ -193,7 +212,15 @@ export function DisplayForm({ shareBasis, topDoctors }: { shareBasis: string; to
 }
 
 /** Doctor performance (Phase 23B): the revenue-per-patient target and the lower edges of the two middle bands. */
-export function PerfBandsForm({ target, near, moderate }: { target: number; near: number; moderate: number }) {
+export function PerfBandsForm({
+  target,
+  near,
+  moderate,
+}: {
+  target: number;
+  near: number;
+  moderate: number;
+}) {
   return (
     <ActionForm action={savePerfBands} submitLabel="Save target and bands">
       <div className="grid gap-3 sm:grid-cols-3">
@@ -208,9 +235,10 @@ export function PerfBandsForm({ target, near, moderate }: { target: number; near
         </Field>
       </div>
       <p className="text-muted-foreground text-xs">
-        Revenue per patient at or above the target is Achieved; from Near Target up to the target is Near Target; from
-        Moderate up to Near Target is Moderate; below Moderate is Below Target. Each band starts exactly at its number,
-        so nothing falls between bands. Expected revenue is patients times the target.
+        Revenue per patient at or above the target is Achieved; from Near Target up to the target is
+        Near Target; from Moderate up to Near Target is Moderate; below Moderate is Below Target.
+        Each band starts exactly at its number, so nothing falls between bands. Expected revenue is
+        patients times the target.
       </p>
     </ActionForm>
   );
@@ -222,12 +250,48 @@ export function DataQualityForm({ lateInvoiceDays }: { lateInvoiceDays: number }
     <ActionForm action={saveDataQualitySettings} submitLabel="Save late invoice days">
       <div className="grid gap-3 sm:grid-cols-3">
         <Field label="Late invoice: more than this many days after the visit">
-          <Input name="dq_late_invoice_days" inputMode="numeric" defaultValue={lateInvoiceDays} required />
+          <Input
+            name="dq_late_invoice_days"
+            inputMode="numeric"
+            defaultValue={lateInvoiceDays}
+            required
+          />
         </Field>
       </div>
       <p className="text-muted-foreground text-xs">
-        Used by Collections and data quality: an invoice raised more than this many days after the visit (0 to 60) is
-        listed as a late invoice for review.
+        Used by Collections and data quality: an invoice raised more than this many days after the
+        visit (0 to 60) is listed as a late invoice for review.
+      </p>
+    </ActionForm>
+  );
+}
+
+export function InsuranceReconForm({
+  tolerance,
+  graceDays,
+}: {
+  tolerance: number;
+  graceDays: number;
+}) {
+  return (
+    <ActionForm action={saveInsuranceRecon} submitLabel="Save tolerance and grace days">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label="Difference tolerance (AED)">
+          <Input name="ins_recon_tolerance" inputMode="decimal" defaultValue={tolerance} required />
+        </Field>
+        <Field label="Grace days before at risk">
+          <Input
+            name="ins_recon_grace_days"
+            inputMode="numeric"
+            defaultValue={graceDays}
+            required
+          />
+        </Field>
+      </div>
+      <p className="text-muted-foreground text-xs">
+        A billed invoice whose submitted amount differs by more than the tolerance, either way, is
+        flagged. A billed invoice with no claim in Diligence counts as at risk once more than the
+        grace days have passed since its report date.
       </p>
     </ActionForm>
   );

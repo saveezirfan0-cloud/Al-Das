@@ -6,12 +6,19 @@ import { z } from "zod";
 import { recordAudit } from "@/lib/audit";
 import { can } from "@/lib/auth/can";
 import { requireMember } from "@/lib/auth/session";
-import { DENIED, dbMessage, fail, firstIssue, type ActionResult } from "@/lib/finance/action-support";
+import {
+  DENIED,
+  dbMessage,
+  fail,
+  firstIssue,
+  type ActionResult,
+} from "@/lib/finance/action-support";
 import { dqSettingsSchema } from "@/lib/finance/collections";
 import { perfSettingsSchema } from "@/lib/finance/doctor-performance";
 import { LINE_CODE_RE, monthOf, parseTargetInput } from "@/lib/finance/flash";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/types";
+import { reconSettingsSchema } from "@/lib/finance/insurance-billing";
 
 /**
  * Reporting lines, targets and display settings for the flash report. Everything here needs finance.targets.manage;
@@ -43,7 +50,14 @@ const lineSchema = z.object({
   match_values: z
     .string()
     .transform((v) =>
-      [...new Set(v.split(",").map((x) => x.trim()).filter((x) => x !== ""))].map((x) => x.slice(0, 80)),
+      [
+        ...new Set(
+          v
+            .split(",")
+            .map((x) => x.trim())
+            .filter((x) => x !== ""),
+        ),
+      ].map((x) => x.slice(0, 80)),
     )
     .refine((v) => v.length >= 1 && v.length <= 20, {
       message: "List 1 to 20 branch codes or department names, separated by commas.",
@@ -76,7 +90,9 @@ export async function saveReportLine(values: Record<string, string>): Promise<Ac
     sort_order: v.sort_order,
     created_by: member.userId,
   };
-  const { error } = await admin.from("fin_ref_report_lines").upsert(row, { onConflict: "org_id,code" });
+  const { error } = await admin
+    .from("fin_ref_report_lines")
+    .upsert(row, { onConflict: "org_id,code" });
   if (error) return fail(dbMessage(error, "Could not save the line."));
   await recordAudit(admin, {
     orgId: member.orgId,
@@ -84,7 +100,13 @@ export async function saveReportLine(values: Record<string, string>): Promise<Ac
     action: "finance.flash.line_saved",
     entity: "fin_ref_report_lines",
     entityId: member.orgId,
-    diff: { code: v.code, match_kind: v.match_kind, values: v.match_values.length, in_core: row.in_core, active: row.active },
+    diff: {
+      code: v.code,
+      match_kind: v.match_kind,
+      values: v.match_values.length,
+      in_core: row.in_core,
+      active: row.active,
+    },
   });
   refresh();
   return { ok: true, message: `Line ${v.code} saved.` };
@@ -124,13 +146,23 @@ export async function saveTargets(values: Record<string, string>): Promise<Actio
   const month = monthOf(`${(values.month ?? "").slice(0, 7)}-01`);
   if (!month) return fail("Choose a month.");
 
-  type Row = { line_code: string | null; daily_revenue: number | null; daily_patients: number | null; arpp: number | null };
+  type Row = {
+    line_code: string | null;
+    daily_revenue: number | null;
+    daily_patients: number | null;
+    arpp: number | null;
+  };
   const byLine = new Map<string, Row>();
   try {
     for (const [k, raw] of Object.entries(values)) {
       const m = /^(rev|pat)_([A-Z0-9_]{1,12})$/.exec(k);
       if (!m) continue;
-      const row = byLine.get(m[2]) ?? { line_code: m[2], daily_revenue: null, daily_patients: null, arpp: null };
+      const row = byLine.get(m[2]) ?? {
+        line_code: m[2],
+        daily_revenue: null,
+        daily_patients: null,
+        arpp: null,
+      };
       if (m[1] === "rev") row.daily_revenue = parseTargetInput(raw);
       else row.daily_patients = parseTargetInput(raw, 100_000);
       byLine.set(m[2], row);
@@ -179,7 +211,12 @@ export async function copyPreviousTargets(values: Record<string, string>): Promi
   const previous = d.toISOString().slice(0, 10);
   const admin = createAdminClient(member.userId);
   const [{ data: existing }, { data: prev, error }] = await Promise.all([
-    admin.from("fin_ref_revenue_targets").select("id").eq("org_id", member.orgId).eq("month", month).limit(1),
+    admin
+      .from("fin_ref_revenue_targets")
+      .select("id")
+      .eq("org_id", member.orgId)
+      .eq("month", month)
+      .limit(1),
     admin
       .from("fin_ref_revenue_targets")
       .select("line_code, daily_revenue, daily_patients, arpp")
@@ -187,7 +224,8 @@ export async function copyPreviousTargets(values: Record<string, string>): Promi
       .eq("month", previous),
   ]);
   if (error) return fail(dbMessage(error, "Could not read last month's targets."));
-  if ((existing ?? []).length > 0) return fail("This month already has targets; edit them instead.");
+  if ((existing ?? []).length > 0)
+    return fail("This month already has targets; edit them instead.");
   if ((prev ?? []).length === 0) return fail("Last month has no targets to copy.");
   const { error: e2 } = await admin.rpc("fin_flash_set_targets", {
     p_org_id: member.orgId,
@@ -233,7 +271,9 @@ export async function savePerfBands(values: Record<string, string>): Promise<Act
 }
 
 /** Collections data quality (Phase 23D): an invoice raised more than this many days after the visit is flagged. */
-export async function saveDataQualitySettings(values: Record<string, string>): Promise<ActionResult> {
+export async function saveDataQualitySettings(
+  values: Record<string, string>,
+): Promise<ActionResult> {
   const member = await gate();
   if (!member) return fail(DENIED);
   const parsed = dqSettingsSchema.safeParse(values);
@@ -257,7 +297,9 @@ export async function saveDataQualitySettings(values: Record<string, string>): P
 }
 
 const displaySchema = z.object({
-  flash_share_basis: z.enum(["section", "all"], { message: "Choose how doctor shares are worked out." }),
+  flash_share_basis: z.enum(["section", "all"], {
+    message: "Choose how doctor shares are worked out.",
+  }),
   flash_top_doctors: z.coerce
     .number({ message: "Top doctors must be a number." })
     .int()
@@ -285,4 +327,28 @@ export async function saveFlashDisplay(values: Record<string, string>): Promise<
   });
   refresh();
   return { ok: true, message: "Saved." };
+}
+
+/** Insurance billed vs claimed (Phase 23D-2): the difference tolerance (AED) and the grace days before "at risk". */
+export async function saveInsuranceRecon(values: Record<string, string>): Promise<ActionResult> {
+  const member = await gate();
+  if (!member) return fail(DENIED);
+  const parsed = reconSettingsSchema.safeParse(values);
+  if (!parsed.success) return fail(firstIssue(parsed.error));
+  const admin = createAdminClient(member.userId);
+  const { error } = await admin
+    .from("fin_ref_finance_settings")
+    .upsert({ org_id: member.orgId, ...parsed.data }, { onConflict: "org_id" });
+  if (error) return fail(dbMessage(error, "Could not save the tolerance and grace days."));
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "finance.insurance_billing.settings_saved",
+    entity: "fin_ref_finance_settings",
+    entityId: member.orgId,
+    diff: parsed.data,
+  });
+  refresh();
+  revalidatePath("/finance/insurance-billing");
+  return { ok: true, message: "Tolerance and grace days saved." };
 }
