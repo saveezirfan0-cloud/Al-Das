@@ -55,7 +55,6 @@ import {
   setCheckin,
 } from "./actions";
 import { ArrivalChecks } from "./arrival-checks";
-import { BookDrawer } from "./book-drawer";
 import { PatientSearch, type FoundPatient } from "./patient-search";
 import type { DeskCan, DeskData, DeskOptions } from "./types";
 import { useVisitClose } from "./visit-close";
@@ -77,7 +76,12 @@ const PatientCardView = dynamic(() => import("./patient-card").then((m) => m.Pat
   loading: () => <p className="text-muted-foreground text-sm">Loading the patient card…</p>,
 });
 
-type Filter = "all" | "expected" | "in_clinic" | "finished" | "no_show";
+// Phase E: the Book drawer loads when it is first opened, not with the board.
+const BookDrawer = dynamic(() => import("./book-drawer").then((m) => m.BookDrawer), {
+  ssr: false,
+});
+
+type Filter ="all" | "expected" | "in_clinic" | "finished" | "no_show";
 
 const FILTERS: Array<{ key: Filter; label: string }> = [
   { key: "all", label: "All" },
@@ -136,6 +140,7 @@ export function FrontDeskWorkspace({
   const [cardLoading, setCardLoading] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [bookOpen, setBookOpen] = useState(false);
+  const [bookMounted, setBookMounted] = useState(false);
   const [bookFor, setBookFor] = useState<FoundPatient | null>(null);
   const [checks, setChecks] = useState<Record<string, CheckLine[]>>({});
   const [checksLoading, setChecksLoading] = useState(false);
@@ -148,6 +153,7 @@ export function FrontDeskWorkspace({
 
   function openBook(p: FoundPatient | null) {
     setBookFor(p);
+    setBookMounted(true);
     setBookOpen(true);
   }
 
@@ -397,15 +403,17 @@ export function FrontDeskWorkspace({
             </div>
           )}
           {visitClose.dialog}
-          <BookDrawer
-            open={bookOpen}
-            onOpenChange={setBookOpen}
-            options={options}
-            patient={bookFor}
-            initialDate={data.date}
-            today={data.today}
-            onBooked={() => refresh()}
-          />
+          {bookMounted && (
+            <BookDrawer
+              open={bookOpen}
+              onOpenChange={setBookOpen}
+              options={options}
+              patient={bookFor}
+              initialDate={data.date}
+              today={data.today}
+              onBooked={() => refresh()}
+            />
+          )}
         </section>
 
         <aside className="min-w-0" aria-label="Patient, slots, waiting list and notes">

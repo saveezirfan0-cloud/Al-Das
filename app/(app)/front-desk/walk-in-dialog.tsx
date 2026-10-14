@@ -24,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { walkInPhoneDecision } from "@/lib/front-desk/walk-in";
+import { walkInPhoneDecision } from "@/lib/front-desk/walk-in-phone";
 
 import { registerWalkIn } from "./actions";
 import type { DeskOptions } from "./types";
