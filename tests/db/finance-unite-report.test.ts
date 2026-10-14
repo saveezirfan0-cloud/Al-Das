@@ -95,6 +95,9 @@ describe.skipIf(!TEST_DATABASE_URL)("Unite collection report upload (Phase 23A)"
     ).then((r) => r.rows[0].n as number);
 
   let first: { id: string };
+  // The workbook builder stamps the current time into the file, so two builds a second apart hash differently:
+  // "the same file" is the first upload's own bytes.
+  let firstFile: Awaited<ReturnType<typeof parse>>;
 
   beforeAll(async () => {
     c = await connect();
@@ -134,7 +137,7 @@ describe.skipIf(!TEST_DATABASE_URL)("Unite collection report upload (Phase 23A)"
   });
 
   it("stages a reconciled upload atomically, rows not yet current", async () => {
-    const p = await parse();
+    const p = (firstFile = await parse());
     const s = await stage(p);
     expect(s).toMatchObject({
       existing: false,
@@ -159,8 +162,7 @@ describe.skipIf(!TEST_DATABASE_URL)("Unite collection report upload (Phase 23A)"
   });
 
   it("re-staging the same file returns the existing upload unchanged", async () => {
-    const p = await parse();
-    const again = await stage(p);
+    const again = await stage(firstFile);
     expect(again).toMatchObject({
       existing: true,
       upload_id: first.id,
