@@ -131,6 +131,24 @@ docs and help guides updated, and the `nav-qa` agent run.
 - **Optional.** Enforce branch scope in RLS (`app.location_visible_to()`, like `enquiry_scope`) once OQ-119 is answered.
 
 ### Phase C — Organisation: doctors and staff in CRM (2 weeks)
+**Status (14 Oct 2026): first slice built** (migration `20261202000100_organisation.sql`, paste file `81_organisation.sql`).
+- Built:
+  - Doctors directory (`/doctors`): specialty, branches, services, licence number/authority/expiry with a warning badge,
+    linked user, working hours per branch, upcoming time off, today's count, calendar link
+    (`/appointments?view=calendar&specialist=…`), performance and revenue-share links for finance holders. Licence and
+    profile fields editable with `settings.manage` or `hr.manage`.
+  - Staff (`/staff`): HR record without pay, duties checklist, shifts tab, history, archive and restore; `hr.view` /
+    `hr.manage`; branch rule on the home branch.
+  - Rota (`/staff/rota`): week grid per branch, add/edit/remove shifts, overlaps refused by the database.
+  - Daily visa and licence reminders (`staff.document_expiring`, 60 days by default, set on the Staff page).
+  - Doctor and HR roles; My day (`/my-day`) with the Doctor role landing there.
+- Still to do in this phase:
+  - Staff documents in a private bucket (same rules as patient documents).
+  - Doctor photo in the directory.
+  - Feeding the rota into the front-desk staffing view and the escalation on-call list.
+  - Moving Teams and Branches pages from Settings into CRM.
+  - Nurse preset; follow-up count on My day.
+
 - **Doctors.**
   - Directory page built on `specialists`: photo, specialty, branches and days, services, working hours, linked
     Pulse user, licence number and expiry (DHA), upcoming leave.

@@ -24,6 +24,9 @@ import {
   LayoutGrid,
   Megaphone,
   Settings,
+  Stethoscope,
+  Sunrise,
+  UsersRound,
   Workflow,
 } from "lucide-react";
 
@@ -52,6 +55,9 @@ import { useBadgedItems } from "./shell-data";
 export const ICONS: Record<NavIcon, React.ComponentType<{ className?: string }>> = {
   dashboard: LayoutDashboard,
   frontdesk: ConciergeBell,
+  myday: Sunrise,
+  doctors: Stethoscope,
+  staff: UsersRound,
   inbox: Inbox,
   contacts: Contact,
   enquiries: KanbanSquare,

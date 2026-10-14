@@ -67,6 +67,71 @@ export const GUIDES: readonly Guide[] = [
     ],
   },
   {
+    id: "my-day",
+    title: "My day",
+    pages: ["/my-day"],
+    purpose: "A doctor's own list for today: who is coming, who is waiting, and what else is due.",
+    steps: [
+      "The tiles count today's appointments: still to come, waiting (arrived at the desk), with you, and seen.",
+      "The highlighted row is your next patient: the first one waiting, or the next one booked.",
+      "Open a row to see the appointment. The desk moves patients through Arrived, With doctor and Done.",
+      "Your tasks due today (and any overdue) are listed below; the follow-up queue link opens clinical follow-ups.",
+    ],
+    watchOut: [
+      "The page only knows your appointments once your Pulse user is linked to your doctor record (Settings, Appointments).",
+      "Press Refresh to see the latest check-in states; the page does not update by itself.",
+    ],
+  },
+  {
+    id: "doctors",
+    title: "Doctors",
+    pages: ["/doctors"],
+    purpose:
+      "One directory of the clinic's doctors: specialty, branches, services, licence and today's list.",
+    steps: [
+      "Search by name or specialty, or pick a branch to see who works there.",
+      "The licence column turns amber when a licence expires within the reminder days and red once it has expired.",
+      "Open a doctor to see their working hours per branch, upcoming time off and how many patients they have today.",
+      "Open calendar shows that doctor's diary. People who manage settings or staff can edit the specialty, licence, extension and short bio.",
+    ],
+    watchOut: [
+      "Working hours, services and branches are changed under Settings, Appointments, not here.",
+      "Keep the bio short and professional; it is not a place for patient details.",
+    ],
+  },
+  {
+    id: "staff",
+    title: "Staff",
+    pages: ["/staff"],
+    purpose: "Everyone who works at the clinic, their duties and their visa and licence dates.",
+    steps: [
+      "Add staff member with a name, job, department and home branch; the rest can follow.",
+      "Link the person to their Pulse user, and to their doctor record if they are a doctor.",
+      "The Duties tab is their checklist (daily, weekly, monthly or once). The Rota tab shows their next four weeks of shifts.",
+      "Expiring or expired only filters the visas and licences that need action. Reminder days sets how early everyone is told.",
+      "Archive someone who has left: they leave the lists and the rota, and Restore brings them back.",
+    ],
+    watchOut: [
+      "Pay is never recorded here; it stays in Finance with its own permission.",
+      "Notes are for work matters only. Do not write medical, pay or patient details.",
+    ],
+  },
+  {
+    id: "rota",
+    title: "Rota",
+    pages: ["/staff/rota"],
+    purpose: "Who is on, where and when: one branch, one week at a time.",
+    steps: [
+      "Pick the branch and use the arrows to move between weeks.",
+      "Press + in a day to add a shift for that person, or Add shift at the top. Choose the role (front desk, doctor, nurse) and the room.",
+      "Click a shift to change or remove it. An end time before the start means the shift runs past midnight.",
+    ],
+    watchOut: [
+      "A person cannot have two shifts at the same time, even in different branches; Pulse refuses the second one.",
+      "Times are in the branch's own timezone.",
+    ],
+  },
+  {
     id: "contacts",
     title: "Contacts",
     pages: ["/contacts"],

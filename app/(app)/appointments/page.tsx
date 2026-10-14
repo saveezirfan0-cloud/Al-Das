@@ -136,6 +136,17 @@ export default async function AppointmentsPage({
   }
 
   const view = one("view");
+  // The Doctors directory opens one doctor's calendar: /appointments?view=calendar&specialist=<id>. The diary then
+  // opens on a branch that doctor works in (one this member may see).
+  const specialistParam = one("specialist");
+  const openSpecialist = UUID_RE.test(specialistParam ?? "")
+    ? (bootstrap.specialists.find((s) => s.id === specialistParam) ?? null)
+    : null;
+  const defaultLocation = branch.current ?? myLocations[0]?.id ?? null;
+  const specialistLocation =
+    openSpecialist && !(defaultLocation && openSpecialist.location_ids.includes(defaultLocation))
+      ? (openSpecialist.location_ids[0] ?? defaultLocation)
+      : defaultLocation;
   return (
     <AppointmentsWorkspace
       bootstrap={bootstrap}
@@ -143,7 +154,8 @@ export default async function AppointmentsPage({
         view: view === "calendar" || view === "table" || view === "agenda" ? view : "day",
         viewExplicit: !!view,
         date: DATE.test(one("date") ?? "") ? (one("date") as string) : today,
-        locationId: branch.current ?? myLocations[0]?.id ?? null,
+        locationId: specialistLocation,
+        specialistId: openSpecialist?.id ?? null,
         newContact,
         // A notification or link can open one appointment: /appointments?appointment=<id> (the drawer loads it under RLS).
         openId: UUID_RE.test(one("appointment") ?? "") ? (one("appointment") as string) : null,
