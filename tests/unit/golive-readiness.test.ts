@@ -3,7 +3,14 @@ import { randomBytes } from "node:crypto";
 import { describe, expect, it } from "vitest";
 
 import { readinessSteps } from "@/lib/finance/readiness";
-import { goLiveRows, summariseRows, type GoLiveInput } from "@/lib/golive/readiness";
+import {
+  clinicSetupRows,
+  goLiveRows,
+  setupProgress,
+  summariseRows,
+  type ClinicFacts,
+  type GoLiveInput,
+} from "@/lib/golive/readiness";
 
 const NOW = Date.parse("2026-10-14T10:00:00Z");
 
@@ -46,8 +53,33 @@ const doneFinance = readinessSteps({
   lastImportAt: recent,
 });
 
+const clinic: ClinicFacts = {
+  locations: 2,
+  locationsWithCode: 2,
+  services: 5,
+  doctors: 3,
+  doctorsWithHours: 3,
+  doctorsLinked: 2,
+  members: 6,
+  pendingInvites: 0,
+  staff: 8,
+};
+
+const empty: ClinicFacts = {
+  locations: 0,
+  locationsWithCode: 0,
+  services: 0,
+  doctors: 0,
+  doctorsWithHours: 0,
+  doctorsLinked: 0,
+  members: 1,
+  pendingInvites: 0,
+  staff: 0,
+};
+
 const good: GoLiveInput = {
   env: goodEnv,
+  clinic,
   whatsapp: { channels: 1, active: 1, approvedTemplates: 4 },
   trainingMode: false,
   unite: { credentials: true, syncOn: true },
@@ -236,5 +268,108 @@ describe("goLiveRows", () => {
     });
     expect(mk({ problems: [] }).detail).toContain("Everything it needs");
     expect(mk({ problems: null }).detail).toBe("Off.");
+  });
+
+  it("clinic set-up rows come right after the server rows, in set-up order, ending with WhatsApp", () => {
+    const keys = goLiveRows(good).map((r) => r.key);
+    expect(keys.slice(0, 10)).toEqual([
+      "server",
+      "meta-app",
+      "branch",
+      "services",
+      "doctors",
+      "users",
+      "doctor-users",
+      "staff",
+      "whatsapp",
+      "templates",
+    ]);
+    for (const r of clinicSetupRows(clinic, good.whatsapp)) {
+      expect(r.group).toBe("Required");
+      expect(r.href).toBeTruthy();
+      expect(r.perm).toBeTruthy();
+    }
+  });
+
+  it("clinic set-up: an empty workspace points at the first branch and waits on it", () => {
+    const rows = clinicSetupRows(empty, { channels: 0, active: 0 });
+    const by = (k: string) => rows.find((r) => r.key === k)!;
+    expect(by("branch")).toMatchObject({
+      status: "missing",
+      href: "/settings/appointments?tab=locations",
+      perm: "settings.manage",
+    });
+    expect(by("services")).toMatchObject({
+      status: "missing",
+      href: "/settings/appointments?tab=services",
+    });
+    expect(by("doctors")).toMatchObject({
+      status: "blocked",
+      href: "/settings/appointments?tab=doctors",
+    });
+    expect(by("users")).toMatchObject({ status: "missing", href: "/settings/users" });
+    expect(by("doctor-users").status).toBe("blocked");
+    expect(by("staff")).toMatchObject({ status: "missing", href: "/staff", perm: "hr.view" });
+    expect(by("whatsapp").status).toBe("missing");
+  });
+
+  it("clinic set-up: partial states warn", () => {
+    const rows = clinicSetupRows(
+      {
+        ...clinic,
+        locationsWithCode: 0,
+        doctorsWithHours: 0,
+        members: 1,
+        pendingInvites: 2,
+        doctorsLinked: 0,
+      },
+      { channels: 1, active: 1 },
+    );
+    const by = (k: string) => rows.find((r) => r.key === k)!;
+    expect(by("branch").status).toBe("warn");
+    expect(by("branch").detail).toContain("finance branch code");
+    expect(by("doctors").status).toBe("warn");
+    expect(by("users")).toMatchObject({ status: "warn" });
+    expect(by("users").detail).toContain("2 invitations");
+    expect(by("doctor-users").status).toBe("missing");
+    // A doctor exists but there is no branch yet: the doctor row asks for one rather than waiting.
+    expect(
+      clinicSetupRows({ ...empty, doctors: 1 }, { channels: 0, active: 0 }).find(
+        (r) => r.key === "doctors",
+      )!.status,
+    ).toBe("warn");
+  });
+
+  it("clinic set-up: the staff row is left out without hr.view", () => {
+    const rows = clinicSetupRows({ ...clinic, staff: null }, good.whatsapp);
+    expect(rows.map((r) => r.key)).not.toContain("staff");
+    expect(rows.every((r) => r.status === "ok")).toBe(true);
+  });
+
+  it("clinic set-up rows carry counts only", () => {
+    const text = JSON.stringify(clinicSetupRows(clinic, good.whatsapp));
+    expect(text).toContain("2 branches, 2 with a finance branch code");
+    expect(text).toContain("3 of 3 doctors have working hours");
+    expect(text).toContain("2 of 3 doctors linked");
+    expect(text).toContain("8 staff members");
+  });
+});
+
+describe("setupProgress", () => {
+  it("lists the next three open steps, anything waiting on another last", () => {
+    const p = setupProgress(clinicSetupRows(empty, { channels: 0, active: 0 }));
+    expect(p).toMatchObject({ done: 0, total: 7, complete: false });
+    expect(p.next.map((r) => r.key)).toEqual(["branch", "services", "users"]);
+    const late = setupProgress(
+      clinicSetupRows({ ...clinic, doctorsLinked: 0 }, { channels: 0, active: 0 }),
+    );
+    expect(late.next.map((r) => r.key)).toEqual(["doctor-users", "whatsapp"]);
+    expect(late.done).toBe(late.total - 2);
+  });
+
+  it("is complete when every row is ready", () => {
+    const p = setupProgress(clinicSetupRows(clinic, { channels: 1, active: 1 }));
+    expect(p).toMatchObject({ complete: true, next: [] });
+    expect(p.done).toBe(p.total);
   });
 });
