@@ -22,7 +22,8 @@ import { cn } from "@/lib/utils";
 
 import { searchRecordsAction } from "./search-actions";
 
-export const OPEN_PALETTE_EVENT = "pulse:open-palette";
+export { OPEN_PALETTE_EVENT } from "@/lib/shell/palette-event";
+import { OPEN_PALETTE_EVENT } from "@/lib/shell/palette-event";
 
 /** Hrefs of recently opened pages, newest first: a per-device convenience, never relied on. */
 const RECENT_KEY = "pulse-recent-pages";

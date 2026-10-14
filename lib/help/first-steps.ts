@@ -310,6 +310,4 @@ export function firstRunFor(member: MemberLike & { roleName?: string }): FirstRu
 }
 
 /** localStorage key for "dismissed on this device" (one per role, so a new role shows its own list). */
-export function firstRunStorageKey(key: string): string {
-  return `pulse-first-run-dismissed:${key}`;
-}
+export { firstRunStorageKey } from "./first-run-key";

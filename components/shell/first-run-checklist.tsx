@@ -5,9 +5,9 @@ import { useEffect, useState } from "react";
 import { ArrowRight, Sparkles, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { firstRunStorageKey, type FirstRun } from "@/lib/help/first-steps";
-
-import { OPEN_PALETTE_EVENT } from "./command-palette";
+import { firstRunStorageKey } from "@/lib/help/first-run-key";
+import type { FirstRun } from "@/lib/help/first-steps";
+import { OPEN_PALETTE_EVENT } from "@/lib/shell/palette-event";
 
 function readDismissed(key: string): boolean {
   try {
