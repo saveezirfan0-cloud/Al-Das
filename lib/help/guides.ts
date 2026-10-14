@@ -203,6 +203,42 @@ export const GUIDES: readonly Guide[] = [
     watchOut: ["Finance data never shows patient names, only the Unite PIN."],
   },
   {
+    id: "finance-reports",
+    title: "Finance reports",
+    pages: ["/finance/reports"],
+    purpose:
+      "Every finance and accounting report on one page: management, accounting, receivables and tax, each opening with the branch and period you picked.",
+    steps: [
+      "Pick the branch, then Month, Quarter or Year and which one. Tick Compare to set the reports that can compare against the period before.",
+      "Press View on a card to open the report with those choices, or Excel, CSV or PDF to download the same view.",
+      "Each card shows what it takes from the picker. A card that says Shows all branches or no comparison cannot narrow that way.",
+      "A running month or quarter stops at today; the daily flash opens on the period's last day (yesterday at the latest).",
+    ],
+    watchOut: [
+      "You only see the reports your role may open; ask an administrator if one is missing.",
+      "Finance figures are for the whole organisation. The branch narrows the reports that support it; it never widens what you may see.",
+    ],
+  },
+  {
+    id: "finance-invoices",
+    title: "Invoices and claims",
+    pages: ["/finance/invoices", "/finance/claims"],
+    purpose:
+      "The invoices captured from Unite and the insurance claims matched to them, with who owes what and where each invoice stands in the ledger.",
+    steps: [
+      "Filter the list (number, dates, branch, doctor, type) and press Excel to download every matching invoice, not only the page shown.",
+      "Open an invoice: Who pays shows the payer and TPA, the insurer's and the patient's (or company's) share, what was paid and the balance due. It is the same split the ledger posts.",
+      "Ledger shows whether the invoice is posted, with a link to its journal, or why it is waiting (accounting readers only).",
+      "Print prints the page without the menus. Internal PDF downloads a copy marked Internal copy - not a tax invoice.",
+      "Claims: filter and press Excel for every matching claim activity.",
+    ],
+    watchOut: [
+      "The internal copy is for finance files only. The patient's invoice is the one Unite issued; never send the internal copy as a tax invoice.",
+      "Until a Diligence claim is matched, the whole insurance invoice waits on the insurer and the patient's copay is not known yet.",
+      "Downloads are logged with your name.",
+    ],
+  },
+  {
     id: "finance-flash",
     title: "Daily flash",
     pages: ["/finance/flash", "/finance/flash/settings"],
@@ -420,7 +456,8 @@ export const GUIDES: readonly Guide[] = [
       "Eligibility lists what is not ready to bill and why. Fix it before the invoice goes out.",
       "Denials: assign each case, write the appeal and send it yourself. Pulse only drafts the letter.",
       "Remittance: upload the payer's file, check the proposed matches, then commit. The original file is deleted.",
-      "Month-end close: build the pack, finance signs, then the CEO signs the same version. The month is then locked.",
+      "Month-end close: build the pack, finance signs, then the CEO signs the same version. The month is then locked. E-mail close pack sends the same PDF as the download to the people who signed it, after you confirm the recipients.",
+      "Denials: Excel downloads every case that matches the filters.",
       "Cash-up: count each branch at the end of the day, submit, and note any difference.",
     ],
     watchOut: [
@@ -806,6 +843,7 @@ export const GUIDES: readonly Guide[] = [
       "Day book: choose the dates to see each journal with its lines (a year at most).",
       "General ledger: choose an account or a whole group and the dates; open any number to see its journal.",
       "Trial balance: choose the dates; download it as Excel. It must say Balanced.",
+      "Excel on the day book, the general ledger and the journals list downloads every line in the range, read in pages, not only what fits on the screen.",
     ],
     watchOut: [
       "Income and expense accounts start again each fiscal year; earlier years' profit shows on one line until the year-end close.",
@@ -848,10 +886,28 @@ export const GUIDES: readonly Guide[] = [
       "Open a receipt to change its allocation, or Void it: its journal is reversed and the invoices are open again. A receipt paid by a registered cheque is voided by bouncing or cancelling the cheque.",
       "Receivables ageing shows each customer's open amounts as at a date: current, 1-30, 31-60, 61-90, 91-120 and over 120 days past due.",
       "Statements: choose the customer and dates; download it as PDF or Excel, or a balance-confirmation letter for the auditors.",
+      "E-mail statement and E-mail balance confirmation send the PDF to the customer's e-mail address (set it under Customers). The box shows the address before anything is sent.",
     ],
     watchOut: [
+      "Only business customers (insurers, companies, tenants) are e-mailed, never patients. If the address changes after you confirm, the e-mail is not sent and Pulse tells you.",
       "Insurance remittances are matched in Finance, Remittances, not recorded here.",
       "Only Pulse's own sales invoices are aged here; insurance claims from Unite are aged in Finance.",
+    ],
+  },
+  {
+    id: "accounting-payables",
+    title: "Payables ageing and supplier statements",
+    pages: ["/accounting/payables-ageing", "/accounting/supplier-statements"],
+    purpose:
+      "What the clinic owes each supplier and for how long, and each supplier's statement to compare with theirs, from the supplier invoices and payment vouchers in Finance.",
+    steps: [
+      "Payables ageing: choose the date. Each supplier's open invoices fall into current, 1-30, 31-60, 61-90, 91-120 and over 120 days past due; vouchers paid without an invoice show as paid on account.",
+      "Most overdue invoices lists the oldest ones; Excel lists every open invoice.",
+      "Supplier statements: choose the supplier and dates to see each invoice and payment with the running balance owed; download it as Excel.",
+    ],
+    watchOut: [
+      "An invoice counts as paid once its payment voucher is recorded as paid; the statement uses the voucher's amount, so a small difference stays on the statement.",
+      "Invoices in a currency other than AED are left out of the totals and counted below them.",
     ],
   },
   {

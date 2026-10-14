@@ -3,6 +3,7 @@ import { fils, fromFils, LineSet, type LineDims } from "@/lib/accounting/posting
 import { payerKindOf, Resolver } from "@/lib/accounting/posting/rules";
 import type {
   BuildResult,
+  PayerKind,
   PostingContext,
   PostingSource,
   TaxCodeRow,
@@ -208,6 +209,68 @@ function vatConsistent(
 
 // ---- Unite invoice ------------------------------------------------------------------------------------------------
 
+/** How a Unite invoice's receivable splits between the insurers and the patient (or the corporate payer). */
+export type ReceivableSplit = {
+  payerKind: PayerKind;
+  /** Insurance only: one entry per matched claim amount (non-zero), in payer-id order. Empty = no claim matched yet. */
+  insurers: Array<{ payerId: string | null; fils: number }>;
+  /** Insurance: the claims' sum, or the whole total while no claim is matched (payer not yet known). Else 0. */
+  insurerFils: number;
+  /** What the patient (self-pay, or the copay on insurance) or the corporate payer owes. */
+  patientFils: number;
+  /** The claims add up to more than the invoice: the posting waits (claims_exceed_invoice). */
+  exceeds: boolean;
+  /** Which insurer entry takes write-offs and credit notes (the largest claim, first in payer order); null = the main receivable. */
+  adjustIndex: number | null;
+};
+
+/**
+ * The split the sales journal posts (pure, also shown on the invoice page): on an insurance invoice the claims matched to it
+ * (per payer) are the insurer share and the rest is the patient's; before any claim is matched the whole total is the
+ * insurer's. A self-pay or corporate invoice is owed in full by the patient or the company.
+ */
+export function splitReceivable(
+  totalFils: number,
+  claims: ReadonlyArray<{ payer_id: string | null; amount: Num }>,
+  payerKind: PayerKind,
+): ReceivableSplit {
+  if (payerKind !== "insurance")
+    return {
+      payerKind,
+      insurers: [],
+      insurerFils: 0,
+      patientFils: totalFils,
+      exceeds: false,
+      adjustIndex: null,
+    };
+  const insurers = claims
+    .filter((c) => fils(c.amount) !== 0)
+    .sort((a, b) => (a.payer_id ?? "").localeCompare(b.payer_id ?? ""))
+    .map((c) => ({ payerId: c.payer_id, fils: fils(c.amount) }));
+  if (insurers.length === 0)
+    return {
+      payerKind,
+      insurers,
+      insurerFils: totalFils,
+      patientFils: 0,
+      exceeds: false,
+      adjustIndex: null,
+    };
+  const insurer = insurers.reduce((a, c) => a + c.fils, 0);
+  let adjustIndex = 0;
+  insurers.forEach((c, i) => {
+    if (c.fils > insurers[adjustIndex].fils) adjustIndex = i;
+  });
+  return {
+    payerKind,
+    insurers,
+    insurerFils: insurer,
+    patientFils: totalFils - insurer,
+    exceeds: insurer > totalFils,
+    adjustIndex,
+  };
+}
+
 /**
  * Sales journal for a Unite invoice:
  *   Cr revenue per line (service category, branch; gross = net + discount) with the category's VAT code
@@ -276,31 +339,25 @@ export function buildUniteInvoice(rec: UniteInvoiceRecord, ctx: PostingContext):
   const recvDims: LineDims = { branch_code: branch };
   let adjust: { account: string | null; dims: LineDims };
   if (payerKind === "insurance") {
-    const claims = rec.claims.filter((c) => fils(c.amount) !== 0);
-    if (claims.length === 0) {
+    const split = splitReceivable(total, rec.claims, payerKind);
+    if (split.insurers.length === 0) {
       adjust = { account: r.account("receivable", "insurance"), dims: recvDims };
       set.add(adjust.account, total, recvDims);
     } else {
-      const insurer = claims.reduce((a, c) => a + fils(c.amount), 0);
-      if (insurer > total)
+      if (split.exceeds)
         r.miss(
           "claims_exceed_invoice",
-          `Claims matched to it (${money(insurer)}) exceed the invoice (${money(total)})`,
+          `Claims matched to it (${money(split.insurerFils)}) exceed the invoice (${money(total)})`,
         );
-      let largest = { fils: -Infinity, account: null as string | null, dims: recvDims };
-      for (const c of [...claims].sort((a, b) =>
-        (a.payer_id ?? "").localeCompare(b.payer_id ?? ""),
-      )) {
-        const payer = r.payer(c.payer_id);
-        const d = { ...recvDims, payer_id: payer };
-        const account = r.account("receivable", "insurance", c.payer_id ?? "*");
-        set.add(account, fils(c.amount), d);
-        if (fils(c.amount) > largest.fils) largest = { fils: fils(c.amount), account, dims: d };
-      }
-      const patient = total - insurer;
-      if (patient !== 0 && insurer <= total)
-        set.add(r.account("receivable", "self_pay"), patient, recvDims);
-      adjust = { account: largest.account, dims: largest.dims };
+      adjust = { account: null, dims: recvDims };
+      split.insurers.forEach((c, i) => {
+        const d = { ...recvDims, payer_id: r.payer(c.payerId) };
+        const account = r.account("receivable", "insurance", c.payerId ?? "*");
+        set.add(account, c.fils, d);
+        if (i === split.adjustIndex) adjust = { account, dims: d };
+      });
+      if (split.patientFils !== 0 && !split.exceeds)
+        set.add(r.account("receivable", "self_pay"), split.patientFils, recvDims);
     }
   } else {
     adjust = { account: r.account("receivable", payerKind), dims: recvDims };

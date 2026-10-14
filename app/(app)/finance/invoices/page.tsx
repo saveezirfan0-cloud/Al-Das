@@ -3,6 +3,7 @@ import {
   AlertCircle,
   ChevronLeft,
   ChevronRight,
+  Download,
   FileSearch,
   Filter,
   RotateCcw,
@@ -90,7 +91,15 @@ export default async function InvoicesPage({
       <PageHeader
         title="Invoices"
         description={`${total.toLocaleString()} ${total === 1 ? "invoice" : "invoices"}${active > 0 ? " match your filters" : " captured from Unite"}, with claim progress from Diligence.`}
-      />
+      >
+        {!problem && total > 0 && (
+          <Button asChild variant="outline" size="sm">
+            <a href={`/api/finance/invoices/export${pageQuery(f, 1)}`}>
+              <Download aria-hidden /> Excel
+            </a>
+          </Button>
+        )}
+      </PageHeader>
 
       {/* A plain GET form: the filters live in the URL, so a view can be bookmarked or shared. */}
       <form action="/finance/invoices" aria-label="Filter invoices">

@@ -36,6 +36,16 @@ export const RECEIVABLES_READ = [
   "accounting.journals.approve",
 ] as const;
 
+/**
+ * Who reads payables (Phase G: payables ageing and supplier statements over the 20D supplier invoices and vouchers):
+ * the ledger and report readers and the checker. Read-only reports, so no new key.
+ */
+export const PAYABLES_READ = [
+  "accounting.reports.view",
+  "accounting.ledger.view",
+  "accounting.journals.approve",
+] as const;
+
 /** Banking pages (22F): kept by accounting.banking.manage, read by ledger readers and checkers. */
 const BANKING = [
   "accounting.banking.manage",
@@ -110,6 +120,18 @@ export const ACCOUNTING_NAV: readonly AccountingNavEntry[] = [
     label: "Statements",
     section: "Sales & receivables",
     permissions: RECEIVABLES_READ,
+  },
+  {
+    href: "/accounting/payables-ageing",
+    label: "Payables ageing",
+    section: "Purchases & payables",
+    permissions: PAYABLES_READ,
+  },
+  {
+    href: "/accounting/supplier-statements",
+    label: "Supplier statements",
+    section: "Purchases & payables",
+    permissions: PAYABLES_READ,
   },
   {
     href: "/accounting/banking",

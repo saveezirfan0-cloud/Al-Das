@@ -174,6 +174,8 @@ describe("Finance navigation", () => {
         "/finance/branches",
         "/finance/doctors",
         "/finance/flash",
+        // Phase G: the reports hub, which shows them only the cards of the keys above (no costs or profit)
+        "/finance/reports",
         "/finance/revenue",
         "/finance/scorecards",
         "/finance/summary",

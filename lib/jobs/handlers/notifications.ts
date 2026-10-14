@@ -1,6 +1,8 @@
 import { z } from "zod";
 
 import { sendEmail } from "@/lib/email";
+import { documentEmailJob } from "@/lib/finance/document-email";
+import { deliverDocumentEmail } from "@/lib/finance/document-email-server";
 import { registerHandler } from "@/lib/jobs/registry";
 import { PermanentJobError } from "@/lib/jobs/types";
 import { handleScheduled, scheduledEnvelope } from "@/lib/jobs/handlers/reminders";
@@ -15,6 +17,9 @@ import { createWebPushSender, isPushConfigured } from "@/lib/push/web-push-sende
  *   { type: 'in_app', org_id, user_id, kind, title, body?, payload? }
  *   { type: 'push', org_id, user_id, event, ids }     Web Push to the person's devices (ids only, no content)
  *   { kind: 'task.due' | 'enquiry.sla', scheduled_job_id, … }  scheduled reminders (lib/jobs/handlers/reminders.ts)
+ *   { type: 'finance_document_email', request_id, org_id, requested_by, recipient_sha256, document }
+ *       a finance document (statement, balance confirmation, close pack) rendered and e-mailed when the job runs
+ *       (lib/finance/document-email.ts): ids, dates and the address's hash only, never the address or the document
  */
 const emailJob = z.object({
   type: z.literal("email"),
@@ -49,7 +54,12 @@ const pushJob = z.object({
     .default({}),
 });
 
-export const notificationJob = z.discriminatedUnion("type", [emailJob, inAppJob, pushJob]);
+export const notificationJob = z.discriminatedUnion("type", [
+  emailJob,
+  inAppJob,
+  pushJob,
+  documentEmailJob,
+]);
 export type NotificationJob = z.infer<typeof notificationJob>;
 
 registerHandler({
@@ -70,6 +80,11 @@ registerHandler({
     if (!parsed.success)
       throw new PermanentJobError(`invalid notification job: ${parsed.error.issues[0]?.message}`);
     const job = parsed.data;
+    if (job.type === "finance_document_email") {
+      const outcome = await deliverDocumentEmail(ctx.admin, job);
+      ctx.log.info(`finance document e-mail: ${outcome}`, { kind: job.document.kind });
+      return;
+    }
     if (job.type === "email") {
       const res = await sendEmail({
         to: job.to,
