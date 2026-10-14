@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 
+import { can } from "@/lib/auth/can";
 import { requireMember } from "@/lib/auth/session";
+import { listPortalTags, PORTAL_TAGS_MANAGE } from "@/lib/portal/bulk";
 import { canReadObject, canWriteObject } from "@/lib/portal/permissions";
 import {
   listSavedViews,
@@ -32,10 +34,11 @@ export default async function PortalObjectPage({
   // Same response for "does not exist" and "no permission": do not reveal which objects exist.
   if (!def || !canReadObject(member, def)) notFound();
 
-  const [{ registry, linkOptions }, views, users, { data: prefs }] = await Promise.all([
+  const [{ registry, linkOptions }, views, users, tags, { data: prefs }] = await Promise.all([
     loadPortalRegistry(admin, member.orgId, def),
     listSavedViews(admin, member.orgId, member.userId, def.key),
     loadOrgUsers(admin, member.orgId),
+    listPortalTags(admin, member.orgId),
     admin
       .from("user_grid_prefs")
       .select("prefs")
@@ -55,7 +58,9 @@ export default async function PortalObjectPage({
       create: write && def.allowCreate,
       delete: write && def.allowDelete,
       export: true,
+      manageTags: can(member, PORTAL_TAGS_MANAGE),
     },
+    tags,
     fields: toClientFields(registry),
     views,
     users,

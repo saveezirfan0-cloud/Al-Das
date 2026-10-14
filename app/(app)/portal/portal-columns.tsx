@@ -1,7 +1,8 @@
 "use client";
 
 import type { DataGridColumn } from "@/components/data-grid/data-grid";
-import { formatDate, formatDateTime } from "@/lib/contacts/format";
+import { formatDate, formatDateTime, tagClass } from "@/lib/contacts/format";
+import type { PortalTag } from "@/lib/portal/bulk-edit";
 import { allColumns, displayValue } from "@/lib/portal/field-types";
 import type { PortalColumn, PortalObjectDef, PortalRow } from "@/lib/portal/types";
 
@@ -49,8 +50,47 @@ function cell(
   }
 }
 
-/** Grid columns for a portal object: one per declared column, plus read-only system columns. */
+/** Column id of the portal tags column (not a database column; never sorted or filtered as a field). */
+export const TAGS_COLUMN_ID = "_tags";
+
+function tagChips(ids: string[] | undefined, byId: Map<string, PortalTag>): React.ReactNode {
+  const list = (ids ?? []).map((id) => byId.get(id)).filter((t): t is PortalTag => !!t);
+  if (list.length === 0) return "";
+  return (
+    <span className="flex gap-1">
+      {list.slice(0, 3).map((t) => (
+        <span key={t.id} className={`rounded px-1.5 py-0.5 text-xs ${tagClass(t.color)}`}>
+          {t.name}
+        </span>
+      ))}
+      {list.length > 3 && <span className="text-muted-foreground text-xs">+{list.length - 3}</span>}
+    </span>
+  );
+}
+
+/** Grid columns for a portal object: one per declared column, read-only system columns, then tags. */
 export function buildPortalColumns(
+  def: PortalObjectDef,
+  opts: {
+    timezone: string;
+    links: Record<string, Record<string, string>>;
+    tags?: PortalTag[];
+    rowTags?: Record<string, string[]>;
+  },
+): DataGridColumn<PortalRow>[] {
+  const byId = new Map((opts.tags ?? []).map((t) => [t.id, t]));
+  const tagColumn: DataGridColumn<PortalRow> = {
+    id: TAGS_COLUMN_ID,
+    label: "Tags",
+    header: "Tags",
+    accessorFn: (r: PortalRow) => r.id,
+    cell: ({ row }) => tagChips(opts.rowTags?.[row.original.id], byId),
+    size: 200,
+  };
+  return [...fieldColumns(def, opts), tagColumn];
+}
+
+function fieldColumns(
   def: PortalObjectDef,
   opts: { timezone: string; links: Record<string, Record<string, string>> },
 ): DataGridColumn<PortalRow>[] {

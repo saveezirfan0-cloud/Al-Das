@@ -144,6 +144,7 @@ Captures Unite invoices, matches them to Diligence claim files, and routes excep
 - Every schema change is a new migration. Never edit applied migrations. Regenerate types after migrating.
 - Navigation: sidebar entries live in `components/shell/nav.ts` (with `group` and search `keywords`); Settings pages live in `components/shell/settings-pages.ts`, which feeds both the Settings menu and Ctrl+K quick search. A new page is added there, gated by its permission. Status, gaps and roadmap: `docs/09_STATUS_AND_ROADMAP.md`.
 - Back-office objects: core entities merge into core tables; everything else becomes a real table registered in `portal_objects`.
+- Portal bulk edit and tags (docs/33): many-record edits go only through `public.portal_bulk_update` (via `lib/portal/bulk.ts`, the object's write key, one audit row with the field key and counts, never values). Portal tags are `tags.scope = 'portal'` joined through `portal_record_tags` (no browser writes; a trigger refuses other scopes and records of another org); managing them needs `portal.tags.manage`.
 - Sanoflow parity work follows docs/20 and docs/21; docs/audit/sanoflow-surface.json is behaviour evidence only (rule 14).
 
 ## Sanoflow migration (Phase 20a, docs/22_PHASE_20A_NOTES.md)

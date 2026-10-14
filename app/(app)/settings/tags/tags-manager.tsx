@@ -27,12 +27,14 @@ import { deleteTag, saveTag } from "./actions";
 
 type Row = { id: string; name: string; color: string; count: number };
 
+const USED_ON = { contact: "Contacts", enquiry: "Enquiries", portal: "Records" } as const;
+
 export function TagsManager({
   tags,
   scope = "contact",
 }: {
   tags: Row[];
-  scope?: "contact" | "enquiry";
+  scope?: "contact" | "enquiry" | "portal";
 }) {
   const [name, setName] = React.useState("");
   const [color, setColor] = React.useState<string>("gray");
@@ -86,13 +88,13 @@ export function TagsManager({
             <TableRow>
               <TableHead>Tag</TableHead>
               <TableHead>Colour</TableHead>
-              <TableHead>Contacts</TableHead>
+              <TableHead>{USED_ON[scope]}</TableHead>
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {tags.map((t) => (
-              <TagRow key={t.id} tag={t} run={run} />
+              <TagRow key={t.id} tag={t} run={run} usedOn={USED_ON[scope].toLowerCase()} />
             ))}
           </TableBody>
         </Table>
@@ -104,8 +106,10 @@ export function TagsManager({
 function TagRow({
   tag,
   run,
+  usedOn,
 }: {
   tag: Row;
+  usedOn: string;
   run: (
     fn: () => Promise<{ ok: boolean; message?: string; error?: string }>,
     after?: () => void,
@@ -153,7 +157,7 @@ function TagRow({
             className="text-destructive"
             onClick={() => {
               if (
-                confirm(`Delete the tag "${tag.name}"? It is removed from ${tag.count} contacts.`)
+                confirm(`Delete the tag "${tag.name}"? It is removed from ${tag.count} ${usedOn}.`)
               )
                 run(() => deleteTag(tag.id));
             }}

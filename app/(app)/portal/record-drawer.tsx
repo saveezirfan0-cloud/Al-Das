@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { MultiSelect } from "@/components/ui/multi-select";
 import {
   Select,
   SelectContent,
@@ -25,13 +26,15 @@ import {
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { formatDateTime, timeAgo } from "@/lib/contacts/format";
+import { formatDateTime, tagClass, timeAgo } from "@/lib/contacts/format";
+import type { PortalTag } from "@/lib/portal/bulk-edit";
 import { displayValue } from "@/lib/portal/field-types";
 import type { PortalColumn } from "@/lib/portal/types";
 import { SYSTEM_COLUMNS } from "@/lib/portal/types";
 import { createClient } from "@/lib/supabase/client";
 
 import {
+  createPortalTagInline,
   createPortalUpload,
   deletePortalAttachment,
   deletePortalRecord,
@@ -39,6 +42,7 @@ import {
   portalAttachmentUrl,
   postComment,
   registerPortalAttachment,
+  setPortalRecordTags,
   updatePortalRecord,
   type RecordDetail,
 } from "./actions";
@@ -61,11 +65,15 @@ function fmtSize(n: number | null) {
 export function RecordDrawer({
   recordId,
   bootstrap,
+  tags,
+  onTagCreated,
   onClose,
   onChanged,
 }: {
   recordId: string | null;
   bootstrap: PortalBootstrap;
+  tags: PortalTag[];
+  onTagCreated: (tag: PortalTag) => void;
   onClose: () => void;
   onChanged: () => void;
 }) {
@@ -209,6 +217,20 @@ export function RecordDrawer({
                   ))}
                 </fieldset>
 
+                <RecordTags
+                  objectKey={def.key}
+                  recordId={detail.row.id}
+                  value={detail.tagIds}
+                  tags={tags}
+                  canWrite={bootstrap.can.write}
+                  canCreate={bootstrap.can.manageTags}
+                  onTagCreated={onTagCreated}
+                  onChanged={(ids) => {
+                    setDetail((d) => (d ? { ...d, tagIds: ids } : d));
+                    onChanged();
+                  }}
+                />
+
                 <LinkedRecords detail={detail} columns={def.columns} />
 
                 <section className="flex flex-col gap-2">
@@ -272,6 +294,88 @@ export function RecordDrawer({
         ) : null}
       </SheetContent>
     </Sheet>
+  );
+}
+
+function RecordTags({
+  objectKey,
+  recordId,
+  value,
+  tags,
+  canWrite,
+  canCreate,
+  onTagCreated,
+  onChanged,
+}: {
+  objectKey: string;
+  recordId: string;
+  value: string[];
+  tags: PortalTag[];
+  canWrite: boolean;
+  canCreate: boolean;
+  onTagCreated: (tag: PortalTag) => void;
+  onChanged: (ids: string[]) => void;
+}) {
+  const [pending, startTransition] = React.useTransition();
+  const byId = new Map(tags.map((t) => [t.id, t]));
+
+  function save(ids: string[]) {
+    startTransition(async () => {
+      const res = await setPortalRecordTags(objectKey, recordId, ids);
+      if (!res.ok) {
+        toast.error(res.error);
+        return;
+      }
+      onChanged(ids);
+    });
+  }
+
+  return (
+    <section className="flex flex-col gap-2">
+      <h3
+        id="portal-record-tags"
+        className="text-muted-foreground text-xs font-semibold tracking-wide uppercase"
+      >
+        Tags
+      </h3>
+      {canWrite ? (
+        <MultiSelect
+          aria-label="Tags"
+          options={tags.map((t) => ({ value: t.id, label: t.name }))}
+          value={value}
+          disabled={pending}
+          placeholder="Add tags…"
+          emptyText="No portal tags yet."
+          onChange={save}
+          onCreate={
+            canCreate
+              ? async (label) => {
+                  const res = await createPortalTagInline(label);
+                  if (!res.ok) {
+                    toast.error(res.error);
+                    return null;
+                  }
+                  onTagCreated(res.data);
+                  return res.data.id;
+                }
+              : undefined
+          }
+        />
+      ) : value.length === 0 ? (
+        <p className="text-muted-foreground text-sm">No tags.</p>
+      ) : (
+        <ul className="flex flex-wrap gap-1" aria-labelledby="portal-record-tags">
+          {value.map((id) => {
+            const t = byId.get(id);
+            return t ? (
+              <li key={id} className={`rounded px-1.5 py-0.5 text-xs ${tagClass(t.color)}`}>
+                {t.name}
+              </li>
+            ) : null;
+          })}
+        </ul>
+      )}
+    </section>
   );
 }
 
