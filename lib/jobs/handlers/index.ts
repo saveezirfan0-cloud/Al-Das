@@ -26,6 +26,7 @@ import "@/lib/jobs/handlers/hr-maintenance";
 import "@/lib/jobs/handlers/tasks-daily";
 import "@/lib/jobs/handlers/soft-delete-purge";
 import "@/lib/jobs/handlers/finance-workflows";
+import "@/lib/jobs/handlers/finance-report-emails";
 import "@/lib/jobs/handlers/accounting-assets";
 import "@/lib/jobs/handlers/notification-digests";
 import "@/lib/jobs/handlers/webhooks-out";

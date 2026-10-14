@@ -6,15 +6,15 @@ import { getCurrentMember } from "@/lib/auth/session";
 import { addDays } from "@/lib/documents/expiry";
 import { todayIn } from "@/lib/finance/action-support";
 import { monthOf } from "@/lib/finance/flash";
-import { loadFlashReport } from "@/lib/finance/flash-server";
-import { flashWorkbook } from "@/lib/finance/flash-xlsx";
+import { renderFlashDocument } from "@/lib/finance/report-documents-server";
 import { recordExport } from "@/lib/security/access-log";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
- * GET /api/finance/flash?date=yyyy-mm-dd (default yesterday) -> the flash report workbook (daily summary, month to date, doctors, daily
- * sales). Requires finance.flash.view. Aggregates and doctor names only, no patient data. Written to the access log and
- * the audit trail.
+ * GET /api/finance/flash?date=yyyy-mm-dd (default yesterday)&format=xlsx|pdf (default xlsx) -> the flash report: the
+ * workbook (daily summary, month to date, doctors, daily sales) or the PDF (Phase G: the day and month to date). Requires
+ * finance.flash.view. Aggregates and doctor names only, no patient data; labelled Provisional until the month is locked.
+ * Written to the access log and the audit trail.
  */
 export async function GET(req: Request) {
   const member = await getCurrentMember();
@@ -22,40 +22,32 @@ export async function GET(req: Request) {
   if (!can(member, "finance.flash.view"))
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
-  const raw = new URL(req.url).searchParams.get("date") ?? "";
+  const params = new URL(req.url).searchParams;
+  const raw = params.get("date") ?? "";
+  const format = params.get("format") === "pdf" ? "pdf" : "xlsx";
   const today = todayIn(member.org.timezone);
   const day = monthOf(raw) && raw <= today ? raw : (addDays(today, -1) ?? today); // same default as the page
 
   const admin = createAdminClient(); // service role AFTER the permission check
   try {
-    const report = await loadFlashReport(admin, member.orgId, day);
-    const body = await flashWorkbook({
-      org: member.org.name,
+    const doc = await renderFlashDocument(
+      admin,
+      { id: member.orgId, name: member.org.name },
       day,
-      daily: report.daily,
-      monthToDate: report.monthToDate,
-      grid: report.grid,
-      previousGrid: report.previousGrid,
-      comparison: report.comparison,
-      topDoctors: report.topDoctors,
-      builtAt: new Date().toISOString(),
-    });
+      format,
+    );
     await recordAudit(admin, {
       orgId: member.orgId,
       userId: member.userId,
       action: "finance.flash.exported",
       entity: "fin_invoices",
-      diff: { day },
+      diff: { day, format },
     });
-    await recordExport(admin, member, {
-      dataset: "finance:flash",
-      rows: report.grid.days.length,
-      format: "xlsx",
-    });
-    return new NextResponse(new Uint8Array(body), {
+    await recordExport(admin, member, { dataset: "finance:flash", rows: doc.rows, format });
+    return new NextResponse(new Uint8Array(doc.body), {
       headers: {
-        "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "Content-Disposition": `attachment; filename="flash-report-${day}.xlsx"`,
+        "Content-Type": doc.contentType,
+        "Content-Disposition": `attachment; filename="flash-report-${day}.${format}"`,
         "Cache-Control": "no-store",
       },
     });

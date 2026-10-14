@@ -316,13 +316,32 @@ export const GUIDES: readonly Guide[] = [
       "Every finance and accounting report on one page: management, accounting, receivables and tax, each opening with the branch and period you picked.",
     steps: [
       "Pick the branch, then Month, Quarter or Year and which one. Tick Compare to set the reports that can compare against the period before.",
-      "Press View on a card to open the report with those choices, or Excel, CSV or PDF to download the same view.",
+      "Press View on a card to open the report with those choices, or Excel, CSV or PDF to download the same view. The daily flash and the monthly summary also have PDF and E-mail me (the Excel file, to the address on your own profile).",
       "Each card shows what it takes from the picker. A card that says Shows all branches or no comparison cannot narrow that way.",
       "A running month or quarter stops at today; the daily flash opens on the period's last day (yesterday at the latest).",
     ],
     watchOut: [
       "You only see the reports your role may open; ask an administrator if one is missing.",
       "Finance figures are for the whole organisation. The branch narrows the reports that support it; it never widens what you may see.",
+      "An e-mailed report says Provisional until the month is closed and locked by the CEO sign-off. The e-mail itself carries no figures.",
+    ],
+  },
+  {
+    id: "finance-report-emails",
+    title: "Report e-mails",
+    pages: ["/finance/report-emails"],
+    purpose:
+      "Sends the daily flash every morning and the monthly summary once a month, as Excel files, to the members you choose.",
+    steps: [
+      "Daily flash: tick Send this report by e-mail and choose the time (your organisation's local time). Each morning it sends yesterday's flash.",
+      "Monthly summary: choose the day of the month (1 to 28) and the time. It sends last month's summary with the month before for comparison.",
+      "Tick the people who should receive it. Only members who can see that report in Pulse are listed; addresses come from their own profiles.",
+      "Press Save. The next send time is shown under the list; Recent sends shows each period, whether it went out and to how many people.",
+    ],
+    watchOut: [
+      "Each period is sent once, however often the job runs. A report switched on after today's time starts tomorrow (next month for the summary).",
+      "Permissions are checked again at every send: someone who loses the permission, leaves, or is outside the finance access window at that time is skipped. With a network address list in the window, nothing is e-mailed.",
+      "A training workspace never sends. The e-mail has no figures; the report is the attachment, marked Provisional until the month is locked.",
     ],
   },
   {
@@ -491,7 +510,7 @@ export const GUIDES: readonly Guide[] = [
       "Proves that every Unite collection reached the bank: card and EPG (T+2), Tabby (T+6 working days), cash deposits and insurers' bulk payments, net of the processors' fees, by bank account and month.",
     steps: [
       "Once, in Accounts and rules: add each bank account (last 4 digits only), a file layout per bank or processor (the header of each column in their export), and for each payment mode its lag in working days, fee % and bank account.",
-      "Import the bank statement (and, where you have it, the processor's settlement report) as .csv or .xlsx. The same file twice, or overlapping dates, are refused.",
+      "Import the bank statement (and, where you have it, the processor's settlement report): drag the .csv or .xlsx file onto the box or press Choose file, check the preview (the first rows of the columns the layout reads, and any columns that will be ignored), then press Import. The same file twice, or overlapping dates, are refused.",
       "Open the month's reconciliation for an account. Save the automatic matches, then accept or reject each proposed match: the score and its reasons are shown.",
       "Give a reason for every expected receipt that is late and for every bank credit nothing explains, then mark it reviewed. A second person signs it off.",
       "Optional: press Ask AI to review on an open reconciliation. The AI suggests, for each open item, one of Pulse's own candidates (or no match) with a reason, and writes a short summary. Accept or Reject each suggestion; an accepted pair is saved exactly as if you had accepted the proposal yourself. The line above the list shows how many suggestions were accepted and rejected.",
@@ -511,7 +530,7 @@ export const GUIDES: readonly Guide[] = [
       "Checks every lab test and referral on a provider's monthly file against what Unite billed (patient PIN, day and test code) before its cost is charged to the doctor: tests done but not billed, tests billed that the lab has no record of, price differences and late results.",
     steps: [
       "Once, in Providers, tests and layouts: add the in-house lab (its monthly fee and how to share it), each send-out lab, hospital and radiology provider, each provider's tests (expected days and agreed price), and a file layout per provider (the header of each column in their file).",
-      "Each month, upload each provider's file (one per branch is fine) for the month of service. Names and ID numbers in the file are never read; the same file twice is refused.",
+      "Each month, upload each provider's file (one per branch is fine) for the month of service: drag it onto the box or press Choose file, check the preview and the list of ignored columns, then press Upload. Names and ID numbers in the file are never read; the same file twice is refused.",
       "Open the statement: give a reason for every line not matched to Unite and every billed test missing from the lab's file (one reason can cover a whole list), check price differences and late results, then mark it reviewed.",
       "A second person posts it: each doctor's cost becomes a lab or referral charge for the month, deducted in the revenue share.",
     ],
@@ -994,7 +1013,7 @@ export const GUIDES: readonly Guide[] = [
       "Customers: add the business with its TRN (blank when not VAT registered), address, credit terms, and for an insurer its payer.",
       "Sales invoices, New invoice: choose the customer, add a line per item with its income account and VAT code, and save the draft.",
       "Open the draft and press Issue: it gets its number (for example SI/2026-27/00001) and is posted to the ledger. Above the approval limit someone else with the journal approval permission presses Approve and issue.",
-      "PDF downloads the tax invoice. A customer without a TRN gets a simplified tax invoice up to AED 10,000; everyone else a full one.",
+      "PDF downloads the tax invoice. A customer without a TRN gets a simplified tax invoice up to AED 10,000; everyone else a full one. E-mail invoice sends the customer a copy marked Internal copy - not a tax invoice, to the address on their customer record.",
       "To reduce an invoice, open it and press Credit note; to cancel it entirely, press Void (a credit note in full).",
     ],
     watchOut: [

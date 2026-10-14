@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, Download } from "lucide-react";
 
+import { EmailDocumentButton } from "@/components/finance/email-document-button";
 import { FirstRunChecklist } from "@/components/shell/first-run-checklist";
 import { PageHeader } from "@/components/shell/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +11,9 @@ import { requireMember } from "@/lib/auth/session";
 import { firstRunFor } from "@/lib/help/first-steps";
 import { branchView } from "@/lib/branches/server";
 import { todayIn } from "@/lib/finance/action-support";
+import { plausibleEmail } from "@/lib/finance/document-email";
 import {
+  cardEmail,
   cardLinks,
   HUB_GROUPS,
   HUB_PERMISSIONS,
@@ -27,6 +30,7 @@ import {
 } from "@/lib/finance/reports-hub";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+import { emailHubReport } from "./actions";
 import { HubPicker } from "./hub-picker";
 
 export const metadata = { title: "Reports hub" };
@@ -81,6 +85,9 @@ export default async function FinanceReportsPage({
   const ctx = hubContext(picker, today, addDays(today, -1));
   const previous = periodRange(picker.kind, previousKey(picker.kind, picker.key))!;
   const cards = hubCardsFor(member);
+  const myEmail = plausibleEmail(member.profile.email) ? member.profile.email!.trim() : null;
+  const myName =
+    `${member.profile.first_name ?? ""} ${member.profile.last_name ?? ""}`.trim() || "You";
   const branchName = picker.branch
     ? (branches.find((b) => b.code === picker.branch)?.name ?? picker.branch)
     : null;
@@ -125,6 +132,7 @@ export default async function FinanceReportsPage({
             <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {list.map((card) => {
                 const links = cardLinks(card, ctx);
+                const email = cardEmail(card, ctx);
                 const ignored = [
                   picker.branch && !card.uses.includes("branch") ? "all branches" : null,
                   picker.compare && !card.uses.includes("compare") ? "no comparison" : null,
@@ -160,6 +168,21 @@ export default async function FinanceReportsPage({
                           </a>
                         </Button>
                       ))}
+                      {email && (
+                        <EmailDocumentButton
+                          label="E-mail me"
+                          title={`E-mail the ${card.title.toLowerCase()} to yourself`}
+                          description="The Excel file goes to the address on your own profile. The e-mail itself carries no figures."
+                          recipients={myEmail ? [{ name: myName, email: myEmail }] : []}
+                          disabledReason={
+                            myEmail ? null : "Add an e-mail address to your profile first."
+                          }
+                          action={emailHubReport.bind(null, {
+                            ...email,
+                            recipient: myEmail ?? "",
+                          })}
+                        />
+                      )}
                     </div>
                   </li>
                 );
@@ -169,8 +192,10 @@ export default async function FinanceReportsPage({
         );
       })}
       <p className="text-muted-foreground text-xs">
-        Statements and balance confirmations are e-mailed from Accounting, Statements; the close
-        pack from Finance, Month-end close.
+        Statements and balance confirmations are e-mailed from Accounting, Statements; invoices
+        from the invoice itself; the close pack from Finance, Month-end close. To send the daily
+        flash or the monthly summary to your team on a schedule, use Settings, Finance setup, Report
+        e-mails.
       </p>
     </div>
   );
