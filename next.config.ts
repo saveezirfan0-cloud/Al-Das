@@ -76,6 +76,8 @@ const nextConfig: NextConfig = {
   experimental: {
     // Campaign CSV audiences (up to 50k rows) are posted to a server action.
     serverActions: { bodySizeLimit: "16mb" },
+    // Vercel's 8 GB build machine: free webpack memory between phases and keep page-data workers to one.
+    ...(onVercel ? { webpackMemoryOptimizations: true, cpus: 1 } : {}),
   },
   async headers() {
     return [
@@ -115,6 +117,8 @@ const withSentry = (config: NextConfig): NextConfig =>
         silent: !process.env.CI,
         telemetry: false,
         widenClientFileUpload: false,
+        // One upload after the whole build instead of a plugin inside every webpack compile (less memory).
+        useRunAfterProductionCompileHook: true,
         sourcemaps: { deleteSourcemapsAfterUpload: true },
       })
     : config;
