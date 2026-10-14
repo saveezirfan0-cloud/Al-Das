@@ -985,6 +985,7 @@ export const SYSTEM_ROLES: readonly RolePreset[] = [
       "appointments.view",
       "appointments.manage",
       "frontdesk.use",
+      "hr.view",
       "campaigns.view",
       "campaigns.create",
       "templates.manage",

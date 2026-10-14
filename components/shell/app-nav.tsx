@@ -36,8 +36,12 @@ import { CountPill, ICONS, type SidebarNode } from "./sidebar";
 
 /** How each sidebar group appears as an area in the rail. */
 const GROUP_AREAS: Record<NavGroup, { title: string; subtitle: string; icon: LucideIcon }> = {
-  Today: { title: "Today", subtitle: "Front desk, inbox and diary", icon: Sun },
-  CRM: { title: "CRM", subtitle: "Patients and enquiries", icon: Users },
+  Today: { title: "Today", subtitle: "Front desk, my day, inbox and tasks", icon: Sun },
+  CRM: {
+    title: "CRM",
+    subtitle: "Patients, enquiries, doctors, staff and appointments",
+    icon: Users,
+  },
   Growth: { title: "Growth", subtitle: "Campaigns, templates and flows", icon: Megaphone },
   "Insight & back office": {
     title: "Insights",

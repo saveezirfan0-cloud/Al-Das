@@ -1,7 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import * as React from "react";
+import { Stethoscope } from "lucide-react";
 
+import { EmptyState } from "@/components/shell/empty-state";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { isOpenDay, isoWeekday, localMinutesToInstant } from "@/lib/appointments/slots";
 
@@ -24,6 +28,8 @@ type Props = {
   holidays: string[];
   granularity: number;
   canManage: boolean;
+  /** May open Settings, Appointments: the empty state links there. */
+  canSettings?: boolean;
   onSlotClick: (specialistId: string, startIso: string) => void;
   onAppointmentClick: (id: string) => void;
   onBlockClick: (block: BlockRow) => void;
@@ -90,9 +96,18 @@ export function ResourceGrid(props: Props) {
 
   if (specialists.length === 0)
     return (
-      <div className="text-muted-foreground rounded-xl border p-8 text-center text-sm">
-        No specialists work at this location. Add them in Settings → Appointments.
-      </div>
+      <EmptyState
+        icon={Stethoscope}
+        title="No doctors work at this location yet"
+        description="A doctor appears here once they are set to work at this branch (Settings, Appointments, Doctors and hours)."
+        action={
+          props.canSettings && (
+            <Button asChild size="sm">
+              <Link href="/settings/appointments?tab=doctors">Add doctors and hours</Link>
+            </Button>
+          )
+        }
+      />
     );
 
   return (

@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-12-04-clinic-setup-crm",
+    date: "2026-10-14",
+    title: "Set up your clinic, and one CRM for patients, doctors and staff",
+    body: "A new workspace now walks you through the set-up: the dashboard shows the next steps (branches, services, doctors and their hours, the team, staff records, the WhatsApp number) until they are done, and the Go-live checklist lists them all. Settings, Clinic and appointments opens on Locations until you have one and then goes in set-up order. CRM now holds Patients, Enquiries, Doctors, Appointments, Staff and the Rota. A doctor's card shows their next appointments, this week's shifts and their staff record, with Add doctor on the list. Managers can now see staff records. Administrators can add the finance and accounting roles from Settings, Roles.",
+  },
+  {
     id: "2026-12-03-finance-reports-hub",
     date: "2026-10-14",
     title: "Finance reports in one place, invoice view and e-mailed statements",

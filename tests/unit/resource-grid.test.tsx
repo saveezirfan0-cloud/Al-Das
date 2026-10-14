@@ -71,6 +71,9 @@ describe("ResourceGrid", () => {
 
   it("explains an empty location", () => {
     const html = renderToStaticMarkup(<ResourceGrid {...base} specialists={[]} />);
-    expect(html).toContain("No specialists work at this location");
+    expect(html).toContain("No doctors work at this location yet");
+    expect(html).not.toContain("/settings/appointments");
+    const linked = renderToStaticMarkup(<ResourceGrid {...base} specialists={[]} canSettings />);
+    expect(linked).toContain(`href="/settings/appointments?tab=doctors"`);
   });
 });

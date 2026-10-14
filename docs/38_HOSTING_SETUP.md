@@ -36,4 +36,4 @@ new wiring and the one-time steps.
 4. Emails, Templates, Magic Link: subject `Your Pulse sign-in link`, body = `supabase/templates/magic_link.html`. This is the only Supabase e-mail Pulse triggers (sign-in by link). Invites and alerts are sent by Pulse through Resend.
 
 ## First sign-in
-Authentication, Users, Add user (e-mail + password, auto-confirm). Set `ALLOW_WORKSPACE_CREATION=true` in Vercel, redeploy, sign in, create the workspace at `/onboarding`, then remove the variable and redeploy. Settings, System health should show every `pulse:*` cron row `succeeded` within a minute.
+Authentication, Users, Add user (e-mail + password, auto-confirm). Set `ALLOW_WORKSPACE_CREATION=true` in Vercel, redeploy, sign in, create the workspace at `/onboarding`, then remove the variable and redeploy. Settings, System health should show every `pulse:*` cron row `succeeded` within a minute. Then follow the "Set up your clinic" card on the dashboard (or Settings, Go-live checklist): first branch, services, doctors and hours, invite the team.

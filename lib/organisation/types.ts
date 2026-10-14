@@ -71,3 +71,19 @@ export type ShiftRow = {
   room: string | null;
   notes: string | null;
 };
+
+/** The doctor drawer's linked view: what is booked next, who is on this week, and the HR record. */
+export type DoctorDetail = {
+  /** The next appointments (null when the viewer may not see the diary). Patients by first name or initials only. */
+  upcoming: Array<{
+    id: string;
+    when: string;
+    service: string | null;
+    branch: string | null;
+    patient: string;
+  }> | null;
+  /** This week's rota shifts of the doctor's staff record, in the branches the viewer may see. */
+  shifts: Array<{ id: string; day: string; time: string; branch: string | null; role: string }>;
+  /** The linked staff record (null when there is none, or the viewer has no hr.view). */
+  staff: { id: string; jobTitle: string | null } | null;
+};

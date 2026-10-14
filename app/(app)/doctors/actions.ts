@@ -4,14 +4,18 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { recordAudit } from "@/lib/audit";
-import { canAny } from "@/lib/auth/can";
+import { can, canAny } from "@/lib/auth/can";
 import { requireMember } from "@/lib/auth/session";
 import { canSeeLocation, readBranchAccess } from "@/lib/branches/access";
 import { doctorProfileSchema, type DoctorProfileInput } from "@/lib/organisation/doctors";
+import { loadDoctorDetail } from "@/lib/organisation/server";
+import type { DoctorDetail } from "@/lib/organisation/types";
+import { recordAccess } from "@/lib/security/access-log";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/types";
 
 export type ActionResult = { ok: true; message?: string } | { ok: false; error: string };
+export type DetailResult = { ok: true; data: DoctorDetail } | { ok: false; error: string };
 
 const EDIT_PERMS = ["settings.manage", "hr.manage"] as const;
 
@@ -75,4 +79,31 @@ export async function updateDoctorProfileAction(
   });
   revalidatePath("/doctors");
   return { ok: true, message: "Saved." };
+}
+
+/**
+ * The doctor drawer's linked view: the next five appointments (appointments.view; patients by first name with
+ * contacts.view, otherwise initials), this week's shifts and the linked staff record (hr.view). Read-only; follows the
+ * branch rule. The appointment list is logged as a list view (ids and counts only).
+ */
+export async function loadDoctorDetailAction(id: string): Promise<DetailResult> {
+  const member = await requireMember();
+  if (!canAny(member, ["appointments.view", "hr.view"]))
+    return { ok: false, error: "You do not have permission to see doctors." };
+  if (!z.string().uuid().safeParse(id).success) return { ok: false, error: "Invalid doctor." };
+  const admin = createAdminClient();
+  const detail = await loadDoctorDetail(admin, member.orgId, id, readBranchAccess(member), {
+    timezone: member.org.timezone || "Asia/Dubai",
+    appointments: can(member, "appointments.view"),
+    contacts: can(member, "contacts.view"),
+    hr: can(member, "hr.view"),
+  });
+  if (!detail) return { ok: false, error: "This doctor no longer exists." };
+  if (detail.upcoming?.length)
+    await recordAccess(admin, member, {
+      entity: "appointment",
+      action: "list",
+      detail: { page: "doctors", count: detail.upcoming.length },
+    });
+  return { ok: true, data: detail };
 }
