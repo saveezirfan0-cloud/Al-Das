@@ -12200,6 +12200,9 @@ export type Database = {
           lab_date_window_days: number;
           lab_price_tolerance: number;
           org_id: string;
+          perf_arpp_target: number;
+          perf_band_moderate: number;
+          perf_band_near: number;
           preauth_expiry_lead_days: number;
           preauth_task_enabled: boolean;
           ready_grace_days: number;
@@ -12283,6 +12286,9 @@ export type Database = {
           lab_date_window_days?: number;
           lab_price_tolerance?: number;
           org_id: string;
+          perf_arpp_target?: number;
+          perf_band_moderate?: number;
+          perf_band_near?: number;
           preauth_expiry_lead_days?: number;
           preauth_task_enabled?: boolean;
           ready_grace_days?: number;
@@ -12365,6 +12371,9 @@ export type Database = {
           lab_date_window_days?: number;
           lab_price_tolerance?: number;
           org_id?: string;
+          perf_arpp_target?: number;
+          perf_band_moderate?: number;
+          perf_band_near?: number;
           preauth_expiry_lead_days?: number;
           preauth_task_enabled?: boolean;
           ready_grace_days?: number;
@@ -24591,6 +24600,10 @@ export type Database = {
         Args: { p_from: string; p_org_id: string; p_to: string };
         Returns: Json;
       };
+      fin_doctor_performance_inputs: {
+        Args: { p_branch?: string; p_branches?: string[]; p_month: string; p_org_id: string };
+        Returns: Json;
+      };
       fin_escalate_exceptions: { Args: { p_org_id: string }; Returns: number };
       fin_flash_inputs: { Args: { p_from: string; p_org_id: string; p_to: string }; Returns: Json };
       fin_flash_set_targets: {
@@ -24704,6 +24717,10 @@ export type Database = {
         Returns: Json;
       };
       fin_rederive_branches: { Args: { p_org_id: string }; Returns: number };
+      fin_report_latest_month: {
+        Args: { p_branches?: string[]; p_org_id: string };
+        Returns: string;
+      };
       fin_revenue_breakdown: {
         Args: {
           p_branch?: string;

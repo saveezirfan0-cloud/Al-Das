@@ -5,7 +5,11 @@ import { ChartRenderer } from "@/components/charts/chart-renderer";
 import { KpiTile } from "@/components/charts/kpi-tile";
 import { AwaitingCard } from "@/components/shell/awaiting-card";
 import { PageHeader } from "@/components/shell/page-header";
+import { can } from "@/lib/auth/can";
 import { requirePerm } from "@/lib/auth/session";
+import { BAND_LABEL, type DoctorPerformance } from "@/lib/finance/doctor-performance";
+import { loadLatestPerformance } from "@/lib/finance/doctor-performance-server";
+import { monthTitle } from "@/lib/finance/flash-xlsx";
 import { filtersFromSearchParams } from "@/lib/reports/filters";
 import { headlineKpis, loadManagementSummary, MANAGEMENT_KPIS } from "@/lib/reports/management";
 import type { ReportResult } from "@/lib/reports/types";
@@ -47,13 +51,43 @@ function ReportSection({ id, title, result, kpis, charts, href, linkLabel }: { i
   );
 }
 
+const changeHint = (v: number | null, previous: string) =>
+  v === null
+    ? `No ${previous} figure to compare`
+    : `${v > 0 ? "+" : ""}${(v * 100).toLocaleString("en-GB", { maximumFractionDigits: 1 })}% vs ${previous}`;
+
+/** Phase 23B: the latest month of the Unite collection report, for members with finance.revenue.view (page-level only). */
+function RevenueSection({ r }: { r: DoctorPerformance }) {
+  const href = `/finance/doctor-performance?month=${r.month.slice(0, 7)}`;
+  const prev = monthTitle(r.previousMonth);
+  const t = r.total;
+  return (
+    <section aria-labelledby="unite-revenue" className="flex flex-col gap-3">
+      <h3 id="unite-revenue" className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+        Revenue (Unite report), {monthTitle(r.month)}
+      </h3>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <KpiTile label="Revenue (AED)" value={Math.round(t.revenue)} hint={r.coverage.full ? undefined : `Covers ${r.coverage.label}`} href={href} />
+        <KpiTile label="Patients" value={t.patients} hint={changeHint(t.patientsChangePct, prev)} href={href} />
+        <KpiTile label="Revenue per patient (AED)" value={t.revenuePerPatient} hint={`Target ${r.settings.target.toLocaleString("en-GB")}${t.band ? `: ${BAND_LABEL[t.band]}` : ""}`} href={href} />
+        <KpiTile label="Revenue change" value={t.changePct} format="percent" hint={`Against ${prev}`} href={href} />
+      </div>
+    </section>
+  );
+}
+
 export default async function ManagementDashboard({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const member = await requirePerm("reports.view");
   const admin = createAdminClient();
   const available = await availableSources(admin);
   const { filters, error } = filtersFromSearchParams(await searchParams);
   const ctx = reportContext(member, filters);
-  const [summary, options] = await Promise.all([loadManagementSummary(ctx, available), filterOptions(admin, member.orgId)]);
+  const [summary, options, revenue] = await Promise.all([
+    loadManagementSummary(ctx, available),
+    filterOptions(admin, member.orgId),
+    // Phase 23B, service role AFTER the permission check; skipped silently without report data
+    can(member, "finance.revenue.view") ? loadLatestPerformance(admin, member).catch(() => null) : null,
+  ]);
   const { messaging, enquiries, appointments, campaigns, reminders, recall, clinical } = summary;
 
   return (
@@ -93,6 +127,8 @@ export default async function ManagementDashboard({ searchParams }: { searchPara
       ) : (
         <AwaitingCard title="Messaging metrics" phase="the metrics migration" detail="Apply the latest database migrations to enable these widgets." />
       )}
+
+      {revenue && <RevenueSection r={revenue} />}
 
       {enquiries && (
         <ReportSection id="enq" title="Enquiries" result={enquiries} kpis={[...MANAGEMENT_KPIS.enquiries]} charts={[0, 1]} href="/reports/enquiry-funnel" linkLabel="Open the enquiry funnel" />

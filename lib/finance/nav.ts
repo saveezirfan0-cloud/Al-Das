@@ -15,6 +15,8 @@ export type FinanceNavEntry = {
   section: string;
   permissions: readonly string[];
   badge?: FinanceBadge;
+  /** Extra words quick search matches (the label always matches). */
+  keywords?: readonly string[];
 };
 
 const VOUCHERS = [
@@ -87,6 +89,21 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
     label: "Doctors",
     section: "Overview",
     permissions: ["finance.revenue.view"],
+  },
+  {
+    href: "/finance/doctor-performance",
+    label: "Doctor performance",
+    section: "Overview",
+    permissions: ["finance.revenue.view"],
+    keywords: [
+      "arpp",
+      "revenue per patient",
+      "doctor comparison",
+      "month comparison",
+      "revenue comparison",
+      "target bands",
+      "unite report",
+    ],
   },
   {
     href: "/finance/analytics",
