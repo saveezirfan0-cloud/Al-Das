@@ -94,9 +94,10 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
   },
   {
     href: "/finance/doctors",
-    label: "Doctors",
+    label: "Doctor activity",
     section: "Overview",
     permissions: ["finance.revenue.view"],
+    keywords: ["invoices by doctor", "revenue by doctor", "patients by doctor"],
   },
   {
     href: "/finance/doctor-performance",
