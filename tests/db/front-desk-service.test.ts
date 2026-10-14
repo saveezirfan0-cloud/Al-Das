@@ -19,6 +19,7 @@ import {
 import { localDate, localMinutesToInstant } from "@/lib/appointments/slots";
 import { matchContact } from "@/lib/contacts/import-writer";
 import { logDeskCall, sendDeskMessage } from "@/lib/front-desk/desk-send";
+import { withBranchFilter } from "@/lib/branches/filter";
 import { loadEndOfDay } from "@/lib/front-desk/end-of-day-server";
 import { expireOffer, handleOfferReply, offerFreedSlot } from "@/lib/front-desk/offers";
 import { loadBoardRows, loadNextFreeSlots, loadPatientCard } from "@/lib/front-desk/server";
@@ -1254,6 +1255,92 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)(
         ).toBe(true);
         // no message text anywhere on the sheet
         expect(JSON.stringify(eod)).not.toContain('"body":"x"');
+      });
+
+      it("keeps the board, slots, notes, card and end of day to a branch filter (Phase B)", async () => {
+        const today = localDate(new Date(), TZ);
+        const tomorrow = localDate(new Date(Date.now() + 86_400_000), TZ);
+        const here = await book(id.guardian, localMinutesToInstant(today, 21 * 60, TZ));
+        const there = await asService(async () => {
+          const branch2 = await q(
+            "insert into public.locations (org_id, name) values ($1, 'Branch Two')",
+            [org],
+          );
+          const at = (d: string, m: number) => localMinutesToInstant(d, m, TZ).toISOString();
+          const ins = (n: number, loc: string | null, d: string, m: number) =>
+            q(
+              `insert into public.appointments (org_id, number, contact_id, location_id, starts_at, ends_at, source)
+               values ($1, $2, $3, $4, $5, $6::timestamptz + interval '30 minutes', 'unite')`,
+              [org, n, id.guardian, loc, at(d, m), at(d, m)],
+            );
+          return {
+            loc: branch2,
+            today: await ins(990001, branch2, today, 21 * 60 + 30),
+            none: await ins(990002, null, today, 22 * 60),
+            tomorrow: await ins(990003, branch2, tomorrow, 10 * 60),
+            noteHere: await q(
+              "insert into public.handover_notes (org_id, body, location_id, created_by) values ($1, 'Synthetic note A', $2, $3)",
+              [org, id.loc, user],
+            ),
+            noteThere: await q(
+              "insert into public.handover_notes (org_id, body, location_id, created_by) values ($1, 'Synthetic note B', $2, $3)",
+              [org, branch2, user],
+            ),
+          };
+        });
+
+        // No filter: exactly as before branches existed.
+        const all = (await loadBoardRows(admin, org, TZ, today)).map((r) => r.id);
+        expect(all).toEqual(expect.arrayContaining([here.id, there.today, there.none]));
+
+        // One branch: its rows plus rows with no branch.
+        const mine = (await loadBoardRows(admin, org, TZ, today, null, [id.loc])).map((r) => r.id);
+        expect(mine).toEqual(expect.arrayContaining([here.id, there.none]));
+        expect(mine).not.toContain(there.today);
+        const theirs = (await loadBoardRows(admin, org, TZ, today, null, [there.loc])).map(
+          (r) => r.id,
+        );
+        expect(theirs).toEqual(expect.arrayContaining([there.today, there.none]));
+        expect(theirs).not.toContain(here.id);
+        // A member with no branches sees only rows without one.
+        expect((await loadBoardRows(admin, org, TZ, today, null, [])).map((r) => r.id)).toEqual([
+          there.none,
+        ]);
+
+        // The branch condition and a search's own `or` both apply (PostgREST ANDs them).
+        const { data: both } = await withBranchFilter(
+          admin
+            .from("appointments")
+            .select("id")
+            .eq("org_id", org)
+            .or(`id.eq.${here.id},id.eq.${there.today}`),
+          [there.loc],
+        );
+        expect((both ?? []).map((r) => r.id)).toEqual([there.today]);
+
+        // Doctors work only at the first branch.
+        expect(
+          await loadNextFreeSlots(admin, org, { today, durationMin: 30, locationIds: [there.loc] }),
+        ).toEqual([]);
+        expect(
+          await loadNextFreeSlots(admin, org, { today, durationMin: 30, locationIds: [] }),
+        ).toEqual([]);
+        expect(
+          (
+            await loadNextFreeSlots(admin, org, { today, durationMin: 30, locationIds: [id.loc] })
+          ).map((s) => s.specialist_name),
+        ).toEqual(["Dr Alpha", "Dr Beta"]);
+
+        const eod = await loadEndOfDay(admin, org, TZ, today, [id.loc]);
+        expect(eod.unconfirmed.map((u) => u.id)).not.toContain(there.tomorrow);
+        expect(eod.notes.map((n) => n.id)).toContain(there.noteHere);
+        expect(eod.notes.map((n) => n.id)).not.toContain(there.noteThere);
+        const eodThere = await loadEndOfDay(admin, org, TZ, today, [there.loc]);
+        expect(eodThere.unconfirmed.map((u) => u.id)).toContain(there.tomorrow);
+        expect(eodThere.notes.map((n) => n.id)).not.toContain(there.noteHere);
+
+        const card = await loadPatientCard(admin, org, id.guardian, new Date(), [there.loc]);
+        expect(card!.next_appointment?.location_name ?? null).not.toBe("Test Clinic");
       });
     });
   },

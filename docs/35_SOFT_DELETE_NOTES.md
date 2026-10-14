@@ -2,7 +2,7 @@
 
 Closes the `docs/09` §2.3 Security gap "soft-delete with a restore window" (also §4.11, "Delete and merge exist"). Built in a cloud sandbox with plain Postgres 16; the UI was type-checked and linted but not driven in a browser.
 
-Migration `supabase/migrations/20261120000100_soft_delete_restore.sql`; paste file `deploy/supabase-paste/60_soft_delete_restore.sql` (same SQL).
+Migration `supabase/migrations/20261124000100_soft_delete_restore.sql` (after branch access: the enquiry policies and the Recently deleted list keep `app.location_visible_to`); paste file `deploy/supabase-paste/64_soft_delete_restore.sql` (same SQL).
 
 ## What staff could hard-delete before, and what changed
 

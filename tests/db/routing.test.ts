@@ -627,6 +627,68 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 20c routing, presence, enquiry view a
         ),
       );
     });
+
+    it("adds branch access (Phase B) on top of the view, in RLS and in the service-role search", async () => {
+      const branch: Record<string, string> = {};
+      await asServiceRole(c, async () => {
+        for (const name of ["North 20c", "South 20c"])
+          branch[name] = await one("insert into public.locations (org_id, name) values ($1, $2)", [
+            orgA,
+            name,
+          ]);
+        await c.query("update public.enquiries set location_id = $2 where id = $1", [
+          e.carol,
+          branch["North 20c"],
+        ]);
+        await c.query("update public.enquiries set location_id = $2 where id = $1", [
+          e.carolDraft,
+          branch["South 20c"],
+        ]);
+        await c.query(
+          "update public.memberships set branch_scope = 'selected' where org_id = $1 and user_id = $2",
+          [orgA, carol],
+        );
+        await c.query(
+          `insert into public.membership_locations (org_id, membership_id, location_id)
+           select $1, m.id, $3 from public.memberships m where m.org_id = $1 and m.user_id = $2`,
+          [orgA, carol, branch["North 20c"]],
+        );
+      });
+      try {
+        expect(await titles(carol)).toEqual(["Assigned to carol"]);
+        await asServiceRole(c, async () => {
+          const search = async (scope: "own" | "all") => {
+            const bag = new ParamBag();
+            const where = `(true) and ${enquiryScopeSql({ userId: carol, scope, branchScope: "selected" }, (v) => bag.text(v), "e")}`;
+            const { rows } = await c.query<{ id: string }>(
+              "select id::text from public.enquiries_search($1, $2, $3::jsonb)",
+              [orgA, where, JSON.stringify(bag.params)],
+            );
+            return new Set(rows.map((r) => r.id));
+          };
+          // Same rows as RLS: own view and branch together.
+          expect(await search("own")).toEqual(new Set([e.carol]));
+          // Branch alone: every enquiry without a branch, plus the North one.
+          expect(await search("all")).toEqual(new Set([e.carol, e.dave, e.system, e.erin]));
+        });
+      } finally {
+        await asServiceRole(c, async () => {
+          await c.query(
+            "delete from public.membership_locations where location_id = any($1::uuid[])",
+            [Object.values(branch)],
+          );
+          await c.query(
+            "update public.memberships set branch_scope = 'all' where org_id = $1 and user_id = $2",
+            [orgA, carol],
+          );
+          await c.query(
+            "update public.enquiries set location_id = null where id = any($1::uuid[])",
+            [[e.carol, e.carolDraft]],
+          );
+        });
+      }
+      expect(await titles(carol)).toEqual(["Assigned to carol", "Unassigned, created by carol"]);
+    });
   });
 
   describe("G13 report functions", () => {

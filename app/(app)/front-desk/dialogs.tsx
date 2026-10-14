@@ -49,7 +49,8 @@ export function RescheduleDialog({
   const [pending, startTransition] = useTransition();
   const [date, setDate] = useState("");
   const [specialistId, setSpecialistId] = useState<string>("");
-  const [locationId, setLocationId] = useState<string>("");
+  // Phase B: starts on the branch the desk is showing; only the member's branches are offered.
+  const [locationId, setLocationId] = useState<string>(options.currentLocationId ?? "");
   const [serviceId, setServiceId] = useState<string>("");
   const [slots, setSlots] = useState<Array<{ start: string; label: string }> | null>(null);
   const [start, setStart] = useState("");
@@ -224,7 +225,7 @@ export function WaitlistDialog({
   const [pending, startTransition] = useTransition();
   const [specialistId, setSpecialistId] = useState(ANY);
   const [serviceId, setServiceId] = useState(ANY);
-  const [locationId, setLocationId] = useState(ANY);
+  const [locationId, setLocationId] = useState(options.currentLocationId ?? ANY);
   const [notAfter, setNotAfter] = useState("");
   const [notes, setNotes] = useState("");
 

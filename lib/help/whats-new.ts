@@ -9,6 +9,12 @@ export const WHATS_NEW: readonly WhatsNewEntry[] = [
     body: "Deleting a contact, enquiry, task or website entry point no longer removes it straight away. It goes to Settings, Recently deleted, where anyone allowed to manage that kind of record can restore it, with its links and history, for 30 days. After that it is removed overnight. Administrators with security rights can change the number of days (1 to 90). Erasing a patient's details is still done through Patient data requests, with a second administrator's approval.",
   },
   {
+    id: "2026-10-14-branch-access",
+    date: "2026-10-14",
+    title: "Branch access and a branch switcher",
+    body: "Administrators can choose, for each person under Settings, Users, Branch access, whether they work in all branches or only one or several, and which is their home branch. People limited to some branches only see the diary, front desk, waiting list and enquiries of those branches. The pin icon at the top of the menu switches between your branches, or shows all of them together; Pulse remembers your choice on each device.",
+  },
+  {
     id: "2026-10-14-go-live-checklist",
     date: "2026-10-14",
     title: "Go-live checklist, older chats and complete reports",

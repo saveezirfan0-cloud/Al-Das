@@ -70,13 +70,22 @@ export function publicEnv() {
   });
 }
 
+/**
+ * RESEND_FROM, or else a no-reply sender on RESEND_EMAIL_DOMAIN (set by the Vercel Resend
+ * integration). Undefined when neither is set, so the example.com default applies.
+ */
+export function resendFrom(env: Record<string, string | undefined>): string | undefined {
+  const domain = env.RESEND_EMAIL_DOMAIN?.trim();
+  return env.RESEND_FROM?.trim() || (domain ? `Pulse <no-reply@${domain}>` : undefined);
+}
+
 export function serverEnv() {
   return serverSchema.parse({
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
     JOB_SECRET: process.env.JOB_SECRET,
     APP_URL: process.env.APP_URL,
     RESEND_API_KEY: process.env.RESEND_API_KEY,
-    RESEND_FROM: process.env.RESEND_FROM,
+    RESEND_FROM: resendFrom(process.env),
     ALLOW_WORKSPACE_CREATION: process.env.ALLOW_WORKSPACE_CREATION,
     ENCRYPTION_KEY: process.env.ENCRYPTION_KEY,
     META_APP_ID: process.env.META_APP_ID,

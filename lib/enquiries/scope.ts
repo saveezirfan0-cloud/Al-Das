@@ -9,6 +9,8 @@
  */
 import { z } from "zod";
 
+import type { BranchScope } from "@/lib/branches/access";
+
 export const ENQUIRY_VIEW_SCOPES = ["all", "team", "own"] as const;
 export type EnquiryViewScope = (typeof ENQUIRY_VIEW_SCOPES)[number];
 
@@ -20,7 +22,16 @@ export const ENQUIRY_VIEW_SCOPE_LABELS: Record<EnquiryViewScope, string> = {
 
 export const enquiryViewScopeSchema = z.enum(ENQUIRY_VIEW_SCOPES);
 
-export type EnquiryViewer = { userId: string; scope: EnquiryViewScope };
+export type EnquiryViewer = {
+  userId: string;
+  scope: EnquiryViewScope;
+  /**
+   * Phase B branch access (memberships.branch_scope / membership_locations). Omitted or 'all' adds nothing; 'selected'
+   * adds app.location_visible_to(), the same rule as RLS (rows with no branch stay visible).
+   */
+  branchScope?: BranchScope;
+  branchIds?: readonly string[];
+};
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -39,7 +50,16 @@ export function enquiryScopeSql(
   param: (value: string) => string,
   alias = "e",
 ): string | null {
-  if (!viewer || viewer.scope === "all") return null;
+  if (!viewer) return null;
+  const branch = viewer.branchScope === "selected";
+  if (viewer.scope === "all" && !branch) return null;
   if (!UUID.test(viewer.userId)) return "false";
-  return `app.enquiry_visible_to(${alias}.org_id, (${param(viewer.userId)})::uuid, ${alias}.assignee_id, ${alias}.created_by)`;
+  const user = `(${param(viewer.userId)})::uuid`;
+  const parts: string[] = [];
+  if (viewer.scope !== "all")
+    parts.push(
+      `app.enquiry_visible_to(${alias}.org_id, ${user}, ${alias}.assignee_id, ${alias}.created_by)`,
+    );
+  if (branch) parts.push(`app.location_visible_to(${alias}.org_id, ${user}, ${alias}.location_id)`);
+  return parts.join(" and ");
 }

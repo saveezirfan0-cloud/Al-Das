@@ -125,12 +125,15 @@ export function AppNav({
   orgName,
   navState,
   defaultPanelHidden,
+  branchSwitcher,
 }: {
   tree: readonly SidebarNode[];
   orgName: string;
   /** Minimised sections, read from the cookie by the server layout. */
   navState: NavState;
   defaultPanelHidden: boolean;
+  /** The rail's branch switcher (components/shell/branch-switcher.tsx). */
+  branchSwitcher?: React.ReactNode;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -416,6 +419,7 @@ export function AppNav({
             <Activity className="size-5" aria-hidden />
           </span>
         </Link>
+        {branchSwitcher && <div className="shrink-0 pb-3">{branchSwitcher}</div>}
         <div className="bg-rail-foreground/10 h-px w-10 shrink-0" aria-hidden />
         <div className="flex w-full flex-1 flex-col overflow-y-auto px-3 py-3 [scrollbar-width:none]">
           <ul className="flex flex-col gap-2">{top.map(railItem)}</ul>

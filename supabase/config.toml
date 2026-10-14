@@ -244,6 +244,13 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
+# Sign-in link e-mail (login page, "E-mail me a link"). Production: paste the same file under
+# Authentication > Emails > Magic Link in the Supabase dashboard. The link must stay
+# {{ .ConfirmationURL }}: app/auth/callback only reads ?code= (PKCE).
+[auth.email.template.magic_link]
+subject = "Your Pulse sign-in link"
+content_path = "./supabase/templates/magic_link.html"
+
 # Uncomment to customize email template
 # [auth.email.template.invite]
 # subject = "You have been invited"

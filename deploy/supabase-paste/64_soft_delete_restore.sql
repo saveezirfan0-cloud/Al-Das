@@ -1,12 +1,12 @@
 -- Paste this whole file into Supabase > SQL Editor > New query, then Run.
 -- Run the files in numeric order. A failed file rolls back as a whole, so it is safe to retry.
--- Soft delete with a restore window: Settings, Recently deleted (docs/35_SOFT_DELETE_NOTES.md). Needs every earlier
--- file first, up to and including 58_pin_function_search_path.sql. Adds the deleted_items bin, tasks.deleted_at and
--- website_entry_points.deleted_at, the soft delete / restore / list / purge functions and the nightly pulse:soft_delete_purge job.
+-- Soft delete with a restore window: Settings, Recently deleted (docs/35_SOFT_DELETE_NOTES.md). Adds the deleted_items
+-- bin, tasks.deleted_at and website_entry_points.deleted_at, the soft delete / restore / list / purge functions and the
+-- nightly pulse:soft_delete_purge job. Needs every earlier file first, up to and including 63_branch_access.sql.
 -- Check the project name in the Supabase header first: this is for the Pulse project only.
 
 -- ======================================================================
--- 20261120000100_soft_delete_restore.sql
+-- 20261124000100_soft_delete_restore.sql
 -- ======================================================================
 -- Soft delete with a restore window (docs/35_SOFT_DELETE_NOTES.md, docs/09 §2.3 Security).
 --
@@ -96,14 +96,18 @@ create policy tasks_update on public.tasks for update to authenticated
   using (app.has_perm(org_id, 'tasks.manage') and deleted_at is null)
   with check (app.has_perm(org_id, 'tasks.manage') and deleted_at is null);
 
--- From 20261110000200_routing_presence.sql (restricted enquiry view), plus deleted_at.
+-- From 20261123000100_branch_access.sql (restricted enquiry view and branch), plus deleted_at.
 drop policy if exists enquiries_select on public.enquiries;
 create policy enquiries_select on public.enquiries for select to authenticated
-  using (app.has_perm(org_id, 'enquiries.view') and app.enquiry_visible_to(org_id, auth.uid(), assignee_id, created_by)
+  using (app.has_perm(org_id, 'enquiries.view')
+         and app.enquiry_visible_to(org_id, auth.uid(), assignee_id, created_by)
+         and app.location_visible_to(org_id, auth.uid(), location_id)
          and deleted_at is null);
 drop policy if exists enquiries_update on public.enquiries;
 create policy enquiries_update on public.enquiries for update to authenticated
-  using (app.has_perm(org_id, 'enquiries.manage') and app.enquiry_visible_to(org_id, auth.uid(), assignee_id, created_by)
+  using (app.has_perm(org_id, 'enquiries.manage')
+         and app.enquiry_visible_to(org_id, auth.uid(), assignee_id, created_by)
+         and app.location_visible_to(org_id, auth.uid(), location_id)
          and deleted_at is null)
   with check (app.has_perm(org_id, 'enquiries.manage') and deleted_at is null);
 
@@ -312,8 +316,8 @@ grant execute on function public.restore_deleted_record(uuid, text, uuid, uuid) 
 
 -- ---------------------------------------------------------------------------
 -- 5b. The Recently deleted list for one member: only the kinds they may restore (p_kinds, decided by the server after
---     can()), enquiries only inside their enquiry view (app.enquiry_visible_to), records that still exist and are still
---     deleted; newest first, paged. Service role only; titles leave only through the page that ran can().
+--     can()), enquiries only inside their enquiry view and branches (app.enquiry_visible_to, app.location_visible_to),
+--     records that still exist and are still deleted; newest first, paged. Service role only; titles leave only through the page that ran can().
 -- ---------------------------------------------------------------------------
 create or replace function public.list_deleted_items(
   p_org uuid, p_user uuid, p_kinds text[], p_limit integer default 100, p_offset integer default 0
@@ -337,6 +341,7 @@ as $$
     left join public.enquiries e
       on d.entity = 'enquiry' and e.id = d.record_id and e.org_id = p_org and e.deleted_at is not null
      and app.enquiry_visible_to(e.org_id, p_user, e.assignee_id, e.created_by)
+     and app.location_visible_to(e.org_id, p_user, e.location_id)
     left join public.tasks t
       on d.entity = 'task' and t.id = d.record_id and t.org_id = p_org and t.deleted_at is not null
     left join public.website_entry_points w
@@ -497,4 +502,4 @@ end $$;
 
 select cron.schedule('pulse:soft_delete_purge', '50 3 * * *', $$select app.ping_jobs('soft_delete_purge')$$);
 
-insert into supabase_migrations.schema_migrations (version, name) values ('20261120000100', 'soft_delete_restore') on conflict (version) do nothing;
+insert into supabase_migrations.schema_migrations (version, name) values ('20261124000100', 'soft_delete_restore') on conflict (version) do nothing;

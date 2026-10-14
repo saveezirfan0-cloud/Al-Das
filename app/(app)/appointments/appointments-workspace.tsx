@@ -53,6 +53,8 @@ export function AppointmentsWorkspace({
     date: string;
     newContact: NewAppointmentDefaults["contact"] | null;
     openId?: string | null;
+    /** Phase B: the branch the diary opens on (the switcher's choice, home or only branch). */
+    locationId?: string | null;
   };
 }) {
   const [view, setView] = React.useState<View>(initial.view);
@@ -66,7 +68,9 @@ export function AppointmentsWorkspace({
     }
   }, [phone, initial.viewExplicit]);
   const [date, setDate] = React.useState(initial.date);
-  const [locationId, setLocationId] = React.useState(bootstrap.locations[0]?.id ?? "");
+  const [locationId, setLocationId] = React.useState(
+    initial.locationId ?? bootstrap.locations[0]?.id ?? "",
+  );
   const [calendarSpecialistId, setCalendarSpecialistId] = React.useState("");
   const [reloadKey, setReloadKey] = React.useState(0);
   const [openAppt, setOpenAppt] = React.useState<string | null>(initial.openId ?? null);

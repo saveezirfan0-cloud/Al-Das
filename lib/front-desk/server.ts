@@ -14,6 +14,7 @@ import {
   type CardFlag,
 } from "@/lib/front-desk/patient-card";
 import type { BoardAppointment, ReminderState } from "@/lib/front-desk/board";
+import { withBranchFilter } from "@/lib/branches/filter";
 import type { AdminClient } from "@/lib/supabase/admin";
 
 /** [00:00 of the local date, 00:00 of the next day) as ISO instants. */
@@ -92,6 +93,8 @@ export async function loadBoardRows(
   timezone: string,
   date: string,
   locationId?: string | null,
+  /** Phase B: the member's branch filter (lib/branches/server.ts branchView): those branches plus rows with none. */
+  branchIds?: readonly string[] | null,
 ): Promise<BoardRow[]> {
   const range = localDayRange(date, timezone);
   let q = admin
@@ -105,6 +108,7 @@ export async function loadBoardRows(
     .order("starts_at")
     .limit(1000);
   if (locationId) q = q.eq("location_id", locationId);
+  q = withBranchFilter(q, branchIds);
   const { data } = await q;
   return ((data ?? []) as unknown as JoinedBoard[]).map((a) => {
     const uniteName = (a.custom as Record<string, unknown> | null)?.unite_patient_name;
@@ -161,12 +165,15 @@ export async function loadNextFreeSlots(
     today: string;
     durationMin: number;
     locationId?: string | null;
+    /** Phase B: only these branches (null = no filter). Ignored when `locationId` is set. */
+    locationIds?: readonly string[] | null;
     perDoctor?: number;
     lookAheadDays?: number;
   },
 ): Promise<DoctorSlots[]> {
   const perDoctor = opts.perDoctor ?? 4;
   const lookAhead = opts.lookAheadDays ?? 7;
+  if (!opts.locationId && opts.locationIds && opts.locationIds.length === 0) return [];
   let q = admin
     .from("specialist_locations")
     .select(
@@ -177,6 +184,7 @@ export async function loadNextFreeSlots(
     .eq("locations.active", true)
     .limit(60);
   if (opts.locationId) q = q.eq("location_id", opts.locationId);
+  else if (opts.locationIds) q = q.in("location_id", [...opts.locationIds]);
   const { data: pairs } = await q;
 
   const out: DoctorSlots[] = [];
@@ -258,6 +266,8 @@ export async function loadPatientCard(
   orgId: string,
   contactId: string,
   now: Date = new Date(),
+  /** Phase B: the branches the viewer may see (null = all); appointments, waiting list and enquiry keep to them. */
+  branchIds: readonly string[] | null = null,
 ): Promise<PatientCardData | null> {
   const { data: contact } = await admin
     .from("contacts")
@@ -310,23 +320,29 @@ export async function loadPatientCard(
     { data: waits },
     { count: noShows },
   ] = await Promise.all([
-    admin
-      .from("appointments")
-      .select(
-        "id, number, starts_at, status, checkin_status, contact_id, specialists(name), services(name), locations(name)",
-      )
-      .eq("org_id", orgId)
-      .in("contact_id", ids)
-      .gte("starts_at", yearAgo)
+    withBranchFilter(
+      admin
+        .from("appointments")
+        .select(
+          "id, number, starts_at, status, checkin_status, contact_id, specialists(name), services(name), locations(name)",
+        )
+        .eq("org_id", orgId)
+        .in("contact_id", ids)
+        .gte("starts_at", yearAgo),
+      branchIds,
+    )
       .order("starts_at", { ascending: false })
       .limit(200),
-    admin
-      .from("enquiries")
-      .select("id, number, title, stages(name)")
-      .eq("org_id", orgId)
-      .eq("contact_id", contactId)
-      .eq("status", "open")
-      .is("deleted_at", null)
+    withBranchFilter(
+      admin
+        .from("enquiries")
+        .select("id, number, title, stages(name)")
+        .eq("org_id", orgId)
+        .eq("contact_id", contactId)
+        .eq("status", "open")
+        .is("deleted_at", null),
+      branchIds,
+    )
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
@@ -338,19 +354,25 @@ export async function loadPatientCard(
       .eq("type", "call")
       .eq("done", false)
       .is("deleted_at", null),
-    admin
-      .from("waitlist_entries")
-      .select("id, specialists(name), services(name)")
-      .eq("org_id", orgId)
-      .eq("contact_id", contactId)
-      .eq("status", "waiting"),
-    admin
-      .from("appointments")
-      .select("id", { count: "exact", head: true })
-      .eq("org_id", orgId)
-      .eq("contact_id", contactId)
-      .eq("status", "no_show")
-      .gte("starts_at", yearAgo),
+    withBranchFilter(
+      admin
+        .from("waitlist_entries")
+        .select("id, specialists(name), services(name)")
+        .eq("org_id", orgId)
+        .eq("contact_id", contactId)
+        .eq("status", "waiting"),
+      branchIds,
+    ),
+    withBranchFilter(
+      admin
+        .from("appointments")
+        .select("id", { count: "exact", head: true })
+        .eq("org_id", orgId)
+        .eq("contact_id", contactId)
+        .eq("status", "no_show")
+        .gte("starts_at", yearAgo),
+      branchIds,
+    ),
   ]);
 
   const nameOf = new Map<string, string>([

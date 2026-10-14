@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/shell/page-header";
 import { PrintButton } from "@/components/shell/print-button";
 import { Button } from "@/components/ui/button";
 import { can } from "@/lib/auth/can";
+import { memberBranchView } from "@/lib/branches/guard";
 import { requirePerm } from "@/lib/auth/session";
 import { ADVICE_LABEL, sheetSummary } from "@/lib/front-desk/end-of-day";
 import { loadEndOfDay } from "@/lib/front-desk/end-of-day-server";
@@ -26,7 +27,9 @@ export default async function EndOfDayPage() {
   }
   const tz = member.org.timezone || "Asia/Dubai";
   const admin = createAdminClient();
-  const data = await loadEndOfDay(admin, member.orgId, tz, todayIn(tz));
+  // Phase B: the sheet keeps to the branch the desk is showing (or every branch the member may see).
+  const branch = await memberBranchView(admin, member);
+  const data = await loadEndOfDay(admin, member.orgId, tz, todayIn(tz), branch.filterIds);
   await recordAccess(admin, member, {
     entity: "appointment",
     action: "list",
