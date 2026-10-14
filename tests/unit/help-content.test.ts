@@ -73,8 +73,11 @@ describe("guides", () => {
         continue;
       expect(guideForPath(item.href).id, item.href).not.toBe("general");
     }
-    expect(guideForPath("/finance/exceptions").id).toBe("finance");
-    expect(guideForPath("/settings/training").id).toBe("settings");
+    expect(guideForPath("/finance/exceptions").id).toBe("finance-exceptions");
+    expect(guideForPath("/finance/exceptions/123").id).toBe("finance-exceptions");
+    expect(guideForPath("/finance").id).toBe("finance");
+    expect(guideForPath("/settings/training").id).toBe("settings-training");
+    expect(guideForPath("/settings").id).toBe("settings");
     expect(guideForPath("/somewhere/else")).toBe(FALLBACK_GUIDE);
   });
 

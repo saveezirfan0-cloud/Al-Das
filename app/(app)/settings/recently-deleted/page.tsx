@@ -51,7 +51,7 @@ export default async function RecentlyDeletedPage({
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Recently deleted"
-        description={`Deleted contacts, enquiries, tasks and website entry points stay here for ${windowDays} day${windowDays === 1 ? "" : "s"}, then they are removed for good overnight. You see the kinds of record you are allowed to manage.`}
+        description={`Deleted patients, enquiries, tasks and website entry points stay here for ${windowDays} day${windowDays === 1 ? "" : "s"}, then they are removed for good overnight. You see the kinds of record you are allowed to manage.`}
       />
       {kinds.length > 0 && <DeletedItemsTable key={from} rows={rows} />}
       {kinds.length > 0 && (from > 0 || hasMore) && (
@@ -88,9 +88,9 @@ export default async function RecentlyDeletedPage({
           </CardDescription>
         </CardHeader>
         <CardContent className="text-muted-foreground text-sm">
-          A contact cannot be restored while another contact uses the same phone number, WhatsApp
-          account or Unite PIN, and a task or enquiry cannot be restored while its contact is still
-          in this list.
+          A patient cannot be restored while another patient record uses the same phone number,
+          WhatsApp account or Unite PIN, and a task or enquiry cannot be restored while its patient
+          is still in this list.
         </CardContent>
       </Card>
     </div>

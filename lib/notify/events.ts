@@ -127,7 +127,7 @@ export const NOTIFICATION_EVENTS = [
     group: "Work",
     label: "A pre-authorisation is about to expire",
     description:
-      "An approved insurance pre-authorisation reaches its reminder date (Finance, Workflow settings). Push and e-mail say only that one is expiring; open Pulse to see which.",
+      "An approved insurance pre-authorisation reaches its reminder date (Settings, Finance workflow settings). Push and e-mail say only that one is expiring; open Pulse to see which.",
     channels: ALL,
     defaults: { in_app: true, email: false, push: false },
     permission: "finance.preauth.manage",
@@ -147,7 +147,7 @@ export const NOTIFICATION_EVENTS = [
     group: "Work",
     label: "An unpaid insurance claim needs a follow-up",
     description:
-      "An unpaid claim reached a follow-up stage (60, 90 or 120 days by default; Finance, Workflow settings) and a task was created. Push and e-mail say only that a follow-up is due.",
+      "An unpaid claim reached a follow-up stage (60, 90 or 120 days by default; Settings, Finance workflow settings) and a task was created. Push and e-mail say only that a follow-up is due.",
     channels: ALL,
     defaults: { in_app: true, email: false, push: false },
     permission: "finance.followup.manage",

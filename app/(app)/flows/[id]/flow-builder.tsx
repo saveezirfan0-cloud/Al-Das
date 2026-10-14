@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { RecordHistoryButton } from "@/components/history/record-history";
@@ -174,6 +175,7 @@ function Builder({
   lookups: BuilderLookups;
   canAi: boolean;
 }) {
+  const [ask, askDialog] = useConfirm();
   const router = useRouter();
   const rf = useReactFlow();
   const isDark = useIsDark();
@@ -537,11 +539,14 @@ function Builder({
             variant="outline"
             disabled={pending || dirty}
             title={dirty ? "Save the draft first" : undefined}
-            onClick={() => {
+            onClick={async () => {
               if (
-                window.confirm(
-                  "I have read every message in this flow and it is safe to publish once it is set up.",
-                )
+                await ask({
+                  title: "Mark this flow as reviewed?",
+                  description:
+                    "I have read every message in this flow and it is safe to publish once it is set up.",
+                  confirmLabel: "Mark as reviewed",
+                })
               )
                 markReviewed();
             }}
@@ -734,6 +739,7 @@ function Builder({
         />
       )}
       {canAi && aiOpen && <AiDraftDialog open={aiOpen} onOpenChange={setAiOpen} />}
+      {askDialog}
     </div>
   );
 }

@@ -52,7 +52,7 @@ export function AppointmentsSettings({
   return (
     <Tabs defaultValue={initialTab} className="flex flex-col gap-4">
       <TabsList className="w-fit flex-wrap">
-        <TabsTrigger value="locations">Locations</TabsTrigger>
+        <TabsTrigger value="locations">Branches</TabsTrigger>
         <TabsTrigger value="departments">Departments</TabsTrigger>
         <TabsTrigger value="services">Services</TabsTrigger>
         <TabsTrigger value="doctors">Doctors and hours</TabsTrigger>

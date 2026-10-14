@@ -3,6 +3,7 @@ import { formatInTimeZone } from "date-fns-tz";
 import { CalendarDays, CheckSquare, ClipboardList, RefreshCw } from "lucide-react";
 
 import { KpiTile } from "@/components/charts/kpi-tile";
+import { FirstRunChecklist } from "@/components/shell/first-run-checklist";
 import { PageHeader } from "@/components/shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import { can } from "@/lib/auth/can";
 import { requirePerm } from "@/lib/auth/session";
 import { canSeeLocation, readBranchAccess } from "@/lib/branches/access";
 import { CHECKIN_LABELS, isCheckinState } from "@/lib/front-desk/checkin";
+import { firstRunFor } from "@/lib/help/first-steps";
 import { doctorCalendarHref } from "@/lib/organisation/doctors";
 import { dayState, nextUp, summariseDay } from "@/lib/organisation/my-day";
 import { todayWindow } from "@/lib/organisation/server";
@@ -122,6 +124,7 @@ export default async function MyDayPage() {
           </Button>
         )}
       </PageHeader>
+      <FirstRunChecklist firstRun={firstRunFor(member)} />
 
       {doctorIds.length === 0 ? (
         <div className="rounded-xl border p-6 text-sm">

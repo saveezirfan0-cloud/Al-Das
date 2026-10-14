@@ -264,7 +264,7 @@ export function BookingRules({
             <div className="flex flex-col gap-2 rounded-md border px-3 py-2 text-sm">
               <span className="font-medium">Working days</span>
               <span className="text-muted-foreground text-xs">
-                Days the clinic is open. Specialist hours only apply on these days.
+                Days the clinic is open. Doctors&apos; hours only apply on these days.
               </span>
               <div className="flex flex-wrap gap-2">
                 {WEEKDAYS.map((d) => {

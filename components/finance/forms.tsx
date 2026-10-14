@@ -4,6 +4,7 @@ import * as React from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -144,24 +145,28 @@ export function RunButton({
   size?: "default" | "sm";
   onDone?: () => void;
 }) {
+  const [ask, askDialog] = useConfirm();
   const [pending, start] = React.useTransition();
   return (
-    <Button
-      variant={variant}
-      size={size}
-      disabled={pending}
-      onClick={() => {
-        if (confirm && !window.confirm(confirm)) return;
-        start(async () => {
-          const res = await action();
-          if (res.ok) {
-            toast.success(res.message ?? "Done");
-            onDone?.();
-          } else toast.error(res.error);
-        });
-      }}
-    >
-      {pending && <Loader2 className="animate-spin" />} {children}
-    </Button>
+    <>
+      <Button
+        variant={variant}
+        size={size}
+        disabled={pending}
+        onClick={async () => {
+          if (confirm && !(await ask(confirm))) return;
+          start(async () => {
+            const res = await action();
+            if (res.ok) {
+              toast.success(res.message ?? "Done");
+              onDone?.();
+            } else toast.error(res.error);
+          });
+        }}
+      >
+        {pending && <Loader2 className="animate-spin" />} {children}
+      </Button>
+      {askDialog}
+    </>
   );
 }

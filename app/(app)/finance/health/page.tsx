@@ -1,4 +1,5 @@
 import { SetupChecklist } from "@/components/finance/setup-checklist";
+import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -51,7 +52,7 @@ export default async function FinanceHealthPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Data health"
+        title="Finance data health"
         description="Unite capture, the Diligence import and reference-data gaps."
       />
 
@@ -221,7 +222,10 @@ export default async function FinanceHealthPage() {
         </CardHeader>
         <CardContent>
           {health.batches.length === 0 ? (
-            <p className="text-muted-foreground text-sm">No batches captured yet.</p>
+            <EmptyState
+              title="No batches captured yet"
+              description="Unite capture is off until an administrator switches it on."
+            />
           ) : (
             <Table>
               <TableHeader>

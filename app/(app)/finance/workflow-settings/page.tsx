@@ -1,3 +1,4 @@
+import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -29,7 +30,7 @@ import {
   type CodeRow,
 } from "./forms";
 
-export const metadata = { title: "Workflow settings" };
+export const metadata = { title: "Finance workflow settings" };
 export const dynamic = "force-dynamic";
 
 const PAGE = 100;
@@ -75,7 +76,7 @@ export default async function WorkflowSettingsPage({
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Workflow settings"
+        title="Finance workflow settings"
         description="The numbers and lists behind pre-authorisations, ready-to-bill, denials, remittance, scorecards, the forecast, the cash-up and invoice-change review. Every rule reads its thresholds from here."
       />
       <Card>
@@ -206,8 +207,8 @@ export default async function WorkflowSettingsPage({
               ))}
               {(prices ?? []).length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-muted-foreground text-sm">
-                    No prices loaded.
+                  <TableCell colSpan={5}>
+                    <EmptyState title="No prices loaded" className="border-0 p-6" />
                   </TableCell>
                 </TableRow>
               )}

@@ -3,6 +3,7 @@
 import * as React from "react";
 import { toast } from "sonner";
 
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -69,6 +70,7 @@ export function SettingsBoard({
   canManage: boolean;
   defaultSigner: string;
 }) {
+  const [ask, askDialog] = useConfirm();
   const [signing, setSigning] = React.useState<SettingItem | null>(null);
   const [history, setHistory] = React.useState<{ key: string; entries: HistoryEntry[] } | null>(
     null,
@@ -79,11 +81,11 @@ export function SettingsBoard({
     .map((c) => ({ category: c, rows: items.filter((i) => i.category === c) }))
     .filter((g) => g.rows.length);
 
-  function revoke(item: SettingItem) {
+  async function revoke(item: SettingItem) {
     const extra = isGuardedKey(item.key)
       ? " This stops the behaviour it controls immediately."
       : "";
-    if (!confirm(`Revoke the sign-off for "${item.label}"?${extra}`)) return;
+    if (!(await ask(`Revoke the sign-off for "${item.label}"?${extra}`))) return;
     startTransition(async () => {
       const res = await revokeSetting(item.key);
       if (res.ok) toast.success(res.message);
@@ -220,6 +222,7 @@ export function SettingsBoard({
           </ul>
         </DialogContent>
       </Dialog>
+      {askDialog}
     </div>
   );
 }

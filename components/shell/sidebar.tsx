@@ -2,11 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   Activity,
   BellRing,
   BarChart3,
+  Building2,
+  ClipboardList,
+  Gauge,
   BookOpenCheck,
   CalendarClock,
   CalendarDays,
@@ -28,6 +31,7 @@ import {
   Stethoscope,
   Sunrise,
   UsersRound,
+  Network,
   Workflow,
 } from "lucide-react";
 
@@ -70,6 +74,10 @@ export const ICONS: Record<NavIcon, React.ComponentType<{ className?: string }>>
   flows: Workflow,
   media: Images,
   recall: BellRing,
+  followups: ClipboardList,
+  teams: Network,
+  branches: Building2,
+  management: Gauge,
   portal: LayoutGrid,
   reports: BarChart3,
   finance: Landmark,
@@ -391,7 +399,19 @@ export function Sidebar({
               </button>
               {gOpen && (
                 <ul id={gid} className="flex flex-col gap-0.5">
-                  {groupItems.map(renderItem)}
+                  {groupItems.map((item, n) => (
+                    <Fragment key={item.href}>
+                      {item.subgroup && item.subgroup !== groupItems[n - 1]?.subgroup && (
+                        <li
+                          role="presentation"
+                          className="text-muted-foreground px-2.5 pt-1.5 pb-0.5 text-[10px] font-semibold tracking-wide uppercase"
+                        >
+                          {item.subgroup}
+                        </li>
+                      )}
+                      {renderItem(item)}
+                    </Fragment>
+                  ))}
                 </ul>
               )}
             </div>

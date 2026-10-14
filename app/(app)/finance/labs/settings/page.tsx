@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -96,9 +97,12 @@ export default async function LabSettingsPage() {
             <TableBody>
               {(providers ?? []).length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-muted-foreground text-sm">
-                    No providers yet. Add the in-house lab, each send-out lab, and the hospitals and
-                    radiology providers you refer to.
+                  <TableCell colSpan={4}>
+                    <EmptyState
+                      title="No providers yet"
+                      description="Add the in-house lab, each send-out lab, and the hospitals and radiology providers you refer to."
+                      className="border-0 p-6"
+                    />
                   </TableCell>
                 </TableRow>
               ) : (
@@ -203,8 +207,12 @@ export default async function LabSettingsPage() {
             <TableBody>
               {formats.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-muted-foreground text-sm">
-                    No layouts yet. Add one when the first sample file arrives.
+                  <TableCell colSpan={5}>
+                    <EmptyState
+                      title="No layouts yet"
+                      description="Add one when the first sample file arrives."
+                      className="border-0 p-6"
+                    />
                   </TableCell>
                 </TableRow>
               ) : (

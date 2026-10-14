@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -190,8 +191,8 @@ export default async function BankPage() {
             <TableBody>
               {(recs ?? []).length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-muted-foreground text-sm">
-                    No reconciliations yet.
+                  <TableCell colSpan={4}>
+                    <EmptyState title="No reconciliations yet" className="border-0 p-6" />
                   </TableCell>
                 </TableRow>
               ) : (
@@ -238,8 +239,8 @@ export default async function BankPage() {
             <TableBody>
               {(imports ?? []).length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-muted-foreground text-sm">
-                    Nothing imported yet.
+                  <TableCell colSpan={6}>
+                    <EmptyState title="Nothing imported yet" className="border-0 p-6" />
                   </TableCell>
                 </TableRow>
               ) : (

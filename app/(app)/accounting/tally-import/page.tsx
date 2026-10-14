@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -115,8 +116,8 @@ export default async function TallyImportPage({
                 <TableBody>
                   {rows.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-muted-foreground text-sm">
-                        No imports yet.
+                      <TableCell colSpan={7}>
+                        <EmptyState title="No imports yet" className="border-0 p-6" />
                       </TableCell>
                     </TableRow>
                   )}

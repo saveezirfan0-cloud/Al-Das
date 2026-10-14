@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -141,8 +142,12 @@ export default async function PostingRulesPage() {
             <TableBody>
               {rules.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-muted-foreground text-sm">
-                    No rules yet. Add the defaults to start.
+                  <TableCell colSpan={7}>
+                    <EmptyState
+                      title="No rules yet"
+                      description="Add the defaults to start."
+                      className="border-0 p-6"
+                    />
                   </TableCell>
                 </TableRow>
               )}

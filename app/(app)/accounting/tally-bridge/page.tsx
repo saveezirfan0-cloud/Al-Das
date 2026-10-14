@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -349,8 +350,8 @@ export default async function TallyBridgePage() {
             <TableBody>
               {(attention.data ?? []).length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-muted-foreground text-sm">
-                    Nothing waiting.
+                  <TableCell colSpan={7}>
+                    <EmptyState title="Nothing waiting" className="border-0 p-6" />
                   </TableCell>
                 </TableRow>
               )}

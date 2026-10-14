@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { EmptyState } from "@/components/shell/empty-state";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -52,8 +53,12 @@ export function RunsTable({
       <TableBody>
         {runs.length === 0 && (
           <TableRow>
-            <TableCell colSpan={showKind ? 8 : 7} className="text-muted-foreground text-sm">
-              No runs yet. Prepare a month to see its lines before anyone posts it.
+            <TableCell colSpan={showKind ? 8 : 7}>
+              <EmptyState
+                title="No runs yet"
+                description="Prepare a month to see its lines before anyone posts it."
+                className="border-0 p-6"
+              />
             </TableCell>
           </TableRow>
         )}

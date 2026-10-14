@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, Send, TriangleAlert, Upload } from "lucide-react";
 import { toast } from "sonner";
 
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { MediaPicker } from "@/components/media/media-picker";
 import { PhonePreview } from "@/components/phone-preview/phone-preview";
 import { Button } from "@/components/ui/button";
@@ -101,6 +102,7 @@ export function NewCampaignForm({
   /** "repeat" when opened from Recurring campaigns. */
   initialMode?: "now" | "later" | "repeat";
 }) {
+  const [ask, askDialog] = useConfirm();
   const router = useRouter();
   const [name, setName] = useState("");
   const [channelId, setChannelId] = useState(channels[0]?.id ?? "");
@@ -349,13 +351,15 @@ export function NewCampaignForm({
     });
   }
 
-  function start() {
+  async function start() {
     if (!template || !channel || problems.length) return;
     if (mode === "repeat") {
       if (
-        !window.confirm(
-          `Send "${template.name}" to the segment ${(cronSummary ?? cron).toLowerCase()} (${timezone})? Each run re-reads the segment; about ${eligible.toLocaleString()} people today.`,
-        )
+        !(await ask({
+          title: `Send "${template.name}" to the segment ${(cronSummary ?? cron).toLowerCase()} (${timezone})?`,
+          description: `Each run re-reads the segment; about ${eligible.toLocaleString()} people today.`,
+          confirmLabel: "Save recurring campaign",
+        }))
       )
         return;
       startCreate(async () => {
@@ -384,7 +388,13 @@ export function NewCampaignForm({
     const what = abTemplate
       ? `"${template.name}" (A) and "${abTemplate.name}" (B, about ${abSplit}%)`
       : `"${template.name}"`;
-    if (!window.confirm(`Send ${what} to ${eligible.toLocaleString()} people ${when}?`)) return;
+    if (
+      !(await ask({
+        title: `Send ${what} to ${eligible.toLocaleString()} people ${when}?`,
+        confirmLabel: mode === "later" ? "Schedule" : "Send",
+      }))
+    )
+      return;
     startCreate(async () => {
       const r = await createCampaign({
         name,
@@ -752,7 +762,7 @@ export function NewCampaignForm({
                   </SelectContent>
                 </Select>
                 <p className="text-muted-foreground text-xs">
-                  Build segments in Contacts. The audience is frozen when you start the campaign.
+                  Build segments in Patients. The audience is frozen when you start the campaign.
                 </p>
               </div>
             ) : (
@@ -1140,6 +1150,7 @@ export function NewCampaignForm({
           </Button>
         </div>
       </div>
+      {askDialog}
     </div>
   );
 }

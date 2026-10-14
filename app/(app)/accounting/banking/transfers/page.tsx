@@ -1,3 +1,4 @@
+import { CappedNote, EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -129,8 +130,8 @@ export default async function TransfersPage() {
             <TableBody>
               {transfers.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-muted-foreground text-sm">
-                    No transfers yet.
+                  <TableCell colSpan={8}>
+                    <EmptyState title="No transfers yet" className="border-0 p-6" />
                   </TableCell>
                 </TableRow>
               )}
@@ -163,6 +164,7 @@ export default async function TransfersPage() {
               ))}
             </TableBody>
           </Table>
+          {transfers.length >= 300 && <CappedNote shown={300} />}
         </CardContent>
       </Card>
     </div>

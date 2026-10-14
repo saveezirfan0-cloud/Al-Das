@@ -4,12 +4,14 @@ import { ArrowRight } from "lucide-react";
 import { ChartRenderer } from "@/components/charts/chart-renderer";
 import { KpiTile } from "@/components/charts/kpi-tile";
 import { AwaitingCard } from "@/components/shell/awaiting-card";
+import { FirstRunChecklist } from "@/components/shell/first-run-checklist";
 import { PageHeader } from "@/components/shell/page-header";
 import { can } from "@/lib/auth/can";
 import { requirePerm } from "@/lib/auth/session";
 import { BAND_LABEL, type DoctorPerformance } from "@/lib/finance/doctor-performance";
 import { loadLatestPerformance } from "@/lib/finance/doctor-performance-server";
 import { monthTitle } from "@/lib/finance/flash-xlsx";
+import { firstRunFor } from "@/lib/help/first-steps";
 import { filtersFromSearchParams } from "@/lib/reports/filters";
 import { headlineKpis, loadManagementSummary, MANAGEMENT_KPIS } from "@/lib/reports/management";
 import type { ReportResult } from "@/lib/reports/types";
@@ -93,6 +95,7 @@ export default async function ManagementDashboard({ searchParams }: { searchPara
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title="Management dashboard" description={`How the clinic is communicating with patients. ${ctx.range.label} (${ctx.timezone}).`} />
+      <FirstRunChecklist firstRun={firstRunFor(member)} />
       <ReportFilterBar filters={filters} applicable={["channel"]} options={options} />
       {error && (
         <p className="text-destructive text-sm" role="alert">

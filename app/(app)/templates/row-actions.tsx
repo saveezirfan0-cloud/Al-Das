@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -46,17 +47,18 @@ export function RowActions({
   /** Today in the workspace timezone, for the performance date range. */
   today: string;
 }) {
+  const [ask, askDialog] = useConfirm();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [mapOpen, setMapOpen] = useState(false);
   const [deliveryOpen, setDeliveryOpen] = useState(false);
   const [perfOpen, setPerfOpen] = useState(false);
 
-  function run(
+  async function run(
     fn: () => Promise<{ ok: boolean; error?: string; message?: string }>,
     confirmText?: string,
   ) {
-    if (confirmText && !window.confirm(confirmText)) return;
+    if (confirmText && !(await ask(confirmText))) return;
     startTransition(async () => {
       const r = await fn();
       if (!r.ok) toast.error(r.error ?? "Something went wrong.");
@@ -121,6 +123,7 @@ export function RowActions({
           today={today}
         />
       )}
+      {askDialog}
     </>
   );
 }

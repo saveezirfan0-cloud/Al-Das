@@ -4,6 +4,8 @@ import { useTransition } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { EmptyState } from "@/components/shell/empty-state";
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,6 +50,7 @@ export function GcalPanel({
   redirectUri: string;
   result: string | null;
 }) {
+  const [ask, askDialog] = useConfirm();
   const [pending, start] = useTransition();
 
   function connect(specialistId: string) {
@@ -61,11 +64,9 @@ export function GcalPanel({
     });
   }
 
-  function remove(specialistId: string, name: string) {
+  async function remove(specialistId: string, name: string) {
     if (
-      !window.confirm(
-        `Disconnect ${name}'s Google Calendar? Pulse will stop reading and writing it.`,
-      )
+      !(await ask(`Disconnect ${name}'s Google Calendar? Pulse will stop reading and writing it.`))
     )
       return;
     start(async () => {
@@ -152,14 +153,15 @@ export function GcalPanel({
             ))}
             {rows.length === 0 && (
               <TableRow>
-                <TableCell colSpan={4} className="text-muted-foreground text-sm">
-                  No active doctors.
+                <TableCell colSpan={4}>
+                  <EmptyState title="No active doctors" className="border-0 p-6" />
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
       </CardContent>
+      {askDialog}
     </Card>
   );
 }

@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -81,8 +82,8 @@ export default async function BudgetsPage() {
             <TableBody>
               {budgets.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-muted-foreground text-sm">
-                    No budgets yet.
+                  <TableCell colSpan={6}>
+                    <EmptyState title="No budgets yet" className="border-0 p-6" />
                   </TableCell>
                 </TableRow>
               )}

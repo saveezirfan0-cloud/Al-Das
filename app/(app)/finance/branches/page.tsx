@@ -26,7 +26,7 @@ import { ageingTotals, monthEnd, type AgeingRow } from "@/lib/finance/summary-ex
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata = { title: "Branches" };
+export const metadata = { title: "Finance by branch" };
 export const dynamic = "force-dynamic";
 
 type Search = { from?: string; to?: string };
@@ -106,7 +106,7 @@ export default async function BranchesPage({ searchParams }: { searchParams: Pro
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Branches"
+        title="Finance by branch"
         description="Revenue stages, insurance balances and estimated profitability for Palm Jumeirah, Meadows and Golden Mile. The branch comes from the invoice's clinic."
       />
       <form className="flex flex-wrap items-end gap-3">

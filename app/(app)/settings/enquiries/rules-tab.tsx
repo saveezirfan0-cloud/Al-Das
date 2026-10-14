@@ -4,6 +4,7 @@ import * as React from "react";
 import { ArrowDown, ArrowUp, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { OptionSelect } from "@/app/(app)/enquiries/option-select";
 import { Button } from "@/components/ui/button";
 import {
@@ -88,6 +89,7 @@ function summarise(r: RuleRow, refs: Refs): { when: string; then: string } {
 }
 
 export function RulesTab({ rules, ...refs }: { rules: RuleRow[] } & Refs) {
+  const [ask, askDialog] = useConfirm();
   const [editing, setEditing] = React.useState<RuleRow | "new" | null>(null);
   const [pending, startTransition] = React.useTransition();
 
@@ -180,8 +182,8 @@ export function RulesTab({ rules, ...refs }: { rules: RuleRow[] } & Refs) {
                 className="text-destructive"
                 aria-label={`Delete ${r.name}`}
                 disabled={pending}
-                onClick={() =>
-                  confirm(`Delete the rule “${r.name}”?`) &&
+                onClick={async () =>
+                  (await ask(`Delete the rule “${r.name}”?`)) &&
                   startTransition(async () => {
                     const res = await deleteAssignmentRule(r.id);
                     if (!res.ok) toast.error(res.error);
@@ -201,6 +203,7 @@ export function RulesTab({ rules, ...refs }: { rules: RuleRow[] } & Refs) {
           onClose={() => setEditing(null)}
         />
       )}
+      {askDialog}
     </div>
   );
 }

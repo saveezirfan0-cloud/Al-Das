@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -190,8 +191,11 @@ export default async function YearEndPage({
                 <TableBody>
                   {preview.lines.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={3} className="text-muted-foreground text-sm">
-                        No income or expense balances in this year.
+                      <TableCell colSpan={3}>
+                        <EmptyState
+                          title="No income or expense balances in this year"
+                          className="border-0 p-6"
+                        />
                       </TableCell>
                     </TableRow>
                   )}

@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Archive, ArchiveRestore, Loader2, Plus, Save, Trash2 } from "lucide-react";
+import { Archive, ArchiveRestore, Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { OptionSelect } from "@/app/(app)/enquiries/option-select";
@@ -11,6 +11,8 @@ import { RecordHistorySection } from "@/components/history/record-history";
 import { ExpiryBadge } from "@/components/organisation/expiry-badge";
 import { ConfirmDialog } from "@/components/shell/confirm-dialog";
 import { Badge } from "@/components/ui/badge";
+import { DrawerFooter, useUnsavedGuard } from "@/components/shell/drawer-footer";
+import { isDirty } from "@/lib/shell/unsaved";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -134,6 +136,8 @@ export function StaffDrawer({
 }) {
   const router = useRouter();
   const [form, setForm] = React.useState<Form>(() => blank(null));
+  // what was loaded or last saved: the drawer asks before closing on anything else (Phase D)
+  const [saved, setSaved] = React.useState<Form | null>(null);
   const [tab, setTab] = React.useState("profile");
   const [pending, startTransition] = React.useTransition();
   const editing = staff;
@@ -141,17 +145,26 @@ export function StaffDrawer({
 
   React.useEffect(() => {
     if (!open) return;
-    setForm(staff ? toForm(staff) : blank(branches.length === 1 ? branches[0].id : null));
+    const loaded = staff ? toForm(staff) : blank(branches.length === 1 ? branches[0].id : null);
+    setForm(loaded);
+    setSaved(loaded);
     setTab("profile");
   }, [open, staff, branches]);
 
   const set = (patch: Partial<Form>) => setForm((f) => ({ ...f, ...patch }));
+  const dirty = !readOnly && isDirty(form, saved);
+  const { confirmClose, guardDialog } = useUnsavedGuard(dirty);
+  async function close() {
+    if (await confirmClose()) onClose();
+  }
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
+    const sent = form;
     startTransition(async () => {
-      const res = await saveStaffAction(editing?.id ?? null, form);
+      const res = await saveStaffAction(editing?.id ?? null, sent);
       if (!res.ok) return void toast.error(res.error);
+      setSaved(sent);
       toast.success(res.message ?? "Saved.");
       router.refresh();
       if (!editing) onCreated(res.data.id);
@@ -168,7 +181,7 @@ export function StaffDrawer({
       : members;
 
   return (
-    <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
+    <Sheet open={open} onOpenChange={(o) => !o && void close()}>
       <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-xl">
         <SheetHeader className="border-b">
           <SheetTitle className="flex items-center gap-2">
@@ -409,7 +422,14 @@ export function StaffDrawer({
                 </div>
               </div>
               {can.manage && (
-                <div className="flex items-center gap-2 border-t p-4">
+                <DrawerFooter
+                  onCancel={() => void close()}
+                  saving={pending}
+                  saveLabel={editing ? "Save" : "Add staff member"}
+                  saveDisabled={!form.full_name.trim()}
+                  hideSave={!!editing?.archived}
+                  dirty={dirty}
+                >
                   {editing &&
                     (editing.archived ? (
                       <Button
@@ -448,16 +468,7 @@ export function StaffDrawer({
                         }}
                       />
                     ))}
-                  <Button type="button" variant="ghost" className="ml-auto" onClick={onClose}>
-                    Cancel
-                  </Button>
-                  {!editing?.archived && (
-                    <Button type="submit" disabled={pending || !form.full_name.trim()}>
-                      {pending ? <Loader2 className="animate-spin" /> : <Save />}{" "}
-                      {editing ? "Save" : "Add staff member"}
-                    </Button>
-                  )}
-                </div>
+                </DrawerFooter>
               )}
             </form>
           </TabsContent>
@@ -480,6 +491,7 @@ export function StaffDrawer({
             </>
           )}
         </Tabs>
+        {guardDialog}
       </SheetContent>
     </Sheet>
   );

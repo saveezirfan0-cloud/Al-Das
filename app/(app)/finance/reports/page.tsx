@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { ArrowRight, Download } from "lucide-react";
 
+import { FirstRunChecklist } from "@/components/shell/first-run-checklist";
 import { PageHeader } from "@/components/shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { canAny, ForbiddenError } from "@/lib/auth/can";
 import { requireMember } from "@/lib/auth/session";
+import { firstRunFor } from "@/lib/help/first-steps";
 import { branchView } from "@/lib/branches/server";
 import { todayIn } from "@/lib/finance/action-support";
 import {
@@ -27,7 +29,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 import { HubPicker } from "./hub-picker";
 
-export const metadata = { title: "Finance reports" };
+export const metadata = { title: "Reports hub" };
 export const dynamic = "force-dynamic";
 
 const USE_LABEL: Record<HubUse, string> = {
@@ -86,9 +88,10 @@ export default async function FinanceReportsPage({
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Finance reports"
+        title="Reports hub"
         description="Every finance and accounting report in one place. Pick the branch and period once; each report opens with them, and the download buttons give the same view as Excel, CSV or PDF."
       />
+      <FirstRunChecklist firstRun={firstRunFor(member)} />
       <HubPicker
         key={hubQuery(picker)}
         branches={branches}
