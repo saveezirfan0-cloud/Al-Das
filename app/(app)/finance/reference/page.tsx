@@ -290,6 +290,7 @@ async function Doctors({ supabase, page }: { supabase: Sb; page: number }) {
           className="flex flex-wrap items-center gap-2 border-t pt-3"
         >
           <input type="hidden" name="active" value="on" />
+          <input type="hidden" name="adding" value="1" />
           <Input
             name="dha_id"
             placeholder="DHA id"
