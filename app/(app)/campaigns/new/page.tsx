@@ -44,6 +44,7 @@ export default async function NewCampaignPage({
         .select("id, name, language, category, status, type, waba_id, components, variable_map")
         .eq("org_id", member.orgId)
         .eq("status", "APPROVED")
+        .neq("category", "AUTHENTICATION")
         .is("archived_at", null)
         .order("name"),
       supabase

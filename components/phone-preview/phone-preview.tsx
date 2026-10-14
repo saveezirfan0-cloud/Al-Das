@@ -17,6 +17,11 @@ export function PhonePreview({
             {preview.headerMedia}
           </div>
         )}
+        {!preview?.headerMedia && preview?.buttons.some((b) => b.type === "CATALOG") && (
+          <div className="bg-muted text-muted-foreground mb-1 rounded p-4 text-center text-xs uppercase">
+            catalogue picture
+          </div>
+        )}
         {preview?.headerText && <p className="font-semibold">{preview.headerText}</p>}
         <p className="whitespace-pre-wrap">{preview?.body}</p>
         {preview?.footer && <p className="text-muted-foreground mt-1 text-xs">{preview.footer}</p>}

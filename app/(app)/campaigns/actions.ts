@@ -132,6 +132,11 @@ async function loadSendContext(
     return { ok: false as const, error: "That number is paused or disconnected." };
   if (!template) return { ok: false as const, error: "Choose a template." };
   if (template.archived_at) return { ok: false as const, error: "That template is archived." };
+  if (template.category === "AUTHENTICATION")
+    return {
+      ok: false as const,
+      error: "One-time code (authentication) templates can't be sent as a campaign.",
+    };
   if (template.status !== "APPROVED")
     return {
       ok: false as const,

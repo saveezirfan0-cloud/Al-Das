@@ -50,6 +50,8 @@ function keyHint(key: string, kind: string | undefined): string | null {
   if (mediaKindOf(kind)) return `${where}header ${kind}`;
   if (kind === "url_suffix") return `${where}end of the button link`;
   if (kind === "copy_code") return `${where}code to copy`;
+  if (kind === "catalog_thumbnail")
+    return `${where}optional: catalogue item (content ID) shown as the picture`;
   return card ? `${where}text` : null;
 }
 

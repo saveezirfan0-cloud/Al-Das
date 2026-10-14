@@ -123,7 +123,7 @@ Not run: the browser tests and any click-through (no Supabase auth stack in the 
 | 1 | Foundation: auth, orgs, RLS, roles, teams, invites, jobs framework | Yes | Presence inactivity timeout. MFA is enforced per role since Phase 15 but the enrolment flow has not been run against a real Supabase Auth |
 | 2 | Patient CRM: grid, views, segments, filters, import/export, merge, custom fields, tags | Yes | Sanoflow export header names are guessed (`--map` / `<step>.map.json` overrides); real export needed. Phase 20a imports the whole Sanoflow export set (docs/22) |
 | 3 | WhatsApp ingress and shared inbox | Yes | Never tested with real Meta traffic; BSUID (username) contract unverified; coexistence events only logged |
-| 4 | Templates: builder, Meta submit and sync, 26 starter templates (13 in English and Arabic) | Yes | Needs `META_APP_ID` and a real WABA; no OTP, catalogue or flow-button templates |
+| 4 | Templates: builder, Meta submit and sync, 26 starter templates (13 in English and Arabic) | Yes | Needs `META_APP_ID` and a real WABA; named, one-time code and catalogue templates since docs/32 (unverified live); no flow-button templates |
 | 5 | Enquiries and tasks: pipelines, Kanban, SLA, assignment, reminders, first-touch | Yes | No enquiry tags join table, no CSV import, no AI summary |
 | 5b | Tasks API, booking conversion, failed reminder becomes a call task | Yes | None |
 | 6 | Appointments, slot engine, reminders, button replies; read-only Unite sync; clinical rules engine; Follow-Up Queue; Clinical settings | Yes | Bookings and moves re-check the slot under a per-specialist lock (`book_appointment` / `move_appointment`); clinical messaging deliberately OFF until sign-off; Unite sync OFF until credentials |
@@ -191,7 +191,7 @@ These are the most valuable things to do before any client sees the product, bec
 | Inbox | Idle auto-away built in 20c (Settings, Inbox). Create enquiry and Book appointment buttons in the contact sidebar need checking now that the modules exist |
 | Flows | Question re-ask and typed answers built in 20b. A crash between "queued" and "step recorded" can resend once on replay. Outbound webhooks node is wired, but untested live. CRM nodes (Create/update enquiry, Add task, Portal record, Book appointment) are wired since 20b (G0) |
 | Campaigns | Recurring campaigns and carousel sending built in 20d; no A/B |
-| Templates | Positional variables only in the builder; no OTP or catalogue templates |
+| Templates | Named variables, one-time code (authentication) and catalogue templates built (docs/32), payloads unverified against a live WABA; no flow-button templates |
 | Portal | No bulk edit; no per-object custom fields or tags |
 | Reports | Scheduled email digests, AI tags. (WhatsApp cost is built; its Meta response parser is unverified live, OQ-62) |
 | Public API | Rate limit is per key and fixed-window; reads are audited but sampled (one row per key and resource per 15 minutes); marketing opt-in through the API needs `consent` evidence; URLs limited to port 443. Open: marketing sends still check `stop_marketing` only |
