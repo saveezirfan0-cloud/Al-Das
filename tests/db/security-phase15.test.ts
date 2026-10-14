@@ -250,7 +250,14 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 15: RLS on the new tables", () => {
         );
         return rows.map((r) => r.table_name);
       });
-    expect(await seen(alice)).toEqual(["appointments", "flows", "tasks", "website_entry_points"]);
+    // acc_accounts: the chart every new org is seeded with (Phase 22A) is in the history too
+    expect(await seen(alice)).toEqual([
+      "acc_accounts",
+      "appointments",
+      "flows",
+      "tasks",
+      "website_entry_points",
+    ]);
     expect(await seen(carol)).toEqual([]); // Agent here holds only inbox.send + contacts.view
     expect(await seen(dave)).toEqual([]);
   });

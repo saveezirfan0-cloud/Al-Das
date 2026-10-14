@@ -15,6 +15,13 @@ export const INTEGRATION_KINDS = [
   "meta_capi",
   "telehealth",
   "esign",
+  "web_chat",
+  "instagram",
+  "messenger",
+  "google_calendar",
+  "finance_mailbox",
+  "document_seal",
+  "tally_bridge",
 ] as const;
 export type IntegrationKind = (typeof INTEGRATION_KINDS)[number];
 
@@ -39,6 +46,8 @@ export type FieldDef = {
   /** A regular expression (source, without slashes) a text value must match, and the sentence shown when it does not. */
   pattern?: string;
   patternHint?: string;
+  /** The value can be filled from a file the person chooses (read in the browser as base64); `accept` lists the extensions. */
+  upload?: { accept: string };
 };
 
 export type ProviderDef = {
@@ -59,7 +68,13 @@ export type IntegrationDef = {
   movesMoney: boolean;
   /** True when switching it on sends patient-derived data to a third party (hashed ad identifiers, a signer's name and e-mail). */
   sharesData: boolean;
-  /** Typed in full to switch it on (only for integrations that contact patients, take money or share patient data). */
+  /** True when switching it on lets people outside the clinic put files into Pulse (the finance mailbox). */
+  acceptsFiles?: boolean;
+  /** True when switching it on makes Pulse sign documents in the organisation's name (the organisation seal). */
+  signsDocuments?: boolean;
+  /** True when switching it on lets Pulse write into the clinic's accounting books outside Pulse (the Tally bridge). */
+  writesBooks?: boolean;
+  /** Typed in full to switch it on (only for integrations that contact patients, take money, share patient data, accept files, sign in the organisation's name or write into the accounting books). */
   confirmWord: string | null;
   /** Permission to open its page and work with it (feeds, test, counters). Switching it on or off always needs integrations.manage. */
   viewPermission: "integrations.manage" | "integrations.calendar";
@@ -544,7 +559,387 @@ export const INTEGRATIONS: readonly IntegrationDef[] = [
     consequence:
       "This sends patient data to a third party. For every request the e-signature service receives the form itself and the signer's name and e-mail address, and it keeps its own copy of the signed document under its own terms and retention. Make sure your agreement with the service and its data location are approved. The title and message sent are fixed and generic.",
   },
+  {
+    kind: "web_chat",
+    outbound: false,
+    title: "Website chat",
+    description:
+      "A small chat button for your own website. Visitors' messages arrive in the inbox like WhatsApp chats and your replies appear in their browser. Only the websites you list can use it; visitors are identified by a random code kept in their browser, never by a cookie.",
+    contactsPatients: true,
+    movesMoney: false,
+    sharesData: false,
+    confirmWord: "ENABLE WEBSITE CHAT",
+    viewPermission: "integrations.manage",
+    providers: [{ id: "widget", label: "Pulse chat widget", fields: [] }],
+    commonFields: [
+      {
+        key: "allowed_domains",
+        label: "Allowed websites",
+        type: "text",
+        required: true,
+        max: 500,
+        placeholder: "www.example.com, booking.example.com",
+        help: "Host names separated by commas (https only). *.example.com allows every sub-domain. The chat refuses every other website.",
+      },
+      { key: "title", label: "Title", type: "text", max: 40, default: "Chat with us" },
+      {
+        key: "colour",
+        label: "Colour",
+        type: "text",
+        max: 7,
+        default: "#0f766e",
+        pattern: "^#[0-9a-fA-F]{6}$",
+        patternHint: "Use a colour such as #0f766e.",
+      },
+      {
+        key: "welcome",
+        label: "Welcome text",
+        type: "text",
+        max: 300,
+        default:
+          "Hello! How can we help you today? Please do not share medical emergencies here: call your local emergency number.",
+      },
+    ],
+    consequence:
+      "Anyone on the websites you list can start a chat. Their messages create patient records without a phone number and appear in the inbox; staff replies are shown in the visitor's browser.",
+  },
+  {
+    kind: "instagram",
+    outbound: true,
+    title: "Instagram messages",
+    description:
+      "Answer Instagram direct messages from the inbox. Each person is matched by the id Instagram gives them (never a phone number). Replies are text only and only within 24 hours of the person's last message, as Meta requires.",
+    contactsPatients: true,
+    movesMoney: false,
+    sharesData: false,
+    confirmWord: "ENABLE INSTAGRAM MESSAGES",
+    viewPermission: "integrations.manage",
+    providers: [
+      {
+        id: "meta",
+        label: "Meta Messenger Platform (Instagram)",
+        fields: [
+          {
+            key: "page_id",
+            label: "Facebook Page ID",
+            type: "text",
+            required: true,
+            max: 25,
+            pattern: "^\\d{5,25}$",
+            patternHint: "The Page ID is a number.",
+            help: "The Page linked to your Instagram professional account. Replies are sent through it.",
+          },
+          {
+            key: "ig_account_id",
+            label: "Instagram account ID",
+            type: "text",
+            required: true,
+            max: 25,
+            pattern: "^\\d{5,25}$",
+            patternHint: "The Instagram professional account ID is a number.",
+            help: "Meta puts this id on every message sent to your account; messages for any other account are ignored.",
+          },
+          ...metaSecretFields(),
+        ],
+      },
+    ],
+    commonFields: [graphVersionField()],
+    consequence:
+      "Instagram direct messages to your account will appear in the inbox and staff replies will be sent from it. Messages pass through Meta under Meta's terms.",
+  },
+  {
+    kind: "messenger",
+    outbound: true,
+    title: "Facebook Messenger",
+    description:
+      "Answer Messenger conversations with your Facebook Page from the inbox. Each person is matched by the id Messenger gives them (never a phone number). Replies are text only and only within 24 hours of the person's last message, as Meta requires.",
+    contactsPatients: true,
+    movesMoney: false,
+    sharesData: false,
+    confirmWord: "ENABLE MESSENGER MESSAGES",
+    viewPermission: "integrations.manage",
+    providers: [
+      {
+        id: "meta",
+        label: "Meta Messenger Platform",
+        fields: [
+          {
+            key: "page_id",
+            label: "Facebook Page ID",
+            type: "text",
+            required: true,
+            max: 25,
+            pattern: "^\\d{5,25}$",
+            patternHint: "The Page ID is a number.",
+            help: "The Page whose Messenger inbox Pulse answers.",
+          },
+          ...metaSecretFields(),
+        ],
+      },
+    ],
+    commonFields: [graphVersionField()],
+    consequence:
+      "Messenger conversations with your Page will appear in the inbox and staff replies will be sent from it. Messages pass through Meta under Meta's terms.",
+  },
+  {
+    kind: "google_calendar",
+    outbound: true,
+    title: "Google Calendar sync",
+    description:
+      "Connect a doctor's Google Calendar. Their busy times come into Pulse so nobody books them then, and their Pulse appointments appear in Google as 'Busy', with no patient name or detail.",
+    contactsPatients: false,
+    movesMoney: false,
+    sharesData: true,
+    confirmWord: "SYNC CALENDARS WITH GOOGLE",
+    viewPermission: "integrations.calendar",
+    providers: [
+      {
+        id: "google",
+        label: "Google Calendar API (OAuth)",
+        fields: [
+          {
+            key: "client_id",
+            label: "OAuth client ID",
+            type: "text",
+            required: true,
+            max: 200,
+            pattern: "^[A-Za-z0-9._-]+\\.apps\\.googleusercontent\\.com$",
+            patternHint: "The client ID ends in .apps.googleusercontent.com.",
+          },
+          {
+            key: "client_secret",
+            label: "OAuth client secret",
+            type: "password",
+            secret: true,
+            required: true,
+            max: 200,
+          },
+        ],
+      },
+    ],
+    commonFields: [
+      {
+        key: "pull_busy",
+        label: "Bring busy times into Pulse",
+        type: "select",
+        default: "yes",
+        options: [
+          { value: "yes", label: "Yes: block those times for bookings" },
+          { value: "no", label: "No" },
+        ],
+      },
+      {
+        key: "push_appointments",
+        label: "Show Pulse appointments in Google as 'Busy'",
+        type: "select",
+        default: "yes",
+        options: [
+          { value: "yes", label: "Yes (title 'Busy', no patient detail)" },
+          { value: "no", label: "No" },
+        ],
+      },
+      {
+        key: "window_days",
+        label: "Days ahead to sync",
+        type: "number",
+        min: 7,
+        max: 120,
+        default: 60,
+      },
+    ],
+    consequence:
+      "This shares data with Google. For each connected doctor, Google receives the start and end time of their Pulse appointments as 'Busy' events (no patient, service or note), and Pulse reads the times the doctor is busy in Google (not what the events are). Make sure your agreement with Google and its data location are approved.",
+  },
+  {
+    kind: "finance_mailbox",
+    outbound: false,
+    title: "Finance mailbox",
+    description:
+      "Supplier invoices, bank statements and processor reports e-mailed to the accounts mailbox arrive in the Finance inbox. The mail service (Postmark inbound) forwards each message to Pulse; Pulse keeps only the PDF, JPEG, PNG, CSV and Excel attachments from the senders you allow, and nothing else of the message: no body, subject, sender name or file name. Patient reports (Diligence, remittance, lab) must not be sent here.",
+    contactsPatients: false,
+    movesMoney: false,
+    sharesData: false,
+    acceptsFiles: true,
+    confirmWord: "ACCEPT MAILBOX ATTACHMENTS",
+    viewPermission: "integrations.manage",
+    providers: [
+      {
+        id: "postmark",
+        label: "Postmark inbound webhook",
+        fields: [
+          {
+            key: "webhook_secret",
+            label: "Webhook password",
+            type: "password",
+            secret: true,
+            required: true,
+            max: 128,
+            pattern: "^[A-Za-z0-9_-]{24,128}$",
+            patternHint:
+              "Use 24 to 128 letters, digits, - or _ (for example from a password generator).",
+            help: "Put it in the webhook address you give Postmark (shown below once saved). Stored encrypted; never shown again.",
+          },
+        ],
+      },
+    ],
+    commonFields: [
+      {
+        key: "allowed_senders",
+        label: "Allowed senders",
+        type: "text",
+        required: true,
+        max: 2000,
+        placeholder: "accounts@supplier.example, supplier-two.example",
+        help: "E-mail addresses, or whole domains, separated by commas or spaces. Mail from anyone else is dropped (and counted).",
+      },
+    ],
+    consequence:
+      "Attachments (PDF, JPEG, PNG, CSV, Excel) e-mailed to the accounts mailbox by the allowed senders will be stored in Pulse as finance documents and appear in the Finance inbox. The rest of each message is discarded. Anyone who can send mail as an allowed sender can put a file there, so nothing is paid without the voucher approvals.",
+  },
+  {
+    kind: "document_seal",
+    // Signing happens inside Pulse with the stored certificate: no provider is ever called.
+    outbound: false,
+    title: "Organisation seal (digital signature)",
+    description:
+      "Pulse signs the payment voucher approval certificate once a voucher is fully approved, and the month-end close pack once the month is locked, with the organisation's certificate (a PAdES digital signature). Any PDF reader then shows who sealed the file and that it has not been changed since. The signing happens inside Pulse; the certificate and the documents are not sent anywhere.",
+    contactsPatients: false,
+    movesMoney: false,
+    sharesData: false,
+    signsDocuments: true,
+    confirmWord: "SEAL DOCUMENTS",
+    viewPermission: "integrations.manage",
+    providers: [
+      {
+        id: "p12",
+        label: "Certificate file (.p12 / .pfx)",
+        fields: [
+          {
+            key: "certificate",
+            label: "Certificate file (.p12 / .pfx)",
+            type: "password",
+            secret: true,
+            required: true,
+            max: 90000,
+            upload: { accept: ".p12,.pfx,application/x-pkcs12" },
+            pattern: "^[A-Za-z0-9+/]+={0,2}$",
+            patternHint: "Choose the certificate file (.p12 or .pfx) again.",
+            help: "The organisation's certificate with its private key, exported as .p12 / .pfx (RSA, 2048 bits or more). The file is read in your browser and stored encrypted; it is never shown again.",
+          },
+          {
+            key: "passphrase",
+            label: "Certificate password",
+            type: "password",
+            secret: true,
+            required: true,
+            max: 200,
+            help: "The password the certificate file was exported with. Stored encrypted.",
+          },
+        ],
+      },
+    ],
+    commonFields: [
+      {
+        key: "seal_name",
+        label: "Name shown with the seal",
+        type: "text",
+        required: true,
+        max: 120,
+        placeholder: "Clinic name (organisation seal)",
+      },
+      {
+        key: "reason",
+        label: "Reason shown with the seal",
+        type: "text",
+        max: 200,
+        default: "Approved and recorded in Pulse",
+      },
+      {
+        key: "location",
+        label: "Location shown with the seal",
+        type: "text",
+        max: 120,
+        default: "Dubai, United Arab Emirates",
+      },
+    ],
+    consequence:
+      "Final approval certificates and locked month-end close packs downloaded from Pulse will carry a digital signature in the organisation's name, made with this certificate, and anyone holding the PDF can check it. Use a certificate issued to the organisation, and switch this off at once if the certificate or its password may have leaked.",
+  },
+  {
+    kind: "tally_bridge",
+    // The connector on the Tally PC calls Pulse (outbound HTTPS from the clinic); Pulse never calls out. Its calls to
+    // Pulse are recorded in integration_calls under "tally_bridge".
+    outbound: false,
+    title: "Tally bridge (accounting)",
+    description:
+      "Keeps TallyPrime in step with Pulse until the ledger start: Pulse's approved items are sent to Tally as vouchers, and what is entered in Tally comes back into Pulse's ledger. A small connector on the Tally PC does the talking: it reaches Tally on that PC only and Pulse over HTTPS only, so Tally is never exposed to the internet. Pair it and choose what to send under Accounting, Setup, Tally bridge. The data stays between the clinic's Tally and Pulse.",
+    contactsPatients: false,
+    movesMoney: false,
+    sharesData: false,
+    writesBooks: true,
+    confirmWord: "CONNECT TALLY",
+    viewPermission: "integrations.manage",
+    providers: [{ id: "connector", label: "Pulse Tally connector (on the Tally PC)", fields: [] }],
+    commonFields: [
+      {
+        key: "company",
+        label: "Tally company name",
+        type: "text",
+        required: true,
+        max: 120,
+        placeholder: "Demo Clinic LLC",
+        help: "Exactly as the company is named in TallyPrime (it must be open in Tally for the bridge to work).",
+      },
+    ],
+    consequence:
+      "Once pushing is also switched on (Accounting, Setup, Tally bridge), Pulse will create vouchers in the clinic's Tally company for the items and dates chosen there, and vouchers entered in Tally will be copied into Pulse's ledger. The connector never deletes or changes anything in Tally that Pulse did not create.",
+  },
 ];
+
+/** The credentials an Instagram or Messenger integration needs (all three stored encrypted). */
+function metaSecretFields(): FieldDef[] {
+  return [
+    {
+      key: "page_access_token",
+      label: "Page access token",
+      type: "password",
+      secret: true,
+      required: true,
+      max: 600,
+      help: "A long-lived Page token with the messaging permission. Stored encrypted; never shown again.",
+    },
+    {
+      key: "app_secret",
+      label: "App secret",
+      type: "password",
+      secret: true,
+      required: true,
+      max: 200,
+      help: "Used to check that each webhook call really comes from Meta.",
+    },
+    {
+      key: "verify_token",
+      label: "Webhook verify token",
+      type: "password",
+      secret: true,
+      required: true,
+      max: 100,
+      help: "Any long random text. Type the same text in the Meta app's webhook settings.",
+    },
+  ];
+}
+
+function graphVersionField(): FieldDef {
+  return {
+    key: "graph_version",
+    label: "Graph API version (optional)",
+    type: "text",
+    max: 8,
+    pattern: "^v\\d{1,2}\\.\\d$",
+    patternHint: "Use a version such as v21.0, or leave it empty.",
+    help: "Leave empty to use the platform's default version.",
+  };
+}
 
 export function integrationDef(kind: IntegrationKind): IntegrationDef {
   return INTEGRATIONS.find((i) => i.kind === kind)!;
@@ -572,7 +967,14 @@ export function allFields(
 /** Does this integration need the typed confirmation to be switched on? */
 export function needsConfirmation(kind: IntegrationKind): boolean {
   const d = integrationDef(kind);
-  return d.contactsPatients || d.movesMoney || d.sharesData;
+  return (
+    d.contactsPatients ||
+    d.movesMoney ||
+    d.sharesData ||
+    d.acceptsFiles === true ||
+    d.signsDocuments === true ||
+    d.writesBooks === true
+  );
 }
 
 export type FieldValues = Record<string, string | number>;

@@ -4,13 +4,19 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ActionForm, Field, RunButton, selectClass } from "@/components/finance/forms";
 import { CATEGORY_LABELS, DENIAL_CATEGORIES } from "@/lib/finance/denials";
+import type { BlueprintSettings } from "@/lib/finance/blueprint-settings";
+import { ageingBuckets } from "@/lib/finance/followup";
+import type { FollowupSettings } from "@/lib/finance/followup-settings";
 import type { FinanceSettings } from "@/lib/finance/settings-db";
 
 import {
   deleteDenialCode,
   deletePayerPrice,
   importPayerPrices,
+  saveBlueprintSettings,
   saveDenialCode,
+  saveChangeReviewSettings,
+  saveFollowupSettings,
   saveThresholds,
 } from "./actions";
 
@@ -270,7 +276,7 @@ export function CodeForm({ row }: { row?: CodeRow }) {
         <Check name="appealable" label="Normally appealable" checked={row?.appealable ?? true} />
         <Check name="active" label="Active" checked={row?.active ?? true} />
         {row?.is_placeholder && (
-          <span className="text-xs text-amber-600">
+          <span className="text-xs text-amber-600 dark:text-amber-400">
             Starter placeholder: replace with the payer&apos;s real list
           </span>
         )}
@@ -311,6 +317,153 @@ export function PriceImport() {
           placeholder={"99213, 180\n99214, 250, 01-01-2026"}
         />
       </Field>
+    </ActionForm>
+  );
+}
+
+export function BlueprintSettingsForm({ s }: { s: BlueprintSettings }) {
+  return (
+    <ActionForm action={saveBlueprintSettings} submitLabel="Save settings">
+      <fieldset className="grid gap-3 sm:grid-cols-2">
+        <legend className="mb-1 text-sm font-semibold">Which doctor counts</legend>
+        <Field
+          label="Doctor basis for revenue and doctor reports"
+          hint="Management and the Medical Director decide this. Until then the invoice's doctor is used and reports say so."
+        >
+          <select name="doctor_basis" defaultValue={s.doctorBasis ?? ""} className={selectClass}>
+            <option value="">Not decided</option>
+            <option value="ordering">Ordering doctor</option>
+            <option value="performing">Performing doctor</option>
+          </select>
+        </Field>
+      </fieldset>
+      <fieldset className="grid gap-3">
+        <legend className="mb-1 text-sm font-semibold">Accepted claims</legend>
+        <Field
+          label="Claim statuses that show a claim was accepted"
+          hint="One per line or comma separated, as they appear in Diligence. A remitted amount always counts as evidence; a claim with neither is never assumed accepted."
+        >
+          <Textarea
+            name="accepted_claim_statuses"
+            rows={3}
+            defaultValue={s.acceptedClaimStatuses.join("\n")}
+          />
+        </Field>
+      </fieldset>
+      <fieldset className="grid gap-3 sm:grid-cols-3">
+        <legend className="mb-1 text-sm font-semibold">Visit and billing checks (E11, E12)</legend>
+        <Field
+          label="Compare visits and invoices dated from"
+          hint="Blank = off. Nothing earlier is ever flagged. These are review signals, not proof."
+        >
+          <Input name="evidence_start_date" type="date" defaultValue={s.evidenceStartDate ?? ""} />
+        </Field>
+        <Field label="Match within this many days">
+          <Input
+            name="evidence_grace_days"
+            inputMode="numeric"
+            defaultValue={s.evidenceGraceDays}
+          />
+        </Field>
+      </fieldset>
+      <fieldset className="grid gap-3 sm:grid-cols-3">
+        <legend className="mb-1 text-sm font-semibold">Escalation</legend>
+        <Field label="Escalate after this many days overdue">
+          <Input name="escalation_days" inputMode="numeric" defaultValue={s.escalationDays} />
+        </Field>
+        <Field label="Escalate to">
+          <select name="escalation_role" defaultValue={s.escalationRole} className={selectClass}>
+            <option value="finance">Finance</option>
+            <option value="insurance">Insurance</option>
+            <option value="billing">Billing</option>
+            <option value="admin">Admin</option>
+          </select>
+        </Field>
+      </fieldset>
+    </ActionForm>
+  );
+}
+
+export function FollowupSettingsForm({
+  s,
+  roles,
+}: {
+  s: FollowupSettings;
+  roles: readonly string[];
+}) {
+  const roleOptions = roles.includes(s.taskRole) ? roles : [s.taskRole, ...roles];
+  return (
+    <ActionForm action={saveFollowupSettings} submitLabel="Save settings">
+      <fieldset className="grid gap-3 sm:grid-cols-3">
+        <legend className="mb-1 text-sm font-semibold">Ageing</legend>
+        <Field
+          label="Ageing buckets (days)"
+          hint={`Gives ${ageingBuckets(s.bucketDays)
+            .map((b) => b.label)
+            .join(" / ")}. Used by Insurance follow-up and Receivables by age.`}
+          className="sm:col-span-2"
+        >
+          <Input name="ageing_bucket_days" defaultValue={s.bucketDays.join(", ")} />
+        </Field>
+      </fieldset>
+      <fieldset className="grid gap-3 sm:grid-cols-3">
+        <legend className="mb-1 text-sm font-semibold">Follow-up of unpaid claims</legend>
+        <Field label="Follow-up stages (days unpaid)" hint="For example 60, 90, 120.">
+          <Input name="followup_stage_days" defaultValue={s.stageDays.join(", ")} />
+        </Field>
+        <Field
+          label="Create follow-up tasks from"
+          hint="Blank = off. A stage reached before this date never creates a task."
+        >
+          <Input name="followup_start_date" type="date" defaultValue={s.startDate ?? ""} />
+        </Field>
+        <Field label="Give the tasks to members of">
+          <select name="followup_task_role" className={selectClass} defaultValue={s.taskRole}>
+            {roleOptions.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Task due after (days)">
+          <Input name="followup_task_due_days" inputMode="numeric" defaultValue={s.taskDueDays} />
+        </Field>
+        <div className="flex items-end">
+          <Check name="followup_task_enabled" label="Create tasks" checked={s.taskEnabled} />
+        </div>
+      </fieldset>
+    </ActionForm>
+  );
+}
+
+export function ChangeReviewSettingsForm({
+  s,
+}: {
+  s: { startDate: string | null; minAmount: number; bulkMax: number };
+}) {
+  return (
+    <ActionForm action={saveChangeReviewSettings} submitLabel="Save settings">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Field
+          label="Count unapproved invoice changes from"
+          hint="Blank = the register works but the measure is not counted. Changes before this date are never counted."
+        >
+          <Input name="change_review_start_date" type="date" defaultValue={s.startDate ?? ""} />
+        </Field>
+        <Field
+          label="Approval needed from (AED)"
+          hint="0 = every change needs an approval. A change below this amount needs none."
+        >
+          <Input name="change_review_min_amount" inputMode="decimal" defaultValue={s.minAmount} />
+        </Field>
+        <Field
+          label="Bulk approval up to (AED)"
+          hint="Unreviewed changes up to this amount can be approved together with one reason. 0 = off."
+        >
+          <Input name="change_bulk_approve_max" inputMode="decimal" defaultValue={s.bulkMax} />
+        </Field>
+      </div>
     </ActionForm>
   );
 }

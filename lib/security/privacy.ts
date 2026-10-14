@@ -63,6 +63,8 @@ export const EXPORT_SECTIONS = [
   "messages",
   "timeline",
   "visits",
+  "diagnoses",
+  "chronic_conditions",
   "prescriptions",
   "followups",
   "feedback",

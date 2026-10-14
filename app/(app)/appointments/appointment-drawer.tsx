@@ -34,6 +34,7 @@ import {
   setVisitMode,
   updateAppointmentNotes,
 } from "./actions";
+import { CONFLICT_TEXT } from "./conflict-badge";
 import { dateTimeLabel, REMINDER_LABELS, STATUS_STYLES, timeLabel } from "./format";
 import type { AppointmentsBootstrap, ApptDetail, SlotOption } from "./types";
 
@@ -247,6 +248,15 @@ export function AppointmentDrawer({
                 {STATUS_LABELS[a.status]}
               </span>
               {isUnite && <Badge variant="outline">Unite {a.external_id}</Badge>}
+              {a.conflict && (
+                <Badge
+                  variant="outline"
+                  className="border-amber-500 text-amber-700 dark:text-amber-400"
+                  title={CONFLICT_TEXT[a.conflict]}
+                >
+                  Booking conflict
+                </Badge>
+              )}
               {a.reminder && (
                 <Badge variant={a.reminder === "failed" ? "destructive" : "outline"}>
                   Reminder: {REMINDER_LABELS[a.reminder]}
@@ -359,6 +369,14 @@ export function AppointmentDrawer({
               <p className="text-muted-foreground rounded-md border p-3 text-xs">
                 This appointment is synced from Unite, which stays the source of truth. Status and
                 time changes are made there and arrive here on the next sync.
+              </p>
+            )}
+            {a.conflict && (
+              <p className="rounded-md border border-amber-500/60 p-3 text-xs">
+                {CONFLICT_TEXT[a.conflict]}{" "}
+                {isUnite
+                  ? "It was booked in Unite and is kept exactly as Unite has it; resolve it in Unite if needed."
+                  : "This can follow a Unite booking, a change to the rules or a staff override."}
               </p>
             )}
 

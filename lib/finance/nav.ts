@@ -7,7 +7,7 @@ import { canAny, type MemberLike } from "@/lib/auth/can";
  */
 
 export type FinanceBadge =
-  "exceptions" | "preauth" | "denials" | "notReady" | "remittance" | "close";
+  "exceptions" | "preauth" | "denials" | "notReady" | "remittance" | "close" | "inbox";
 
 export type FinanceNavEntry = {
   href: string;
@@ -16,6 +16,15 @@ export type FinanceNavEntry = {
   permissions: readonly string[];
   badge?: FinanceBadge;
 };
+
+const VOUCHERS = [
+  "finance.payables.view",
+  "finance.vouchers.prepare",
+  "finance.vouchers.check",
+  "finance.vouchers.approve_dept",
+  "finance.vouchers.approve_ceo",
+  "finance.vouchers.pay",
+] as const;
 
 const CLOSE = [
   "finance.close.view",
@@ -30,6 +39,12 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
     label: "Monthly summary",
     section: "Overview",
     permissions: ["finance.view"],
+  },
+  {
+    href: "/finance/flash",
+    label: "Daily flash",
+    section: "Overview",
+    permissions: ["finance.flash.view"],
   },
   {
     href: "/finance/revenue",
@@ -48,6 +63,42 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
     label: "Collections forecast",
     section: "Overview",
     permissions: ["finance.forecast.view"],
+  },
+  {
+    href: "/finance/insurance",
+    label: "Insurance overview",
+    section: "Overview",
+    permissions: ["finance.claims.view"],
+  },
+  {
+    href: "/finance/receivables",
+    label: "Receivables by age",
+    section: "Overview",
+    permissions: ["finance.claims.view"],
+  },
+  {
+    href: "/finance/branches",
+    label: "Branches",
+    section: "Overview",
+    permissions: ["finance.view"],
+  },
+  {
+    href: "/finance/doctors",
+    label: "Doctors",
+    section: "Overview",
+    permissions: ["finance.revenue.view"],
+  },
+  {
+    href: "/finance/analytics",
+    label: "Billing mix and trends",
+    section: "Overview",
+    permissions: ["finance.revenue.view"],
+  },
+  {
+    href: "/finance/profitability",
+    label: "Profitability",
+    section: "Overview",
+    permissions: ["finance.profit.view"],
   },
   {
     href: "/finance/invoices",
@@ -96,6 +147,18 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
     badge: "remittance",
   },
   {
+    href: "/finance/followup",
+    label: "Insurance follow-up",
+    section: "Billing and claims",
+    permissions: ["finance.claims.view"],
+  },
+  {
+    href: "/finance/invoice-changes",
+    label: "Invoice changes",
+    section: "Billing and claims",
+    permissions: ["finance.changes.view"],
+  },
+  {
     href: "/finance/exceptions",
     label: "Exceptions",
     section: "Billing and claims",
@@ -121,6 +184,55 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
     permissions: ["finance.payment_links"],
   },
   {
+    href: "/finance/vouchers",
+    label: "Payment vouchers",
+    section: "Money",
+    permissions: VOUCHERS,
+  },
+  {
+    href: "/finance/vouchers/report",
+    label: "Voucher report",
+    section: "Money",
+    permissions: VOUCHERS,
+  },
+  {
+    href: "/finance/inbox",
+    label: "Finance inbox",
+    section: "Money",
+    permissions: ["finance.inbox.manage"],
+    badge: "inbox",
+  },
+  {
+    href: "/finance/payables",
+    label: "Supplier invoices",
+    section: "Money",
+    permissions: ["finance.payables.view", "finance.payables.manage"],
+  },
+  {
+    href: "/finance/suppliers",
+    label: "Suppliers",
+    section: "Money",
+    permissions: ["finance.payables.view", "finance.payables.manage"],
+  },
+  {
+    href: "/finance/tally",
+    label: "Tally export",
+    section: "Money",
+    permissions: ["finance.tally.export"],
+  },
+  {
+    href: "/finance/bank",
+    label: "Bank reconciliation",
+    section: "Money",
+    permissions: ["finance.bank.view"],
+  },
+  {
+    href: "/finance/labs",
+    label: "Labs and referrals",
+    section: "Money",
+    permissions: ["finance.labs.view"],
+  },
+  {
     href: "/finance/close",
     label: "Month-end close",
     section: "Money",
@@ -128,10 +240,33 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
     badge: "close",
   },
   {
+    href: "/finance/close/timetable",
+    label: "Close timetable",
+    section: "Money",
+    permissions: ["finance.close.view", "finance.close.manage", "finance.close.tasks"],
+  },
+  {
+    href: "/finance/revenue-share",
+    label: "Doctor revenue share",
+    section: "Money",
+    permissions: [
+      "finance.revshare.view",
+      "finance.revshare.manage",
+      "finance.revshare.verify",
+      "finance.revshare.approve",
+    ],
+  },
+  {
     href: "/finance/export",
     label: "Accounting export",
     section: "Money",
     permissions: ["finance.export.run"],
+  },
+  {
+    href: "/finance/costs",
+    label: "Costs",
+    section: "Money",
+    permissions: ["finance.costs.manage", "finance.costs.view", "finance.costs.compensation"],
   },
   {
     href: "/finance/health",
@@ -150,6 +285,30 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
     label: "Workflow settings",
     section: "Setup",
     permissions: ["finance.reference.manage"],
+  },
+  {
+    href: "/finance/flash/settings",
+    label: "Targets and report lines",
+    section: "Setup",
+    permissions: ["finance.targets.manage"],
+  },
+  {
+    href: "/finance/vouchers/settings",
+    label: "Voucher settings",
+    section: "Setup",
+    permissions: ["finance.vouchers.settings", "finance.tally.export"],
+  },
+  {
+    href: "/finance/bank/settings",
+    label: "Bank accounts and rules",
+    section: "Setup",
+    permissions: ["finance.bank.manage"],
+  },
+  {
+    href: "/finance/labs/settings",
+    label: "Lab providers and tests",
+    section: "Setup",
+    permissions: ["finance.labs.manage"],
   },
 ];
 

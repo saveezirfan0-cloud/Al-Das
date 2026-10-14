@@ -88,6 +88,12 @@ export default async function ExceptionDetail({ params }: { params: Promise<{ id
           {STATUS_LABEL[ex.status] ?? ex.status}
         </Badge>
         <Badge variant="outline">owner: {ex.owner_role}</Badge>
+        {ex.escalated_at && (
+          <Badge variant="destructive">
+            escalated from {ex.escalated_from_role ?? "its first owner"} on{" "}
+            {ex.escalated_at.slice(0, 10)}
+          </Badge>
+        )}
         {ex.branch_code && <Badge variant="outline">branch {ex.branch_code}</Badge>}
         {ex.due_date && <Badge variant={late ? "destructive" : "outline"}>due {ex.due_date}</Badge>}
         {ex.assignee_user_id && (

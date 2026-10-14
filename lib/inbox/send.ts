@@ -73,7 +73,17 @@ export type QueueOutboundInput = {
   campaignRecipientId?: string | null;
   /** Live chat → outbound_priority; campaigns/automations → outbound. */
   priority?: boolean;
+  /**
+   * Phase 20d retry-on-fail: this message re-sends a failed one. One retry per failed message (unique index), so a
+   * duplicate attempt throws RetryExistsError instead of queueing twice.
+   */
+  retryOf?: { messageId: string; attempt: number; originAt: string };
+  /** Hold the queue message back this long (durable pgmq visibility delay). */
+  delaySeconds?: number;
 };
+
+/** The failed message already has its retry (another worker or listener queued it first). */
+export class RetryExistsError extends Error {}
 
 /** Inserts a queued message row and pushes it to the outbound queue. */
 export async function queueOutbound(
@@ -83,6 +93,9 @@ export async function queueOutbound(
   const spec = sendSpecSchema.parse(input.spec);
   const kind = kindForSpec(spec);
   const now = new Date().toISOString();
+  const payload: Record<string, unknown> = { send: spec };
+  if (input.retryOf)
+    payload.retry = { attempt: input.retryOf.attempt, origin_at: input.retryOf.originAt };
   const { data: message, error } = await admin
     .from("messages")
     .insert({
@@ -91,7 +104,8 @@ export async function queueOutbound(
       direction: "out",
       kind,
       body: input.body,
-      payload: { send: spec } as unknown as NonNullable<Json>,
+      payload: payload as unknown as NonNullable<Json>,
+      retry_of_message_id: input.retryOf?.messageId ?? null,
       media_path: spec.type === "media" ? spec.media_path : null,
       media_mime: spec.type === "media" ? spec.mime_type : null,
       media_filename: spec.type === "media" ? (spec.filename ?? null) : null,
@@ -104,7 +118,10 @@ export async function queueOutbound(
     })
     .select("*")
     .single();
-  if (error) throw new Error(`queueOutbound: ${error.message}`);
+  if (error) {
+    if (input.retryOf && error.code === "23505") throw new RetryExistsError("retry already queued");
+    throw new Error(`queueOutbound: ${error.message}`);
+  }
 
   if (spec.type !== "reaction") {
     await admin
@@ -121,9 +138,10 @@ export async function queueOutbound(
       .eq("id", input.conversationId);
   }
 
-  await enqueue(input.priority === false ? "outbound" : "outbound_priority", {
-    message_id: message.id,
-  });
+  const queue = input.priority === false ? "outbound" : "outbound_priority";
+  if (input.delaySeconds)
+    await enqueue(queue, { message_id: message.id }, { delaySeconds: input.delaySeconds });
+  else await enqueue(queue, { message_id: message.id });
   return message;
 }
 

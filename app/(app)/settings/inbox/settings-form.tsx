@@ -200,6 +200,31 @@ export function InboxSettingsForm({
               onCheckedChange={(c) => set("waiting_on_reply", c)}
             />
           </Row>
+          <Row
+            label="Set people away when idle"
+            hint="Online members with no activity in Pulse for this long count as away, so round-robin skips them. They are back as soon as they use Pulse again."
+          >
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={s.auto_away_minutes !== null}
+                onCheckedChange={(c) => set("auto_away_minutes", c ? 15 : null)}
+                aria-label="Set people away when idle"
+              />
+              <Input
+                type="number"
+                min={5}
+                max={480}
+                className="w-20"
+                aria-label="Idle minutes before away"
+                value={s.auto_away_minutes ?? ""}
+                disabled={s.auto_away_minutes === null}
+                onChange={(e) =>
+                  set("auto_away_minutes", e.target.value === "" ? null : Number(e.target.value))
+                }
+              />
+              <span className="text-muted-foreground text-xs">min</span>
+            </div>
+          </Row>
           <div className="flex items-end justify-end">
             <Button type="submit" disabled={pending}>
               {pending && <Loader2 className="animate-spin" />} Save settings

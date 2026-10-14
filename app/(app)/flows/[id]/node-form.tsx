@@ -5,7 +5,15 @@ import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
+import { INTENT_LABELS } from "@/lib/ai/intent/labels";
 import { BRANCH_OPS } from "@/lib/flow-engine/conditions";
+import {
+  ANSWER_TYPE_LABELS,
+  ANSWER_TYPES,
+  META_EVENT_NAMES,
+  ROUTABLE_INTENTS,
+} from "@/lib/flow-engine/node-options";
+import { PORTAL_OBJECTS } from "@/lib/portal/objects";
 import { DAYS } from "@/lib/flow-engine/office-hours";
 import type { NodeType } from "@/lib/flow-engine/types";
 
@@ -121,6 +129,59 @@ export function NodeForm({ type, config, onChange, lookups }: Props) {
               hint="Each option gets its own output on the canvas."
             />
           )}
+          {style === "text" && (
+            <>
+              <SelectField
+                label="A valid answer is"
+                value={str(config.answer_type, "text")}
+                onChange={(answer_type) => set({ answer_type })}
+                options={ANSWER_TYPES.map((t) => ({ value: t, label: ANSWER_TYPE_LABELS[t] }))}
+                hint="Phone numbers are saved as +971…, dates as YYYY-MM-DD (day first when typed with slashes)."
+              />
+              {str(config.answer_type) === "number" && (
+                <div className="flex gap-2">
+                  <NumberField
+                    label="Lowest"
+                    value={num(config.min)}
+                    onChange={(min) => set({ min })}
+                  />
+                  <NumberField
+                    label="Highest"
+                    value={num(config.max)}
+                    onChange={(max) => set({ max })}
+                  />
+                </div>
+              )}
+              {str(config.answer_type) === "regex" && (
+                <TextField
+                  label="Pattern"
+                  value={str(config.pattern)}
+                  onChange={(pattern) => set({ pattern })}
+                  placeholder="^[A-Z]{2}[0-9]{6}$"
+                  mono
+                  hint="A regular expression the answer must match. Up to 200 characters; repeating a group that already repeats is not allowed."
+                />
+              )}
+            </>
+          )}
+          <NumberField
+            label="Ask again (times)"
+            value={num(config.reask_max) ?? 0}
+            onChange={(v) => set({ reask_max: v ?? 0 })}
+            min={0}
+            max={5}
+            hint="When the answer does not fit. After that the 'No / other answer' output runs; without it the flow stops and the chat goes back to the team."
+          />
+          {(num(config.reask_max) ?? 0) > 0 && (
+            <AreaField
+              label="Ask again with"
+              value={str(config.reask_text)}
+              onChange={(reask_text) => set({ reask_text: reask_text || undefined })}
+              variables={variables}
+              rows={2}
+              hint="Optional. Empty repeats the question."
+            />
+          )}
           <TextField
             label="Save answer as variable"
             value={str(config.variable)}
@@ -128,6 +189,16 @@ export function NodeForm({ type, config, onChange, lookups }: Props) {
             placeholder="answer"
             mono
             hint="Use it later as {vars.answer}."
+          />
+          <SelectField
+            label="Also save to contact field"
+            value={str(config.save_to, "none")}
+            onChange={(v) => set({ save_to: v === "none" ? undefined : v })}
+            options={[
+              { value: "none", label: "Do not save" },
+              ...CONTACT_FIELDS.filter((f) => f.value !== "gender"),
+            ]}
+            hint="Only an e-mail answer can go to the e-mail field. For a custom field use Update contact field with {vars.answer}."
           />
           <NumberField
             label="Give up after (seconds)"
@@ -173,7 +244,7 @@ export function NodeForm({ type, config, onChange, lookups }: Props) {
             }))}
           />
           {tpl && tpl.status !== "APPROVED" && (
-            <p className="text-xs text-amber-700">
+            <p className="text-xs text-amber-700 dark:text-amber-300">
               This template is {tpl.status}; the step will fail until it is approved.
             </p>
           )}
@@ -459,25 +530,403 @@ export function NodeForm({ type, config, onChange, lookups }: Props) {
       );
     }
 
-    case "create_enquiry":
-    case "add_task":
-    case "portal_record":
-    case "book_appointment":
+    case "create_enquiry": {
+      const pipelines = lookups.pipelines ?? [];
+      const pipeline = pipelines.find((p) => p.id === str(config.pipeline_id));
       return (
         <div className="flex flex-col gap-3">
-          <p className="rounded-lg border border-dashed p-2 text-xs text-muted-foreground">
-            This module is installed in a later phase. Until then the step stops with a clear
-            message (or follows its error output). Settings you enter are kept.
-          </p>
-          <KvEditor
-            label="Settings"
-            value={obj(config) as Record<string, string>}
-            onChange={(v) => onChange(v)}
-            keyPlaceholder="field"
-            valuePlaceholder="value or {variable}"
+          <TextField
+            label="Title"
+            value={str(config.title)}
+            onChange={(title) => set({ title })}
+            hint="Can use {contact.first_name} and other variables."
+          />
+          <SelectField
+            label="Pipeline"
+            value={str(config.pipeline_id, "default")}
+            onChange={(v) =>
+              set({ pipeline_id: v === "default" ? undefined : v, stage_id: undefined })
+            }
+            options={[
+              { value: "default", label: "The default pipeline" },
+              ...pipelines.map((p) => ({ value: p.id, label: p.name })),
+            ]}
+          />
+          {pipeline && (
+            <SelectField
+              label="Stage"
+              value={str(config.stage_id, "first")}
+              onChange={(v) => set({ stage_id: v === "first" ? undefined : v })}
+              options={[
+                { value: "first", label: "The first stage" },
+                ...pipeline.stages.map((st) => ({ value: st.id, label: st.name })),
+              ]}
+            />
+          )}
+          <TextField
+            label="Source (optional)"
+            value={str(config.source)}
+            onChange={(source) => set({ source: source || undefined })}
+            placeholder="WhatsApp"
+          />
+          <SelectField
+            label="If the patient already has an open enquiry here"
+            value={str(config.if_open, "update")}
+            onChange={(if_open) => set({ if_open })}
+            options={[
+              { value: "update", label: "Use it (move it to the stage above)" },
+              { value: "create", label: "Create another one" },
+            ]}
+            hint="Later Update enquiry steps act on this enquiry. The usual assignment rules, SLA and events apply."
           />
         </div>
       );
+    }
+
+    case "update_enquiry": {
+      const action = str(config.action, "stage");
+      const pipelines = lookups.pipelines ?? [];
+      const allStages = pipelines.flatMap((p) =>
+        p.stages.map((st) => ({ value: st.id, label: `${p.name}: ${st.name}` })),
+      );
+      const target = pipelines.find((p) => p.id === str(config.pipeline_id));
+      return (
+        <div className="flex flex-col gap-3">
+          <SelectField
+            label="Change"
+            value={action}
+            onChange={(a) => onChange({ action: a })}
+            options={[
+              { value: "stage", label: "Stage" },
+              { value: "status", label: "Status (won / lost / disqualified / open)" },
+              { value: "pipeline", label: "Move to another pipeline" },
+              { value: "field", label: "A field" },
+            ]}
+            hint="Acts on the enquiry created earlier in this flow, else the one the flow started from."
+          />
+          {action === "stage" && (
+            <SelectField
+              label="Stage"
+              value={str(config.stage_id)}
+              onChange={(stage_id) => set({ stage_id })}
+              options={allStages}
+              hint="Must be a stage of the enquiry's own pipeline."
+            />
+          )}
+          {action === "status" && (
+            <>
+              <SelectField
+                label="Status"
+                value={str(config.status)}
+                onChange={(status) => set({ status })}
+                options={[
+                  { value: "open", label: "Open" },
+                  { value: "won", label: "Won" },
+                  { value: "lost", label: "Lost" },
+                  { value: "disqualified", label: "Disqualified" },
+                ]}
+              />
+              {["lost", "disqualified"].includes(str(config.status)) && (
+                <TextField
+                  label="Reason"
+                  value={str(config.lost_reason)}
+                  onChange={(lost_reason) => set({ lost_reason })}
+                  placeholder={lookups.lostReasons?.[0] ?? "Reason"}
+                  hint={
+                    lookups.lostReasons?.length
+                      ? `Workspace reasons: ${lookups.lostReasons.slice(0, 6).join(", ")}`
+                      : "Required for lost and disqualified."
+                  }
+                />
+              )}
+            </>
+          )}
+          {action === "pipeline" && (
+            <>
+              <SelectField
+                label="Pipeline"
+                value={str(config.pipeline_id)}
+                onChange={(pipeline_id) => set({ pipeline_id, stage_id: undefined })}
+                options={pipelines.map((p) => ({ value: p.id, label: p.name }))}
+              />
+              {target && (
+                <SelectField
+                  label="Stage"
+                  value={str(config.stage_id, "first")}
+                  onChange={(v) => set({ stage_id: v === "first" ? undefined : v })}
+                  options={[
+                    { value: "first", label: "The first stage" },
+                    ...target.stages.map((st) => ({ value: st.id, label: st.name })),
+                  ]}
+                />
+              )}
+            </>
+          )}
+          {action === "field" && (
+            <>
+              <SelectField
+                label="Field"
+                value={str(config.field)}
+                onChange={(field) => set({ field })}
+                options={[
+                  { value: "title", label: "Title" },
+                  { value: "source", label: "Source" },
+                  { value: "est_value", label: "Estimated value" },
+                  { value: "appt_date", label: "Appointment date" },
+                  ...(lookups.enquiryFields ?? []).map((f) => ({
+                    value: `custom.${f.key}`,
+                    label: f.label,
+                  })),
+                ]}
+              />
+              <TextField
+                label="Value"
+                value={str(config.value)}
+                onChange={(value) => set({ value })}
+                hint="Can use {variables}. Empty clears the field (not the title)."
+              />
+            </>
+          )}
+        </div>
+      );
+    }
+
+    case "add_task":
+      return (
+        <div className="flex flex-col gap-3">
+          <TextField
+            label="Subject"
+            value={str(config.subject)}
+            onChange={(subject) => set({ subject })}
+          />
+          <SelectField
+            label="Type"
+            value={str(config.type, "follow_up")}
+            onChange={(type) => set({ type })}
+            options={[
+              { value: "call", label: "Call" },
+              { value: "follow_up", label: "Follow-up" },
+              { value: "email", label: "E-mail" },
+              { value: "meeting", label: "Meeting" },
+              { value: "other", label: "Other" },
+            ]}
+          />
+          <NumberField
+            label="Due in (hours)"
+            value={num(config.due_in_hours) ?? 24}
+            onChange={(v) => set({ due_in_hours: v ?? 24 })}
+            min={0}
+            max={2160}
+          />
+          <SelectField
+            label="Assign to"
+            value={str(config.assignee_id, "none")}
+            onChange={(v) => set({ assignee_id: v === "none" ? undefined : v })}
+            options={[
+              { value: "none", label: "Nobody (team list)" },
+              ...lookups.people.map((x) => ({ value: x.id, label: x.name })),
+            ]}
+          />
+          <AreaField
+            label="Notes"
+            value={str(config.notes)}
+            onChange={(notes) => set({ notes: notes || undefined })}
+            variables={variables}
+            rows={2}
+          />
+        </div>
+      );
+
+    case "portal_record": {
+      const def = PORTAL_OBJECTS.find((o) => o.key === str(config.object));
+      return (
+        <div className="flex flex-col gap-3">
+          <SelectField
+            label="Object"
+            value={str(config.object)}
+            onChange={(object) => set({ object, values: {} })}
+            options={PORTAL_OBJECTS.filter((o) => o.writePerm).map((o) => ({
+              value: o.key,
+              label: o.label,
+            }))}
+            hint="Runs with the portal permissions of whoever publishes this flow, checked on every run."
+          />
+          <SelectField
+            label="Do"
+            value={str(config.mode, "create")}
+            onChange={(mode) => set({ mode })}
+            options={[
+              { value: "create", label: "Create a record" },
+              { value: "update", label: "Update a record" },
+            ]}
+          />
+          {str(config.mode) === "update" && (
+            <TextField
+              label="Record id"
+              value={str(config.record_id)}
+              onChange={(record_id) => set({ record_id })}
+              placeholder="{vars.record_id}"
+              mono
+            />
+          )}
+          <KvEditor
+            label="Values"
+            value={obj(config.values) as Record<string, string>}
+            onChange={(values) => set({ values })}
+            keyPlaceholder={def?.columns.find((c) => !c.readOnly)?.key ?? "column"}
+            valuePlaceholder="value or {variable}"
+            hint={
+              def
+                ? `Columns: ${def.columns
+                    .filter((c) => !c.readOnly)
+                    .map((c) => c.key)
+                    .slice(0, 12)
+                    .join(", ")}. Each value is checked the way the portal form checks it.`
+                : undefined
+            }
+          />
+        </div>
+      );
+    }
+
+    case "book_appointment":
+      return (
+        <div className="flex flex-col gap-3">
+          <SelectField
+            label="Service"
+            value={str(config.service_id)}
+            onChange={(service_id) => set({ service_id })}
+            options={(lookups.services ?? []).map((x) => ({ value: x.id, label: x.name }))}
+          />
+          <SelectField
+            label="Specialist"
+            value={str(config.specialist_id)}
+            onChange={(specialist_id) => set({ specialist_id })}
+            options={(lookups.specialists ?? []).map((x) => ({ value: x.id, label: x.name }))}
+          />
+          <SelectField
+            label="Location"
+            value={str(config.location_id)}
+            onChange={(location_id) => set({ location_id })}
+            options={(lookups.locations ?? []).map((x) => ({ value: x.id, label: x.name }))}
+          />
+          <TextField
+            label="Starts at"
+            value={str(config.starts_at)}
+            onChange={(starts_at) => set({ starts_at })}
+            placeholder="{vars.slot}"
+            mono
+            hint="An ISO date and time, usually from a variable. Only a free slot in the future is booked, under the same lock as the calendar; nothing is written to Unite."
+          />
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={config.notify === true}
+              onChange={(e) => set({ notify: e.target.checked })}
+            />
+            Send the booking confirmation template
+          </label>
+        </div>
+      );
+
+    case "set_label":
+      return (
+        <div className="flex flex-col gap-3">
+          <SelectField
+            label="Do"
+            value={str(config.action, "add")}
+            onChange={(action) => set({ action })}
+            options={[
+              { value: "add", label: "Add the label" },
+              { value: "remove", label: "Remove the label" },
+            ]}
+          />
+          <SelectField
+            label="Label"
+            value={str(config.tag_id)}
+            onChange={(tag_id) => set({ tag_id })}
+            options={(lookups.labels ?? []).map((x) => ({ value: x.id, label: x.name }))}
+            hint="Conversation labels are managed under Settings, Tags."
+          />
+        </div>
+      );
+
+    case "payment_link":
+      return (
+        <div className="flex flex-col gap-3">
+          <TextField
+            label="Invoice number"
+            value={str(config.invoice_number)}
+            onChange={(invoice_number) => set({ invoice_number })}
+            placeholder="{vars.invoice}"
+            mono
+          />
+          <TextField
+            label="Amount"
+            value={str(config.amount)}
+            onChange={(amount) => set({ amount })}
+            placeholder="150.00"
+            mono
+            hint="Plain number in the integration's currency; never more than the invoice total."
+          />
+          <p className="text-muted-foreground text-xs">
+            Uses the Payment links integration: it must be switched on and is never used in a
+            training workspace. The invoice must be this patient&apos;s and have no open link. The
+            approved payment template goes to the patient (or their guardian). Publishing needs the
+            right to send payment links.
+          </p>
+        </div>
+      );
+
+    case "meta_event":
+      return (
+        <div className="flex flex-col gap-3">
+          <SelectField
+            label="Event"
+            value={str(config.event_name, "Lead")}
+            onChange={(event_name) => set({ event_name })}
+            options={META_EVENT_NAMES.map((e) => ({ value: e, label: e }))}
+          />
+          <p className="text-muted-foreground text-xs">
+            Only for a patient who came from a click-to-WhatsApp ad, only while Meta ad attribution
+            is on in &quot;send events&quot; mode, and only with consent (a marketing stop always
+            wins). Nothing about the visit is sent. The same event is never sent twice for the same
+            enquiry or appointment.
+          </p>
+        </div>
+      );
+
+    case "ai_router": {
+      const chosen = arr<string>(config.intents);
+      return (
+        <div className="flex flex-col gap-3">
+          <Field label="Route on">
+            <div className="flex flex-col gap-1.5">
+              {ROUTABLE_INTENTS.map((i) => (
+                <label key={i} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={chosen.includes(i)}
+                    onChange={(e) =>
+                      set({
+                        intents: e.target.checked ? [...chosen, i] : chosen.filter((x) => x !== i),
+                      })
+                    }
+                  />
+                  {INTENT_LABELS[i]}
+                </label>
+              ))}
+            </div>
+          </Field>
+          <p className="text-muted-foreground text-xs">
+            Looks at the patient&apos;s last message with the intent labels from Settings, AI
+            copilots. Each label gets an output (the first one ticked that fits wins); Else runs
+            when none fits or the AI is off. It never writes or sends AI text. A message that may
+            describe an emergency stops the flow and goes to a person.
+          </p>
+        </div>
+      );
+    }
 
     case "api_action":
       return (

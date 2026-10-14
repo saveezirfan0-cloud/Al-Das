@@ -18,12 +18,13 @@ import { INTENT_LABELS } from "@/lib/ai/intent/labels";
 import {
   CONDITION_CATEGORIES,
   CONDITION_OPS,
+  CONDITION_TRIGGER_TYPES,
   TRIGGER_TYPES,
   type TriggerCondition,
 } from "@/lib/flow-engine/types";
 
 import { regenerateWebhookToken } from "../actions";
-import { Field, SelectField, TextField } from "./fields";
+import { Field, NumberField, SelectField, TextField } from "./fields";
 import type { BuilderLookups } from "./flow-builder";
 
 export type TriggerState = {
@@ -42,12 +43,7 @@ const OP_LABELS = {
   not_contains: "does not contain",
 } as const;
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-const CONDITION_TRIGGERS = [
-  "conversation_opened",
-  "conversation_closed",
-  "conversation_waiting",
-  "template_button",
-];
+const CONDITION_TRIGGERS: readonly string[] = CONDITION_TRIGGER_TYPES;
 
 export function TriggerForm({
   flowId,
@@ -98,7 +94,12 @@ export function TriggerForm({
           onChange({
             ...state,
             trigger_type: t,
-            trigger_config: t === "recurring" ? { cron: "0 9 * * *", timezone: "Asia/Dubai" } : {},
+            trigger_config:
+              t === "recurring"
+                ? { cron: "0 9 * * *", timezone: "Asia/Dubai" }
+                : t === "window_closing"
+                  ? { minutes_before: 60 }
+                  : {},
           })
         }
         options={TRIGGER_TYPES.map((t) => ({ value: t, label: TRIGGER_LABELS[t] ?? t }))}
@@ -137,7 +138,11 @@ export function TriggerForm({
       {CONDITION_TRIGGERS.includes(type) && (
         <Field
           label="Only when"
-          hint="Leave empty to start for every match. Keyword is the patient's first message (or the tapped button)."
+          hint={
+            type === "message_received"
+              ? "Leave empty to start for every message. Keyword is the message just received."
+              : "Leave empty to start for every match. Keyword is the patient's first message (or the tapped button)."
+          }
         >
           <div className="flex flex-col gap-2">
             {list.length > 1 && (
@@ -307,6 +312,53 @@ export function TriggerForm({
         </Field>
       )}
 
+      {type === "message_received" && (
+        <div className="flex flex-col gap-2">
+          <NumberField
+            label="Quiet period (seconds)"
+            value={typeof cfg.debounce_seconds === "number" ? cfg.debounce_seconds : undefined}
+            onChange={(v) => setCfg({ debounce_seconds: v })}
+            min={30}
+            max={3600}
+            hint="Default 120. A burst of messages starts one run: no new run of this flow in the same conversation within this time."
+          />
+          <p className="text-muted-foreground text-xs">
+            Starts for a message on a conversation that is already open (the first message belongs
+            to &quot;Conversation opened&quot;). Not while a flow is already running there, not when
+            a person is assigned to the conversation, and never for a message that may describe an
+            emergency.
+          </p>
+        </div>
+      )}
+
+      {type === "window_closing" && (
+        <div className="flex flex-col gap-2">
+          <NumberField
+            label="Minutes before the 24-hour window closes"
+            value={typeof cfg.minutes_before === "number" ? cfg.minutes_before : 60}
+            onChange={(v) => setCfg({ minutes_before: v })}
+            min={5}
+            max={1380}
+          />
+          <p className="text-muted-foreground text-xs">
+            Checked from a scheduled job after each patient message. If the patient writes again
+            before then, the check does nothing (the new message starts its own countdown).
+          </p>
+        </div>
+      )}
+
+      {type === "wa_flow_completed" && (
+        <TextField
+          label="Flow token (optional)"
+          value={String(cfg.flow_token ?? "")}
+          onChange={(v) => setCfg({ flow_token: v || undefined })}
+          mono
+          hint="Only start for forms sent with this flow_token. The answers are available as {vars.form.<field>} (text only, up to 30 fields)."
+        />
+      )}
+
+      {type === "segment_joined" && <DripSegments flowId={flowId} lookups={lookups} />}
+
       {type === "shortcut" && (
         <p className="text-muted-foreground text-xs">
           Agents start this flow from the Shortcut button in the inbox composer.
@@ -321,11 +373,31 @@ export function TriggerForm({
         "appointment_status_changed",
       ].includes(type) && (
         <p className="text-muted-foreground text-xs">
-          Starts when the event is raised. It becomes available as the Enquiries / Appointments
-          modules are installed.
+          Starts when the event is raised (including by another flow&apos;s enquiry or booking
+          step).
         </p>
       )}
     </div>
+  );
+}
+
+function DripSegments({ flowId, lookups }: { flowId: string; lookups: BuilderLookups }) {
+  const using = lookups.segments.filter((s) => s.drip_flow_id === flowId);
+  return (
+    <Field
+      label="Segments that start this flow"
+      hint="Choose this flow as the drip flow on a static segment (Contacts, Segments). It starts once for each contact added after that, never for contacts already in it. Dynamic segments use the Recurring trigger instead."
+    >
+      {using.length ? (
+        <ul className="flex flex-col gap-1 text-sm">
+          {using.map((s) => (
+            <li key={s.id}>{s.name}</li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-muted-foreground text-xs">No segment uses this flow yet.</p>
+      )}
+    </Field>
   );
 }
 

@@ -16,13 +16,19 @@ import {
   validateDraft,
   type TemplateDraft,
 } from "@/lib/templates/builder";
+import { deliverySettingsSchema, smsFallbackAllowed } from "@/lib/templates/delivery";
+import { fetchTemplatePerformance } from "@/lib/reports/template-performance";
+import {
+  TEMPLATE_PERFORMANCE_NOTES,
+  type TemplatePerformanceRow,
+} from "@/lib/templates/performance";
 import { isTemplateSource } from "@/lib/templates/sources";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/types";
 import { clientForChannel } from "@/lib/whatsapp/channel";
 import { WhatsAppApiError } from "@/lib/whatsapp/errors";
 import { syncTemplatesForChannel } from "@/lib/whatsapp/sync";
-import { templateVariables } from "@/lib/whatsapp/templates";
+import { isHeaderMediaKey, templateVariables } from "@/lib/whatsapp/templates";
 import type { MetaTemplateComponent } from "@/lib/whatsapp/types";
 
 type ActionResult<T = undefined> =
@@ -51,6 +57,7 @@ async function activeChannel(admin: Admin, orgId: string, channelId: string) {
     .select("id, org_id, phone_number_id, waba_id, status, name")
     .eq("org_id", orgId)
     .eq("id", channelId)
+    .eq("type", "whatsapp")
     .maybeSingle();
   if (!data) return { ok: false as const, error: "Choose a WhatsApp number." };
   if (data.status !== "active")
@@ -378,14 +385,23 @@ export async function deleteTemplate(id: string): Promise<ActionResult> {
     .from("campaigns")
     .select("id", { count: "exact", head: true })
     .eq("template_id", id);
-  if ((count ?? 0) > 0) {
-    await admin
+  let kept = (count ?? 0) > 0;
+  if (!kept) {
+    // Still referenced elsewhere (a recurring campaign series): the row is kept, archived, like for campaigns.
+    const { error } = await admin
+      .from("wa_templates")
+      .delete()
+      .eq("id", id)
+      .eq("org_id", member.orgId);
+    kept = !!error;
+  }
+  if (kept) {
+    const { error } = await admin
       .from("wa_templates")
       .update({ archived_at: new Date().toISOString(), status: "DELETED" })
       .eq("id", id)
       .eq("org_id", member.orgId);
-  } else {
-    await admin.from("wa_templates").delete().eq("id", id).eq("org_id", member.orgId);
+    if (error) return fail("The template was deleted on Meta but could not be updated here.");
   }
   await recordAudit(admin, {
     orgId: member.orgId,
@@ -398,10 +414,9 @@ export async function deleteTemplate(id: string): Promise<ActionResult> {
   revalidatePath("/templates");
   return {
     ok: true,
-    message:
-      (count ?? 0) > 0
-        ? "Deleted on Meta; kept as archived because campaigns use it."
-        : "Template deleted.",
+    message: kept
+      ? "Deleted on Meta; kept as archived because campaigns use it."
+      : "Template deleted.",
   };
 }
 
@@ -447,8 +462,8 @@ export async function saveTemplateVariableMap(
   for (const [k, v] of Object.entries(parsed.data)) {
     if (!v) continue;
     if (!keys.has(k)) return fail(`This template has no variable “${k}”.`);
-    if (k === "header.media" && parseMediaSource(v)) {
-      clean[k] = v; // a Media Library file; checked below
+    if (isHeaderMediaKey(k) && parseMediaSource(v)) {
+      clean[k] = v; // a Media Library file (message header or a carousel card); checked below
       continue;
     }
     if (!isTemplateSource(v)) return fail(`“${v}” is not a field a variable can be filled from.`);
@@ -487,6 +502,7 @@ export async function syncTemplatesAction(
     .from("channels")
     .select("id, org_id, phone_number_id, waba_id")
     .eq("org_id", member.orgId)
+    .eq("type", "whatsapp")
     .eq("status", "active");
   if (channelId) {
     if (!uuid.safeParse(channelId).success) return fail("Invalid number.");
@@ -616,5 +632,85 @@ export async function uploadHeaderSample(
     return { ok: true, data: { handle, name: file.name, format } };
   } catch (err) {
     return fail(metaError(err, "The upload failed."));
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Phase 20d: delivery settings (retry on fail, SMS fallback, time limit) and performance
+// ---------------------------------------------------------------------------
+
+/** Saves the per-template delivery settings. SMS fallback is refused for a marketing template. */
+export async function saveTemplateDelivery(
+  id: string,
+  input: z.input<typeof deliverySettingsSchema>,
+): Promise<ActionResult> {
+  const member = await requirePerm("templates.manage");
+  if (!uuid.safeParse(id).success) return fail("Template not found.");
+  const parsed = deliverySettingsSchema.safeParse(input);
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid settings.");
+  const admin = createAdminClient(member.userId);
+  const { data: t } = await admin
+    .from("wa_templates")
+    .select("id, category, retry_on_fail, sms_fallback, ttl_seconds")
+    .eq("id", id)
+    .eq("org_id", member.orgId)
+    .maybeSingle();
+  if (!t) return fail("Template not found.");
+  const v = parsed.data;
+  if (v.sms_fallback && !smsFallbackAllowed({ category: t.category, sms_fallback: true }))
+    return fail("Marketing templates never fall back to SMS.");
+  const { error } = await admin
+    .from("wa_templates")
+    .update({
+      retry_on_fail: v.retry_on_fail,
+      sms_fallback: v.sms_fallback,
+      ttl_seconds: v.ttl_seconds,
+    })
+    .eq("id", id)
+    .eq("org_id", member.orgId);
+  if (error) return fail("Could not save the delivery settings.");
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "template.delivery_updated",
+    entity: "wa_template",
+    entityId: id,
+    diff: {
+      retry_on_fail: { from: t.retry_on_fail, to: v.retry_on_fail },
+      sms_fallback: { from: t.sms_fallback, to: v.sms_fallback },
+      ttl_seconds: { from: t.ttl_seconds, to: v.ttl_seconds },
+    },
+  });
+  revalidatePath("/templates");
+  return { ok: true, message: "Delivery settings saved." };
+}
+
+const performanceSchema = z.object({
+  template_id: uuid,
+  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+});
+
+/** Counts for one template over a date range (workspace timezone). Counts only; no patient data. */
+export async function getTemplatePerformance(
+  input: z.input<typeof performanceSchema>,
+): Promise<ActionResult<{ row: TemplatePerformanceRow | null; notes: string[] }>> {
+  const member = await requirePerm("templates.manage");
+  const parsed = performanceSchema.safeParse(input);
+  if (!parsed.success) return fail("Pick a valid date range.");
+  const { template_id, from, to } = parsed.data;
+  if (from > to) return fail("The start date is after the end date.");
+  const days = (Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000;
+  if (days > 366) return fail("Choose a range of a year or less.");
+  try {
+    const rows = await fetchTemplatePerformance(createAdminClient(), {
+      orgId: member.orgId,
+      from,
+      to,
+      templateId: template_id,
+    });
+    return { ok: true, data: { row: rows[0] ?? null, notes: [...TEMPLATE_PERFORMANCE_NOTES] } };
+  } catch {
+    return fail("Could not load the numbers.");
   }
 }

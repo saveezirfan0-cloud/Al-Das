@@ -1,4 +1,5 @@
-import { can, type MemberLike } from "@/lib/auth/can";
+import { can, canAny, type MemberLike } from "@/lib/auth/can";
+import { SIGNING_PERMS } from "@/lib/signing/perms";
 
 /**
  * Every Settings page, with the section it sits under and who may see it. One list feeds the
@@ -50,12 +51,19 @@ export const SETTINGS_PAGES: readonly SettingsPage[] = [
     ],
     allow: everyone,
   },
+  {
+    href: "/settings/signing-certificate",
+    label: "Signing certificate",
+    section: "Personal",
+    keywords: ["digital signature", "dsc", "p12", "pfx", "certificate", "sign", "pin"],
+    allow: (m) => canAny(m, SIGNING_PERMS),
+  },
 
   {
     href: "/settings/users",
     label: "Users",
     section: "Workspace",
-    keywords: ["invite", "staff", "members"],
+    keywords: ["invite", "staff", "members", "open conversation limit", "enquiry view"],
     allow: admin,
   },
   {
@@ -69,7 +77,7 @@ export const SETTINGS_PAGES: readonly SettingsPage[] = [
     href: "/settings/teams",
     label: "Teams",
     section: "Workspace",
-    keywords: ["departments", "routing"],
+    keywords: ["departments", "routing", "auto-reply", "fallback team", "office hours"],
     allow: admin,
   },
   { href: "/settings/custom-fields", label: "Custom fields", section: "Workspace", allow: admin },
@@ -77,8 +85,8 @@ export const SETTINGS_PAGES: readonly SettingsPage[] = [
     href: "/settings/tags",
     label: "Tags",
     section: "Workspace",
-    keywords: ["labels"],
-    allow: (m) => can(m, "contacts.manage"),
+    keywords: ["labels", "enquiry tags"],
+    allow: (m) => can(m, "contacts.manage") || can(m, "enquiries.manage"),
   },
 
   {
@@ -100,7 +108,7 @@ export const SETTINGS_PAGES: readonly SettingsPage[] = [
     href: "/settings/inbox",
     label: "Inbox rules",
     section: "Channels & integrations",
-    keywords: ["assignment", "office hours", "sla"],
+    keywords: ["assignment", "office hours", "sla", "away", "idle"],
     allow: admin,
   },
   {
@@ -128,6 +136,9 @@ export const SETTINGS_PAGES: readonly SettingsPage[] = [
       "google calendar",
       "feed",
       "gateway",
+      "seal",
+      "digital signature",
+      "pades",
     ],
     allow: (m) => can(m, "integrations.manage") || can(m, "integrations.calendar"),
   },

@@ -10,7 +10,10 @@ import type {
 } from "@/lib/whatsapp/types";
 
 export type TemplateVariable = {
-  /** 'header.1', 'body.2', 'body.name', 'button.0' … */
+  /**
+   * 'header.1', 'body.2', 'body.name', 'button.0' … Carousel cards (Phase 20d) prefix their own:
+   * 'card.0.header.media', 'card.1.body.1', 'card.0.button.1'.
+   */
   key: string;
   component: "header" | "body" | "button";
   /** 1-based index for positional params or the param name for named params. */
@@ -19,7 +22,19 @@ export type TemplateVariable = {
   example: string | null;
   /** For header media and URL buttons. */
   kind: "text" | "image" | "video" | "document" | "url_suffix" | "copy_code";
+  /** Set for a variable on a carousel card (0-based card index); absent for the message itself. */
+  card?: number;
 };
+
+/** The key prefix of a carousel card's variables. */
+export function cardKeyPrefix(card: number): string {
+  return `card.${card}.`;
+}
+
+/** True for any header-media key: 'header.media' or a carousel card's 'card.N.header.media'. */
+export function isHeaderMediaKey(key: string): boolean {
+  return key === "header.media" || /^card\.\d{1,2}\.header\.media$/.test(key);
+}
 
 const POSITIONAL = /\{\{\s*(\d+)\s*\}\}/g;
 const NAMED = /\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}/g;
@@ -42,9 +57,16 @@ function findVars(text: string): Array<{ name: string; index: number | null }> {
   return out.sort((a, b) => (a.index ?? 999) - (b.index ?? 999));
 }
 
-/** Lists every variable a template needs, with Meta's examples when available. */
-export function templateVariables(components: MetaTemplateComponent[]): TemplateVariable[] {
+type CarouselComponent = Extract<MetaTemplateComponent, { type: "CAROUSEL" }>;
+
+/** Variables of one component list: the message itself (no prefix) or one carousel card. */
+function componentVariables(
+  components: MetaTemplateComponent[],
+  prefix: string,
+  card: number | undefined,
+): TemplateVariable[] {
   const vars: TemplateVariable[] = [];
+  const extra = card === undefined ? {} : { card };
   for (const c of components) {
     if (c.type === "HEADER") {
       const h = c as Extract<MetaTemplateComponent, { type: "HEADER" }>;
@@ -52,7 +74,7 @@ export function templateVariables(components: MetaTemplateComponent[]): Template
         const exNamed = h.example?.header_text_named_params ?? [];
         findVars(h.text).forEach((v, i) => {
           vars.push({
-            key: `header.${v.name}`,
+            key: `${prefix}header.${v.name}`,
             component: "header",
             name: v.name,
             index: v.index,
@@ -60,16 +82,18 @@ export function templateVariables(components: MetaTemplateComponent[]): Template
               ? (h.example?.header_text?.[i] ?? null)
               : (exNamed.find((e) => e.param_name === v.name)?.example ?? null),
             kind: "text",
+            ...extra,
           });
         });
       } else if (h.format === "IMAGE" || h.format === "VIDEO" || h.format === "DOCUMENT") {
         vars.push({
-          key: "header.media",
+          key: `${prefix}header.media`,
           component: "header",
           name: "media",
           index: null,
           example: h.example?.header_handle?.[0] ?? null,
           kind: h.format.toLowerCase() as "image" | "video" | "document",
+          ...extra,
         });
       }
     } else if (c.type === "BODY") {
@@ -78,7 +102,7 @@ export function templateVariables(components: MetaTemplateComponent[]): Template
       const exNamed = b.example?.body_text_named_params ?? [];
       findVars(b.text).forEach((v, i) => {
         vars.push({
-          key: `body.${v.name}`,
+          key: `${prefix}body.${v.name}`,
           component: "body",
           name: v.name,
           index: v.index,
@@ -86,6 +110,7 @@ export function templateVariables(components: MetaTemplateComponent[]): Template
             ? (exPos[i] ?? null)
             : (exNamed.find((e) => e.param_name === v.name)?.example ?? null),
           kind: "text",
+          ...extra,
         });
       });
     } else if (c.type === "BUTTONS") {
@@ -93,27 +118,41 @@ export function templateVariables(components: MetaTemplateComponent[]): Template
       bt.buttons.forEach((btn, idx) => {
         if (btn.type === "URL" && /\{\{\s*1\s*\}\}/.test(btn.url)) {
           vars.push({
-            key: `button.${idx}`,
+            key: `${prefix}button.${idx}`,
             component: "button",
             name: String(idx),
             index: idx,
             example: btn.example?.[0] ?? null,
             kind: "url_suffix",
+            ...extra,
           });
         } else if (btn.type === "COPY_CODE") {
           vars.push({
-            key: `button.${idx}`,
+            key: `${prefix}button.${idx}`,
             component: "button",
             name: String(idx),
             index: idx,
             example: btn.example ?? null,
             kind: "copy_code",
+            ...extra,
           });
         }
+      });
+    } else if (c.type === "CAROUSEL" && card === undefined) {
+      ((c as CarouselComponent).cards ?? []).forEach((cd, ci) => {
+        vars.push(...componentVariables(cd.components ?? [], cardKeyPrefix(ci), ci));
       });
     }
   }
   return vars;
+}
+
+/**
+ * Lists every variable a template needs, with Meta's examples when available. A carousel's cards add their own
+ * variables after the message's ('card.0.header.media', 'card.0.body.1', 'card.0.button.1', …).
+ */
+export function templateVariables(components: MetaTemplateComponent[]): TemplateVariable[] {
+  return componentVariables(components, "", undefined);
 }
 
 export type TemplateValues = Record<string, string>; // key → value (header.media = media id or link)
@@ -121,7 +160,7 @@ export type TemplateValues = Record<string, string>; // key → value (header.me
 function substitute(
   text: string,
   values: TemplateValues,
-  prefix: "header" | "body",
+  prefix: string,
   fallbackToExample = true,
   vars?: TemplateVariable[],
 ): string {
@@ -180,7 +219,7 @@ export function renderTemplatePreview(
     } else if (c.type === "FOOTER") {
       preview.footer = (c as Extract<MetaTemplateComponent, { type: "FOOTER" }>).text;
     } else if (c.type === "CAROUSEL") {
-      for (const card of (c as Extract<MetaTemplateComponent, { type: "CAROUSEL" }>).cards) {
+      for (const [ci, card] of ((c as CarouselComponent).cards ?? []).entries()) {
         const head = card.components.find((x) => x.type === "HEADER") as
           Extract<MetaTemplateComponent, { type: "HEADER" }> | undefined;
         const body = card.components.find((x) => x.type === "BODY") as
@@ -189,7 +228,7 @@ export function renderTemplatePreview(
           Extract<MetaTemplateComponent, { type: "BUTTONS" }> | undefined;
         preview.cards.push({
           media: head?.format === "VIDEO" ? "video" : head ? "image" : null,
-          body: body?.text ?? "",
+          body: body ? substitute(body.text, values, `${cardKeyPrefix(ci)}body`, true, vars) : "",
           buttons: (btns?.buttons ?? []).map((b) => ("text" in b && b.text ? b.text : b.type)),
         });
       }
@@ -206,22 +245,12 @@ export function renderTemplatePreview(
   return preview;
 }
 
-/** Builds the Cloud API `template` object. Throws when a required variable is missing. */
-export function buildTemplateSend(
-  tpl: {
-    name: string;
-    language: string;
-    components: MetaTemplateComponent[];
-    parameterFormat?: "positional" | "named";
-  },
+/** Header / body / button parameters for one component list (the message, or one carousel card). */
+function sendComponents(
+  vars: TemplateVariable[],
   values: TemplateValues,
-): TemplateObject {
-  const vars = templateVariables(tpl.components);
-  const named = tpl.parameterFormat === "named";
-  const missing = vars.filter((v) => !values[v.key]);
-  if (missing.length)
-    throw new Error(`Missing template values: ${missing.map((m) => m.key).join(", ")}`);
-
+  named: boolean,
+): TemplateComponent[] {
   const components: TemplateComponent[] = [];
 
   const headerVars = vars.filter((v) => v.component === "header");
@@ -273,6 +302,70 @@ export function buildTemplateSend(
       });
     }
   }
+  return components;
+}
+
+/**
+ * Quick-reply buttons on carousel cards get a fixed payload ('card<i>_btn<j>') so a tap can be told apart from
+ * another card's button with the same label. No patient data goes into it.
+ */
+function cardQuickReplies(card: { components: MetaTemplateComponent[] }, ci: number): TemplateComponent[] {
+  const btns = card.components.find((x) => x.type === "BUTTONS") as
+    Extract<MetaTemplateComponent, { type: "BUTTONS" }> | undefined;
+  const out: TemplateComponent[] = [];
+  (btns?.buttons ?? []).forEach((b, bi) => {
+    if (b.type === "QUICK_REPLY")
+      out.push({
+        type: "button",
+        sub_type: "quick_reply",
+        index: bi,
+        parameters: [{ type: "payload", payload: `card${ci}_btn${bi}` }],
+      });
+  });
+  return out;
+}
+
+/** Builds the Cloud API `template` object. Throws when a required variable is missing. */
+export function buildTemplateSend(
+  tpl: {
+    name: string;
+    language: string;
+    components: MetaTemplateComponent[];
+    parameterFormat?: "positional" | "named";
+  },
+  values: TemplateValues,
+): TemplateObject {
+  const vars = templateVariables(tpl.components);
+  const named = tpl.parameterFormat === "named";
+  const missing = vars.filter((v) => !values[v.key]);
+  if (missing.length)
+    throw new Error(`Missing template values: ${missing.map((m) => m.key).join(", ")}`);
+
+  const components = sendComponents(
+    vars.filter((v) => v.card === undefined),
+    values,
+    named,
+  );
+
+  // Carousel (Phase 20d): one entry per card, in card order, with that card's media, text and button params.
+  const carousel = tpl.components.find((c) => c.type === "CAROUSEL") as CarouselComponent | undefined;
+  if (carousel) {
+    components.push({
+      type: "carousel",
+      cards: (carousel.cards ?? []).map((card, ci) => {
+        const cardVars = vars.filter((v) => v.card === ci);
+        const own = sendComponents(cardVars, values, named);
+        const buttons = [
+          ...own.filter((x) => x.type === "button"),
+          ...cardQuickReplies(card, ci),
+        ].sort((a, b) => Number((a as { index: number }).index) - Number((b as { index: number }).index));
+        return {
+          card_index: ci,
+          components: [...own.filter((x) => x.type !== "button"), ...buttons],
+        };
+      }),
+    });
+  }
 
   return {
     name: tpl.name,
@@ -306,4 +399,3 @@ export function isTemplateSendable(status: string | null | undefined): boolean {
 export function isMarketingBlocked(category: string | null | undefined, stopMarketing: boolean | null | undefined): boolean {
   return category === "MARKETING" && stopMarketing === true;
 }
-

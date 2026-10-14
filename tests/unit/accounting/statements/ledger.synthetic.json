@@ -1,0 +1,199 @@
+{
+  "_comment": "Synthetic ledger for the Phase 22G statement tests. Amounts, codes and dates only; no person, no patient. Branch G books in Dubai, branch M is set to Abu Dhabi by the test. Postings go through acc_post_from_source as tally_import (always allowed); J15 and ADJ are manual journals (maker and checker). Expectations are worked out by hand in docs/22_PHASE_22G_NOTES.md terms.",
+  "emirates": { "G": "Dubai", "M": "Abu Dhabi" },
+  "accounts": [
+    { "code": "ENT", "name": "Staff entertainment (synthetic)", "parent": "G-IEXP", "ct_treatment": "entertainment" },
+    { "code": "LN1", "name": "Term loan (synthetic)", "parent": "G-SECL" }
+  ],
+  "flags": [
+    { "code": "6500", "requires_branch": true, "ct_treatment": "fines_penalties" },
+    { "code": "5100", "requires_cost_centre": true }
+  ],
+  "postings": [
+    {
+      "id": "OPEN", "date": "2026-06-30", "type": "opening",
+      "lines": [
+        { "account_code": "1150", "debit": 100000 },
+        { "account_code": "1500", "debit": 50000 },
+        { "account_code": "3000", "credit": 150000 }
+      ]
+    },
+    {
+      "id": "J1", "date": "2026-07-05", "type": "sales",
+      "lines": [
+        { "account_code": "1210", "debit": 1050 },
+        { "account_code": "4110", "credit": 1000, "tax_code": "VAT5", "branch_code": "G" },
+        { "account_code": "2200", "credit": 50, "tax_code": "VAT5", "branch_code": "G" }
+      ]
+    },
+    {
+      "id": "J2", "date": "2026-07-06", "type": "sales",
+      "lines": [
+        { "account_code": "1100-G", "debit": 525 },
+        { "account_code": "4110", "credit": 500, "tax_code": "VAT5", "branch_code": "M" },
+        { "account_code": "2200", "credit": 25, "tax_code": "VAT5", "branch_code": "M" }
+      ]
+    },
+    {
+      "id": "J3", "date": "2026-07-10", "type": "sales",
+      "lines": [
+        { "account_code": "1200", "debit": 3000 },
+        { "account_code": "4100", "credit": 3000, "tax_code": "ZR", "branch_code": "G" }
+      ]
+    },
+    {
+      "id": "J4", "date": "2026-07-15", "type": "receipt",
+      "lines": [
+        { "account_code": "1150", "debit": 200 },
+        { "account_code": "4900", "credit": 200, "tax_code": "EX" }
+      ]
+    },
+    {
+      "id": "J5", "date": "2026-07-20", "type": "purchase",
+      "lines": [
+        { "account_code": "6200", "debit": 2000, "tax_code": "VAT5", "branch_code": "G" },
+        { "account_code": "2210", "debit": 100, "tax_code": "VAT5" },
+        { "account_code": "2100", "credit": 2100 }
+      ]
+    },
+    {
+      "id": "J6", "date": "2026-08-01", "type": "payment",
+      "lines": [
+        { "account_code": "6300", "debit": 1000, "tax_code": "RC5" },
+        { "account_code": "2210", "debit": 50, "tax_code": "RC5" },
+        { "account_code": "2200", "credit": 50, "tax_code": "RC5" },
+        { "account_code": "1150", "credit": 1000 }
+      ]
+    },
+    {
+      "id": "J7", "date": "2026-08-05", "type": "payment",
+      "lines": [
+        { "account_code": "ENT", "debit": 315, "tax_code": "BLK5" },
+        { "account_code": "1150", "credit": 315 }
+      ]
+    },
+    {
+      "id": "J8", "date": "2026-08-10", "type": "purchase",
+      "lines": [
+        { "account_code": "5100", "debit": 800, "branch_code": "G" },
+        { "account_code": "2100", "credit": 800 }
+      ]
+    },
+    {
+      "id": "J9", "date": "2026-08-31", "type": "journal",
+      "lines": [
+        { "account_code": "6400", "debit": 500 },
+        { "account_code": "1590", "credit": 500 }
+      ]
+    },
+    {
+      "id": "J10", "date": "2026-09-01", "type": "receipt",
+      "lines": [
+        { "account_code": "1150", "debit": 2000 },
+        { "account_code": "1200", "credit": 2000 }
+      ]
+    },
+    {
+      "id": "J11", "date": "2026-09-05", "type": "payment",
+      "lines": [
+        { "account_code": "2100", "debit": 2100 },
+        { "account_code": "1150", "credit": 2100 }
+      ]
+    },
+    {
+      "id": "J12", "date": "2026-09-10", "type": "receipt",
+      "lines": [
+        { "account_code": "1150", "debit": 10000 },
+        { "account_code": "LN1", "credit": 10000 }
+      ]
+    },
+    {
+      "id": "J13", "date": "2026-09-12", "type": "payment",
+      "lines": [
+        { "account_code": "1510", "debit": 3000 },
+        { "account_code": "1150", "credit": 3000 }
+      ]
+    },
+    {
+      "id": "J16", "date": "2026-09-15", "type": "sales",
+      "lines": [
+        { "account_code": "1210", "debit": 210 },
+        { "account_code": "4190", "credit": 200, "tax_code": "VAT5" },
+        { "account_code": "2200", "credit": 10, "tax_code": "VAT5" }
+      ]
+    },
+    {
+      "id": "J14", "date": "2026-09-20", "type": "payment",
+      "lines": [
+        { "account_code": "6500", "debit": 600 },
+        { "account_code": "1100-G", "credit": 600 }
+      ]
+    }
+  ],
+  "manual": [
+    {
+      "id": "J15", "date": "2026-09-25", "is_adjustment": false,
+      "lines": [
+        { "account_code": "6200", "debit": 1500 },
+        { "account_code": "9000", "credit": 1500 }
+      ]
+    },
+    {
+      "id": "ADJ", "date": "2027-06-30", "is_adjustment": true,
+      "lines": [
+        { "account_code": "6200", "debit": 300 },
+        { "account_code": "2300", "credit": 300 }
+      ]
+    }
+  ],
+  "expected": {
+    "q1": { "from": "2026-07-01", "to": "2026-09-30" },
+    "pl": { "direct_income": 4700, "direct_expense": 800, "gross_profit": 3900, "indirect_income": 200, "indirect_expense": 5915, "net_profit": -1815 },
+    "pl_by_branch": {
+      "G": { "direct_income": 4000, "direct_expense": 800, "indirect_expense": 2000 },
+      "M": { "direct_income": 500 },
+      "": { "direct_income": 200, "indirect_income": 200, "indirect_expense": 3915 }
+    },
+    "pl_by_month": { "2026-07": 2700, "2026-08": -2615, "2026-09": -1900 },
+    "bs": {
+      "as_at": "2026-09-30",
+      "assets": 160470, "liabilities": 12285, "equity": 150000, "current_year_pl": -1815, "earlier_years_pl": 0,
+      "balances": { "1150": 105785, "1100-G": -75, "1200": 1000, "1210": 1260, "1500": 50000, "1510": 3000, "1590": -500, "2100": 800, "2200": 135, "2210": -150, "9000": 1500, "LN1": 10000, "3000": 150000 }
+    },
+    "cf": {
+      "net_profit": -1815, "operating_noncash": 500, "working_capital": 25, "investing": -3000, "financing": 10000,
+      "net_change": 5710, "opening_cash": 100000, "closing_cash": 105710
+    },
+    "vat": {
+      "boxes": {
+        "1a": { "amount": 500, "vat": 25, "lines": 2 },
+        "1b": { "amount": 1200, "vat": 60, "lines": 4, "defaulted_emirate": 2 },
+        "3": { "amount": 1000, "vat": 50 },
+        "4": { "amount": 3000, "vat": 0 },
+        "5": { "amount": 200, "vat": 0 },
+        "9": { "amount": 2000, "vat": 100 },
+        "10": { "amount": 1000, "vat": 50 },
+        "blocked": { "amount": 315, "vat": 0 }
+      },
+      "box8_amount": 5900, "box8_vat": 135, "box11_amount": 3000, "box11_vat": 150, "box14": -15,
+      "missing_accounts": ["5100", "6200", "6400", "6500"]
+    },
+    "exceptions": {
+      "negative_cash": [{ "code": "1100-G", "date": "2026-09-20", "balance": -75 }],
+      "opposite": ["1100-G", "1590", "2210"],
+      "suspense": [{ "code": "9000", "balance": -1500 }],
+      "large_manual_numbers": 1,
+      "missing_dimension": [{ "code": "5100", "no_cost_centre": true }, { "code": "6500", "no_branch": true }]
+    },
+    "ct": { "fy_from": "2026-07-01", "fy_to": "2027-06-30", "accounting_profit": -2115, "entertainment": 315, "fines_penalties": 600, "revenue": 4900 },
+    "budget": {
+      "lines": [
+        { "account_code": "4110", "month": "2026-07", "amount": 1000 },
+        { "account_code": "4100", "month": "2026-07", "amount": 5000 },
+        { "account_code": "6200", "month": "2026-07", "amount": 1000 },
+        { "account_code": "6200", "month": "2026-08", "amount": 1000, "branch_code": "G" }
+      ],
+      "jul": { "budget_income": 6000, "actual_income": 4700, "budget_expense": 1000, "actual_expense": 2000 }
+    }
+  }
+}

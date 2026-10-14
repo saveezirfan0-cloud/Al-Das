@@ -12,6 +12,8 @@ export type MappedPatient = {
   /** Field-level problems (the row is still imported when a phone or PIN exists). */
   warnings: string[];
   isTestRecord: boolean;
+  /** Unite's patient-level Last Visit Date (YYYY-MM-DD) → contacts.unite_last_visit_date (chronic recall, 21B). */
+  uniteLastVisitDate?: string | null;
 };
 
 export type PatientMapper = {

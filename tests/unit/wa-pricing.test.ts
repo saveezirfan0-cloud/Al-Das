@@ -70,9 +70,9 @@ describe("wa_pricing_sync task", () => {
     return { result, log };
   }
   const channels = [
-    { id: "c1", org_id: "org1", phone_number_id: "p1", waba_id: "w1", status: "active", created_at: "1" },
-    { id: "c2", org_id: "org1", phone_number_id: "p2", waba_id: "w1", status: "active", created_at: "2" }, // same WABA
-    { id: "c3", org_id: "org2", phone_number_id: "p3", waba_id: "w2", status: "active", created_at: "3" },
+    { id: "c1", org_id: "org1", type: "whatsapp", phone_number_id: "p1", waba_id: "w1", status: "active", created_at: "1" },
+    { id: "c2", org_id: "org1", type: "whatsapp", phone_number_id: "p2", waba_id: "w1", status: "active", created_at: "2" }, // same WABA
+    { id: "c3", org_id: "org2", type: "whatsapp", phone_number_id: "p3", waba_id: "w2", status: "active", created_at: "3" },
   ];
 
   it("calls Meta once per WABA and stores each bucket against the right org", async () => {

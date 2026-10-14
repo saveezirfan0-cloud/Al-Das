@@ -67,6 +67,7 @@ Do this once per cut-over wave. Everything is idempotent through `external_refs`
 
 1. **Freeze the sources** at an announced time (record it as `FREEZE_AT`, ISO UTC):
    - Airtable: switch staff to read-only permissions on the five bases and pause every Make scenario and Airtable automation that writes to them. Airtable has no freeze switch; permissions are the control.
+   - Airtable automations on the Unite base (OQ-41): switch off **both**. "Automation 1" (`wflJ8HcmP16BqEv7z`) sets `60 days >` on new patients; "Automation 2" (`wflwgvvZP4J8Kvg8K`) copies ~33 patient fields (name, PIN, phone, e-mail, date of birth, address, diagnoses, medications) to the Google Sheet "Chronic" every time a patient enters the view "Chronic". Turn Automation 2 off even before the freeze if the sheet is not used, and record who owns the sheet.
    - Sanoflow: ask staff to stop editing contacts. Export contacts (CSV) after the freeze.
 2. **Dry run, then real run** (the importers never write to the sources):
    ```bash
@@ -140,7 +141,7 @@ Source of truth: `docs/audit/make-replacement-design.md` §9–10 and `make-scen
 | Order | System | Pre-conditions | Do | Keep |
 |---|---|---|---|---|
 | 1 | **Make** (T+7 d) | Every scenario ticked off the checklist; native automations Live for 7 days with `job_runs` clean | Deactivate all scenarios, then cancel the plan after a further week of silence | Redacted blueprints (`docs/audit/make-raw`); never the originals, they hold plain-text credentials |
-| 2 | **Airtable** (T+14 d) | All staff working in Pulse for 14 days; reconciliation signed; no Make scenario touches it | Set the five bases read-only, export CSV + attachments from each base, then downgrade/cancel | Encrypted archive of the exports under the clinic's retention policy; they contain patient data |
+| 2 | **Airtable** (T+14 d) | All staff working in Pulse for 14 days; reconciliation signed; no Make scenario touches it; both Unite-base automations off (OQ-41) | Set the five bases read-only, export CSV + attachments from each base, then downgrade/cancel. Delete the Google Sheet "Chronic" filled by Automation 2 (or archive it with the exports: it holds patient data) | Encrypted archive of the exports under the clinic's retention policy; they contain patient data |
 | 3 | **Sanoflow** (T+21 d) | Every number moved and stable; conversations history exported | Export contacts, conversations and templates; revoke API keys; cancel | Encrypted archive of the export. Message history is **not** imported into Pulse by any current tool; decide whether it must be (legal retention) before cancelling |
 
 Remove `AIRTABLE_PAT` and `MAKE_API_TOKEN` from every environment and delete `scripts/import-*`, `scripts/export-*` and the Airtable/Make audit raw folders from the working tree once the archives are verified (the preflight warns while the variables remain).

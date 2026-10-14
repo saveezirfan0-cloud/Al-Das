@@ -1,0 +1,160 @@
+{
+  "_comment": "Synthetic revenue-share month (slice 20F). Doctor ids SYN-*, invented amounts, no patient data. Expected figures worked out by hand; shared by the unit and database tests.",
+  "month": "2026-09-01",
+  "services": [
+    ["ITEM-CON", "Consultation"],
+    ["ITEM-LAB", "Lab"],
+    ["ITEM-RAD", "Radiology"]
+  ],
+  "doctors": [
+    { "dha_id": "SYN-0001", "name": "Dr Synthetic One" },
+    { "dha_id": "SYN-0002", "name": "Dr Synthetic Two" },
+    { "dha_id": "SYN-0007", "name": "Dr Synthetic Seven" }
+  ],
+  "invoices": [
+    { "no": "SYN/INV/1", "doctor": "SYN-0001", "date": "2026-09-03", "lines": [["ITEM-CON", 6000], ["ITEM-LAB", 2000]] },
+    { "no": "SYN/INV/2", "doctor": "SYN-0001", "date": "2026-09-20", "lines": [["ITEM-CON", 4000]] },
+    { "no": "SYN/INV/3", "doctor": "SYN-0002", "date": "2026-09-01", "lines": [["ITEM-CON", 8000], ["ITEM-RAD", 4000]] },
+    { "no": "SYN/INV/4", "doctor": "SYN-0002", "date": "2026-09-30", "lines": [["ITEM-UNK", 1000]] },
+    { "no": "SYN/INV/5", "doctor": "SYN-0003", "date": "2026-09-10", "lines": [["ITEM-CON", 10000]] },
+    { "no": "SYN/INV/6", "doctor": "SYN-0004", "date": "2026-09-11", "lines": [["ITEM-LAB", 1000]] },
+    { "no": "SYN/INV/7", "doctor": "SYN-0005", "date": "2026-09-12", "lines": [["ITEM-CON", 15000]] },
+    { "no": "SYN/INV/8", "doctor": "SYN-0007", "date": "2026-09-13", "lines": [["ITEM-CON", 5000]] },
+    { "no": "SYN/INV/9", "doctor": null, "date": "2026-09-14", "lines": [["ITEM-CON", 700]] }
+  ],
+  "noise": [
+    { "no": "SYN/INV/10", "doctor": "SYN-0001", "date": "2026-09-05", "deleted": true, "lines": [["ITEM-CON", 99999]] },
+    { "no": "SYN/INV/11", "doctor": "SYN-0001", "date": "2026-10-01", "lines": [["ITEM-CON", 88888]] },
+    { "no": "SYN/INV/12", "doctor": "SYN-0002", "date": "2026-08-31", "lines": [["ITEM-CON", 77777]] },
+    { "no": "SYN/INV/13", "doctor": "SYN-0001", "date": "2026-09-15", "superseded": true, "lines": [["ITEM-CON", 55555]] }
+  ],
+  "charges": [
+    { "doctor": "SYN-0001", "kind": "lab", "amount": 500, "reference": "LAB-SEP-1" },
+    { "doctor": "SYN-0001", "kind": "referral", "amount": 250.5, "reference": "REF-SEP-1" },
+    { "doctor": "SYN-0002", "kind": "lab", "amount": 300, "reference": null },
+    { "doctor": "SYN-0002", "kind": "consumables", "amount": 100, "reference": null },
+    { "doctor": "SYN-0003", "kind": "lab", "amount": 400, "reference": null },
+    { "doctor": "SYN-0004", "kind": "lab", "amount": 2500, "reference": null },
+    { "doctor": "SYN-0006", "kind": "referral", "amount": 100, "reference": null },
+    { "doctor": "SYN-0007", "kind": "other", "amount": 50, "reference": null }
+  ],
+  "schemes": [
+    { "doctor": "SYN-0001", "rule": { "basis": "net_revenue", "default_rate": 0.3, "deductions": { "lab": 1, "referral": 1 } } },
+    {
+      "doctor": "SYN-0002",
+      "rule": {
+        "basis": "net_revenue",
+        "default_rate": 0.25,
+        "category_rates": { "Consultation": 0.4 },
+        "deductions": { "lab": 0.5 },
+        "threshold": 5000
+      }
+    },
+    {
+      "doctor": "SYN-0003",
+      "rule": { "basis": "net_revenue", "default_rate": 0.2, "deductions": { "lab": 1, "referral": 1 }, "minimum_guarantee": 5000 }
+    },
+    { "doctor": "SYN-0004", "rule": { "basis": "net_revenue", "default_rate": 0.1, "deductions": { "lab": 1 } } },
+    { "doctor": "SYN-0005", "rule": { "basis": "net_revenue", "default_rate": 0.5, "deductions": {}, "threshold": 20000 } },
+    {
+      "doctor": "SYN-0006",
+      "rule": { "basis": "net_revenue", "default_rate": 0.3, "deductions": { "referral": 1 }, "minimum_guarantee": 1000 }
+    }
+  ],
+  "expected": {
+    "results": [
+      {
+        "doctor": "SYN-0001",
+        "base": 12000,
+        "eligible_fraction": 1,
+        "categories": [
+          { "category": "Consultation", "net": 10000, "rate": 0.3, "rate_source": "default", "gross": 3000, "earned": 3000 },
+          { "category": "Lab", "net": 2000, "rate": 0.3, "rate_source": "default", "gross": 600, "earned": 600 }
+        ],
+        "share": 3600,
+        "deductions": [
+          { "kind": "lab", "charges": 500, "share": 1, "deducted": 500 },
+          { "kind": "referral", "charges": 250.5, "share": 1, "deducted": 250.5 }
+        ],
+        "total_deductions": 750.5,
+        "before_guarantee": 2849.5,
+        "payout": 2849.5,
+        "outcome": "calculated"
+      },
+      {
+        "doctor": "SYN-0002",
+        "base": 13000,
+        "eligible_fraction": 0.615385,
+        "categories": [
+          { "category": "Consultation", "net": 8000, "rate": 0.4, "rate_source": "category", "gross": 3200, "earned": 1969.23 },
+          { "category": "Radiology", "net": 4000, "rate": 0.25, "rate_source": "default", "gross": 1000, "earned": 615.38 },
+          { "category": "Unmapped", "net": 1000, "rate": 0.25, "rate_source": "default", "gross": 250, "earned": 153.85 }
+        ],
+        "share": 2738.46,
+        "deductions": [
+          { "kind": "lab", "charges": 300, "share": 0.5, "deducted": 150 },
+          { "kind": "consumables", "charges": 100, "share": 0, "deducted": 0 }
+        ],
+        "total_deductions": 150,
+        "before_guarantee": 2588.46,
+        "payout": 2588.46,
+        "outcome": "calculated"
+      },
+      {
+        "doctor": "SYN-0003",
+        "base": 10000,
+        "eligible_fraction": 1,
+        "categories": [
+          { "category": "Consultation", "net": 10000, "rate": 0.2, "rate_source": "default", "gross": 2000, "earned": 2000 }
+        ],
+        "share": 2000,
+        "deductions": [{ "kind": "lab", "charges": 400, "share": 1, "deducted": 400 }],
+        "total_deductions": 400,
+        "before_guarantee": 1600,
+        "payout": 5000,
+        "outcome": "guarantee"
+      },
+      {
+        "doctor": "SYN-0004",
+        "base": 1000,
+        "eligible_fraction": 1,
+        "categories": [{ "category": "Lab", "net": 1000, "rate": 0.1, "rate_source": "default", "gross": 100, "earned": 100 }],
+        "share": 100,
+        "deductions": [{ "kind": "lab", "charges": 2500, "share": 1, "deducted": 2500 }],
+        "total_deductions": 2500,
+        "before_guarantee": -2400,
+        "payout": 0,
+        "outcome": "zero"
+      },
+      {
+        "doctor": "SYN-0005",
+        "base": 15000,
+        "eligible_fraction": 0,
+        "categories": [
+          { "category": "Consultation", "net": 15000, "rate": 0.5, "rate_source": "default", "gross": 7500, "earned": 0 }
+        ],
+        "share": 0,
+        "deductions": [],
+        "total_deductions": 0,
+        "before_guarantee": 0,
+        "payout": 0,
+        "outcome": "calculated"
+      },
+      {
+        "doctor": "SYN-0006",
+        "base": 0,
+        "eligible_fraction": 1,
+        "categories": [],
+        "share": 0,
+        "deductions": [{ "kind": "referral", "charges": 100, "share": 1, "deducted": 100 }],
+        "total_deductions": 100,
+        "before_guarantee": -100,
+        "payout": 1000,
+        "outcome": "guarantee"
+      }
+    ],
+    "no_scheme": [{ "doctor_dha_id": "SYN-0007", "doctor_name": "Dr Synthetic Seven", "revenue": 5000, "charges": 50 }],
+    "unassigned_revenue": 700,
+    "totals": { "doctors": 6, "revenue": 51000, "share": 8438.46, "deducted": 3900.5, "payout": 11437.96 }
+  }
+}

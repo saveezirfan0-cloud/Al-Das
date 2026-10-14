@@ -89,6 +89,8 @@ describe("push payloads carry ids and generic text only", () => {
 describe("notification links in the centre", () => {
   it("links by validated ids", () => {
     expect(notificationHref("mention", { conversation_id: UUID })).toBe(`/inbox?c=${UUID}`);
+    expect(notificationHref("finance.close_due", { count: 2 })).toBe("/finance/close/timetable");
+    expect(notificationHref("finance.followup_due", { count: 3 })).toBe("/finance/followup");
     expect(notificationHref("enquiry.sla_breached", { enquiry_id: UUID })).toBe(
       `/enquiries?enquiry=${UUID}`,
     );

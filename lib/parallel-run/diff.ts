@@ -23,6 +23,19 @@ export const COMPARABLE: ReadonlySet<ScenarioKey> = new Set<ScenarioKey>([
   "chronic_update",
 ]);
 
+/**
+ * Differences that are expected by design, shown above a scenario's day-by-day table so a reviewer knows what to
+ * look for. A day is still only explained when a person marks it so.
+ */
+export const EXPECTED_DIFFERENCES: Partial<Record<ScenarioKey, string>> = {
+  chronic_recall:
+    "Pulse is expected to select patients Make does not: those with a chronic-coded visit that Make never added to their " +
+    'Chronic Diagnosis list, and those the Airtable view leaves out through its "60 days >" (60/90-day prescription) ' +
+    "filter, which Pulse does not apply (OQ-104 (4)). Pulse skips opted-out and test patients, and in Live mode patients " +
+    "without clinical-messaging consent (OQ-104 (6)). Make messages a patient once ever; Pulse once per last-visit date " +
+    "(OQ-104 (5)). Both count days from Unite's last visit date (Pulse uses a later Pulse visit when there is one).",
+};
+
 export function hashRef(orgId: string, id: string): string {
   return createHash("sha256").update(`${orgId}:${id.trim()}`).digest("hex");
 }

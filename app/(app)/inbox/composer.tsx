@@ -28,6 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { CHANNEL_TYPE_LABEL, channelTypeOf, hasWhatsAppFeatures } from "@/lib/channels/types";
 import { mentionQueryAtCaret } from "@/lib/inbox/mentions";
 import { matchShortcuts, pickQuickReplyText, renderQuickReply } from "@/lib/inbox/quick-reply";
 import type { MessageRow } from "@/lib/inbox/queries";
@@ -146,6 +147,9 @@ export function Composer({
   }, [selected.id]);
 
   const chatDisabled = mode === "chat" && !windowOpen;
+  // Phase 20e: website chat, Instagram and Messenger are text only (no templates, files, voice notes, flows or number switch).
+  const channelType = channelTypeOf(channels.find((c) => c.id === selected.channel_id)?.type);
+  const waFeatures = hasWhatsAppFeatures(channelType);
   const slash =
     mode === "chat" && text.startsWith("/") && !text.includes("\n")
       ? text.slice(1).toLowerCase()
@@ -161,8 +165,8 @@ export function Composer({
   function applyQuickReply(q: QuickReply) {
     const { text: filled, unresolved } = fillQuickReply(q);
     setText(filled);
-    // A quick reply can carry a Media Library file: it is attached and goes out with the text as its caption.
-    setAttachment(q.media);
+    // A quick reply can carry a Media Library file: it is attached and goes out with the text as its caption (WhatsApp only).
+    setAttachment(waFeatures ? q.media : null);
     if (unresolved.length)
       toast.warning(`Fill in before sending: ${unresolved.map((v) => `{{${v}}}`).join(", ")}`);
   }
@@ -322,7 +326,9 @@ export function Composer({
     });
   }
 
-  const active = channels.filter((c) => c.status === "active");
+  const active = channels.filter(
+    (c) => c.status === "active" && channelTypeOf(c.type) === "whatsapp",
+  );
 
   return (
     <div
@@ -360,7 +366,12 @@ export function Composer({
             </button>
           ))}
         </div>
-        {mode === "chat" && (
+        {mode === "chat" && !waFeatures && (
+          <span className="text-muted-foreground text-xs">
+            {CHANNEL_TYPE_LABEL[channelType]} · text only
+          </span>
+        )}
+        {mode === "chat" && waFeatures && (
           <Select value={selected.channel_id} onValueChange={switchNumber} disabled={pending}>
             <SelectTrigger size="sm" className="h-7 max-w-52 text-xs" aria-label="Send from number">
               <SelectValue />
@@ -378,7 +389,12 @@ export function Composer({
             </SelectContent>
           </Select>
         )}
-        {mode === "chat" && !windowOpen && (
+        {mode === "chat" && !windowOpen && !waFeatures && (
+          <span className="text-muted-foreground ml-auto text-xs">
+            24h reply window closed: wait for the person to write again
+          </span>
+        )}
+        {mode === "chat" && !windowOpen && waFeatures && (
           <span className="text-muted-foreground ml-auto text-xs">
             24h window closed —{" "}
             <button
@@ -391,7 +407,7 @@ export function Composer({
           </span>
         )}
         {mode === "chat" && selected.contact.stop_marketing && (
-          <span className="ml-auto text-xs text-amber-700">Opted out of marketing</span>
+          <span className="ml-auto text-xs text-amber-700 dark:text-amber-300">Opted out of marketing</span>
         )}
       </div>
 
@@ -435,7 +451,7 @@ export function Composer({
                   <span
                     className={cn(
                       "size-2 rounded-full",
-                      p.presence === "online" ? "bg-emerald-500" : "bg-gray-300",
+                      p.presence === "online" ? "bg-emerald-500" : "bg-gray-300 dark:bg-gray-600",
                     )}
                   />
                   {p.name}
@@ -453,7 +469,7 @@ export function Composer({
             </span>
             <button
               type="button"
-              className="pointer-coarse:size-11 inline-flex size-6 items-center justify-center rounded hover:bg-black/10"
+              className="pointer-coarse:size-11 inline-flex size-6 items-center justify-center rounded hover:bg-black/10 dark:hover:bg-white/10"
               aria-label="Remove the attached file"
               onClick={() => setAttachment(null)}
             >
@@ -483,11 +499,13 @@ export function Composer({
               ? "Internal note — @ to mention a colleague"
               : windowOpen
                 ? "Type a message — / for quick replies, Enter to send"
-                : "Outside the 24h window: send a template"
+                : waFeatures
+                  ? "Outside the 24h window: send a template"
+                  : "Outside the 24h reply window"
           }
           className={cn(
             "w-full resize-none rounded-md border px-3 py-2 text-base outline-none focus-visible:ring-2 md:text-sm",
-            mode === "comment" && "border-amber-300 bg-amber-50/60 dark:bg-amber-950/20",
+            mode === "comment" && "border-amber-300 dark:border-amber-500/30 bg-amber-50/60 dark:bg-amber-950/20",
           )}
           aria-label={mode === "comment" ? "Internal note" : "Message"}
           dir="auto"
@@ -516,86 +534,90 @@ export function Composer({
         </Popover>
         {mode === "chat" && (
           <>
-            <input
-              ref={fileInput}
-              type="file"
-              className="hidden"
-              onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])}
-              accept="image/jpeg,image/png,video/mp4,audio/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt"
-            />
-            {/* Phones: take a photo, or pick from the gallery. image/jpeg and png only: iOS then converts HEIC for us. */}
-            <input
-              ref={cameraInput}
-              type="file"
-              className="hidden"
-              accept="image/*"
-              capture="environment"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                e.target.value = "";
-                if (f) void uploadPhoto(f);
-              }}
-            />
-            <input
-              ref={galleryInput}
-              type="file"
-              className="hidden"
-              accept="image/jpeg,image/png,video/mp4"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                e.target.value = "";
-                if (f) void uploadPhoto(f);
-              }}
-            />
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className="pointer-fine:hidden"
-              aria-label="Take a photo"
-              disabled={chatDisabled || uploading}
-              onClick={() => cameraInput.current?.click()}
-            >
-              <Camera />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className="pointer-fine:hidden"
-              aria-label="Choose a photo or video"
-              disabled={chatDisabled || uploading}
-              onClick={() => galleryInput.current?.click()}
-            >
-              <ImageIcon />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label="Attach file"
-              disabled={chatDisabled || uploading}
-              onClick={() => fileInput.current?.click()}
-            >
-              {uploading ? <Loader2 className="animate-spin" /> : <Paperclip />}
-            </Button>
-            {perms.media && (
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label="Choose a file from the Media Library"
-                disabled={chatDisabled || uploading}
-                onClick={() => setLibraryOpen(true)}
-              >
-                <Images />
-              </Button>
+            {waFeatures && (
+              <>
+                <input
+                  ref={fileInput}
+                  type="file"
+                  className="hidden"
+                  onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])}
+                  accept="image/jpeg,image/png,video/mp4,audio/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt"
+                />
+                {/* Phones: take a photo, or pick from the gallery. image/jpeg and png only: iOS then converts HEIC for us. */}
+                <input
+                  ref={cameraInput}
+                  type="file"
+                  className="hidden"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    e.target.value = "";
+                    if (f) void uploadPhoto(f);
+                  }}
+                />
+                <input
+                  ref={galleryInput}
+                  type="file"
+                  className="hidden"
+                  accept="image/jpeg,image/png,video/mp4"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    e.target.value = "";
+                    if (f) void uploadPhoto(f);
+                  }}
+                />
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="pointer-fine:hidden"
+                  aria-label="Take a photo"
+                  disabled={chatDisabled || uploading}
+                  onClick={() => cameraInput.current?.click()}
+                >
+                  <Camera />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="pointer-fine:hidden"
+                  aria-label="Choose a photo or video"
+                  disabled={chatDisabled || uploading}
+                  onClick={() => galleryInput.current?.click()}
+                >
+                  <ImageIcon />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Attach file"
+                  disabled={chatDisabled || uploading}
+                  onClick={() => fileInput.current?.click()}
+                >
+                  {uploading ? <Loader2 className="animate-spin" /> : <Paperclip />}
+                </Button>
+                {perms.media && (
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label="Choose a file from the Media Library"
+                    disabled={chatDisabled || uploading}
+                    onClick={() => setLibraryOpen(true)}
+                  >
+                    <Images />
+                  </Button>
+                )}
+                <Button
+                  variant={recording ? "destructive" : "ghost"}
+                  size="icon-sm"
+                  aria-label={recording ? "Stop recording" : "Record voice note"}
+                  disabled={chatDisabled || uploading}
+                  onClick={toggleRecording}
+                >
+                  {recording ? <Square /> : <Mic />}
+                </Button>
+              </>
             )}
-            <Button
-              variant={recording ? "destructive" : "ghost"}
-              size="icon-sm"
-              aria-label={recording ? "Stop recording" : "Record voice note"}
-              disabled={chatDisabled || uploading}
-              onClick={toggleRecording}
-            >
-              {recording ? <Square /> : <Mic />}
-            </Button>
             {ai.available && (
               <AiPanel
                 conversationId={selected.id}
@@ -605,16 +627,20 @@ export function Composer({
                 disabled={chatDisabled || pending}
               />
             )}
-            <Button
-              variant="ghost"
-              size="sm"
-              aria-label="Templates"
-              onClick={() => setTemplateOpen(true)}
-              disabled={templates.length === 0}
-            >
-              <LayoutTemplate /> Template
-            </Button>
-            <ShortcutMenu conversationId={selected.id} botActive={selected.bot_active} />
+            {waFeatures && (
+              <Button
+                variant="ghost"
+                size="sm"
+                aria-label="Templates"
+                onClick={() => setTemplateOpen(true)}
+                disabled={templates.length === 0}
+              >
+                <LayoutTemplate /> Template
+              </Button>
+            )}
+            {waFeatures && (
+              <ShortcutMenu conversationId={selected.id} botActive={selected.bot_active} />
+            )}
             {quickReplies.length > 0 && (
               <Button
                 variant="ghost"

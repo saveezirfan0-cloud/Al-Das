@@ -22,6 +22,7 @@ import "@/lib/jobs/handlers/metrics-refresh";
 import "@/lib/jobs/handlers/security-maintenance";
 import "@/lib/jobs/handlers/documents-maintenance";
 import "@/lib/jobs/handlers/finance-workflows";
+import "@/lib/jobs/handlers/accounting-assets";
 import "@/lib/jobs/handlers/notification-digests";
 import "@/lib/jobs/handlers/webhooks-out";
 import "@/lib/jobs/handlers/appointments";
@@ -31,6 +32,8 @@ import "@/lib/jobs/handlers/flow-steps";
 import "@/lib/jobs/handlers/flow-recurring";
 import "@/lib/jobs/handlers/recall-run";
 import "@/lib/jobs/handlers/parallel-run";
+import "@/lib/jobs/handlers/accounting-post";
+import "@/lib/jobs/handlers/accounting-tally-bridge";
 import "@/lib/recall/listeners";
 import "@/lib/flow-engine/listeners";
 
@@ -51,5 +54,6 @@ registerKind("waitlist.*", "appointments");
 registerKind("review.*", "appointments");
 registerKind("telehealth.*", "appointments");
 registerKind("flow.*", "flow_steps");
+registerKind("clinical.*", "clinical");
 
 export {};

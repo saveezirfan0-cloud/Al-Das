@@ -142,7 +142,7 @@ export function DryRunDialog({
                       <CircleDashed className="mt-0.5 size-4 shrink-0" aria-label="Waiting" />
                     ) : (
                       <CheckCircle2
-                        className="mt-0.5 size-4 shrink-0 text-emerald-600"
+                        className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400"
                         aria-label="Done"
                       />
                     )}
@@ -154,7 +154,7 @@ export function DryRunDialog({
                           : ""}
                       </span>
                       {s.stub && (
-                        <span className="ml-2 inline-flex items-center gap-1 rounded bg-amber-100 px-1 text-[11px] text-amber-800">
+                        <span className="ml-2 inline-flex items-center gap-1 rounded bg-amber-100 dark:bg-amber-500/15 px-1 text-[11px] text-amber-800 dark:text-amber-300">
                           <TriangleAlert className="size-3" /> choose this in the builder
                         </span>
                       )}

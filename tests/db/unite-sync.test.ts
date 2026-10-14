@@ -709,4 +709,56 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)("unite syn
     ).rejects.toThrow(/row-level security/);
     void asServiceRole;
   });
+
+  it("Phase 20c: never refuses or alters a Unite appointment that breaks the capacity rules, only flags it", async () => {
+    // The doctor is blocked every day, all day, and has a portal booking at the same time.
+    await c.query("set role service_role");
+    for (const weekday of [1, 2, 3, 4, 5, 6, 7])
+      await c.query(
+        "insert into public.specialist_recurring_blocks (org_id, specialist_id, weekday, start_min, end_min) values ($1, $2, $3, 0, 1440)",
+        [org, id.doc, weekday],
+      );
+    // 10:00 Dubai on the same local day slot(5, …) uses
+    const dubaiDay = new Date(Date.now() + 5 * 86_400_000 + 4 * 3_600_000);
+    const startsAt = new Date(
+      Date.UTC(dubaiDay.getUTCFullYear(), dubaiDay.getUTCMonth(), dubaiDay.getUTCDate(), 6, 0),
+    );
+    await c.query(
+      "insert into public.appointments (org_id, contact_id, specialist_id, location_id, starts_at, ends_at, status, source) values ($1, $2, $3, $4, $5, $6, 'confirmed', 'portal')",
+      [
+        org,
+        id.known,
+        id.doc,
+        id.loc,
+        startsAt.toISOString(),
+        new Date(startsAt.getTime() + 30 * 60_000).toISOString(),
+      ],
+    );
+    await c.query("reset role");
+
+    const row = raw({
+      appointmentid: "A-CAP",
+      patientpin: "PIN-CAP",
+      patientfullname: "Cap Example",
+      patientmobilephone: "971-500000099",
+      appointmentstarttime: slot(5, "10:00"),
+      appointmentendtime: slot(5, "10:30"),
+    });
+    expect(await sync([row])).toMatchObject({ created: 1 });
+    // moved in Unite: the update is applied as well
+    const moved = await sync([{ ...row, appointmentendtime: slot(5, "10:45") }]);
+    expect(moved).toMatchObject({ updated: 1 });
+    const [appt] = await q(
+      "select id, starts_at, ends_at from public.appointments where org_id = $1 and source = 'unite' and external_id = 'A-CAP'",
+      [org],
+    );
+    expect(new Date(appt.ends_at).getTime() - new Date(appt.starts_at).getTime()).toBe(45 * 60_000);
+
+    const { data, error } = await admin.rpc("appointment_capacity_conflicts", {
+      p_org_id: org,
+      p_ids: [appt.id],
+    });
+    expect(error).toBeNull();
+    expect(data).toEqual([{ appointment_id: appt.id, reason: "blocked" }]);
+  });
 });

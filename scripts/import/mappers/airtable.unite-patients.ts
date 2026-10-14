@@ -5,8 +5,11 @@
  *
  * Formulas, lookups, rollups and counts are skipped (recomputed in SQL later).
  * Visit-derived fields (first/last visit, doctor, clinic, department) are
- * stored as provisional custom fields until Phase 6 imports visits.
+ * stored as provisional custom fields until Phase 6 imports visits. The last
+ * visit date is also returned typed (contacts.unite_last_visit_date): chronic
+ * recall counts days from it when it is later than the latest Pulse visit.
  */
+import { isCalendarDate } from "@/lib/clinical/chronic";
 import { parseLooseDate } from "@/lib/contacts/custom-values";
 import { normalizeGender } from "@/lib/contacts/fields";
 import { normalizePhone } from "@/lib/phone";
@@ -127,6 +130,8 @@ export const unitePatientsMapper: PatientMapper = {
     if (firstVisit) custom.first_visit_date = firstVisit;
     const lastVisit = dateOrNull(f[F.lastVisit]);
     if (lastVisit) custom.last_visit_date = lastVisit;
+    const uniteLastVisitDate = isCalendarDate(lastVisit) ? lastVisit : null;
+    if (str(f[F.lastVisit]) && !uniteLastVisitDate) warnings.push("invalid last visit date");
     contact.custom = custom;
 
     const refs: Record<string, string> = {};
@@ -153,6 +158,14 @@ export const unitePatientsMapper: PatientMapper = {
       nmdr_25: f[F.nmdr25] === true,
     };
 
-    return { recordId: record.id, contact, refs, meta, warnings, isTestRecord: false };
+    return {
+      recordId: record.id,
+      contact,
+      refs,
+      meta,
+      warnings,
+      isTestRecord: false,
+      uniteLastVisitDate,
+    };
   },
 };

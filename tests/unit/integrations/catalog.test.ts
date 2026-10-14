@@ -36,15 +36,30 @@ describe("catalogue", () => {
     expect(isIntegrationKind("unite")).toBe(false);
   });
 
-  it("requires typed confirmation for everything that messages patients, takes money or shares patient data, and nothing else", () => {
+  it("requires typed confirmation for everything that messages patients, takes money, shares patient data, accepts files or signs in the organisation's name, and nothing else", () => {
     for (const i of INTEGRATIONS) {
-      const expected = i.contactsPatients || i.movesMoney || i.sharesData;
+      const expected =
+        i.contactsPatients ||
+        i.movesMoney ||
+        i.sharesData ||
+        i.acceptsFiles === true ||
+        i.signsDocuments === true ||
+        i.writesBooks === true;
       expect(needsConfirmation(i.kind), i.kind).toBe(expected);
       expect(i.confirmWord !== null, i.kind).toBe(expected);
     }
     expect(integrationDef("sms").confirmWord).toBe("ENABLE SMS");
     expect(integrationDef("payments").confirmWord).toBe("ENABLE PAYMENTS");
     expect(integrationDef("calendar_ics").confirmWord).toBeNull();
+    expect(integrationDef("finance_mailbox").confirmWord).toBe("ACCEPT MAILBOX ATTACHMENTS");
+    // Phase 22C: the organisation seal signs documents in the organisation's name; signing is local (no provider call)
+    expect(integrationDef("document_seal").confirmWord).toBe("SEAL DOCUMENTS");
+    expect(integrationDef("document_seal").outbound).toBe(false);
+    expect(integrationDef("document_seal").viewPermission).toBe("integrations.manage");
+    // Phase 22J: the Tally bridge writes into the clinic's books outside Pulse; the data stays between Tally and Pulse
+    expect(integrationDef("tally_bridge").confirmWord).toBe("CONNECT TALLY");
+    expect(integrationDef("tally_bridge").sharesData).toBe(false);
+    expect(integrationDef("tally_bridge").outbound).toBe(false);
   });
 
   it("marks every credential as secret and keeps identifiers out of the encrypted blob", () => {
@@ -52,15 +67,28 @@ describe("catalogue", () => {
       i.providers.flatMap((p) => p.fields.filter((f) => f.secret).map((f) => f.key)),
     ).sort();
     expect(secretKeys).toEqual(
-      // api_key: Daily (video rooms) and Dropbox Sign (e-signature)
+      // api_key: Daily (video rooms) and Dropbox Sign (e-signature); Phase 20e: Instagram and Messenger (page token, app secret,
+      // verify token each) and the Google OAuth client secret
       [
         "access_token",
         "api_key",
         "api_key",
         "auth_token",
+        // the organisation seal's .p12 file (base64) and its password
+        "certificate",
+        "passphrase",
         "secret_key",
         "server_key",
+        // Stripe's signing secret and the finance mailbox's webhook password
         "webhook_secret",
+        "webhook_secret",
+        "page_access_token",
+        "page_access_token",
+        "app_secret",
+        "app_secret",
+        "verify_token",
+        "verify_token",
+        "client_secret",
       ].sort(),
     );
     for (const i of INTEGRATIONS)
@@ -84,7 +112,7 @@ describe("permissions and presets", () => {
     expect(can(member(["settings.manage"]), "integrations.manage")).toBe(false);
   });
 
-  it("doctors' calendars go to the Manager; payment links only to Finance and Billing", () => {
+  it("doctors' calendars go to the Manager; payment links only to Finance (and the Finance Manager, a superset) and Billing", () => {
     const has = (name: string, key: string) =>
       SYSTEM_ROLES.find((r) => r.name === name)!.permissions.includes(key);
     expect(has("Manager", "integrations.calendar")).toBe(true);
@@ -93,7 +121,7 @@ describe("permissions and presets", () => {
       FINANCE_ROLES.filter((r) => r.permissions.includes("finance.payment_links"))
         .map((r) => r.name)
         .sort(),
-    ).toEqual(["Billing", "Finance"]);
+    ).toEqual(["Billing", "Finance", "Finance Manager"]);
   });
 
   it("finance.payment_links is its own key: no neighbour implies it", () => {
@@ -337,6 +365,7 @@ describe("source guards", () => {
     ...walk(join(ROOT, "app/(app)/settings/integrations")),
     ...walk(join(ROOT, "app/(app)/finance/payment-links")),
     ...walk(join(ROOT, "app/api/calendar")),
+    ...walk(join(ROOT, "app/api/tally-bridge")),
     ...walk(join(ROOT, "app/api/webhooks/integrations")),
   ].map((f) => ({ rel: relative(ROOT, f), src: readFileSync(f, "utf8") }));
 

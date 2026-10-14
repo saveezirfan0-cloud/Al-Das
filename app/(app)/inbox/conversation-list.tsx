@@ -311,7 +311,7 @@ export function ConversationList({
                             className="bg-background absolute -right-1 -bottom-1 rounded-full p-px"
                             title={c.channels?.name ?? "WhatsApp"}
                           >
-                            <span className="flex size-4 items-center justify-center rounded-full bg-emerald-500 text-[9px] font-bold text-white">
+                            <span className="flex size-4 items-center justify-center rounded-full bg-emerald-700 text-[9px] font-bold text-white">
                               W
                             </span>
                           </span>
@@ -356,7 +356,7 @@ export function ConversationList({
                           </div>
                           <div className="mt-1 flex flex-wrap items-center gap-1">
                             {(c.ai_tags ?? []).includes("emergency") && (
-                              <span className="rounded bg-red-100 px-1 text-[10px] font-semibold text-red-800">
+                              <span className="rounded bg-red-100 dark:bg-red-500/15 px-1 text-[10px] font-semibold text-red-800 dark:text-red-300">
                                 Possible emergency
                               </span>
                             )}
@@ -368,7 +368,7 @@ export function ConversationList({
                                 </span>
                               ))}
                             {c.status === "waiting" && (
-                              <span className="rounded bg-amber-100 px-1 text-[10px] text-amber-800">
+                              <span className="rounded bg-amber-100 dark:bg-amber-500/15 px-1 text-[10px] text-amber-800 dark:text-amber-300">
                                 waiting
                               </span>
                             )}

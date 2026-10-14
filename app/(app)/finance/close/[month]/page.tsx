@@ -27,9 +27,12 @@ import {
   MONTH_RE,
 } from "@/lib/finance/close-server";
 import { money } from "@/lib/finance/format";
+import { closeSignatures, signingView } from "@/lib/finance/signed-pdfs-server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { SigningStatus } from "@/components/finance/signing-status";
 
 import { BuildButton, SignForm, WithdrawButton } from "../close-controls";
+import { ControlsSummary } from "./controls-summary";
 
 export const metadata = { title: "Month-end close" };
 export const dynamic = "force-dynamic";
@@ -55,6 +58,21 @@ export default async function CloseMonthPage({ params }: { params: Promise<{ mon
     pack && close && close.status !== "built" ? await liveDriftFor(admin, member.orgId, pack) : [];
   const isLocked = close?.status === "locked";
   const canManage = can(member, "finance.close.manage");
+  // Phase 22C: personal signatures of the sign-offs and the seal of the locked pack, verified now.
+  const signing =
+    close && pack
+      ? await signingView(admin, {
+          orgId: member.orgId,
+          userId: member.userId,
+          mayHaveCertificate:
+            can(member, "finance.close.signoff.finance") ||
+            can(member, "finance.close.signoff.ceo"),
+          signatures: await closeSignatures(admin, member.orgId, close),
+          kind: "close_pack",
+          docId: close.id,
+          bound: isLocked ? close.hash : null,
+        })
+      : null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -98,8 +116,9 @@ export default async function CloseMonthPage({ params }: { params: Promise<{ mon
               canManage ? (
                 <>
                   <p>
-                    Build the pack from the invoices, claims, payments and cash-ups Pulse holds now.
-                    You can rebuild it until Finance signs.
+                    Build the pack from the invoices, claims, payments, cash-ups and the control
+                    summary (bank, payables, revenue share, invoice changes, timetable) Pulse holds
+                    now. You can rebuild it until Finance signs.
                   </p>
                   <div>
                     <BuildButton month={month} rebuild={false} />
@@ -178,6 +197,12 @@ export default async function CloseMonthPage({ params }: { params: Promise<{ mon
               {close.sign.ceoNote && (
                 <p className="text-muted-foreground text-xs">CEO note: {close.sign.ceoNote}</p>
               )}
+              {signing && (
+                <SigningStatus
+                  view={signing}
+                  finalLabel="when the CEO signs and the month is locked"
+                />
+              )}
               {close.status === "built" && canManage && (
                 <div>
                   <BuildButton month={month} rebuild />
@@ -186,7 +211,13 @@ export default async function CloseMonthPage({ params }: { params: Promise<{ mon
               {close.status === "built" &&
                 can(member, "finance.close.signoff.finance") &&
                 close.hash && (
-                  <SignForm who="finance" id={close.id} month={month} hash={close.hash} />
+                  <SignForm
+                    who="finance"
+                    id={close.id}
+                    month={month}
+                    hash={close.hash}
+                    certificate={signing?.myCertificate ?? null}
+                  />
                 )}
               {close.status === "built" && !can(member, "finance.close.signoff.finance") && (
                 <p className="text-muted-foreground">
@@ -201,7 +232,13 @@ export default async function CloseMonthPage({ params }: { params: Promise<{ mon
                     You signed for Finance, so a different person must sign as CEO.
                   </p>
                 ) : (
-                  <SignForm who="ceo" id={close.id} month={month} hash={close.hash} />
+                  <SignForm
+                    who="ceo"
+                    id={close.id}
+                    month={month}
+                    hash={close.hash}
+                    certificate={signing?.myCertificate ?? null}
+                  />
                 ))}
               {close.status === "finance_signed" && !can(member, "finance.close.signoff.ceo") && (
                 <p className="text-muted-foreground">Waiting for the CEO.</p>
@@ -233,6 +270,8 @@ export default async function CloseMonthPage({ params }: { params: Promise<{ mon
               </AlertDescription>
             </Alert>
           )}
+
+          <ControlsSummary pack={pack} />
 
           <div className="grid gap-4 lg:grid-cols-2">
             <Card>

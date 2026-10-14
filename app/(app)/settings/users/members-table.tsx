@@ -29,8 +29,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { initials, PresenceDot } from "@/components/shell/user-menu";
+import { ENQUIRY_VIEW_SCOPE_LABELS, type EnquiryViewScope } from "@/lib/enquiries/scope";
 
 import { changeMemberRole, removeMember, setMemberStatus } from "./actions";
+import { MemberRoutingDialog } from "./member-routing-dialog";
 import { OffboardDialog } from "./offboard-dialog";
 
 export type MemberRow = {
@@ -45,6 +47,8 @@ export type MemberRow = {
   presence: "online" | "away" | "offline";
   teams: string[];
   isSelf: boolean;
+  maxOpen: number | null;
+  enquiryScope: EnquiryViewScope;
 };
 
 export function MembersTable({
@@ -56,6 +60,7 @@ export function MembersTable({
 }) {
   const [pending, startTransition] = useTransition();
   const [offboarding, setOffboarding] = useState<MemberRow | null>(null);
+  const [routing, setRouting] = useState<MemberRow | null>(null);
 
   function run(fn: () => Promise<{ ok: boolean; message?: string; error?: string }>) {
     startTransition(async () => {
@@ -105,6 +110,16 @@ export function MembersTable({
             <TableCell>{r.roleName}</TableCell>
             <TableCell className="text-muted-foreground">
               {r.teams.length ? r.teams.join(", ") : "—"}
+              {(r.maxOpen !== null || r.enquiryScope !== "all") && (
+                <div className="text-xs">
+                  {[
+                    r.maxOpen !== null ? `Max ${r.maxOpen} open` : null,
+                    r.enquiryScope !== "all" ? ENQUIRY_VIEW_SCOPE_LABELS[r.enquiryScope] : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </div>
+              )}
             </TableCell>
             <TableCell>
               {r.status === "active" ? (
@@ -144,6 +159,9 @@ export function MembersTable({
                       </DropdownMenuRadioGroup>
                     </DropdownMenuSubContent>
                   </DropdownMenuSub>
+                  <DropdownMenuItem onSelect={() => setRouting(r)}>
+                    Routing and enquiry view…
+                  </DropdownMenuItem>
                   {!r.isSelf && (
                     <>
                       <DropdownMenuSeparator />
@@ -182,6 +200,17 @@ export function MembersTable({
           </TableRow>
         ))}
       </TableBody>
+      {routing && (
+        <MemberRoutingDialog
+          key={routing.id}
+          membershipId={routing.id}
+          displayName={routing.name || routing.email}
+          maxOpen={routing.maxOpen}
+          enquiryScope={routing.enquiryScope}
+          open
+          onOpenChange={(o) => !o && setRouting(null)}
+        />
+      )}
       {offboarding && (
         <OffboardDialog
           membershipId={offboarding.id}

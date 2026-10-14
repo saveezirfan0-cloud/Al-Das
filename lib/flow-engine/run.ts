@@ -8,9 +8,11 @@
  * executor's outcome once it finished, so a redelivered job replays the outcome instead of
  * sending the message twice. Waits use `scheduled_jobs` through deps.jobs, never in-memory timers.
  */
+import { checkAnswer, matchOption, MAX_ANSWER_CHARS } from "@/lib/flow-engine/answers";
 import type { FlowDeps, RunRecord } from "@/lib/flow-engine/deps";
 import { EXECUTORS } from "@/lib/flow-engine/executors";
 import type { ExecCtx } from "@/lib/flow-engine/executors/common";
+import { questionSchema } from "@/lib/flow-engine/executors/messaging";
 import { findNode, nextEdge, triggerNode } from "@/lib/flow-engine/graph";
 import {
   MAX_STEPS,
@@ -48,12 +50,17 @@ export type StartInput = {
   conversationId: string | null;
   enquiryId?: string | null;
   trigger?: Record<string, unknown>;
+  /** Initial run variables (e.g. a WhatsApp Flow form's answers as `form`). */
+  vars?: Record<string, unknown>;
   startedBy?: string | null;
 };
 
 export type StartResult =
   | { started: true; runId: string }
-  | { started: false; reason: "flow_inactive" | "no_graph" | "live_run_exists" };
+  | {
+      started: false;
+      reason: "flow_inactive" | "no_graph" | "live_run_exists" | "channel_not_supported";
+    };
 
 export async function startRun(deps: FlowDeps, input: StartInput): Promise<StartResult> {
   const flow = await deps.store.getFlow(input.flowId);
@@ -61,6 +68,11 @@ export async function startRun(deps: FlowDeps, input: StartInput): Promise<Start
     return { started: false, reason: "flow_inactive" };
   const trig = triggerNode(flow.published_graph);
   if (!trig) return { started: false, reason: "no_graph" };
+  // Flow steps send WhatsApp messages: never start on a website chat, Instagram or Messenger conversation.
+  if (input.conversationId) {
+    const type = (await deps.store.getConversation(input.conversationId))?.channel_type;
+    if (type && type !== "whatsapp") return { started: false, reason: "channel_not_supported" };
+  }
 
   const run = await deps.store.createRun({
     org_id: flow.org_id,
@@ -70,7 +82,7 @@ export async function startRun(deps: FlowDeps, input: StartInput): Promise<Start
     conversation_id: input.conversationId,
     enquiry_id: input.enquiryId ?? null,
     current_node_id: trig.id,
-    context: emptyContext(input.trigger ?? {}),
+    context: { ...emptyContext(input.trigger ?? {}), vars: { ...(input.vars ?? {}) } },
     started_by: input.startedBy ?? null,
   });
   if (!run) return { started: false, reason: "live_run_exists" };
@@ -422,7 +434,13 @@ export async function resumeFromTimer(
     if (!graph) return { resumed: false, reason: "no_graph" } as ResumeResult;
     const handle = w.kind === "timer" ? "default" : "fallback";
     await deps.store.finishWaitingStep(fresh.id, w.node_id, { resumed_by: "timer" });
-    await continueFrom(deps, fresh, graph, w.node_id, handle);
+    await continueFrom(
+      deps,
+      { ...fresh, context: withoutAsk(fresh.context, w.node_id) },
+      graph,
+      w.node_id,
+      handle,
+    );
     return { resumed: true } as ResumeResult;
   });
   return r === "locked" ? { resumed: false, reason: "locked" } : r;
@@ -434,48 +452,115 @@ export type InboundReply = {
   optionId?: string | null;
 };
 
-/** Called for each inbound message of a conversation whose bot run waits on a reply. */
+/** `invalid` marks a reply the question could not accept: reason "reask" (asked again), "fallback" or "no_valid_answer" (run ended). */
+export type ReplyResult = ResumeResult & { invalid?: boolean };
+
+function withoutAsk(context: RunContext, nodeId: string): RunContext {
+  if (!context.asks || !(nodeId in context.asks)) return context;
+  const asks = { ...context.asks };
+  delete asks[nodeId];
+  return { ...context, asks };
+}
+
+/**
+ * Called for each inbound message of a conversation whose bot run waits on a reply.
+ *
+ * Choice questions match an option (tapped id, title, or its number); free-text questions check the answer type
+ * (lib/flow-engine/answers.ts). An answer that does not fit is asked again up to the node's `reask_max` (each re-ask is one
+ * more step on the same node, so it counts against the 200-step cap and is replay-safe like any send), then follows the
+ * fallback output. With re-asks used up and no fallback output the run ends with a clear error and the conversation goes
+ * back to people. With neither re-asks nor a fallback output it keeps waiting (the pre-20b behaviour).
+ */
 export async function resumeFromReply(
   deps: FlowDeps,
   runId: string,
   reply: InboundReply,
-): Promise<ResumeResult> {
+): Promise<ReplyResult> {
   const run = await deps.store.getRun(runId);
   if (!run || run.status !== "waiting" || run.waiting_for?.kind !== "reply")
     return { resumed: false, reason: "not_waiting" };
-  const r = await withLock(deps, run, async () => {
+  const r = await withLock(deps, run, async (): Promise<ReplyResult> => {
     const fresh = await deps.store.getRun(runId);
     if (!fresh || fresh.status !== "waiting" || fresh.waiting_for?.kind !== "reply")
-      return { resumed: false, reason: "not_waiting" } as ResumeResult;
+      return { resumed: false, reason: "not_waiting" };
     const w = fresh.waiting_for as Extract<WaitingFor, { kind: "reply" }>;
     const graph = await loadGraph(deps, fresh);
-    if (!graph) return { resumed: false, reason: "no_graph" } as ResumeResult;
+    if (!graph) return { resumed: false, reason: "no_graph" };
+    const node = findNode(graph, w.node_id);
+    const parsed = node?.type === "question" ? questionSchema.safeParse(node.data) : null;
+    const cfg = parsed?.success ? parsed.data : null;
 
-    let handle = "default";
-    let option: { id: string; title: string } | undefined;
+    let accepted: { value: string; optionId: string | null; handle: string } | null = null;
     if (w.options.length > 0) {
-      option =
-        (reply.optionId ? w.options.find((o) => o.id === reply.optionId) : undefined) ??
-        w.options.find((o) => o.title.trim().toLowerCase() === reply.text.trim().toLowerCase());
-      if (option) handle = `option:${option.id}`;
-      else {
-        handle = "fallback";
-        // No fallback path → keep waiting instead of killing the run on a stray message.
-        if (!nextEdge(graph, w.node_id, "fallback"))
-          return { resumed: false, reason: "unmatched_reply" } as ResumeResult;
-      }
+      const option = matchOption(w.options, reply);
+      if (option)
+        accepted = { value: option.title, optionId: option.id, handle: `option:${option.id}` };
+    } else {
+      const check = checkAnswer(
+        { type: cfg?.answer_type ?? "text", min: cfg?.min, max: cfg?.max, pattern: cfg?.pattern },
+        reply.text,
+      );
+      if (check.ok) accepted = { value: check.value, optionId: null, handle: "default" };
     }
-    const answer = option ? option.title : reply.text;
-    const vars = w.variable && handle !== "fallback" ? { [w.variable]: answer } : undefined;
+
+    if (!accepted) {
+      // A question with no re-ask and no fallback output keeps waiting, exactly as before Phase 20b (published flows
+      // are unchanged); the timeout, if any, still applies.
+      if (!(cfg?.reask_max ?? 0) && !nextEdge(graph, w.node_id, "fallback"))
+        return { resumed: false, reason: "unmatched_reply" };
+      const asked = fresh.context.asks?.[w.node_id] ?? 0;
+      await deps.store.finishWaitingStep(fresh.id, w.node_id, {
+        answer_kind: reply.kind,
+        invalid_answer: true,
+      });
+      if (asked < (cfg?.reask_max ?? 0)) {
+        await deps.store.updateRun(fresh.id, {
+          status: "running",
+          waiting_for: null,
+          current_node_id: w.node_id,
+          context: {
+            ...fresh.context,
+            asks: { ...(fresh.context.asks ?? {}), [w.node_id]: asked + 1 },
+          },
+        });
+        await deps.jobs.enqueueStep(fresh.id);
+        return { resumed: true, reason: "reask", invalid: true };
+      }
+      const context = withoutAsk(fresh.context, w.node_id);
+      if (!nextEdge(graph, w.node_id, "fallback")) {
+        await deps.store.updateRun(fresh.id, { context });
+        await finishRun(
+          deps,
+          { ...fresh, context, status: "running" },
+          "failed",
+          "The patient's answer did not fit and the question has no 'No / other answer' output",
+        );
+        return { resumed: true, reason: "no_valid_answer", invalid: true };
+      }
+      await continueFrom(deps, { ...fresh, context }, graph, w.node_id, "fallback", {
+        response: { text: reply.text.slice(0, MAX_ANSWER_CHARS), option_id: null, invalid: true },
+      });
+      return { resumed: true, reason: "fallback", invalid: true };
+    }
+
+    // Save to the contact first: if that fails the job retries and nothing has moved yet.
+    if (cfg?.save_to && fresh.contact_id) {
+      await deps.actions.updateContactField(fresh, cfg.save_to, accepted.value);
+    }
+    const vars = w.variable ? { [w.variable]: accepted.value } : undefined;
     await deps.store.finishWaitingStep(fresh.id, w.node_id, {
       answer_kind: reply.kind,
-      option_id: option?.id ?? null,
+      option_id: accepted.optionId,
     });
-    await continueFrom(deps, fresh, graph, w.node_id, handle, {
-      vars,
-      response: { text: answer, option_id: option?.id ?? null },
-    });
-    return { resumed: true } as ResumeResult;
+    await continueFrom(
+      deps,
+      { ...fresh, context: withoutAsk(fresh.context, w.node_id) },
+      graph,
+      w.node_id,
+      accepted.handle,
+      { vars, response: { text: accepted.value, option_id: accepted.optionId } },
+    );
+    return { resumed: true };
   });
   return r === "locked" ? { resumed: false, reason: "locked" } : r;
 }

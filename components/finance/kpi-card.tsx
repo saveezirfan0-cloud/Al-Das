@@ -37,7 +37,7 @@ export function KpiCard({
             good === null
               ? "text-muted-foreground"
               : good
-                ? "text-emerald-600"
+                ? "text-emerald-600 dark:text-emerald-400"
                 : "text-destructive",
           )}
         >

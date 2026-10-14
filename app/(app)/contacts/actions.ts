@@ -886,6 +886,8 @@ const segmentSchema = z.object({
   name: z.string().trim().min(1).max(80),
   kind: z.enum(["static", "dynamic"]),
   filter: filterSchema.nullable().optional(),
+  /** Phase 20b: the flow started for each contact added to a static segment. Absent = leave as it is. Needs flows.manage. */
+  drip_flow_id: uuid.nullable().optional(),
 });
 export type SegmentInput = z.input<typeof segmentSchema>;
 
@@ -945,11 +947,43 @@ export async function saveSegment(
   } catch (e) {
     return fail(describeError(e, "The filter is not valid."));
   }
-  const row = {
+  const row: {
+    name: string;
+    kind: "static" | "dynamic";
+    filter: Json;
+    drip_flow_id?: string | null;
+  } = {
     name: parsed.data.name,
     kind: parsed.data.kind,
     filter: (parsed.data.kind === "dynamic" ? parsed.data.filter : null) as unknown as Json,
   };
+  // Drip flows are for static segments; dynamic ones use the Recurring trigger (docs/23_PHASE_20B_NOTES.md).
+  const wantDrip = parsed.data.kind === "static" ? parsed.data.drip_flow_id : null;
+  if (wantDrip !== undefined) {
+    const { data: current } = id
+      ? await admin
+          .from("segments")
+          .select("drip_flow_id")
+          .eq("id", id)
+          .eq("org_id", member.orgId)
+          .maybeSingle()
+      : { data: null };
+    if ((current?.drip_flow_id ?? null) !== wantDrip) {
+      if (!can(member, "flows.manage"))
+        return fail("Choosing a drip flow needs the right to manage flows.");
+      if (wantDrip) {
+        const { data: flow } = await admin
+          .from("flows")
+          .select("id, trigger_type")
+          .eq("id", wantDrip)
+          .eq("org_id", member.orgId)
+          .maybeSingle();
+        if (!flow || flow.trigger_type !== "segment_joined")
+          return fail("Choose a flow that starts with “Contact added to a segment (drip)”.");
+      }
+      row.drip_flow_id = wantDrip;
+    }
+  }
   let segmentId = id;
   if (id) {
     const { error } = await admin
@@ -982,7 +1016,11 @@ export async function saveSegment(
     action: id ? "segment.updated" : "segment.created",
     entity: "segment",
     entityId: segmentId,
-    diff: { name: row.name, kind: row.kind },
+    diff: {
+      name: row.name,
+      kind: row.kind,
+      ...(row.drip_flow_id !== undefined ? { drip_flow_id: row.drip_flow_id } : {}),
+    },
   });
   revalidatePath("/contacts");
   return {

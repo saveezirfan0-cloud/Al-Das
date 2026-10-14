@@ -38,7 +38,7 @@ Matching rule on import: Unite PIN → E.164 phone → name + DOB; ambiguous →
 | Birth Month | fldqI3DlerhG3rsOG | formula | `computed:sql` | `extract(month from dob)`. |
 | Address | fldluzXiKHaK4RfaW | multiline | `contacts.custom.address` | Free text. |
 | First Visit Date | fldZHFmhmfL6INxWR | date | `computed:view` | `min(visits.visit_date)` per contact. Imported value kept in `contacts.custom.unite_first_visit_date` for reconciliation only. |
-| Last Visit Date | fldwTnnvCipJeVvco | date | `computed:view` (`v_contact_visit_stats.last_visit_date`) | `max(visits.visit_date)`. Drives chronic recall eligibility. Imported value kept as `contacts.custom.unite_last_visit_date` for reconciliation. |
+| Last Visit Date | fldwTnnvCipJeVvco | date | `contacts.unite_last_visit_date` + `computed:view` (`v_contact_visit_stats.last_visit_date`) | Unite's patient-level date (any visit, any department). Imported into the typed column `contacts.unite_last_visit_date` (and the custom field `last_visit_date`, "Last visit (Unite)"); invalid dates are dropped. `v_contact_visit_stats.last_visit_date` = the later of it and `max(visits.visit_date)`, and includes patients with no Pulse visit (Airtable's "Time Elapsed" counts from this field; 150 of the 445 patients eligible on 13 Oct 2026 had no visit row). Drives chronic recall eligibility (21B). |
 | Dr. Name | fld0rZhF2bjTxyiNS | text | `computed:view` | Doctor of the latest visit (`visits.doctor_name`). Raw value → `contacts.custom.unite_doctor_name`. |
 | Dr. Name copy | fldgBy5vqiCQacYs5 | select | `drop` | Duplicate; the choice list is a useful seed for `specialists` (staff names, see §7). |
 | Clinic | fldsA7v4aGIVzv0S8 | select (3 branches) | `contacts.custom.home_location_id` → `locations.id` | Map the 3 branch names to `locations` rows (external_id = DHA licence). |
@@ -65,7 +65,7 @@ Matching rule on import: Unite PIN → E.164 phone → name + DOB; ambiguous →
 | Medical Records Data | flda3KM4KzJ9ANR7E | link → MRD | `visits.contact_id` (inverse FK) | Resolved in importer pass 2. |
 | Diagnosis (from Medical Records Data) | fldGq2Fqkkhy6Poly | lookup | `computed:view` | Via `visit_diagnoses`. |
 | Count (Medical Records Data) | fldwXLQuKnBOQQelP | count | `computed:view` | `count(visits)`. |
-| Chronic Diagnosis | fld9gw5nJNzgywljY | link → Diagnosis | `contact_chronic_conditions(contact_id, ref_diagnosis_id)` ⊕ | Patient-level chronic diagnosis list (set by the Unite sync, not by visits). Drives recall eligibility. |
+| Chronic Diagnosis | fld9gw5nJNzgywljY | link → Diagnosis | `contact_chronic_conditions(contact_id, ref_diagnosis_id)` ⊕ | Despite the name, NOT a chronic list and not filled by Unite: the Make scenario "Update Chronic" (4210055) added every diagnosis of every new visit (no Chronic filter; 1,365 non-chronic codes vs 37 chronic on 13 Oct 2026), older syncs added the rest, nothing removes links. Only the Chronic-flagged links are imported (`unite.patient_chronic_diagnoses`, skips counted as `not_chronic`); recall reads chronic-flagged diagnoses only (21B). |
 | Top 30 (from Chronic Diagnosis) | flddyNe5c5reWAMyL | lookup | `computed:view` | `ref_diagnoses.top30`. |
 | Mapped condition group (from Chronic Diagnosis) | fldCLyNOOBpbLAkGp | lookup | `computed:view` | `ref_diagnoses.condition_group_id → ref_condition_groups`. |
 | Typical visit CPT (established) (from Chronic Diagnosis) | fld5RICCcp4rBLBzL | lookup | `computed:view` | From `ref_diagnoses`. |
@@ -77,7 +77,7 @@ Matching rule on import: Unite PIN → E.164 phone → name + DOB; ambiguous →
 | Last Modified By | fldHHGs0WC77TBEwm | lastModifiedTime | `drop` | System. |
 | Visit Date (from Medical Records Data) | fldZSg1gJ0DQeeSfJ | lookup | `computed:view` | Via `visits`. |
 | Dosage Days (from Medical Records Data) | fldWmLauQFB1OzOaI | lookup | `computed:view` | Via `prescriptions`. |
-| 60 days > | fldXbiS53VgVfJaq3 | select True/False | `drop` | Manually maintained flag superseded by `days_since_last_visit`. |
+| 60 days > | fldXbiS53VgVfJaq3 | select True/False | `drop` (kept in `external_refs.meta.sixty_days`) | Not manual and not about days since the visit: set to True by Airtable automation `wflJ8HcmP16BqEv7z` when a new patient's visit medication has 60 or 90 dosage days (a long-prescription flag). All 56 chronic recall sends went to patients with True, so the view "Chronic" appears to filter on it. Whether Pulse adopts it is OQ-104 (4). |
 | Medication (from Medical Records Data) | fldsKUWwiNd017yAq | lookup | `computed:view` | Via `prescriptions`. |
 | Name (from Medication) (from Medical Records Data) | fld1zUkP31AzkAdy1 | lookup | `computed:view` | Via `prescriptions → ref_medications`. |
 | Medication | fldZgI4a9JcG7Bi1L | link → Medication | `contact_regular_medications(contact_id, ref_medication_id)` ⊕ | Patient-level medication list (chronic/regular meds). |
@@ -97,7 +97,7 @@ Matching rule on import: Unite PIN → E.164 phone → name + DOB; ambiguous →
 | Chronic Recall Eligible | fldfaqFDZuQQlVsEH | formula | `computed:view` (`v_chronic_recall_eligibility.eligible`) | Description says 90+ days; **live formula is `Time Elapsed >= 30`**, phone non-blank, primary condition non-blank, Sent On blank. Threshold comes from `clinical_settings.chronic_recall_min_days` (OQ-01). |
 | Chronic Recall Template ID | fld2bvMSsTi0mpDo3 | formula | `recall_programme_templates` rows | SWITCH per condition group → Sanoflow template id (13159 Hypertension, 13164 Diabetes, 13163 Hyperlipidemia, 13169 Hypothyroidism, 13168 CKD, 13162 Asthma, 13165 COPD, 13161 RA, 13167 AF, 13166 Epilepsy, default 13170). Stored as `legacy_sanoflow_template_id`; the new `wa_template_id` is filled when templates are recreated in Phase 4. |
 | Primary Diagnosis (from Medical Records Data) | fldQtGSC8RwtOy1pV | lookup | `computed:view` | Via `visits.primary_diagnosis_code`. |
-| Chronic Status | fld0NR4XBFjQG6D4j | select Yes | `drop` | Derivable: exists chronic condition. |
+| Chronic Status | fld0NR4XBFjQG6D4j | select Yes | `drop` (kept in `external_refs.meta.chronic_status`) | Means "touched by Make Update Chronic" (any new visit diagnosis), not "has a chronic condition": 1,273 patients are Yes. Never use it as a chronic indicator. |
 
 ### 1.2 `Medical Records Data` (visits) — `tblllKPKIY9qvMoEU` → `visits`, `visit_diagnoses`, `visit_items`, `prescriptions`
 
@@ -650,6 +650,7 @@ The mapping above is the target design; `scripts/import/tables/clinical.ts` impl
 - **PTF and CFU tables are not imported** (PTF Prescriptions / Feedback / WhatsApp log / Patient Visits, CFU Follow-Up Queue): prototype bases, confirmed mostly test data. The field maps in §4.1 and §5 stay as the reference if real history turns up.
 - **Imported visits are `source='airtable'`** and `visits.external_id` holds the Airtable Medical Records record id. The clinical engine evaluates `source='unite'` visits only. A future Unite visit sync must adopt by contact + date (or map ids) before it runs.
 - **No `visit_diagnoses` / `visit_items` / `prescription_sequences` / `visit_rule_evaluations`**: the junction tables are still drafts, sequences are not scheduled yet, and evaluations are recomputed by the engine. `primary_diagnosis_code` is kept as text.
+  - **Phase 21 update:** `visit_diagnoses` now exists and is imported (`unite.visit_diagnoses`: MRD Diagnosis + Primary Diagnosis Link, one row per visit and code), and the Unite base's patient-level Chronic Diagnosis link is imported into `contact_chronic_conditions` (`unite.patient_chronic_diagnoses`, source `airtable`; since 21B only links to Chronic-flagged diagnoses, because Make filled the list with every visit diagnosis). Both are junction mappers (`scripts/import/run-junction.ts`) with their own external_refs entity (`<base>.<table>#visit_diagnoses` / `#chronic_conditions`, external id `<recordId>:<linkedRecordId>`). Imported prescriptions (`source = 'airtable_acute'`) still never get a sequence; `visit_items` is still not built.
 - **Follow-ups** use `source='airtable_acute'` and the engine's dedupe key `<visit external_id>-<category>`; only rows still pending (and not test) are imported open, the rest are closed with `closed_reason='airtable_history'`.
 - **Medication class** is looked up in `ref_medication_classes` by code, never read from Airtable; unknown → `unclassified`.
 - **Message log** rows are terminal history; `scheduled` is never written. **Call scripts** import `FU_*` templates only and always as `awaiting` (Airtable approval is not imported).

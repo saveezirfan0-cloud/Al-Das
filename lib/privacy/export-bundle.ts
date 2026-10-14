@@ -56,6 +56,8 @@ export async function buildPatientExport(
     tasks,
     timeline,
     visits,
+    diagnoses,
+    chronicConditions,
     prescriptions,
     followups,
     feedback,
@@ -107,6 +109,20 @@ export async function buildPatientExport(
       .eq("org_id", orgId)
       .eq("contact_id", contactId)
       .order("visit_date")
+      .limit(ROW_CAP),
+    // Phase 21: the diagnosis codes of the patient's visits and their chronic conditions (codes and dates).
+    admin
+      .from("visit_diagnoses")
+      .select("visit_date, diagnosis_code, is_primary, source, ref_diagnoses(short_description)")
+      .eq("org_id", orgId)
+      .eq("contact_id", contactId)
+      .order("visit_date")
+      .limit(ROW_CAP),
+    admin
+      .from("contact_chronic_conditions")
+      .select("source, noted_at, last_seen_on, ref_diagnoses(code, short_description)")
+      .eq("org_id", orgId)
+      .eq("contact_id", contactId)
       .limit(ROW_CAP),
     admin
       .from("prescriptions")
@@ -183,6 +199,8 @@ export async function buildPatientExport(
     messages: cap("messages", messages.data, MESSAGE_CAP),
     timeline: cap("timeline", timeline.data, ROW_CAP),
     visits: cap("visits", visits.data, ROW_CAP),
+    diagnoses: cap("diagnoses", diagnoses.data, ROW_CAP),
+    chronic_conditions: cap("chronic_conditions", chronicConditions.data, ROW_CAP),
     prescriptions: cap("prescriptions", prescriptions.data, ROW_CAP),
     followups: cap("followups", followups.data, ROW_CAP),
     feedback: cap("feedback", feedback.data, ROW_CAP),

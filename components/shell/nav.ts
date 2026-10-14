@@ -1,4 +1,5 @@
 import { PORTAL_SECTIONS } from "@/app/(app)/portal/sections";
+import { ACCOUNTING_KEYS } from "@/lib/accounting/nav";
 import { PORTAL_OBJECTS } from "@/lib/portal/objects";
 
 /** Left-nav modules. `permission` hides the entry for members without it. */
@@ -18,6 +19,7 @@ export type NavIcon =
   | "portal"
   | "reports"
   | "finance"
+  | "accounting"
   | "settings";
 
 export type NavGroup = "Today" | "Patients" | "Growth" | "Insight & back office";
@@ -155,7 +157,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: "Finance",
     icon: "finance",
     group: "Insight & back office",
-    keywords: ["invoices", "insurance", "claims", "denials", "pre-authorisation", "remittance", "forecast", "cash-up", "month-end", "revenue"],
+    keywords: ["invoices", "insurance", "claims", "denials", "pre-authorisation", "remittance", "forecast", "cash-up", "month-end", "revenue", "flash", "daily summary", "targets", "arpp", "follow-up", "receivables", "ageing", "arp", "billing mix", "seasonality", "trends", "close timetable", "working day", "vouchers", "payment voucher", "suppliers", "supplier invoices", "payables", "approvals", "tally", "bank reconciliation", "bank statement", "settlement", "tabby", "card settlement", "invoice changes", "discounts", "cancellations", "refunds", "revenue share", "doctor incentives", "doctor charges", "payout", "finance inbox", "accounts mailbox", "processor report", "labs", "lab reconciliation", "send-out lab", "referrals", "radiology", "turnaround"],
     permissions: [
       "finance.view",
       "finance.invoices.view",
@@ -180,7 +182,44 @@ export const NAV_ITEMS: readonly NavItem[] = [
       "finance.cashup.manage",
       "finance.revenue.view",
       "finance.export.run",
+      "finance.costs.manage",
+      "finance.costs.view",
+      "finance.costs.compensation",
+      "finance.profit.view",
+      "finance.profit.approve",
+      "finance.flash.view",
+      "finance.targets.manage",
+      "finance.close.tasks",
+      "finance.payables.view",
+      "finance.payables.manage",
+      "finance.inbox.manage",
+      "finance.vouchers.prepare",
+      "finance.vouchers.check",
+      "finance.vouchers.approve_dept",
+      "finance.vouchers.approve_ceo",
+      "finance.vouchers.pay",
+      "finance.vouchers.settings",
+      "finance.tally.export",
+      "finance.bank.view",
+      "finance.bank.manage",
+      "finance.bank.signoff",
+      "finance.labs.view",
+      "finance.labs.manage",
+      "finance.changes.review",
+      "finance.changes.view",
+      "finance.revshare.view",
+      "finance.revshare.manage",
+      "finance.revshare.verify",
+      "finance.revshare.approve",
     ],
+  },
+  {
+    href: "/accounting",
+    label: "Accounting",
+    icon: "accounting",
+    group: "Insight & back office",
+    keywords: ["ledger", "general ledger", "chart of accounts", "journals", "journal entry", "day book", "trial balance", "periods", "fiscal year", "tax codes", "vat", "cost centres", "entities", "tally", "double entry", "books"],
+    permissions: ACCOUNTING_KEYS,
   },
   {
     href: "/settings",

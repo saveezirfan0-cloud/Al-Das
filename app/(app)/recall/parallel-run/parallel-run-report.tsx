@@ -36,6 +36,8 @@ export type ScenarioVM = {
   diffsExplained: boolean;
   makeOff: boolean;
   blockedReason: string | null;
+  /** Differences expected by design (lib/parallel-run/diff.ts EXPECTED_DIFFERENCES). */
+  expected: string | null;
   comparable: boolean;
   days: Day[];
   readiness: { ready: boolean; reasons: string[] };
@@ -98,7 +100,7 @@ export function ParallelRunReport({
                   {s.comparable ? (
                     <span className="inline-flex items-center gap-1">
                       {s.days.length >= 7 ? (
-                        <CheckCircle2 className="size-4 text-emerald-600" />
+                        <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
                       ) : (
                         <Circle className="text-muted-foreground size-4" />
                       )}{" "}
@@ -140,6 +142,11 @@ export function ParallelRunReport({
         .map((s) => (
           <section key={s.key} className="flex flex-col gap-2">
             <h3 className="font-semibold">{s.name}: day by day</h3>
+            {s.expected && (
+              <p className="text-muted-foreground max-w-3xl text-sm">
+                Expected differences: {s.expected}
+              </p>
+            )}
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -165,7 +172,7 @@ export function ParallelRunReport({
                         <TableCell className="tabular-nums">{d.only_in_native.length}</TableCell>
                         <TableCell>
                           {!differs ? (
-                            <span className="text-emerald-700 text-sm">Identical</span>
+                            <span className="text-emerald-700 dark:text-emerald-300 text-sm">Identical</span>
                           ) : (
                             <div className="flex items-center gap-1.5">
                               <Input

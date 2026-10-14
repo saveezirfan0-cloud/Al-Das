@@ -237,11 +237,29 @@ describe("digest content", () => {
       k("hidden", 1),
     ]),
     campaigns: null,
+    reminders: null,
+    recall: null,
+    clinical: report([
+      k("open", 4),
+      k("high", 1),
+      k("overdue", 2),
+      k("doctor_alerts", 5),
+      k("red_flags", 0),
+      k("incomplete_vitals", 3),
+      k("unmatched", 1),
+      k("unclassified", 2),
+      k("unknown_dx", 0),
+    ]),
   };
 
   it("prints exactly the KPIs the Management dashboard shows, in the same order, from the same function", () => {
     const sections = summarySections(summary);
-    expect(sections.map((s) => s.title)).toEqual(["Messaging", "Enquiries", "Appointments"]);
+    expect(sections.map((s) => s.title)).toEqual([
+      "Messaging",
+      "Enquiries",
+      "Appointments",
+      "Clinical follow-up and data quality",
+    ]);
     expect(sections[0].kpis).toEqual(headlineKpis(summary.messaging!));
     expect(sections[0].kpis.map((x) => x.key)).toEqual([
       "conversations",
@@ -255,6 +273,9 @@ describe("digest content", () => {
     expect(sections[1].kpis.map((x) => x.key)).toEqual([...MANAGEMENT_KPIS.enquiries]);
     expect(sections[2].kpis).toEqual(pickKpis(summary.appointments!, MANAGEMENT_KPIS.appointments));
     expect(JSON.stringify(sections)).not.toContain("hidden");
+    // Phase 21: the clinical section prints exactly MANAGEMENT_KPIS.clinical (counts only)
+    expect(sections[3].kpis.map((x) => x.key)).toEqual([...MANAGEMENT_KPIS.clinical]);
+    expect(sections[3].kpis.map((x) => x.key)).not.toContain("doctor_alerts");
   });
 
   it("renders readable text and escapes HTML in the organisation name", () => {

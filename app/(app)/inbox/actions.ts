@@ -7,6 +7,12 @@ import { z } from "zod";
 import { recordAudit } from "@/lib/audit";
 import { can, canAny } from "@/lib/auth/can";
 import { requireMember, requirePerm, type CurrentMember } from "@/lib/auth/session";
+import {
+  channelTypeOf,
+  hasWhatsAppFeatures,
+  replyWindow,
+  windowClosedMessage,
+} from "@/lib/channels/types";
 import { emit } from "@/lib/events/emit";
 import "@/lib/flow-engine/listeners";
 import { startRun } from "@/lib/flow-engine/run";
@@ -15,13 +21,14 @@ import { takeOverFromBot } from "@/lib/flow-engine/takeover";
 import { addTimelineEvent } from "@/lib/contacts/timeline";
 import { contactDisplayName } from "@/lib/inbox/contact-name";
 import { parseMentions } from "@/lib/inbox/mentions";
+import { closeConversationRecord } from "@/lib/inbox/close";
 import { addNote, queueOutbound, type SendSpec } from "@/lib/inbox/send";
 import { readInboxSettings } from "@/lib/inbox/settings";
 import { enqueue } from "@/lib/jobs/enqueue";
 import { MEDIA_BUCKET, extensionFor } from "@/lib/jobs/handlers/media-fetch";
 import { notify } from "@/lib/notify/dispatch-db";
 import { isMediaPathFor, parseMediaPath } from "@/lib/inbox/media-path";
-import { headerAssetId } from "@/lib/media/header";
+import { headerMediaSlots, slotAssetId } from "@/lib/media/header";
 import { LIBRARY_BUCKET, isLibraryPathFor } from "@/lib/media/paths";
 import { checkMediaReferences } from "@/lib/media/resolve";
 import { validateMedia } from "@/lib/media/limits";
@@ -42,6 +49,9 @@ export type ActionResult<T = undefined> =
 
 const uuid = z.string().uuid();
 
+/** Phase 20e: the website chat, Instagram and Messenger carry text only. */
+const TEXT_ONLY = "Only text messages can be sent on this channel.";
+
 /** Loads a conversation the caller may see (RLS through the user client) and asserts the permission. */
 async function visibleConversation(
   member: CurrentMember,
@@ -53,7 +63,7 @@ async function visibleConversation(
   const supabase = await createClient();
   const { data } = await supabase
     .from("conversations")
-    .select("*, contacts(*), channels(id, name, phone_number_id, waba_id, status)")
+    .select("*, contacts(*), channels(id, name, type, phone_number_id, waba_id, status)")
     .eq("id", conversationId)
     .eq("org_id", member.orgId)
     .maybeSingle();
@@ -104,6 +114,13 @@ export async function sendChat(
   if (error || !conversation) return { ok: false, error: error ?? "Conversation not found." };
   if (conversation.channels?.status !== "active")
     return { ok: false, error: "This number is paused or disconnected." };
+  // Phase 20e: Instagram and Messenger only allow a reply within 24 hours of the person's last message (no templates there).
+  const channelType = channelTypeOf(conversation.channels?.type);
+  if (
+    channelType !== "whatsapp" &&
+    !replyWindow(channelType, { lastInboundAt: conversation.last_inbound_at }).open
+  )
+    return { ok: false, error: windowClosedMessage(channelType) };
   const body = fillVars(parsed.data.text, conversation.contacts, member);
   const admin = createAdminClient();
   await takeOverFromBot(admin, conversation.id);
@@ -167,6 +184,8 @@ export async function sendAttachment(
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   const { error, conversation } = await visibleConversation(member, parsed.data.conversation_id);
   if (error || !conversation) return { ok: false, error: error ?? "Conversation not found." };
+  if (!hasWhatsAppFeatures(channelTypeOf(conversation.channels?.type)))
+    return { ok: false, error: TEXT_ONLY };
   if (!isMediaPathFor(parsed.data.path, member.orgId, conversation.id))
     return { ok: false, error: "Invalid attachment path." };
   const d = parsed.data;
@@ -213,6 +232,8 @@ export async function sendLibraryMedia(
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   const { error, conversation } = await visibleConversation(member, parsed.data.conversation_id);
   if (error || !conversation) return { ok: false, error: error ?? "Conversation not found." };
+  if (!hasWhatsAppFeatures(channelTypeOf(conversation.channels?.type)))
+    return { ok: false, error: TEXT_ONLY };
   const admin = createAdminClient();
   const { data: asset } = await admin
     .from("media_assets")
@@ -227,7 +248,7 @@ export async function sendLibraryMedia(
   if (!isLibraryPathFor(asset.storage_path, member.orgId, asset.id))
     return { ok: false, error: "That library file has an invalid location." };
   const check = validateMedia({ mime: asset.mime_type, size: asset.size_bytes }, "library");
-  if (!check.ok || check.kind === "patient_document")
+  if (!check.ok || check.kind === "patient_document" || check.kind === "finance_document")
     return { ok: false, error: check.ok ? "That file cannot be sent." : check.message };
   const path = `${member.orgId}/${conversation.id}/${randomUUID()}.${check.extension}`;
   const { error: copyErr } = await admin.storage
@@ -271,6 +292,8 @@ export async function sendTemplateMessage(
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   const { error, conversation } = await visibleConversation(member, parsed.data.conversation_id);
   if (error || !conversation) return { ok: false, error: error ?? "Conversation not found." };
+  if (!hasWhatsAppFeatures(channelTypeOf(conversation.channels?.type)))
+    return { ok: false, error: TEXT_ONLY };
   const admin = createAdminClient();
   const { data: tpl } = await admin
     .from("wa_templates")
@@ -293,8 +316,12 @@ export async function sendTemplateMessage(
   if (preview.missing.length) return { ok: false, error: `Fill in: ${preview.missing.join(", ")}` };
   // A Media Library file in the header ("media:<id>"): the template's own file is always allowed; any other file
   // needs access to the library, and it must be usable as this header (same organisation, finished, not blocked).
-  const headerRef = headerAssetId(parsed.data.values);
-  if (headerRef) {
+  // Carousel cards (Phase 20d) have a header each; every slot is checked the same way.
+  const slots = headerMediaSlots(tpl.components as unknown as MetaTemplateComponent[]);
+  const refs = slots
+    .map((s) => ({ key: s.key, ref: slotAssetId(s.key, parsed.data.values) }))
+    .filter((s): s is { key: string; ref: string } => !!s.ref);
+  if (refs.length) {
     const { data: own } = await admin
       .from("wa_templates")
       .select("variable_map")
@@ -302,7 +329,8 @@ export async function sendTemplateMessage(
       .eq("org_id", member.orgId)
       .maybeSingle();
     const ownMap = (own?.variable_map ?? {}) as Record<string, string>;
-    if (headerAssetId(ownMap) !== headerRef && !canAny(member, ["media.view", "media.manage"]))
+    const foreign = refs.some((s) => slotAssetId(s.key, ownMap) !== s.ref);
+    if (foreign && !canAny(member, ["media.view", "media.manage"]))
       return { ok: false, error: "You don't have access to the Media Library." };
     const problem = await checkMediaReferences(
       admin,
@@ -434,7 +462,12 @@ export async function markConversationRead(conversationId: string): Promise<Acti
     .order("at", { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (last?.wa_message_id && conversation.channels && conversation.channels.status === "active") {
+  if (
+    last?.wa_message_id &&
+    conversation.channels &&
+    conversation.channels.status === "active" &&
+    channelTypeOf(conversation.channels.type) === "whatsapp"
+  ) {
     try {
       const client = await clientForChannel(admin, conversation.channels);
       await client.markRead(last.wa_message_id);
@@ -463,7 +496,8 @@ export async function assignConversation(
   if (!parsed.success) return { ok: false, error: "Invalid input" };
   const { error, conversation } = await visibleConversation(member, parsed.data.conversation_id);
   if (error || !conversation) return { ok: false, error: error ?? "Conversation not found." };
-  const admin = createAdminClient();
+  // The actor header lets the assignment log (Phase 20c) name who assigned it.
+  const admin = createAdminClient(member.userId);
   const { error: upErr } = await admin
     .from("conversations")
     .update({
@@ -517,11 +551,15 @@ export async function autoAssignConversation(conversationId: string): Promise<Ac
       ok: false,
       error: "No team to assign from. Pick a team first or set a default team in Settings → Inbox.",
     };
-  const { data: userId } = await admin.rpc("pick_round_robin_assignee", {
+  const { data: userId } = await admin.rpc("pick_round_robin_assignee_capped", {
     p_org_id: member.orgId,
     p_team_id: teamId,
   });
-  if (!userId) return { ok: false, error: "Nobody on that team is online right now." };
+  if (!userId)
+    return {
+      ok: false,
+      error: "Nobody on that team is online with room for another conversation right now.",
+    };
   return assignConversation({
     conversation_id: conversation.id,
     user_id: userId as string,
@@ -574,36 +612,15 @@ export async function closeConversation(input: z.input<typeof closeSchema>): Pro
     return { ok: false, error: "Pick a category to close this conversation." };
   if (settings.require_summary_on_close && !parsed.data.summary)
     return { ok: false, error: "Write a short summary to close this conversation." };
-  const { error: upErr } = await admin
-    .from("conversations")
-    .update({
-      status: "closed",
-      closed_at: new Date().toISOString(),
-      closed_by: member.userId,
-      category_id: parsed.data.category_id,
-      summary: parsed.data.summary || null,
-      bot_active: false,
-    })
-    .eq("id", conversation.id);
-  if (upErr) return { ok: false, error: "Could not close the conversation." };
-  await takeOverFromBot(admin, conversation.id, "Conversation closed");
-  await emit(member.orgId, "conversation.closed", {
-    conversation_id: conversation.id,
-    category_id: parsed.data.category_id,
-    by: member.userId,
-  });
-  await addTimelineEvent(admin, {
+  const closed = await closeConversationRecord(admin, {
     orgId: member.orgId,
+    userId: member.userId,
+    conversationId: conversation.id,
     contactId: conversation.contact_id,
-    type: "conversation.closed",
-    actorType: "user",
-    actorId: member.userId,
-    payload: {
-      conversation_id: conversation.id,
-      category_id: parsed.data.category_id,
-      summary: parsed.data.summary || null,
-    },
+    categoryId: parsed.data.category_id,
+    summary: parsed.data.summary || null,
   });
+  if (!closed) return { ok: false, error: "Could not close the conversation." };
   refresh();
   return { ok: true, message: "Conversation closed.", data: undefined };
 }
@@ -677,12 +694,13 @@ export async function startConversation(
   const parsed = startSchema.safeParse(input);
   if (!parsed.success)
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
-  const admin = createAdminClient();
+  const admin = createAdminClient(member.userId);
   const { data: channel } = await admin
     .from("channels")
     .select("id, status")
     .eq("id", parsed.data.channel_id)
     .eq("org_id", member.orgId)
+    .eq("type", "whatsapp")
     .maybeSingle();
   if (!channel || channel.status !== "active")
     return { ok: false, error: "Pick an active number." };

@@ -22,6 +22,32 @@ export const UNGUARDED_OK: Record<string, string> = {
     "Authorised by the provider's request signature (HMAC over the exact callback URL and form fields, constant-time compare) using the stored auth token; unknown or switched-off accounts give 404; failed signatures are rate limited per IP; each receipt is claimed once (integration_webhook_events).",
   "app/api/webhooks/integrations/esign/[accountId]/route.ts::POST":
     "Authorised by the provider's event hash (HMAC-SHA256 of the event time and type with the stored API key, constant-time compare); unknown or switched-off accounts give 404; failed hashes are rate limited per IP; each event is claimed once (integration_webhook_events) and moves a request forward only.",
+  "app/api/webhooks/integrations/instagram/[accountId]/route.ts::GET":
+    "Meta's subscription handshake: echoes hub.challenge (short token characters only) when hub.verify_token equals the stored, encrypted verify token (constant-time); unknown, switched-off and wrong tokens give the same 404 and are rate limited per IP.",
+  "app/api/webhooks/integrations/instagram/[accountId]/route.ts::POST":
+    "Authorised by X-Hub-Signature-256 (HMAC-SHA256 of the raw body with the stored app secret, constant-time compare); unknown or switched-off accounts give 404; failed signatures are rate limited per IP; each message is claimed once (integration_webhook_events) and stored through channel_receive_social (idempotent on the message id).",
+  "app/api/webhooks/integrations/messenger/[accountId]/route.ts::GET":
+    "Meta's subscription handshake: echoes hub.challenge (short token characters only) when hub.verify_token equals the stored, encrypted verify token (constant-time); unknown, switched-off and wrong tokens give the same 404 and are rate limited per IP.",
+  "app/api/webhooks/integrations/messenger/[accountId]/route.ts::POST":
+    "Authorised by X-Hub-Signature-256 (HMAC-SHA256 of the raw body with the stored app secret, constant-time compare); unknown or switched-off accounts give 404; failed signatures are rate limited per IP; each message is claimed once (integration_webhook_events) and stored through channel_receive_social (idempotent on the message id).",
+  "app/api/widget/[key]/config/route.ts::GET":
+    "Public website chat widget: answers only while the integration is on, outside training workspaces and for an Origin on the administrator's allow-list; returns the title, colour and welcome text only; rate limited per IP (refusals too).",
+  "app/api/widget/[key]/config/route.ts::OPTIONS":
+    "CORS pre-flight of the public website chat: the same gate (switch, training, Origin allow-list); returns headers only.",
+  "app/api/widget/[key]/messages/route.ts::GET":
+    "Public website chat: the visitor's own conversation only, authorised by the 256-bit visitor token Pulse issued (only its SHA-256 stored); allowed websites only, integration on, not training; rate limited per IP and per visitor; never returns notes, staff names, phone numbers or other conversations.",
+  "app/api/widget/[key]/messages/route.ts::POST":
+    "Public website chat: a visitor's message, stored through web_chat_receive (idempotent per visitor message id, new visitors get a contact without a phone). Allowed websites only, integration on, not training; 8 KB body cap; rate limited per IP, per visitor and new visitors per IP.",
+  "app/api/widget/[key]/messages/route.ts::OPTIONS":
+    "CORS pre-flight of the public website chat: the same gate (switch, training, Origin allow-list); returns headers only.",
+  "app/api/webhooks/integrations/finance_mailbox/[accountId]/route.ts::POST":
+    "Authorised by HTTP basic auth against the stored webhook password (constant-time compare); unknown or switched-off accounts give 404; bodies over 4.5 MB give 413; failed attempts are rate limited per IP and every account per minute; each message is claimed once by its MessageID (integration_webhook_events). Only attachments from allow-listed senders are kept (sender domain only), a training workspace stores nothing.",
+  "app/api/tally-bridge/pair/route.ts::POST":
+    "The Tally connector cannot sign in: it trades a one-time pairing code (about 78 bits, 30 minutes, single use, only its SHA-256 stored) that a person with accounting.settings.manage created, for a 256-bit device token returned once (only its SHA-256 stored, revocable). Every attempt is rate limited per IP; unknown, used and expired codes give the same 401.",
+  "app/api/tally-bridge/jobs/route.ts::GET":
+    "Authorised by the connector's device token (Bearer, 256 bits, only its SHA-256 stored and compared in the database, revocable); bad tokens are rate limited per IP and every token per minute; the organisation comes from the token and the integration switch is checked (403 when off). Hands out only the four allow-listed job types; imports only while pushing is allowed and before the ledger start.",
+  "app/api/tally-bridge/results/route.ts::POST":
+    "Authorised by the connector's device token like the jobs route; bodies over 4.4 MB give 413 and decompressed answers are capped; only a job sent to this connector and not yet answered is accepted (409 otherwise); Tally's XML is parsed only by lib/accounting/tally/ and applied through the idempotent 22I import path; Tally's error text is redacted before it is stored.",
   "app/api/webhooks/integrations/payments/[accountId]/route.ts::POST":
     "Authorised by the gateway's signature (Stripe-Signature with a 5 minute replay window, or the PayTabs HMAC) using the stored secret, constant-time compare; unknown or switched-off accounts give 404; failed signatures are rate limited per IP; each event is claimed once (integration_webhook_events) and amounts are checked against the stored request.",
 };

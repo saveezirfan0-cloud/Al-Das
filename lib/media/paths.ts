@@ -5,6 +5,7 @@
  *
  *   media-library       <org>/<asset>/<file>           file = original.<ext> | thumb.jpg
  *   patient-documents   <org>/<contact>/<document>.<ext>
+ *   finance-documents   <org>/<document>.<ext>             (supplier invoices, voucher backup, statements)
  *
  * File names chosen by people are never part of a path (they can contain a patient's name); the display
  * name lives in the database.
@@ -12,6 +13,7 @@
 
 export const LIBRARY_BUCKET = "media-library";
 export const DOCUMENT_BUCKET = "patient-documents";
+export const FINANCE_DOCUMENT_BUCKET = "finance-documents";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EXT = /^[a-z0-9]{1,5}$/;
@@ -134,4 +136,32 @@ export function parseMediaSource(value: string | null | undefined): string | nul
   if (typeof value !== "string" || !value.startsWith(MEDIA_SOURCE_PREFIX)) return null;
   const id = value.slice(MEDIA_SOURCE_PREFIX.length);
   return UUID.test(id) ? id.toLowerCase() : null;
+}
+
+export type FinanceDocumentPathParts = { orgId: string; documentId: string; extension: string };
+
+export function parseFinanceDocumentPath(path: string): FinanceDocumentPathParts | null {
+  if (typeof path !== "string" || path.length > 200) return null;
+  const parts = path.split("/");
+  if (parts.length !== 2) return null;
+  const [orgId, file] = parts;
+  if (!UUID.test(orgId)) return null;
+  const dot = file.lastIndexOf(".");
+  if (dot <= 0) return null;
+  const documentId = file.slice(0, dot);
+  const extension = file.slice(dot + 1);
+  if (!UUID.test(documentId) || !EXT.test(extension)) return null;
+  return { orgId: orgId.toLowerCase(), documentId: documentId.toLowerCase(), extension };
+}
+
+export function financeDocumentPath(orgId: string, documentId: string, extension: string): string {
+  if (![orgId, documentId].every((v) => UUID.test(v))) throw new Error("invalid id in storage path");
+  if (!EXT.test(extension)) throw new Error("invalid extension");
+  return `${orgId.toLowerCase()}/${documentId.toLowerCase()}.${extension}`;
+}
+
+/** True when `path` is a well-formed finance document path for exactly this org and document. */
+export function isFinanceDocumentPathFor(path: string, orgId: string, documentId: string): boolean {
+  const p = parseFinanceDocumentPath(path);
+  return !!p && p.orgId === orgId.toLowerCase() && p.documentId === documentId.toLowerCase();
 }

@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "locations": { "Main Branch": "Al Das Clinic – Branch A" },
+  "specialists": { "Dr Example One": "Dr Example One (GP)" },
+  "services": { "Consult": "General consultation" }
+}

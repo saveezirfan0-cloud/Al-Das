@@ -264,3 +264,13 @@ export async function sentThisMonth(supabase: UserClient, orgId: string): Promis
     .gte("sent_at", start.toISOString());
   return count ?? 0;
 }
+
+/** Phase 20d: campaign messages dispatched this month (org timezone) and the administrator's limit (null = none). */
+export async function campaignBudgetStatus(
+  admin: AdminClient,
+  orgId: string,
+): Promise<{ used: number; limit: number | null }> {
+  const { data } = await admin.rpc("campaign_budget_status", { p_org: orgId });
+  const row = data?.[0];
+  return { used: Number(row?.used ?? 0), limit: row?.monthly_limit ?? null };
+}

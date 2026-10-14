@@ -44,6 +44,7 @@ export type RunContext = {
 function addWarning(map: Record<string, number>, code: string) {
   map[code] = (map[code] ?? 0) + 1;
 }
+export { addWarning as addWarningCode };
 
 function addUnmatched(list: UnmatchedLink[], label: string, recordId: string) {
   let u = list.find((x) => x.label === label);

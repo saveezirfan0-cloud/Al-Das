@@ -39,6 +39,8 @@ export type EnquiryContext = {
   lookups: Lookups;
   users: OrgUser[];
   teams: TeamInfo[];
+  /** Tags with scope 'enquiry'. */
+  tags: Array<{ id: string; name: string; color: string }>;
   settings: EnquirySettings;
 };
 
@@ -113,7 +115,7 @@ export async function loadEnquiryContext(
   admin: AdminClient,
   orgId: string,
 ): Promise<EnquiryContext> {
-  const [customFields, pipelines, lookups, users, { data: teams }, { data: org }] =
+  const [customFields, pipelines, lookups, users, { data: teams }, { data: org }, { data: tags }] =
     await Promise.all([
       loadCustomFields(admin, orgId, "enquiry"),
       loadPipelines(admin, orgId),
@@ -121,6 +123,12 @@ export async function loadEnquiryContext(
       loadOrgUsers(admin, orgId),
       admin.from("teams").select("id, name").eq("org_id", orgId).order("name"),
       admin.from("orgs").select("settings").eq("id", orgId).single(),
+      admin
+        .from("tags")
+        .select("id, name, color")
+        .eq("org_id", orgId)
+        .eq("scope", "enquiry")
+        .order("name"),
     ]);
   return {
     customFields,
@@ -136,6 +144,7 @@ export async function loadEnquiryContext(
     lookups,
     users,
     teams: teams ?? [],
+    tags: tags ?? [],
     settings: readEnquirySettings(org?.settings),
   };
 }

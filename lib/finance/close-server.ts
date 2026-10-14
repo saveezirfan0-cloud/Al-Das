@@ -11,6 +11,7 @@ import {
   type RevenueLine,
   type ReasonLine,
 } from "@/lib/finance/close-pack";
+import { readControls } from "@/lib/finance/close-controls";
 import type { SignOff } from "@/lib/finance/close-xlsx";
 import { parseRevenue } from "@/lib/finance/revenue";
 import type { AdminClient } from "@/lib/supabase/admin";
@@ -77,7 +78,13 @@ export async function buildAndStorePack(
   admin: AdminClient,
   input: { orgId: string; orgName: string; month: string; userId: string; now?: Date },
 ): Promise<{ closeId: string }> {
-  const g = await gather(admin, input.orgId, input.month);
+  const [g, controls] = await Promise.all([
+    gather(admin, input.orgId, input.month),
+    admin.rpc("fin_close_controls", { p_org_id: input.orgId, p_month: `${input.month}-01` }),
+  ]);
+  if (controls.error) throw new Error(`close controls: ${controls.error.code ?? "unknown"}`);
+  const summary = readControls(controls.data);
+  if (!summary) throw new Error("close controls: unreadable summary");
   const pack = buildClosePack({
     orgName: input.orgName,
     month: `${input.month}-01`,
@@ -85,6 +92,7 @@ export async function buildAndStorePack(
     figures: g.figures,
     revenue: g.revenue,
     denialReasons: g.reasons,
+    controls: summary,
   });
   const { data, error } = await admin.rpc("fin_close_store_snapshot", {
     p_org_id: input.orgId,
@@ -118,6 +126,7 @@ export type CloseRecord = {
   pack: ClosePack | null;
   hash: string | null;
   financeById: string | null;
+  ceoById: string | null;
   sign: SignOff;
 };
 
@@ -149,6 +158,7 @@ export async function loadCloseByMonth(
     pack: readClosePack(c.snapshot),
     hash: c.snapshot_hash,
     financeById: c.finance_signed_by,
+    ceoById: c.ceo_signed_by,
     sign: {
       financeBy: name(c.finance_signed_by),
       financeAt: c.finance_signed_at,

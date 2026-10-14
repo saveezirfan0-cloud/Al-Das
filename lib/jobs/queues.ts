@@ -15,6 +15,7 @@ export const QUEUES = [
   "ai_insights",
   "sms_outbound",
   "capi_events",
+  "clinical",
 ] as const;
 
 export type QueueName = (typeof QUEUES)[number];

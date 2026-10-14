@@ -66,6 +66,33 @@ export const RULE_INFO: Record<string, RuleInfo> = {
     meaning: "An uploaded claims file was rejected.",
     action: "Open Insurance upload, read the reasons, fix the export and upload it again.",
   },
+  E11: {
+    title: "Billed, no visit record",
+    meaning:
+      "An invoice has no visit record for that patient around the invoice date. This is a review signal: some services (for example a pharmacy sale) legitimately have no visit.",
+    action:
+      "Confirm the service evidence. If care was given, make sure the visit is recorded. If not, correct the bill before claiming. Never write 'completed' without evidence.",
+  },
+  E12: {
+    title: "Visit recorded, not billed",
+    meaning:
+      "A visit is on record for a patient but there is no invoice for that patient around that date. This is a review signal, not proof that billing was missed.",
+    action:
+      "Check whether the service was billed under another date or patient, or was free of charge. Bill it if it was missed, and note the reason either way.",
+  },
+  E13: {
+    title: "Same service billed twice",
+    meaning:
+      "The same item, quantity and amount appears more than once on one invoice. A repeat can be genuine (two units on separate lines), so it needs a look.",
+    action:
+      "Correct the invoice in Unite if the repeat is a mistake, or close with a note saying why it is correct.",
+  },
+  E14: {
+    title: "Claim with no invoice line",
+    meaning: "The claim found its invoice, but no invoice line matches the claimed service.",
+    action:
+      "Billing: check the service code on the claim against the invoice lines, then correct the claim in Diligence or the invoice in Unite.",
+  },
 };
 
 export const RULE_CODES = Object.keys(RULE_INFO);

@@ -54,7 +54,7 @@ export default async function ManagementDashboard({ searchParams }: { searchPara
   const { filters, error } = filtersFromSearchParams(await searchParams);
   const ctx = reportContext(member, filters);
   const [summary, options] = await Promise.all([loadManagementSummary(ctx, available), filterOptions(admin, member.orgId)]);
-  const { messaging, enquiries, appointments, campaigns } = summary;
+  const { messaging, enquiries, appointments, campaigns, reminders, recall, clinical } = summary;
 
   return (
     <div className="flex flex-col gap-6">
@@ -102,6 +102,15 @@ export default async function ManagementDashboard({ searchParams }: { searchPara
       )}
       {campaigns && (
         <ReportSection id="camps" title="Campaigns" result={campaigns} kpis={[...MANAGEMENT_KPIS.campaigns]} charts={[0]} href="/reports/campaigns" linkLabel="Open the campaign report" />
+      )}
+      {reminders && (
+        <ReportSection id="reminders" title="Appointment reminders" result={reminders} kpis={[...MANAGEMENT_KPIS.reminders]} charts={[1]} href="/reports/reminder-stats" linkLabel="Open the reminder report (per doctor)" />
+      )}
+      {recall && (
+        <ReportSection id="recall" title="Recall this week" result={recall} kpis={[...MANAGEMENT_KPIS.recall]} charts={[0]} href="/reports/recall-performance" linkLabel="Open the recall report" />
+      )}
+      {clinical && (
+        <ReportSection id="clinical" title="Clinical follow-up and data quality" result={clinical} kpis={[...MANAGEMENT_KPIS.clinical]} charts={[0]} href="/reports/clinical-operations" linkLabel="Open the clinical operations report" />
       )}
 
       <section aria-labelledby="coming" className="flex flex-col gap-3">

@@ -51,6 +51,15 @@ const METRIC_LABEL: Record<string, string> = {
   queued: "Queued",
   events_sent: "Events sent to Meta",
   events_failed: "Events Meta refused",
+  messages: "Messages from allowed senders",
+  stored: "Attachments stored",
+  duplicate: "Attachments already in Pulse",
+  dropped_sender: "Messages dropped (sender not allowed or not verified by SPF / DKIM)",
+  refused_type: "Attachments refused (type)",
+  refused_size: "Attachments refused (too large)",
+  skipped_inline: "Pictures in the message body skipped",
+  infected: "Attachments blocked by the malware scan",
+  refused_training: "Messages refused (training workspace)",
 };
 
 function metricLabel(key: string): string {
@@ -235,7 +244,37 @@ export function IntegrationPanel({
                   {f.label}
                   {f.required && " *"}
                 </Label>
-                {f.type === "select" ? (
+                {f.upload ? (
+                  <div className="flex flex-col gap-1">
+                    <Input
+                      id={`f-${f.key}`}
+                      type="file"
+                      accept={f.upload.accept}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        if (file.size > 64 * 1024) {
+                          toast.error("The file is too large (64 KB at most).");
+                          e.target.value = "";
+                          return;
+                        }
+                        // Read in the browser as base64; the server opens it and stores it encrypted.
+                        const bytes = new Uint8Array(await file.arrayBuffer());
+                        let bin = "";
+                        for (const b of bytes) bin += String.fromCharCode(b);
+                        const b64 = btoa(bin);
+                        setValues((v) => ({ ...v, [f.key]: b64 }));
+                      }}
+                    />
+                    <p className="text-muted-foreground text-xs">
+                      {values[f.key]
+                        ? "File chosen. Save to store it."
+                        : view.secretsStored[f.key]
+                          ? "Stored. Choose a file to replace it."
+                          : "No file stored."}
+                    </p>
+                  </div>
+                ) : f.type === "select" ? (
                   <select
                     id={`f-${f.key}`}
                     className="border-input bg-background h-9 rounded-md border px-3 text-sm"

@@ -56,10 +56,17 @@ describe("catalogue", () => {
       "Care coordinator",
       "Marketing",
       "Finance",
+      "Finance Manager",
       "Billing",
       "Insurance",
       "CEO",
       "Medical Director",
+      "Cost / Payroll",
+      "Department head",
+      "Operations",
+      "Accountant",
+      "Chief Accountant",
+      "Auditor",
     ]);
     expect(SYSTEM_ROLES.filter((r) => r.permissions.includes("*")).map((r) => r.name)).toEqual([
       "Admin",

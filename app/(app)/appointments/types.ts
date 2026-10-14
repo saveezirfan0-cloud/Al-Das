@@ -26,7 +26,14 @@ export type ApptRow = {
   reminder: ReminderSummary;
   /** Phase 19b: null follows the service's default visit mode. */
   visit_mode: string | null;
+  /**
+   * Phase 20c: the booking breaks today's capacity rules (a block, or no place left), e.g. a Unite
+   * appointment. Display only: nothing is refused or changed. Absent when not checked.
+   */
+  conflict?: CapacityConflict | null;
 };
+
+export type CapacityConflict = "blocked" | "full";
 
 export type BlockRow = {
   id: string;

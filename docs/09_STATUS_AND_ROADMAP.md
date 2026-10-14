@@ -6,6 +6,29 @@ This is the single document to work from. Section 1 says where we are, 2 says wh
 
 ---
 
+## 0a. Update, 13 Oct 2026: Phase 20 (finance control) and Phase 21 part 1
+
+Branch `claude/funny-clarke-6t7gee` (not merged to `main`, no pull request yet). Built from the finance meeting transcripts, the deck "The next stage of financial & management control" and the CEO's zero-paper directive; the plan, the files still needed from the clinic (D1 to D14) and the slice table are in `docs/20_FINANCE_CONTROL_PLAN.md`; each slice has its notes file (`docs/20_PHASE_20*_NOTES.md`, `docs/21_PHASE_21A_NOTES.md`).
+
+| Slice | What it gives the clinic |
+|---|---|
+| 20A | Daily flash: daily financial summary, month to date, daily sales grid against the same days last month, targets and reporting lines (Chiro and the leased unit separate), Excel in the old layout |
+| 20B | Finance inbox: accounts mailbox (Postmark inbound, allow-listed senders, attachments only) and a drop zone; documents become supplier invoices |
+| 20C | Bank and settlement reconciliation: generic statement import with per-bank column mapping, settlement rules (card / EPG T+2, Tabby T+6 working days), scored matching, reasons for unmatched items, two-person sign-off |
+| 20E | Lab and external-referral reconciliation: provider statements imported per lab or hospital, scored matching to Unite lines, charges posted after a second person checks |
+| 20D | Zero-paper payables: suppliers, supplier invoices with documents, payment vouchers with the delegation-of-authority tiers, maker / checker / approver, approval certificate PDF, TallyPrime XML export |
+| 20F | Doctor revenue share: closed rule vocabulary per contract version, doctor charges, monthly run with the nine-step trail, Finance Manager verifies, CEO approves |
+| 20G | Close timetable by working day (WD5 / 7 / 8 / 10) with owners, backups, dependencies, reminders and the close measures; the Board pack control summary |
+| 20H | AI reviewer for bank reconciliation (suggestions from the matcher's shortlist only; a person accepts each) |
+| 20I | Insurance follow-up at 60 / 90 / 120 days, submission sequence per claim, receivables by payer and age (candidate ARP report) |
+| 20J | Unite invoice-change register (discounts, cancellations, credit notes, refunds) with Operations approval and the "unapproved changes" measure |
+| 20K | Doctor billing mix and seasonality against last year |
+| 21 part 1 | Chronic recall can select patients (visit diagnoses and chronic conditions, rule awaiting sign-off), antibiotic sequences scheduled (messages stay off), data-quality and unclassified-medication screens, reminder and recall reports on the management dashboard |
+
+Every merge was checked with typecheck, lint, the unit suite, the database suite on Postgres 16 and `pnpm audit:security`. Nothing has been clicked in a browser or run against Unite, Postmark, Tally or a model; the new migrations are paste files `deploy/supabase-paste/21a_` and `21b_` (the Sanoflow migration from PR #44) and `22_` to `40_`, applied in number order (24 is unused). The flash migration was renumbered to `20261023000300` when PR #44 took `20261023000100`. Open questions OQ-90 to OQ-104 and OQ-115 are in `docs/audit/open-questions.md`; the decisions most worth making first are OQ-90 (approve vouchers in Pulse or Tally), OQ-91 (is the approval certificate enough without a DSC), OQ-94 (switch Unite capture on with the January backfill) and OQ-101 (new branch codes from 10 Nov).
+
+**Live Supabase project (read-only check, 13 Oct).** The Pulse project is **"Al Das"** (ref `gtskozdnvprinmatjymm`, Tokyo region), which replaces the 12 Oct warning below that no Pulse database could be found. It has every migration up to `20261022000100` (paste 21) and holds no patient data yet (one org, one member, no contacts). RLS is on every table. Pastes 21a, 21b and 22 to 40 are not applied, so none of the Sanoflow import tables, Phase 20 or 21 part 1 is live. Its history also lists five early migrations twice under generated versions (`20261009065417` and the four after it); that does no harm with the paste route, but `supabase db push` will stop on them until they are marked reverted (`supabase migration repair --status reverted 20261009065417 20261009065455 20261009065508 20261009065520 20261009065639`). Advisor notes: the 14 finance views run with the owner's rights on purpose (each filters on `app.has_perm`, covered by the cross-org tests); six read-only SQL helpers have no fixed search_path (low risk, they run with the caller's rights, and a fixed path would stop Postgres inlining them); **turn on leaked-password protection** under Authentication in the Supabase dashboard. The Make organisation is connected too: 7 active scenarios, unchanged since the 8 Oct audit (OQ-99 closed).
+
 ## 0. Update, 12 Oct 2026 (read this first)
 
 **Merged.** `main` (`0ea2a27`) now contains Phase 12 (PR #20: new menu, quick search, mobile tabs, Activity log, loading and error pages, installable app manifest, CI) and Finance F7 (PR #21: monthly-summary redesign, setup checklist, data-freshness view, nav badge, paste-ready SQL in `deploy/supabase-paste/`). There are no open pull requests. Production on Vercel (project `al-das`, `al-das.vercel.app`) is deployed from that commit and is READY.
@@ -31,6 +54,8 @@ This is the single document to work from. Section 1 says where we are, 2 says wh
 **Phase 19a (integrations foundation and the first three integrations) is built** on branch `claude/nifty-brown-y9l5ry` (on top of Phase 17) and waits for review and merge: a shared foundation every later integration reuses (encrypted credentials and an on/off flag per integration, a typed client with timeouts, back-off and a circuit breaker, a call log without bodies, an inbound-webhook helper with signature checks and idempotency, health on System health, a Settings, Integrations hub); **private read-only calendar feeds for doctors** (times and the clinic location only, never patient details); an **SMS fallback** that texts a short generic reminder when WhatsApp could not deliver one (its own queue and rate limit, consent rules, delivery receipts); and **payment links in WhatsApp** (Stripe Checkout and a PayTabs-style gateway; the gateway's status is recorded, an amount that does not match is never applied, and nothing is ever marked paid in Unite). **All three are OFF**, SMS and payments need a typed confirmation, and **no real provider was called**: the adapters are written from documentation and must be proved in a sandbox first (OQ-83 to OQ-85). What was verified and what was not is in `docs/18_PHASE_19A_NOTES.md`. The four new migrations (`20261018000100` to `…400`) are in `deploy/supabase-paste/19a_phase_19a_integrations.sql`.
 
 **Phase 19b (four more integrations) is built** on branch `claude/nifty-brown-y9l5ry` (on top of Phase 19a) and waits for review and merge, which completes Phase 19 except the Instagram and Messenger inbox (candidate 6, not built). **Google review requests**: after a completed visit, one approved WhatsApp message with the location's Google review link, only to patients who opted in, at most once per person per period (the cap is claimed in the database), never filtered by how the visit went; no Google service is called. **Meta ad attribution and the Conversions API**: records which Meta ad each WhatsApp conversation came from (report only by default, with an Ad attribution report) and can send Contact, Lead and Schedule events through a queue, carrying only the event name and the ad click id (never a service, doctor, diagnosis or value) and only for consenting patients. **Video visits**: a private per-appointment video link (a generic address template or a Daily.co-style API), a Join button for staff, a template variable for reminders, revoked on cancel and replaced on reschedule. **E-signature for consent forms**: a consent PDF goes to a Dropbox Sign-shaped provider for one signer and the signed copy is stored on the patient through the Phase 16 document checks. **All four are OFF**, each needs a typed confirmation, and **no real provider was called**: the Meta payload, Daily and Dropbox Sign shapes are written from documentation and must be proved in a sandbox first (OQ-86 to OQ-89). Erasure and the subject-access export were extended to the new records. What was verified and what was not is in `docs/19_PHASE_19B_NOTES.md`. The five new migrations (`20261019000100` to `…500`) are in `deploy/supabase-paste/19b_phase_19b_integrations.sql`.
+
+**Phases 20b to 20e (Sanoflow parity) are built** and merged together: native flow CRM nodes (G0, fixed: they failed closed before), new flow triggers and nodes and question validation (20b, `docs/23`); routing with a fallback team, open-chat limits, office-hours auto-reply, idle auto-away and a restricted enquiry view, plus assignment and presence reports (20c, `docs/24`); booking buffers, group capacity, per-specialist slot length and weekly blocks (20c, `docs/25`); template retry, time limit, carousel sending and performance, recurring campaigns, a monthly message budget and close-with-enquiry (20d, `docs/26`); website chat, Instagram and Messenger in the Inbox and Google Calendar busy sync (20e, `docs/27`, all OFF and unverified against live Meta and Google). The parity matrix in `docs/20` §4 shows what is closed and what remains (G11, part of G12, G14). Their migrations (`20261023000100`, `20261023000200` for 20a, and `20261110000100` to `…900`, numbered after the finance and accounting migrations) are in `deploy/supabase-paste/54_phase_20_sanoflow_parity.sql` (20a is in `21a` / `21b`; checked: it applies in one transaction on a database at the previous level).
 
 ## 1. Where we are
 
@@ -71,7 +96,7 @@ Not run: the browser tests and any click-through (no Supabase auth stack in the 
 | # | Module | Built | Not proven / missing |
 |---|---|---|---|
 | 1 | Foundation: auth, orgs, RLS, roles, teams, invites, jobs framework | Yes | Presence inactivity timeout. MFA is enforced per role since Phase 15 but the enrolment flow has not been run against a real Supabase Auth |
-| 2 | Patient CRM: grid, views, segments, filters, import/export, merge, custom fields, tags | Yes | Sanoflow export header names are guessed (`--map` overrides); real export needed |
+| 2 | Patient CRM: grid, views, segments, filters, import/export, merge, custom fields, tags | Yes | Sanoflow export header names are guessed (`--map` / `<step>.map.json` overrides); real export needed. Phase 20a imports the whole Sanoflow export set (docs/22) |
 | 3 | WhatsApp ingress and shared inbox | Yes | Never tested with real Meta traffic; BSUID (username) contract unverified; coexistence events only logged |
 | 4 | Templates: builder, Meta submit and sync, 26 starter templates (13 in English and Arabic) | Yes | Needs `META_APP_ID` and a real WABA; no OTP, catalogue or flow-button templates |
 | 5 | Enquiries and tasks: pipelines, Kanban, SLA, assignment, reminders, first-touch | Yes | No enquiry tags join table, no CSV import, no AI summary |
@@ -137,10 +162,10 @@ These are the most valuable things to do before any client sees the product, bec
 
 | Area | Gap |
 |---|---|
-| Appointments | Google Calendar sync not built. (The double-booking race is closed: `book_appointment` / `move_appointment` re-check under a per-specialist advisory lock) |
-| Inbox | Presence has no inactivity timeout (round-robin depends on people setting Away). Create enquiry and Book appointment buttons in the contact sidebar need checking now that the modules exist |
-| Flows | Question node does not re-ask on an unmatched answer. A crash between "queued" and "step recorded" can resend once on replay. Outbound webhooks node and CRM nodes are wired, but untested live |
-| Campaigns | One audience snapshot per campaign (no recurring); no A/B; no carousel |
+| Appointments | Google Calendar busy sync built in 20e (OFF, unverified live). (The double-booking race is closed: `book_appointment` / `move_appointment` re-check under a per-specialist advisory lock) |
+| Inbox | Idle auto-away built in 20c (Settings, Inbox). Create enquiry and Book appointment buttons in the contact sidebar need checking now that the modules exist |
+| Flows | Question re-ask and typed answers built in 20b. A crash between "queued" and "step recorded" can resend once on replay. Outbound webhooks node is wired, but untested live. CRM nodes (Create/update enquiry, Add task, Portal record, Book appointment) are wired since 20b (G0) |
+| Campaigns | Recurring campaigns and carousel sending built in 20d; no A/B |
 | Templates | Positional variables only in the builder; no OTP or catalogue templates |
 | Portal | No bulk edit; no per-object custom fields or tags |
 | Reports | Scheduled email digests, AI tags. (WhatsApp cost is built; its Meta response parser is unverified live, OQ-62) |
@@ -179,7 +204,7 @@ Never paste any of these into chat, GitHub, a doc or a screenshot. Put them in V
 | 9 | **Sentry** project | sentry.io | `SENTRY_DSN` (and an auth token in Vercel for source maps) | Error monitoring |
 | 10 | **Airtable personal access token**, read-only (`data.records:read`, `schema.bases:read`) on the 5 bases | airtable.com/create/tokens | `AIRTABLE_PAT` | Migration only. **Revoke after cut-over** |
 | 11 | **Make API token**, read-only | Make profile, API | `MAKE_API_TOKEN`, `MAKE_ZONE=us2`, `MAKE_TEAM_ID=1494412` | Migration and parallel run only. **Revoke after cut-over** |
-| 12 | **Sanoflow contact export (CSV) and tag/label list** | Sanoflow, Contacts, Export | file, not a secret | Contact import |
+| 12 | **Sanoflow exports (CSV): contacts, enquiries + activity, appointments, tags, labels, categories, quick replies, segments; plus `sanoflow-config.json` / `sanoflow-names.json` filled by hand** | Sanoflow, each module's Export; Settings → Enquiries | files, not secrets | `pnpm import:sanoflow:all` (docs/22) |
 | 13 | **GitHub**: repo secrets only if CI later needs them; Vercel-to-GitHub integration enabled | github.com settings | none today | Preview deployments |
 
 **Added by the roadmap (not needed for the first go-live):** VAPID key pair for browser push (generated by a script, Phase 13); an SMS provider account for fallback messages; a payment gateway merchant account for pay-by-link; a Google Cloud OAuth client for calendar sync and review requests; a Meta Marketing API token for ad reports.
@@ -433,7 +458,7 @@ The pitch only needs 12b to be real. 13 to 15 turn it from "it works" into "I wo
 
 1. **Accounts and secrets** (3.1), Supabase migrations pushed, Vercel deployed, cron schedules created.
 2. **Staging rehearsal**: `pnpm cutover:preflight --stage pre-cutover` must report GO. Load tests on staging.
-3. **Data**: Airtable and Sanoflow import with `--dry-run`, then real, then `pnpm reconcile --live-airtable`, sign-off file completed by operations, clinical and engineering.
+3. **Data**: Airtable and Sanoflow import with `--dry-run`, then real (`pnpm import:sanoflow:all`; appointments with `--with-appointments` only once Sanoflow's reminders are off), then `pnpm reconcile --live-airtable --sanoflow-counts latest`, sign-off file completed by operations, clinical and engineering.
 4. **Parallel week**: Make and Pulse side by side in Test mode; `/recall/parallel-run` has to be clean before "Make off" unlocks.
 5. **Cut over WhatsApp numbers one at a time**, lowest-traffic number first. Keep Sanoflow subscribed until the third number is stable.
 6. **Retire** Make, then Airtable, then Sanoflow. Revoke the migration tokens. Rotate the Unite keys.

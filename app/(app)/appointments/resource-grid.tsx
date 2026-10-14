@@ -5,6 +5,7 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import { isOpenDay, isoWeekday, localMinutesToInstant } from "@/lib/appointments/slots";
 
+import { CONFLICT_TEXT, ConflictIcon } from "./conflict-badge";
 import { localMinutes, STATUS_STYLES, timeLabel } from "./format";
 import type { ApptRow, BlockRow, SpecialistOption } from "./types";
 
@@ -167,7 +168,7 @@ export function ResourceGrid(props: Props) {
                         e.stopPropagation();
                         props.onBlockClick(b);
                       }}
-                      className="absolute inset-x-1 overflow-hidden rounded border border-dashed border-zinc-400 bg-zinc-200/80 px-1.5 py-0.5 text-left text-[11px] text-zinc-700 dark:bg-zinc-800/80 dark:text-zinc-200"
+                      className="absolute inset-x-1 overflow-hidden rounded border border-dashed border-zinc-400 dark:border-zinc-600 bg-zinc-200/80 px-1.5 py-0.5 text-left text-[11px] text-zinc-700 dark:bg-zinc-800/80 dark:text-zinc-200"
                       style={{
                         top: (top - axisStart) * PX_PER_MIN,
                         height: (end - top) * PX_PER_MIN - 1,
@@ -195,9 +196,12 @@ export function ResourceGrid(props: Props) {
                         STATUS_STYLES[a.status],
                       )}
                       style={{ top: (top - axisStart) * PX_PER_MIN, height: h }}
-                      title={`${a.contact_name} · ${timeLabel(a.starts_at, timezone)}–${timeLabel(a.ends_at, timezone)}`}
+                      title={`${a.contact_name} · ${timeLabel(a.starts_at, timezone)}–${timeLabel(a.ends_at, timezone)}${a.conflict ? ` · ${CONFLICT_TEXT[a.conflict]}` : ""}`}
                     >
-                      <span className="block truncate font-medium">{a.contact_name}</span>
+                      <span className="flex items-center gap-1">
+                        <ConflictIcon conflict={a.conflict} className="[&_svg]:size-3" />
+                        <span className="block truncate font-medium">{a.contact_name}</span>
+                      </span>
                       {h > 30 && (
                         <span className="block truncate opacity-80">
                           {timeLabel(a.starts_at, timezone)}–{timeLabel(a.ends_at, timezone)}

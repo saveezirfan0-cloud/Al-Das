@@ -1,3 +1,4 @@
+import { parseAllowedDomains } from "@/lib/channels/web/policy";
 import { validateRoomTemplate } from "@/lib/integrations/telehealth/url";
 import {
   allFields,
@@ -33,6 +34,8 @@ export type ReadinessInput = {
   documentsEnabled?: boolean;
   /** Google review requests only. */
   reviews?: { template: TemplateReadiness | null; locationsWithLink: number };
+  /** Organisation seal only: what is wrong with the stored certificate (opened with its password; empty = usable). */
+  seal?: { problems: string[] };
 };
 
 export function readinessProblems(input: ReadinessInput): string[] {
@@ -76,6 +79,17 @@ export function readinessProblems(input: ReadinessInput): string[] {
   if (input.kind === "meta_capi" && input.config.mode === "send_events") {
     if (!String(input.config.dataset_id ?? "").trim()) problems.push("Dataset ID is missing.");
     if (!input.secretsStored.access_token) problems.push("Access token is missing.");
+  }
+  if (
+    input.kind === "web_chat" &&
+    input.config.allowed_domains &&
+    !parseAllowedDomains(input.config.allowed_domains)
+  )
+    problems.push("The allowed websites are not valid host names.");
+  if (input.kind === "document_seal") {
+    if (input.seal) problems.push(...input.seal.problems);
+    else if (input.secretsStored.certificate && input.secretsStored.passphrase)
+      problems.push("The stored certificate has not been checked yet.");
   }
   if (input.kind === "google_reviews") {
     const r = input.reviews;

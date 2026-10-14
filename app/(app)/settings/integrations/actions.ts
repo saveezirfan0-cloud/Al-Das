@@ -9,6 +9,7 @@ import {
   loadAccount,
   loadView,
   patchConfig,
+  readSecrets,
   recordFailure,
   recordOk,
   saveSettings,
@@ -29,10 +30,13 @@ import { loadPaymentTemplate } from "@/lib/integrations/payments/request-server"
 import { confirmationMatches, readinessProblems } from "@/lib/integrations/readiness";
 import { loadReadinessInput } from "@/lib/integrations/readiness-server";
 import { buildCapiClientFor } from "@/lib/integrations/capi/server";
+import { clearAllBusyBlocks } from "@/lib/integrations/gcal/server";
+import { buildMessagingClientFor } from "@/lib/integrations/meta-messaging/server";
 import { buildSmsProvider } from "@/lib/integrations/sms/provider";
 import { buildEsignProvider } from "@/lib/integrations/esign/server";
 import { buildTelehealthProvider } from "@/lib/integrations/telehealth/server";
 import { checkRateLimit, RATE_RULES, waitText } from "@/lib/rate-limit";
+import { checkSealSecrets } from "@/lib/signing/seal";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { MetaTemplateComponent } from "@/lib/whatsapp/types";
 
@@ -70,6 +74,15 @@ export async function saveIntegrationSettings(
   if (!checked.ok) return { ok: false, error: checked.error };
   const extra = extraValidation(kind, providerId, checked.config);
   if (extra) return { ok: false, error: extra };
+  if (kind === "document_seal") {
+    // A certificate that cannot be opened with its password is refused now (expiry and key usage show as readiness problems).
+    const stored = sameProvider ? readSecrets(await loadAccount(admin, member.orgId, kind)) : {};
+    const merged = { ...stored, ...checked.secrets };
+    if (merged.certificate && merged.passphrase) {
+      const seal = checkSealSecrets(merged, new Date());
+      if (!seal.ok && seal.info === null) return { ok: false, error: seal.problems[0] };
+    }
+  }
   const saved = await saveSettings(admin, {
     orgId: member.orgId,
     kind,
@@ -126,6 +139,8 @@ export async function setIntegrationEnabled(
     enabled,
   });
   if (!done.ok) return done;
+  // Phase 20e: busy times mirrored from Google must not keep blocking bookings once the sync is off.
+  if (!enabled && kind === "google_calendar") await clearAllBusyBlocks(admin, member.orgId);
   await recordAudit(admin, {
     orgId: member.orgId,
     userId: member.userId,
@@ -180,6 +195,11 @@ export async function testIntegration(kindInput: string): Promise<ActionResult> 
   } else if (kind === "telehealth") {
     const provider = buildTelehealthProvider(admin, account);
     result = provider?.verify ? await provider.verify() : { ok: false, code: "incomplete" };
+  } else if (kind === "instagram" || kind === "messenger") {
+    result = (await buildMessagingClientFor(admin, account, kind)?.verify()) ?? {
+      ok: false,
+      code: "incomplete",
+    };
   } else return { ok: false, error: "Nothing to test for this integration." };
 
   await recordAudit(admin, {

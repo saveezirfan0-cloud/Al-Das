@@ -18,7 +18,7 @@ export function DashboardTabs({ tabs }: { tabs: Array<{ href: string; label: str
                 href={t.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "block border-b-2 px-3 py-2 text-sm whitespace-nowrap",
+                  "focus-visible:ring-ring block rounded-t-md border-b-2 px-3 py-2 text-sm whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-inset",
                   active ? "border-primary font-medium" : "text-muted-foreground hover:text-foreground border-transparent",
                 )}
               >

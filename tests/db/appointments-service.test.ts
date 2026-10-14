@@ -17,7 +17,7 @@ import {
   rescheduleAppointment,
   syncAppointmentReminders,
 } from "@/lib/appointments/service";
-import { localDate, localMinutesToInstant } from "@/lib/appointments/slots";
+import { isoWeekday, localDate, localMinutesToInstant } from "@/lib/appointments/slots";
 import { processReminder, reportReminderFailure } from "@/lib/jobs/handlers/appointments";
 import type { AdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/lib/supabase/types";
@@ -526,6 +526,56 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)(
       rows = await tasks();
       expect(rows).toHaveLength(2);
       expect(rows.filter((t) => !t.done)).toHaveLength(1);
+    });
+
+    it("Phase 20c: the slot list and booking honour slot length, buffers, weekly blocks and places", async () => {
+      await c.query("set role service_role");
+      const ins = async (sql: string, p: unknown[]) =>
+        (await c.query(sql + " returning id", p)).rows[0].id as string;
+      const spec = await ins(
+        "insert into public.specialists (org_id, name, slot_length_min, max_per_slot) values ($1, 'Dr Group', 20, 2)",
+        [org],
+      );
+      const group = await ins(
+        "insert into public.services (org_id, name, duration_min, capacity, buffer_after_min) values ($1, 'Group physio', 40, 2, 20)",
+        [org],
+      );
+      for (let wd = 1; wd <= 7; wd++)
+        await c.query(
+          "insert into public.working_hours (org_id, specialist_id, location_id, weekday, start_min, end_min) values ($1,$2,$3,$4,540,720)",
+          [org, spec, id.loc, wd],
+        );
+      // weekly 10:40–11:00 break at this location on the test day's weekday (futureMonday() can be a
+      // Tuesday in Dubai when the suite runs after 20:00 UTC)
+      await c.query(
+        "insert into public.specialist_recurring_blocks (org_id, specialist_id, location_id, weekday, start_min, end_min) values ($1, $2, $3, $4, 640, 660)",
+        [org, spec, id.loc, isoWeekday(monday)],
+      );
+      await c.query("reset role");
+
+      const q = { orgId: org, specialistId: spec, locationId: id.loc, date: monday, durationMin: 40, serviceId: group, ignoreLeadTime: true };
+      const labels = async () => (await slotsForDay(admin, q)).map((s) => s.label);
+      // 20-minute steps; 40 minutes + 20 cleaning must stay clear of the 10:40 break.
+      expect(await labels()).toEqual(["09:00", "09:20", "09:40", "11:00", "11:20"]);
+
+      const book = (contactId: string) =>
+        createAppointment(admin, {
+          orgId: org,
+          actorId: user,
+          contactId,
+          locationId: id.loc,
+          specialistId: spec,
+          serviceId: group,
+          startsAt: at("09:00"),
+        });
+      expect((await book(id.contact)).ok).toBe(true);
+      expect(await labels()).toContain("09:00"); // one place left
+      expect((await book(id.contact)).ok).toBe(true);
+      const now = await labels();
+      expect(now).not.toContain("09:00"); // full
+      expect(now).not.toContain("09:40"); // overlaps their cleaning (until 10:00) with no place left
+      const third = await book(id.contact);
+      expect(third).toMatchObject({ ok: false, error: expect.stringContaining("not available") });
     });
   },
 );

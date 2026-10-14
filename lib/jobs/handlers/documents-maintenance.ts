@@ -8,7 +8,12 @@ import {
   findPastRetention,
   loadRetentionPolicies,
 } from "@/lib/documents/server";
-import { LIBRARY_BUCKET, DOCUMENT_BUCKET, libraryObjectPath } from "@/lib/media/paths";
+import {
+  LIBRARY_BUCKET,
+  DOCUMENT_BUCKET,
+  FINANCE_DOCUMENT_BUCKET,
+  libraryObjectPath,
+} from "@/lib/media/paths";
 import { removeObjects } from "@/lib/media/probe";
 import { recordAudit } from "@/lib/audit";
 import { registerTask } from "@/lib/jobs/tasks";
@@ -92,6 +97,18 @@ export async function runDocumentsMaintenance(
       .delete()
       .eq("id", d.id)
       .eq("status", "pending");
+    if (!error) totals.abandoned_removed++;
+  }
+  // Finance documents (Phase 20D) follow the same rule.
+  const { data: staleFinance } = await admin
+    .from("fin_documents")
+    .select("id, storage_path")
+    .eq("status", "pending")
+    .lt("created_at", cutoff)
+    .limit(PAGE);
+  for (const d of staleFinance ?? []) {
+    if (!(await removeObjects(admin, FINANCE_DOCUMENT_BUCKET, [d.storage_path]))) continue;
+    const { error } = await admin.from("fin_documents").delete().eq("id", d.id).eq("status", "pending");
     if (!error) totals.abandoned_removed++;
   }
 

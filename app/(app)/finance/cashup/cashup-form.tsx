@@ -167,7 +167,7 @@ export function CashupForm({
         </span>
         <span>
           Difference{" "}
-          <strong className={sum.varianceTotal === 0 ? "" : "text-amber-600"}>
+          <strong className={sum.varianceTotal === 0 ? "" : "text-amber-600 dark:text-amber-400"}>
             {money(sum.varianceTotal)}
           </strong>
         </span>
@@ -180,7 +180,7 @@ export function CashupForm({
         onChange={(e) => setNote(e.target.value)}
       />
       {!frozen && sum.problems.length > 0 && (
-        <ul className="list-disc pl-5 text-xs text-amber-600">
+        <ul className="list-disc pl-5 text-xs text-amber-600 dark:text-amber-400">
           {sum.problems.map((p) => (
             <li key={p}>{p}</li>
           ))}

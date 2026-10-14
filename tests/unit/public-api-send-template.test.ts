@@ -14,7 +14,7 @@ const TEMPLATE = {
   id: TEMPLATE_ID, org_id: "org1", waba_id: "w1", name: "appt_reminder", language: "en", status: "APPROVED", category: "UTILITY", archived_at: null,
   components: [body("Hi {{1}}, see you {{2}}")],
 };
-const CHANNEL = { id: "ch1", org_id: "org1", waba_id: "w1", status: "active" };
+const CHANNEL = { id: "ch1", org_id: "org1", type: "whatsapp", waba_id: "w1", status: "active" };
 
 function setup(seed: Record<string, Record<string, unknown>[]> = {}) {
   const admin = createFakeAdmin(
@@ -117,7 +117,7 @@ describe("sendTemplateViaApi", () => {
     });
 
     it("the chosen number belongs to another org or is not active", async () => {
-      const { admin, as } = setup({ channels: [CHANNEL, { id: "chB", org_id: "orgB", waba_id: "wB", status: "active" }] });
+      const { admin, as } = setup({ channels: [CHANNEL, { id: "chB", org_id: "orgB", type: "whatsapp", waba_id: "wB", status: "active" }] });
       await expectRefused(await sendTemplateViaApi(as, "org1", input({ channel_id: "3f2b8c1e-4d5a-4b6c-8d7e-9f0a1b2c3d4e" })), admin, 422, "channel_not_found");
     });
 

@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { z } from "zod";
 
 import { recordAudit } from "@/lib/audit";
-import { getCurrentMember, getCurrentUser } from "@/lib/auth/session";
+import { getCurrentMemberIfAvailable, getCurrentUser } from "@/lib/auth/session";
 import { recordAuthEvent } from "@/lib/security/auth-events";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -30,7 +30,7 @@ export async function confirmMfaEnrolled(): Promise<MfaResult> {
   if (!user) return { ok: false, error: "Your session has ended. Sign in again." };
   if (!(await hasVerifiedSession()))
     return { ok: false, error: "The code was not verified. Try again." };
-  const member = await getCurrentMember();
+  const member = await getCurrentMemberIfAvailable();
   const admin = createAdminClient();
   await recordAuthEvent(admin, {
     type: "mfa_enrolled",
@@ -57,7 +57,7 @@ export async function confirmMfaVerified(): Promise<MfaResult> {
   if (!user) return { ok: false, error: "Your session has ended. Sign in again." };
   if (!(await hasVerifiedSession()))
     return { ok: false, error: "The code was not verified. Try again." };
-  const member = await getCurrentMember();
+  const member = await getCurrentMemberIfAvailable();
   await recordAuthEvent(createAdminClient(), {
     type: "mfa_verified",
     userId: user.id,
@@ -82,7 +82,7 @@ export async function removeMfaFactor(factorId: string): Promise<MfaResult> {
       ok: false,
       error: "Could not remove the authenticator. Verify your code again, then retry.",
     };
-  const member = await getCurrentMember();
+  const member = await getCurrentMemberIfAvailable();
   const admin = createAdminClient();
   await recordAuthEvent(admin, {
     type: "mfa_removed",

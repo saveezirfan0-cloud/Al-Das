@@ -54,6 +54,8 @@ export default async function EnquiriesPage() {
     users: ctx.users,
     teams: ctx.teams,
     sources: ctx.settings.sources,
+    lostReasons: ctx.settings.lost_reasons,
+    enquiryTags: ctx.tags,
     views,
     gridPrefs: (prefs?.prefs as GridPrefs | null) ?? null,
   };

@@ -55,7 +55,7 @@ export default async function InboxPage({
     supabase.from("teams").select("id, name, round_robin").eq("org_id", member.orgId).order("name"),
     supabase
       .from("channels")
-      .select("id, name, display_phone, status")
+      .select("id, name, display_phone, status, type")
       .eq("org_id", member.orgId)
       .order("created_at"),
     supabase

@@ -34,6 +34,8 @@ export type ImportSummary = {
   dryRun: boolean;
   since: string | null;
   includeTestRecords: boolean;
+  /** Skipped rows were skipped on purpose (e.g. past or cancelled appointments) and count as accounted for. */
+  skippedByDesign?: boolean;
   counters: RunCounters;
 };
 
@@ -43,6 +45,8 @@ export type DbSnapshot = {
   reviews_dismissed: Record<string, number>;
   reviews_resolved: Record<string, number>;
   orphan_refs: number;
+  /** Refs to enquiries, appointments, segments, timeline entries or settings rows that no longer exist (Phase 20a). */
+  orphan_refs_other?: number;
   refs_to_deleted_contacts: number;
   contacts_live: number;
   contacts_imported: number;
@@ -116,14 +120,15 @@ export function reconcile(
 
   // Per-entity accounting. A full run's `skipped`/`invalid`/`failed` are not in the database, so they
   // come from the importer summary: every source record must be imported, awaiting review,
-  // deliberately skipped (test records) or explained.
+  // deliberately skipped (test records, past appointments) or explained.
   const rows: EntityRow[] = sources.map((s) => {
     const k = key(s.source, s.entity);
     const run = runs.get(k);
     const imported = db.refs[k] ?? 0;
     const open = db.reviews_open[k] ?? 0;
     const dismissed = db.reviews_dismissed[k] ?? 0;
-    const testSkipped = run && !run.includeTestRecords ? run.counters.skipped : 0;
+    const testSkipped =
+      run && (!run.includeTestRecords || run.skippedByDesign) ? run.counters.skipped : 0;
     const unidentifiable = run?.counters.invalid ?? 0;
     const failed = run?.counters.failed ?? 0;
     // Resolved reviews either created a ref (counted in `imported`) or were attached to an existing
@@ -151,7 +156,7 @@ export function reconcile(
       `${r.label}: every source record is accounted for`,
       Math.abs(gap) <= tolerance,
       "blocker",
-      `source ${r.sourceTotal} = imported ${r.imported} + open reviews ${r.openReviews} + dismissed ${r.dismissedReviews} + test ${r.testSkipped} + unidentifiable ${r.unidentifiable} + failed ${r.failed}; gap ${gap}${tolerance ? ` (tolerance ${tolerance})` : ""}`,
+      `source ${r.sourceTotal} = imported ${r.imported} + open reviews ${r.openReviews} + dismissed ${r.dismissedReviews} + test/by-design skips ${r.testSkipped} + unidentifiable ${r.unidentifiable} + failed ${r.failed}; gap ${gap}${tolerance ? ` (tolerance ${tolerance})` : ""}`,
     );
   }
 
@@ -236,6 +241,14 @@ export function reconcile(
     "blocker",
     `${db.orphan_refs} orphan`,
   );
+  if (db.orphan_refs_other !== undefined)
+    add(
+      "orphan-refs-other",
+      "no external_refs point at a missing enquiry, appointment, segment or timeline entry",
+      db.orphan_refs_other === 0,
+      "warning",
+      `${db.orphan_refs_other} orphan`,
+    );
   add(
     "refs-deleted",
     "no external_refs point at a deleted, unmerged contact",
@@ -315,7 +328,7 @@ export function renderReport(args: {
     "",
     "## Per-entity accounting",
     "",
-    "| Source | Entity | Source total | Imported | Open reviews | Dismissed | Test skipped | Unidentifiable | Failed | Unaccounted |",
+    "| Source | Entity | Source total | Imported | Open reviews | Dismissed | Test / by-design skipped | Unidentifiable | Failed | Unaccounted |",
     "|---|---|---|---|---|---|---|---|---|---|",
     ...result.rows.map(
       (r) =>

@@ -60,6 +60,18 @@ export const RATE_RULES = {
   esignSendPerUser: { limit: 20, windowSec: 60, failOpen: false },
   /** Phase 19: "Test connection" on an integration. */
   integrationTestPerUser: { limit: 6, windowSec: 60, failOpen: false },
+  /** Phase 22C: every attempt to sign with a personal certificate PIN (a wrong PIN counts too). */
+  signingPinPerUser: { limit: 10, windowSec: 900, failOpen: false },
+  /** Phase 22C: adding a personal signing certificate (each attempt opens the file with the typed PIN). */
+  signingCertUploadPerUser: { limit: 10, windowSec: 3600, failOpen: false },
+  /** Phase 22J: the Tally connector trading a pairing code for its token, per IP (every attempt counts). */
+  tallyBridgePairPerIp: { limit: 10, windowSec: 600, failOpen: false },
+  /** Phase 22J: requests with a missing, unknown or revoked device token, per IP. */
+  tallyBridgeBadToken: { limit: 20, windowSec: 60, failOpen: true },
+  /** Phase 22J: every connector request (polls and results), per device token. */
+  tallyBridgePerDevice: { limit: 240, windowSec: 60, failOpen: true },
+  /** Phase 22J: creating a pairing code, retrying or changing the bridge, per person. */
+  tallyBridgeManagePerUser: { limit: 20, windowSec: 60, failOpen: false },
   /** Phase 19: sending payment links by staff. */
   paymentLinkPerUser: { limit: 20, windowSec: 60, failOpen: false },
   /** Phase 10 /api/public/v1, per API key. */
@@ -132,7 +144,12 @@ export function withRateLimit<Ctx>(
   handler: (request: Request, ctx: Ctx) => Promise<Response>,
 ) {
   return async (request: Request, ctx: Ctx): Promise<Response> => {
-    const result = await checkRateLimit(opts.admin(), opts.scope, await opts.key(request), opts.rule);
+    const result = await checkRateLimit(
+      opts.admin(),
+      opts.scope,
+      await opts.key(request),
+      opts.rule,
+    );
     if (!result.allowed) return tooManyRequests(result);
     return handler(request, ctx);
   };

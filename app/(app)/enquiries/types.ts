@@ -30,6 +30,10 @@ export type EnquiriesBootstrap = {
   users: OrgUser[];
   teams: TeamInfo[];
   sources: string[];
+  /** Settings → Enquiries reasons offered for lost / disqualified (free text is still allowed). */
+  lostReasons: string[];
+  /** Enquiry tags (scope 'enquiry'). */
+  enquiryTags: Array<{ id: string; name: string; color: string }>;
   views: EnquiryViewSummary[];
   gridPrefs: GridPrefs | null;
 };

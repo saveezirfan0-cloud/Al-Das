@@ -24,6 +24,7 @@ import { pct } from "@/lib/campaigns/funnel";
 import {
   CAMPAIGN_PAGE_SIZE,
   RECIPIENT_PAGE_SIZE,
+  campaignBudgetStatus,
   getCampaignDetail,
   listCampaigns,
   listRecipients,
@@ -33,6 +34,7 @@ import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 
 import { AutoRefresh } from "./auto-refresh";
+import { BudgetMeter } from "./budget-meter";
 import { CampaignDrawer } from "./campaign-drawer";
 import { campaignsHref, formatShortWhen } from "./format";
 import { CampaignStatusBadge } from "./status-badge";
@@ -63,9 +65,10 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
   const canCreate = can(member, "campaigns.create");
   const tz = member.org.timezone;
 
-  const [list, detail] = await Promise.all([
+  const [list, detail, budget] = await Promise.all([
     listCampaigns(supabase, member.orgId, { status, q, page }),
     openId ? getCampaignDetail(supabase, admin, member.orgId, openId) : Promise.resolve(null),
+    campaignBudgetStatus(admin, member.orgId),
   ]);
   const recipients =
     detail && tab === "recipients"
@@ -93,6 +96,12 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
         <Button asChild variant="outline" size="sm">
           <Link href="/templates">Manage templates</Link>
         </Button>
+        <Button asChild variant="outline" size="sm">
+          <Link href="/campaigns/history">Campaign history</Link>
+        </Button>
+        <Button asChild variant="outline" size="sm">
+          <Link href="/campaigns/recurring">Recurring</Link>
+        </Button>
         {canCreate &&
           can(member, "campaigns.ai") &&
           readAiSettings(member.org.settings).enabled && (
@@ -108,6 +117,12 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
           </Button>
         )}
       </PageHeader>
+
+      <BudgetMeter
+        used={budget.used}
+        limit={budget.limit}
+        canEdit={can(member, "settings.manage")}
+      />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-1">

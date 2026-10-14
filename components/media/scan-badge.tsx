@@ -19,11 +19,11 @@ export function ScanBadge({
       variant="outline"
       title={b.hint}
       className={cn(
-        b.tone === "ok" && "border-emerald-300 text-emerald-700 dark:text-emerald-300",
+        b.tone === "ok" && "border-emerald-300 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-300",
         b.tone === "warn" &&
-          "border-amber-300 bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200",
+          "border-amber-300 dark:border-amber-500/30 bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200",
         b.tone === "danger" &&
-          "border-red-300 bg-red-50 text-red-800 dark:bg-red-950/40 dark:text-red-200",
+          "border-red-300 dark:border-red-500/30 bg-red-50 text-red-800 dark:bg-red-950/40 dark:text-red-200",
         className,
       )}
     >

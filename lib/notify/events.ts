@@ -124,6 +124,76 @@ export const NOTIFICATION_EVENTS = [
     permission: "finance.denials.manage",
   },
   {
+    key: "finance.followup_due",
+    group: "Work",
+    label: "An unpaid insurance claim needs a follow-up",
+    description:
+      "An unpaid claim reached a follow-up stage (60, 90 or 120 days by default; Finance, Workflow settings) and a task was created. Push and e-mail say only that a follow-up is due.",
+    channels: ALL,
+    defaults: { in_app: true, email: false, push: false },
+    permission: "finance.followup.manage",
+  },
+  {
+    key: "finance.close_due",
+    group: "Work",
+    label: "A month-end close step of mine is due or overdue",
+    description:
+      "A close timetable step you own (Finance, Close timetable) is due today or late. At most one a day, on working days. Push and e-mail say only that a step is due.",
+    channels: ALL,
+    defaults: { in_app: true, email: false, push: false },
+    permission: "finance.close.tasks",
+  },
+  {
+    key: "finance.voucher_to_check",
+    group: "Work",
+    label: "A payment voucher is waiting for verification",
+    description:
+      "A maker submitted a payment voucher with its backup. Push and e-mail say only that one is waiting; open Pulse to see which.",
+    channels: ALL,
+    defaults: { in_app: true, email: false, push: false },
+    permission: "finance.vouchers.check",
+  },
+  {
+    key: "finance.voucher_to_approve_dept",
+    group: "Work",
+    label: "A payment voucher needs a department head",
+    description:
+      "The Finance Manager verified a Tier 2 voucher and it waits for a department head. Push and e-mail say only that one is waiting.",
+    channels: ALL,
+    defaults: { in_app: true, email: false, push: true },
+    permission: "finance.vouchers.approve_dept",
+  },
+  {
+    key: "finance.voucher_to_approve",
+    group: "Work",
+    label: "A payment voucher needs the CEO",
+    description:
+      "A verified Tier 3, Tier 4 or special-category voucher waits for the CEO's authorisation. Push and e-mail say only that one is waiting.",
+    channels: ALL,
+    defaults: { in_app: true, email: false, push: true },
+    permission: "finance.vouchers.approve_ceo",
+  },
+  {
+    key: "finance.voucher_rejected",
+    group: "Work",
+    label: "My payment voucher was rejected",
+    description:
+      "A voucher you prepared was rejected; the remarks are in Pulse. Push and e-mail say only that one was rejected.",
+    channels: ALL,
+    defaults: { in_app: true, email: false, push: true },
+    permission: "finance.vouchers.prepare",
+  },
+  {
+    key: "accounting.runs_prepared",
+    group: "Work",
+    label: "Month-end depreciation and schedule runs are ready",
+    description:
+      "On the first working day of a month Pulse prepares last month's depreciation and schedule runs for review. Push and e-mail say only that runs are ready.",
+    channels: ALL,
+    defaults: { in_app: true, email: false, push: false },
+    permission: "accounting.assets.manage",
+  },
+  {
     key: "ai.insights_ready",
     group: "Work",
     label: "The weekly AI reply-quality report is ready",
@@ -222,6 +292,10 @@ export function categoryForType(type: string): NotificationCategory {
     type === "ai.insights_ready" ||
     type === "finance.preauth_expiring" ||
     type === "finance.denial_deadline" ||
+    type === "finance.followup_due" ||
+    type === "finance.close_due" ||
+    type === "accounting.runs_prepared" ||
+    type.startsWith("finance.voucher_") ||
     type === "reminder.failed"
   )
     return "work";
@@ -245,7 +319,14 @@ export function typeFilterForCategory(category: NotificationCategory): {
           "reminder.failed",
           "finance.preauth_expiring",
           "finance.denial_deadline",
+          "finance.followup_due",
+          "finance.close_due",
+          "finance.voucher_to_check",
+          "finance.voucher_to_approve_dept",
+          "finance.voucher_to_approve",
+          "finance.voucher_rejected",
           "ai.insights_ready",
+          "accounting.runs_prepared",
         ],
         prefixes: ["task.", "enquiry.", "appointment.", "document."],
       };

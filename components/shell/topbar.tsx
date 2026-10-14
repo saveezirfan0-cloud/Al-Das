@@ -8,21 +8,23 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 
 import { HelpMenu } from "@/components/help/help-menu";
+import type { NavState } from "@/lib/nav/state";
 
 import { OPEN_PALETTE_EVENT } from "./command-palette";
 import { OPEN_NAV_EVENT } from "./mobile-tabs";
 import { NotificationsMenu } from "./notifications-menu";
-import type { NavItem } from "./nav";
-import { Sidebar } from "./sidebar";
+import { Sidebar, type SidebarNode } from "./sidebar";
 import { UserMenu, type UserMenuProps } from "./user-menu";
 
 export function Topbar({
   items,
+  navState,
   orgName,
   user,
   helpVideos,
 }: {
-  items: readonly NavItem[];
+  items: readonly SidebarNode[];
+  navState: NavState;
   orgName: string;
   user: UserMenuProps;
   /** Recorded training clips by id (orgs.settings.help.videos), for the ? button. */
@@ -34,6 +36,12 @@ export function Topbar({
     const onOpen = () => setOpen(true);
     window.addEventListener(OPEN_NAV_EVENT, onOpen);
     return () => window.removeEventListener(OPEN_NAV_EVENT, onOpen);
+  }, []);
+  // The server cannot know the platform, so it renders "Ctrl K" and Macs switch after mount.
+  const [isMac, setIsMac] = useState(false);
+  useEffect(() => {
+    const nav = navigator as Navigator & { userAgentData?: { platform?: string } };
+    setIsMac(/mac/i.test(nav.userAgentData?.platform ?? nav.platform ?? ""));
   }, []);
 
   const current = items.find((i) => pathname === i.href || pathname.startsWith(i.href + "/"));
@@ -47,22 +55,36 @@ export function Topbar({
         onClick={() => setOpen(true)}
         aria-label="Open navigation"
       >
-        <Menu />
+        <Menu aria-hidden />
       </Button>
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="left" className="w-64 p-0 sm:max-w-64">
+        <SheetContent side="left" className="w-60 p-0 sm:max-w-60">
           <SheetTitle className="sr-only">Navigation</SheetTitle>
           <Sidebar
-            items={items}
+            tree={items}
+            navState={navState}
             orgName={orgName}
             defaultCollapsed={false}
             className="w-full border-0"
             onNavigate={() => setOpen(false)}
+            collapsible={false}
           />
         </SheetContent>
       </Sheet>
 
-      <h1 className="truncate text-base font-semibold">{current?.label ?? "Pulse"}</h1>
+      <div className="flex min-w-0 items-center gap-1.5">
+        {current?.group && (
+          <>
+            <span className="text-muted-foreground hidden shrink-0 text-sm sm:inline">
+              {current.group}
+            </span>
+            <span className="text-muted-foreground hidden text-sm sm:inline" aria-hidden>
+              /
+            </span>
+          </>
+        )}
+        <h1 className="truncate text-base font-semibold">{current?.label ?? "Pulse"}</h1>
+      </div>
 
       <div className="ml-auto flex items-center gap-1">
         <Button
@@ -71,11 +93,14 @@ export function Topbar({
           className="text-muted-foreground hidden w-56 justify-between font-normal md:inline-flex"
           onClick={() => window.dispatchEvent(new Event(OPEN_PALETTE_EVENT))}
           aria-label="Quick search"
+          aria-keyshortcuts={isMac ? "Meta+K" : "Control+K"}
         >
           <span className="flex items-center gap-2">
-            <Search className="size-3.5" /> Search pages…
+            <Search className="size-3.5" aria-hidden /> Search…
           </span>
-          <kbd className="bg-muted rounded px-1.5 font-mono text-[10px]">Ctrl K</kbd>
+          <kbd className="bg-muted rounded px-1.5 font-mono text-[10px]" aria-hidden>
+            {isMac ? "⌘K" : "Ctrl K"}
+          </kbd>
         </Button>
         <Button
           variant="ghost"
@@ -84,7 +109,7 @@ export function Topbar({
           onClick={() => window.dispatchEvent(new Event(OPEN_PALETTE_EVENT))}
           aria-label="Quick search"
         >
-          <Search />
+          <Search aria-hidden />
         </Button>
         <HelpMenu roleName={user.roleName} videos={helpVideos} />
         <NotificationsMenu />

@@ -1,13 +1,13 @@
 /**
- * Adds the Finance & Insurance role presets and reference rows to an existing
- * org (new orgs get both automatically). Idempotent; never overwrites edits.
+ * Adds the Finance & Insurance and Accounting role presets, the finance reference rows and the default chart of
+ * accounts to an existing org (new orgs get all of it automatically). Idempotent; never overwrites edits.
  *   pnpm finance:seed --org=al-das
  */
 import "dotenv/config";
 
 import { createClient } from "@supabase/supabase-js";
 
-import { FINANCE_ROLES } from "../lib/auth/permissions";
+import { ACCOUNTING_ROLES, FINANCE_ROLES } from "../lib/auth/permissions";
 
 async function main() {
   const slug = process.argv.find((a) => a.startsWith("--org="))?.slice(6);
@@ -31,9 +31,16 @@ async function main() {
 
   const ref = await admin.rpc("seed_finance_reference", { p_org_id: org.id });
   if (ref.error) throw new Error(ref.error.message);
+  // Phase 20G: the standard close checklist (no owners; they are assigned in the app). Never overwrites an edited step.
+  const steps = await admin.rpc("fin_close_seed_steps", { p_org_id: org.id });
+  if (steps.error) throw new Error(steps.error.message);
+  const rules = await admin.rpc("fin_seed_settlement_rules", { p_org_id: org.id }); // Phase 20C starter rules
+  if (rules.error) throw new Error(rules.error.message);
+  const chart = await admin.rpc("acc_seed_chart", { p_org_id: org.id }); // Phase 22A: entity, groups, ledgers, tax codes
+  if (chart.error) throw new Error(chart.error.message);
   const roles = await admin.rpc("seed_finance_roles", {
     p_org_id: org.id,
-    p_roles: FINANCE_ROLES.map((r) => ({
+    p_roles: [...FINANCE_ROLES, ...ACCOUNTING_ROLES].map((r) => ({
       name: r.name,
       description: r.description,
       permissions: r.permissions,

@@ -1,6 +1,6 @@
 # Sanoflow parity pass (REA capture, 13 Oct 2026)
 
-_Read after `CLAUDE.md`, `docs/01_FEASIBILITY_AND_TEARDOWN.md` and `docs/09_STATUS_AND_ROADMAP.md`. Data files: `docs/audit/sanoflow-surface.json` (declared endpoints and form fields) and `docs/audit/sanoflow-rea-shapes.json` (response shapes)._
+_Read after `CLAUDE.md`, `docs/01_FEASIBILITY_AND_TEARDOWN.md` and `docs/09_STATUS_AND_ROADMAP.md`. Data file: `docs/audit/sanoflow-surface.json`._
 
 ## 1. Why this exists
 
@@ -27,52 +27,60 @@ _Read after `CLAUDE.md`, `docs/01_FEASIBILITY_AND_TEARDOWN.md` and `docs/09_STAT
 
 ## 4. Parity matrix against Pulse `main`
 
-Evidence is a code search of the repo on 13 Oct; confirm each row in Plan Mode before building.
+Evidence is a code search of the repo on 13 Oct, **re-verified against `main` (`dd9eb42`) on 13 Oct** at the start of Phase 20a; the "Pulse today" column below is the corrected version. File references are in §4.1.
 
 | # | Area | Sanoflow has | Pulse today | Priority for Al Das |
 |---|---|---|---|---|
-| G1 | **Migration from Sanoflow** | Exports: contacts, appointments (all / table), enquiries + activity (per pipeline / all), campaign report download, quick replies, labels, tags, pipelines, custom fields, segments | `pnpm import:sanoflow` imports **contacts only** | **P0** (cut-over blocker) |
-| G2 | Flow triggers | `new_message_received`, `whatsapp_flow`, `messaging_window_exit`, drip on segment | 14 triggers incl. appointment events and AI tag; drip FK exists on segments; no message-received, window-exit or WhatsApp-Flow trigger | P1 |
-| G3 | Flow nodes | `update_enquiry_field`, `create_campaign`, payment link node, Meta event node, AI intent router, appointment / enquiry agents, set label | 20 node types; payment links and CAPI exist as integrations but not as nodes; no enquiry-update node; no AI router (copilots are draft-only by design) | P1 (router: P2, must stay inside CLAUDE.md rule 12) |
-| G4 | Question node | validation (number, choice, regex), re-ask, store answer, request contact info | no answer validation; "does not re-ask" is a known gap in docs/09 §2.3 | P1 |
-| G5 | Teams and routing | team auto-reply message, fallback team, per-user max open chats, restricted enquiry view, presence auto-away after N minutes | round-robin and teams exist; none of the five listed | P1 |
-| G6 | Booking capacity | service pre/post buffer, concurrent patients, specialist slot length, multiple bookings per slot, ShowBusy, recurring blocks | per-specialist advisory lock, overrides; no buffers or per-slot capacity | P1 (wrong slots once Unite is the source of truth are expensive) |
-| G7 | Google Calendar | two-way per specialist | read-only ICS feed (Phase 19a) | P2 |
-| G8 | Templates | performance report, retry-on-fail, per-template SMS fallback, TTL, carousel, URL-button mappers, gallery | builder, gallery, sync, positional variables; no performance, carousel, TTL or per-template retry | P2 |
-| G9 | Campaigns | 3 retry rounds, recurring (cron), CSV audience, test send, quota meter | single snapshot audience, no recurring, no A/B (docs/09) | P2 |
-| G10 | Inbox close-with-enquiry | one dialog closes the chat and writes the enquiry (stage, status, lost reason, UTM) | close dialog with category and summary; enquiry is a separate action | P2 |
-| G11 | Inbox extras | forward message / contact, unlink chat from contact, catalogue products, employee call | failed log, AI panel, quick replies, shortcut flows exist; forward and unlink to check | P3 |
-| G12 | Channels | Instagram, Messenger, web chat widget, generic SMS, MM Lite | WhatsApp Cloud API; SMS fallback adapter; Instagram/Messenger still open (19, item 6); no widget; no MM Lite | P2 (widget), P3 (rest) |
-| G13 | Reports | first/last-assign-to-close, AI engaged / closed by AI, user status log, cohort, template rates, Meta ads spend metrics | report registry, funnel, heatmap, ROI, CTWA, WhatsApp cost; check the listed metrics one by one | P2 |
-| G14 | Lead-gen forms, booking page, payment-required booking | plan-gated in Sanoflow, not used by Al Das | not built | P3 |
+| G0 | **Flow CRM nodes (found 13 Oct)** | n/a | **Closed in 20b** (docs/23): the import-time registry is gone; `createFlowDeps` builds the CRM adapters per job (`lib/flow-engine/crm-adapters.ts`), each calling the module service. The recall starter runs | ~~P0~~ done |
+| G1 | **Migration from Sanoflow** | Exports: contacts, appointments (all / table), enquiries + activity (per pipeline / all), campaign report download, quick replies, labels, tags, pipelines, custom fields, segments | **Closed in 20a** (docs/22): `pnpm import:sanoflow:all` imports config (pipelines, stages, enquiry fields, sources), tags, labels, categories, quick replies, contacts, static segments, enquiries, enquiry activity and future appointments. Dynamic segments are reported for rebuilding by hand. Campaign reports go to a read-only campaign archive. Wired into `pnpm reconcile` and `cutover:preflight`. Also added: enquiry tags, a lost-reason pick-list, Sanoflow items on the sync-review screen, and a reminder hold for imported appointments | ~~P0~~ done |
+| G2 | Flow triggers | `new_message_received`, `whatsapp_flow`, `messaging_window_exit`, drip on segment | **Closed in 20b** (docs/23): `message_received` (open conversations, debounced, never on an assigned chat or emergency wording), `window_closing` (`scheduled_jobs`, re-checked at fire time), `wa_flow_completed` (`nfm_reply` answers as variables) and `segment_joined` drip on static segments. The Recurring 200-per-tick cap is unchanged | ~~P1~~ done |
+| G3 | Flow nodes | `update_enquiry_field`, `create_campaign`, payment link node, Meta event node, AI intent router, appointment / enquiry agents, set label | **Closed in 20b** (docs/23): `update_enquiry`, `set_label`, `payment_link` (publish needs `finance.payment_links`), `meta_event` (through `buildCapiEvent`) and a draft-safe `ai_router` (emergency first, closed labels, never writes model text). `start_campaign` deliberately not built | ~~P1~~ done |
+| G4 | Question node | validation (number, choice, regex), re-ask, store answer, request contact info | **Closed in 20b** (docs/23): typed answers (text, number, phone, e-mail, date, pattern), re-ask up to `reask_max`, then the fallback, else the run ends; `save_to` writes a contact field | ~~P1~~ done |
+| G5 | Teams and routing | team auto-reply message, fallback team, per-user max open chats, restricted enquiry view, presence auto-away after N minutes | **Closed in 20c** (docs/24): fallback team, per-member open-conversation limit (capacity-aware round-robin), team office hours and auto-reply (at most once), idle auto-away, restricted enquiry view (`all` / `team` / `own`, RLS and service reads) | ~~P1~~ done |
+| G6 | Booking capacity | service pre/post buffer, concurrent patients, specialist slot length, multiple bookings per slot, ShowBusy, recurring blocks | **Closed in 20c** (docs/25): service buffers and concurrent patients, specialist slot length and bookings per slot, weekly blocks; one SQL rule (`app.slot_conflict`) mirrored by `slotFits`, same lock and signatures; Unite rows flagged, never refused. ShowBusy (greyed-out taken slots) not built | ~~P1~~ done |
+| G7 | Google Calendar | two-way per specialist | **Closed in 20e** (docs/27): Google Calendar busy sync per specialist: Pulse appointments are pushed as private "Busy" events (no patient data), the doctor's busy times become `time_blocks` (source `google`) that booking honours. OFF by default; unverified against live Google | ~~P2~~ done |
+| G8 | Templates | performance report, retry-on-fail, per-template SMS fallback, TTL, carousel, URL-button mappers, gallery | **Closed in 20d** (docs/26): retry on fail (2 retries, idempotent), per-template SMS-fallback switch (narrows the reminder fallback; never marketing), TTL, carousel sending with per-card media, a performance report. URL-button mapping and the gallery were already built | ~~P2~~ done |
+| G9 | Campaigns | 3 retry rounds, recurring (cron), CSV audience, test send, quota meter | **Closed in 20d** (docs/26): recurring campaigns (cron, segment audiences, at most daily, run claimed in SQL) and a monthly message budget claimed before dispatch. Retry rounds, CSV audience and test send were already built. A/B tests not built | ~~P2~~ done |
+| G10 | Inbox close-with-enquiry | one dialog closes the chat and writes the enquiry (stage, status, lost reason, UTM) | **Closed in 20d** (docs/26): the close dialog can create or update the patient's enquiry (stage, status, lost reason, appointment date) in one step; the enquiry is written first | ~~P2~~ done |
+| G11 | Inbox extras | forward message / contact, unlink chat from contact, catalogue products, employee call | Failed log, AI panel, quick replies, shortcut flows and contact merge exist. No forward, unlink, catalogue send or calls; there is only a `catalog_id` setting | P3 |
+| G12 | Channels | Instagram, Messenger, web chat widget, generic SMS, MM Lite | **Partly closed in 20e** (docs/27): website chat widget, Instagram and Messenger (text only, 24 h window, no flows), each OFF by default and unverified against live Meta. Generic HTTP SMS and MM Lite remain open | P2 (widget) done; P3 rest open |
+| G13 | Reports | first/last-assign-to-close, AI engaged / closed by AI, user status log, cohort, template rates, Meta ads spend metrics | **Closed in 20c/20d** (docs/24, docs/26): assignment and presence logs; reports assign-to-close, owner removed, AI engagement ("closed by AI" is reported as closed without a staff reply, rule 12), member status, enquiry cohorts, template performance. Meta ads spend metrics are not built | ~~P2~~ done |
+| G14 | Lead-gen forms, booking page, payment-required booking | plan-gated in Sanoflow, not used by Al Das | Not built. The inbound flow webhook and public API v1 can accept posts from an external form | P3 |
 | — | Billing, plans, Gupshup, Salla, non-Unite HMS | SaaS-only | out of scope (single tenant) | skip |
+
+### 4.1 Evidence for the 13 Oct re-check
+
+- G0: `lib/flow-engine/crm-registry.ts` (registry), `lib/flow-engine/supabase-deps.ts` (`crm: crmPort()` gets the empty port), `lib/flow-engine/executors/crm.ts` (fails closed), `lib/flow-engine/starter-flows.ts` (recall starter uses `create_enquiry`).
+- G2: `lib/flow-engine/types.ts` (trigger list), `lib/flow-engine/triggers.ts` (an inbound message stops after resume / template button), `lib/whatsapp/parse.ts` (`nfm_reply`), `lib/jobs/handlers/flow-recurring.ts` (`.limit(200)`, no paging).
+- G4: `lib/flow-engine/executors/messaging.ts` (question schema), `lib/flow-engine/run.ts` (answer matching, fallback edge).
+- G5: `teams` / `team_members` / `memberships.presence` in `20261008000200_tenancy.sql`; `pick_round_robin_assignee` in `20261008000900_inbox.sql`.
+- G6: `services` / `specialists` / `time_blocks` in `20261009000910_appointments.sql`; `app.assert_slot_free` in `20261012000100_appointment_booking_lock.sql`; `lib/appointments/slots.ts`.
+- G8: `wa_templates.retry_on_fail` in `20261008000800_channels.sql` (unused); `lib/templates/builder.ts` (carousel); `lib/whatsapp/templates.ts` (`button.N`).
+- G9: `20261010000100_campaigns.sql` (retry rounds, csv audience); `lib/campaigns/engine.ts`; `app/(app)/campaigns/actions.ts` (test send); `lib/campaigns/queries.ts` (monthly counter).
+- G10: `app/(app)/inbox/close-dialog.tsx` sends category and summary only.
+- G13: `lib/reports/registry.ts` (9 reports); `conversations` has no assignment history.
+- docs/09 disagreements: §2.3 "CRM nodes are wired" (false, see G0); "no carousel" (authoring is built, sending is not); campaign retries, CSV audience and test send are built.
 
 ## 5. Recommended order
 
 1. **20a Migration completeness (G1).** Without it the clinic loses open enquiries, future appointments and tagging on cut-over day.
-2. **20b Flow parity (G2, G3, G4).** Al Das automations currently call Make through API Action; after Make is retired those become native nodes.
+2. **20b Flow parity (G0, G2, G3, G4).** Start with G0: the CRM adapters must be registered before any native node can replace a Make scenario. Al Das automations currently call Make through API Action; after Make is retired those become native nodes.
 3. **20c Routing and booking capacity (G5, G6).**
 4. **20d Templates and campaigns (G8, G9, G10).**
 5. **20e Reports and channels (G12, G13, G7).**
 
 Prompts: `docs/21_SANOFLOW_PARITY_PROMPTS.md`.
 
-## 6. Response shapes (the data model) — captured 13 Oct
+## 6. Going deeper with REA (local, optional)
 
-`docs/audit/sanoflow-rea-shapes.json` holds the JSON response shapes of 125 Sanoflow data endpoints: 78 with full field paths and types (1,173 fields), 30 that rejected the call without a record id (their `required_params` name the record key), 8 that need a record context (500/403). It was captured from the owner's logged-in browser with read-only GETs (no mutation, AI, export, sync or payment endpoints; at most 3 records per list), and every response was reduced to field paths and types **inside the browser**: no values, names, numbers or message text left the page. Sanoflow's own SaaS billing endpoints are left out.
+REA attaches over the Chrome DevTools Protocol to a browser that **you** start and log into; it cannot run from a cloud session. Use it for the screens that load client-side (flow canvas JSON, campaign detail, report sub-pages, the AI agent settings) when a phase needs exact behaviour.
 
-What the shapes confirm or add to §4:
+```bash
+npx rea-agents@latest setup        # registers the REA MCP server with Claude Code
+google-chrome --remote-debugging-port=9222 --user-data-dir=$HOME/.rea-sanoflow https://app.sanoflow.io/login
+# log in yourself in that window, open the screen you want studied
+```
 
-- **G5 routing (confirmed):** teams carry `auto_assign`, `auto_reply`, `auto_reply_msg`, `fallback_team`, `pipeline_id`, `org_channel_id`, `is_default`; users carry `max_assigned_chats`, `restrict_enquiry_view`, `restrict_inbox_view`, `default_inbox_view`, `is_agent`; the org has an inactivity value (`qUserInactive`).
-- **G6 booking (confirmed):** services carry `apptduration`, `prebuffer`, `postbuffer`, `concurentpatients`, `enableonline`, `requiredpayment`, `price`, `currency`; specialists carry `timeslotduration`, `enable_multiple_bookings`, `max_bookings_per_slot`, `showbusy`, per-location weekly schedules, Arabic name fields and Google Calendar sync fields (`calendar_id`, sync token, webhook id).
-- **Inbox list row** (`OCInbox/ChatQueue`): what one conversation row needs: assignee, team, label + colour, tags, unread count, `is_bot`, `open_chat_window`, `last_inbound_datetime`, `phone_stop_marketing`, language, timezone, nationality, contact-owner agent/team. Use it to check Pulse's inbox query returns the same.
-- **Notifications:** per user and per event, four channels (`email_notif`, `browser_notif`, `sms_notif`, `whatsapp_notif`) in four groups (appointments, enquiries, inbox, other), plus sound settings. Pulse has in-app, e-mail and push; SMS/WhatsApp-to-staff is a new row (P3).
-- **Roles:** a permission matrix per rule with `view_rec`, `manage_rec`, `delete_rec`, `export_rec`. Compare with Pulse's `can()` keys when mapping roles in 20a.
-- **Dynamic segments:** the stored filter is a JSON object keyed by field (`tag_array`, `dob`, `gender`, `birthday` with conditions, `last_interaction_time`, `nationality_id`) with `filterType`/`type`/`dateFrom`/`dateTo`/`values`. The 20a segment report can translate these into Pulse's filter AST instead of listing them for manual rebuild.
-- **Templates:** Meta template components stored as returned by Meta, plus Sanoflow's mapper fields (`all_mappers`, `mapper`, `header_mapper`, `button_mapper`, `button_mapper2`, `mapper_missing`) and a carousel card field.
-- **Campaigns:** daily conversation limit per channel (`current_limit`, `max_daily_conversations_per_business`), monthly campaign quota (`limit_given`/`limit_used`), retry fields (`is_retry`, `retry_count`, `next_retry_time`), recurring (`cron`, `recurring_period`, `next_run_time`).
-- **Security lesson:** Sanoflow returns channel access tokens and users' password-reset tokens to the browser. Pulse must keep doing the opposite (CLAUDE.md rules 9 and 17).
+**Scripted capture:** `node tools/rea-sanoflow.mjs` does the whole pass on your machine. It clones and builds REA if needed, opens a debug Chrome on loopback with its own profile and waits while you log in yourself. It then visits each route and writes `sanoflow-rea-shapes.json` outside the repo: request paths with no query and with id segments collapsed, plus JSON and WebSocket shapes (key paths and types, never values; keys that look like ids, numbers or e-mails are collapsed). The script refuses an `--out` folder inside a git work tree, and it will not write the summary if the file contains anything e-mail- or phone-like. Commit only that summary file, to `docs/audit/`. Delete `raw/` and `chrome-profile/` afterwards: they hold live data and your Sanoflow session.
 
-### Re-running it
-
-`tools/rea-sanoflow.mjs` runs REA (`github.com/saveezirfan0-cloud/rea`, v6.4.0) on a computer: it opens a separate Chrome, waits for you to log in, and records value-free JSON shapes per screen with `rea inspect-web-page --include-json-body-shapes` and `rea analyze-web-bundle`. Use it to fill the 38 endpoints above that need a record id (open one record per screen while it runs). Keep its `raw/` folder outside the repo and delete it afterwards.
+Then in Claude Code: `list_browser_targets` → `inspect_web_page` (DOM, accessibility tree, network metadata, no bodies by default) → `observe_web_session` while you click through a flow edit → `analyze_web_bundle` for any script you select. Keep evidence bundles **outside the repo** (they can hold patient data from the live workspace) and copy only behaviour notes into `docs/audit/`.

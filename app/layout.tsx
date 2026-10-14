@@ -5,6 +5,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 
 import { PwaRuntime } from "@/components/shell/pwa";
 import { Toaster } from "@/components/ui/sonner";
+import { THEME_INIT_SCRIPT } from "@/lib/theme";
 
 import "./globals.css";
 
@@ -21,7 +22,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#1d4f9c",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#1d4f9c" },
+    { media: "(prefers-color-scheme: dark)", color: "#090e12" }, // --background in .dark
+  ],
   // Draw under the notch and let the composer follow the on-screen keyboard (see lib/hooks/use-visual-viewport.ts).
   viewportFit: "cover",
   interactiveWidget: "resizes-content",
@@ -30,6 +34,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Applies the saved Light / Dark / System choice before paint (lib/theme.ts). */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {children}
         <Toaster richColors position="top-right" />

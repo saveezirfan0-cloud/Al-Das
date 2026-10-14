@@ -67,6 +67,11 @@ export const appointmentSettingsSchema = z.object({
       rescheduled: templateId,
     })
     .default({ reminder: null, confirmed: null, cancelled: null, rescheduled: null }),
+  /**
+   * Appointments imported from Sanoflow (source 'import') get reminders only once this is on: turn it on
+   * after Sanoflow's reminders are off and the setup is tested. The 5-minute sweep then schedules them.
+   */
+  import_reminders_enabled: z.boolean().default(false),
   /** Parallel-run safety: reminders go only to contacts whose phone is in reminder_test_numbers. */
   reminder_test_mode: z.boolean().default(false),
   reminder_test_numbers: z

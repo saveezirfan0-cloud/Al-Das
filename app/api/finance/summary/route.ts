@@ -25,9 +25,9 @@ export async function GET(req: Request) {
     .toUpperCase();
 
   let q = (await createClient())
-    .from("v_fin_monthly_summary")
+    .from("v_fin_monthly_measures")
     .select(
-      "month, branch_code, generated, claimed, remitted, rejected, outstanding, self_pay_collected",
+      "month, branch_code, generated, claimed, accepted, paid_allocated, remitted, rejected, outstanding, self_pay_collected",
     )
     .gte("month", `${from}-01`)
     .lte("month", `${to}-01`)
@@ -41,7 +41,7 @@ export async function GET(req: Request) {
     orgId: member.orgId,
     userId: member.userId,
     action: "finance.summary.exported",
-    entity: "v_fin_monthly_summary",
+    entity: "v_fin_monthly_measures",
     diff: { from, to, branch: branch || null, rows: data?.length ?? 0 },
   });
   await recordExport(createAdminClient(), member, {

@@ -53,6 +53,7 @@ import {
 } from "@/lib/flow-engine/catalog";
 import { hasErrors, validateGraph, type GraphIssue } from "@/lib/flow-engine/graph";
 import type { FlowGraph, NodeType } from "@/lib/flow-engine/types";
+import { useIsDark } from "@/lib/hooks/use-is-dark";
 
 import { publishFlow, saveFlowDraft, setFlowStatus } from "../actions";
 import { markAiFlowReviewed } from "../ai-actions";
@@ -75,8 +76,16 @@ export type BuilderLookups = {
   teams: Array<{ id: string; name: string }>;
   people: Array<{ id: string; name: string }>;
   flows: Array<{ id: string; name: string; published: boolean }>;
-  segments: Array<{ id: string; name: string }>;
+  segments: Array<{ id: string; name: string; drip_flow_id?: string | null }>;
   variables: string[];
+  /** Phase 20b: what the CRM / conversation nodes can point at. */
+  pipelines?: Array<{ id: string; name: string; stages: Array<{ id: string; name: string }> }>;
+  labels?: Array<{ id: string; name: string }>;
+  lostReasons?: string[];
+  enquiryFields?: Array<{ key: string; label: string }>;
+  services?: Array<{ id: string; name: string }>;
+  specialists?: Array<{ id: string; name: string }>;
+  locations?: Array<{ id: string; name: string }>;
 };
 
 export type BuilderFlow = {
@@ -167,6 +176,7 @@ function Builder({
 }) {
   const router = useRouter();
   const rf = useReactFlow();
+  const isDark = useIsDark();
   const initial = useMemo(() => fromGraph(flow.graph), [flow.graph]);
   const [nodes, setNodes] = useState<Node[]>(initial.nodes);
   const [edges, setEdges] = useState<Edge[]>(initial.edges);
@@ -429,7 +439,7 @@ function Builder({
         <span className="text-muted-foreground text-xs">
           {flow.version > 0 ? `v${flow.version} published` : "Never published"}
         </span>
-        {dirty && <span className="text-xs text-amber-600">Unsaved changes</span>}
+        {dirty && <span className="text-xs text-amber-600 dark:text-amber-400">Unsaved changes</span>}
         <div className="ml-auto flex flex-wrap items-center gap-1.5">
           <Button
             variant="ghost"
@@ -618,7 +628,7 @@ function Builder({
             minZoom={0.2}
             maxZoom={1.75}
             deleteKeyCode={["Backspace", "Delete"]}
-            colorMode="system"
+            colorMode={isDark ? "dark" : "light"}
             proOptions={{ hideAttribution: true }}
           >
             <Background />

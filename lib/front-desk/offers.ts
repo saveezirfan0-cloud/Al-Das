@@ -1,5 +1,6 @@
 import "server-only";
 
+import { intervalHasPlace } from "@/lib/appointments/availability";
 import { buildAppointmentTemplateValues } from "@/lib/appointments/reminders";
 import { syncAppointmentReminders } from "@/lib/appointments/service";
 import { addTimelineEvent } from "@/lib/contacts/timeline";
@@ -38,29 +39,19 @@ export type FreedSlotResult =
   | { offered: number; failed: number; skipped?: undefined }
   | { offered: 0; failed: 0; skipped: SlotOfferSkip };
 
+/**
+ * Is the freed slot already gone (rebooked, blocked, or no place left)? The same rule as the slot list and
+ * the SQL re-check (lib/appointments/slots.ts slotFits); accept_slot_offer checks again under the lock.
+ */
 async function slotIsBusy(admin: AdminClient, orgId: string, slot: FreedSlot): Promise<boolean> {
-  const [{ data: appts }, { data: blocks }] = await Promise.all([
-    admin
-      .from("appointments")
-      .select("id")
-      .eq("org_id", orgId)
-      .eq("specialist_id", slot.specialist_id)
-      .in("status", ["awaiting", "confirmed", "completed"])
-      .lt("starts_at", slot.ends_at)
-      .gt("ends_at", slot.starts_at)
-      .limit(1),
-    admin
-      .from("time_blocks")
-      .select("id, location_id")
-      .eq("org_id", orgId)
-      .eq("specialist_id", slot.specialist_id)
-      .lt("starts_at", slot.ends_at)
-      .gt("ends_at", slot.starts_at),
-  ]);
-  return (
-    (appts?.length ?? 0) > 0 ||
-    (blocks ?? []).some((b) => !b.location_id || b.location_id === slot.location_id)
-  );
+  return !(await intervalHasPlace(admin, {
+    orgId,
+    specialistId: slot.specialist_id,
+    locationId: slot.location_id,
+    serviceId: slot.service_id,
+    start: new Date(slot.starts_at),
+    end: new Date(slot.ends_at),
+  }));
 }
 
 async function loadFits(
@@ -237,7 +228,12 @@ async function createAndSendOffer(
       admin.from("specialists").select("name").eq("id", slot.specialist_id).maybeSingle(),
       admin.from("locations").select("name, timezone").eq("id", slot.location_id).maybeSingle(),
       admin.from("services").select("name").eq("id", serviceId).maybeSingle(),
-      admin.from("channels").select("id, waba_id").eq("org_id", o.orgId).eq("status", "active"),
+      admin
+        .from("channels")
+        .select("id, waba_id")
+        .eq("org_id", o.orgId)
+        .eq("type", "whatsapp")
+        .eq("status", "active"),
     ]);
 
   const templateId = settings.offer_template_id;
