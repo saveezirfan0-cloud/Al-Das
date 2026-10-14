@@ -427,7 +427,9 @@ export function Composer({
           </span>
         )}
         {mode === "chat" && selected.contact.stop_marketing && (
-          <span className="ml-auto text-xs text-amber-700 dark:text-amber-300">Opted out of marketing</span>
+          <span className="ml-auto text-xs text-amber-700 dark:text-amber-300">
+            Opted out of marketing
+          </span>
         )}
       </div>
 
@@ -528,7 +530,8 @@ export function Composer({
           }
           className={cn(
             "w-full resize-none rounded-md border px-3 py-2 text-base outline-none focus-visible:ring-2 md:text-sm",
-            mode === "comment" && "border-amber-300 dark:border-amber-500/30 bg-amber-50/60 dark:bg-amber-950/20",
+            mode === "comment" &&
+              "border-amber-300 dark:border-amber-500/30 bg-amber-50/60 dark:bg-amber-950/20",
           )}
           aria-label={mode === "comment" ? "Internal note" : "Message"}
           dir="auto"
@@ -723,7 +726,11 @@ export function Composer({
         />
       )}
       {extra === "product" && (
-        <ProductDialog open onOpenChange={(o) => !o && setExtra(null)} conversationId={selected.id} />
+        <ProductDialog
+          open
+          onOpenChange={(o) => !o && setExtra(null)}
+          conversationId={selected.id}
+        />
       )}
       <TemplatePicker
         open={templateOpen}

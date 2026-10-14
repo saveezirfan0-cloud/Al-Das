@@ -2,11 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import {
-  COMPOSING_IDLE_MS,
-  othersComposing,
-  presenceChannelName,
-} from "@/lib/inbox/presence";
+import { COMPOSING_IDLE_MS, othersComposing, presenceChannelName } from "@/lib/inbox/presence";
 import { createClient } from "@/lib/supabase/client";
 
 type Channel = ReturnType<ReturnType<typeof createClient>["channel"]>;
@@ -40,7 +36,8 @@ export function useReplyPresence(orgId: string, conversationId: string, me: stri
     const sync = () => setOthers(othersComposing(channel.presenceState(), me, Date.now()));
     channel.on("presence", { event: "sync" }, sync);
     channel.subscribe((status) => {
-      if (status === "SUBSCRIBED") void channel.track({ user_id: me, composing: false, at: Date.now() });
+      if (status === "SUBSCRIBED")
+        void channel.track({ user_id: me, composing: false, at: Date.now() });
     });
     // Stale flags (a closed laptop) fall away even when nobody else changes anything.
     const tick = setInterval(sync, 5_000);

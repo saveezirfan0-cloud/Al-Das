@@ -814,7 +814,9 @@ export function Thread(props: InboxProps & { selected: ConversationDetail; onBac
           timezone={props.timezone}
           me={props.me.userId}
           people={people}
-          branchName={selected.location_id ? (props.branchNames[selected.location_id] ?? null) : null}
+          branchName={
+            selected.location_id ? (props.branchNames[selected.location_id] ?? null) : null
+          }
         />
       )}
       <CloseDialog

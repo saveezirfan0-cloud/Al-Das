@@ -34,8 +34,7 @@ import { TaskError, type TaskCtx } from "@/lib/tasks/service";
  */
 
 export type PartsResult<T = undefined> =
-  | { ok: true; message?: string; data: T }
-  | { ok: false; error: string };
+  { ok: true; message?: string; data: T } | { ok: false; error: string };
 
 const uuid = z.string().uuid();
 
@@ -66,7 +65,13 @@ async function gate(
 
 export type TaskParts = {
   checklist: ChecklistLine[];
-  comments: Array<{ id: string; author: string; author_id: string | null; body: string; created_at: string }>;
+  comments: Array<{
+    id: string;
+    author: string;
+    author_id: string | null;
+    body: string;
+    created_at: string;
+  }>;
   attachments: TaskAttachment[];
 };
 
@@ -82,7 +87,9 @@ export async function loadTaskPartsAction(taskId: string): Promise<PartsResult<T
     .maybeSingle();
   if (!task) return fail("This task no longer exists.");
   const parts = await loadTaskParts(g.ctx.admin, g.ctx.orgId, taskId);
-  const authorIds = [...new Set(parts.comments.map((c) => c.author_id).filter((x): x is string => !!x))];
+  const authorIds = [
+    ...new Set(parts.comments.map((c) => c.author_id).filter((x): x is string => !!x)),
+  ];
   const { data: profiles } = authorIds.length
     ? await g.ctx.admin.from("profiles").select("id, first_name, last_name").in("id", authorIds)
     : { data: [] as Array<{ id: string; first_name: string; last_name: string }> };
@@ -140,7 +147,10 @@ export async function setChecklistItemDoneAction(
   }
 }
 
-export async function removeChecklistItemAction(taskId: string, itemId: string): Promise<PartsResult> {
+export async function removeChecklistItemAction(
+  taskId: string,
+  itemId: string,
+): Promise<PartsResult> {
   const g = await gate("tasks.manage", taskId);
   if ("error" in g) return fail(g.error);
   if (!uuid.safeParse(itemId).success) return fail("Invalid item.");
@@ -197,7 +207,10 @@ export async function attachTaskFileAction(taskId: string, assetId: string): Pro
   }
 }
 
-export async function detachTaskFileAction(taskId: string, attachmentId: string): Promise<PartsResult> {
+export async function detachTaskFileAction(
+  taskId: string,
+  attachmentId: string,
+): Promise<PartsResult> {
   const g = await gate("tasks.manage", taskId);
   if ("error" in g) return fail(g.error);
   if (!uuid.safeParse(attachmentId).success) return fail("Invalid file.");
@@ -231,7 +244,9 @@ export async function listChecklistTemplates(): Promise<PartsResult<ChecklistTem
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("task_checklist_templates")
-    .select("id, location_id, name, kind, items, generate_at, due_time, assignee_id, team_id, active")
+    .select(
+      "id, location_id, name, kind, items, generate_at, due_time, assignee_id, team_id, active",
+    )
     .eq("org_id", member.orgId)
     .order("name")
     .limit(200);
@@ -243,7 +258,9 @@ export async function listChecklistTemplates(): Promise<PartsResult<ChecklistTem
       .filter((t) => branchAllowed(member, t.location_id))
       .map((t) => ({
         ...t,
-        items: Array.isArray(t.items) ? t.items.filter((i): i is string => typeof i === "string") : [],
+        items: Array.isArray(t.items)
+          ? t.items.filter((i): i is string => typeof i === "string")
+          : [],
         generate_at: normaliseTime(t.generate_at) ?? "06:00",
         due_time: normaliseTime(t.due_time) ?? "09:00",
       })),
@@ -345,5 +362,9 @@ export async function deleteChecklistTemplate(id: string): Promise<PartsResult> 
     entityId: id,
   });
   revalidatePath("/tasks");
-  return { ok: true, message: "Checklist deleted. Lists already made today stay.", data: undefined };
+  return {
+    ok: true,
+    message: "Checklist deleted. Lists already made today stay.",
+    data: undefined,
+  };
 }

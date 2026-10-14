@@ -219,31 +219,34 @@ export async function getContact(id: string): Promise<ActionResult<ContactDetail
   const member = await requirePerm("contacts.view");
   if (!uuid.safeParse(id).success) return fail("Invalid contact id");
   const admin = createAdminClient();
-  const [rows, { data: phones }, { data: segs }, { data: events }, campaignRows] = await Promise.all([
-    fetchContactsByIds(admin, member.orgId, [id]),
-    admin
-      .from("contact_phones")
-      .select("id, phone_e164, label")
-      .eq("contact_id", id)
-      .order("created_at"),
-    admin.from("segment_members").select("segments(id, name, kind)").eq("contact_id", id),
-    admin
-      .from("timeline_events")
-      .select("id, type, actor_type, actor_id, payload, at")
-      .eq("org_id", member.orgId)
-      .eq("contact_id", id)
-      .order("at", { ascending: false })
-      .limit(200),
-    can(member, "campaigns.view")
-      ? admin
-          .from("campaign_recipients")
-          .select("id, campaign_id, status, skip_reason, sent_at, replied_at, created_at, campaigns(name)")
-          .eq("org_id", member.orgId)
-          .eq("contact_id", id)
-          .order("created_at", { ascending: false })
-          .limit(50)
-      : Promise.resolve({ data: [] }),
-  ]);
+  const [rows, { data: phones }, { data: segs }, { data: events }, campaignRows] =
+    await Promise.all([
+      fetchContactsByIds(admin, member.orgId, [id]),
+      admin
+        .from("contact_phones")
+        .select("id, phone_e164, label")
+        .eq("contact_id", id)
+        .order("created_at"),
+      admin.from("segment_members").select("segments(id, name, kind)").eq("contact_id", id),
+      admin
+        .from("timeline_events")
+        .select("id, type, actor_type, actor_id, payload, at")
+        .eq("org_id", member.orgId)
+        .eq("contact_id", id)
+        .order("at", { ascending: false })
+        .limit(200),
+      can(member, "campaigns.view")
+        ? admin
+            .from("campaign_recipients")
+            .select(
+              "id, campaign_id, status, skip_reason, sent_at, replied_at, created_at, campaigns(name)",
+            )
+            .eq("org_id", member.orgId)
+            .eq("contact_id", id)
+            .order("created_at", { ascending: false })
+            .limit(50)
+        : Promise.resolve({ data: [] }),
+    ]);
   const contact = rows[0];
   if (!contact || contact.deleted_at) return fail("Contact not found");
   await recordAccess(admin, member, { entity: "contact", entityId: id, action: "view" });
@@ -462,10 +465,7 @@ export async function updateContact(id: string, input: unknown): Promise<ActionR
  * Staff switch: never ask this person for a Google review (a patient who has passed away, a placeholder record, someone who asked
  * not to be asked). It is the only per-person filter on review requests besides marketing consent.
  */
-export async function setNoReviewRequests(
-  id: string,
-  blocked: boolean,
-): Promise<ActionResult> {
+export async function setNoReviewRequests(id: string, blocked: boolean): Promise<ActionResult> {
   const member = await requirePerm("contacts.manage");
   if (!uuid.safeParse(id).success) return fail("Invalid contact id");
   const admin = createAdminClient();
@@ -494,7 +494,9 @@ export async function setNoReviewRequests(
   revalidatePath("/contacts");
   return {
     ok: true,
-    message: blocked ? "This person will not be asked for a review." : "Review requests allowed again.",
+    message: blocked
+      ? "This person will not be asked for a review."
+      : "Review requests allowed again.",
   };
 }
 
@@ -546,14 +548,12 @@ export async function addContactPhone(
   const [c] = await fetchContactsByIds(admin, member.orgId, [contactId]);
   if (!c) return fail("Contact not found");
   if (c.phone_e164 === norm.e164) return fail("That is already the primary phone");
-  const { error } = await admin
-    .from("contact_phones")
-    .insert({
-      org_id: member.orgId,
-      contact_id: contactId,
-      phone_e164: norm.e164,
-      label: label?.trim() || null,
-    });
+  const { error } = await admin.from("contact_phones").insert({
+    org_id: member.orgId,
+    contact_id: contactId,
+    phone_e164: norm.e164,
+    label: label?.trim() || null,
+  });
   if (error)
     return fail(
       error.code === "23505" ? "That phone is already listed." : "Could not add the phone.",
@@ -681,16 +681,14 @@ export async function setContactTags(contactId: string, tagIds: string[]): Promi
   const add = [...want].filter((t) => !have.has(t));
   const remove = [...have].filter((t) => !want.has(t));
   if (add.length) {
-    const { error } = await admin
-      .from("contact_tags")
-      .insert(
-        add.map((tag_id) => ({
-          org_id: member.orgId,
-          contact_id: contactId,
-          tag_id,
-          added_by: member.userId,
-        })),
-      );
+    const { error } = await admin.from("contact_tags").insert(
+      add.map((tag_id) => ({
+        org_id: member.orgId,
+        contact_id: contactId,
+        tag_id,
+        added_by: member.userId,
+      })),
+    );
     if (error) return fail("Could not add the tags.");
   }
   if (remove.length)
@@ -1126,17 +1124,15 @@ export async function saveGridPrefs(gridKey: string, prefs: GridPrefs): Promise<
   const parsed = gridPrefsSchema.safeParse(prefs);
   if (!parsed.success || !/^[a-z_]+$/.test(gridKey)) return fail("Invalid preferences");
   const admin = createAdminClient();
-  const { error } = await admin
-    .from("user_grid_prefs")
-    .upsert(
-      {
-        org_id: member.orgId,
-        user_id: member.userId,
-        grid_key: gridKey,
-        prefs: parsed.data as unknown as JsonObject,
-      },
-      { onConflict: "org_id,user_id,grid_key" },
-    );
+  const { error } = await admin.from("user_grid_prefs").upsert(
+    {
+      org_id: member.orgId,
+      user_id: member.userId,
+      grid_key: gridKey,
+      prefs: parsed.data as unknown as JsonObject,
+    },
+    { onConflict: "org_id,user_id,grid_key" },
+  );
   if (error) return fail("Could not save the layout.");
   return { ok: true };
 }

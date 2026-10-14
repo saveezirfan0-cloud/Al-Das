@@ -77,7 +77,9 @@ export function SnoozeMenu({
           {SNOOZE_PRESETS.map((p) => (
             <DropdownMenuItem
               key={p}
-              onSelect={() => run(() => snoozeConversation({ conversation_id: conversationId, preset: p }))}
+              onSelect={() =>
+                run(() => snoozeConversation({ conversation_id: conversationId, preset: p }))
+              }
             >
               {SNOOZE_PRESET_LABELS[p]}
             </DropdownMenuItem>
@@ -105,7 +107,8 @@ export function SnoozeMenu({
           <DialogHeader>
             <DialogTitle>Snooze until</DialogTitle>
             <DialogDescription>
-              The chat moves to Snoozed and comes back at this time, or as soon as the patient writes.
+              The chat moves to Snoozed and comes back at this time, or as soon as the patient
+              writes.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-1.5">

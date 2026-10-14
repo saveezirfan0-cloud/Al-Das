@@ -21,9 +21,7 @@ export function parseChecklistLines(text: string): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
   for (const raw of text.split(/\r?\n/)) {
-    const line = raw
-      .replace(/^\s*(?:[-*•]|\d+[.)]|\[\s?[xX]?\s?\])\s*/, "")
-      .trim();
+    const line = raw.replace(/^\s*(?:[-*•]|\d+[.)]|\[\s?[xX]?\s?\])\s*/, "").trim();
     if (!line) continue;
     const key = line.toLowerCase();
     if (seen.has(key)) continue;

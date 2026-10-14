@@ -51,7 +51,12 @@ export function syncStatus(
 }
 
 /** Board order: open work first by priority, then due time. */
-export const PRIORITY_RANK: Record<TaskPriority, number> = { urgent: 0, high: 1, normal: 2, low: 3 };
+export const PRIORITY_RANK: Record<TaskPriority, number> = {
+  urgent: 0,
+  high: 1,
+  normal: 2,
+  low: 3,
+};
 
 export function compareForBoard(
   a: { priority: string; due_at: string },

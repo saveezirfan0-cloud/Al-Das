@@ -188,7 +188,8 @@ export function ContactDrawer({
                       Owner:{" "}
                       <span className="text-foreground">
                         {contact.owner_id
-                          ? (bootstrap.users.find((u) => u.id === contact.owner_id)?.label ?? "Former member")
+                          ? (bootstrap.users.find((u) => u.id === contact.owner_id)?.label ??
+                            "Former member")
                           : "Nobody yet"}
                       </span>
                     </span>
@@ -196,7 +197,8 @@ export function ContactDrawer({
                       Home branch:{" "}
                       <span className="text-foreground">
                         {contact.location_id
-                          ? (bootstrap.branches.find((b) => b.id === contact.location_id)?.name ?? "Other branch")
+                          ? (bootstrap.branches.find((b) => b.id === contact.location_id)?.name ??
+                            "Other branch")
                           : "Not set"}
                       </span>
                     </span>

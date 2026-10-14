@@ -11,6 +11,7 @@ import type {
 import {
   Bookmark,
   Download,
+  FileUp,
   Filter as FilterIcon,
   KanbanSquare,
   Plus,
@@ -58,6 +59,7 @@ import {
 import { BulkBar } from "./bulk-bar";
 import { buildEnquiryColumns } from "./enquiries-grid";
 import { EnquiryDrawer } from "./enquiry-drawer";
+import { EnquiryImportDialog } from "./import-dialog";
 import { EnquiryTasks } from "./enquiry-tasks";
 import { KanbanBoard } from "./kanban-board";
 import { NewEnquiryDialog, type NewEnquiryPreset } from "./new-enquiry-dialog";
@@ -74,6 +76,7 @@ const SCOPES: Array<{ key: EnquiryScope; label: string }> = [
 
 export function EnquiriesWorkspace({ bootstrap }: { bootstrap: EnquiriesBootstrap }) {
   const [confirm, confirmDialog] = useConfirm();
+  const [importOpen, setImportOpen] = React.useState(false);
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -460,6 +463,15 @@ export function EnquiriesWorkspace({ bootstrap }: { bootstrap: EnquiriesBootstra
   return (
     <div className="flex h-full min-h-0 flex-col gap-4">
       {confirmDialog}
+      {bootstrap.can.manage && (
+        <EnquiryImportDialog
+          open={importOpen}
+          onOpenChange={setImportOpen}
+          pipelines={bootstrap.pipelines}
+          defaultPipelineId={pipeline?.id ?? null}
+          onImported={reload}
+        />
+      )}
       <PageHeader
         title="Enquiries"
         description="Pipelines for everything between a first message and a booked patient."
@@ -467,6 +479,16 @@ export function EnquiriesWorkspace({ bootstrap }: { bootstrap: EnquiriesBootstra
         {bootstrap.can.export && (
           <Button variant="outline" size="sm" onClick={() => void exportCsv()}>
             <Download /> Export
+          </Button>
+        )}
+        {bootstrap.can.manage && (
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={live.length === 0}
+            onClick={() => setImportOpen(true)}
+          >
+            <FileUp /> Import CSV
           </Button>
         )}
         {bootstrap.can.manage && (

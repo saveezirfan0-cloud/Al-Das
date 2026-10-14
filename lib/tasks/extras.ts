@@ -100,7 +100,11 @@ export async function loadTaskParts(
 // Checklist lines
 // ---------------------------------------------------------------------------
 
-export async function addChecklistLine(ctx: TaskCtx, taskId: string, title: string): Promise<string> {
+export async function addChecklistLine(
+  ctx: TaskCtx,
+  taskId: string,
+  title: string,
+): Promise<string> {
   await liveTask(ctx.admin, ctx.orgId, taskId);
   const { data: last } = await ctx.admin
     .from("task_checklist_items")
@@ -162,7 +166,11 @@ export async function setChecklistLineDone(
   });
 }
 
-export async function removeChecklistLine(ctx: TaskCtx, taskId: string, lineId: string): Promise<void> {
+export async function removeChecklistLine(
+  ctx: TaskCtx,
+  taskId: string,
+  lineId: string,
+): Promise<void> {
   await liveTask(ctx.admin, ctx.orgId, taskId);
   const { error } = await ctx.admin
     .from("task_checklist_items")
@@ -242,7 +250,11 @@ export async function addTaskComment(
 // Attachments (Media Library references)
 // ---------------------------------------------------------------------------
 
-export async function attachLibraryFile(ctx: TaskCtx, taskId: string, assetId: string): Promise<void> {
+export async function attachLibraryFile(
+  ctx: TaskCtx,
+  taskId: string,
+  assetId: string,
+): Promise<void> {
   await liveTask(ctx.admin, ctx.orgId, taskId);
   const { data: asset } = await ctx.admin
     .from("media_assets")
@@ -250,17 +262,20 @@ export async function attachLibraryFile(ctx: TaskCtx, taskId: string, assetId: s
     .eq("org_id", ctx.orgId)
     .eq("id", assetId)
     .maybeSingle();
-  if (!asset || asset.status !== "ready") throw new TaskError("That library file no longer exists.");
+  if (!asset || asset.status !== "ready")
+    throw new TaskError("That library file no longer exists.");
   if (asset.scan_status === "infected") throw new TaskError("The malware scan blocked this file.");
   const { count } = await ctx.admin
     .from("task_attachments")
     .select("id", { count: "exact", head: true })
     .eq("task_id", taskId);
   if ((count ?? 0) >= 20) throw new TaskError("A task can have at most 20 files.");
-  const { error } = await ctx.admin.from("task_attachments").upsert(
-    { org_id: ctx.orgId, task_id: taskId, media_asset_id: assetId, added_by: ctx.userId },
-    { onConflict: "task_id,media_asset_id", ignoreDuplicates: true },
-  );
+  const { error } = await ctx.admin
+    .from("task_attachments")
+    .upsert(
+      { org_id: ctx.orgId, task_id: taskId, media_asset_id: assetId, added_by: ctx.userId },
+      { onConflict: "task_id,media_asset_id", ignoreDuplicates: true },
+    );
   if (error) throw new TaskError("Could not attach the file.");
   await recordAudit(ctx.admin, {
     orgId: ctx.orgId,
@@ -272,7 +287,11 @@ export async function attachLibraryFile(ctx: TaskCtx, taskId: string, assetId: s
   });
 }
 
-export async function detachLibraryFile(ctx: TaskCtx, taskId: string, attachmentId: string): Promise<void> {
+export async function detachLibraryFile(
+  ctx: TaskCtx,
+  taskId: string,
+  attachmentId: string,
+): Promise<void> {
   await liveTask(ctx.admin, ctx.orgId, taskId);
   const { error } = await ctx.admin
     .from("task_attachments")

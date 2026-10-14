@@ -29,8 +29,7 @@ import { TASK_PRIORITIES } from "@/lib/tasks/status";
  */
 
 export type WorkResult<T = undefined> =
-  | { ok: true; message?: string; data: T }
-  | { ok: false; error: string };
+  { ok: true; message?: string; data: T } | { ok: false; error: string };
 
 const uuid = z.string().uuid();
 const MAX_BULK = 100;
@@ -44,7 +43,9 @@ async function visibleConversations(orgId: string, ids: string[]) {
   const supabase = await createClient();
   const { data } = await supabase
     .from("conversations")
-    .select("id, status, contact_id, location_id, contacts(first_name, last_name, wa_profile_name, phone_e164)")
+    .select(
+      "id, status, contact_id, location_id, contacts(first_name, last_name, wa_profile_name, phone_e164)",
+    )
     .eq("org_id", orgId)
     .in("id", ids);
   return data ?? [];
@@ -92,7 +93,11 @@ export async function snoozeConversation(
     diff: { until: until.toISOString() },
   });
   revalidatePath("/inbox");
-  return { ok: true, message: "Snoozed. It comes back on its own.", data: { until: until.toISOString() } };
+  return {
+    ok: true,
+    message: "Snoozed. It comes back on its own.",
+    data: { until: until.toISOString() },
+  };
 }
 
 export async function unsnoozeConversation(conversationId: string): Promise<WorkResult> {
@@ -186,9 +191,13 @@ export async function bulkCloseConversations(
   const { data: org } = await admin.from("orgs").select("settings").eq("id", member.orgId).single();
   const settings = readInboxSettings(org?.settings);
   if (settings.require_category_on_close || settings.require_summary_on_close)
-    return fail("Your workspace asks for a category or summary on close: close these one at a time.");
+    return fail(
+      "Your workspace asks for a category or summary on close: close these one at a time.",
+    );
   const ids = [...new Set(parsed.data.ids)];
-  const visible = (await visibleConversations(member.orgId, ids)).filter((c) => c.status !== "closed");
+  const visible = (await visibleConversations(member.orgId, ids)).filter(
+    (c) => c.status !== "closed",
+  );
   let done = 0;
   for (const c of visible) {
     const ok = await closeConversationRecord(admin, {
@@ -242,7 +251,8 @@ export async function searchMessageText(
   input: z.input<typeof searchSchema>,
 ): Promise<WorkResult<{ hits: MessageHit[] }>> {
   const member = await requireMember();
-  if (!canAny(member, ["inbox.send", "inbox.view_all"])) return fail("You don't have inbox access.");
+  if (!canAny(member, ["inbox.send", "inbox.view_all"]))
+    return fail("You don't have inbox access.");
   const parsed = searchSchema.safeParse(input);
   if (!parsed.success) return fail("Type at least 3 characters.");
   const supabase = await createClient();
@@ -301,7 +311,8 @@ export async function createTaskFromConversation(
   input: z.input<typeof chatTaskSchema>,
 ): Promise<WorkResult<{ id: string }>> {
   const member = await requirePerm("tasks.manage");
-  if (!canAny(member, ["inbox.send", "inbox.view_all"])) return fail("You don't have inbox access.");
+  if (!canAny(member, ["inbox.send", "inbox.view_all"]))
+    return fail("You don't have inbox access.");
   const parsed = chatTaskSchema.safeParse(input);
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid task");
   const d = parsed.data;
@@ -368,7 +379,10 @@ export async function saveFirstResponseTargets(
     action: "inbox.settings_updated",
     entity: "org",
     entityId: member.orgId,
-    diff: { first_response_amber_minutes: t.amberMinutes, first_response_red_minutes: t.redMinutes },
+    diff: {
+      first_response_amber_minutes: t.amberMinutes,
+      first_response_red_minutes: t.redMinutes,
+    },
   });
   revalidatePath("/inbox");
   revalidatePath("/settings/inbox");

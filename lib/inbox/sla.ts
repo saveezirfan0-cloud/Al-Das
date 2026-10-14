@@ -34,7 +34,13 @@ export function waitingSince(c: WaitingConversation): Date | null {
 export function normaliseThresholds(t: Partial<SlaThresholds> | null | undefined): SlaThresholds {
   const amber = Number(t?.amberMinutes);
   const red = Number(t?.redMinutes);
-  if (!Number.isInteger(amber) || !Number.isInteger(red) || amber < 1 || red <= amber || red > 7 * 24 * 60)
+  if (
+    !Number.isInteger(amber) ||
+    !Number.isInteger(red) ||
+    amber < 1 ||
+    red <= amber ||
+    red > 7 * 24 * 60
+  )
     return DEFAULT_SLA_THRESHOLDS;
   return { amberMinutes: amber, redMinutes: red };
 }
@@ -51,7 +57,8 @@ export function firstResponse(
   const waitingMs = Math.max(0, now.getTime() - since.getTime());
   const t = normaliseThresholds(thresholds);
   const minutes = waitingMs / 60_000;
-  const level: SlaLevel = minutes >= t.redMinutes ? "red" : minutes >= t.amberMinutes ? "amber" : "ok";
+  const level: SlaLevel =
+    minutes >= t.redMinutes ? "red" : minutes >= t.amberMinutes ? "amber" : "ok";
   return { waitingMs, level };
 }
 

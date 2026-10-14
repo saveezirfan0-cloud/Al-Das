@@ -35,7 +35,8 @@ export function parseHistoryCursor(raw: string | null | undefined): Cursor | nul
   if (bar < 0) return null;
   const at = new Date(raw.slice(0, bar)).getTime();
   const key = raw.slice(bar + 1);
-  if (Number.isNaN(at) || !/^(message|appointment|enquiry|task|note):[0-9a-f-]{36}$/i.test(key)) return null;
+  if (Number.isNaN(at) || !/^(message|appointment|enquiry|task|note):[0-9a-f-]{36}$/i.test(key))
+    return null;
   return { at, key };
 }
 
@@ -83,5 +84,8 @@ export function mergeHistory(
   const unique = all.filter((i) => (seen.has(keyOf(i)) ? false : (seen.add(keyOf(i)), true)));
   const page = unique.slice(0, limit);
   const more = unique.length > limit || sources.some((s) => s.full);
-  return { items: page, nextCursor: more && page.length ? historyCursor(page[page.length - 1]) : null };
+  return {
+    items: page,
+    nextCursor: more && page.length ? historyCursor(page[page.length - 1]) : null,
+  };
 }

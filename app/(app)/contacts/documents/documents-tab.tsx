@@ -65,8 +65,10 @@ const ImageEditorDialog = dynamic(
 );
 
 const EXPIRY_CLASS: Record<string, string> = {
-  expired: "border-red-300 dark:border-red-500/30 bg-red-50 text-red-800 dark:bg-red-950/40 dark:text-red-200",
-  expiring: "border-amber-300 dark:border-amber-500/30 bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200",
+  expired:
+    "border-red-300 dark:border-red-500/30 bg-red-50 text-red-800 dark:bg-red-950/40 dark:text-red-200",
+  expiring:
+    "border-amber-300 dark:border-amber-500/30 bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200",
 };
 
 function whenLabel(iso: string, tz: string): string {

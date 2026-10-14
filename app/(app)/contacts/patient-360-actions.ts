@@ -14,7 +14,12 @@ import { STATUS_LABELS } from "@/lib/appointments/status";
 import { recordAccess } from "@/lib/security/access-log";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { TASK_PRIORITY_LABELS, TASK_STATUS_LABELS, type TaskPriority, type TaskStatus } from "@/lib/tasks/status";
+import {
+  TASK_PRIORITY_LABELS,
+  TASK_STATUS_LABELS,
+  type TaskPriority,
+  type TaskStatus,
+} from "@/lib/tasks/status";
 
 /**
  * Patient 360 (Phase F): the Tasks, Invoices and History tabs of the contact drawer. Every read goes through the
@@ -48,7 +53,9 @@ export type ContactTask = {
 };
 
 /** The patient's tasks, open ones first (by due time), then the 20 most recently finished. */
-export async function listContactTasks(contactId: string): Promise<P360Result<{ rows: ContactTask[] }>> {
+export async function listContactTasks(
+  contactId: string,
+): Promise<P360Result<{ rows: ContactTask[] }>> {
   const member = await requirePerm("contacts.view");
   if (!can(member, "tasks.view")) return fail("You don't have access to tasks.");
   if (!uuid.safeParse(contactId).success) return fail("Invalid contact.");
@@ -170,7 +177,7 @@ export async function contactHistory(
   const org = member.orgId;
 
   const empty = { items: [] as HistoryItem[], full: false };
-  const page = <T,>(rows: T[] | null) => ({ rows: rows ?? [], full: (rows ?? []).length >= n });
+  const page = <T>(rows: T[] | null) => ({ rows: rows ?? [], full: (rows ?? []).length >= n });
 
   const messages = async () => {
     if (!canAny(member, ["inbox.send", "inbox.view_all"])) return empty;
@@ -184,16 +191,14 @@ export async function contactHistory(
     const p = page(data);
     return {
       full: p.full,
-      items: p.rows.map(
-        (m): HistoryItem => ({
-          kind: "message",
-          id: m.id,
-          at: m.at,
-          title: DIRECTION_LABEL[m.direction] ?? "Message",
-          detail: m.body ? m.body.slice(0, 120) : m.kind,
-          href: `/inbox?c=${m.conversation_id}`,
-        }),
-      ),
+      items: p.rows.map((m): HistoryItem => ({
+        kind: "message",
+        id: m.id,
+        at: m.at,
+        title: DIRECTION_LABEL[m.direction] ?? "Message",
+        detail: m.body ? m.body.slice(0, 120) : m.kind,
+        href: `/inbox?c=${m.conversation_id}`,
+      })),
     };
   };
 
@@ -209,16 +214,14 @@ export async function contactHistory(
     const p = page(data);
     return {
       full: p.full,
-      items: p.rows.map(
-        (a): HistoryItem => ({
-          kind: "appointment",
-          id: a.id,
-          at: a.starts_at,
-          title: `Appointment #${a.number}`,
-          detail: STATUS_LABELS[a.status as keyof typeof STATUS_LABELS] ?? a.status,
-          href: `/appointments?appointment=${a.id}`,
-        }),
-      ),
+      items: p.rows.map((a): HistoryItem => ({
+        kind: "appointment",
+        id: a.id,
+        at: a.starts_at,
+        title: `Appointment #${a.number}`,
+        detail: STATUS_LABELS[a.status as keyof typeof STATUS_LABELS] ?? a.status,
+        href: `/appointments?appointment=${a.id}`,
+      })),
     };
   };
 
@@ -234,16 +237,14 @@ export async function contactHistory(
     const p = page(data);
     return {
       full: p.full,
-      items: p.rows.map(
-        (e): HistoryItem => ({
-          kind: "enquiry",
-          id: e.id,
-          at: e.created_at,
-          title: `Enquiry #${e.number}: ${e.title}`,
-          detail: e.status,
-          href: `/enquiries?pipeline=all&scope=all&mode=table&enquiry=${e.id}`,
-        }),
-      ),
+      items: p.rows.map((e): HistoryItem => ({
+        kind: "enquiry",
+        id: e.id,
+        at: e.created_at,
+        title: `Enquiry #${e.number}: ${e.title}`,
+        detail: e.status,
+        href: `/enquiries?pipeline=all&scope=all&mode=table&enquiry=${e.id}`,
+      })),
     };
   };
 
@@ -259,16 +260,14 @@ export async function contactHistory(
     const p = page(data);
     return {
       full: p.full,
-      items: p.rows.map(
-        (t): HistoryItem => ({
-          kind: "task",
-          id: t.id,
-          at: t.created_at,
-          title: `Task: ${t.subject}`,
-          detail: TASK_STATUS_LABELS[t.status as TaskStatus] ?? t.status,
-          href: `/tasks?task=${t.id}`,
-        }),
-      ),
+      items: p.rows.map((t): HistoryItem => ({
+        kind: "task",
+        id: t.id,
+        at: t.created_at,
+        title: `Task: ${t.subject}`,
+        detail: TASK_STATUS_LABELS[t.status as TaskStatus] ?? t.status,
+        href: `/tasks?task=${t.id}`,
+      })),
     };
   };
 

@@ -81,7 +81,10 @@ export function ContactTasks({
             <span className="min-w-0">
               <Link
                 href={`/tasks?task=${t.id}`}
-                className={cn("font-medium hover:underline", t.done && "text-muted-foreground line-through")}
+                className={cn(
+                  "font-medium hover:underline",
+                  t.done && "text-muted-foreground line-through",
+                )}
               >
                 {t.subject}
               </Link>
@@ -92,11 +95,15 @@ export function ContactTasks({
               </span>
             </span>
             <span className="flex shrink-0 flex-col items-end gap-1">
-              <Badge variant={t.done ? "secondary" : t.status === "blocked" ? "warning" : "outline"}>
+              <Badge
+                variant={t.done ? "secondary" : t.status === "blocked" ? "warning" : "outline"}
+              >
                 {t.status_label}
               </Badge>
               {(t.priority === "high" || t.priority === "urgent") && (
-                <span className="text-xs font-medium text-red-700 dark:text-red-300">{t.priority_label}</span>
+                <span className="text-xs font-medium text-red-700 dark:text-red-300">
+                  {t.priority_label}
+                </span>
               )}
             </span>
           </li>
@@ -107,7 +114,9 @@ export function ContactTasks({
 }
 
 const money = (n: number | null) =>
-  n === null ? "–" : n.toLocaleString("en-AE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  n === null
+    ? "–"
+    : n.toLocaleString("en-AE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export function ContactInvoices({ contactId }: { contactId: string }) {
   const load = useCallback(() => listContactInvoices(contactId), [contactId]);
@@ -123,7 +132,13 @@ export function ContactInvoices({ contactId }: { contactId: string }) {
       />
     );
   if (data.rows.length === 0)
-    return <EmptyState icon={Receipt} title="No invoices for this PIN" description="Invoices captured from Unite appear here." />;
+    return (
+      <EmptyState
+        icon={Receipt}
+        title="No invoices for this PIN"
+        description="Invoices captured from Unite appear here."
+      />
+    );
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
@@ -156,7 +171,9 @@ export function ContactInvoices({ contactId }: { contactId: string }) {
         </tbody>
       </table>
       {data.rows.length >= 50 && (
-        <p className="text-muted-foreground py-2 text-xs">Showing the latest 50. Finance, Invoices has the rest.</p>
+        <p className="text-muted-foreground py-2 text-xs">
+          Showing the latest 50. Finance, Invoices has the rest.
+        </p>
       )}
     </div>
   );
@@ -227,7 +244,9 @@ export function ContactHistory({ contactId, timezone }: { contactId: string; tim
                 </span>
               </div>
               {it.detail && (
-                <p className="text-muted-foreground line-clamp-2 text-xs whitespace-pre-line">{it.detail}</p>
+                <p className="text-muted-foreground line-clamp-2 text-xs whitespace-pre-line">
+                  {it.detail}
+                </p>
               )}
             </li>
           );
@@ -235,7 +254,12 @@ export function ContactHistory({ contactId, timezone }: { contactId: string; tim
       </ol>
       {loading && <Loader2 className="text-muted-foreground size-4 animate-spin" />}
       {!loading && cursor && (
-        <Button variant="outline" size="sm" className="self-start" onClick={() => void loadPage(cursor)}>
+        <Button
+          variant="outline"
+          size="sm"
+          className="self-start"
+          onClick={() => void loadPage(cursor)}
+        >
           Show older
         </Button>
       )}

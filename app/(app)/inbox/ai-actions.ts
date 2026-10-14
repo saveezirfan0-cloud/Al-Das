@@ -69,7 +69,8 @@ async function prepare(
   const settings = readAiSettings(member.org.settings);
   if (!settings.enabled) {
     return {
-      error: "AI assist is turned off for this workspace. An administrator can enable it in Settings → AI & knowledge base.",
+      error:
+        "AI assist is turned off for this workspace. An administrator can enable it in Settings → AI & knowledge base.",
     };
   }
 
@@ -84,7 +85,13 @@ async function prepare(
   if (!conversation) return { error: "Conversation not found." };
 
   const admin = createAdminClient();
-  const limit = await checkRateLimit(admin, member.orgId, member.userId, settings.rate_limit_per_minute, settings.daily_cap);
+  const limit = await checkRateLimit(
+    admin,
+    member.orgId,
+    member.userId,
+    settings.rate_limit_per_minute,
+    settings.daily_cap,
+  );
   if (!limit.allowed) {
     return {
       error:
@@ -130,7 +137,13 @@ async function execute(
   fn: () => Promise<AiResult>,
 ): Promise<ActionResult<AiPayload>> {
   const admin = createAdminClient();
-  const usage = { orgId: p.member.orgId, userId: p.member.userId, conversationId: p.conversationId, feature, model: p.llm.model };
+  const usage = {
+    orgId: p.member.orgId,
+    userId: p.member.userId,
+    conversationId: p.conversationId,
+    feature,
+    model: p.llm.model,
+  };
 
   let result: AiResult;
   try {
@@ -143,7 +156,10 @@ async function execute(
     }
     await recordUsage(admin, { ...usage, status: "error" });
     // name only: the message may contain prompt text
-    console.error("[ai] unexpected failure", { feature, error: err instanceof Error ? err.name : "unknown" });
+    console.error("[ai] unexpected failure", {
+      feature,
+      error: err instanceof Error ? err.name : "unknown",
+    });
     return { ok: false, error: "AI assist hit a problem. Please try again." };
   }
 
@@ -156,7 +172,11 @@ async function execute(
     grounded: feature === "suggest_reply" ? result.chunkIds.length > 0 : null,
   });
   if (result.status === "refused") {
-    return { ok: false, error: "The assistant couldn't help with that request. Write the reply yourself or hand it to a colleague." };
+    return {
+      ok: false,
+      error:
+        "The assistant couldn't help with that request. Write the reply yourself or hand it to a colleague.",
+    };
   }
   return {
     ok: true,
@@ -172,33 +192,50 @@ async function execute(
 
 const conversationOnly = z.object({ conversation_id: uuid });
 
-export async function aiSummarize(input: z.input<typeof conversationOnly>): Promise<ActionResult<AiPayload>> {
+export async function aiSummarize(
+  input: z.input<typeof conversationOnly>,
+): Promise<ActionResult<AiPayload>> {
   const parsed = conversationOnly.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Invalid input" };
   const prep = await prepare(parsed.data.conversation_id, { includeNotes: true });
   if ("error" in prep) return { ok: false, error: prep.error };
   const p = prep.prepared;
-  return execute("summarize", p, () => summarize({ llm: p.llm, clinicName: p.clinicName }, { transcript: p.transcript }));
+  return execute("summarize", p, () =>
+    summarize({ llm: p.llm, clinicName: p.clinicName }, { transcript: p.transcript }),
+  );
 }
 
-const askSchema = z.object({ conversation_id: uuid, question: z.string().trim().min(1, "Type a question first.").max(500) });
+const askSchema = z.object({
+  conversation_id: uuid,
+  question: z.string().trim().min(1, "Type a question first.").max(500),
+});
 
 export async function aiAsk(input: z.input<typeof askSchema>): Promise<ActionResult<AiPayload>> {
   const parsed = askSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  if (!parsed.success)
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   const prep = await prepare(parsed.data.conversation_id, { includeNotes: true });
   if ("error" in prep) return { ok: false, error: prep.error };
   const p = prep.prepared;
   return execute("ask", p, () =>
-    ask({ llm: p.llm, clinicName: p.clinicName }, { transcript: p.transcript, question: parsed.data.question }),
+    ask(
+      { llm: p.llm, clinicName: p.clinicName },
+      { transcript: p.transcript, question: parsed.data.question },
+    ),
   );
 }
 
-const suggestSchema = z.object({ conversation_id: uuid, instruction: z.string().trim().max(500).optional() });
+const suggestSchema = z.object({
+  conversation_id: uuid,
+  instruction: z.string().trim().max(500).optional(),
+});
 
-export async function aiSuggestReply(input: z.input<typeof suggestSchema>): Promise<ActionResult<AiPayload>> {
+export async function aiSuggestReply(
+  input: z.input<typeof suggestSchema>,
+): Promise<ActionResult<AiPayload>> {
   const parsed = suggestSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  if (!parsed.success)
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   // Patient-facing draft: internal notes stay out of the prompt.
   const prep = await prepare(parsed.data.conversation_id, { includeNotes: false });
   if ("error" in prep) return { ok: false, error: prep.error };
@@ -222,7 +259,9 @@ export async function aiSuggestReply(input: z.input<typeof suggestSchema>): Prom
         });
       } catch (err) {
         if (!(err instanceof AiNotConfiguredError)) {
-          console.error("[ai] knowledge retrieval failed", { error: err instanceof Error ? err.name : "unknown" });
+          console.error("[ai] knowledge retrieval failed", {
+            error: err instanceof Error ? err.name : "unknown",
+          });
         }
       }
     }
@@ -243,14 +282,19 @@ const rewriteSchema = z.object({
   ]),
 });
 
-export async function aiRewrite(input: z.input<typeof rewriteSchema>): Promise<ActionResult<AiPayload>> {
+export async function aiRewrite(
+  input: z.input<typeof rewriteSchema>,
+): Promise<ActionResult<AiPayload>> {
   const parsed = rewriteSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  if (!parsed.success)
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   const prep = await prepare(parsed.data.conversation_id, { includeNotes: false });
   if ("error" in prep) return { ok: false, error: prep.error };
   const p = prep.prepared;
   const mode: RewriteMode = parsed.data.mode;
-  return execute("rewrite", p, () => rewrite({ llm: p.llm, clinicName: p.clinicName }, { draft: parsed.data.draft, mode }));
+  return execute("rewrite", p, () =>
+    rewrite({ llm: p.llm, clinicName: p.clinicName }, { draft: parsed.data.draft, mode }),
+  );
 }
 
 const feedbackSchema = z.object({
@@ -263,9 +307,11 @@ const feedbackSchema = z.object({
 /** Thumbs up/down on a result. The draft text is not stored: only the verdict and (optionally) a short note. */
 export async function aiFeedback(input: z.input<typeof feedbackSchema>): Promise<ActionResult> {
   const member = await requireMember();
-  if (!can(member, "ai.use")) return { ok: false, error: "You don't have permission to use AI assist." };
+  if (!can(member, "ai.use"))
+    return { ok: false, error: "You don't have permission to use AI assist." };
   const parsed = feedbackSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  if (!parsed.success)
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
 
   const admin = createAdminClient();
   // Only feedback on one's own AI call, in this org.
@@ -296,7 +342,11 @@ export async function aiFeedback(input: z.input<typeof feedbackSchema>): Promise
     .eq("ai_usage_id", usage.id)
     .eq("user_id", member.userId)
     .maybeSingle();
-  const row = { positive: parsed.data.positive, note: parsed.data.note ?? null, chunk_ids: chunkIds };
+  const row = {
+    positive: parsed.data.positive,
+    note: parsed.data.note ?? null,
+    chunk_ids: chunkIds,
+  };
   const { error } = existing
     ? await admin.from("kb_feedback").update(row).eq("id", existing.id)
     : await admin.from("kb_feedback").insert({
@@ -311,14 +361,21 @@ export async function aiFeedback(input: z.input<typeof feedbackSchema>): Promise
   return { ok: true, data: undefined, message: "Thanks for the feedback." };
 }
 
-const saveSummarySchema = z.object({ conversation_id: uuid, summary: z.string().trim().min(1).max(2000) });
+const saveSummarySchema = z.object({
+  conversation_id: uuid,
+  summary: z.string().trim().min(1).max(2000),
+});
 
 /** Stores an (edited) summary on the conversation. Explicit, user-initiated: AI never writes it on its own. */
-export async function saveConversationSummary(input: z.input<typeof saveSummarySchema>): Promise<ActionResult> {
+export async function saveConversationSummary(
+  input: z.input<typeof saveSummarySchema>,
+): Promise<ActionResult> {
   const member = await requireMember();
-  if (!can(member, "inbox.send")) return { ok: false, error: "You don't have permission for that." };
+  if (!can(member, "inbox.send"))
+    return { ok: false, error: "You don't have permission for that." };
   const parsed = saveSummarySchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  if (!parsed.success)
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
 
   const supabase = await createClient();
   const { data: conversation } = await supabase
@@ -352,9 +409,12 @@ const outcomeSchema = z.object({
  * texts are compared here and NOT stored; only the verdict and a similarity percentage are. Feeds the weekly reply-quality
  * report. Only the person who asked for the suggestion can report on it.
  */
-export async function recordSuggestionOutcome(input: z.input<typeof outcomeSchema>): Promise<ActionResult> {
+export async function recordSuggestionOutcome(
+  input: z.input<typeof outcomeSchema>,
+): Promise<ActionResult> {
   const member = await requireMember();
-  if (!can(member, "ai.use")) return { ok: false, error: "You don't have permission to use AI assist." };
+  if (!can(member, "ai.use"))
+    return { ok: false, error: "You don't have permission to use AI assist." };
   const parsed = outcomeSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Invalid input" };
   const admin = createAdminClient();
@@ -365,7 +425,8 @@ export async function recordSuggestionOutcome(input: z.input<typeof outcomeSchem
     .eq("org_id", member.orgId)
     .eq("user_id", member.userId)
     .maybeSingle();
-  if (!usage || usage.feature !== "suggest_reply") return { ok: false, error: "That AI result is no longer available." };
+  if (!usage || usage.feature !== "suggest_reply")
+    return { ok: false, error: "That AI result is no longer available." };
   const verdict =
     parsed.data.discarded || parsed.data.sent === undefined || parsed.data.suggestion === undefined
       ? { outcome: "rejected" as const, similarity: 0 }
@@ -388,7 +449,8 @@ const dismissSchema = z.object({ conversation_id: uuid, tag: z.string().trim().m
 /** A member of staff clears an AI tag they judge wrong (for example a false emergency flag). Audited. */
 export async function dismissAiTag(input: z.input<typeof dismissSchema>): Promise<ActionResult> {
   const member = await requireMember();
-  if (!can(member, "inbox.send")) return { ok: false, error: "You don't have permission for that." };
+  if (!can(member, "inbox.send"))
+    return { ok: false, error: "You don't have permission for that." };
   const parsed = dismissSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Invalid input" };
   const supabase = await createClient();
