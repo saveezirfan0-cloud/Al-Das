@@ -65,6 +65,13 @@ export function TasksWorkspace({ bootstrap }: { bootstrap: TasksBootstrap }) {
   const type = TASK_TYPES.includes(params.get("type") as never)
     ? (params.get("type") as (typeof TASK_TYPES)[number])
     : null;
+  // Phase B: ?branch=<id>|all overrides the branch switcher for this list.
+  const branchParam = params.get("branch");
+  const branch =
+    branchParam === "all" || bootstrap.branches.some((b) => b.id === branchParam)
+      ? branchParam
+      : null;
+  const showBranches = Object.keys(bootstrap.branchNames).length > 1;
 
   const [search, setSearch] = React.useState("");
   const [debounced, setDebounced] = React.useState("");
@@ -117,7 +124,7 @@ export function TasksWorkspace({ bootstrap }: { bootstrap: TasksBootstrap }) {
   React.useEffect(() => {
     setPage(1);
     setRowSelection({});
-  }, [state, assignee, type, debounced, sorting, pageSize]);
+  }, [state, assignee, type, branch, debounced, sorting, pageSize]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -133,6 +140,7 @@ export function TasksWorkspace({ bootstrap }: { bootstrap: TasksBootstrap }) {
       dir: sort?.desc ? "desc" : "asc",
       page,
       pageSize,
+      branch,
     }).then((res) => {
       if (cancelled) return;
       setLoading(false);
@@ -143,7 +151,7 @@ export function TasksWorkspace({ bootstrap }: { bootstrap: TasksBootstrap }) {
     return () => {
       cancelled = true;
     };
-  }, [assignee, state, type, debounced, sorting, page, pageSize, reloadKey]);
+  }, [assignee, state, type, branch, debounced, sorting, page, pageSize, reloadKey]);
 
   // Realtime: someone else's task changes refresh the list.
   const timer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -265,6 +273,22 @@ export function TasksWorkspace({ bootstrap }: { bootstrap: TasksBootstrap }) {
           ),
         { size: 170 },
       ),
+      // Phase B: the Branch column appears once the workspace has more than one branch.
+      ...(showBranches
+        ? [
+            col(
+              "branch",
+              "Branch",
+              (t) =>
+                t.location_id ? (
+                  (bootstrap.branchNames[t.location_id] ?? "Other branch")
+                ) : (
+                  <span className="text-muted-foreground">No branch</span>
+                ),
+              { size: 140 },
+            ),
+          ]
+        : []),
       col("contact", "Contact", (t) => t.contact?.full_name ?? "", { size: 170 }),
       col(
         "enquiry",
@@ -290,7 +314,7 @@ export function TasksWorkspace({ bootstrap }: { bootstrap: TasksBootstrap }) {
     ];
     // toggleDone / reload are stable for the lifetime of the workspace
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bootstrap, userName]);
+  }, [bootstrap, userName, showBranches]);
 
   const selectedIds = Object.keys(rowSelection).filter((id) => rowSelection[id]);
 
@@ -355,6 +379,24 @@ export function TasksWorkspace({ bootstrap }: { bootstrap: TasksBootstrap }) {
             onChange={(v) => setParam({ type: v })}
           />
         </div>
+        {showBranches && (
+          <div className="w-44">
+            <OptionSelect
+              ariaLabel="Branch"
+              noneLabel={
+                bootstrap.currentBranch && bootstrap.branchNames[bootstrap.currentBranch]
+                  ? `Switcher (${bootstrap.branchNames[bootstrap.currentBranch]})`
+                  : "Switcher (all)"
+              }
+              value={branch}
+              options={[
+                { value: "all", label: "All my branches" },
+                ...bootstrap.branches.map((b) => ({ value: b.id, label: b.name })),
+              ]}
+              onChange={(v) => setParam({ branch: v })}
+            />
+          </div>
+        )}
         <div className="relative w-64 max-w-full">
           <Search className="text-muted-foreground absolute top-1/2 left-2 size-4 -translate-y-1/2" />
           <Input

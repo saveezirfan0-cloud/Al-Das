@@ -610,6 +610,8 @@ export async function deleteBlock(id: string): Promise<ActionResult> {
   const member = await requirePerm("appointments.manage");
   if (!uuid.safeParse(id).success) return fail("Invalid block.");
   const admin = createAdminClient(member.userId);
+  // Phase B: a block in a branch this member does not work in is refused, like its appointments.
+  if (await rowOutsideBranches(admin, member, "time_blocks", id)) return fail(BRANCH_DENIED);
   const { data: removed, error } = await admin
     .from("time_blocks")
     .delete()

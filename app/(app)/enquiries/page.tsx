@@ -1,5 +1,6 @@
 import { can } from "@/lib/auth/can";
 import { requirePerm } from "@/lib/auth/session";
+import { allowedLocations, readBranchAccess } from "@/lib/branches/access";
 import { loadEnquiryContext, loadEnquiryViews } from "@/lib/enquiries/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -50,7 +51,11 @@ export default async function EnquiriesPage() {
         sortable,
       })),
     pipelines: ctx.pipelines,
-    lookups: ctx.lookups,
+    // Phase B: the location pickers (new enquiry, drawer, bulk edit) offer only the branches this member works in.
+    lookups: {
+      ...ctx.lookups,
+      locations: allowedLocations(ctx.lookups.locations, readBranchAccess(member)),
+    },
     users: ctx.users,
     teams: ctx.teams,
     sources: ctx.settings.sources,

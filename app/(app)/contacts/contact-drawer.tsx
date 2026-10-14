@@ -70,6 +70,7 @@ function toForm(d: ContactDetail): ContactFormValues {
     external_id: c.external_id ?? "",
     promotions_opt_in: c.promotions_opt_in,
     stop_marketing: c.stop_marketing,
+    location_id: c.location_id ?? "",
     custom: c.custom,
   };
 }
@@ -273,6 +274,7 @@ export function ContactDrawer({
                       }}
                       users={bootstrap.users}
                       customFields={bootstrap.customFields}
+                      branches={bootstrap.branches}
                       idPrefix={`c-${contact.id.slice(0, 8)}`}
                     />
                   </fieldset>

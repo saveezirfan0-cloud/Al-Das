@@ -218,6 +218,8 @@ export const contactInputSchema = z.object({
   external_id: z.string().trim().max(80).nullable().optional(),
   promotions_opt_in: z.boolean().optional(),
   stop_marketing: z.boolean().optional(),
+  /** Phase B: the patient's home branch (locations.id). Patients still cross branches; this is a label and filter. */
+  location_id: z.string().uuid().nullable().optional(),
   custom: z.record(z.string(), z.unknown()).optional(),
 });
 export type ContactInput = z.input<typeof contactInputSchema>;

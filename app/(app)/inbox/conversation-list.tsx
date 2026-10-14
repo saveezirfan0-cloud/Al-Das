@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { INTENT_LABELS, type Intent } from "@/lib/ai/intent/labels";
 import { contactDisplayName } from "@/lib/inbox/contact-name";
+import { ALL_BRANCHES } from "@/lib/branches/access";
 import { FOLDERS, toSearchParams, type InboxQuery } from "@/lib/inbox/folders";
 import { labelClass } from "@/lib/inbox/labels";
 import { mergeConversationPages } from "@/lib/inbox/paging";
@@ -75,6 +76,9 @@ export function ConversationList({
   perms,
   me,
   settings,
+  branches,
+  branchNames,
+  currentBranch,
   className,
   onSelect,
   onNavigate,
@@ -125,6 +129,7 @@ export function ConversationList({
           label: query.label,
           channel: query.channel,
           assignee: query.assignee,
+          branch: query.branch,
         },
         cursor: nextCursor,
       });
@@ -187,8 +192,23 @@ export function ConversationList({
     : query.view
       ? "Saved view"
       : (FOLDERS.find((f) => f.key === query.folder)?.label ?? "Inbox");
-  const filtersOn = query.status !== "any" || !!query.label || !!query.channel || !!query.assignee;
+  const filtersOn =
+    query.status !== "any" ||
+    !!query.label ||
+    !!query.channel ||
+    !!query.assignee ||
+    !!query.branch;
   const peopleById = new Map(people.map((p) => [p.id, p]));
+  // Phase B: which branch the list shows (the filter's choice, else the switcher's), and whether chips are useful.
+  const showBranches = Object.keys(branchNames).length > 1;
+  const branchLabel =
+    query.branch === ALL_BRANCHES
+      ? "All branches"
+      : query.branch
+        ? (branchNames[query.branch] ?? "Branch")
+        : currentBranch
+          ? (branchNames[currentBranch] ?? null)
+          : null;
 
   return (
     <section
@@ -201,6 +221,11 @@ export function ConversationList({
           {conversations.length}
           {nextCursor ? "+" : ""}
         </span>
+        {showBranches && branchLabel && (
+          <span className="bg-muted text-muted-foreground truncate rounded px-1.5 text-[11px]">
+            {branchLabel}
+          </span>
+        )}
         <div className="ml-auto flex items-center">
           <Button
             variant="ghost"
@@ -268,6 +293,33 @@ export function ConversationList({
                   </SelectContent>
                 </Select>
               </label>
+              {showBranches && (
+                <label className="grid gap-1 text-xs">
+                  Branch
+                  <Select
+                    value={query.branch ?? ANY}
+                    onValueChange={(v) => onNavigate({ branch: v === ANY ? null : v })}
+                  >
+                    <SelectTrigger size="sm" className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={ANY}>
+                        Branch switcher
+                        {currentBranch && branchNames[currentBranch]
+                          ? ` (${branchNames[currentBranch]})`
+                          : " (all)"}
+                      </SelectItem>
+                      <SelectItem value={ALL_BRANCHES}>All my branches</SelectItem>
+                      {branches.map((b) => (
+                        <SelectItem key={b.id} value={b.id}>
+                          {b.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </label>
+              )}
               <label className="grid gap-1 text-xs">
                 Label
                 <Select
@@ -313,7 +365,13 @@ export function ConversationList({
                   variant="ghost"
                   size="sm"
                   onClick={() =>
-                    onNavigate({ status: "any", label: null, channel: null, assignee: null })
+                    onNavigate({
+                      status: "any",
+                      label: null,
+                      channel: null,
+                      assignee: null,
+                      branch: null,
+                    })
                   }
                 >
                   Clear
@@ -463,6 +521,14 @@ export function ConversationList({
                                     {l.tags.name}
                                   </span>
                                 ),
+                            )}
+                            {showBranches && c.location_id && branchNames[c.location_id] && (
+                              <span
+                                className="border-border text-muted-foreground rounded border px-1 text-[10px]"
+                                title="Branch of the number this chat runs on"
+                              >
+                                {branchNames[c.location_id]}
+                              </span>
                             )}
                             {assignee && (
                               <span className="text-muted-foreground ml-auto text-[10px]">
