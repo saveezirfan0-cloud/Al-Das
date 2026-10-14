@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-11-15-menu-flyout",
+    date: "2026-11-15",
+    title: "Point at the menu to see its pages",
+    body: "Point at any icon in the left bar and its pages pop out beside it, so you can jump straight to the page you want. Press the pin at the top of that list to keep it open next to the bar; press the crossed-out pin to put it away again.",
+  },
+  {
     id: "2026-11-14-menu-areas",
     date: "2026-11-14",
     title: "Menu sorted into areas",
