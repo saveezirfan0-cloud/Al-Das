@@ -4276,6 +4276,54 @@ export type Database = {
           },
         ];
       };
+      ad_insights_daily: {
+        Row: {
+          ad_id: string;
+          ad_name: string | null;
+          campaign_name: string | null;
+          clicks: number;
+          currency: string;
+          day: string;
+          impressions: number;
+          org_id: string;
+          pulled_at: string;
+          spend_milli: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          ad_id: string;
+          ad_name?: string | null;
+          campaign_name?: string | null;
+          clicks?: number;
+          currency: string;
+          day: string;
+          impressions?: number;
+          org_id: string;
+          pulled_at?: string;
+          spend_milli: number;
+        };
+        Update: {
+          ad_id?: string;
+          ad_name?: string | null;
+          campaign_name?: string | null;
+          clicks?: number;
+          currency?: string;
+          day?: string;
+          impressions?: number;
+          org_id?: string;
+          pulled_at?: string;
+          spend_milli?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ad_insights_daily_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       ai_message_intents: {
         Row: {
           conversation_id: string;
@@ -23276,6 +23324,14 @@ export type Database = {
       };
       ad_attribution_report: {
         Args: { p_org: string; p_since: string; p_window_days?: number };
+        Returns: Json;
+      };
+      ad_insights_replace: {
+        Args: { p_org: string; p_rows: Json; p_since: string; p_until: string };
+        Returns: Json;
+      };
+      ad_spend_report: {
+        Args: { p_org: string; p_since: string };
         Returns: Json;
       };
       ai_add_conversation_tags: {

@@ -67,6 +67,8 @@ export const CALL_PROVIDERS: Record<IntegrationKind, readonly string[]> = {
   // Google review requests make no provider call at all: the link is only text inside a WhatsApp template.
   google_reviews: [],
   meta_capi: ["meta_capi"],
+  // Phase 20i: the daily read of ad insights (GET only).
+  meta_ads: ["meta_ads"],
   telehealth: ["daily"],
   esign: ["dropbox_sign"],
   // Phase 20e: the website chat calls nobody (the visitor's browser fetches replies).

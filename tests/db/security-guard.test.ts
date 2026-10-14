@@ -47,6 +47,7 @@ import {
   SF20D_TABLES,
   SF20E_SERVICE_ONLY_TABLES,
   SF20E_TABLES,
+  SF20I_TABLES,
   resetDb,
   seedPhase13Rows,
   seedPhase14Rows,
@@ -70,6 +71,7 @@ import {
   seedSf20cRows,
   seedSf20dRows,
   seedSf20eRows,
+  seedSf20iRows,
   seedSecurityRows,
   TEST_DATABASE_URL,
 } from "./helpers";
@@ -1012,6 +1014,8 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
     await seedSf20dRows(c, orgA);
     // Phase 20e tables likewise.
     await seedSf20eRows(c, orgA, alice);
+    // Phase 20i (Meta ads spend) tables likewise.
+    await seedSf20iRows(c, orgA);
   });
   afterAll(async () => {
     await resetDb(c);
@@ -1025,6 +1029,7 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
   it("sweeps every Phase 13 to 22 table (a new table must be added to PHASE13_TABLES ... PHASE22_TABLES and seeded)", () => {
     for (const t of [
       ...SF20E_TABLES,
+      ...SF20I_TABLES,
       ...SF20D_TABLES,
       ...SF20C_BOOKING_TABLES,
       ...SF20C_TABLES,
@@ -1055,6 +1060,7 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
     await asUser(c, alice, async () => {
       for (const t of [
         ...SF20E_TABLES,
+        ...SF20I_TABLES,
         ...SF20D_TABLES,
         ...SF20C_BOOKING_TABLES,
         ...SF20C_TABLES,
