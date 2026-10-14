@@ -34,9 +34,7 @@ describe("restricted enquiry view (Phase 20c)", () => {
     ).toBe("app.location_visible_to(e.org_id, (($1 ->> 0))::uuid, e.location_id)");
     const both = new ParamBag();
     expect(
-      enquiryScopeSql({ userId: USER, scope: "own", branchScope: "selected" }, (v) =>
-        both.text(v),
-      ),
+      enquiryScopeSql({ userId: USER, scope: "own", branchScope: "selected" }, (v) => both.text(v)),
     ).toBe(
       "app.enquiry_visible_to(e.org_id, (($1 ->> 0))::uuid, e.assignee_id, e.created_by) and " +
         "app.location_visible_to(e.org_id, (($1 ->> 0))::uuid, e.location_id)",

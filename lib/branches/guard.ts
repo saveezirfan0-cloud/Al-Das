@@ -25,7 +25,10 @@ export async function memberBranchView(
     .eq("org_id", member.orgId)
     .eq("active", true)
     .order("name");
-  return branchView(member, (data ?? []).map((l) => l.id));
+  return branchView(
+    member,
+    (data ?? []).map((l) => l.id),
+  );
 }
 
 /** May the member choose this branch for a new or moved row? (No branch is always allowed.) */

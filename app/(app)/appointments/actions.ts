@@ -684,7 +684,8 @@ export async function moveAppointment(
   if (!p.success) return fail("Check the new time.");
   if (!branchAllowed(member, p.data.locationId)) return fail(BRANCH_DENIED);
   const admin = createAdminClient(member.userId);
-  if (await rowOutsideBranches(admin, member, "appointments", p.data.id)) return fail(BRANCH_DENIED);
+  if (await rowOutsideBranches(admin, member, "appointments", p.data.id))
+    return fail(BRANCH_DENIED);
   const res = await rescheduleAppointment(admin, {
     orgId: member.orgId,
     appointmentId: p.data.id,
@@ -716,7 +717,8 @@ export async function updateAppointmentNotes(input: {
     .safeParse(input);
   if (!p.success) return fail("Invalid notes.");
   const admin = createAdminClient(member.userId);
-  if (await rowOutsideBranches(admin, member, "appointments", p.data.id)) return fail(BRANCH_DENIED);
+  if (await rowOutsideBranches(admin, member, "appointments", p.data.id))
+    return fail(BRANCH_DENIED);
   const { error } = await admin
     .from("appointments")
     .update({ notes: p.data.notes || null, notify_early: p.data.notifyEarly })

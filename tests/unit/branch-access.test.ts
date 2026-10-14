@@ -9,10 +9,7 @@ import {
   chooseBranch,
   readBranchAccess,
 } from "@/lib/branches/access";
-import {
-  accessFilterIds,
-  withBranchFilter,
-} from "@/lib/branches/filter";
+import { accessFilterIds, withBranchFilter } from "@/lib/branches/filter";
 
 const A = "00000000-0000-4000-8000-00000000000a";
 const B = "00000000-0000-4000-8000-00000000000b";
