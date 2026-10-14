@@ -243,7 +243,7 @@ export function ContactsWorkspace({ bootstrap }: { bootstrap: ContactsBootstrap 
   return (
     <div className="flex h-full min-h-0 flex-col gap-4">
       <PageHeader
-        title="Contacts"
+        title="Patients"
         description="One patient record across WhatsApp, Unite, enquiries and appointments."
       >
         {bootstrap.can.export && (

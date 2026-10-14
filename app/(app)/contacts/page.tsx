@@ -7,7 +7,7 @@ import type { GridPrefs } from "./actions";
 import { ContactsWorkspace } from "./contacts-workspace";
 import type { ContactsBootstrap } from "./types";
 
-export const metadata = { title: "Contacts" };
+export const metadata = { title: "Patients" };
 
 export default async function ContactsPage() {
   const member = await requirePerm("contacts.view");
