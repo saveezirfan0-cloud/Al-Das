@@ -130,10 +130,14 @@ export function evaluateEnv(env: EnvLike): Check[] {
   out.push(
     c(
       "env:sentry",
-      "SENTRY_DSN is set (server error reporting; the DSN itself is not tested)",
-      has("SENTRY_DSN"),
+      "A Sentry DSN is set for the server (SENTRY_DSN, else NEXT_PUBLIC_SENTRY_DSN; the DSN itself is not tested)",
+      has("SENTRY_DSN") || has("NEXT_PUBLIC_SENTRY_DSN"),
       "warning",
-      has("SENTRY_DSN") ? "set" : "missing: server errors are not reported",
+      has("SENTRY_DSN")
+        ? "set"
+        : has("NEXT_PUBLIC_SENTRY_DSN")
+          ? "using NEXT_PUBLIC_SENTRY_DSN"
+          : "missing: server errors are not reported",
     ),
   );
   out.push(
