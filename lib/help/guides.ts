@@ -222,6 +222,26 @@ export const GUIDES: readonly Guide[] = [
     ],
   },
   {
+    id: "finance-collections",
+    title: "Collections and data quality",
+    pages: ["/finance/collections"],
+    purpose:
+      "How the month's billing was paid (cash, card, bank transfer, gateway, other), patient share against insurance claims, consumption and credit, by day, branch, doctor and invoice type, with data-quality signals, built from the Unite collection report.",
+    steps: [
+      "Pick a month (the latest month with report data opens by default) and, if you work in more than one, a branch.",
+      "Read the day, branch, invoice type and doctor tables; Total collected is the sum of the five payment columns.",
+      "Check the reconciliation line: net billing against collected, claims, shares, credit and consumption. The difference is shown for review.",
+      "Work through the data-quality signals: each gives a count, the net involved and what to do. Map unknown clinics under Finance, Reference data.",
+      "Download Excel gives the same figures as plain values, with a Definitions sheet.",
+    ],
+    watchOut: [
+      "Signals are prompts to check Unite, never proof of an error; a row can appear in more than one.",
+      "The late invoice days are set under Targets and report lines (Finance only).",
+      "Rows whose clinic is not mapped to a branch are shown only to people who see every branch.",
+      "Figures cover only the dates of committed uploads; a warning shows when the month is only partly covered.",
+    ],
+  },
+  {
     id: "finance-flash",
     title: "Daily flash",
     pages: ["/finance/flash", "/finance/flash/settings"],

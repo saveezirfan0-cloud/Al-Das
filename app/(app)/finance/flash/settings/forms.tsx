@@ -6,6 +6,7 @@ import { ActionForm, Field, FormSheet, RunButton, selectClass } from "@/componen
 import {
   copyPreviousTargets,
   deleteReportLine,
+  saveDataQualitySettings,
   saveFlashDisplay,
   savePerfBands,
   saveReportLine,
@@ -210,6 +211,23 @@ export function PerfBandsForm({ target, near, moderate }: { target: number; near
         Revenue per patient at or above the target is Achieved; from Near Target up to the target is Near Target; from
         Moderate up to Near Target is Moderate; below Moderate is Below Target. Each band starts exactly at its number,
         so nothing falls between bands. Expected revenue is patients times the target.
+      </p>
+    </ActionForm>
+  );
+}
+
+/** Collections data quality (Phase 23D): the late invoice threshold in days. */
+export function DataQualityForm({ lateInvoiceDays }: { lateInvoiceDays: number }) {
+  return (
+    <ActionForm action={saveDataQualitySettings} submitLabel="Save late invoice days">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Field label="Late invoice: more than this many days after the visit">
+          <Input name="dq_late_invoice_days" inputMode="numeric" defaultValue={lateInvoiceDays} required />
+        </Field>
+      </div>
+      <p className="text-muted-foreground text-xs">
+        Used by Collections and data quality: an invoice raised more than this many days after the visit (0 to 60) is
+        listed as a late invoice for review.
       </p>
     </ActionForm>
   );

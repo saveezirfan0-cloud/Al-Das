@@ -106,6 +106,20 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
     ],
   },
   {
+    href: "/finance/collections",
+    label: "Collections and data quality",
+    section: "Overview",
+    permissions: ["finance.revenue.view"],
+    keywords: [
+      "payment modes",
+      "cash card",
+      "self-pay insurance",
+      "late invoices",
+      "data quality",
+      "unite report",
+    ],
+  },
+  {
     href: "/finance/analytics",
     label: "Billing mix and trends",
     section: "Overview",
