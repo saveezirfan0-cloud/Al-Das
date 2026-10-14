@@ -7,7 +7,7 @@ import type { MemberLike } from "@/lib/auth/can";
 import { SYSTEM_ROLES } from "@/lib/auth/permissions";
 import { NAV_MODULES } from "@/lib/nav/modules";
 import { activeTabGroup } from "@/lib/nav/tabs";
-import { activeTrail, buildNavTree } from "@/lib/nav/tree";
+import { activeTrail, buildNavTree, currentItem } from "@/lib/nav/tree";
 
 // Phase D (docs/34 §3): the menu's areas, the CRM sub-headings, tab groups and what each role can reach.
 
@@ -161,6 +161,19 @@ describe("active trail and tabs", () => {
     expect(activeTrail(admin, "/portal/sync-review").item).toBe("/portal");
     expect(activeTrail(admin, "/dashboard/management").item).toBe("/dashboard/management");
     expect(activeTrail(admin, "/dashboard").item).toBe("/dashboard");
+  });
+
+  it("titles the top bar with the most specific item, not the first prefix", () => {
+    const title = (path: string) => currentItem(admin, path)?.label;
+    expect(title("/dashboard/management")).toBe("Management");
+    expect(title("/dashboard/team")).toBe("Dashboard");
+    expect(title("/staff/rota")).toBe("Rota");
+    expect(title("/staff")).toBe("Staff");
+    expect(title("/portal/follow-ups")).toBe("Clinical follow-ups");
+    expect(title("/portal/sync-review")).toBe("Portal");
+    expect(title("/settings/teams")).toBe("Teams");
+    expect(title("/finance/claims/abc")).toBe("Finance");
+    expect(title("/nowhere")).toBeUndefined();
   });
 
   it("opens a tab group on the member's first tab and lists the tabs as plain data", () => {

@@ -105,6 +105,20 @@ export function buildNavTree<T extends TopItem>(
 const under = (pathname: string, href: string) =>
   pathname === href || pathname.startsWith(href + "/");
 
+/**
+ * The top-level item a path sits under: the LONGEST matching href, so /dashboard/management is Management (not
+ * Dashboard) and /staff/rota is Rota (not Staff). The top bar's title uses it.
+ */
+export function currentItem<T extends { href: string }>(
+  items: readonly T[],
+  pathname: string,
+): T | undefined {
+  let node: T | undefined;
+  for (const n of items)
+    if (under(pathname, n.href) && (!node || n.href.length > node.href.length)) node = n;
+  return node;
+}
+
 export type ActiveTrail = { item?: string; module?: string; section?: string; page?: string };
 
 /**
@@ -116,9 +130,7 @@ export function activeTrail(
   tree: ReadonlyArray<{ href: string; sections?: readonly TreeSection[] }>,
   pathname: string,
 ): ActiveTrail {
-  let node: (typeof tree)[number] | undefined;
-  for (const n of tree)
-    if (under(pathname, n.href) && (!node || n.href.length > node.href.length)) node = n;
+  const node = currentItem(tree, pathname);
   let best: { module: string; section: string; page: string; len: number } | undefined;
   for (const n of tree)
     for (const s of n.sections ?? [])
