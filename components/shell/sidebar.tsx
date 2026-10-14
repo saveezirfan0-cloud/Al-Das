@@ -106,7 +106,8 @@ export function CountPill({ n, label }: { n: number; label: string }) {
   return (
     <>
       <span
-        className="bg-destructive ml-auto shrink-0 rounded-full px-1.5 text-[10px] leading-4 font-semibold text-white tabular-nums"
+        // white on red is 4.8:1 in light; dark mode's lighter red needs dark text (6.2:1, white would be 2.9:1)
+        className="bg-destructive dark:text-background ml-auto shrink-0 rounded-full px-1.5 text-[10px] leading-4 font-semibold text-white tabular-nums"
         aria-hidden
       >
         {countLabel(n)}
@@ -255,9 +256,12 @@ export function Sidebar({
             aria-controls={id}
             aria-label={`${open ? "Hide" : "Show"} ${node.label} pages`}
             onClick={() => toggle(moduleKey(node.href), !open)}
-            className="text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex size-9 shrink-0 items-center justify-center rounded-md"
+            className="text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-sidebar-ring flex size-9 shrink-0 items-center justify-center rounded-md outline-none focus-visible:ring-2"
           >
-            <ChevronRight className={cn("size-4 transition-transform", open && "rotate-90")} />
+            <ChevronRight
+              className={cn("size-4 transition-transform", open && "rotate-90")}
+              aria-hidden
+            />
           </button>
         </div>
         {open && (
@@ -274,7 +278,7 @@ export function Sidebar({
                     aria-expanded={sOpen}
                     aria-controls={sid}
                     onClick={() => toggle(sectionStateKey(s.key), !sOpen)}
-                    className="text-muted-foreground hover:text-foreground flex w-full items-center gap-1 rounded px-1.5 pt-2 pb-1 text-left text-[10px] font-semibold tracking-wide uppercase"
+                    className="text-muted-foreground hover:text-foreground focus-visible:ring-sidebar-ring flex w-full items-center gap-1 rounded px-1.5 pt-2 pb-1 text-left text-[10px] font-semibold tracking-wide uppercase outline-none focus-visible:ring-2"
                   >
                     <ChevronRight
                       className={cn("size-3 shrink-0 transition-transform", sOpen && "rotate-90")}
@@ -282,7 +286,13 @@ export function Sidebar({
                     />
                     <span className="truncate">{s.title}</span>
                     {!sOpen && hidden > 0 ? (
-                      <span className="bg-destructive ml-auto size-1.5 rounded-full" aria-hidden />
+                      <>
+                        <span
+                          className="bg-destructive ml-auto size-1.5 rounded-full"
+                          aria-hidden
+                        />
+                        <span className="sr-only">, {hidden} waiting</span>
+                      </>
                     ) : null}
                   </button>
                   {sOpen && (
@@ -297,8 +307,8 @@ export function Sidebar({
                               onClick={onNavigate}
                               aria-current={active ? "page" : undefined}
                               className={cn(
-                                "text-muted-foreground flex h-8 items-center gap-2 rounded-md px-2 text-[13px] transition-colors",
-                                "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                                "text-muted-foreground flex h-8 items-center gap-2 rounded-md px-2 text-[13px] transition-colors outline-none",
+                                "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-sidebar-ring focus-visible:ring-2",
                                 active &&
                                   "bg-sidebar-accent text-sidebar-accent-foreground font-medium",
                               )}
@@ -387,7 +397,7 @@ export function Sidebar({
                 aria-expanded={gOpen}
                 aria-controls={gid}
                 onClick={() => toggle(groupKey(group), !gOpen)}
-                className="text-muted-foreground hover:text-foreground flex w-full items-center gap-1 px-2.5 pb-1 text-left text-[11px] font-semibold tracking-wide uppercase"
+                className="text-muted-foreground hover:text-foreground focus-visible:ring-sidebar-ring flex w-full items-center gap-1 rounded px-2.5 pb-1 text-left text-[11px] font-semibold tracking-wide uppercase outline-none focus-visible:ring-2"
               >
                 <span className="truncate">{group}</span>
                 <ChevronRight

@@ -478,11 +478,14 @@ export function AppNav({
                 aria-expanded={sOpen}
                 aria-controls={sid}
                 onClick={() => setNav((st) => setOpen(st, sectionStateKey(s.key), !sOpen))}
-                className="text-sidebar-foreground hover:bg-sidebar-accent/60 flex h-10 w-full items-center gap-2 rounded-lg px-3 text-left text-sm font-semibold"
+                className="text-sidebar-foreground hover:bg-sidebar-accent/60 focus-visible:ring-sidebar-ring flex h-10 w-full items-center gap-2 rounded-lg px-3 text-left text-sm font-semibold outline-none focus-visible:ring-2"
               >
                 <span className="truncate">{s.title}</span>
                 {!sOpen && waiting > 0 ? (
-                  <span className="bg-destructive size-1.5 rounded-full" aria-hidden />
+                  <>
+                    <span className="bg-destructive size-1.5 rounded-full" aria-hidden />
+                    <span className="sr-only">, {waiting} waiting</span>
+                  </>
                 ) : null}
                 <ChevronRight
                   className={cn(

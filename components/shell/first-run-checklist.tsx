@@ -52,18 +52,18 @@ export function FirstRunChecklist({ firstRun }: { firstRun: FirstRun }) {
                   <button
                     type="button"
                     onClick={() => window.dispatchEvent(new Event(OPEN_PALETTE_EVENT))}
-                    className="text-left hover:underline"
+                    className="focus-visible:ring-ring pointer-coarse:min-h-11 rounded-sm text-left outline-none hover:underline focus-visible:ring-2"
                   >
                     {s.text}
                   </button>
                 ) : (
                   <Link
                     href={s.href}
-                    className="group inline-flex items-start gap-1 hover:underline"
+                    className="group focus-visible:ring-ring pointer-coarse:min-h-11 pointer-coarse:items-center inline-flex items-start gap-1 rounded-sm outline-none hover:underline focus-visible:ring-2"
                   >
                     <span>{s.text}</span>
                     <ArrowRight
-                      className="text-muted-foreground mt-0.5 size-3.5 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 motion-reduce:transition-none"
+                      className="text-muted-foreground mt-0.5 size-3.5 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 motion-reduce:transition-none"
                       aria-hidden
                     />
                   </Link>
