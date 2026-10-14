@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { getCurrentMember } from "@/lib/auth/session";
+import { getCurrentMemberIfAvailable } from "@/lib/auth/session";
 import { recordAuthEvent } from "@/lib/security/auth-events";
 import { endSessionRows } from "@/lib/security/sessions";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
-  const member = await getCurrentMember();
+  const member = await getCurrentMemberIfAvailable();
   if (member) {
     await supabase.rpc("set_presence", { p_org_id: member.orgId, p_presence: "offline" });
     const admin = createAdminClient();
