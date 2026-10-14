@@ -50,14 +50,13 @@ describe("Accounting navigation", () => {
       "Assets",
       "Reports",
       "Close",
-      "Setup",
     ]);
   });
 
   it("the shell's Accounting item is visible to anyone holding any accounting key", () => {
     const shell = NAV_ITEMS.find((i) => i.href === "/accounting")!;
     expect(shell.icon).toBe("accounting");
-    expect(shell.group).toBe("Insight & back office");
+    expect(shell.group).toBe("Back office");
     expect([...(shell.permissions ?? [])].sort()).toEqual([...ACCOUNTING_KEYS].sort());
     const catalogue = PERMISSIONS.filter((p) => p.key.startsWith("accounting.")).map((p) => p.key);
     expect([...ACCOUNTING_KEYS].sort()).toEqual(catalogue.sort());

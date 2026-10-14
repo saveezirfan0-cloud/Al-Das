@@ -4,12 +4,27 @@ import { readAppointmentSettings } from "@/lib/appointments/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
-import { AppointmentsSettings } from "./appointments-settings";
+import { AppointmentsSettings, type AppointmentSettingsTab } from "./appointments-settings";
+
+/** `?tab=` values the page accepts (the CRM menu's Branches link opens `locations`). */
+const TABS: readonly AppointmentSettingsTab[] = [
+  "specialists",
+  "locations",
+  "departments",
+  "services",
+  "rules",
+];
 
 export const metadata = { title: "Appointment settings" };
 
-export default async function AppointmentSettingsPage() {
+export default async function AppointmentSettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>;
+}) {
   const member = await requirePerm("settings.manage");
+  const { tab } = await searchParams;
+  const initialTab = TABS.find((t) => t === tab) ?? "specialists";
   const admin = createAdminClient();
   const supabase = await createClient();
   const org = member.orgId;
@@ -84,9 +99,10 @@ export default async function AppointmentSettingsPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Appointments"
-        description="Locations, services, specialists and working hours, plus the booking rules and WhatsApp templates behind reminders."
+        description="Branches, services, doctors and working hours, plus the booking rules and WhatsApp templates behind reminders."
       />
       <AppointmentsSettings
+        initialTab={initialTab}
         orgTimezone={orgRow?.timezone ?? "Asia/Dubai"}
         rules={readAppointmentSettings(orgRow?.settings)}
         locations={locations ?? []}

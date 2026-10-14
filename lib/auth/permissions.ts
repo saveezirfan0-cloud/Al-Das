@@ -157,14 +157,14 @@ export const PERMISSIONS = [
   {
     key: "portal.clinical_followups.read",
     group: "Clinical",
-    label: "View the Follow-Up Queue",
+    label: "View clinical follow-ups",
     description:
       "Clinical follow-ups, feedback and the evaluations behind them (patient health data)",
   },
   {
     key: "portal.clinical_followups.write",
     group: "Clinical",
-    label: "Work the Follow-Up Queue",
+    label: "Work clinical follow-ups",
     description: "Update call outcomes, assign and close follow-ups",
   },
   {
@@ -1039,7 +1039,7 @@ export const SYSTEM_ROLES: readonly RolePreset[] = [
   {
     name: "Care coordinator",
     description:
-      "Works the clinical Follow-Up Queue and patient conversations. Cannot sign off clinical settings.",
+      "Works the clinical follow-ups and patient conversations. Cannot sign off clinical settings.",
     permissions: [
       "inbox.send",
       "contacts.view",

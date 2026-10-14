@@ -67,6 +67,22 @@ export const GUIDES: readonly Guide[] = [
     ],
   },
   {
+    id: "clinical-follow-ups",
+    title: "Clinical follow-ups",
+    pages: ["/portal/follow-ups"],
+    purpose: "Call back the patients whose visit tripped a clinical rule, most urgent first.",
+    steps: [
+      "Work the list from the top: High priority first, then the oldest due date.",
+      "Open a row to see why it was raised. Record what the patient said, the escalation and who owns it.",
+      "Press Notify doctor when the doctor needs to know; write their answer in Doctor response.",
+      "Save keeps the item open; Save & close takes it off the list.",
+    ],
+    watchOut: [
+      "These are internal tasks: nothing here messages the patient.",
+      "Pulse never diagnoses or advises on medicines. If the patient sounds unwell, follow the clinic's escalation rule.",
+    ],
+  },
+  {
     id: "my-day",
     title: "My day",
     pages: ["/my-day"],

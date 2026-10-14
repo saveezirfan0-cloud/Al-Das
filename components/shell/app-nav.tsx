@@ -8,7 +8,8 @@ import {
   BarChart3,
   ChevronRight,
   House,
-  Megaphone,
+  Landmark,
+  MessagesSquare,
   Pin,
   PinOff,
   Sun,
@@ -34,17 +35,22 @@ import { useNavBadges } from "./nav-badges";
 import { useBadgedItems } from "./shell-data";
 import { CountPill, ICONS, type SidebarNode } from "./sidebar";
 
-/** How each sidebar group appears as an area in the rail. */
-const GROUP_AREAS: Record<NavGroup, { title: string; subtitle: string; icon: LucideIcon }> = {
-  Today: { title: "Today", subtitle: "Front desk, inbox and diary", icon: Sun },
-  CRM: { title: "CRM", subtitle: "Patients and enquiries", icon: Users },
-  Growth: { title: "Growth", subtitle: "Campaigns, templates and flows", icon: Megaphone },
-  "Insight & back office": {
-    title: "Insights",
-    subtitle: "Reports and back office",
-    icon: BarChart3,
-  },
-};
+/**
+ * How each sidebar group appears as an area in the rail (docs/34 §3). "Back office" holds only modules with sections
+ * (Finance, Accounting), which are areas of their own, so its entry shows only if a plain page is ever added to it.
+ */
+export const GROUP_AREAS: Record<NavGroup, { title: string; subtitle: string; icon: LucideIcon }> =
+  {
+    Today: { title: "Today", subtitle: "Front desk, diary, tasks and follow-ups", icon: Sun },
+    Messaging: {
+      title: "Messaging",
+      subtitle: "Inbox, templates, campaigns and flows",
+      icon: MessagesSquare,
+    },
+    CRM: { title: "CRM", subtitle: "Patients, enquiries and the organisation", icon: Users },
+    "Back office": { title: "Back office", subtitle: "Finance and accounting", icon: Landmark },
+    Insights: { title: "Insights", subtitle: "Reports, management and portal", icon: BarChart3 },
+  };
 
 /** One-line descriptions for the areas that are modules with their own sections. */
 const MODULE_SUBTITLES: Record<string, string> = {
@@ -53,7 +59,7 @@ const MODULE_SUBTITLES: Record<string, string> = {
   "/settings": "Workspace and your account",
 };
 
-type Area = {
+export type Area = {
   key: string;
   title: string;
   subtitle: string;
@@ -66,12 +72,22 @@ type Area = {
 };
 
 /**
- * Builds the rail areas from the tree: Dashboard is Home, each sidebar group is one area of plain pages, and each
- * module with sections (Finance, Accounting, Settings) is its own area. Areas the member cannot see are dropped.
+ * Builds the rail areas from the tree: Dashboard is Home; each sidebar group is one area of plain pages, followed by an
+ * area for each module with sections in that group (Finance, Accounting); Settings sits at the bottom. Areas the member
+ * cannot see are dropped.
  */
-function buildAreas(tree: readonly SidebarNode[]): { top: Area[]; bottom: Area[] } {
+export function buildAreas(tree: readonly SidebarNode[]): { top: Area[]; bottom: Area[] } {
   const top: Area[] = [];
   const bottom: Area[] = [];
+  const moduleArea = (n: SidebarNode): Area => ({
+    key: n.href,
+    title: n.label,
+    subtitle: MODULE_SUBTITLES[n.href] ?? "",
+    icon: ICONS[n.icon],
+    href: n.href,
+    items: [],
+    module: n,
+  });
   const home = tree.find((n) => n.href === "/dashboard");
   if (home)
     top.push({
@@ -86,20 +102,11 @@ function buildAreas(tree: readonly SidebarNode[]): { top: Area[]; bottom: Area[]
     const items = tree.filter((n) => n.group === group && !n.sections);
     if (items.length > 0)
       top.push({ key: group, ...GROUP_AREAS[group], href: items[0].href, items });
+    for (const n of tree) if (n.group === group && n.sections) top.push(moduleArea(n));
   }
-  for (const n of tree) {
-    if (!n.sections) continue;
-    const area: Area = {
-      key: n.href,
-      title: n.label,
-      subtitle: MODULE_SUBTITLES[n.href] ?? "",
-      icon: ICONS[n.icon],
-      href: n.href,
-      items: [],
-      module: n,
-    };
-    (n.icon === "settings" ? bottom : top).push(area);
-  }
+  // modules outside the groups: Settings at the bottom, anything else at the end of the top list
+  for (const n of tree)
+    if (n.sections && !n.group) (n.icon === "settings" ? bottom : top).push(moduleArea(n));
   // Settings without sub-pages for this member still belongs at the bottom.
   const settings = tree.find((n) => n.icon === "settings" && !n.sections);
   if (settings)
@@ -286,11 +293,17 @@ export function AppNav({
     if (!a.module)
       return (
         <ul className="flex flex-col gap-1">
-          {a.items.map((i) => {
+          {a.items.map((i, n) => {
             const Icon = ICONS[i.icon];
             const active = trail.item === i.href;
+            const heading = i.subgroup && i.subgroup !== a.items[n - 1]?.subgroup;
             return (
               <li key={i.href}>
+                {heading && (
+                  <p className="text-muted-foreground px-3 pt-2 pb-1 text-[11px] font-semibold tracking-wide uppercase">
+                    {i.subgroup}
+                  </p>
+                )}
                 <Link
                   href={i.href}
                   aria-current={active ? "page" : undefined}

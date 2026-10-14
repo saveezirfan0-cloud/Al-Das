@@ -5,7 +5,15 @@ import { describe, expect, it } from "vitest";
 import type { MemberLike } from "@/lib/auth/can";
 import { FINANCE_ROLES, PERMISSION_KEYS } from "@/lib/auth/permissions";
 import { NAV_ITEMS } from "@/components/shell/nav";
-import { badgesNeeded, FINANCE_NAV, financeLanding, financeNavFor } from "@/lib/finance/nav";
+import {
+  badgesNeeded,
+  FINANCE_NAV,
+  FINANCE_SETUP_PAGES,
+  financeLanding,
+  financeNavFor,
+  financePagesFor,
+  financeTabGroupsFor,
+} from "@/lib/finance/nav";
 
 const member = (permissions: string[]): MemberLike => ({
   userId: "u",
@@ -15,21 +23,29 @@ const member = (permissions: string[]): MemberLike => ({
   permissions,
 });
 const role = (name: string) => FINANCE_ROLES.find((r) => r.name === name)!.permissions;
-const hrefs = (m: MemberLike) => financeNavFor(m).map((e) => e.href);
+// every Finance page a member reaches from a menu: entries, tabs of a tab group, and the setup pages under Settings
+const hrefs = (m: MemberLike) => financePagesFor(m);
 
 describe("Finance navigation", () => {
   it("every entry points at a page that exists and uses only real permission keys", () => {
-    for (const e of FINANCE_NAV) {
+    const pages = [...FINANCE_NAV.flatMap((e) => (e.tabs ? e.tabs : [e])), ...FINANCE_SETUP_PAGES];
+    for (const e of pages) {
       const dir = join(process.cwd(), "app/(app)", e.href);
       expect(existsSync(join(dir, "page.tsx")), e.href).toBe(true);
       for (const p of e.permissions) expect(PERMISSION_KEYS, `${e.href} ${p}`).toContain(p);
     }
     expect(new Set(FINANCE_NAV.map((e) => e.href)).size).toBe(FINANCE_NAV.length);
+    expect(new Set(pages.map((e) => e.href)).size).toBe(pages.length);
   });
 
   it("the shell's Finance item is visible to anyone who can open any Finance entry", () => {
     const shell = NAV_ITEMS.find((i) => i.href === "/finance")!;
     const all = new Set(FINANCE_NAV.flatMap((e) => e.permissions));
+    // a tab group's permissions are the union of its tabs'
+    for (const e of FINANCE_NAV.filter((x) => x.tabs))
+      expect([...e.permissions].sort(), e.label).toEqual(
+        [...new Set(e.tabs!.flatMap((t) => t.permissions))].sort(),
+      );
     for (const p of all) expect(shell.permissions, p).toContain(p);
   });
 
@@ -40,6 +56,11 @@ describe("Finance navigation", () => {
 
   it("shows exactly the entries a member's permissions allow", () => {
     expect(hrefs(member(["finance.denials.manage"]))).toEqual(["/finance/denials"]);
+    // a tab group opens the first tab the member may open
+    expect(financeNavFor(member(["finance.forecast.view"])).map((e) => e.href)).toEqual([
+      "/finance/reports",
+      "/finance/forecast",
+    ]);
     expect(hrefs(member(["finance.close.signoff.ceo"]))).toEqual(["/finance/close"]);
     expect(hrefs(member(["finance.recovery.approve"]))).toEqual(["/finance/recovery"]);
     expect(financeLanding(member(["finance.cashup.manage"]))).toBe("/finance/cashup");
@@ -134,19 +155,30 @@ describe("Finance navigation", () => {
     );
     expect(role("CEO")).not.toContain("finance.bank.signoff");
     for (const r of ["Billing", "Insurance", "Medical Director", "Cost / Payroll"])
-      expect(hrefs(member(role(r))).filter((h) => h.startsWith("/finance/bank")), r).toEqual([]);
+      expect(
+        hrefs(member(role(r))).filter((h) => h.startsWith("/finance/bank")),
+        r,
+      ).toEqual([]);
   });
 
   it("the Finance inbox is for Finance and the Finance Manager only, next to Supplier invoices, with a badge", () => {
     for (const r of ["Finance", "Finance Manager"])
       expect(hrefs(member(role(r))), r).toContain("/finance/inbox");
-    for (const r of ["CEO", "Department head", "Billing", "Insurance", "Medical Director", "Cost / Payroll"])
+    for (const r of [
+      "CEO",
+      "Department head",
+      "Billing",
+      "Insurance",
+      "Medical Director",
+      "Cost / Payroll",
+    ])
       expect(hrefs(member(role(r))), r).not.toContain("/finance/inbox");
     // its own key: neither payables nor voucher rights imply it, and it implies nothing else
     expect(hrefs(member(["finance.payables.manage"]))).not.toContain("/finance/inbox");
     expect(hrefs(member(["finance.inbox.manage"]))).toEqual(["/finance/inbox"]);
     const money = FINANCE_NAV.filter((e) => e.section === "Money").map((e) => e.href);
     expect(money.indexOf("/finance/inbox") + 1).toBe(money.indexOf("/finance/payables"));
+    expect(FINANCE_NAV.find((e) => e.href === "/finance/payables")?.label).toBe("Payables");
     expect(badgesNeeded(member(["finance.inbox.manage"]))).toEqual(["inbox"]);
     expect(badgesNeeded(member(["finance.payables.manage"]))).not.toContain("inbox");
   });
@@ -156,14 +188,22 @@ describe("Finance navigation", () => {
       expect(hrefs(member(role(r))), r).toEqual(
         expect.arrayContaining(["/finance/labs", "/finance/labs/settings"]),
       );
-      expect(role(r), r).toEqual(expect.arrayContaining(["finance.labs.view", "finance.labs.manage"]));
+      expect(role(r), r).toEqual(
+        expect.arrayContaining(["finance.labs.view", "finance.labs.manage"]),
+      );
     }
     expect(hrefs(member(role("CEO")))).toContain("/finance/labs");
     expect(hrefs(member(role("CEO")))).not.toContain("/finance/labs/settings");
     expect(role("CEO")).not.toContain("finance.labs.manage");
     for (const r of ["Billing", "Insurance", "Medical Director", "Cost / Payroll", "Operations"]) {
-      expect(hrefs(member(role(r))).filter((h) => h.startsWith("/finance/labs")), r).toEqual([]);
-      expect(role(r).filter((p) => p.startsWith("finance.labs.")), r).toEqual([]);
+      expect(
+        hrefs(member(role(r))).filter((h) => h.startsWith("/finance/labs")),
+        r,
+      ).toEqual([]);
+      expect(
+        role(r).filter((p) => p.startsWith("finance.labs.")),
+        r,
+      ).toEqual([]);
     }
   });
 
@@ -230,7 +270,10 @@ describe("Finance navigation", () => {
       expect(hrefs(member(role(r))), r).toContain("/finance/revenue-share");
     for (const r of ["Medical Director", "Billing", "Insurance", "Cost / Payroll"]) {
       expect(hrefs(member(role(r))), r).not.toContain("/finance/revenue-share");
-      expect(role(r).filter((p) => p.startsWith("finance.revshare.")), r).toEqual([]);
+      expect(
+        role(r).filter((p) => p.startsWith("finance.revshare.")),
+        r,
+      ).toEqual([]);
     }
     // maker (Finance) and checker (Finance Manager) are different roles; the CEO approves
     expect(role("Finance")).toEqual(
@@ -239,7 +282,9 @@ describe("Finance navigation", () => {
     expect(role("Finance")).not.toContain("finance.revshare.verify");
     expect(role("Finance Manager")).toContain("finance.revshare.verify");
     expect(role("Finance")).not.toContain("finance.revshare.approve");
-    expect(role("CEO")).toEqual(expect.arrayContaining(["finance.revshare.view", "finance.revshare.approve"]));
+    expect(role("CEO")).toEqual(
+      expect.arrayContaining(["finance.revshare.view", "finance.revshare.approve"]),
+    );
     expect(role("CEO")).not.toContain("finance.revshare.verify");
     expect(role("CEO")).not.toContain("finance.revshare.manage");
     expect(hrefs(member(["finance.revshare.approve"]))).toEqual(["/finance/revenue-share"]);
@@ -247,7 +292,10 @@ describe("Finance navigation", () => {
 
   it("cost and profit pages follow the blueprint's separation of duties", () => {
     // Cost / Payroll: costs (and its own close steps), no revenue, branch, doctor or profit pages
-    expect(hrefs(member(role("Cost / Payroll")))).toEqual(["/finance/close/timetable", "/finance/costs"]);
+    expect(hrefs(member(role("Cost / Payroll"))).sort()).toEqual([
+      "/finance/close/timetable",
+      "/finance/costs",
+    ]);
     // CEO sees profitability but not the cost inputs
     const ceo = hrefs(member(role("CEO")));
     expect(ceo).toContain("/finance/profitability");
@@ -289,5 +337,25 @@ describe("Finance navigation", () => {
 
   it("Admin (*) sees every entry", () => {
     expect(financeNavFor(member(["*"]))).toHaveLength(FINANCE_NAV.length);
+  });
+
+  it("Phase D: about twenty entries, siblings as tabs, setup under Settings", () => {
+    expect(FINANCE_NAV.length).toBeLessThanOrEqual(22);
+    expect([...new Set(FINANCE_NAV.map((e) => e.section))]).toEqual([
+      "Reports",
+      "Claims & collections",
+      "Money",
+      "Month-end",
+    ]);
+    // nothing was dropped: the menu, the tabs and the setup pages still reach every page the old menu listed
+    expect(financePagesFor(member(["*"]))).toHaveLength(45);
+    // the tab strip lists only the tabs a member may open, and only when there are two or more
+    const md = financeTabGroupsFor(member(role("Medical Director")));
+    expect(md.map((g) => g.label)).toEqual(["Performance"]);
+    expect(md[0].tabs.map((t) => t.href)).not.toContain("/finance/profitability");
+    expect(financeTabGroupsFor(member(["finance.forecast.view"]))).toEqual([]);
+    // a tab group's badge belongs to its first tab
+    expect(badgesNeeded(member(["finance.close.tasks"]))).toEqual([]);
+    expect(badgesNeeded(member(["finance.close.view"]))).toEqual(["close"]);
   });
 });

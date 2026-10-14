@@ -203,6 +203,16 @@ export const ACCOUNTING_NAV: readonly AccountingNavEntry[] = [
     permissions: ["accounting.reports.view"],
   },
   {
+    href: "/accounting/budgets",
+    label: "Budgets",
+    section: "Reports",
+    permissions: [
+      "accounting.budgets.manage",
+      "accounting.journals.approve",
+      "accounting.reports.view",
+    ],
+  },
+  {
     href: "/accounting/reports/budget-vs-actual",
     label: "Budget against actual",
     section: "Reports",
@@ -226,7 +236,7 @@ export const ACCOUNTING_NAV: readonly AccountingNavEntry[] = [
   },
   {
     href: "/accounting/reports/exceptions",
-    label: "Exceptions",
+    label: "Ledger exceptions",
     section: "Reports",
     permissions: ["accounting.reports.view"],
   },
@@ -248,74 +258,61 @@ export const ACCOUNTING_NAV: readonly AccountingNavEntry[] = [
     section: "Close",
     permissions: ["accounting.periods.manage", "accounting.view"],
   },
+];
+
+/**
+ * Accounting setup pages (Phase D): listed under Settings, Accounting setup (components/shell/settings-pages.ts). They
+ * keep their URLs and the Accounting layout (finance access window). Each is gated by its own keys.
+ */
+export const ACCOUNTING_SETUP_PAGES: ReadonlyArray<Omit<AccountingNavEntry, "section">> = [
   {
     href: "/accounting/entities",
     label: "Entities and fiscal years",
-    section: "Setup",
     permissions: ["accounting.settings.manage", "accounting.view"],
   },
   {
     href: "/accounting/tax-codes",
     label: "Tax codes",
-    section: "Setup",
     permissions: ["accounting.coa.manage", "accounting.tax.manage", "accounting.view"],
   },
   {
     href: "/accounting/receivables-settings",
-    label: "Sales settings",
-    section: "Setup",
+    label: "Sales and receipts settings",
     permissions: ["accounting.settings.manage"],
   },
   {
     href: "/accounting/cost-centres",
     label: "Cost centres",
-    section: "Setup",
     permissions: ["accounting.coa.manage", "accounting.view"],
   },
   {
     href: "/accounting/posting-rules",
     label: "Posting rules",
-    section: "Setup",
     permissions: ["accounting.settings.manage", "accounting.view"],
   },
   {
-    href: "/accounting/budgets",
-    label: "Budgets",
-    section: "Setup",
-    permissions: [
-      "accounting.budgets.manage",
-      "accounting.journals.approve",
-      "accounting.reports.view",
-    ],
-  },
-  {
     href: "/accounting/report-settings",
-    label: "Report settings",
-    section: "Setup",
+    label: "Accounting report settings",
     permissions: ["accounting.settings.manage", "accounting.reports.view"],
   },
   {
     href: "/accounting/tally-import",
     label: "Tally import",
-    section: "Setup",
     permissions: ["accounting.import"],
   },
   {
     href: "/accounting/opening-balances",
     label: "Opening balances",
-    section: "Setup",
     permissions: ["accounting.import"],
   },
   {
     href: "/accounting/tally-reconciliation",
     label: "Tally reconciliation",
-    section: "Setup",
     permissions: ["accounting.import"],
   },
   {
     href: "/accounting/tally-bridge",
     label: "Tally bridge",
-    section: "Setup",
     permissions: ["accounting.import"],
   },
 ];
@@ -347,6 +344,13 @@ export function accountingNavFor(
     label: e.label,
     section: e.section,
   }));
+}
+
+/** Every Accounting page this member reaches from a menu: the module's entries and the setup pages under Settings. */
+export function accountingPagesFor(member: MemberLike): string[] {
+  return [...ACCOUNTING_NAV, ...ACCOUNTING_SETUP_PAGES]
+    .filter((e) => canAny(member, e.permissions))
+    .map((e) => e.href);
 }
 
 /** Where /accounting sends a member: the first entry they may open. */

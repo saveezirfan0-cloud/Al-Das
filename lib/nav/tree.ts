@@ -8,7 +8,14 @@ import type { ModuleEntry, NavModules } from "./modules";
  * client sidebar without a query.
  */
 
-export type TreePage = { href: string; label: string; keywords?: readonly string[] };
+export type TreeTab = { href: string; label: string };
+/** A page in a module's menu. `tabs` (two or more) are the sibling pages the entry stands for (a tab group). */
+export type TreePage = {
+  href: string;
+  label: string;
+  keywords?: readonly string[];
+  tabs?: TreeTab[];
+};
 export type TreeSection = { key: string; title: string; pages: TreePage[] };
 
 /** What the builder needs from a top-level item (NavItem satisfies it). */
@@ -33,7 +40,20 @@ export function itemVisible(item: TopItem, member: MemberLike): boolean {
 
 export function entryVisible(entry: ModuleEntry, member: MemberLike): boolean {
   if (entry.allow) return entry.allow(member);
+  if (entry.tabs) return visibleTabs(entry, member).length > 0;
   return !!entry.permissions?.length && canAny(member, entry.permissions);
+}
+
+/** The tabs of a tab-group entry this member may open, in order. */
+export function visibleTabs(entry: ModuleEntry, member: MemberLike): TreeTab[] {
+  return (entry.tabs ?? [])
+    .filter((t) => t.permissions.length > 0 && canAny(member, t.permissions))
+    .map((t) => ({ href: t.href, label: t.label }));
+}
+
+/** Where an entry opens for this member: its first visible tab, or its own href. */
+export function entryHref(entry: ModuleEntry, member: MemberLike): string {
+  return visibleTabs(entry, member)[0]?.href ?? entry.href;
 }
 
 /** A module's visible pages grouped by section, sections in first-seen order, pages in list order. */
@@ -50,11 +70,11 @@ export function moduleSections(
       s = { key: sectionKey(moduleHref, e.section), title: e.section, pages: [] };
       sections.push(s);
     }
-    s.pages.push(
-      e.keywords
-        ? { href: e.href, label: e.label, keywords: e.keywords }
-        : { href: e.href, label: e.label },
-    );
+    const page: TreePage = { href: entryHref(e, member), label: e.label };
+    if (e.keywords) page.keywords = e.keywords;
+    const tabs = visibleTabs(e, member);
+    if (tabs.length > 1) page.tabs = tabs;
+    s.pages.push(page);
   }
   return sections;
 }
@@ -87,7 +107,11 @@ const under = (pathname: string, href: string) =>
 
 export type ActiveTrail = { item?: string; module?: string; section?: string; page?: string };
 
-/** Where the current path sits in the tree: the longest matching top-level item and, inside a module, page. */
+/**
+ * Where the current path sits in the tree. The most specific module page wins, wherever it is listed (a Settings entry
+ * can live under /finance, and a tab group's entry stands for each of its tabs); otherwise the longest matching
+ * top-level item.
+ */
 export function activeTrail(
   tree: ReadonlyArray<{ href: string; sections?: readonly TreeSection[] }>,
   pathname: string,
@@ -95,14 +119,18 @@ export function activeTrail(
   let node: (typeof tree)[number] | undefined;
   for (const n of tree)
     if (under(pathname, n.href) && (!node || n.href.length > node.href.length)) node = n;
+  let best: { module: string; section: string; page: string; len: number } | undefined;
+  for (const n of tree)
+    for (const s of n.sections ?? [])
+      for (const p of s.pages)
+        for (const h of [p.href, ...(p.tabs ?? []).map((t) => t.href)])
+          if (under(pathname, h) && (!best || h.length > best.len))
+            best = { module: n.href, section: s.key, page: p.href, len: h.length };
+  if (best && (!node || best.len >= node.href.length))
+    return { item: best.module, module: best.module, section: best.section, page: best.page };
   if (!node) return {};
   if (!node.sections) return { item: node.href };
-  let best: { section: string; page: string } | undefined;
-  for (const s of node.sections)
-    for (const p of s.pages)
-      if (under(pathname, p.href) && (!best || p.href.length > best.page.length))
-        best = { section: s.key, page: p.href };
-  return { item: node.href, module: node.href, ...best };
+  return { item: node.href, module: node.href };
 }
 
 /** Every module and section key in the tree (for Expand all / Collapse all). */

@@ -139,7 +139,7 @@ describe("Phase 16 navigation", () => {
   it("shows the Media Library to anyone who can view or manage it, and to nobody else", () => {
     const item = NAV_ITEMS.find((i) => i.href === "/media")!;
     expect(item).toBeDefined();
-    expect(item.group).toBe("Growth");
+    expect(item.group).toBe("Messaging");
     expect(item.permissions).toEqual(["media.view", "media.manage"]);
     const sees = (perms: string[]) => item.permissions!.some((p) => perms.includes(p));
     expect(sees(["media.view"])).toBe(true);

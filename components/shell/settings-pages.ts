@@ -1,4 +1,6 @@
+import { ACCOUNTING_SETUP_PAGES } from "@/lib/accounting/nav";
 import { can, canAny, type MemberLike } from "@/lib/auth/can";
+import { FINANCE_SETUP_PAGES } from "@/lib/finance/nav";
 import { SIGNING_PERMS } from "@/lib/signing/perms";
 import { canOpenRecentlyDeleted } from "@/lib/soft-delete/access";
 
@@ -7,15 +9,29 @@ import { canOpenRecentlyDeleted } from "@/lib/soft-delete/access";
  * Settings sidebar and the command palette so the two never drift apart.
  */
 export type SettingsSection =
-  "Personal" | "Workspace" | "Channels & integrations" | "Clinic operations" | "Security & audit";
+  | "Personal"
+  | "Workspace"
+  | "Channels & integrations"
+  | "Clinic operations"
+  | "Finance setup"
+  | "Accounting setup"
+  | "Security & audit";
 
 export const SETTINGS_SECTIONS: readonly SettingsSection[] = [
   "Personal",
   "Workspace",
   "Channels & integrations",
   "Clinic operations",
+  "Finance setup",
+  "Accounting setup",
   "Security & audit",
 ];
+
+/**
+ * Settings entries that live outside /settings (Phase D): the finance and accounting setup pages keep their URLs and
+ * their module's layout (so the finance access window applies), and are listed here under their own setup section.
+ */
+export const SETTINGS_FOREIGN_PREFIXES = ["/finance/", "/accounting/"] as const;
 
 export type SettingsPage = {
   href: string;
@@ -79,13 +95,6 @@ export const SETTINGS_PAGES: readonly SettingsPage[] = [
     label: "Roles",
     section: "Workspace",
     keywords: ["permissions", "access"],
-    allow: admin,
-  },
-  {
-    href: "/settings/teams",
-    label: "Teams",
-    section: "Workspace",
-    keywords: ["departments", "routing", "auto-reply", "fallback team", "office hours"],
     allow: admin,
   },
   { href: "/settings/custom-fields", label: "Custom fields", section: "Workspace", allow: admin },
@@ -237,6 +246,21 @@ export const SETTINGS_PAGES: readonly SettingsPage[] = [
     allow: admin,
   },
 
+  // Finance and Accounting setup (Phase D): same URLs, each gated by its own key (can() keeps the finance access window)
+  ...FINANCE_SETUP_PAGES.map((p): SettingsPage => ({
+    href: p.href,
+    label: p.label,
+    section: "Finance setup",
+    keywords: p.keywords,
+    allow: (m) => canAny(m, p.permissions),
+  })),
+  ...ACCOUNTING_SETUP_PAGES.map((p): SettingsPage => ({
+    href: p.href,
+    label: p.label,
+    section: "Accounting setup",
+    allow: (m) => canAny(m, p.permissions),
+  })),
+
   {
     href: "/settings/activity",
     label: "Activity log",
@@ -295,7 +319,15 @@ export const SETTINGS_PAGES: readonly SettingsPage[] = [
     href: "/settings/recently-deleted",
     label: "Recently deleted",
     section: "Security & audit",
-    keywords: ["restore", "undo delete", "bin", "trash", "deleted contacts", "deleted tasks", "recover"],
+    keywords: [
+      "restore",
+      "undo delete",
+      "bin",
+      "trash",
+      "deleted contacts",
+      "deleted tasks",
+      "recover",
+    ],
     allow: (m) => canOpenRecentlyDeleted(m),
   },
   {
@@ -309,5 +341,7 @@ export const SETTINGS_PAGES: readonly SettingsPage[] = [
 
 /** The pages this member may open, in section order. */
 export function visibleSettingsPages(member: MemberLike): SettingsPage[] {
-  return SETTINGS_PAGES.filter((p) => p.allow(member));
+  return SETTINGS_SECTIONS.flatMap((section) =>
+    SETTINGS_PAGES.filter((p) => p.section === section && p.allow(member)),
+  );
 }

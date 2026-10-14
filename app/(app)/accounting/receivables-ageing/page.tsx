@@ -17,7 +17,7 @@ import { RECEIVABLES_READ } from "@/lib/accounting/nav";
 import { loadBranchCodeOptions } from "@/lib/accounting/accounting-server";
 import { loadAgeing } from "@/lib/accounting/receivables-server";
 import { AGEING_BUCKETS, CUSTOMER_KIND_LABELS } from "@/lib/accounting/sales";
-import { canAny, ForbiddenError } from "@/lib/auth/can";
+import { can, canAny, ForbiddenError } from "@/lib/auth/can";
 import { requireMember } from "@/lib/auth/session";
 import { pickBranchCode } from "@/lib/branches/codes";
 import { money } from "@/lib/finance/format";
@@ -49,7 +49,21 @@ export default async function ReceivablesAgeingPage({
     <div className="flex flex-col gap-4">
       <PageHeader
         title="Receivables ageing"
-        description="What each customer owes on Pulse's own sales invoices, by days past the due date. Money received but not yet allocated shows as on account. Insurance claims from Unite are aged in Finance."
+        description={
+          <>
+            What each customer owes on Pulse&apos;s own sales invoices, by days past the due date.
+            Money received but not yet allocated shows as on account. Insurance claims from Unite are
+            aged in{" "}
+            {can(member, "finance.claims.view") ? (
+              <Link href="/finance/receivables" className="underline">
+                Finance, Insurance and receivables, By payer and age
+              </Link>
+            ) : (
+              "Finance"
+            )}
+            .
+          </>
+        }
       />
       <form method="get" className="flex flex-wrap items-end gap-2">
         <label className="flex flex-col gap-1 text-sm">

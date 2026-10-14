@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 
 import { ACCOUNTING_ERRORS } from "@/lib/accounting/errors";
 import type { MemberLike } from "@/lib/auth/can";
-import { accountingNavFor } from "@/lib/accounting/nav";
+import { accountingPagesFor } from "@/lib/accounting/nav";
 import { comparePreview } from "@/lib/accounting/posting/preview";
 import { REASON_CODES } from "@/lib/accounting/posting/types";
 import { ACCOUNTING_ROLES, FINANCE_ROLES } from "@/lib/auth/permissions";
@@ -21,7 +21,8 @@ const member = (permissions: readonly string[]): MemberLike => ({
   status: "active",
   permissions,
 });
-const hrefs = (perms: readonly string[]) => accountingNavFor(member(perms)).map((e) => e.href);
+// the module menu plus the setup pages listed under Settings (Phase D)
+const hrefs = (perms: readonly string[]) => accountingPagesFor(member(perms));
 
 describe("posting pages", () => {
   it("the Chief Accountant sees all three; the Accountant waiting and preview, not the rules' edit; the CEO the preview only", () => {

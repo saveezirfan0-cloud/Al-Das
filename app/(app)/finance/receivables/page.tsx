@@ -14,6 +14,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { RECEIVABLES_READ } from "@/lib/accounting/nav";
+import { canAny } from "@/lib/auth/can";
 import { requirePerm } from "@/lib/auth/session";
 import { todayIn } from "@/lib/finance/action-support";
 import { money } from "@/lib/finance/format";
@@ -60,7 +62,22 @@ export default async function ReceivablesPage({
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Receivables by payer and age"
-        description={`Unpaid insurance claims as of ${today}: net less remitted and approved write-offs, by payer and days since the claim date. All amounts in AED.`}
+        description={
+          <>
+            Unpaid insurance claims as of {today}: net less remitted and approved write-offs, by
+            payer and days since the claim date. All amounts in AED.
+            {canAny(member, RECEIVABLES_READ) && (
+              <>
+                {" "}
+                What business customers owe on Pulse&apos;s own sales invoices is in{" "}
+                <Link href="/accounting/receivables-ageing" className="underline">
+                  Accounting, Receivables ageing
+                </Link>
+                .
+              </>
+            )}
+          </>
+        }
       >
         <Button asChild variant="outline" size="sm">
           <a href={csvHref}>Download CSV</a>

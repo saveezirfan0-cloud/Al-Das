@@ -19,6 +19,9 @@ import {
 } from "./catalogue";
 import { Specialists, type SpecialistRow } from "./specialists";
 
+export type AppointmentSettingsTab =
+  "specialists" | "locations" | "departments" | "services" | "rules";
+
 export function AppointmentsSettings({
   orgTimezone,
   rules,
@@ -31,6 +34,7 @@ export function AppointmentsSettings({
   exclusions,
   users,
   financeBranches,
+  initialTab = "specialists",
 }: {
   orgTimezone: string;
   rules: AppointmentSettings;
@@ -44,12 +48,14 @@ export function AppointmentsSettings({
   users: Array<{ id: string; name: string }>;
   /** Phase B: finance branch codes the member may read (empty: the code is typed). */
   financeBranches: Array<{ code: string; name: string }>;
+  /** Which tab opens first (`?tab=locations` is the CRM menu's Branches link). */
+  initialTab?: AppointmentSettingsTab;
 }) {
   return (
-    <Tabs defaultValue="specialists" className="flex flex-col gap-4">
+    <Tabs defaultValue={initialTab} className="flex flex-col gap-4">
       <TabsList className="w-fit flex-wrap">
-        <TabsTrigger value="specialists">Specialists</TabsTrigger>
-        <TabsTrigger value="locations">Locations</TabsTrigger>
+        <TabsTrigger value="specialists">Doctors</TabsTrigger>
+        <TabsTrigger value="locations">Branches</TabsTrigger>
         <TabsTrigger value="departments">Departments</TabsTrigger>
         <TabsTrigger value="services">Services</TabsTrigger>
         <TabsTrigger value="rules">Booking rules</TabsTrigger>

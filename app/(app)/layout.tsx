@@ -74,12 +74,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       { href: i.href, label: i.label, keywords: i.keywords, hint: i.group },
       // every registered module page, with "<module> · <section>" as context
       ...(i.sections ?? []).flatMap((s) =>
-        s.pages.map((p) => ({
-          href: p.href,
-          label: p.label,
-          keywords: p.keywords,
-          hint: `${i.label} · ${s.title}`,
-        })),
+        s.pages.flatMap((p) => [
+          {
+            href: p.href,
+            label: p.label,
+            // a tab group's entry opens its first tab: its tab names find it too
+            keywords: [...(p.keywords ?? []), ...(p.tabs ?? []).map((t) => t.label)],
+            hint: `${i.label} · ${s.title}`,
+          },
+          // every other tab of a tab group (Phase D) stays one search away
+          ...(p.tabs ?? [])
+            .filter((t) => t.href !== p.href)
+            .map((t) => ({ href: t.href, label: t.label, hint: `${i.label} · ${p.label}` })),
+        ]),
       ),
     ]),
   ];

@@ -8,7 +8,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 import { FollowUpQueue, type FollowUpRow } from "./queue";
 
-export const metadata = { title: "Follow-Up Queue" };
+export const metadata = { title: "Clinical follow-ups" };
 
 export default async function FollowUpsPage() {
   const member = await requirePerm("portal.clinical_followups.read");
@@ -122,7 +122,7 @@ export default async function FollowUpsPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Follow-Up Queue"
+        title="Clinical follow-ups"
         description="Visits that tripped a clinical rule. Work the list from the top: High first, then oldest due date."
       />
       {!gateOn && (
