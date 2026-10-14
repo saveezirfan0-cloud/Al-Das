@@ -45,11 +45,10 @@ async function existingIds(
   ids: string[],
 ): Promise<string[]> {
   if (ids.length === 0) return [];
-  const { data, error } = await loose(admin)
-    .from(def.table)
-    .select("id")
-    .eq("org_id", orgId)
-    .in("id", ids);
+  let q = loose(admin).from(def.table).select("id").eq("org_id", orgId).in("id", ids);
+  // Records in Recently deleted (docs/35) are not edited or tagged in bulk.
+  if (def.softDeleteEntity) q = q.is("deleted_at", null);
+  const { data, error } = await q;
   if (error) throw new Error("portal record lookup failed");
   return ((data ?? []) as Array<{ id: string }>).map((r) => r.id);
 }
@@ -69,11 +68,14 @@ export async function bulkUpdateRecords(
   const plan = planBulkEdit(def, input);
   if (!plan.ok) return plan;
 
+  // Records in Recently deleted (docs/35) are left alone.
+  const ids = def.softDeleteEntity ? await existingIds(admin, member.orgId, def, plan.ids) : plan.ids;
+
   // One statement in SQL: only this org's rows, only rows whose value differs (portal_bulk_update).
   const { data, error } = await loose(admin).rpc("portal_bulk_update", {
     p_org_id: member.orgId,
     p_object_key: def.key,
-    p_ids: plan.ids,
+    p_ids: ids,
     p_column: plan.column.key,
     p_value: plan.value as Json,
   });

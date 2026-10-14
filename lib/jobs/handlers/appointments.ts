@@ -229,6 +229,7 @@ async function createCallTask(
       .eq("appointment_id", appointmentId)
       .eq("type", "call")
       .eq("done", false)
+      .is("deleted_at", null)
       .limit(1)
       .maybeSingle();
   if ((await openTask()).data) return;

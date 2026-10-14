@@ -336,7 +336,8 @@ export async function loadPatientCard(
       .eq("org_id", orgId)
       .eq("contact_id", contactId)
       .eq("type", "call")
-      .eq("done", false),
+      .eq("done", false)
+      .is("deleted_at", null),
     admin
       .from("waitlist_entries")
       .select("id, specialists(name), services(name)")

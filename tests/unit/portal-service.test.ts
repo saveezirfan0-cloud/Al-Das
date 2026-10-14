@@ -18,7 +18,7 @@ function fakeAdmin(seed: Record<string, Row[]> = {}) {
     const matches = () =>
       (tables[table] ??= []).filter(
         (r) =>
-          filters.every(([k, v]) => r[k] === v) &&
+          filters.every(([k, v]) => (r[k] ?? null) === v) &&
           (!inFilter || inFilter[1].includes(r[inFilter[0]])),
       );
     const run = () => {
@@ -46,6 +46,7 @@ function fakeAdmin(seed: Record<string, Row[]> = {}) {
       update: (p: Row) => ((op = "update"), (payload = p), b),
       delete: () => ((op = "delete"), b),
       eq: (k: string, v: unknown) => (filters.push([k, v]), b),
+      is: (k: string, v: unknown) => (filters.push([k, v]), b),
       in: (k: string, v: unknown[]) => ((inFilter = [k, v]), b),
       single: () => Promise.resolve({ ...run(), data: run().data[0] ?? null }),
       maybeSingle: () => Promise.resolve({ error: null, data: run().data[0] ?? null }),
@@ -53,7 +54,18 @@ function fakeAdmin(seed: Record<string, Row[]> = {}) {
     };
     return b;
   }
-  return { client: { from: builder } as never, tables, log };
+  // public.soft_delete_records (docs/35): this org's live rows get deleted_at; returns the ids moved.
+  const rpc = (fn: string, args: Record<string, unknown>) => {
+    log.push({ table: `rpc:${fn}`, op: "rpc", payload: args });
+    if (fn !== "soft_delete_records") return Promise.resolve({ data: null, error: { message: "unknown rpc" } });
+    const table = { website_entry_point: "website_entry_points" }[args.p_entity as string] ?? "";
+    const moved = (tables[table] ?? []).filter(
+      (r) => r.org_id === args.p_org && (args.p_ids as string[]).includes(r.id as string) && !r.deleted_at,
+    );
+    for (const r of moved) r.deleted_at = "2026-11-15T00:00:00Z";
+    return Promise.resolve({ data: moved.map((r) => r.id), error: null });
+  };
+  return { client: { from: builder, rpc } as never, tables, log };
 }
 
 const ORG = "org-1";
@@ -175,9 +187,17 @@ describe("portal service", () => {
     expect(await deleteRecord(client, manager, "website_entry_points", "w2")).toMatchObject({
       ok: false,
     });
-    expect(tables.website_entry_points).toHaveLength(2);
-    expect((await deleteRecord(client, manager, "website_entry_points", "w1")).ok).toBe(true);
-    expect(tables.website_entry_points.map((r) => r.id)).toEqual(["w2"]);
+    expect(tables.website_entry_points.every((r) => !r.deleted_at)).toBe(true);
+    // Website entry points go to Recently deleted (docs/35): the row stays, marked deleted, until the purge.
+    const res = await deleteRecord(client, manager, "website_entry_points", "w1");
+    expect(res).toMatchObject({ ok: true, message: expect.stringMatching(/restored for 30 days/) });
+    expect(tables.website_entry_points.map((r) => [r.id, !!r.deleted_at])).toEqual([
+      ["w1", true],
+      ["w2", false],
+    ]);
+    expect(tables.audit_log.at(-1)).toMatchObject({ action: "portal.record_deleted", entity_id: "w1" });
+    // Already in the bin: not found, nothing changes.
+    expect((await deleteRecord(client, manager, "website_entry_points", "w1")).ok).toBe(false);
   });
 
   it("comments need read access, parse mentions and only notify members who can read", async () => {

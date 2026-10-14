@@ -72,6 +72,7 @@ export async function loadEndOfDay(
       .eq("org_id", orgId)
       .eq("type", "call")
       .eq("done", false)
+      .is("deleted_at", null)
       .order("due_at")
       .limit(60),
     admin

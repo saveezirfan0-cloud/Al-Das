@@ -26,6 +26,7 @@ import { FilterCompileError, InvalidOperatorError } from "@/lib/filters";
 import { UnknownFieldError } from "@/lib/filters/field-registry";
 import { normalizePhone } from "@/lib/phone";
 import { recordAccess } from "@/lib/security/access-log";
+import { deletedMessage, readRestoreWindowDays } from "@/lib/soft-delete/rules";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json, Tables, TablesUpdate } from "@/lib/supabase/types";
 
@@ -491,31 +492,30 @@ export async function deleteContacts(ids: string[]): Promise<ActionResult> {
   const member = await requirePerm("contacts.manage");
   const parsed = uuids.safeParse(ids);
   if (!parsed.success) return fail("Select at least one contact");
-  const admin = createAdminClient();
-  const { data, error } = await admin
-    .from("contacts")
-    .update({
-      deleted_at: new Date().toISOString(),
-      phone_e164: null,
-      wa_bsuid: null,
-      external_id: null,
-    })
-    .eq("org_id", member.orgId)
-    .is("deleted_at", null)
-    .in("id", parsed.data)
-    .select("id");
+  const admin = createAdminClient(member.userId);
+  // Soft delete (docs/35): the contact goes to Settings, Recently deleted for the restore window. Its number, WhatsApp
+  // id and Unite PIN are freed as before (kept in the bin for the restore). Erasure stays the privacy flow.
+  const { data, error } = await admin.rpc("soft_delete_records", {
+    p_org: member.orgId,
+    p_entity: "contact",
+    p_ids: parsed.data,
+    p_actor: member.userId,
+  });
   if (error) return fail("Could not delete the contacts.");
+  const moved = (data ?? []) as string[];
   await recordAudit(admin, {
     orgId: member.orgId,
     userId: member.userId,
     action: "contact.deleted",
     entity: "contact",
-    diff: { count: data?.length ?? 0 },
+    entityId: moved.length === 1 ? moved[0] : undefined,
+    diff: { count: moved.length, restorable: true },
   });
   revalidatePath("/contacts");
+  revalidatePath("/settings/recently-deleted");
   return {
     ok: true,
-    message: `${data?.length ?? 0} contact${data?.length === 1 ? "" : "s"} deleted.`,
+    message: deletedMessage("contact", moved.length, readRestoreWindowDays(member.org.settings)),
   };
 }
 

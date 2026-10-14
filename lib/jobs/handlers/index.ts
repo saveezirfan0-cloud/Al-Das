@@ -22,6 +22,7 @@ import "@/lib/jobs/handlers/ai-quality-weekly";
 import "@/lib/jobs/handlers/metrics-refresh";
 import "@/lib/jobs/handlers/security-maintenance";
 import "@/lib/jobs/handlers/documents-maintenance";
+import "@/lib/jobs/handlers/soft-delete-purge";
 import "@/lib/jobs/handlers/finance-workflows";
 import "@/lib/jobs/handlers/accounting-assets";
 import "@/lib/jobs/handlers/notification-digests";

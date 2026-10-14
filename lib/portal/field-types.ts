@@ -154,7 +154,7 @@ export function displayValue(col: PortalColumn, value: unknown): string {
 export function friendlyDbError(err: { code?: string; message?: string }): string {
   switch (err.code) {
     case "23505":
-      return "A record with the same unique value already exists.";
+      return "A record with the same unique value already exists (it may be in Settings, Recently deleted: restore it instead).";
     case "23503":
       return "This record is linked to other data, or the linked record does not exist.";
     case "23514":

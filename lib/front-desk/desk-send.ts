@@ -283,6 +283,7 @@ export async function logDeskCall(
     .eq("contact_id", input.contactId)
     .eq("type", "call")
     .eq("done", false)
+    .is("deleted_at", null)
     .eq("created_by", input.userId)
     .gte("created_at", since)
     .limit(1)

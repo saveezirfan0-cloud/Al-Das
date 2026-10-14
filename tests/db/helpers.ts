@@ -1624,3 +1624,17 @@ export async function seedPortalTagRows(c: Client, orgId: string) {
 
 /** Portal tags tables with a browser (select) policy (the object's read key via app.portal_can_read). */
 export const PORTAL_TAGS_TABLES = ["portal_record_tags"] as const;
+
+/** Soft delete (docs/35): the bin is service-only (it holds the cleared phone numbers of deleted contacts). */
+export const SOFT_DELETE_SERVICE_ONLY_TABLES = ["deleted_items"] as const;
+
+/** One task in the bin for an org, through the real function, so the service-only checks are not vacuous. */
+export async function seedSoftDeleteRows(c: Client, orgId: string, userId: string) {
+  await asServiceRole(c, async () => {
+    const { rows } = await c.query<{ id: string }>(
+      "insert into public.tasks (org_id, subject, due_at) values ($1, 'Sweep bin task', now()) returning id",
+      [orgId],
+    );
+    await c.query("select public.soft_delete_records($1, 'task', array[$2]::uuid[], $3)", [orgId, rows[0].id, userId]);
+  });
+}

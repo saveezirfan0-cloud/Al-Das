@@ -33,6 +33,7 @@ export const GET = apiRoute("tasks:read", async ({ request, admin, ctx }) => {
     .from("tasks")
     .select("*")
     .eq("org_id", ctx.orgId)
+    .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .order("id", { ascending: false })
     .limit(q.limit + 1);

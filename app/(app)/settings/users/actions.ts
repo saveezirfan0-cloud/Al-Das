@@ -478,6 +478,7 @@ export async function previewOffboarding(
         .from("tasks")
         .select("id", { count: "exact", head: true })
         .eq("org_id", member.orgId)
+        .is("deleted_at", null)
         .eq("assignee_id", uid)
         .eq("done", false),
     ),

@@ -9,6 +9,8 @@ import { loose } from "@/lib/portal/db";
 import { friendlyDbError, parsePortalInput } from "@/lib/portal/field-types";
 import { requirePortalObject } from "@/lib/portal/objects";
 import { canReadObject, canWriteObject } from "@/lib/portal/permissions";
+import { deletedMessage } from "@/lib/soft-delete/rules";
+import { loadRestoreWindowDays, softDelete } from "@/lib/soft-delete/server";
 import type { PortalObjectDef, PortalRow } from "@/lib/portal/types";
 import type { AdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/types";
@@ -82,12 +84,9 @@ export async function getRecord(
   id: string,
 ): Promise<ServiceResult<PortalRow>> {
   if (!canReadObject(member, def)) return { ok: false, error: FORBIDDEN };
-  const { data, error } = await loose(admin)
-    .from(def.table)
-    .select("*")
-    .eq("org_id", member.orgId)
-    .eq("id", id)
-    .maybeSingle();
+  let q = loose(admin).from(def.table).select("*").eq("org_id", member.orgId).eq("id", id);
+  if (def.softDeleteEntity) q = q.is("deleted_at", null);
+  const { data, error } = await q.maybeSingle();
   if (error) return { ok: false, error: "Could not load the record." };
   if (!data) return { ok: false, error: "Record not found." };
   return { ok: true, data: data as PortalRow };
@@ -151,13 +150,9 @@ export async function updateRecord(
 
   const patch: Record<string, unknown> = {};
   for (const k of Object.keys(changed)) patch[k] = parsed.values[k];
-  const { data, error } = await loose(admin)
-    .from(def.table)
-    .update(patch)
-    .eq("org_id", member.orgId)
-    .eq("id", id)
-    .select("*")
-    .single();
+  let uq = loose(admin).from(def.table).update(patch).eq("org_id", member.orgId).eq("id", id);
+  if (def.softDeleteEntity) uq = uq.is("deleted_at", null);
+  const { data, error } = await uq.select("*").single();
   if (error || !data) return { ok: false, error: friendlyDbError(error ?? {}) };
 
   await recordAudit(admin, {
@@ -193,6 +188,32 @@ export async function deleteRecord(
   const def = requirePortalObject(objectKey);
   if (!canWriteObject(member, def)) return { ok: false, error: FORBIDDEN };
   if (!def.allowDelete) return { ok: false, error: `${def.label} records cannot be deleted.` };
+  if (def.softDeleteEntity) {
+    // Soft delete (docs/35): the record and its portal tags stay until the restore window ends.
+    let moved: string[];
+    try {
+      moved = await softDelete(admin, {
+        orgId: member.orgId,
+        userId: member.userId,
+        entity: def.softDeleteEntity,
+        ids: [id],
+      });
+    } catch {
+      return { ok: false, error: "Could not delete the record." };
+    }
+    if (moved.length === 0) return { ok: false, error: "Record not found." };
+    await recordAudit(admin, {
+      orgId: member.orgId,
+      userId: member.userId,
+      action: "portal.record_deleted",
+      entity: def.key,
+      entityId: id,
+      diff: { restorable: true },
+    });
+    await emit(member.orgId, "portal.record_deleted", { object: def.key, record_id: id });
+    const days = await loadRestoreWindowDays(admin, member.orgId);
+    return { ok: true, data: { id }, message: deletedMessage(def.softDeleteEntity, 1, days) };
+  }
   const { error, count } = await loose(admin)
     .from(def.table)
     .delete({ count: "exact" })
@@ -237,11 +258,13 @@ export async function resolveLinks(
       out[col.key] = {};
       continue;
     }
-    const { data } = await loose(admin)
+    let tq = loose(admin)
       .from(target.table)
       .select(`id, ${target.titleColumn}`)
       .eq("org_id", orgId)
       .in("id", ids);
+    if (target.softDeleteEntity) tq = tq.is("deleted_at", null);
+    const { data } = await tq;
     const map: Record<string, string> = {};
     for (const r of (data ?? []) as Array<Record<string, unknown>>) {
       map[String(r.id)] = String(r[target.titleColumn] ?? r.id);
@@ -266,6 +289,7 @@ export async function linkOptions(
     .eq("org_id", orgId)
     .order(target.titleColumn, { ascending: true })
     .limit(Math.min(200, limit));
+  if (target.softDeleteEntity) q = q.is("deleted_at", null);
   const s = search.trim();
   if (s) q = q.ilike(target.titleColumn, `%${s.replace(/[\\%_]/g, (c) => `\\${c}`)}%`);
   const { data } = await q;

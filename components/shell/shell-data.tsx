@@ -185,6 +185,7 @@ export function ShellDataProvider({
       .eq("org_id", orgId)
       .eq("assignee_id", userId)
       .eq("done", false)
+      .is("deleted_at", null)
       .lt("due_at", new Date().toISOString());
     if (count !== null) setOverdueTasks(count);
   }, [canTasks, orgId, userId]);

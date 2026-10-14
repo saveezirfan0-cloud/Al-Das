@@ -264,8 +264,8 @@ export function BulkBar({
           <DialogHeader>
             <DialogTitle>Delete {ids.length.toLocaleString()} enquiries?</DialogTitle>
             <DialogDescription>
-              They disappear from every list and board. The audit log keeps a record that they were
-              deleted.
+              They disappear from every list and board and can be restored from Settings, Recently
+              deleted until the restore window ends.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

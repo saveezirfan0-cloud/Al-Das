@@ -217,7 +217,7 @@ export function BulkBar({
         onClick={() => {
           if (
             confirm(
-              `Delete ${ids.length} contact${ids.length === 1 ? "" : "s"}? They disappear from lists and campaigns; history is kept.`,
+              `Delete ${ids.length} contact${ids.length === 1 ? "" : "s"}? They disappear from lists and campaigns and can be restored from Settings, Recently deleted for a while.`,
             )
           )
             run(() => deleteContacts(ids));

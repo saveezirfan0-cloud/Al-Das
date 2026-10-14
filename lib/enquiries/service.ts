@@ -10,6 +10,7 @@ import { resolveStatusChange } from "@/lib/enquiries/status";
 import { recordAudit } from "@/lib/audit";
 import { emit } from "@/lib/events/emit";
 import { scheduleJob } from "@/lib/jobs/enqueue";
+import { softDelete } from "@/lib/soft-delete/server";
 import type { AdminClient } from "@/lib/supabase/admin";
 import type { Json, Tables, TablesUpdate } from "@/lib/supabase/types";
 
@@ -428,25 +429,27 @@ export async function movePipeline(ctx: Ctx, id: string, pipelineId: string, sta
 // Delete + bulk
 // ---------------------------------------------------------------------------
 
-/** Soft-deletes enquiries (they vanish from lists; the audit trail keeps the record). */
+/**
+ * Soft-deletes enquiries into the bin (docs/35): they vanish from lists and can be restored from Settings, Recently
+ * deleted until the org's restore window ends; the nightly purge then removes them (their tasks and timeline stay).
+ */
 export async function deleteEnquiries(ctx: Ctx, ids: string[]): Promise<number> {
   if (ids.length === 0) return 0;
-  const { data, error } = await ctx.admin
-    .from("enquiries")
-    .update({ deleted_at: new Date().toISOString() })
-    .eq("org_id", ctx.orgId)
-    .in("id", ids)
-    .is("deleted_at", null)
-    .select("id");
-  if (error) throw dbError(error, "Could not delete the enquiries.");
+  let moved: string[];
+  try {
+    moved = await softDelete(ctx.admin, { orgId: ctx.orgId, userId: ctx.userId, entity: "enquiry", ids });
+  } catch {
+    throw new EnquiryError("Could not delete the enquiries.");
+  }
   await recordAudit(ctx.admin, {
     orgId: ctx.orgId,
     userId: ctx.userId,
     action: "enquiry.deleted",
     entity: "enquiry",
-    diff: { count: data?.length ?? 0 },
+    entityId: moved.length === 1 ? moved[0] : undefined,
+    diff: { count: moved.length, restorable: true },
   });
-  return data?.length ?? 0;
+  return moved.length;
 }
 
 export type BulkOp =

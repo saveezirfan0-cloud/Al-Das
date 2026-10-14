@@ -671,6 +671,23 @@ export const GUIDES: readonly Guide[] = [
     ],
   },
   {
+    id: "recently-deleted",
+    title: "Recently deleted",
+    pages: ["/settings/recently-deleted"],
+    purpose:
+      "Bring back a contact, enquiry, task or website entry point that was deleted by mistake, within the restore window.",
+    steps: [
+      "Find the item in the list: it shows what kind of record it is, who deleted it, when, and how many days are left.",
+      "Choose Restore. The record goes back to its list with its links, notes and history.",
+      "Restore a contact before its enquiries and tasks: Pulse asks you to if they were deleted together.",
+      "Administrators with security rights set how many days items are kept (1 to 90, 30 by default).",
+    ],
+    watchOut: [
+      "When the days run out the item is removed overnight and cannot be brought back. A contact then stays hidden; erasing a patient's details is a separate Patient data request.",
+      "You only see the kinds of record you are allowed to manage.",
+    ],
+  },
+  {
     id: "routing",
     title: "Teams and routing",
     pages: ["/settings/teams", "/settings/users"],

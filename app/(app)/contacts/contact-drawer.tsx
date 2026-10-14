@@ -192,7 +192,7 @@ export function ContactDrawer({
                       onClick={() => {
                         if (
                           confirm(
-                            "Delete this contact? It disappears from lists and campaigns; history is kept.",
+                            "Delete this contact? It disappears from lists and campaigns and can be restored from Settings, Recently deleted for a while.",
                           )
                         )
                           run(() => deleteContacts([contact.id]), onClose);
