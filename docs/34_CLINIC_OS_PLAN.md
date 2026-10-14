@@ -59,7 +59,10 @@ too. About 180 pages, ~3,100 unit tests, ~1,390 database tests. All 130 menu lin
 
 Still open in Phase A:
 - The live-database check (the Pulse Supabase project is not reachable from this workspace's connector).
-- The signed-in Playwright suite.
+- The signed-in Playwright suite: first slice built (`tests/e2e/signed-in`, `.github/workflows/e2e.yml`, not a
+  required check yet; tests/e2e/README.md). It covers the shell, front desk check-in and walk-in, booking and moving
+  an appointment, inbox note and training-mode reply, the Patients list and drawer, and permission refusals, as Admin,
+  Receptionist and Agent. Still to add: a synthetic Diligence/bank upload and the tax invoice PDF.
 
 ## 3. Target structure (what people will see)
 
