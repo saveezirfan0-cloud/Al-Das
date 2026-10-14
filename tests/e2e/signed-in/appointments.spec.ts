@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 import { authFile, escapeRegExp, loadSeed, SIGNED_IN_SKIP_REASON, signedIn } from "../fixtures/e2e";
+import { gotoReady } from "../fixtures/page";
 
 test.skip(!signedIn, SIGNED_IN_SKIP_REASON);
 test.use({ storageState: authFile("admin") });
@@ -18,7 +19,7 @@ test("book an appointment in a free slot through the drawer, see it in the day g
     page.getByRole("button", { name: new RegExp(`${escapeRegExp(patient.name)}\\s*${start}–`) });
 
   // "Book appointment" from a patient record lands here: the drawer opens with the patient filled in.
-  await page.goto(`/appointments?date=${seed.bookingDate}&new=${patient.id}`);
+  await gotoReady(page, `/appointments?date=${seed.bookingDate}&new=${patient.id}`);
   const drawer = page.getByRole("dialog", { name: "New appointment" });
   await expect(drawer).toBeVisible();
   await expect(drawer.getByText(patient.name, { exact: true })).toBeVisible();

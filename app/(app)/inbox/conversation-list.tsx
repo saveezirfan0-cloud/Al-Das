@@ -196,7 +196,38 @@ export function ConversationList({
       aria-label="Conversations"
     >
       <div className="flex items-center gap-1 border-b px-3 py-2">
-        <h2 className="truncate text-sm font-semibold">{title}</h2>
+        <h2 className="sr-only truncate text-sm font-semibold @5xl/inbox:not-sr-only">{title}</h2>
+        {/* The folders column only fits a wide inbox; narrower, the folder is picked here. */}
+        <Select
+          value={query.team || query.view ? "" : query.folder}
+          onValueChange={(v) =>
+            onNavigate({
+              folder: v as InboxQuery["folder"],
+              team: null,
+              view: null,
+              q: "",
+              status: "any",
+              label: null,
+              channel: null,
+              assignee: null,
+            })
+          }
+        >
+          <SelectTrigger
+            size="sm"
+            aria-label="Folder"
+            className="h-8 min-w-0 border-none px-1 font-semibold shadow-none @5xl/inbox:hidden"
+          >
+            <SelectValue placeholder={title} />
+          </SelectTrigger>
+          <SelectContent>
+            {FOLDERS.map((f) => (
+              <SelectItem key={f.key} value={f.key}>
+                {f.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <span className="text-muted-foreground text-xs">
           {conversations.length}
           {nextCursor ? "+" : ""}

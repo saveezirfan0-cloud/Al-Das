@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 import { authFile, SIGNED_IN_SKIP_REASON, signedIn } from "../fixtures/e2e";
+import { gotoReady } from "../fixtures/page";
 
 test.skip(!signedIn, SIGNED_IN_SKIP_REASON);
 test.use({ storageState: authFile("admin") });
@@ -8,7 +9,7 @@ test.use({ storageState: authFile("admin") });
 test("the rail shows the areas; pointing at one opens its flyout and the pin docks it", async ({
   page,
 }) => {
-  await page.goto("/dashboard");
+  await gotoReady(page, "/dashboard");
   const rail = page.getByRole("navigation", { name: "Main" });
   for (const area of ["Home", "Today", "CRM", "Growth", "Insights", "Settings"])
     await expect(rail.getByRole("link", { name: area, exact: true })).toBeVisible();
@@ -48,7 +49,7 @@ test("the branch switcher is hidden when the workspace has one branch", async ({
       r.url().includes("active=eq.true") &&
       r.request().method() === "GET",
   );
-  await page.goto("/dashboard");
+  await gotoReady(page, "/dashboard");
   await branches;
   await expect(page.getByRole("navigation", { name: "Main" })).toBeVisible();
   await expect(page.getByRole("button", { name: /^Branch:/ })).toHaveCount(0);

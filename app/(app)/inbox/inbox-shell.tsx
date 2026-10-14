@@ -20,7 +20,10 @@ import type { InboxProps } from "./types";
 
 export function InboxShell(props: InboxProps) {
   const router = useRouter();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  // Details sit beside the thread when the inbox is wide enough (open by default) and over it when it is not
+  // (closed by default), so the thread always keeps a readable width.
+  const [wideDetails, setWideDetails] = useState(true);
+  const [narrowDetails, setNarrowDetails] = useState(false);
   const selectedId = props.selected?.id ?? null;
   // On a phone an open conversation takes the whole screen like a native chat app, sized to the VISIBLE
   // viewport so the composer stays above the on-screen keyboard (iOS and Android).
@@ -93,13 +96,19 @@ export function InboxShell(props: InboxProps) {
   }
 
   return (
-    <div className="-m-4 flex h-[calc(100svh-7rem-env(safe-area-inset-bottom))] overflow-hidden md:-m-6 md:h-[calc(100svh-3.5rem)]">
-      <FoldersRail {...props} onNavigate={(q) => navigate(q, null)} className="hidden lg:flex" />
+    // Column widths follow the inbox's own width (container queries), not the window's: a docked menu panel takes
+    // 16rem, and at 1280 px the old viewport breakpoints left the thread a few pixels wide.
+    <div className="@container/inbox -m-4 flex h-[calc(100svh-7rem-env(safe-area-inset-bottom))] overflow-hidden md:-m-6 md:h-[calc(100svh-3.5rem)]">
+      <FoldersRail
+        {...props}
+        onNavigate={(q) => navigate(q, null)}
+        className="hidden @5xl/inbox:flex"
+      />
       <ConversationList
         {...props}
         onSelect={(id) => navigate({}, id)}
         onNavigate={(q) => navigate(q, null)}
-        className={cn("w-full md:w-80 lg:w-96", selectedId && "hidden md:flex")}
+        className={cn("w-full md:w-80 @min-[90rem]/inbox:w-96", selectedId && "hidden md:flex")}
       />
       <div
         className={cn(
@@ -125,14 +134,34 @@ export function InboxShell(props: InboxProps) {
             <Button
               variant="ghost"
               size="icon-sm"
-              className="absolute top-2 right-2 z-10 hidden xl:inline-flex"
-              aria-label={sidebarOpen ? "Hide details" : "Show details"}
-              onClick={() => setSidebarOpen((o) => !o)}
+              className="absolute top-2 right-2 z-30 hidden @7xl/inbox:inline-flex"
+              aria-label={wideDetails ? "Hide details" : "Show details"}
+              aria-pressed={wideDetails}
+              onClick={() => setWideDetails((o) => !o)}
             >
-              {sidebarOpen ? <PanelRightClose /> : <PanelRightOpen />}
+              {wideDetails ? <PanelRightClose /> : <PanelRightOpen />}
             </Button>
-            {sidebarOpen && (
-              <Sidebar {...props} selected={props.selected} className="hidden xl:flex" />
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="absolute top-2 right-2 z-30 hidden md:inline-flex @7xl/inbox:hidden"
+              aria-label={narrowDetails ? "Hide details" : "Show details"}
+              aria-pressed={narrowDetails}
+              onClick={() => setNarrowDetails((o) => !o)}
+            >
+              {narrowDetails ? <PanelRightClose /> : <PanelRightOpen />}
+            </Button>
+            {(wideDetails || narrowDetails) && (
+              <Sidebar
+                {...props}
+                selected={props.selected}
+                className={cn(
+                  narrowDetails
+                    ? "absolute inset-y-0 right-0 z-20 hidden shadow-xl md:flex @7xl/inbox:static @7xl/inbox:shadow-none"
+                    : "hidden",
+                  wideDetails ? "@7xl/inbox:flex" : "@7xl/inbox:hidden",
+                )}
+              />
             )}
           </>
         ) : (

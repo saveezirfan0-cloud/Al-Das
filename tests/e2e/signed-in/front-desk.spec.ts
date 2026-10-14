@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 import { adminDb, authFile, loadSeed, SIGNED_IN_SKIP_REASON, signedIn } from "../fixtures/e2e";
+import { clickUntil, gotoReady } from "../fixtures/page";
 
 test.skip(!signedIn, SIGNED_IN_SKIP_REASON);
 test.use({ storageState: authFile("receptionist") });
@@ -24,14 +25,16 @@ test("today's board shows the seeded appointment and check-in moves Arrived → 
   expect(error).toBeNull();
 
   // The date is pinned so a run that crosses clinic midnight still opens the seeded day.
-  await page.goto(`/front-desk?date=${seed.today}`);
+  await gotoReady(page, `/front-desk?date=${seed.today}`);
   const board = page.getByRole("region", { name: "Appointments" });
   const line = board.getByRole("listitem").filter({ hasText: seed.patients.frontDesk.name });
   await expect(line).toBeVisible();
   await expect(line).toContainText(seed.specialist.name);
 
-  await line.getByRole("button", { name: "Arrived", exact: true }).click();
-  await expect(line.getByText("Waiting", { exact: true })).toBeVisible();
+  await clickUntil(
+    line.getByRole("button", { name: "Arrived", exact: true }),
+    line.getByText("Waiting", { exact: true }),
+  );
 
   await line.getByRole("button", { name: "With doctor", exact: true }).click();
   await expect(line.getByRole("button", { name: "Done", exact: true })).toBeVisible();
@@ -55,7 +58,7 @@ test("today's board shows the seeded appointment and check-in moves Arrived → 
 
 test("the walk-in dialog opens from the board", async ({ page }) => {
   const seed = loadSeed();
-  await page.goto(`/front-desk?date=${seed.today}`);
+  await gotoReady(page, `/front-desk?date=${seed.today}`);
   await page.getByRole("button", { name: /^Walk-in/ }).click();
   const dialog = page.getByRole("dialog", { name: "Register a walk-in" });
   await expect(dialog).toBeVisible();

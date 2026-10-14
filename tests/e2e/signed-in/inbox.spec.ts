@@ -9,13 +9,14 @@ import {
   SIGNED_IN_SKIP_REASON,
   signedIn,
 } from "../fixtures/e2e";
+import { gotoReady } from "../fixtures/page";
 
 test.skip(!signedIn, SIGNED_IN_SKIP_REASON);
 test.use({ storageState: authFile("admin") });
 
 test("open the seeded conversation and add an internal note", async ({ page }) => {
   const seed = loadSeed();
-  await page.goto("/inbox");
+  await gotoReady(page, "/inbox");
   const list = page.getByRole("region", { name: "Conversations" });
   await list
     .getByRole("button", { name: new RegExp(escapeRegExp(seed.patients.inbox.name)) })
@@ -39,7 +40,7 @@ test("a WhatsApp reply in training mode is marked sent on screen and never reach
   request,
 }) => {
   const seed = loadSeed();
-  await page.goto(`/inbox?c=${seed.conversationId}`);
+  await gotoReady(page, `/inbox?c=${seed.conversationId}`);
   // The seeded workspace is a training workspace (orgs.is_training): the banner says so on every page.
   await expect(page.getByRole("status").filter({ hasText: "TRAINING MODE" })).toBeVisible();
 
