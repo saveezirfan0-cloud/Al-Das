@@ -1,6 +1,13 @@
 import { expect, test } from "@playwright/test";
 
-import { adminDb, authFile, loadSeed, SIGNED_IN_SKIP_REASON, signedIn } from "../fixtures/e2e";
+import {
+  adminDb,
+  authFile,
+  escapeRegExp,
+  loadSeed,
+  SIGNED_IN_SKIP_REASON,
+  signedIn,
+} from "../fixtures/e2e";
 import { gotoReady } from "../fixtures/page";
 
 test.skip(!signedIn, SIGNED_IN_SKIP_REASON);
@@ -72,6 +79,66 @@ test("today's board shows the seeded appointment and check-in moves Arrived → 
       return data;
     })
     .toEqual({ checkin_status: "done", status: "completed" });
+});
+
+test("book from the desk: branch, service, a free time from the slot engine, then the slip", async ({
+  page,
+}) => {
+  const seed = loadSeed();
+  // Not the diary spec's patient, so the two booking tests never read each other's bookings.
+  const patient = seed.patients.listed;
+  await gotoReady(page, `/front-desk?date=${seed.today}`);
+  await page.getByRole("button", { name: "Book", exact: true }).first().click();
+  const drawer = page.getByRole("dialog", { name: "Book an appointment" });
+  await expect(drawer).toBeVisible();
+
+  // The patient comes from the desk's own search.
+  await drawer.getByRole("textbox", { name: "Patient to book" }).fill(patient.name);
+  await drawer
+    .getByRole("button", { name: new RegExp(escapeRegExp(patient.name)) })
+    .first()
+    .click();
+  await expect(drawer.getByText(patient.name, { exact: true })).toBeVisible();
+
+  await drawer.getByRole("combobox", { name: "Branch" }).click();
+  await page.getByRole("option", { name: seed.location.name }).click();
+  await drawer.getByRole("combobox", { name: "Service" }).click();
+  await page
+    .getByRole("option", { name: new RegExp(`^${escapeRegExp(seed.service.name)} \\(`) })
+    .click();
+  await drawer.getByLabel("Day").fill(seed.bookingDate);
+
+  // One day of free times per doctor; take the first one offered.
+  const slot = drawer
+    .getByRole("button", {
+      name: new RegExp(`^\\d{2}:\\d{2} with ${escapeRegExp(seed.specialist.name)}$`),
+    })
+    .first();
+  await expect(slot).toBeVisible();
+  await slot.click();
+  await expect(slot).toHaveAttribute("aria-pressed", "true");
+  await drawer.getByRole("button", { name: /^Book \d{2}:\d{2}$/ }).click();
+  await expect(drawer.getByText(/Booked: number \d+\./)).toBeVisible();
+
+  await drawer.getByRole("link", { name: "Print slip" }).click();
+  await expect(page).toHaveURL(/\/front-desk\/slip\/[0-9a-f-]{36}$/);
+  const slip = page.getByRole("article", { name: "Appointment slip" });
+  await expect(slip).toContainText(patient.name.split(" ")[0]);
+  await expect(slip).not.toContainText(patient.name); // first name only
+  await expect(slip).toContainText(seed.specialist.name);
+});
+
+test("the printable slip opens from the board with the first name only", async ({ page }) => {
+  const seed = loadSeed();
+  await gotoReady(page, `/front-desk?date=${seed.today}`);
+  const board = page.getByRole("region", { name: "Appointments" });
+  const line = board.getByRole("listitem").filter({ hasText: seed.patients.frontDesk.name });
+  await line.getByRole("link", { name: /Print the appointment slip/ }).click();
+  await expect(page).toHaveURL(new RegExp(`/front-desk/slip/${seed.frontDeskAppointmentId}$`));
+  await expect(page.getByRole("button", { name: "Print the slip" })).toBeVisible();
+  const slip = page.getByRole("article", { name: "Appointment slip" });
+  await expect(slip).toContainText(seed.patients.frontDesk.name.split(" ")[0]);
+  await expect(slip).toContainText(/Booking \d+/);
 });
 
 test("the walk-in dialog opens from the board", async ({ page }) => {

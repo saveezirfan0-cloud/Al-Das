@@ -11,10 +11,13 @@ vi.mock("@/app/(app)/front-desk/actions", () => ({
   addToWaitlist: async () => ({ ok: true }),
   cancelFromDesk: async () => ({ ok: true }),
   createDependant: async () => ({ ok: true }),
+  getArrivalChecks: async () => ({ ok: true, data: {} }),
+  getDeskDaySlots: async () => ({ ok: true, data: { doctors: [], full: [] } }),
   getPatientCard: async () => ({ ok: false, error: "x" }),
   linkDependant: async () => ({ ok: true }),
   logCall: async () => ({ ok: true }),
   markNoShow: async () => ({ ok: true }),
+  recordWhatsAppAgreement: async () => ({ ok: true }),
   registerWalkIn: async () => ({ ok: true }),
   removeFromWaitlist: async () => ({ ok: true }),
   resolveHandoverNote: async () => ({ ok: true }),
@@ -23,6 +26,8 @@ vi.mock("@/app/(app)/front-desk/actions", () => ({
   unlinkDependant: async () => ({ ok: true }),
 }));
 vi.mock("@/app/(app)/appointments/actions", () => ({
+  bookAppointment: async () => ({ ok: true }),
+  getVideoJoinLink: async () => ({ ok: false, error: "x" }),
   getFreeSlots: async () => ({ ok: true, data: { slots: [] } }),
   moveAppointment: async () => ({ ok: true }),
 }));
@@ -177,6 +182,7 @@ const card: PatientCardData = {
     language: "en",
     dob: "1988-03-02",
     stop_marketing: true,
+    whatsapp_declined: false,
   },
   next_appointment: {
     id: "a1",
@@ -244,6 +250,49 @@ describe("Patient card rendering", () => {
     expect(html).not.toContain("Running late");
     expect(html).not.toContain(">Book<");
     expect(html).not.toContain("Waitlist");
+  });
+
+  it("Phase E: on the desk, Book opens the drawer instead of leaving for the diary", () => {
+    const html = renderToStaticMarkup(
+      <PatientCardView card={card} options={options} can={can} onBook={() => {}} />,
+    );
+    expect(html).toContain("Book");
+    expect(html).not.toContain("/appointments?new=c1");
+  });
+
+  it("Phase E: a patient who did not agree to WhatsApp shows the flag and the agreement button", () => {
+    const declined: PatientCardData = {
+      ...card,
+      contact: { ...card.contact, whatsapp_declined: true },
+      flags: [
+        {
+          key: "whatsapp_declined",
+          label: "Did not agree to WhatsApp: nothing is sent",
+          tone: "alert",
+        },
+      ],
+    };
+    const html = renderToStaticMarkup(
+      <PatientCardView card={declined} options={options} can={can} />,
+    );
+    expect(html).toContain("Did not agree to WhatsApp");
+    expect(html).toContain("Patient agrees to WhatsApp now");
+    const viewer = renderToStaticMarkup(
+      <PatientCardView card={declined} options={options} can={{ ...can, contacts: false }} />,
+    );
+    expect(viewer).not.toContain("Patient agrees to WhatsApp now");
+  });
+});
+
+describe("Phase E board additions", () => {
+  it("offers Book, Cancel and a slip link, and never a browser confirm()", () => {
+    const html = renderToStaticMarkup(
+      <FrontDeskWorkspace data={data} options={options} can={can} />,
+    );
+    expect(html).toMatch(/<\/svg> Book<\/button>/);
+    expect(html).toContain("Cancel the appointment of Sara Example");
+    expect(html).toContain('href="/front-desk/slip/a1"');
+    expect(html).not.toContain('href="/front-desk/slip/a4"'); // cancelled: no slip
   });
 });
 

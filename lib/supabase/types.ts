@@ -7103,6 +7103,7 @@ export type Database = {
           updated_at: string;
           wa_bsuid: string | null;
           wa_profile_name: string | null;
+          whatsapp_declined_at: string | null;
         };
         ComputedFields: never;
         Insert: {
@@ -7142,6 +7143,7 @@ export type Database = {
           updated_at?: string;
           wa_bsuid?: string | null;
           wa_profile_name?: string | null;
+          whatsapp_declined_at?: string | null;
         };
         Update: {
           assignee_id?: string | null;
@@ -7180,6 +7182,7 @@ export type Database = {
           updated_at?: string;
           wa_bsuid?: string | null;
           wa_profile_name?: string | null;
+          whatsapp_declined_at?: string | null;
         };
         Relationships: [
           {

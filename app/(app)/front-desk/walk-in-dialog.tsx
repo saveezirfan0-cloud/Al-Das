@@ -24,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { walkInPhoneDecision } from "@/lib/front-desk/walk-in-phone";
 
 import { registerWalkIn } from "./actions";
 import type { DeskOptions } from "./types";
@@ -56,16 +57,25 @@ export function WalkInDialog({
   const [serviceId, setServiceId] = useState("");
 
   const doctor = options.specialists.find((s) => s.id === specialistId);
+  // Phase E: no phone, a UAE mobile, or another country's number with its country code. Checked as the desk types.
+  const phoneRule = walkInPhoneDecision(phone);
+  const hasPhone = phoneRule.ok && phoneRule.e164 !== null;
+  // The error shows once a whole number could have been typed, not on the first digit.
+  const showPhoneError = !phoneRule.ok && phone.replace(/\D/g, "").length >= 9;
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (!phoneRule.ok) {
+      toast.error(phoneRule.error);
+      return;
+    }
     startTransition(async () => {
       const r = await registerWalkIn({
         phone,
         name,
         language,
-        consent_contact: consent as true,
-        consent_promotions: promo,
+        consent_contact: hasPhone && consent,
+        consent_promotions: hasPhone && consent && promo,
         add_to_today: onBoard,
         locationId: onBoard ? locationId || undefined : undefined,
         specialistId: onBoard ? specialistId || undefined : undefined,
@@ -101,16 +111,37 @@ export function WalkInDialog({
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-1">
-            <Label htmlFor="wi-phone">Mobile number</Label>
+            <Label htmlFor="wi-phone">
+              Mobile number <span className="text-muted-foreground font-normal">(optional)</span>
+            </Label>
             <Input
               id="wi-phone"
               inputMode="tel"
               autoComplete="off"
-              placeholder="050 123 4567 or +44 …"
+              placeholder="050 123 4567, or +44 7700 … for another country"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              required
+              aria-invalid={showPhoneError}
+              aria-describedby="wi-phone-hint"
             />
+            <p
+              id="wi-phone-hint"
+              className={
+                showPhoneError
+                  ? "text-xs text-red-700 dark:text-red-400"
+                  : "text-muted-foreground text-xs"
+              }
+            >
+              {!phoneRule.ok
+                ? showPhoneError
+                  ? phoneRule.error
+                  : "A UAE mobile, or + and the country code for another country."
+                : hasPhone
+                  ? phoneRule.e164 && !phoneRule.e164.startsWith("+971")
+                    ? "Number from another country: saved with its country code."
+                    : "UAE mobile."
+                  : "No number: search for the patient first so you do not make a second record. Nothing can be sent to them."}
+            </p>
           </div>
           <div className="grid gap-1">
             <Label htmlFor="wi-name">Full name</Label>
@@ -137,18 +168,24 @@ export function WalkInDialog({
           </div>
           <label className="flex items-start gap-2 text-sm">
             <Checkbox
-              checked={consent}
+              checked={hasPhone && consent}
+              disabled={!hasPhone}
               onCheckedChange={(v) => setConsent(v === true)}
               className="mt-0.5"
             />
             <span>
               The patient agrees to be contacted on WhatsApp about their appointments and care.{" "}
-              <span className="text-muted-foreground">(required)</span>
+              <span className="text-muted-foreground">
+                {hasPhone
+                  ? "(ask them; if not ticked, nothing is sent on WhatsApp)"
+                  : "(needs a mobile number)"}
+              </span>
             </span>
           </label>
           <label className="flex items-start gap-2 text-sm">
             <Checkbox
-              checked={promo}
+              checked={hasPhone && consent && promo}
+              disabled={!hasPhone || !consent}
               onCheckedChange={(v) => setPromo(v === true)}
               className="mt-0.5"
             />
@@ -216,7 +253,7 @@ export function WalkInDialog({
             </div>
           )}
           <DialogFooter>
-            <Button type="submit" disabled={pending || !consent}>
+            <Button type="submit" disabled={pending || !phoneRule.ok || name.trim().length < 2}>
               {pending && <Loader2 className="animate-spin" />} Register
             </Button>
           </DialogFooter>

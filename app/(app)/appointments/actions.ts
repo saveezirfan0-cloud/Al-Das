@@ -103,6 +103,7 @@ function toRow(a: JoinedAppointment): ApptRow {
     created_at: a.created_at,
     reminder: summariseReminders(a.appointment_reminders ?? []),
     visit_mode: a.visit_mode,
+    checkin_status: a.checkin_status ?? null,
   };
 }
 
@@ -699,6 +700,14 @@ export async function moveAppointment(
     notify: p.data.notify,
   });
   if (!res.ok) return fail(res.error);
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "appointment.rescheduled",
+    entity: "appointment",
+    entityId: p.data.id,
+    diff: { notify: p.data.notify, override: p.data.override },
+  });
   refresh();
   const n = res.notification;
   return {

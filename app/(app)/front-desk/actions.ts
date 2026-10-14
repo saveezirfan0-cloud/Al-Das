@@ -8,7 +8,7 @@ import { recordAudit } from "@/lib/audit";
 import { can } from "@/lib/auth/can";
 import { requirePerm } from "@/lib/auth/session";
 import { readBranchAccess } from "@/lib/branches/access";
-import { accessFilterIds } from "@/lib/branches/filter";
+import { accessFilterIds, withBranchFilter } from "@/lib/branches/filter";
 import {
   BRANCH_DENIED,
   branchAllowed,
@@ -22,14 +22,21 @@ import { checkinPatch, isCheckinState, CHECKIN_STATES } from "@/lib/front-desk/c
 import { logDeskCall, sendDeskMessage } from "@/lib/front-desk/desk-send";
 import { isLateChoice } from "@/lib/front-desk/messages";
 import { scheduleReviewRequestSafely } from "@/lib/integrations/reviews/server";
-import { loadPatientCard, type PatientCardData } from "@/lib/front-desk/server";
+import { loadPatientCard, todayIn, type PatientCardData } from "@/lib/front-desk/server";
 import {
   splitName,
   storedLanguage,
-  walkInPhone,
+  walkInConsentPlan,
+  walkInPhoneDecision,
   walkInSchema,
   type WalkInInput,
 } from "@/lib/front-desk/walk-in";
+import { slotsForDay } from "@/lib/appointments/availability";
+import { type CheckLine } from "@/lib/front-desk/arrival-check";
+import { loadArrivalChecks } from "@/lib/front-desk/arrival-check-server";
+import { bookableDate, dayPlan, doctorsForBooking, type DoctorDay } from "@/lib/front-desk/book";
+import { loadDeskOptions } from "@/lib/front-desk/options";
+import { type MatchResult } from "@/lib/contacts/import-writer";
 import { redactText } from "@/lib/redact";
 import { recordAccess } from "@/lib/security/access-log";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -301,15 +308,17 @@ export async function registerWalkIn(
   const d = parsed.data;
   if (d.add_to_today && !can(member, "appointments.manage")) return needs("appointments.manage");
   if (d.add_to_today && !branchAllowed(member, d.locationId)) return fail(BRANCH_DENIED);
-  const phone = walkInPhone(d.phone);
-  if (!phone)
-    return fail(
-      "That does not look like a mobile number. Include the country code if it is not a UAE number.",
-    );
+  // Phase E: no phone, a UAE mobile, or another country's number with its country code.
+  const phoneRule = walkInPhoneDecision(d.phone);
+  if (!phoneRule.ok) return fail(phoneRule.error);
+  const phone = phoneRule.e164;
 
   const admin = createAdminClient(member.userId);
   const { first, last } = splitName(d.name);
-  const match = await matchContact(admin, member.orgId, { phone, fullName: d.name });
+  // Without a number there is nothing to match on: a new record is made (the desk searches first).
+  const match: MatchResult = phone
+    ? await matchContact(admin, member.orgId, { phone, fullName: d.name })
+    : { kind: "none" };
   if (match.kind === "ambiguous")
     return fail(
       "More than one patient uses this number (a family?). Search for the patient on the desk, or add them as a dependant of the person who owns the number.",
@@ -318,6 +327,12 @@ export async function registerWalkIn(
   let contactId: string;
   let created = false;
   const now = new Date();
+  const plan = walkInConsentPlan({
+    created: match.kind !== "match",
+    hasPhone: !!phone,
+    consentContact: d.consent_contact,
+    consentPromotions: d.consent_promotions,
+  });
   if (match.kind === "match") {
     contactId = match.id;
     // Fill in only what is blank; never overwrite what the clinic already knows.
@@ -343,7 +358,9 @@ export async function registerWalkIn(
         phone_e164: phone,
         language: storedLanguage(d.language),
         source: "walk_in",
-        promotions_opt_in: d.consent_promotions,
+        promotions_opt_in: plan.promotions,
+        // Phase E: a number without the WhatsApp agreement: nothing is queued to it until the patient agrees.
+        whatsapp_declined_at: plan.declineWhatsApp ? now.toISOString() : null,
         created_by: member.userId,
       })
       .select("id")
@@ -365,16 +382,33 @@ export async function registerWalkIn(
     await emit(member.orgId, "contact.created", { contact_id: contactId, source: "walk_in" });
   }
 
-  // The consent that was asked at the desk, with who recorded it and when.
-  await addTimelineEvent(admin, {
-    orgId: member.orgId,
-    contactId,
-    type: "consent.contact_recorded",
-    actorType: "user",
-    actorId: member.userId,
-    payload: { channel: "front_desk", source: "walk_in_form", obtained_at: now.toISOString() },
-  });
-  if (d.consent_promotions) {
+  // The answer given at the desk, with who recorded it and when.
+  if (plan.recordWhatsAppConsent) {
+    await admin
+      .from("contacts")
+      .update({ whatsapp_declined_at: null })
+      .eq("id", contactId)
+      .eq("org_id", member.orgId)
+      .not("whatsapp_declined_at", "is", null);
+    await addTimelineEvent(admin, {
+      orgId: member.orgId,
+      contactId,
+      type: "consent.contact_recorded",
+      actorType: "user",
+      actorId: member.userId,
+      payload: { channel: "front_desk", source: "walk_in_form", obtained_at: now.toISOString() },
+    });
+  } else if (plan.declineWhatsApp) {
+    await addTimelineEvent(admin, {
+      orgId: member.orgId,
+      contactId,
+      type: "consent.contact_declined",
+      actorType: "user",
+      actorId: member.userId,
+      payload: { channel: "front_desk", source: "walk_in_form", recorded_at: now.toISOString() },
+    });
+  }
+  if (plan.promotions) {
     await admin
       .from("contacts")
       .update({ promotions_opt_in: true })
@@ -426,14 +460,151 @@ export async function registerWalkIn(
     action: "frontdesk.walk_in_registered",
     entity: "contact",
     entityId: contactId,
-    diff: { created, promotions: d.consent_promotions, on_board: !!appointmentId },
+    diff: {
+      created,
+      has_phone: !!phone,
+      whatsapp: plan.recordWhatsAppConsent ? "agreed" : plan.declineWhatsApp ? "declined" : "unchanged",
+      promotions: plan.promotions,
+      on_board: !!appointmentId,
+    },
   });
   refresh();
   return {
     ok: true,
     data: { contactId, created, appointmentId },
-    message: created ? "Patient registered." : "Existing patient found and updated.",
+    message: created
+      ? plan.declineWhatsApp || !phone
+        ? "Patient registered. Nothing will be sent on WhatsApp."
+        : "Patient registered."
+      : "Existing patient found and updated.",
   };
+}
+
+/** Phase E: the patient now agrees to WhatsApp (a walk-in who said no at first). Clears the refusal, on the timeline. */
+export async function recordWhatsAppAgreement(contactId: string): Promise<ActionResult> {
+  const { member, denied } = await deskMember("contacts.manage");
+  if (denied) return needs(denied);
+  if (!uuid.safeParse(contactId).success) return fail("Invalid patient.");
+  const admin = createAdminClient(member.userId);
+  const { data, error } = await admin
+    .from("contacts")
+    .update({ whatsapp_declined_at: null })
+    .eq("id", contactId)
+    .eq("org_id", member.orgId)
+    .is("deleted_at", null)
+    .not("whatsapp_declined_at", "is", null)
+    .select("id")
+    .maybeSingle();
+  if (error || !data) return fail("Nothing to change: no refusal is recorded for this patient.");
+  const now = new Date().toISOString();
+  await addTimelineEvent(admin, {
+    orgId: member.orgId,
+    contactId,
+    type: "consent.contact_recorded",
+    actorType: "user",
+    actorId: member.userId,
+    payload: { channel: "front_desk", source: "patient_card", obtained_at: now },
+  });
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "frontdesk.whatsapp_agreed",
+    entity: "contact",
+    entityId: contactId,
+  });
+  refresh();
+  return { ok: true, message: "Recorded: the patient agrees to WhatsApp messages." };
+}
+
+// ---------------------------------------------------------------------------
+// Phase E: booking from the desk and the arrival check panel
+// ---------------------------------------------------------------------------
+
+const daySlotsSchema = z.object({
+  locationId: uuid,
+  serviceId: uuid,
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  specialistId: uuid.optional(),
+});
+
+/**
+ * One day of free times per doctor at a branch for a service, from the slot engine (slotsForDay → generateSlots /
+ * slotFits, the one rule). Staff lists ignore the patient lead time but never offer the past. Booking itself goes through
+ * bookAppointment → public.book_appointment (per-doctor lock, capacity re-checked).
+ */
+export async function getDeskDaySlots(
+  input: z.input<typeof daySlotsSchema>,
+): Promise<ActionResult<{ doctors: DoctorDay[]; full: Array<{ specialist_id: string; name: string }> }>> {
+  const { member, denied } = await deskMember("appointments.view");
+  if (denied) return needs(denied);
+  const p = daySlotsSchema.safeParse(input);
+  if (!p.success) return fail("Choose a branch, a service and a day.");
+  if (!branchAllowed(member, p.data.locationId)) return fail(BRANCH_DENIED);
+  const tz = member.org.timezone || "Asia/Dubai";
+  if (!bookableDate(p.data.date, todayIn(tz))) return fail("Choose a day from today up to 90 days ahead.");
+  const admin = createAdminClient(member.userId);
+  const options = await loadDeskOptions(admin, member.orgId, tz, {
+    access: readBranchAccess(member),
+    current: p.data.locationId,
+  });
+  const service = options.services.find((s) => s.id === p.data.serviceId);
+  if (!service) return fail("Service not found.");
+  const doctors = doctorsForBooking(options.specialists, p.data.locationId, p.data.serviceId).filter(
+    (d) => !p.data.specialistId || d.id === p.data.specialistId,
+  );
+  const rows: DoctorDay[] = await Promise.all(
+    doctors.slice(0, 20).map(async (d) => {
+      const slots = await slotsForDay(admin, {
+        orgId: member.orgId,
+        specialistId: d.id,
+        locationId: p.data.locationId,
+        date: p.data.date,
+        durationMin: service.duration_min,
+        serviceId: service.id,
+        ignoreLeadTime: true,
+      });
+      return {
+        specialist_id: d.id,
+        name: d.name,
+        slots: slots.map((s) => ({ start: s.start.toISOString(), label: s.label })),
+      };
+    }),
+  );
+  const plan = dayPlan(rows, new Date());
+  return { ok: true, data: { doctors: plan.open, full: plan.full } };
+}
+
+const checksSchema = z.array(uuid).min(1).max(60);
+
+/**
+ * The check panel for patients at Arrived: insurance card, eligibility and consent forms. Each section is read only with
+ * its own permission and switch and says "Not checked" otherwise (lib/front-desk/arrival-check.ts).
+ */
+export async function getArrivalChecks(
+  appointmentIds: string[],
+): Promise<ActionResult<Record<string, CheckLine[]>>> {
+  const { member, denied } = await deskMember("appointments.view");
+  if (denied) return needs(denied);
+  const p = checksSchema.safeParse(appointmentIds);
+  if (!p.success) return fail("Invalid appointments.");
+  const admin = createAdminClient(member.userId);
+  const { data: appts, error } = await withBranchFilter(
+    admin
+      .from("appointments")
+      .select("id, contact_id")
+      .eq("org_id", member.orgId)
+      .in("id", p.data),
+    accessFilterIds(readBranchAccess(member)),
+  );
+  if (error) return fail("Could not load the checks.");
+  const tz = member.org.timezone || "Asia/Dubai";
+  const checks = await loadArrivalChecks(admin, member, appts ?? [], todayIn(tz));
+  await recordAccess(admin, member, {
+    entity: "contact",
+    action: "list",
+    detail: { screen: "arrival_checks", rows: appts?.length ?? 0 },
+  });
+  return { ok: true, data: checks };
 }
 
 // ---------------------------------------------------------------------------
