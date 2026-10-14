@@ -247,7 +247,8 @@ async function Doctors({ supabase, page }: { supabase: Sb; page: number }) {
         <CardTitle>Doctors</CardTitle>
         <CardDescription>
           Department and specialty drive the revenue-by-department report. Doctors appear here when
-          they first show up on an invoice.
+          they first show up on an invoice, or add one by DHA id below (an existing id is updated).
+          Link them to the diary on the Doctors page.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-2">
@@ -280,9 +281,28 @@ async function Doctors({ supabase, page }: { supabase: Sb; page: number }) {
         ))}
         {(data ?? []).length === 0 && (
           <p className="text-muted-foreground text-sm">
-            No doctors yet. They are added automatically from invoices.
+            No doctors yet. They are added automatically from invoices, or add one below.
           </p>
         )}
+        <RowForm
+          action={saveDoctor}
+          label="Add doctor"
+          className="flex flex-wrap items-center gap-2 border-t pt-3"
+        >
+          <input type="hidden" name="active" value="on" />
+          <input type="hidden" name="adding" value="1" />
+          <Input
+            name="dha_id"
+            placeholder="DHA id"
+            aria-label="DHA id"
+            required
+            maxLength={200}
+            className={cn(field, "w-28 font-mono")}
+          />
+          <Input name="name" placeholder="Name" className={cn(field, "w-48")} />
+          <Input name="department" placeholder="Department" className={cn(field, "w-40")} />
+          <Input name="specialty" placeholder="Specialty" className={cn(field, "w-40")} />
+        </RowForm>
         <div className="flex justify-between pt-2 text-sm">
           <span className="text-muted-foreground">
             Page {page} of {pages}

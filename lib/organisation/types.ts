@@ -1,4 +1,5 @@
 /** Shapes the Organisation pages (Doctors, Staff, Rota, My day) hand to the browser. Framework-free. */
+import type { DoctorLinkSuggestions } from "@/lib/organisation/doctor-links";
 import type { DutyFrequency, EmploymentType } from "@/lib/organisation/staff";
 import type { RotaRole } from "@/lib/organisation/rota";
 
@@ -22,6 +23,8 @@ export type DoctorRow = {
   bio: string | null;
   userId: string | null;
   userLabel: string | null;
+  /** The Unite report doctor key this doctor is linked to; only filled for viewers with finance.revenue.view. */
+  reportDoctorKey: string | null;
   todayCount: number;
   hours: Array<{ locationId: string; locationName: string; text: string }>;
   timeOff: Array<{ id: string; startsAt: string; endsAt: string; reason: string | null }>;
@@ -86,4 +89,18 @@ export type DoctorDetail = {
   shifts: Array<{ id: string; day: string; time: string; branch: string | null; role: string }>;
   /** The linked staff record (null when there is none, or the viewer has no hr.view). */
   staff: { id: string; jobTitle: string | null } | null;
+};
+
+/**
+ * The doctor drawer's Finance link (finance.reference.manage only): the linked finance doctor (DHA id) and Unite report
+ * name, the suggestions, and the options a person may pick (those not linked to another doctor).
+ */
+export type DoctorFinanceLink = {
+  finance: { dhaId: string; label: string; missing: boolean } | null;
+  report: { key: string; label: string; missing: boolean } | null;
+  suggestions: DoctorLinkSuggestions;
+  /** What the picker shows for the suggested (or taken) value of each kind. */
+  suggestedLabels: { finance: string | null; report: string | null };
+  financeOptions: Option[];
+  reportOptions: Option[];
 };

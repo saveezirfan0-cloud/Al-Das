@@ -113,13 +113,14 @@ export const GUIDES: readonly Guide[] = [
     steps: [
       "Search by name or specialty, or pick a branch to see who works there.",
       "The licence column turns amber when a licence expires within the reminder days and red once it has expired.",
-      "Open a doctor to see their next appointments, this week's shifts, working hours per branch and upcoming time off.",
-      "From the drawer, Open calendar shows the doctor's diary, Open the rota shows the week, and the staff record link opens their HR record and duties.",
+      "Open a doctor to see their next appointments, this week's shifts, working hours and time off, with links to their calendar, the rota and their staff record.",
       "People who manage settings or staff can edit the specialty, licence, extension and short bio.",
+      "Finance link (finance reference rights) shows which finance doctor (DHA id) and Unite report name are this doctor. With settings rights too, confirm the suggestion, pick another or clear it; Performance then opens on this doctor.",
       "Add doctor (for administrators) opens Settings, Appointments, where a doctor gets their branches, services and working hours.",
     ],
     watchOut: [
       "Working hours, services and branches are changed under Settings, Appointments, not here.",
+      "Finance link suggestions come from the same licence number or the same name; when several match, nothing is suggested and you pick by hand.",
       "Patients in the drawer appear by first name or initials only; open the diary for the full appointment.",
       "Keep the bio short and professional; it is not a place for patient details.",
     ],
@@ -341,9 +342,9 @@ export const GUIDES: readonly Guide[] = [
       "The internal copy is for finance files only. The patient's invoice is the one Unite issued; never send the internal copy as a tax invoice.",
       "Until a Diligence claim is matched, the whole insurance invoice waits on the insurer and the patient's copay is not known yet.",
       "Downloads are logged with your name.",
-      ],
-    },
-    {
+    ],
+  },
+  {
     id: "finance-doctor-performance",
     title: "Doctor performance",
     pages: ["/finance/doctor-performance"],

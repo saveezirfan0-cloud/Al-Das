@@ -56,7 +56,10 @@ decision support.
    bank, the Tally bridge or import, payroll and cost CSV, Pulse's own tables (schedules, rooms, budgets, CRM), and Meta
    ads.
 2. **Data layer.** Raw copy kept (replayable), checked against source totals, tied to master data:
-   - `specialists` ↔ `fin_ref_doctors.dha_id` (link missing today)
+   - `specialists` ↔ `fin_ref_doctors.dha_id` (as built 14 Oct 2026: `specialists.dha_id` and
+     `specialists.report_doctor_key`, unique per org, set only by the Doctors drawer's audited Finance link action with
+     `settings.manage` + `finance.reference.manage`; suggestions from `lib/organisation/doctor-links.ts`, never guessed;
+     migration `20261205000100_doctor_identity.sql`)
    - `departments`
    - `locations.branch_code` ↔ `fin_ref_branches` (Clinic OS Phase B)
    - new `rooms`
