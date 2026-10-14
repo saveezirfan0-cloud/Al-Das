@@ -20,7 +20,9 @@ import { headerKey, type DateFormat } from "@/lib/finance/import-kinds";
 import { fileKindFor, isLabReasonCode, isProviderKind, statementFigures } from "@/lib/finance/labs";
 import { loadStatement } from "@/lib/finance/labs-server";
 import { MAX_IMPORT_BYTES, parseProviderLines, readImportFile } from "@/lib/finance/parse-import";
+import { previewImportTable } from "@/lib/finance/import-preview";
 import { redactText } from "@/lib/redact";
+import type { UploadPreview } from "@/lib/upload/preview";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/types";
 
@@ -48,6 +50,59 @@ const importSchema = z.object({
   format_id: uuid,
   month: z.string().regex(/^\d{4}-\d{2}$/, "Choose the month."),
 });
+
+/**
+ * Phase G upload preview: the provider's layout applied to the dropped file with the import's own reader: the mapped
+ * columns of the first rows (a Unite PIN masked, texts redacted), the names of the columns the layout does not map (never
+ * their values: a lab file can hold patient names there) and any mapped column that is missing. Nothing is stored.
+ */
+export async function previewProviderFile(fd: FormData): Promise<ActionResult<UploadPreview>> {
+  const member = await gate();
+  if (!member) return fail(DENIED);
+  const providerId = uuid.safeParse(fd.get("provider_id"));
+  const formatId = uuid.safeParse(fd.get("format_id"));
+  if (!providerId.success) return fail("Choose the provider first.");
+  if (!formatId.success) return fail("Choose the layout first.");
+  const file = fd.get("file");
+  if (!(file instanceof File) || file.size === 0) return fail("Choose a file.");
+  if (file.size > MAX_IMPORT_BYTES) return fail("The file is larger than 5 MB. Split it.");
+  if (!/\.(csv|xlsx)$/i.test(file.name)) return fail("Upload a .csv or .xlsx file.");
+  const admin = createAdminClient(); // service role AFTER the permission check: the provider and layout only
+  const [{ data: provider }, { data: format }] = await Promise.all([
+    admin
+      .from("fin_providers")
+      .select("kind, active")
+      .eq("org_id", member.orgId)
+      .eq("id", providerId.data)
+      .maybeSingle(),
+    admin
+      .from("fin_import_formats")
+      .select("kind, mapping, date_format, active")
+      .eq("org_id", member.orgId)
+      .eq("id", formatId.data)
+      .maybeSingle(),
+  ]);
+  if (!provider || !provider.active || !isProviderKind(provider.kind))
+    return fail("Choose an active provider.");
+  const kind = fileKindFor(provider.kind);
+  if (!format || !format.active || format.kind !== kind)
+    return fail("Choose an active layout for this provider's files.");
+  let table: unknown[][];
+  try {
+    table = await readImportFile(Buffer.from(await file.arrayBuffer()));
+  } catch {
+    return fail("The file could not be read. Save it as .csv or .xlsx and try again.");
+  }
+  return {
+    ok: true,
+    data: previewImportTable(table, {
+      kind,
+      mapping: (format.mapping ?? {}) as Record<string, string>,
+      dateFormat: format.date_format as DateFormat,
+      amountStyle: "signed",
+    }),
+  };
+}
 
 /** Reads a lab or provider file, stores the sanitised rows atomically in the provider's statement for the month. */
 export async function importProviderFile(

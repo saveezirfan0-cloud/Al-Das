@@ -2,15 +2,16 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import { ActionForm, Field, RunButton, selectClass } from "@/components/finance/forms";
-import { Button } from "@/components/ui/button";
+import { FileUpload } from "@/components/shell/file-upload";
 import { Input } from "@/components/ui/input";
+import { FINANCE_IMPORT_LIMITS } from "@/lib/upload/preview";
 
 import {
   importProviderFile,
+  previewProviderFile,
   postStatement,
   removeProviderFile,
   reopenStatement,
@@ -32,27 +33,20 @@ export function UploadForm({
 }) {
   const router = useRouter();
   const [providerId, setProviderId] = React.useState(providers[0]?.id ?? "");
-  const [pending, start] = React.useTransition();
   const form = React.useRef<HTMLFormElement>(null);
   const kind = providers.find((p) => p.id === providerId)?.fileKind;
   const layouts = formats.filter((f) => f.kind === kind);
+  const [formatId, setFormatId] = React.useState(layouts[0]?.id ?? "");
+  const layout = layouts.some((f) => f.id === formatId) ? formatId : (layouts[0]?.id ?? "");
+  /** The form's fields plus the dropped file, as the server actions take them. */
+  const withFile = (file: File) => {
+    const fd = new FormData(form.current ?? undefined);
+    fd.set("format_id", layout);
+    fd.set("file", file);
+    return fd;
+  };
   return (
-    <form
-      ref={form}
-      className="flex flex-col gap-3"
-      onSubmit={(e) => {
-        e.preventDefault();
-        const fd = new FormData(e.currentTarget);
-        start(async () => {
-          const res = await importProviderFile(fd);
-          if (res.ok) {
-            toast.success(res.message ?? "Imported");
-            form.current?.reset();
-            if (res.data) router.push(`/finance/labs/${res.data.statementId}`);
-          } else toast.error(res.error);
-        });
-      }}
-    >
+    <form ref={form} className="flex flex-col gap-3" onSubmit={(e) => e.preventDefault()}>
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Provider">
           <select
@@ -80,7 +74,13 @@ export function UploadForm({
               : undefined
           }
         >
-          <select name="format_id" className={selectClass} required>
+          <select
+            name="format_id"
+            className={selectClass}
+            value={layout}
+            onChange={(e) => setFormatId(e.target.value)}
+            required
+          >
             {layouts.map((f) => (
               <option key={f.id} value={f.id}>
                 {f.name}
@@ -88,15 +88,31 @@ export function UploadForm({
             ))}
           </select>
         </Field>
-        <Field label="File (.csv or .xlsx, up to 5 MB)">
-          <Input name="file" type="file" accept=".csv,.xlsx" required />
-        </Field>
       </div>
-      <div>
-        <Button type="submit" disabled={pending || layouts.length === 0 || !providerId}>
-          {pending ? <Loader2 className="animate-spin" /> : <Upload />} Upload
-        </Button>
-      </div>
+      <FileUpload
+        label="File"
+        accept={FINANCE_IMPORT_LIMITS.extensions}
+        maxBytes={FINANCE_IMPORT_LIMITS.maxBytes}
+        hint="A .csv or .xlsx file up to 5 MB. Only the columns in the layout are read (never a name or ID number); the file itself is not kept."
+        previewKey={`${providerId}:${layout}`}
+        disabledReason={
+          !providerId
+            ? "Add a provider first."
+            : layouts.length === 0
+              ? "Add a layout for this provider's files first."
+              : null
+        }
+        preview={(file) => previewProviderFile(withFile(file))}
+        confirmLabel="Upload"
+        onConfirm={async (file) => {
+          const res = await importProviderFile(withFile(file));
+          if (res.ok) {
+            toast.success(res.message ?? "Imported");
+            if (res.data) router.push(`/finance/labs/${res.data.statementId}`);
+          } else toast.error(res.error);
+          return res.ok;
+        }}
+      />
     </form>
   );
 }
