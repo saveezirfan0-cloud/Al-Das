@@ -11,6 +11,7 @@ import {
   financeAccessSchema,
   holdsRestrictedArea,
   insideHours,
+  isNamedTimeZone,
   localClock,
   readFinanceAccess,
   restrictedAreasFor,
@@ -464,5 +465,32 @@ describe("switched-off and half-filled settings", () => {
     expect(denyReasonClass("ip_not_allowed")).toBe("network");
     expect(denyReasonClass("ip_unknown")).toBe("network");
     expect(denyReasonClass("invalid_settings")).toBe("settings");
+  });
+});
+
+describe("isNamedTimeZone", () => {
+  it("accepts IANA names and refuses offsets Postgres would read the other way round", () => {
+    for (const tz of [
+      "Asia/Dubai",
+      "Europe/London",
+      "UTC",
+      "Etc/GMT-4",
+      "America/Argentina/Buenos_Aires",
+    ])
+      expect(isNamedTimeZone(tz), tz).toBe(true);
+    for (const tz of [
+      "+04:00",
+      "-03:00",
+      "UTC+4",
+      "GMT-3",
+      "utc+04:00",
+      "posix/Asia/Dubai",
+      "right/UTC",
+      "posixrules",
+      "",
+      "4",
+    ])
+      expect(isNamedTimeZone(tz), tz).toBe(false);
+    expect(localClock(new Date("2026-10-12T08:00:00Z"), "+04:00")).toBeNull();
   });
 });

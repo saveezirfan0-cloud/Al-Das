@@ -145,8 +145,24 @@ function minutes(t: string): number {
   return h * 60 + m;
 }
 
+/**
+ * A named IANA zone ("Asia/Dubai", "UTC", "Etc/GMT+4"), not an offset ("+04:00", "UTC+4", "GMT-3"). Offsets are
+ * refused because Postgres reads them POSIX-style (sign reversed) while the app reads them ISO-style; the database
+ * refuses them too when the window is switched on (app.finance_access_problem).
+ */
+export function isNamedTimeZone(timeZone: string): boolean {
+  return (
+    typeof timeZone === "string" &&
+    /^[A-Za-z][A-Za-z0-9_+\-/]*$/.test(timeZone) &&
+    !/^(UTC|GMT)[+-]/i.test(timeZone) &&
+    !/^(posix|right)\//i.test(timeZone) &&
+    !["posixrules", "Factory", "localtime"].includes(timeZone)
+  );
+}
+
 /** Local ISO weekday (1-7) and minutes since midnight in the timezone; null when the timezone is not valid. */
 export function localClock(now: Date, timeZone: string): { day: number; minute: number } | null {
+  if (!isNamedTimeZone(timeZone)) return null;
   try {
     const [day, time] = formatInTimeZone(now, timeZone, "i HH:mm").split(" ");
     return { day: Number(day), minute: minutes(time) };

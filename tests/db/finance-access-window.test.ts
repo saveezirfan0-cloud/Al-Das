@@ -135,12 +135,24 @@ describe.skipIf(!TEST_DATABASE_URL)("finance access window: SQL rule parity", ()
   };
   const fx = fixtures as { roleId: string; cases: Case[] };
 
+  // A cfg the database refuses to store (app.finance_access_problem, behind the orgs trigger) can never reach the
+  // read path, so for those the app must also refuse or not apply the window; every storable case must match exactly.
   it.each(fx.cases.map((k) => [k.name, k] as const))("%s", async (_name, k) => {
+    const cfg = k.cfg === null ? null : JSON.stringify(k.cfg);
+    const tz = k.timezone ?? "Asia/Dubai";
+    const { rows: problem } = await c.query<{ p: string | null }>(
+      "select app.finance_access_problem($1::jsonb, $2) as p",
+      [cfg, tz],
+    );
+    if (problem[0].p !== null) {
+      expect(["invalid_settings", "admin", "not_in_scope", "off"]).toContain(k.expect);
+      return;
+    }
     const { rows } = await c.query<{ r: string }>(
       "select app.finance_window_reason($1::jsonb, $2, $3::uuid, $4::jsonb, $5::timestamptz) as r",
       [
-        k.cfg === null ? null : JSON.stringify(k.cfg),
-        k.timezone ?? "Asia/Dubai",
+        cfg,
+        tz,
         fx.roleId,
         JSON.stringify(k.permissions ?? ["finance.view", "inbox.send"]),
         k.now ?? "2026-10-12T08:00:00Z",
@@ -149,14 +161,52 @@ describe.skipIf(!TEST_DATABASE_URL)("finance access window: SQL rule parity", ()
     expect(rows[0].r).toBe(k.expect);
   });
 
+  it("refuses at write time every malformed or incomplete case the app reads as invalid_settings", async () => {
+    for (const k of fx.cases.filter((x) => x.expect === "invalid_settings")) {
+      const { rows } = await c.query<{ p: string | null }>(
+        "select app.finance_access_problem($1::jsonb, $2) as p",
+        [k.cfg === null ? null : JSON.stringify(k.cfg), k.timezone ?? "Asia/Dubai"],
+      );
+      expect(rows[0].p, k.name).not.toBeNull();
+    }
+  });
+
+  it("still fails closed on the read path when a stored value is ill-typed (written before the check)", async () => {
+    const role = fx.roleId;
+    for (const cfg of [
+      { enabled: "yes" },
+      { enabled: true, scope: 5 },
+      { enabled: true, scope: null },
+      { enabled: true, scope: "selected_roles", role_ids: "all" },
+      { enabled: true, limit_hours: "no" },
+      { enabled: true, days: "weekdays" },
+      { enabled: true, days: [] },
+      { enabled: true, start: 7 },
+      { enabled: true, end: "25:00" },
+      [1, 2],
+    ]) {
+      const { rows } = await c.query<{ r: string }>(
+        "select app.finance_window_hours($1::jsonb, 'Asia/Dubai', $2::uuid, '2026-10-12T08:00:00Z') as r",
+        [JSON.stringify(cfg), role],
+      );
+      expect(rows[0].r, JSON.stringify(cfg)).toBe("invalid_settings");
+    }
+  });
+
   it("is not callable by signed-in users directly", async () => {
     await c.query("begin");
     try {
       await c.query("set local role authenticated");
-      const err = await c
-        .query("select app.finance_window_reason(null, 'UTC', null, '[]'::jsonb, now())")
-        .catch((e: { code?: string }) => e);
-      expect((err as { code?: string }).code).toBe("42501");
+      for (const sql of [
+        "select app.finance_window_reason(null, 'UTC', null, '[]'::jsonb, now())",
+        "select app.finance_window_hours(null, 'UTC', null, now())",
+        "select app.finance_access_problem(null, 'UTC')",
+      ]) {
+        await c.query("savepoint s");
+        const err = await c.query(sql).catch((e: { code?: string }) => e);
+        expect((err as { code?: string }).code, sql).toBe("42501");
+        await c.query("rollback to savepoint s");
+      }
     } finally {
       await c.query("rollback");
     }
@@ -207,7 +257,7 @@ describe.skipIf(!TEST_DATABASE_URL)(
       await asServiceRole(c, async () => {
         const { rows: r1 } = await c.query<{ id: string }>(
           `insert into public.roles (org_id, name, permissions)
-         values ($1, 'Finance test', '["finance.reference.manage", "accounting.journals.view", "inbox.send"]'::jsonb) returning id`,
+         values ($1, 'Finance test', '["finance.reference.manage", "accounting.journals.view", "accounting.view", "accounting.ledger.view", "inbox.send"]'::jsonb) returning id`,
           [org],
         );
         const { rows: r2 } = await c.query<{ id: string }>(
@@ -222,6 +272,10 @@ describe.skipIf(!TEST_DATABASE_URL)(
           `insert into public.fin_ref_denial_codes (org_id, code, description) values ($1, 'SYN-1', 'Synthetic code')`,
           [org],
         );
+        await c.query(
+          `insert into public.acc_cost_centres (org_id, code, name) values ($1, 'SYN1', 'Synthetic centre')`,
+          [org],
+        );
       });
     });
 
@@ -231,7 +285,7 @@ describe.skipIf(!TEST_DATABASE_URL)(
     });
 
     it("changes nothing while the window is off or absent", async () => {
-      await setWindow({ enabled: false, days: "malformed" });
+      await setWindow({ enabled: false, scope: "selected_roles", role_ids: [] });
       expect(await perm(fin, "has_perm", "finance.reference.manage")).toBe(true);
       expect(await perm(wild, "has_perm_wild", "finance.bank.view")).toBe(true);
       await asServiceRole(c, () =>
@@ -300,8 +354,18 @@ describe.skipIf(!TEST_DATABASE_URL)(
     });
 
     it("fails closed on a malformed window that is switched on, and honours selected roles", async () => {
-      await setWindow({ enabled: true, days: "weekdays" });
+      // a value written before the check existed: bypass the trigger as the owner
+      await c.query("alter table public.orgs disable trigger orgs_finance_access_guard");
+      try {
+        await c.query(
+          "update public.orgs set settings = jsonb_set(settings, '{finance_access}', $2::jsonb) where id = $1",
+          [org, JSON.stringify({ enabled: true, days: "weekdays" })],
+        );
+      } finally {
+        await c.query("alter table public.orgs enable trigger orgs_finance_access_guard");
+      }
       expect(await perm(fin, "has_perm", "finance.reference.manage")).toBe(false);
+      expect(await asUser(c, fin, () => count(c, "select 1 from public.acc_cost_centres"))).toBe(0);
       await setWindow({
         ...closedNow(),
         scope: "selected_roles",
@@ -314,5 +378,125 @@ describe.skipIf(!TEST_DATABASE_URL)(
       await setWindow({ enabled: true, limit_hours: false, ip_allowlist: ["198.51.100.0/24"] });
       expect(await perm(fin, "has_perm", "finance.reference.manage")).toBe(true);
     });
+
+    it("covers the accounting ledger helpers: outside the hours no acc_* rows, Admin still reads them", async () => {
+      await setWindow(openNow);
+      const sql = "select 1 from public.acc_cost_centres where code = 'SYN1'";
+      expect(await asUser(c, fin, () => count(c, sql))).toBe(1);
+      await setWindow(closedNow());
+      expect(await asUser(c, fin, () => count(c, sql))).toBe(0);
+      expect(await asUser(c, admin, () => count(c, sql))).toBe(1);
+      for (const fn of [
+        "acc_can_view",
+        "acc_can_read_journals",
+        "acc_can_read_receivables",
+        "acc_can_read_banking",
+      ]) {
+        const ok = await asUser(c, fin, async () => {
+          const { rows } = await c.query<{ ok: boolean }>(`select app.${fn}($1) as ok`, [org]);
+          return rows[0].ok;
+        });
+        expect(ok, fn).toBe(false);
+      }
+      const adminBudgets = await asUser(c, admin, async () => {
+        const { rows } = await c.query<{ ok: boolean }>(
+          "select app.acc_can_read_budgets($1) as ok",
+          [org],
+        );
+        return rows[0].ok;
+      });
+      expect(adminBudgets).toBe(true);
+    });
+
+    it("refuses an invalid setting or an offset timezone when written", async () => {
+      const code = async (sql: string, params: unknown[]) => {
+        await c.query("begin");
+        try {
+          await c.query(sql, params);
+          return null;
+        } catch (e) {
+          return (e as { code?: string }).code ?? "unknown";
+        } finally {
+          await c.query("rollback");
+        }
+      };
+      const put =
+        "update public.orgs set settings = jsonb_set(settings, '{finance_access}', $2::jsonb) where id = $1";
+      expect(
+        await code(put, [org, JSON.stringify({ enabled: true, ip_allowlist: ["office"] })]),
+      ).toBe("23514");
+      expect(await code(put, [org, JSON.stringify({ enabled: false, days: "x" })])).toBe("23514");
+      await setWindow(openNow);
+      for (const tz of ["+04:00", "UTC+4", "Not/AZone", "posix/Asia/Dubai"])
+        expect(
+          await code("update public.orgs set timezone = $2 where id = $1", [org, tz]),
+          tz,
+        ).toBe("23514");
+      expect(
+        await code("update public.orgs set timezone = 'Asia/Dubai' where id = $1", [org]),
+      ).toBeNull();
+      // while the window is off the timezone is not the window's business
+      await setWindow({ enabled: false });
+      expect(
+        await code("update public.orgs set timezone = '+04:00' where id = $1", [org]),
+      ).toBeNull();
+      // and unrelated updates are never held up
+      expect(await code("update public.orgs set name = 'Org W2' where id = $1", [org])).toBeNull();
+    });
   },
 );
+
+describe.skipIf(!TEST_DATABASE_URL)("finance access window: guard on permission readers", () => {
+  let c: Client;
+  beforeAll(async () => {
+    c = await connect();
+  });
+  afterAll(async () => {
+    await c.end();
+  });
+
+  // Any function that reads roles.permissions for a finance or accounting key must also ask the window. The allowed
+  // readers either check the window themselves or are service-role only with an explicit user (user_has_perm).
+  const ALLOWED = new Set([
+    "app.has_perm",
+    "app.has_perm_wild",
+    "app.user_has_perm",
+    "app.acc_can_view",
+    "app.acc_can_read_journals",
+    "app.acc_can_read_receivables",
+    "app.acc_can_read_banking",
+    "app.acc_can_read_budgets",
+  ]);
+  const WINDOWED = [...ALLOWED].filter((f) => f !== "app.user_has_perm");
+
+  it("finds no other function reading permissions for a finance or accounting key", async () => {
+    const { rows } = await c.query<{ fn: string; src: string }>(
+      `select n.nspname || '.' || p.proname as fn, p.prosrc as src
+       from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+       where n.nspname in ('app', 'public')
+         and p.prosrc ~ $1`,
+      [String.raw`(permissions\s*(\?|@>)|jsonb_array_elements_text\(\s*\w+\.permissions)`],
+    );
+    const offenders = rows
+      .filter(
+        (r) =>
+          // a finance/accounting key written in the body, or a key passed in by the caller
+          /'(finance|accounting)\./.test(r.src) ||
+          /permissions\s*\?\|?\s*p_|perm\.key\s*=\s*p_/.test(r.src),
+      )
+      .map((r) => r.fn)
+      .filter((fn) => !ALLOWED.has(fn));
+    expect(offenders).toEqual([]);
+  });
+
+  it("every allowed reader except user_has_perm asks the window", async () => {
+    for (const fn of WINDOWED) {
+      const { rows } = await c.query<{ src: string }>(
+        "select p.prosrc as src from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname || '.' || p.proname = $1",
+        [fn],
+      );
+      expect(rows.length, fn).toBe(1);
+      expect(rows[0].src, fn).toContain("app.finance_window_open");
+    }
+  });
+});

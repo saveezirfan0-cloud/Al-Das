@@ -7,6 +7,7 @@ import { recordAudit } from "@/lib/audit";
 import { requirePerm } from "@/lib/auth/session";
 import {
   financeAccessSchema,
+  localClock,
   readFinanceAccess,
   writeFinanceAccess,
   type FinanceAccessInput,
@@ -113,6 +114,12 @@ export async function saveFinanceAccessWindow(input: FinanceAccessInput): Promis
   const next = { ...parsed.data, role_ids: roleIds };
   if (next.enabled && next.scope === "selected_roles" && next.role_ids.length === 0)
     return { ok: false, error: "Choose at least one role." };
+  // the database refuses a switched-on window with an offset or unknown timezone (app.finance_access_problem)
+  if (next.enabled && !localClock(new Date(), member.org.timezone))
+    return {
+      ok: false,
+      error: `The organisation's timezone (${member.org.timezone}) is not a named zone such as Asia/Dubai. Change it first.`,
+    };
 
   const { data: org, error: orgError } = await admin
     .from("orgs")
@@ -126,7 +133,14 @@ export async function saveFinanceAccessWindow(input: FinanceAccessInput): Promis
     .from("orgs")
     .update({ settings: writeFinanceAccess(org.settings, next) as never })
     .eq("id", member.orgId);
-  if (error) return { ok: false, error: "Could not save the finance access window." };
+  if (error)
+    return {
+      ok: false,
+      error:
+        error.code === "23514"
+          ? "The database refused this window. Check the addresses and the organisation's timezone."
+          : "Could not save the finance access window.",
+    };
 
   const changed = before
     ? (Object.keys(next) as Array<keyof typeof next>).filter(
