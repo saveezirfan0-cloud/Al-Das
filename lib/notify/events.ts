@@ -50,6 +50,15 @@ export const NOTIFICATION_EVENTS = [
     defaults: { in_app: true, email: false, push: true },
   },
   {
+    key: "inbox.unread",
+    group: "Inbox",
+    label: "My conversation is still unread",
+    description:
+      "A conversation assigned to you has had unread messages for longer than the limit set under Settings, Inbox. Push and e-mail say only that a conversation is waiting.",
+    channels: ALL,
+    defaults: { in_app: true, email: false, push: false },
+  },
+  {
     key: "inbox.mention",
     group: "Inbox",
     label: "Someone mentions me",

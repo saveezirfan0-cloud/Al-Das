@@ -1102,6 +1102,33 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)(
         expect(late.ok).toBe(false);
       });
 
+      it("sends the branch the desk picks when the clinic has several", async () => {
+        const conv = await conversationOf(id.adult);
+        const second = await asService(async () => {
+          await c.query(
+            "update public.conversations set last_inbound_at = now() - interval '10 minutes' where id = $1",
+            [conv!.id],
+          );
+          return q(
+            "insert into public.locations (org_id, name, address, latitude, longitude) values ($1, 'Second Clinic', 'Example Road 2', 25.1, 55.1)",
+            [org],
+          );
+        });
+        const res = await sendDeskMessage(admin, {
+          orgId: org,
+          userId: user,
+          contactId: id.adult,
+          kind: "location",
+          locationId: second,
+        });
+        expect(res).toMatchObject({ ok: true, sentAs: "location" });
+        const last = (await sentMessages(conv!.id)).at(-1);
+        expect(last.payload.send).toMatchObject({ type: "location", name: "Second Clinic" });
+        await asService(() =>
+          c.query("update public.locations set active = false where id = $1", [second]),
+        );
+      });
+
       it("sends 'running late' by the mapped template when the window is closed", async () => {
         const conv = await conversationOf(id.adult);
         await asService(async () => {

@@ -90,6 +90,20 @@ export async function setCheckin(input: z.input<typeof checkinSchema>): Promise<
       actorId: member.userId,
     });
   }
+  // The doctor has finished (Done or Checked out): a Pulse booking becomes completed so reports and the diary agree.
+  // Unite rows keep Unite's status; an undo leaves it completed (the visit still happened).
+  if (
+    (p.data.to === "done" || p.data.to === "checked_out") &&
+    (a.status === "awaiting" || a.status === "confirmed") &&
+    a.source !== "unite"
+  ) {
+    await changeAppointmentStatus(admin, {
+      orgId: member.orgId,
+      appointmentId: a.id,
+      to: "completed",
+      actorId: member.userId,
+    });
+  }
   // Phase 19b: a patient checked out has finished the visit; a Google review request may follow (switch, consent and cap apply).
   if (p.data.to === "checked_out")
     await scheduleReviewRequestSafely(admin, { orgId: member.orgId, appointmentId: a.id });
