@@ -18,6 +18,9 @@ new wiring and the one-time steps.
 - Set by hand (Production): `APP_URL`, `JOB_SECRET`, `ENCRYPTION_KEY` (base64 of 32 bytes). Optional ones (Meta, Unite, Anthropic, VAPID) are listed in `CLAUDE.md`.
 - A changed variable reaches the app only after a redeploy.
 
+## Builds
+- Vercel's build machine has 2 cores and 8 GB. With the Sentry source-map upload on, `next build`'s own type and lint pass ran out of memory (14 Oct), so on Vercel (`VERCEL=1`) the build skips it (`next.config.ts`). GitHub CI still runs `pnpm typecheck`, `pnpm lint` and a full `pnpm build` on every pull request; merge to `main` only through a pull request with green CI.
+
 ## Database
 - Migrations reach production through `.github/workflows/db-migrate.yml` (`supabase db push`): on every merge to `main` that touches `supabase/migrations/`, or by hand under Actions, Database migrations, Run workflow. It needs the repository secret `SUPABASE_DB_URL` (Supabase, Connect, **Session pooler** URI with the database password).
 - Vault: `app_url` and `finance_ref_key` are set. `job_secret` must equal Vercel's `JOB_SECRET`:
