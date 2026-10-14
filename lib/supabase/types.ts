@@ -12181,6 +12181,7 @@ export type Database = {
           denial_task_enabled: boolean;
           denial_warn_days: number;
           doctor_basis: string | null;
+          dq_late_invoice_days: number;
           escalation_days: number;
           escalation_role: string;
           evidence_grace_days: number;
@@ -12267,6 +12268,7 @@ export type Database = {
           denial_task_enabled?: boolean;
           denial_warn_days?: number;
           doctor_basis?: string | null;
+          dq_late_invoice_days?: number;
           escalation_days?: number;
           escalation_role?: string;
           evidence_grace_days?: number;
@@ -12352,6 +12354,7 @@ export type Database = {
           denial_task_enabled?: boolean;
           denial_warn_days?: number;
           doctor_basis?: string | null;
+          dq_late_invoice_days?: number;
           escalation_days?: number;
           escalation_role?: string;
           evidence_grace_days?: number;
@@ -24568,6 +24571,10 @@ export type Database = {
         Returns: string;
       };
       fin_close_withdraw: { Args: { p_close_id: string; p_org_id: string }; Returns: undefined };
+      fin_collections_inputs: {
+        Args: { p_branch?: string; p_branches?: string[]; p_month: string; p_org_id: string };
+        Returns: Json;
+      };
       fin_cost_set_period: {
         Args: {
           p_month: string;

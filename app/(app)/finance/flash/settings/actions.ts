@@ -7,6 +7,7 @@ import { recordAudit } from "@/lib/audit";
 import { can } from "@/lib/auth/can";
 import { requireMember } from "@/lib/auth/session";
 import { DENIED, dbMessage, fail, firstIssue, type ActionResult } from "@/lib/finance/action-support";
+import { dqSettingsSchema } from "@/lib/finance/collections";
 import { perfSettingsSchema } from "@/lib/finance/doctor-performance";
 import { LINE_CODE_RE, monthOf, parseTargetInput } from "@/lib/finance/flash";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -229,6 +230,30 @@ export async function savePerfBands(values: Record<string, string>): Promise<Act
   refresh();
   revalidatePath("/finance/doctor-performance");
   return { ok: true, message: "Target and bands saved." };
+}
+
+/** Collections data quality (Phase 23D): an invoice raised more than this many days after the visit is flagged. */
+export async function saveDataQualitySettings(values: Record<string, string>): Promise<ActionResult> {
+  const member = await gate();
+  if (!member) return fail(DENIED);
+  const parsed = dqSettingsSchema.safeParse(values);
+  if (!parsed.success) return fail(firstIssue(parsed.error));
+  const admin = createAdminClient(member.userId);
+  const { error } = await admin
+    .from("fin_ref_finance_settings")
+    .upsert({ org_id: member.orgId, ...parsed.data }, { onConflict: "org_id" });
+  if (error) return fail(dbMessage(error, "Could not save the late invoice days."));
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "finance.collections.settings_saved",
+    entity: "fin_ref_finance_settings",
+    entityId: member.orgId,
+    diff: parsed.data,
+  });
+  refresh();
+  revalidatePath("/finance/collections");
+  return { ok: true, message: "Late invoice days saved." };
 }
 
 const displaySchema = z.object({

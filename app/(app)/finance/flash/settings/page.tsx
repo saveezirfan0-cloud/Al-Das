@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/table";
 import { requirePerm } from "@/lib/auth/session";
 import { todayIn } from "@/lib/finance/action-support";
+import { DEFAULT_LATE_INVOICE_DAYS } from "@/lib/finance/collections";
 import { DEFAULT_PERF_SETTINGS } from "@/lib/finance/doctor-performance";
 import { monthOf, targetFromRow } from "@/lib/finance/flash";
 import { monthTitle } from "@/lib/finance/flash-xlsx";
@@ -24,6 +25,7 @@ import {
   CopyTargetsButton,
   DisplayForm,
   EditLineButton,
+  DataQualityForm,
   PerfBandsForm,
   NewLineButton,
   TargetsForm,
@@ -57,7 +59,9 @@ export default async function FlashSettingsPage({
       .eq("month", month),
     admin
       .from("fin_ref_finance_settings")
-      .select("flash_share_basis, flash_top_doctors, perf_arpp_target, perf_band_near, perf_band_moderate")
+      .select(
+        "flash_share_basis, flash_top_doctors, perf_arpp_target, perf_band_near, perf_band_moderate, dq_late_invoice_days",
+      )
       .eq("org_id", member.orgId)
       .maybeSingle(),
   ]);
@@ -77,7 +81,7 @@ export default async function FlashSettingsPage({
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Flash targets and lines"
-        description="How invoices are grouped on the daily flash report, the targets they are measured against, and the revenue-per-patient bands of the doctor performance page. Every change is audited."
+        description="How invoices are grouped on the daily flash report, the targets they are measured against, and the revenue-per-patient bands of the doctor performance page and the late invoice days of the collections page. Every change is audited."
       >
         <Button asChild variant="outline">
           <Link href="/finance/flash">Back to the flash report</Link>
@@ -196,6 +200,15 @@ export default async function FlashSettingsPage({
             near={Number(settings?.perf_band_near ?? DEFAULT_PERF_SETTINGS.near)}
             moderate={Number(settings?.perf_band_moderate ?? DEFAULT_PERF_SETTINGS.moderate)}
           />
+        </CardContent>
+      </Card>
+
+      <Card id="data-quality">
+        <CardHeader>
+          <CardTitle className="text-base">Collections: data quality</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <DataQualityForm lateInvoiceDays={settings?.dq_late_invoice_days ?? DEFAULT_LATE_INVOICE_DAYS} />
         </CardContent>
       </Card>
     </div>
