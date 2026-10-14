@@ -21,10 +21,26 @@ export type TemplateVariable = {
   index: number | null;
   example: string | null;
   /** For header media and URL buttons. */
-  kind: "text" | "image" | "video" | "document" | "url_suffix" | "copy_code";
+  kind: "text" | "image" | "video" | "document" | "url_suffix" | "copy_code" | "catalog_thumbnail";
   /** Set for a variable on a carousel card (0-based card index); absent for the message itself. */
   card?: number;
+  /**
+   * True when the message can go without a value (only the catalogue button's thumbnail item: Meta then shows the
+   * first catalogue item). Optional variables are never reported as missing.
+   */
+  optional?: boolean;
 };
+
+type MetaButtonDef = Extract<MetaTemplateComponent, { type: "BUTTONS" }>["buttons"][number];
+
+/**
+ * An authentication template's copy-code button: the create shape (`OTP`) or the shape Meta lists it back in
+ * (a URL button to whatsapp.com/otp). Its one parameter is always the code in the body, so it is not a variable.
+ */
+export function isOtpButton(b: MetaButtonDef): boolean {
+  if (b.type === "OTP") return true;
+  return b.type === "URL" && /^https:\/\/(www\.)?whatsapp\.com\/otp\//i.test(b.url ?? "");
+}
 
 /** The key prefix of a carousel card's variables. */
 export function cardKeyPrefix(card: number): string {
@@ -100,7 +116,7 @@ function componentVariables(
       const b = c as Extract<MetaTemplateComponent, { type: "BODY" }>;
       const exPos = b.example?.body_text?.[0] ?? [];
       const exNamed = b.example?.body_text_named_params ?? [];
-      findVars(b.text).forEach((v, i) => {
+      findVars(b.text ?? "").forEach((v, i) => {
         vars.push({
           key: `${prefix}body.${v.name}`,
           component: "body",
@@ -116,7 +132,19 @@ function componentVariables(
     } else if (c.type === "BUTTONS") {
       const bt = c as Extract<MetaTemplateComponent, { type: "BUTTONS" }>;
       bt.buttons.forEach((btn, idx) => {
-        if (btn.type === "URL" && /\{\{\s*1\s*\}\}/.test(btn.url)) {
+        if (isOtpButton(btn)) return; // filled from the body's code at send time
+        if (btn.type === "CATALOG") {
+          vars.push({
+            key: `${prefix}button.${idx}`,
+            component: "button",
+            name: String(idx),
+            index: idx,
+            example: null,
+            kind: "catalog_thumbnail",
+            optional: true,
+            ...extra,
+          });
+        } else if (btn.type === "URL" && /\{\{\s*1\s*\}\}/.test(btn.url)) {
           vars.push({
             key: `${prefix}button.${idx}`,
             component: "button",
@@ -210,14 +238,14 @@ export function renderTemplatePreview(
       else preview.headerMedia = h.format.toLowerCase() as TemplatePreview["headerMedia"];
     } else if (c.type === "BODY") {
       preview.body = substitute(
-        (c as Extract<MetaTemplateComponent, { type: "BODY" }>).text,
+        (c as Extract<MetaTemplateComponent, { type: "BODY" }>).text ?? "",
         values,
         "body",
         true,
         vars,
       );
     } else if (c.type === "FOOTER") {
-      preview.footer = (c as Extract<MetaTemplateComponent, { type: "FOOTER" }>).text;
+      preview.footer = (c as Extract<MetaTemplateComponent, { type: "FOOTER" }>).text ?? null;
     } else if (c.type === "CAROUSEL") {
       for (const [ci, card] of ((c as CarouselComponent).cards ?? []).entries()) {
         const head = card.components.find((x) => x.type === "HEADER") as
@@ -236,12 +264,17 @@ export function renderTemplatePreview(
       for (const b of (c as Extract<MetaTemplateComponent, { type: "BUTTONS" }>).buttons) {
         preview.buttons.push({
           type: b.type,
-          text: "text" in b && b.text ? b.text : b.type === "COPY_CODE" ? "Copy code" : b.type,
+          text:
+            "text" in b && b.text
+              ? b.text
+              : b.type === "COPY_CODE" || b.type === "OTP"
+                ? "Copy code"
+                : b.type,
         });
       }
     }
   }
-  preview.missing = vars.filter((v) => !values[v.key]).map((v) => v.key);
+  preview.missing = vars.filter((v) => !v.optional && !values[v.key]).map((v) => v.key);
   return preview;
 }
 
@@ -300,9 +333,39 @@ function sendComponents(
         index: v.index ?? 0,
         parameters: [{ type: "coupon_code", coupon_code: values[v.key] }],
       });
+    } else if (v.kind === "catalog_thumbnail" && values[v.key]) {
+      // Without a value the button needs no parameter: Meta shows the first catalogue item.
+      components.push({
+        type: "button",
+        sub_type: "CATALOG",
+        index: v.index ?? 0,
+        parameters: [{ type: "action", action: { thumbnail_product_retailer_id: values[v.key] } }],
+      });
     }
   }
   return components;
+}
+
+/**
+ * Authentication templates: the copy-code button carries the same code as the body's one variable. Returns the
+ * button components for the message's own buttons (never a carousel card's).
+ */
+function otpButtonComponents(
+  components: MetaTemplateComponent[],
+  vars: TemplateVariable[],
+  values: TemplateValues,
+): TemplateComponent[] {
+  const buttons = components.find((c) => c.type === "BUTTONS") as
+    Extract<MetaTemplateComponent, { type: "BUTTONS" }> | undefined;
+  const out: TemplateComponent[] = [];
+  (buttons?.buttons ?? []).forEach((b, index) => {
+    if (!isOtpButton(b)) return;
+    const codeVar = vars.find((v) => v.component === "body" && v.card === undefined);
+    const code = codeVar ? values[codeVar.key] : undefined;
+    if (!code) throw new Error("Missing template values: the code for the copy-code button");
+    out.push({ type: "button", sub_type: "url", index, parameters: [{ type: "text", text: code }] });
+  });
+  return out;
 }
 
 /**
@@ -337,7 +400,7 @@ export function buildTemplateSend(
 ): TemplateObject {
   const vars = templateVariables(tpl.components);
   const named = tpl.parameterFormat === "named";
-  const missing = vars.filter((v) => !values[v.key]);
+  const missing = vars.filter((v) => !v.optional && !values[v.key]);
   if (missing.length)
     throw new Error(`Missing template values: ${missing.map((m) => m.key).join(", ")}`);
 
@@ -346,6 +409,7 @@ export function buildTemplateSend(
     values,
     named,
   );
+  components.push(...otpButtonComponents(tpl.components, vars, values));
 
   // Carousel (Phase 20d): one entry per card, in card order, with that card's media, text and button params.
   const carousel = tpl.components.find((c) => c.type === "CAROUSEL") as CarouselComponent | undefined;

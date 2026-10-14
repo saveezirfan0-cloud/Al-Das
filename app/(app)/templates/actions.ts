@@ -11,7 +11,10 @@ import { checkMediaReferences, loadUsableAsset, MediaUseError } from "@/lib/medi
 import {
   buildComponents,
   draftSchema,
+  metaParameterFormat,
   slugifyName,
+  storedComponents,
+  storedParameterFormat,
   storedType,
   validateDraft,
   type TemplateDraft,
@@ -79,9 +82,9 @@ function rowFields(draft: TemplateDraft) {
     language: draft.language,
     category: draft.category,
     type: storedType(draft),
-    components: buildComponents(draft) as unknown as NonNullable<Json>,
+    components: storedComponents(draft) as unknown as NonNullable<Json>,
     variable_map: draft.variableMap as unknown as NonNullable<Json>,
-    parameter_format: "positional",
+    parameter_format: storedParameterFormat(draft),
   };
 }
 
@@ -180,11 +183,13 @@ export async function submitTemplate(
     name: string;
     language: string;
     waba_id: string;
+    category: string;
+    parameter_format: string;
   } | null = null;
   if (id) {
     const { data } = await admin
       .from("wa_templates")
-      .select("id, status, meta_template_id, name, language, waba_id")
+      .select("id, status, meta_template_id, name, language, waba_id, category, parameter_format")
       .eq("id", id)
       .eq("org_id", member.orgId)
       .maybeSingle();
@@ -203,6 +208,14 @@ export async function submitTemplate(
       if (existing.name !== draft.name || existing.language !== draft.language)
         return fail(
           "The name and language of a submitted template can't change. Duplicate it instead.",
+        );
+      if (existing.parameter_format !== storedParameterFormat(draft))
+        return fail(
+          "Numbered or named variables can't change on a submitted template. Duplicate it instead.",
+        );
+      if ((existing.category === "AUTHENTICATION") !== (draft.category === "AUTHENTICATION"))
+        return fail(
+          "A submitted template can't switch to or from Authentication. Duplicate it instead.",
         );
       if (!["APPROVED", "REJECTED", "PAUSED"].includes(existing.status))
         return fail(
@@ -243,9 +256,9 @@ export async function submitTemplate(
         name: draft.name,
         language: draft.language,
         category: draft.category,
-        parameter_format: "POSITIONAL",
+        ...(metaParameterFormat(draft) ? { parameter_format: metaParameterFormat(draft) } : {}),
         components,
-        allow_category_change: true,
+        ...(draft.category === "AUTHENTICATION" ? {} : { allow_category_change: true }),
       },
       ch.channel.waba_id,
     );
@@ -315,7 +328,7 @@ async function ownedTemplate(orgId: string, id: string) {
   const { data } = await admin
     .from("wa_templates")
     .select(
-      "id, org_id, name, language, category, status, type, waba_id, channel_id, meta_template_id, components, variable_map, archived_at, channels(id, org_id, phone_number_id, waba_id)",
+      "id, org_id, name, language, category, status, type, waba_id, channel_id, meta_template_id, components, variable_map, parameter_format, archived_at, channels(id, org_id, phone_number_id, waba_id)",
     )
     .eq("id", id)
     .eq("org_id", orgId)
@@ -343,6 +356,7 @@ export async function duplicateTemplate(id: string): Promise<ActionResult<{ id: 
         type: t.type,
         components: t.components,
         variable_map: t.variable_map,
+        parameter_format: t.parameter_format,
         status: "DRAFT",
         created_by: member.userId,
       })

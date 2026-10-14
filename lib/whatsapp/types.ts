@@ -94,14 +94,16 @@ export type TemplateParameter =
   | { type: "video"; video: MediaRef }
   | { type: "document"; document: MediaRef }
   | { type: "payload"; payload: string }
-  | { type: "coupon_code"; coupon_code: string };
+  | { type: "coupon_code"; coupon_code: string }
+  /** Catalogue button: the item whose picture heads the message (optional at send time). */
+  | { type: "action"; action: { thumbnail_product_retailer_id?: string } };
 
 export type TemplateComponent =
   | { type: "header"; parameters: TemplateParameter[] }
   | { type: "body"; parameters: TemplateParameter[] }
   | {
       type: "button";
-      sub_type: "quick_reply" | "url" | "copy_code" | "catalog" | "flow";
+      sub_type: "quick_reply" | "url" | "copy_code" | "catalog" | "CATALOG" | "flow";
       index: number | string;
       parameters: TemplateParameter[];
     }
@@ -264,12 +266,19 @@ export type MetaTemplateComponent =
   | {
       type: "BODY";
       text: string;
+      /** Authentication templates: Meta adds its fixed "keep this code private" sentence. */
+      add_security_recommendation?: boolean;
       example?: {
         body_text?: string[][];
         body_text_named_params?: Array<{ param_name: string; example: string }>;
       };
     }
-  | { type: "FOOTER"; text: string }
+  | {
+      type: "FOOTER";
+      text: string;
+      /** Authentication templates: Meta's fixed "the code expires in N minutes" footer. */
+      code_expiration_minutes?: number;
+    }
   | {
       type: "BUTTONS";
       buttons: Array<
@@ -278,6 +287,10 @@ export type MetaTemplateComponent =
         | { type: "PHONE_NUMBER"; text: string; phone_number: string }
         | { type: "COPY_CODE"; text?: string; example?: string }
         | { type: "FLOW"; text: string; flow_id?: string }
+        /** Authentication templates (create shape); Meta may list it back as a URL button to whatsapp.com/otp. */
+        | { type: "OTP"; otp_type: "COPY_CODE" | "ONE_TAP" | "ZERO_TAP"; text?: string }
+        /** Catalogue templates (marketing): opens the business's product catalogue. */
+        | { type: "CATALOG"; text: string }
       >;
     }
   | { type: "CAROUSEL"; cards: Array<{ components: MetaTemplateComponent[] }> }

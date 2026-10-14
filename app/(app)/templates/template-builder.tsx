@@ -22,6 +22,7 @@ import { MediaPicker } from "@/components/media/media-picker";
 import { PhonePreview } from "@/components/phone-preview/phone-preview";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -41,19 +42,26 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { RecordHistoryButton } from "@/components/history/record-history";
 import {
+  AUTH_DEFAULT_BUTTON,
   LIMITS,
   TEMPLATE_CATEGORIES,
   TEMPLATE_LANGUAGES,
   alignExamples,
   applyFormat,
-  buildComponents,
+  convertParameterFormat,
+  defaultAuth,
   insertVariable,
+  pruneDraft,
+  storedComponents,
+  usesNamedParams,
   validateDraft,
   variableNumbers,
+  type AuthSettings,
   type DraftButton,
   type DraftCard,
   type TemplateDraft,
 } from "@/lib/templates/builder";
+import { insertNamedVariable, suggestParamName, variableNames } from "@/lib/templates/named-params";
 import { TEMPLATE_HEADER_TYPES } from "@/lib/media/limits";
 import { mediaSource } from "@/lib/media/paths";
 import { TEMPLATE_SOURCES, sampleFor } from "@/lib/templates/sources";
@@ -83,6 +91,19 @@ export type BuilderInit = {
 
 const NONE = "__none__";
 const TEXT_SRC = "__text__";
+
+const CATEGORY_LABEL: Record<TemplateDraft["category"], string> = {
+  MARKETING: "Marketing",
+  UTILITY: "Utility",
+  AUTHENTICATION: "Authentication (one-time code)",
+};
+
+const CATEGORY_HINT: Record<TemplateDraft["category"], string> = {
+  MARKETING: "Promotions, news and offers. Needs the patient's opt-in.",
+  UTILITY: "Transactional: bookings, reminders, billing, follow-ups they asked for.",
+  AUTHENTICATION:
+    "A one-time code with a copy button. Meta writes the wording; you choose the options below.",
+};
 
 function Field({
   label,
@@ -121,10 +142,13 @@ function ButtonEditor({
   buttons,
   onChange,
   allowCopyCode,
+  allowCatalog = false,
 }: {
   buttons: DraftButton[];
   onChange: (b: DraftButton[]) => void;
   allowCopyCode: boolean;
+  /** Marketing templates only: a single button that opens the product catalogue. */
+  allowCatalog?: boolean;
 }) {
   const update = (i: number, patch: Partial<DraftButton>) =>
     onChange(buttons.map((b, j) => (j === i ? ({ ...b, ...patch } as DraftButton) : b)));
@@ -139,7 +163,9 @@ function ButtonEditor({
                 ? "Link"
                 : b.type === "PHONE_NUMBER"
                   ? "Call"
-                  : "Copy code"}
+                  : b.type === "CATALOG"
+                    ? "Catalogue"
+                    : "Copy code"}
           </Badge>
           <div className="grid gap-2 sm:grid-cols-2">
             {b.type !== "COPY_CODE" && (
@@ -236,6 +262,16 @@ function ButtonEditor({
             <Plus /> Copy code
           </Button>
         )}
+        {allowCatalog && (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => onChange([...buttons, { type: "CATALOG", text: "View catalog" }])}
+          >
+            <Plus /> Catalogue
+          </Button>
+        )}
       </div>
     </div>
   );
@@ -264,16 +300,29 @@ export function TemplateBuilder({
 
   const patch = (p: Partial<TemplateDraft>) => setDraft((d) => ({ ...d, ...p }));
   const { errors, warnings } = useMemo(() => validateDraft(draft), [draft]);
-  const components = useMemo(() => buildComponents(draft), [draft]);
+  const named = usesNamedParams(draft);
+  const isAuth = draft.category === "AUTHENTICATION";
+  const auth = draft.auth ?? defaultAuth();
+  const components = useMemo(() => storedComponents(draft), [draft]);
   const preview = useMemo(() => {
     const values: Record<string, string> = {};
-    draft.bodyExamples.forEach((e, i) => (values[`body.${i + 1}`] = e || `{{${i + 1}}}`));
-    if (draft.header.kind === "text" && draft.header.example)
-      values["header.1"] = draft.header.example;
+    if (named) {
+      for (const n of variableNames(draft.body))
+        values[`body.${n}`] = draft.namedExamples?.[n] || `{{${n}}}`;
+      const hn = draft.header.kind === "text" ? variableNames(draft.header.text)[0] : undefined;
+      if (hn && draft.header.kind === "text" && draft.header.example)
+        values[`header.${hn}`] = draft.header.example;
+    } else {
+      draft.bodyExamples.forEach((e, i) => (values[`body.${i + 1}`] = e || `{{${i + 1}}}`));
+      if (draft.header.kind === "text" && draft.header.example)
+        values["header.1"] = draft.header.example;
+    }
     return renderTemplatePreview(components, values);
-  }, [components, draft.bodyExamples, draft.header]);
+  }, [components, named, draft.bodyExamples, draft.namedExamples, draft.body, draft.header]);
 
-  const bodyVars = variableNumbers(draft.body);
+  const bodyVars = named ? [] : variableNumbers(draft.body);
+  const bodyNames = named ? variableNames(draft.body) : [];
+  const setAuth = (p: Partial<AuthSettings>) => patch({ auth: { ...auth, ...p } });
   const locked = init.submitted;
   const editable =
     !init.status || ["DRAFT", "APPROVED", "REJECTED", "PAUSED"].includes(init.status);
@@ -299,6 +348,26 @@ export function TemplateBuilder({
   function addVariable(source: string, at?: { at: number; replace: number }) {
     const el = bodyRef.current;
     const pos = at?.at ?? el?.selectionStart ?? draft.body.length;
+    if (named) {
+      const name = suggestParamName(
+        source === TEXT_SRC ? undefined : source,
+        variableNames(draft.body),
+      );
+      const r = insertNamedVariable(draft.body, pos, name, at?.replace ?? 0);
+      setDraft((d) => ({
+        ...d,
+        body: r.text,
+        namedExamples: { ...d.namedExamples, [name]: sampleFor(source) ?? "" },
+        variableMap:
+          source === TEXT_SRC ? d.variableMap : { ...d.variableMap, [`body.${name}`]: source },
+      }));
+      setAtMenu(null);
+      requestAnimationFrame(() => {
+        el?.focus();
+        el?.setSelectionRange(r.caret, r.caret);
+      });
+      return;
+    }
     const r = insertVariable(draft.body, pos, at?.replace ?? 0);
     const sample = sampleFor(source) ?? "";
     const examples = alignExamples(r.text, draft.bodyExamples, "");
@@ -372,18 +441,7 @@ export function TemplateBuilder({
   }
 
   /** Drops mapping/examples for variables that are no longer in the text. */
-  function clean(d: TemplateDraft): TemplateDraft {
-    const keep = new Set(variableNumbers(d.body).map((n) => `body.${n}`));
-    return {
-      ...d,
-      bodyExamples: alignExamples(d.body, d.bodyExamples, ""),
-      variableMap: Object.fromEntries(
-        Object.entries(d.variableMap).filter(
-          ([k]) => keep.has(k) || (k === "header.media" && d.header.kind === "media"),
-        ),
-      ),
-    };
-  }
+  const clean = pruneDraft;
 
   function save() {
     startSave(async () => {
@@ -503,25 +561,30 @@ export function TemplateBuilder({
                   </SelectContent>
                 </Select>
               </Field>
-              <Field
-                label="Category"
-                hint={
-                  draft.category === "MARKETING"
-                    ? "Promotions, news and offers. Needs the patient's opt-in."
-                    : "Transactional: bookings, reminders, billing, follow-ups they asked for."
-                }
-              >
+              <Field label="Category" hint={CATEGORY_HINT[draft.category]}>
                 <Select
                   value={draft.category}
-                  onValueChange={(v) => patch({ category: v as TemplateDraft["category"] })}
+                  onValueChange={(v) => {
+                    const category = v as TemplateDraft["category"];
+                    if (category === "AUTHENTICATION")
+                      patch({
+                        category,
+                        auth: draft.auth ?? defaultAuth(),
+                        ...(draft.type === "carousel"
+                          ? { type: "standard" as const, cards: [] }
+                          : {}),
+                      });
+                    else patch({ category });
+                  }}
+                  disabled={locked && init.draft.category === "AUTHENTICATION"}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {TEMPLATE_CATEGORIES.map((c) => (
-                      <SelectItem key={c} value={c}>
-                        {c === "MARKETING" ? "Marketing" : "Utility"}
+                      <SelectItem key={c} value={c} disabled={locked && c === "AUTHENTICATION"}>
+                        {CATEGORY_LABEL[c]}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -545,38 +608,127 @@ export function TemplateBuilder({
                   </SelectContent>
                 </Select>
               </Field>
-              <Field label="Template type" className="sm:col-span-2">
-                <Select
-                  value={draft.type}
-                  onValueChange={(v) => {
-                    const type = v as TemplateDraft["type"];
-                    patch({
-                      type,
-                      ...(type === "carousel"
-                        ? {
-                            header: { kind: "none" as const },
-                            buttons: [],
-                            cards: draft.cards.length ? draft.cards : [newCard(), newCard()],
-                          }
-                        : { cards: [] }),
-                    });
-                  }}
+              {!isAuth && (
+                <Field label="Template type">
+                  <Select
+                    value={draft.type}
+                    onValueChange={(v) => {
+                      const type = v as TemplateDraft["type"];
+                      patch({
+                        type,
+                        ...(type === "carousel"
+                          ? {
+                              header: { kind: "none" as const },
+                              buttons: [],
+                              cards: draft.cards.length ? draft.cards : [newCard(), newCard()],
+                            }
+                          : { cards: [] }),
+                      });
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="standard">Standard text</SelectItem>
+                      <SelectItem value="media_interactive">
+                        Media &amp; interactive (image, video, document, buttons)
+                      </SelectItem>
+                      <SelectItem value="carousel">Carousel (swipeable cards)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+              )}
+              {!isAuth && (
+                <Field
+                  label="Variables"
+                  hint={
+                    locked
+                      ? "Fixed once the template has been submitted."
+                      : named
+                        ? "Named, e.g. {{first_name}}: lower-case letters, digits and underscores."
+                        : "Numbered: {{1}}, {{2}}, … in order."
+                  }
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="standard">Standard text</SelectItem>
-                    <SelectItem value="media_interactive">
-                      Media &amp; interactive (image, video, document, buttons)
-                    </SelectItem>
-                    <SelectItem value="carousel">Carousel (swipeable cards)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </Field>
+                  <Select
+                    value={named ? "named" : "positional"}
+                    onValueChange={(v) =>
+                      setDraft((d) => convertParameterFormat(d, v as "positional" | "named"))
+                    }
+                    disabled={locked || (draft.type === "carousel" && !named)}
+                  >
+                    <SelectTrigger aria-label="Variable style">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="positional">Numbered ({"{{1}}"})</SelectItem>
+                      <SelectItem value="named">Named ({"{{first_name}}"})</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+              )}
             </div>
 
-            {draft.type !== "carousel" && (
+            {isAuth && (
+              <section
+                className="grid gap-4 rounded-lg border p-3"
+                aria-label="One-time code options"
+              >
+                <p className="text-muted-foreground text-xs">
+                  Meta writes the message in the template&apos;s language: the code, an optional
+                  security note and an optional expiry line, with a button that copies the code.
+                  Pulse never creates or sends codes by itself; whatever sends this template
+                  supplies the code.
+                </p>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="t-auth-sec"
+                    checked={auth.securityRecommendation}
+                    onCheckedChange={(c) => setAuth({ securityRecommendation: c === true })}
+                  />
+                  <Label htmlFor="t-auth-sec">
+                    Add the &quot;keep this code private&quot; note
+                  </Label>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field
+                    label="Code expires after (minutes)"
+                    hint={`Optional, ${LIMITS.authExpiryMin} to ${LIMITS.authExpiryMax}. Leave empty for no expiry line.`}
+                  >
+                    <Input
+                      type="number"
+                      inputMode="numeric"
+                      min={LIMITS.authExpiryMin}
+                      max={LIMITS.authExpiryMax}
+                      value={auth.codeExpiryMinutes ?? ""}
+                      onChange={(e) => {
+                        const n = e.target.value === "" ? null : Number(e.target.value);
+                        setAuth({
+                          codeExpiryMinutes: n === null || Number.isNaN(n) ? null : Math.trunc(n),
+                        });
+                      }}
+                      aria-label="Code expires after (minutes)"
+                      aria-invalid={issueFor("auth.codeExpiryMinutes").length > 0}
+                    />
+                  </Field>
+                  <Field label="Copy button text">
+                    <div className="grid gap-1">
+                      <Input
+                        value={auth.buttonText}
+                        onChange={(e) => setAuth({ buttonText: e.target.value })}
+                        placeholder={AUTH_DEFAULT_BUTTON}
+                        dir={isRtl ? "rtl" : "ltr"}
+                        aria-label="Copy button text"
+                        aria-invalid={issueFor("auth.buttonText").length > 0}
+                      />
+                      <Counter value={auth.buttonText.length} max={LIMITS.buttonText} />
+                    </div>
+                  </Field>
+                </div>
+              </section>
+            )}
+
+            {draft.type !== "carousel" && !isAuth && (
               <section className="grid gap-3 rounded-lg border p-3">
                 <Field label="Header (optional)">
                   <Select
@@ -621,8 +773,11 @@ export function TemplateBuilder({
                       />
                       <Counter value={draft.header.text.length} max={LIMITS.headerText} />
                     </div>
-                    {variableNumbers(draft.header.text).length > 0 && (
+                    {(named
+                      ? variableNames(draft.header.text).length > 0
+                      : variableNumbers(draft.header.text).length > 0) && (
                       <Input
+                        aria-label="Header variable example"
                         value={draft.header.example ?? ""}
                         onChange={(e) =>
                           patch({
@@ -632,7 +787,11 @@ export function TemplateBuilder({
                             } as TemplateDraft["header"],
                           })
                         }
-                        placeholder="Example for {{1}}"
+                        placeholder={
+                          named
+                            ? `Example for {{${variableNames(draft.header.text)[0]}}}`
+                            : "Example for {{1}}"
+                        }
                       />
                     )}
                   </div>
@@ -718,171 +877,238 @@ export function TemplateBuilder({
               </section>
             )}
 
-            <section className="grid gap-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="t-body">Body</Label>
-                <Counter value={draft.body.length} max={LIMITS.body} />
-              </div>
-              <div className="flex flex-wrap gap-1">
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="outline"
-                  aria-label="Bold"
-                  onClick={() => format("*")}
-                >
-                  <Bold />
-                </Button>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="outline"
-                  aria-label="Italic"
-                  onClick={() => format("_")}
-                >
-                  <Italic />
-                </Button>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="outline"
-                  aria-label="Strikethrough"
-                  onClick={() => format("~")}
-                >
-                  <Strikethrough />
-                </Button>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="outline"
-                  aria-label="Monospace"
-                  onClick={() => format("```")}
-                >
-                  <Code />
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setAtMenu({ at: -1 })}
-                >
-                  <AtSign /> Insert variable
-                </Button>
-              </div>
-              <div className="relative">
-                <Textarea
-                  id="t-body"
-                  ref={bodyRef}
-                  rows={7}
-                  value={draft.body}
-                  onChange={onBodyChange}
-                  onKeyDown={(e) => e.key === "Escape" && setAtMenu(null)}
-                  dir={isRtl ? "rtl" : "ltr"}
-                  placeholder="Hello {{1}}, … — type @ to insert a field"
-                  aria-invalid={issueFor("body").length > 0}
-                />
-                {atMenu && (
-                  <ul className="bg-popover absolute z-10 mt-1 max-h-56 w-64 overflow-auto rounded-md border p-1 text-sm shadow-md">
-                    {TEMPLATE_SOURCES.map((s) => (
-                      <li key={s.key}>
+            {!isAuth && (
+              <section className="grid gap-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="t-body">Body</Label>
+                  <Counter value={draft.body.length} max={LIMITS.body} />
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    aria-label="Bold"
+                    onClick={() => format("*")}
+                  >
+                    <Bold />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    aria-label="Italic"
+                    onClick={() => format("_")}
+                  >
+                    <Italic />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    aria-label="Strikethrough"
+                    onClick={() => format("~")}
+                  >
+                    <Strikethrough />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    aria-label="Monospace"
+                    onClick={() => format("```")}
+                  >
+                    <Code />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setAtMenu({ at: -1 })}
+                  >
+                    <AtSign /> Insert variable
+                  </Button>
+                </div>
+                <div className="relative">
+                  <Textarea
+                    id="t-body"
+                    ref={bodyRef}
+                    rows={7}
+                    value={draft.body}
+                    onChange={onBodyChange}
+                    onKeyDown={(e) => e.key === "Escape" && setAtMenu(null)}
+                    dir={isRtl ? "rtl" : "ltr"}
+                    placeholder={
+                      named
+                        ? "Hello {{first_name}}, … — type @ to insert a field"
+                        : "Hello {{1}}, … — type @ to insert a field"
+                    }
+                    aria-invalid={issueFor("body").length > 0}
+                  />
+                  {atMenu && (
+                    <ul className="bg-popover absolute z-10 mt-1 max-h-56 w-64 overflow-auto rounded-md border p-1 text-sm shadow-md">
+                      {TEMPLATE_SOURCES.map((s) => (
+                        <li key={s.key}>
+                          <button
+                            type="button"
+                            className="hover:bg-accent w-full rounded px-2 py-1 text-left"
+                            onClick={() =>
+                              addVariable(
+                                s.key,
+                                atMenu.at >= 0 ? { at: atMenu.at, replace: 1 } : undefined,
+                              )
+                            }
+                          >
+                            {s.label}
+                          </button>
+                        </li>
+                      ))}
+                      <li>
                         <button
                           type="button"
                           className="hover:bg-accent w-full rounded px-2 py-1 text-left"
                           onClick={() =>
                             addVariable(
-                              s.key,
+                              TEXT_SRC,
                               atMenu.at >= 0 ? { at: atMenu.at, replace: 1 } : undefined,
                             )
                           }
                         >
-                          {s.label}
+                          Other (fill in when sending)
                         </button>
                       </li>
-                    ))}
-                    <li>
-                      <button
-                        type="button"
-                        className="hover:bg-accent w-full rounded px-2 py-1 text-left"
-                        onClick={() =>
-                          addVariable(
-                            TEXT_SRC,
-                            atMenu.at >= 0 ? { at: atMenu.at, replace: 1 } : undefined,
-                          )
-                        }
-                      >
-                        Other (fill in when sending)
-                      </button>
-                    </li>
-                  </ul>
-                )}
-              </div>
-              {issueFor("body").map((e, i) => (
-                <p key={i} className="text-destructive text-xs">
-                  {e.message}
-                </p>
-              ))}
-
-              {bodyVars.length > 0 && (
-                <div className="grid gap-2 rounded-md border p-3">
-                  <p className="text-muted-foreground text-xs">
-                    Meta needs an example for each variable. The mapping says what fills it when the
-                    template is sent.
-                  </p>
-                  {bodyVars.map((n) => {
-                    const key = `body.${n}`;
-                    const src = draft.variableMap[key];
-                    return (
-                      <div key={n} className="grid gap-2 sm:grid-cols-[3.5rem_1fr_1fr]">
-                        <code className="self-center text-xs">{`{{${n}}}`}</code>
-                        <Input
-                          value={draft.bodyExamples[n - 1] ?? ""}
-                          onChange={(e) => {
-                            const ex = [...alignExamples(draft.body, draft.bodyExamples, "")];
-                            ex[n - 1] = e.target.value;
-                            patch({ bodyExamples: ex });
-                          }}
-                          placeholder="Example"
-                          aria-label={`Example for variable ${n}`}
-                          dir={isRtl ? "rtl" : "ltr"}
-                        />
-                        <Select
-                          value={src && !src.startsWith("text:") ? src : NONE}
-                          onValueChange={(v) => {
-                            const map = { ...draft.variableMap };
-                            if (v === NONE) delete map[key];
-                            else map[key] = v;
-                            const ex = [...alignExamples(draft.body, draft.bodyExamples, "")];
-                            if (v !== NONE && !ex[n - 1]) ex[n - 1] = sampleFor(v) ?? "";
-                            patch({ variableMap: map, bodyExamples: ex });
-                          }}
-                        >
-                          <SelectTrigger aria-label={`Source for variable ${n}`}>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value={NONE}>Fill in when sending</SelectItem>
-                            {TEMPLATE_SOURCES.map((s) => (
-                              <SelectItem key={s.key} value={s.key}>
-                                {s.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    );
-                  })}
-                  {errors
-                    .filter((e) => e.path.startsWith("bodyExamples"))
-                    .map((e, i) => (
-                      <p key={i} className="text-destructive text-xs">
-                        {e.message}
-                      </p>
-                    ))}
+                    </ul>
+                  )}
                 </div>
-              )}
-            </section>
+                {issueFor("body").map((e, i) => (
+                  <p key={i} className="text-destructive text-xs">
+                    {e.message}
+                  </p>
+                ))}
 
-            {draft.type !== "carousel" && (
+                {bodyVars.length > 0 && (
+                  <div className="grid gap-2 rounded-md border p-3">
+                    <p className="text-muted-foreground text-xs">
+                      Meta needs an example for each variable. The mapping says what fills it when
+                      the template is sent.
+                    </p>
+                    {bodyVars.map((n) => {
+                      const key = `body.${n}`;
+                      const src = draft.variableMap[key];
+                      return (
+                        <div key={n} className="grid gap-2 sm:grid-cols-[3.5rem_1fr_1fr]">
+                          <code className="self-center text-xs">{`{{${n}}}`}</code>
+                          <Input
+                            value={draft.bodyExamples[n - 1] ?? ""}
+                            onChange={(e) => {
+                              const ex = [...alignExamples(draft.body, draft.bodyExamples, "")];
+                              ex[n - 1] = e.target.value;
+                              patch({ bodyExamples: ex });
+                            }}
+                            placeholder="Example"
+                            aria-label={`Example for variable ${n}`}
+                            dir={isRtl ? "rtl" : "ltr"}
+                          />
+                          <Select
+                            value={src && !src.startsWith("text:") ? src : NONE}
+                            onValueChange={(v) => {
+                              const map = { ...draft.variableMap };
+                              if (v === NONE) delete map[key];
+                              else map[key] = v;
+                              const ex = [...alignExamples(draft.body, draft.bodyExamples, "")];
+                              if (v !== NONE && !ex[n - 1]) ex[n - 1] = sampleFor(v) ?? "";
+                              patch({ variableMap: map, bodyExamples: ex });
+                            }}
+                          >
+                            <SelectTrigger aria-label={`Source for variable ${n}`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value={NONE}>Fill in when sending</SelectItem>
+                              {TEMPLATE_SOURCES.map((s) => (
+                                <SelectItem key={s.key} value={s.key}>
+                                  {s.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      );
+                    })}
+                    {errors
+                      .filter((e) => e.path.startsWith("bodyExamples"))
+                      .map((e, i) => (
+                        <p key={i} className="text-destructive text-xs">
+                          {e.message}
+                        </p>
+                      ))}
+                  </div>
+                )}
+
+                {bodyNames.length > 0 && (
+                  <div className="grid gap-2 rounded-md border p-3">
+                    <p className="text-muted-foreground text-xs">
+                      Meta needs an example for each name. The mapping says what fills it when the
+                      template is sent.
+                    </p>
+                    {bodyNames.map((name) => {
+                      const key = `body.${name}`;
+                      const src = draft.variableMap[key];
+                      return (
+                        <div key={name} className="grid gap-2 sm:grid-cols-[8rem_1fr_1fr]">
+                          <code className="self-center truncate text-xs" title={`{{${name}}}`}>
+                            {`{{${name}}}`}
+                          </code>
+                          <Input
+                            value={draft.namedExamples?.[name] ?? ""}
+                            onChange={(e) =>
+                              patch({
+                                namedExamples: { ...draft.namedExamples, [name]: e.target.value },
+                              })
+                            }
+                            placeholder="Example"
+                            aria-label={`Example for ${name}`}
+                            dir={isRtl ? "rtl" : "ltr"}
+                          />
+                          <Select
+                            value={src && !src.startsWith("text:") ? src : NONE}
+                            onValueChange={(v) => {
+                              const map = { ...draft.variableMap };
+                              if (v === NONE) delete map[key];
+                              else map[key] = v;
+                              const ex = { ...draft.namedExamples };
+                              if (v !== NONE && !ex[name]) ex[name] = sampleFor(v) ?? "";
+                              patch({ variableMap: map, namedExamples: ex });
+                            }}
+                          >
+                            <SelectTrigger aria-label={`Source for ${name}`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value={NONE}>Fill in when sending</SelectItem>
+                              {TEMPLATE_SOURCES.map((s) => (
+                                <SelectItem key={s.key} value={s.key}>
+                                  {s.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      );
+                    })}
+                    {errors
+                      .filter((e) => e.path.startsWith("namedExamples"))
+                      .map((e, i) => (
+                        <p key={i} className="text-destructive text-xs">
+                          {e.message}
+                        </p>
+                      ))}
+                  </div>
+                )}
+              </section>
+            )}
+
+            {draft.type !== "carousel" && !isAuth && (
               <>
                 <Field label="Footer (optional)">
                   <div className="grid gap-1">
@@ -912,7 +1138,15 @@ export function TemplateBuilder({
                       })
                     }
                     allowCopyCode
+                    allowCatalog={draft.category === "MARKETING"}
                   />
+                  {draft.buttons.some((b) => b.type === "CATALOG") && (
+                    <p className="text-muted-foreground text-xs">
+                      Needs a product catalogue connected to this WhatsApp account in Meta Commerce
+                      Manager. WhatsApp shows a catalogue picture above the text; a sender can pick
+                      which item (its content ID).
+                    </p>
+                  )}
                 </section>
               </>
             )}

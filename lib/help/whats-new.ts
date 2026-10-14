@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-11-13-templates-named-otp-catalog",
+    date: "2026-11-13",
+    title: "Named variables, one-time code and catalogue templates",
+    body: "In the template builder you can now name variables, for example {{first_name}} instead of {{1}}, which makes mappings easier to read; numbered variables work as before. Two new kinds of template can be built and submitted to Meta: a one-time code template (category Authentication), where Meta writes the message and you choose a security note, how long the code lasts and the copy button's label, and a catalogue template (Marketing) with a button that opens your WhatsApp product catalogue. Pulse does not create or send codes by itself, and one-time code templates cannot be used in campaigns.",
+  },
+  {
     id: "2026-11-12-inbox-campaigns-ads",
     date: "2026-11-12",
     title: "Inbox extras, campaign A/B tests and ad spend",

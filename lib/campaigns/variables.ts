@@ -139,7 +139,7 @@ export function resolveVariables(input: ResolveInput): ResolveResult {
     let value = source ? sanitizeParam(rawValue(source, input.contact, input.csv)) : "";
     if (!value) value = sanitizeParam(input.fallbacks?.[v.key] ?? "");
     if (value) values[v.key] = value;
-    else missing.push(v.key);
+    else if (!v.optional) missing.push(v.key);
   }
   return { values, missing };
 }
@@ -151,6 +151,6 @@ export function unmappedVariables(
   templateMap?: Record<string, string> | null,
 ): TemplateVariable[] {
   return templateVariables(components).filter(
-    (v) => !parseSource(map[v.key] ?? templateMap?.[v.key]),
+    (v) => !v.optional && !parseSource(map[v.key] ?? templateMap?.[v.key]),
   );
 }

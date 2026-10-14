@@ -110,7 +110,13 @@ export default async function TemplatesPage({ searchParams }: { searchParams: Pr
         submitted: !!t.meta_template_id,
         channelId,
         draft: draftFromComponents(
-          { name: t.name, language: t.language, category: t.category, variableMap: t.variable_map },
+          {
+            name: t.name,
+            language: t.language,
+            category: t.category,
+            variableMap: t.variable_map,
+            parameterFormat: t.parameter_format,
+          },
           t.components,
         ),
         galleryKey: t.gallery_key,
