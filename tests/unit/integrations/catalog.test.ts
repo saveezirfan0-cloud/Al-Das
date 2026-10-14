@@ -43,7 +43,8 @@ describe("catalogue", () => {
         i.movesMoney ||
         i.sharesData ||
         i.acceptsFiles === true ||
-        i.signsDocuments === true;
+        i.signsDocuments === true ||
+        i.writesBooks === true;
       expect(needsConfirmation(i.kind), i.kind).toBe(expected);
       expect(i.confirmWord !== null, i.kind).toBe(expected);
     }
@@ -55,6 +56,10 @@ describe("catalogue", () => {
     expect(integrationDef("document_seal").confirmWord).toBe("SEAL DOCUMENTS");
     expect(integrationDef("document_seal").outbound).toBe(false);
     expect(integrationDef("document_seal").viewPermission).toBe("integrations.manage");
+    // Phase 22J: the Tally bridge writes into the clinic's books outside Pulse; the data stays between Tally and Pulse
+    expect(integrationDef("tally_bridge").confirmWord).toBe("CONNECT TALLY");
+    expect(integrationDef("tally_bridge").sharesData).toBe(false);
+    expect(integrationDef("tally_bridge").outbound).toBe(false);
   });
 
   it("marks every credential as secret and keeps identifiers out of the encrypted blob", () => {
@@ -360,6 +365,7 @@ describe("source guards", () => {
     ...walk(join(ROOT, "app/(app)/settings/integrations")),
     ...walk(join(ROOT, "app/(app)/finance/payment-links")),
     ...walk(join(ROOT, "app/api/calendar")),
+    ...walk(join(ROOT, "app/api/tally-bridge")),
     ...walk(join(ROOT, "app/api/webhooks/integrations")),
   ].map((f) => ({ rel: relative(ROOT, f), src: readFileSync(f, "utf8") }));
 

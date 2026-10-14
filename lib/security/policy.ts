@@ -42,6 +42,12 @@ export const UNGUARDED_OK: Record<string, string> = {
     "CORS pre-flight of the public website chat: the same gate (switch, training, Origin allow-list); returns headers only.",
   "app/api/webhooks/integrations/finance_mailbox/[accountId]/route.ts::POST":
     "Authorised by HTTP basic auth against the stored webhook password (constant-time compare); unknown or switched-off accounts give 404; bodies over 4.5 MB give 413; failed attempts are rate limited per IP and every account per minute; each message is claimed once by its MessageID (integration_webhook_events). Only attachments from allow-listed senders are kept (sender domain only), a training workspace stores nothing.",
+  "app/api/tally-bridge/pair/route.ts::POST":
+    "The Tally connector cannot sign in: it trades a one-time pairing code (about 78 bits, 30 minutes, single use, only its SHA-256 stored) that a person with accounting.settings.manage created, for a 256-bit device token returned once (only its SHA-256 stored, revocable). Every attempt is rate limited per IP; unknown, used and expired codes give the same 401.",
+  "app/api/tally-bridge/jobs/route.ts::GET":
+    "Authorised by the connector's device token (Bearer, 256 bits, only its SHA-256 stored and compared in the database, revocable); bad tokens are rate limited per IP and every token per minute; the organisation comes from the token and the integration switch is checked (403 when off). Hands out only the four allow-listed job types; imports only while pushing is allowed and before the ledger start.",
+  "app/api/tally-bridge/results/route.ts::POST":
+    "Authorised by the connector's device token like the jobs route; bodies over 4.4 MB give 413 and decompressed answers are capped; only a job sent to this connector and not yet answered is accepted (409 otherwise); Tally's XML is parsed only by lib/accounting/tally/ and applied through the idempotent 22I import path; Tally's error text is redacted before it is stored.",
   "app/api/webhooks/integrations/payments/[accountId]/route.ts::POST":
     "Authorised by the gateway's signature (Stripe-Signature with a 5 minute replay window, or the PayTabs HMAC) using the stored secret, constant-time compare; unknown or switched-off accounts give 404; failed signatures are rate limited per IP; each event is claimed once (integration_webhook_events) and amounts are checked against the stored request.",
 };

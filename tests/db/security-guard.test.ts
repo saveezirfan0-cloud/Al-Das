@@ -40,6 +40,8 @@ import {
   PHASE22I_SERVICE_ONLY_TABLES,
   PHASE22I_TABLES,
   PHASE22H_TABLES,
+  PHASE22J_SERVICE_ONLY_TABLES,
+  PHASE22J_TABLES,
   SF20C_BOOKING_TABLES,
   SF20C_TABLES,
   SF20D_TABLES,
@@ -63,6 +65,7 @@ import {
   seedPhase22ERows,
   seedPhase22FRows,
   seedPhase22HRows,
+  seedPhase22JRows,
   seedSf20cBookingRows,
   seedSf20cRows,
   seedSf20dRows,
@@ -103,6 +106,9 @@ const SERVICE_ONLY = new Set([
   // Phase 22I: the sanitised Tally rows staged between the dry run and the commit (deleted when the commit finishes);
   // only server code (service role, after can('accounting.import')) and the acc_tally_* functions touch them
   "acc_tally_staged",
+  // Phase 22J: the Tally connectors (pairing-code and device-token hashes); only server code (service role, after the
+  // device-token check or can('accounting.settings.manage')) and the acc_tally_bridge_* functions touch them
+  "acc_tally_devices",
   // Finance F2 / Phase 19: provider credentials (config_enc, AES-256-GCM) and token cache; only server code after can('integrations.manage') reads or writes them
   "integration_accounts",
   // Phase 19: idempotency keys of inbound provider webhooks (provider event ids and a short outcome word); claimed by the webhook route, never read by a browser
@@ -330,6 +336,31 @@ const PHASE22I_SERVICE_FUNCTIONS = [
   "acc_year_end_close_months",
   "acc_year_end_preview",
   "acc_year_end_reopen",
+];
+
+/**
+ * Phase 22J SECURITY DEFINER functions (the Tally bridge) that only server code (service role) may run: the person's
+ * permission is checked again for pairing, revoking, settings and retries; the connector's ones run after the route
+ * checked the device token and the integration switch.
+ */
+const PHASE22J_SERVICE_FUNCTIONS = [
+  "acc_tally_bridge_candidates",
+  "acc_tally_bridge_capture",
+  "acc_tally_bridge_claim",
+  "acc_tally_bridge_device",
+  "acc_tally_bridge_export_result",
+  "acc_tally_bridge_import_result",
+  "acc_tally_bridge_job",
+  "acc_tally_bridge_pair_create",
+  "acc_tally_bridge_pair_exchange",
+  "acc_tally_bridge_pull_cancelled",
+  "acc_tally_bridge_pull_finish",
+  "acc_tally_bridge_push_apply",
+  "acc_tally_bridge_record_tb",
+  "acc_tally_bridge_retry",
+  "acc_tally_bridge_revoke",
+  "acc_tally_bridge_save_settings",
+  "acc_tally_bridge_tick",
 ];
 
 /** Phase 22H SECURITY DEFINER functions (fixed assets and schedules) that only server code (service role) may run. */
@@ -776,6 +807,33 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 20c (Sanoflow parity) service-role fu
   });
 });
 
+describe.skipIf(!TEST_DATABASE_URL)("phase 22J service-role functions", () => {
+  it("exist and are executable by the service role only", async () => {
+    const c = await connect();
+    try {
+      const { rows } = await c.query<{ name: string; anon: boolean; auth: boolean; svc: boolean }>(
+        `select p.proname as name,
+                has_function_privilege('anon', p.oid, 'execute') as anon,
+                has_function_privilege('authenticated', p.oid, 'execute') as auth,
+                has_function_privilege('service_role', p.oid, 'execute') as svc
+         from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+         where n.nspname = 'public' and p.proname = any ($1)`,
+        [PHASE22J_SERVICE_FUNCTIONS],
+      );
+      expect(rows.map((r) => r.name).sort()).toEqual([...PHASE22J_SERVICE_FUNCTIONS].sort());
+      for (const r of rows)
+        expect({ name: r.name, anon: r.anon, auth: r.auth, svc: r.svc }).toEqual({
+          name: r.name,
+          anon: false,
+          auth: false,
+          svc: true,
+        });
+    } finally {
+      await c.end();
+    }
+  });
+});
+
 describe.skipIf(!TEST_DATABASE_URL)("phase 22H service-role functions", () => {
   it("exist and are executable by the service role only", async () => {
     const c = await connect();
@@ -944,6 +1002,8 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
     await seedPhase22IRows(c, orgA);
     // Phase 22H (fixed assets and schedules) tables likewise.
     await seedPhase22HRows(c, orgA);
+    // Phase 22J (Tally bridge) tables likewise.
+    await seedPhase22JRows(c, orgA);
     // Phase 20c booking-capacity tables likewise.
     await seedSf20cBookingRows(c, orgA);
     // Phase 20c tables likewise.
@@ -975,6 +1035,7 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
       ...PHASE22E_TABLES,
       ...PHASE22F_TABLES,
       ...PHASE22H_TABLES,
+      ...PHASE22J_TABLES,
       ...PHASE21_TABLES,
       ...PHASE20_TABLES,
       ...PHASE20A_TABLES,
@@ -1004,6 +1065,7 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
         ...PHASE22E_TABLES,
         ...PHASE22F_TABLES,
         ...PHASE22H_TABLES,
+        ...PHASE22J_TABLES,
         ...PHASE21_TABLES,
         ...PHASE20_TABLES,
         ...PHASE20A_TABLES,
@@ -1081,6 +1143,7 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
         ...PHASE22C_SERVICE_ONLY_TABLES,
         ...PHASE22_SERVICE_ONLY_TABLES,
         ...PHASE22I_SERVICE_ONLY_TABLES,
+        ...PHASE22J_SERVICE_ONLY_TABLES,
       ]) {
         const { rows } = await c
           .query<{ n: string }>(`select count(*)::text as n from public.${t}`)

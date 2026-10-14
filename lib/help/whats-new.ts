@@ -27,6 +27,12 @@ export const WHATS_NEW: readonly WhatsNewEntry[] = [
     body: "Flows can now create and update enquiries, add tasks, write portal records and book appointments. New starts: any new message in an open conversation, a WhatsApp form reply, the 24-hour window about to close, and a patient joining a segment with a drip flow. Questions can check the answer (number, phone, e-mail, date or a pattern), ask again and save straight to a patient field. New steps send a payment link, record an ad event, set a label and sort a message by its intent.",
   },
   {
+    id: "2026-11-10-accounting-tally-bridge",
+    date: "2026-11-10",
+    title: "Accounting: the Tally bridge",
+    body: "Until the ledger start Pulse can now keep TallyPrime in step by itself. A small connector installed on the Tally PC sends Pulse's approved items to Tally as vouchers (bills, payment vouchers, sales documents, receipts, bank entries, depreciation and Unite revenue as one voucher per day and branch) and copies what is entered in Tally back into Pulse's ledger every 15 minutes. Every voucher carries a Pulse id, so nothing is ever sent twice; a changed item is reversed in Tally and sent again, and nothing in Tally is ever deleted. A daily check compares Tally's balances with Pulse's ledger. Set it up under Accounting, Setup, Tally bridge; from the ledger start pushing stops by itself.",
+  },
+  {
     id: "2026-11-10-accounting-integration",
     date: "2026-11-10",
     title: "Accounting: cheques posted once, clearer ledger codes",

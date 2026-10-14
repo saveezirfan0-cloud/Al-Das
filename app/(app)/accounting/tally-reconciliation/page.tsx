@@ -50,6 +50,7 @@ export default async function TallyReconciliationPage() {
         "id, import_id, as_at, compared, differences, total_difference, reconciled, rows, created_at",
       )
       .eq("org_id", member.orgId)
+      .eq("source", "file") // the Tally bridge's daily checks are on its own page
       .order("created_at", { ascending: false })
       .limit(10),
   ]);
