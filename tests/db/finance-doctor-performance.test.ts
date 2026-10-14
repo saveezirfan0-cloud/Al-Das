@@ -141,8 +141,8 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance doctor performance (Phase 23B)", ()
       parseDoctorPerformanceInputs(await inputs(orgA, "2026-09-01")),
     );
     expect(report.reconciliation).toEqual({
-      departmentsSum: 6499.98,
-      total: 6499.98,
+      departmentsSum: 6499.985,
+      total: 6499.985,
       matches: true,
     });
     expect(report.coverage.full).toBe(true);
@@ -166,7 +166,7 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance doctor performance (Phase 23B)", ()
     const gm = (await inputs(orgA, fixture.month, null, ["GM"])) as {
       current: { total: { revenue: number }; departments: Array<{ department: string | null }> };
     };
-    expect(gm.current.total.revenue).toBe(2599.98);
+    expect(gm.current.total.revenue).toBe(2599.985);
     expect(gm.current.departments.map((d) => d.department)).toEqual([
       "Dermatology",
       "General Medicine",
@@ -183,7 +183,7 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance doctor performance (Phase 23B)", ()
       previous: { total: { revenue: number } };
     };
     expect(oct.current.total).toMatchObject({ revenue: 321, visits: 1 });
-    expect(oct.previous.total.revenue).toBe(6499.98);
+    expect(oct.previous.total.revenue).toBe(6499.985);
     expect(oct.coverage).toEqual([{ from: "2026-10-01", to: "2026-10-01" }]); // partly covered
   });
 

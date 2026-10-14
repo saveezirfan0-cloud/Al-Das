@@ -25,9 +25,12 @@ export const BAND_LABEL: Record<Band, string> = {
 /** Half-open bands with no gaps: >= target Achieved, >= near Near Target, >= moderate Moderate, else Below Target. */
 export function bandOf(value: number | null, s: PerfSettings): Band | null {
   if (value === null || !Number.isFinite(value)) return null;
-  if (value >= s.target) return "achieved";
-  if (value >= s.near) return "near";
-  if (value >= s.moderate) return "moderate";
+  // compared at a millionth of a dirham, so binary float noise (2100.3 / 3 = 700.0999…) cannot move a band edge
+  const v = Math.round(value * 1e6);
+  const at = (edge: number) => v >= Math.round(edge * 1e6);
+  if (at(s.target)) return "achieved";
+  if (at(s.near)) return "near";
+  if (at(s.moderate)) return "moderate";
   return "below";
 }
 
@@ -135,7 +138,7 @@ export function parseDoctorPerformanceInputs(raw: unknown): DoctorPerformanceInp
 // ---------------------------------------------------------------------------
 
 export type Measures = Counts & {
-  /** Revenue / patients, to the fil (the band is judged on this shown value); null with no patients. */
+  /** Revenue / patients, unrounded (the band is judged on it; screens round to 2 dp); null with no patients. */
   revenuePerPatient: number | null;
   band: Band | null;
   expectedRevenue: number;
@@ -175,33 +178,37 @@ export type DoctorPerformance = {
   total: Measures & { doctors: number; cancelledVisits: number };
   coverage: Coverage;
   previousCoverage: Coverage;
-  /** Sum of department revenue against the total over every current row; must match to the fil. */
+  /** Sum of department revenue against the total over every current row; must match exactly (to Unite's 3 dp). */
   reconciliation: { departmentsSum: number; total: number; matches: boolean };
   hasData: boolean;
 };
 
 export const UNASSIGNED_LABEL = "Unassigned";
 const ZERO: Counts = { revenue: 0, visits: 0, patients: 0, unbilledPatients: 0, newVisits: 0 };
-const cents = (v: number) => Math.round(v * 100);
-export const round2 = (v: number) => cents(v) / 100;
+/**
+ * Unite keeps some amounts to three decimals, so sums are exact to 0.001 in SQL. Here amounts are only cleaned of
+ * binary float noise at that precision (never rounded to the fil); screens and the workbook round for display.
+ */
+const mils = (v: number) => Math.round(v * 1000);
+export const round3 = (v: number) => mils(v) / 1000;
 const ratio = (a: number, b: number): number | null => (b === 0 ? null : a / b);
 
 export function measures(cur: Counts, prev: Counts, s: PerfSettings): Measures {
-  const revenuePerPatient = cur.patients > 0 ? round2(cur.revenue / cur.patients) : null;
-  const expectedRevenue = round2(cur.patients * s.target);
+  const revenuePerPatient = cur.patients > 0 ? cur.revenue / cur.patients : null;
+  const expectedRevenue = round3(cur.patients * s.target);
   const followUps = Math.max(0, cur.visits - cur.patients);
   return {
     ...cur,
     revenuePerPatient,
     band: bandOf(revenuePerPatient, s),
     expectedRevenue,
-    gap: round2(cur.revenue - expectedRevenue),
+    gap: round3(cur.revenue - expectedRevenue),
     achievement: ratio(cur.revenue, expectedRevenue),
     followUps,
     followUpsPerPatient: ratio(followUps, cur.patients),
     unbilledShare: ratio(cur.unbilledPatients, cur.patients),
     previous: prev,
-    change: round2(cur.revenue - prev.revenue),
+    change: round3(cur.revenue - prev.revenue),
     changePct: prev.revenue === 0 ? null : (cur.revenue - prev.revenue) / Math.abs(prev.revenue),
     patientsChangePct: prev.patients === 0 ? null : (cur.patients - prev.patients) / prev.patients,
   };
@@ -325,7 +332,7 @@ export function buildDoctorPerformance(inputs: DoctorPerformanceInputs): DoctorP
     })
     .sort(byRevenue);
 
-  const departmentsSum = departments.reduce((acc, d) => acc + cents(d.revenue), 0) / 100;
+  const departmentsSum = departments.reduce((acc, d) => acc + mils(d.revenue), 0) / 1000;
   return {
     month: inputs.month,
     previousMonth: inputs.previousMonth,
@@ -341,8 +348,8 @@ export function buildDoctorPerformance(inputs: DoctorPerformanceInputs): DoctorP
     previousCoverage: coverageOf(inputs.previousMonth, inputs.previousCoverage),
     reconciliation: {
       departmentsSum,
-      total: round2(total.revenue),
-      matches: cents(departmentsSum) === cents(total.revenue),
+      total: round3(total.revenue),
+      matches: mils(departmentsSum) === mils(total.revenue),
     },
     hasData: total.visits > 0 || inputs.previous.total.visits > 0,
   };

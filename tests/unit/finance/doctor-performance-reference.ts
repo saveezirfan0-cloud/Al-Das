@@ -27,16 +27,16 @@ type Agg = {
   new_visits: number;
 };
 
-const r2 = (v: number) => Math.round(v * 100) / 100;
+const r3 = (v: number) => Math.round(v * 1000) / 1000;
 
 function aggregate(rows: FixtureRow[]): Agg {
   const perPatient = new Map<string, number>();
   for (const r of rows) {
     const pid = r.patient_ref ?? r.patient_pin ?? "row";
-    perPatient.set(pid, (perPatient.get(pid) ?? 0) + Math.round(r.net * 100));
+    perPatient.set(pid, (perPatient.get(pid) ?? 0) + Math.round(r.net * 1000));
   }
   return {
-    revenue: r2(rows.reduce((a, r) => a + Math.round(r.net * 100), 0) / 100),
+    revenue: r3(rows.reduce((a, r) => a + Math.round(r.net * 1000), 0) / 1000),
     visits: rows.length,
     patients: perPatient.size,
     unbilled_patients: [...perPatient.values()].filter((v) => v <= 0).length,

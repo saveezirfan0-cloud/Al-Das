@@ -75,17 +75,17 @@ describe("measures", () => {
   const s = DEFAULT_PERF_SETTINGS;
 
   it("works out per-patient revenue, expected revenue, gap, achievement and follow-ups", () => {
-    const m = measures(C(2849.99, 6, 4, 1, 2), C(500, 2, 2), s);
-    expect(m.revenuePerPatient).toBe(712.5);
+    const m = measures(C(2849.995, 6, 4, 1, 2), C(500, 2, 2), s);
+    expect(m.revenuePerPatient).toBeCloseTo(712.49875, 9);
     expect(m.band).toBe("near");
     expect(m.expectedRevenue).toBe(3000);
-    expect(m.gap).toBe(-150.01);
-    expect(m.achievement).toBeCloseTo(0.94999667, 6);
+    expect(m.gap).toBe(-150.005);
+    expect(m.achievement).toBeCloseTo(0.94999833, 6);
     expect(m.followUps).toBe(2);
     expect(m.followUpsPerPatient).toBe(0.5);
     expect(m.unbilledShare).toBe(0.25);
-    expect(m.change).toBe(2349.99);
-    expect(m.changePct).toBeCloseTo(4.69998, 5);
+    expect(m.change).toBe(2349.995);
+    expect(m.changePct).toBeCloseTo(4.69999, 5);
     expect(m.patientsChangePct).toBe(1);
   });
 
@@ -116,15 +116,16 @@ describe("measures", () => {
     expect(measures(C(10, 2, 3), ZERO, s).followUps).toBe(0);
   });
 
-  it("judges the band on the per-patient figure as shown (to the fil)", () => {
-    expect(measures(C(6499.98, 15, 10), ZERO, s)).toMatchObject({
+  it("judges the band on the exact figure (Unite's three decimals, never rounded first)", () => {
+    expect(measures(C(6500, 15, 10), ZERO, s)).toMatchObject({
       revenuePerPatient: 650,
       band: "moderate",
     });
-    expect(measures(C(6499.9, 15, 10), ZERO, s)).toMatchObject({
-      revenuePerPatient: 649.99,
-      band: "below",
-    });
+    // 649.9985 shows as 650.00 but is below 650
+    expect(measures(C(6499.985, 15, 10), ZERO, s).band).toBe("below");
+    expect(measures(C(1949.997, 5, 3), ZERO, s).band).toBe("below");
+    // binary float noise cannot move an edge: 2100.3 / 3 is 700.0999… in floating point
+    expect(bandOf(2100.3 / 3, { target: 750, near: 700.1, moderate: 650 })).toBe("near");
   });
 });
 
@@ -140,7 +141,7 @@ describe("buildDoctorPerformance", () => {
     const gm = r.departments[0];
     expect(gm.doctorRows.map((d) => [d.name, d.revenue])).toEqual([
       ["Dr Demo-01", 1500],
-      ["Dr Demo-02", 1349.99],
+      ["Dr Demo-02", 1349.995],
     ]);
     expect(r.departments[1].doctorRows.map((d) => d.name)).toEqual(["Dr Demo-01", "Dr Demo-03"]);
     // Dr Demo-05 worked only last month: shown with zeros now, sorted after the doctors with revenue
@@ -167,17 +168,17 @@ describe("buildDoctorPerformance", () => {
     expect(r.total.patients).toBe(10);
     expect(r.departments.reduce((a, d) => a + d.patients, 0)).toBe(11);
     expect(r.total).toMatchObject({
-      revenue: 6499.98,
+      revenue: 6499.985,
       visits: 15,
       followUps: 5,
-      revenuePerPatient: 650,
-      band: "moderate",
+      band: "below",
       expectedRevenue: 7500,
-      gap: -1000.02,
-      change: 3499.98,
+      gap: -1000.015,
+      change: 3499.985,
       doctors: 4,
       cancelledVisits: 1,
     });
+    expect(r.total.revenuePerPatient).toBeCloseTo(649.9985, 9);
     expect(r.total.changePct).toBeCloseTo(1.16666, 4);
   });
 
@@ -190,16 +191,16 @@ describe("buildDoctorPerformance", () => {
       revenuePerPatient: 750,
       band: "achieved",
     });
-    expect(derm.share).toBeCloseTo(2250 / 6499.98, 8);
+    expect(derm.share).toBeCloseTo(2250 / 6499.985, 8);
     const d2 = r.departments[0].doctorRows[1];
     expect(d2.previous.revenue).toBe(0);
     expect(d2.changePct).toBeNull();
-    expect(d2.change).toBe(1349.99);
+    expect(d2.change).toBe(1349.995);
   });
 
   it("reconciles the departments to the total and reads the coverage", () => {
     const r = buildDoctorPerformance(inputs());
-    expect(r.reconciliation).toEqual({ departmentsSum: 6499.98, total: 6499.98, matches: true });
+    expect(r.reconciliation).toEqual({ departmentsSum: 6499.985, total: 6499.985, matches: true });
     expect(r.coverage).toEqual({
       ranges: [{ from: "2026-09-01", to: "2026-09-30" }],
       full: true,
@@ -207,7 +208,7 @@ describe("buildDoctorPerformance", () => {
     });
     expect(r.hasData).toBe(true);
     const broken: DoctorPerformanceInputs = { ...inputs() };
-    broken.current = { ...broken.current, total: { ...broken.current.total, revenue: 6500 } };
+    broken.current = { ...broken.current, total: { ...broken.current.total, revenue: 6499.986 } };
     expect(buildDoctorPerformance(broken).reconciliation.matches).toBe(false);
   });
 

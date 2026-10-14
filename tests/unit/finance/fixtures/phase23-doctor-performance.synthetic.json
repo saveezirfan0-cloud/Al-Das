@@ -1,5 +1,5 @@
 {
-  "_note": "Synthetic data only (Phase 23B). Made-up doctors, PINs 9000000xx and fake patient refs. 'rows' are fin_report_visits rows; 'expected' is fin_doctor_performance_inputs(org, month) over them for all branches.",
+  "_note": "Synthetic data only (Phase 23B). Made-up doctors, PINs 9000000xx and fake patient refs; one amount has three decimals, as Unite keeps some. 'rows' are fin_report_visits rows; 'expected' is fin_doctor_performance_inputs(org, month) over them for all branches.",
   "month": "2026-09-15",
   "uploads": [
     {
@@ -113,7 +113,7 @@
       "patient_pin": "900000004",
       "patient_ref": "P-syn0000004",
       "visit_status": "revisit",
-      "net": 699.99,
+      "net": 699.995,
       "is_cancelled": false,
       "is_current": true,
       "upload": "U3"
@@ -428,7 +428,7 @@
           "department": "General Medicine",
           "doctor_key": "dr demo 02",
           "doctor_name": "Dr Demo-02",
-          "revenue": 1349.99,
+          "revenue": 1349.995,
           "visits": 3,
           "patients": 3,
           "unbilled_patients": 1,
@@ -468,7 +468,7 @@
         {
           "department": "General Medicine",
           "doctors": 2,
-          "revenue": 2849.99,
+          "revenue": 2849.995,
           "visits": 6,
           "patients": 4,
           "unbilled_patients": 0,
@@ -495,7 +495,7 @@
       ],
       "total": {
         "doctors": 4,
-        "revenue": 6499.98,
+        "revenue": 6499.985,
         "visits": 15,
         "patients": 10,
         "unbilled_patients": 1,

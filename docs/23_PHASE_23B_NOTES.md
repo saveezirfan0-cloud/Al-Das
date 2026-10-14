@@ -19,6 +19,11 @@ replaces the clinic's hand-built "Revenue comparison" workbook (docs/39 §1.3) w
 
 ## Source
 
+Amounts: Unite keeps some amounts to three decimals, so `fin_report_visits` stores them as numeric(14,3). The SQL
+sums them unrounded; the pure rules only strip binary float noise at 0.001 and never round to the fil; the page and the
+workbook round to 2 decimals for display only.
+
+
 Only the current rows of the Unite collection report (`fin_report_visits where is_current`, from committed uploads,
 Phase 23A), grouped by `report_date` (invoice date, else visit date). The finance capture tables are not read: the
 report has no DHA doctor id, so mixing them would give every doctor two identities (see the 23A migration).
@@ -35,7 +40,7 @@ Per department and doctor (grouped by `doctor_key`, the normalised Unite name) f
 | Unbilled | patients whose summed net for that doctor and department in the month is ≤ 0 |
 | New | visits Unite marks New |
 | Follow-ups | visits − patients (repeat visits in the month), never negative |
-| Revenue / patient | revenue ÷ patients, rounded to the fil; null with no patients. The band is judged on this shown value |
+| Revenue / patient | revenue ÷ patients, exact; null with no patients. Screens and the workbook show it to 2 decimals; the band is judged on the exact figure (compared at a millionth of a dirham, so float noise cannot move an edge), so 649.9985 shows as 650.00 and is Below Target |
 | Band | ≥ target Achieved; ≥ near Near Target; ≥ moderate Moderate; else Below Target. Half-open, no gaps |
 | Expected | patients × target; Gap = revenue − expected; Achievement = revenue ÷ expected (null when expected is 0) |
 | Change, change % | revenue(M) − revenue(M−1); change % = change ÷ revenue(M−1), null when M−1 had no revenue |
@@ -50,7 +55,7 @@ Per department and doctor (grouped by `doctor_key`, the normalised Unite name) f
 - Departments are listed by this month's revenue (then last month's, then name), doctors the same within each.
 - Footer: the month's total net over every current row in scope, the covered dates (the union of committed upload
   ranges that meet the month, e.g. "1–30 Sep 2026"; a warning shows when this month or the previous one is only partly
-  covered), and the reconciliation line "departments = total", which must hold to the fil.
+  covered), and the reconciliation line "departments = total", which must hold exactly.
 
 ## Differences from the old workbook (docs/39 §1.3)
 

@@ -25,7 +25,9 @@ const BRANCHES = [
 ];
 
 function fakeAdmin() {
-  const rpc = vi.fn(async (_name: string, _args: Record<string, unknown>) => ({ data: {}, error: null }));
+  const rpc = vi.fn<
+    (name: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: null }>
+  >(async () => ({ data: {}, error: null }));
   const from = (table: string) => {
     const data = table === "locations" ? LOCATIONS : BRANCHES;
     const q = { select: () => q, eq: () => q, order: async () => ({ data, error: null }) };
@@ -59,7 +61,11 @@ describe("loadPerfScope", () => {
     const m = member({ branchScope: "selected", branchIds: [LOCATIONS[1].id] });
     const s = await loadPerfScope(admin, m);
     expect(s).toEqual({ allowed: ["GM"], branches: [{ code: "GM", name: "Golden Mile" }] });
-    await loadDoctorPerformance(admin, "org", { month: "2026-09-01", branch: null, allowed: s.allowed });
+    await loadDoctorPerformance(admin, "org", {
+      month: "2026-09-01",
+      branch: null,
+      allowed: s.allowed,
+    });
     expect(rpc).toHaveBeenCalledWith("fin_doctor_performance_inputs", {
       p_org_id: "org",
       p_month: "2026-09-01",
@@ -79,9 +85,16 @@ describe("loadPerfScope", () => {
 
   it("gives a member whose branches have no finance code only rows with no branch", async () => {
     const { admin, rpc } = fakeAdmin();
-    const s = await loadPerfScope(admin, member({ branchScope: "selected", branchIds: [LOCATIONS[2].id] }));
+    const s = await loadPerfScope(
+      admin,
+      member({ branchScope: "selected", branchIds: [LOCATIONS[2].id] }),
+    );
     expect(s).toEqual({ allowed: [], branches: [] });
-    await loadDoctorPerformance(admin, "org", { month: "2026-09-01", branch: null, allowed: s.allowed });
+    await loadDoctorPerformance(admin, "org", {
+      month: "2026-09-01",
+      branch: null,
+      allowed: s.allowed,
+    });
     expect(rpc.mock.calls[0][1]).toMatchObject({ p_branches: [] });
   });
 });

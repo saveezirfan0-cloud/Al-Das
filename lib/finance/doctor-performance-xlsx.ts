@@ -42,7 +42,10 @@ export const DOCTOR_PERFORMANCE_DEFINITIONS: readonly (readonly [string, string]
   ],
   ["New", "Visits Unite marks as New."],
   ["Follow-ups", "Visits − patients: repeat visits within the month (never below 0)."],
-  ["Revenue / patient", "Revenue ÷ patients, to the fil. Blank when there are no patients."],
+  [
+    "Revenue / patient",
+    "Revenue ÷ patients (shown to 2 decimals; the band uses the exact figure). Blank when there are no patients.",
+  ],
   [
     "Band",
     "Achieved at or above the target; Near Target, Moderate and Below Target under it (half-open, no gaps).",

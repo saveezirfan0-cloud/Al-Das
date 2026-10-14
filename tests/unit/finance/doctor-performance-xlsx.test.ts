@@ -36,7 +36,7 @@ describe("doctor performance workbook", () => {
     const doctors = cells("Doctors");
     expect(doctors).toContain("Dr Demo-01");
     expect(doctors).toContain("Dr Demo-05"); // last month only
-    expect(doctors).toContain(1349.99);
+    expect(doctors).toContain(1349.995);
     expect(doctors).toContain("Below Target");
     // a doctor in two departments has two rows
     const rows: unknown[][] = [];
@@ -48,7 +48,7 @@ describe("doctor performance workbook", () => {
 
     const depts = cells("Departments");
     expect(depts).toContain("Total (clinic)");
-    expect(depts).toContain(6499.98);
+    expect(depts).toContain(6499.985);
     expect(depts).toContain("Unassigned");
     expect(depts.some((v) => typeof v === "string" && v.includes("(matches)"))).toBe(true);
     expect(depts.some((v) => typeof v === "string" && v.includes("1 cancelled"))).toBe(true);
