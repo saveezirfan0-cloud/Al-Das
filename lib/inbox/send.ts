@@ -30,6 +30,8 @@ export const sendSpecSchema = z.discriminatedUnion("type", [
     type: z.literal("template"),
     template_id: z.string().uuid(),
     values: z.record(z.string(), z.string()).default({}),
+    /** Set only by the Inbox template send and the public API: allows an Authentication (code) template. */
+    otp: z.literal(true).optional(),
   }),
   z.object({ type: z.literal("interactive"), interactive: z.custom<InteractiveObject>() }),
   z.object({ type: z.literal("reaction"), wa_message_id: z.string().min(1), emoji: z.string() }),

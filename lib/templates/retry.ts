@@ -61,11 +61,12 @@ export async function maybeRetryTemplateMessage(
 
   const spec = sendSpecSchema.safeParse((msg.payload as { send?: unknown } | null)?.send);
   const isTemplate = spec.success && spec.data.type === "template";
-  let template: { retry_on_fail: boolean; ttl_seconds: number | null } | null = null;
+  let template: { retry_on_fail: boolean; ttl_seconds: number | null; category: string } | null =
+    null;
   if (spec.success && spec.data.type === "template") {
     const { data } = await admin
       .from("wa_templates")
-      .select("retry_on_fail, ttl_seconds")
+      .select("retry_on_fail, ttl_seconds, category")
       .eq("id", spec.data.template_id)
       .eq("org_id", orgId)
       .maybeSingle();
@@ -77,6 +78,7 @@ export async function maybeRetryTemplateMessage(
     retryOnFail: template?.retry_on_fail ?? false,
     isTemplate,
     campaignRecipientId: msg.campaign_recipient_id,
+    category: template?.category ?? null,
     errorCode: msg.error_code,
     previousRetries: marker?.attempt ?? 0,
     ttlSeconds: template?.ttl_seconds ?? null,

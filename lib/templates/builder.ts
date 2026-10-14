@@ -402,7 +402,8 @@ export function authFromComponents(components: MetaTemplateComponent[]): AuthSet
     (b) => b.type === "OTP" || (b.type === "URL" && /whatsapp\.com\/otp\//i.test(b.url ?? "")),
   );
   return {
-    securityRecommendation: body?.add_security_recommendation === true,
+    // Meta may list the body as text only; then keep the note (the safer default) rather than drop it silently.
+    securityRecommendation: body?.add_security_recommendation !== false,
     codeExpiryMinutes: minutes,
     buttonText: otp?.text?.trim() || AUTH_DEFAULT_BUTTON,
   };

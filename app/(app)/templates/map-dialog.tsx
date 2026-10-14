@@ -75,7 +75,13 @@ export function MapDialog({
   template: MapTemplate;
 }) {
   const router = useRouter();
-  const [map, setMap] = useState<Record<string, string>>(template.map);
+  // Only keys the template still has: a stale entry (for example the code button's old `button.0`) could not be
+  // removed here and would make every save fail.
+  const [map, setMap] = useState<Record<string, string>>(() =>
+    Object.fromEntries(
+      Object.entries(template.map).filter(([k]) => template.variables.some((v) => v.key === k)),
+    ),
+  );
   const [pending, startTransition] = useTransition();
   /** The header-media key the Media Library picker is choosing for (message header or a carousel card). */
   const [pickerFor, setPickerFor] = useState<string | null>(null);

@@ -333,13 +333,15 @@ function sendComponents(
         index: v.index ?? 0,
         parameters: [{ type: "coupon_code", coupon_code: values[v.key] }],
       });
-    } else if (v.kind === "catalog_thumbnail" && values[v.key]) {
-      // Without a value the button needs no parameter: Meta shows the first catalogue item.
+    } else if (v.kind === "catalog_thumbnail") {
+      // Meta documents the CATALOG button component with an action parameter; only the thumbnail inside it is
+      // optional (without it Meta shows the first catalogue item).
+      const sku = values[v.key];
       components.push({
         type: "button",
         sub_type: "CATALOG",
         index: v.index ?? 0,
-        parameters: [{ type: "action", action: { thumbnail_product_retailer_id: values[v.key] } }],
+        parameters: [{ type: "action", action: sku ? { thumbnail_product_retailer_id: sku } : {} }],
       });
     }
   }
@@ -363,7 +365,12 @@ function otpButtonComponents(
     const codeVar = vars.find((v) => v.component === "body" && v.card === undefined);
     const code = codeVar ? values[codeVar.key] : undefined;
     if (!code) throw new Error("Missing template values: the code for the copy-code button");
-    out.push({ type: "button", sub_type: "url", index, parameters: [{ type: "text", text: code }] });
+    out.push({
+      type: "button",
+      sub_type: "url",
+      index,
+      parameters: [{ type: "text", text: code }],
+    });
   });
   return out;
 }
@@ -372,7 +379,10 @@ function otpButtonComponents(
  * Quick-reply buttons on carousel cards get a fixed payload ('card<i>_btn<j>') so a tap can be told apart from
  * another card's button with the same label. No patient data goes into it.
  */
-function cardQuickReplies(card: { components: MetaTemplateComponent[] }, ci: number): TemplateComponent[] {
+function cardQuickReplies(
+  card: { components: MetaTemplateComponent[] },
+  ci: number,
+): TemplateComponent[] {
   const btns = card.components.find((x) => x.type === "BUTTONS") as
     Extract<MetaTemplateComponent, { type: "BUTTONS" }> | undefined;
   const out: TemplateComponent[] = [];
@@ -412,7 +422,8 @@ export function buildTemplateSend(
   components.push(...otpButtonComponents(tpl.components, vars, values));
 
   // Carousel (Phase 20d): one entry per card, in card order, with that card's media, text and button params.
-  const carousel = tpl.components.find((c) => c.type === "CAROUSEL") as CarouselComponent | undefined;
+  const carousel = tpl.components.find((c) => c.type === "CAROUSEL") as
+    CarouselComponent | undefined;
   if (carousel) {
     components.push({
       type: "carousel",
@@ -422,7 +433,9 @@ export function buildTemplateSend(
         const buttons = [
           ...own.filter((x) => x.type === "button"),
           ...cardQuickReplies(card, ci),
-        ].sort((a, b) => Number((a as { index: number }).index) - Number((b as { index: number }).index));
+        ].sort(
+          (a, b) => Number((a as { index: number }).index) - Number((b as { index: number }).index),
+        );
         return {
           card_index: ci,
           components: [...own.filter((x) => x.type !== "button"), ...buttons],
@@ -460,6 +473,26 @@ export function isTemplateSendable(status: string | null | undefined): boolean {
  * send is requested (inbox, public API) AND again when it is actually sent, because an opt-out can
  * arrive in between. Utility templates (appointment reminders etc.) are unaffected.
  */
-export function isMarketingBlocked(category: string | null | undefined, stopMarketing: boolean | null | undefined): boolean {
+/** An Authentication (one-time code) template. Only a person in the Inbox or a public API caller may send one. */
+export function isAuthTemplate(category: string | null | undefined): boolean {
+  return (category ?? "").toUpperCase() === "AUTHENTICATION";
+}
+
+/**
+ * May this queued template message go out? An Authentication template carries a code, so it is sent only when the
+ * spec was marked `otp: true` by the Inbox template send or the public API, never by reminders, flows, offers or
+ * other automations (where the code variable would be filled with something else, such as a first name).
+ */
+export function authTemplateSendAllowed(
+  category: string | null | undefined,
+  otp: boolean | undefined,
+): boolean {
+  return !isAuthTemplate(category) || otp === true;
+}
+
+export function isMarketingBlocked(
+  category: string | null | undefined,
+  stopMarketing: boolean | null | undefined,
+): boolean {
   return category === "MARKETING" && stopMarketing === true;
 }

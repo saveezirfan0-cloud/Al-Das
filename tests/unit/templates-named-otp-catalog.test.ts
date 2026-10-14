@@ -31,7 +31,9 @@ import {
   suggestParamName,
   variableNames,
 } from "@/lib/templates/named-params";
+import { templateRetryDecision } from "@/lib/templates/delivery";
 import {
+  authTemplateSendAllowed,
   buildTemplateSend,
   renderTemplatePreview,
   templateVariables,
@@ -452,7 +454,12 @@ describe("authentication templates", () => {
           ],
         },
       ]),
-    ).toEqual({ securityRecommendation: false, codeExpiryMinutes: 15, buttonText: "Copy" });
+    ).toEqual({ securityRecommendation: true, codeExpiryMinutes: 15, buttonText: "Copy" });
+    // Only an explicit false turns the security note off.
+    expect(
+      authFromComponents([{ type: "BODY", add_security_recommendation: false } as never])
+        .securityRecommendation,
+    ).toBe(false);
     const d = draftFromComponents(
       { name: "login_code", language: "en_US", category: "AUTHENTICATION" },
       storedComponents(authDraft),
@@ -522,6 +529,14 @@ describe("catalogue templates", () => {
     expect(buildTemplateSend({ name: cat.name, language: "en", components: comps }, {})).toEqual({
       name: cat.name,
       language: { code: "en", policy: "deterministic" },
+      components: [
+        {
+          type: "button",
+          sub_type: "CATALOG",
+          index: 0,
+          parameters: [{ type: "action", action: {} }],
+        },
+      ],
     });
     expect(
       buildTemplateSend(
@@ -536,5 +551,35 @@ describe("catalogue templates", () => {
         parameters: [{ type: "action", action: { thumbnail_product_retailer_id: "SKU-TEST-1" } }],
       },
     ]);
+  });
+});
+
+describe("one-time code templates are never sent by automations", () => {
+  it("allows an Authentication template only on a spec marked otp", () => {
+    expect(authTemplateSendAllowed("AUTHENTICATION", undefined)).toBe(false);
+    expect(authTemplateSendAllowed("authentication", undefined)).toBe(false);
+    expect(authTemplateSendAllowed("AUTHENTICATION", true)).toBe(true);
+    expect(authTemplateSendAllowed("UTILITY", undefined)).toBe(true);
+    expect(authTemplateSendAllowed("MARKETING", undefined)).toBe(true);
+    expect(authTemplateSendAllowed(null, undefined)).toBe(true);
+  });
+  it("never retries an Authentication template", () => {
+    const base = {
+      retryOnFail: true,
+      isTemplate: true,
+      campaignRecipientId: null,
+      errorCode: 131026,
+      previousRetries: 0,
+      ttlSeconds: null,
+      originAt: new Date("2026-01-01T10:00:00Z"),
+      now: new Date("2026-01-01T10:00:00Z"),
+    };
+    expect(templateRetryDecision({ ...base, category: "AUTHENTICATION" })).toEqual({
+      retry: false,
+      reason: "authentication",
+    });
+    expect(templateRetryDecision({ ...base, category: "UTILITY" }).retry).toBe(
+      templateRetryDecision(base).retry,
+    );
   });
 });

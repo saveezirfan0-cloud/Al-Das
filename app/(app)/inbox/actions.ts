@@ -41,7 +41,11 @@ import type { Json } from "@/lib/supabase/types";
 import { TrainingModeError } from "@/lib/training/mode";
 import { clientForChannel } from "@/lib/whatsapp/channel";
 import { toE164 } from "@/lib/whatsapp/phone";
-import { isMarketingBlocked, renderTemplatePreview } from "@/lib/whatsapp/templates";
+import {
+  isAuthTemplate,
+  isMarketingBlocked,
+  renderTemplatePreview,
+} from "@/lib/whatsapp/templates";
 import type { MetaTemplateComponent } from "@/lib/whatsapp/types";
 
 export type ActionResult<T = undefined> =
@@ -344,7 +348,12 @@ export async function sendTemplateMessage(
   const msg = await queueOutbound(admin, {
     orgId: member.orgId,
     conversationId: conversation.id,
-    spec: { type: "template", template_id: tpl.id, values: parsed.data.values },
+    spec: {
+      type: "template",
+      template_id: tpl.id,
+      values: parsed.data.values,
+      ...(isAuthTemplate(tpl.category) ? { otp: true as const } : {}),
+    },
     body: [preview.headerText, preview.body].filter(Boolean).join("\n"),
     sentByUserId: member.userId,
   });

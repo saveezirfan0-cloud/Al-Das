@@ -50,6 +50,7 @@ export default async function FlowBuilderPage({ params }: { params: Promise<{ id
       .from("wa_templates")
       .select("id, name, status, category")
       .eq("org_id", member.orgId)
+      .neq("category", "AUTHENTICATION")
       .is("archived_at", null)
       .order("name"),
     admin.from("teams").select("id, name").eq("org_id", member.orgId).order("name"),
