@@ -190,6 +190,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
       "finance.invoices.view",
       "finance.claims.view",
       "finance.claims.import",
+      "finance.revenue.import",
       "finance.reference.manage",
       "finance.exceptions.manage",
       "finance.capture.manage",

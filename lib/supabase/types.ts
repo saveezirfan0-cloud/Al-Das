@@ -12240,6 +12240,9 @@ export type Database = {
           lab_date_window_days: number;
           lab_price_tolerance: number;
           org_id: string;
+          perf_arpp_target: number;
+          perf_band_moderate: number;
+          perf_band_near: number;
           preauth_expiry_lead_days: number;
           preauth_task_enabled: boolean;
           ready_grace_days: number;
@@ -12323,6 +12326,9 @@ export type Database = {
           lab_date_window_days?: number;
           lab_price_tolerance?: number;
           org_id: string;
+          perf_arpp_target?: number;
+          perf_band_moderate?: number;
+          perf_band_near?: number;
           preauth_expiry_lead_days?: number;
           preauth_task_enabled?: boolean;
           ready_grace_days?: number;
@@ -12405,6 +12411,9 @@ export type Database = {
           lab_date_window_days?: number;
           lab_price_tolerance?: number;
           org_id?: string;
+          perf_arpp_target?: number;
+          perf_band_moderate?: number;
+          perf_band_near?: number;
           preauth_expiry_lead_days?: number;
           preauth_task_enabled?: boolean;
           ready_grace_days?: number;
@@ -12896,6 +12905,214 @@ export type Database = {
             columns: ["updated_by"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      fin_report_uploads: {
+        Row: {
+          committed_at: string | null;
+          committed_by: string | null;
+          created_at: string;
+          created_by: string | null;
+          file_sha256: string;
+          from_date: string;
+          id: string;
+          kind: string;
+          org_id: string;
+          problems: NonNullable<Json>;
+          reconciled: boolean;
+          report_totals: NonNullable<Json>;
+          row_count: number;
+          row_totals: NonNullable<Json>;
+          status: string;
+          to_date: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          committed_at?: string | null;
+          committed_by?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          file_sha256: string;
+          from_date: string;
+          id?: string;
+          kind?: string;
+          org_id: string;
+          problems?: NonNullable<Json>;
+          reconciled?: boolean;
+          report_totals?: NonNullable<Json>;
+          row_count?: number;
+          row_totals?: NonNullable<Json>;
+          status?: string;
+          to_date: string;
+        };
+        Update: {
+          committed_at?: string | null;
+          committed_by?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          file_sha256?: string;
+          from_date?: string;
+          id?: string;
+          kind?: string;
+          org_id?: string;
+          problems?: NonNullable<Json>;
+          reconciled?: boolean;
+          report_totals?: NonNullable<Json>;
+          row_count?: number;
+          row_totals?: NonNullable<Json>;
+          status?: string;
+          to_date?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_report_uploads_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      fin_report_visits: {
+        Row: {
+          advance_consumed: number;
+          bank_transfer: number;
+          branch_code: string | null;
+          card: number;
+          cash: number;
+          categories: NonNullable<Json>;
+          clinic_name: string | null;
+          created_at: string;
+          credit_note_consumed: number;
+          department: string | null;
+          discount: number;
+          doctor_key: string;
+          doctor_name: string;
+          gross: number;
+          id: string;
+          insurance_claim: number;
+          insurance_invoice_no: string | null;
+          invoice_date: string | null;
+          invoice_type: string | null;
+          is_cancelled: boolean;
+          is_current: boolean;
+          net: number;
+          org_id: string;
+          other_payment: number;
+          outstanding_credit: number;
+          patient_pin: string | null;
+          patient_ref: string | null;
+          patient_share: number;
+          payment_gateway: number;
+          refund: number;
+          report_date: string;
+          row_no: number;
+          selfpay_invoice_no: string | null;
+          total: number;
+          upload_id: string;
+          vat: number;
+          visit_at: string | null;
+          visit_status: string | null;
+          write_off: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          advance_consumed?: number;
+          bank_transfer?: number;
+          branch_code?: string | null;
+          card?: number;
+          cash?: number;
+          categories?: NonNullable<Json>;
+          clinic_name?: string | null;
+          created_at?: string;
+          credit_note_consumed?: number;
+          department?: string | null;
+          discount?: number;
+          doctor_key: string;
+          doctor_name: string;
+          gross?: number;
+          id?: string;
+          insurance_claim?: number;
+          insurance_invoice_no?: string | null;
+          invoice_date?: string | null;
+          invoice_type?: string | null;
+          is_cancelled?: boolean;
+          is_current?: boolean;
+          net?: number;
+          org_id: string;
+          other_payment?: number;
+          outstanding_credit?: number;
+          patient_pin?: string | null;
+          patient_ref?: string | null;
+          patient_share?: number;
+          payment_gateway?: number;
+          refund?: number;
+          report_date: string;
+          row_no: number;
+          selfpay_invoice_no?: string | null;
+          total?: number;
+          upload_id: string;
+          vat?: number;
+          visit_at?: string | null;
+          visit_status?: string | null;
+          write_off?: number;
+        };
+        Update: {
+          advance_consumed?: number;
+          bank_transfer?: number;
+          branch_code?: string | null;
+          card?: number;
+          cash?: number;
+          categories?: NonNullable<Json>;
+          clinic_name?: string | null;
+          created_at?: string;
+          credit_note_consumed?: number;
+          department?: string | null;
+          discount?: number;
+          doctor_key?: string;
+          doctor_name?: string;
+          gross?: number;
+          id?: string;
+          insurance_claim?: number;
+          insurance_invoice_no?: string | null;
+          invoice_date?: string | null;
+          invoice_type?: string | null;
+          is_cancelled?: boolean;
+          is_current?: boolean;
+          net?: number;
+          org_id?: string;
+          other_payment?: number;
+          outstanding_credit?: number;
+          patient_pin?: string | null;
+          patient_ref?: string | null;
+          patient_share?: number;
+          payment_gateway?: number;
+          refund?: number;
+          report_date?: string;
+          row_no?: number;
+          selfpay_invoice_no?: string | null;
+          total?: number;
+          upload_id?: string;
+          vat?: number;
+          visit_at?: string | null;
+          visit_status?: string | null;
+          write_off?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_report_visits_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_report_visits_upload_id_fkey";
+            columns: ["upload_id"];
+            isOneToOne: false;
+            referencedRelation: "fin_report_uploads";
             referencedColumns: ["id"];
           },
         ];
@@ -24742,6 +24959,10 @@ export type Database = {
         Args: { p_from: string; p_org_id: string; p_to: string };
         Returns: Json;
       };
+      fin_doctor_performance_inputs: {
+        Args: { p_branch?: string; p_branches?: string[]; p_month: string; p_org_id: string };
+        Returns: Json;
+      };
       fin_escalate_exceptions: { Args: { p_org_id: string }; Returns: number };
       fin_flash_inputs: { Args: { p_from: string; p_org_id: string; p_to: string }; Returns: Json };
       fin_flash_set_targets: {
@@ -24855,6 +25076,31 @@ export type Database = {
         Returns: Json;
       };
       fin_rederive_branches: { Args: { p_org_id: string }; Returns: number };
+      fin_report_commit: {
+        Args: { p_org_id: string; p_upload_id: string; p_user_id: string };
+        Returns: Json;
+      };
+      fin_report_discard: {
+        Args: { p_org_id: string; p_upload_id: string };
+        Returns: Json;
+      };
+      fin_report_latest_month: {
+        Args: { p_branches?: string[]; p_org_id: string };
+        Returns: string;
+      };
+      fin_report_stage: {
+        Args: {
+          p_meta: Json;
+          p_org_id: string;
+          p_rows: Json;
+          p_user_id: string;
+        };
+        Returns: Json;
+      };
+      fin_report_upload_summary: {
+        Args: { p_org_id: string; p_upload_id: string };
+        Returns: Json;
+      };
       fin_revenue_breakdown: {
         Args: {
           p_branch?: string;

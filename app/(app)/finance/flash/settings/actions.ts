@@ -7,6 +7,7 @@ import { recordAudit } from "@/lib/audit";
 import { can } from "@/lib/auth/can";
 import { requireMember } from "@/lib/auth/session";
 import { DENIED, dbMessage, fail, firstIssue, type ActionResult } from "@/lib/finance/action-support";
+import { perfSettingsSchema } from "@/lib/finance/doctor-performance";
 import { LINE_CODE_RE, monthOf, parseTargetInput } from "@/lib/finance/flash";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/types";
@@ -204,6 +205,30 @@ export async function copyPreviousTargets(values: Record<string, string>): Promi
   });
   refresh();
   return { ok: true, message: `Copied ${prev!.length} targets from ${previous.slice(0, 7)}.` };
+}
+
+/** Doctor performance (Phase 23B): the revenue-per-patient target and the band edges, 0 < moderate < near < target. */
+export async function savePerfBands(values: Record<string, string>): Promise<ActionResult> {
+  const member = await gate();
+  if (!member) return fail(DENIED);
+  const parsed = perfSettingsSchema.safeParse(values);
+  if (!parsed.success) return fail(firstIssue(parsed.error));
+  const admin = createAdminClient(member.userId);
+  const { error } = await admin
+    .from("fin_ref_finance_settings")
+    .upsert({ org_id: member.orgId, ...parsed.data }, { onConflict: "org_id" });
+  if (error) return fail(dbMessage(error, "Could not save the target and bands."));
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "finance.doctor_performance.bands_saved",
+    entity: "fin_ref_finance_settings",
+    entityId: member.orgId,
+    diff: parsed.data,
+  });
+  refresh();
+  revalidatePath("/finance/doctor-performance");
+  return { ok: true, message: "Target and bands saved." };
 }
 
 const displaySchema = z.object({

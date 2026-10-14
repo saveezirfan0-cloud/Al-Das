@@ -1,0 +1,599 @@
+{
+  "_note": "Synthetic data only (Phase 23B). Made-up doctors, PINs 9000000xx and fake patient refs; one amount has three decimals, as Unite keeps some. 'rows' are fin_report_visits rows; 'expected' is fin_doctor_performance_inputs(org, month) over them for all branches.",
+  "month": "2026-09-15",
+  "uploads": [
+    {
+      "key": "U0",
+      "from_date": "2026-07-01",
+      "to_date": "2026-07-31",
+      "status": "committed"
+    },
+    {
+      "key": "U1",
+      "from_date": "2026-08-01",
+      "to_date": "2026-08-31",
+      "status": "committed"
+    },
+    {
+      "key": "U2",
+      "from_date": "2026-09-01",
+      "to_date": "2026-09-15",
+      "status": "committed"
+    },
+    {
+      "key": "U3",
+      "from_date": "2026-09-16",
+      "to_date": "2026-10-01",
+      "status": "committed"
+    },
+    {
+      "key": "U4",
+      "from_date": "2026-09-01",
+      "to_date": "2026-09-30",
+      "status": "staged"
+    }
+  ],
+  "rows": [
+    {
+      "report_date": "2026-09-01",
+      "department": "General Medicine",
+      "doctor_name": "Dr Demo-01",
+      "doctor_key": "dr demo 01",
+      "branch_code": "PJ",
+      "patient_pin": "900000001",
+      "patient_ref": "P-syn0000001",
+      "visit_status": "new",
+      "net": 800.0,
+      "is_cancelled": false,
+      "is_current": true,
+      "upload": "U2"
+    },
+    {
+      "report_date": "2026-09-15",
+      "department": "General Medicine",
+      "doctor_name": "Dr Demo-01",
+      "doctor_key": "dr demo 01",
+      "branch_code": "PJ",
+      "patient_pin": "900000001",
+      "patient_ref": "P-syn0000001",
+      "visit_status": "revisit",
+      "net": 300.0,
+      "is_cancelled": false,
+      "is_current": true,
+      "upload": "U2"
+    },
+    {
+      "report_date": "2026-09-03",
+      "department": "General Medicine",
+      "doctor_name": "DR. DEMO-01",
+      "doctor_key": "dr demo 01",
+      "branch_code": "PJ",
+      "patient_pin": "900000002",
+      "patient_ref": "P-syn0000002",
+      "visit_status": "revisit",
+      "net": 400.0,
+      "is_cancelled": false,
+      "is_current": true,
+      "upload": "U2"
+    },
+    {
+      "report_date": "2026-09-05",
+      "department": "General Medicine",
+      "doctor_name": "Dr Demo-02",
+      "doctor_key": "dr demo 02",
+      "branch_code": "GM",
+      "patient_pin": "900000003",
+      "patient_ref": "P-syn0000003",
+      "visit_status": "new",
+      "net": 650.0,
+      "is_cancelled": false,
+      "is_current": true,
+      "upload": "U2"
+    },
+    {
+      "report_date": "2026-09-06",
+      "department": "General Medicine",
+      "doctor_name": "Dr Demo-02",
+      "doctor_key": "dr demo 02",
+      "branch_code": "GM",
+      "patient_pin": "900000002",
+      "patient_ref": "P-syn0000002",
+      "visit_status": "revisit",
+      "net": 0.0,
+      "is_cancelled": false,
+      "is_current": true,
+      "upload": "U2"
+    },
+    {
+      "report_date": "2026-09-20",
+      "department": "General Medicine",
+      "doctor_name": "Dr Demo-02",
+      "doctor_key": "dr demo 02",
+      "branch_code": "GM",
+      "patient_pin": "900000004",
+      "patient_ref": "P-syn0000004",
+      "visit_status": "revisit",
+      "net": 699.995,
+      "is_cancelled": false,
+      "is_current": true,
+      "upload": "U3"
+    },
+    {
+      "report_date": "2026-09-08",
+      "department": "Dermatology",
+      "doctor_name": "Dr Demo-01",
+      "doctor_key": "dr demo 01",
+      "branch_code": "PJ",
+      "patient_pin": "900000005",
+      "patient_ref": "P-syn0000005",
+      "visit_status": "new",
+      "net": 1200.0,
+      "is_cancelled": false,
+      "is_current": true,
+      "upload": "U2"
+    },
+    {
+      "report_date": "2026-09-09",
+      "department": "Dermatology",
+      "doctor_name": "Dr Demo-03",
+      "doctor_key": "dr demo 03",
+      "branch_code": "PJ",
+      "patient_pin": "900000006",
+      "patient_ref": "P-syn0000006",
+      "visit_status": "revisit",
+      "net": 750.0,
+      "is_cancelled": false,
+      "is_current": true,
+      "upload": "U2"
+    },
+    {
+      "report_date": "2026-09-11",
+      "department": "Dermatology",
+      "doctor_name": "Dr Demo-03",
+      "doctor_key": "dr demo 03",
+      "branch_code": "PJ",
+      "patient_pin": "900000007",
+      "patient_ref": "P-syn0000007",
+      "visit_status": "revisit",
+      "net": 200.0,
+      "is_cancelled": true,
+      "is_current": true,
+      "upload": "U2"
+    },
+    {
+      "report_date": "2026-09-12",
+      "department": "Dermatology",
+      "doctor_name": "Dr Demo-03",
+      "doctor_key": "dr demo 03",
+      "branch_code": null,
+      "patient_pin": "900000005",
+      "patient_ref": "P-syn0000005",
+      "visit_status": "revisit",
+      "net": 100.0,
+      "is_cancelled": false,
+      "is_current": true,
+      "upload": "U2"
+    },
+    {
+      "report_date": "2026-09-14",
+      "department": "Pediatrics",
+      "doctor_name": "Dr Demo-04",
+      "doctor_key": "dr demo 04",
+      "branch_code": "GM",
+      "patient_pin": "900000008",
+      "patient_ref": "P-syn0000008",
+      "visit_status": "new",
+      "net": 500.0,
+      "is_cancelled": false,
+      "is_current": true,
+      "upload": "U2"
+    },
+    {
+      "report_date": "2026-09-16",
+      "department": "Pediatrics",
+      "doctor_name": "DR DEMO-04",
+      "doctor_key": "dr demo 04",
+      "branch_code": "GM",
+      "patient_pin": "900000009",
+      "patient_ref": null,
+      "visit_status": "new",
+      "net": 649.99,
+      "is_cancelled": false,
+      "is_current": true,
+      "upload": "U3"
+    },
+    {
+      "report_date": "2026-09-18",
+      "department": "Pediatrics",
+      "doctor_name": "Dr Demo-04",
+      "doctor_key": "dr demo 04",
+      "branch_code": "GM",
+      "patient_pin": "900000010",
+      "patient_ref": "P-syn0000010",
+      "visit_status": null,
+      "net": 100.0,
+      "is_cancelled": false,
+      "is_current": true,
+      "upload": "U3"
+    },
+    {
+      "report_date": "2026-09-19",
+      "department": "Pediatrics",
+      "doctor_name": "DR DEMO-04",
+      "doctor_key": "dr demo 04",
+      "branch_code": "GM",
+      "patient_pin": "900000010",
+      "patient_ref": "P-syn0000010",
+      "visit_status": "revisit",
+      "net": -100.0,
+      "is_cancelled": false,
+      "is_current": true,
+      "upload": "U3"
+    },
+    {
+      "report_date": "2026-09-21",
+      "department": null,
+      "doctor_name": "Dr Demo-02",
+      "doctor_key": "dr demo 02",
+      "branch_code": "PJ",
+      "patient_pin": "900000003",
+      "patient_ref": "P-syn0000003",
+      "visit_status": "revisit",
+      "net": 250.0,
+      "is_cancelled": false,
+      "is_current": true,
+      "upload": "U3"
+    },
+    {
+      "report_date": "2026-08-04",
+      "department": "General Medicine",
+      "doctor_name": "Dr Demo-01",
+      "doctor_key": "dr demo 01",
+      "branch_code": "PJ",
+      "patient_pin": "900000001",
+      "patient_ref": "P-syn0000001",
+      "visit_status": "new",
+      "net": 500.0,
+      "is_cancelled": false,
+      "is_current": true,
+      "upload": "U1"
+    },
+    {
+      "report_date": "2026-08-05",
+      "department": "General Medicine",
+      "doctor_name": "Dr Demo-02",
+      "doctor_key": "dr demo 02",
+      "branch_code": "GM",
+      "patient_pin": "900000003",
+      "patient_ref": "P-syn0000003",
+      "visit_status": "revisit",
+      "net": 0.0,
+      "is_cancelled": false,
+      "is_current": true,
+      "upload": "U1"
+    },
+    {
+      "report_date": "2026-08-10",
+      "department": "Dermatology",
+      "doctor_name": "Dr Demo-03",
+      "doctor_key": "dr demo 03",
+      "branch_code": "PJ",
+      "patient_pin": "900000006",
+      "patient_ref": "P-syn0000006",
+      "visit_status": "new",
+      "net": 1000.0,
+      "is_cancelled": false,
+      "is_current": true,
+      "upload": "U1"
+    },
+    {
+      "report_date": "2026-08-11",
+      "department": "Dermatology",
+      "doctor_name": "Dr Demo-03",
+      "doctor_key": "dr demo 03",
+      "branch_code": "PJ",
+      "patient_pin": "900000011",
+      "patient_ref": "P-syn0000011",
+      "visit_status": "revisit",
+      "net": 500.0,
+      "is_cancelled": false,
+      "is_current": true,
+      "upload": "U1"
+    },
+    {
+      "report_date": "2026-08-12",
+      "department": "Pediatrics",
+      "doctor_name": "Dr Demo-05",
+      "doctor_key": "dr demo 05",
+      "branch_code": "GM",
+      "patient_pin": "900000012",
+      "patient_ref": "P-syn0000012",
+      "visit_status": "new",
+      "net": 700.0,
+      "is_cancelled": false,
+      "is_current": true,
+      "upload": "U1"
+    },
+    {
+      "report_date": "2026-08-31",
+      "department": "Pediatrics",
+      "doctor_name": "DR DEMO-04",
+      "doctor_key": "dr demo 04",
+      "branch_code": "GM",
+      "patient_pin": "900000008",
+      "patient_ref": "P-syn0000008",
+      "visit_status": "revisit",
+      "net": 300.0,
+      "is_cancelled": false,
+      "is_current": true,
+      "upload": "U1"
+    },
+    {
+      "report_date": "2026-07-31",
+      "department": "General Medicine",
+      "doctor_name": "Dr Demo-01",
+      "doctor_key": "dr demo 01",
+      "branch_code": "PJ",
+      "patient_pin": "900000001",
+      "patient_ref": "P-syn0000001",
+      "visit_status": "revisit",
+      "net": 123.45,
+      "is_cancelled": false,
+      "is_current": true,
+      "upload": "U0"
+    },
+    {
+      "report_date": "2026-10-01",
+      "department": "General Medicine",
+      "doctor_name": "Dr Demo-01",
+      "doctor_key": "dr demo 01",
+      "branch_code": "PJ",
+      "patient_pin": "900000001",
+      "patient_ref": "P-syn0000001",
+      "visit_status": "revisit",
+      "net": 321.0,
+      "is_cancelled": false,
+      "is_current": true,
+      "upload": "U3"
+    },
+    {
+      "report_date": "2026-09-22",
+      "department": "General Medicine",
+      "doctor_name": "Dr Demo-01",
+      "doctor_key": "dr demo 01",
+      "branch_code": "PJ",
+      "patient_pin": "900000001",
+      "patient_ref": "P-syn0000001",
+      "visit_status": "revisit",
+      "net": 99999.0,
+      "is_cancelled": false,
+      "is_current": false,
+      "upload": "U4"
+    }
+  ],
+  "expected": {
+    "month": "2026-09-01",
+    "previous_month": "2026-08-01",
+    "branch": null,
+    "coverage": [
+      {
+        "from": "2026-09-01",
+        "to": "2026-09-30"
+      }
+    ],
+    "previous_coverage": [
+      {
+        "from": "2026-08-01",
+        "to": "2026-08-31"
+      }
+    ],
+    "settings": {
+      "target": 750,
+      "near": 700,
+      "moderate": 650
+    },
+    "current": {
+      "doctors": [
+        {
+          "department": "Dermatology",
+          "doctor_key": "dr demo 01",
+          "doctor_name": "Dr Demo-01",
+          "revenue": 1200,
+          "visits": 1,
+          "patients": 1,
+          "unbilled_patients": 0,
+          "new_visits": 1
+        },
+        {
+          "department": "Dermatology",
+          "doctor_key": "dr demo 03",
+          "doctor_name": "Dr Demo-03",
+          "revenue": 1050,
+          "visits": 3,
+          "patients": 3,
+          "unbilled_patients": 0,
+          "new_visits": 0
+        },
+        {
+          "department": "General Medicine",
+          "doctor_key": "dr demo 01",
+          "doctor_name": "Dr Demo-01",
+          "revenue": 1500,
+          "visits": 3,
+          "patients": 2,
+          "unbilled_patients": 0,
+          "new_visits": 1
+        },
+        {
+          "department": "General Medicine",
+          "doctor_key": "dr demo 02",
+          "doctor_name": "Dr Demo-02",
+          "revenue": 1349.995,
+          "visits": 3,
+          "patients": 3,
+          "unbilled_patients": 1,
+          "new_visits": 1
+        },
+        {
+          "department": "Pediatrics",
+          "doctor_key": "dr demo 04",
+          "doctor_name": "DR DEMO-04",
+          "revenue": 1149.99,
+          "visits": 4,
+          "patients": 3,
+          "unbilled_patients": 1,
+          "new_visits": 2
+        },
+        {
+          "department": null,
+          "doctor_key": "dr demo 02",
+          "doctor_name": "Dr Demo-02",
+          "revenue": 250,
+          "visits": 1,
+          "patients": 1,
+          "unbilled_patients": 0,
+          "new_visits": 0
+        }
+      ],
+      "departments": [
+        {
+          "department": "Dermatology",
+          "doctors": 2,
+          "revenue": 2250,
+          "visits": 4,
+          "patients": 3,
+          "unbilled_patients": 0,
+          "new_visits": 1
+        },
+        {
+          "department": "General Medicine",
+          "doctors": 2,
+          "revenue": 2849.995,
+          "visits": 6,
+          "patients": 4,
+          "unbilled_patients": 0,
+          "new_visits": 2
+        },
+        {
+          "department": "Pediatrics",
+          "doctors": 1,
+          "revenue": 1149.99,
+          "visits": 4,
+          "patients": 3,
+          "unbilled_patients": 1,
+          "new_visits": 2
+        },
+        {
+          "department": null,
+          "doctors": 1,
+          "revenue": 250,
+          "visits": 1,
+          "patients": 1,
+          "unbilled_patients": 0,
+          "new_visits": 0
+        }
+      ],
+      "total": {
+        "doctors": 4,
+        "revenue": 6499.985,
+        "visits": 15,
+        "patients": 10,
+        "unbilled_patients": 1,
+        "new_visits": 5,
+        "cancelled_visits": 1
+      }
+    },
+    "previous": {
+      "doctors": [
+        {
+          "department": "Dermatology",
+          "doctor_key": "dr demo 03",
+          "doctor_name": "Dr Demo-03",
+          "revenue": 1500,
+          "visits": 2,
+          "patients": 2,
+          "unbilled_patients": 0,
+          "new_visits": 1
+        },
+        {
+          "department": "General Medicine",
+          "doctor_key": "dr demo 01",
+          "doctor_name": "Dr Demo-01",
+          "revenue": 500,
+          "visits": 1,
+          "patients": 1,
+          "unbilled_patients": 0,
+          "new_visits": 1
+        },
+        {
+          "department": "General Medicine",
+          "doctor_key": "dr demo 02",
+          "doctor_name": "Dr Demo-02",
+          "revenue": 0,
+          "visits": 1,
+          "patients": 1,
+          "unbilled_patients": 1,
+          "new_visits": 0
+        },
+        {
+          "department": "Pediatrics",
+          "doctor_key": "dr demo 04",
+          "doctor_name": "DR DEMO-04",
+          "revenue": 300,
+          "visits": 1,
+          "patients": 1,
+          "unbilled_patients": 0,
+          "new_visits": 0
+        },
+        {
+          "department": "Pediatrics",
+          "doctor_key": "dr demo 05",
+          "doctor_name": "Dr Demo-05",
+          "revenue": 700,
+          "visits": 1,
+          "patients": 1,
+          "unbilled_patients": 0,
+          "new_visits": 1
+        }
+      ],
+      "departments": [
+        {
+          "department": "Dermatology",
+          "doctors": 1,
+          "revenue": 1500,
+          "visits": 2,
+          "patients": 2,
+          "unbilled_patients": 0,
+          "new_visits": 1
+        },
+        {
+          "department": "General Medicine",
+          "doctors": 2,
+          "revenue": 500,
+          "visits": 2,
+          "patients": 2,
+          "unbilled_patients": 1,
+          "new_visits": 1
+        },
+        {
+          "department": "Pediatrics",
+          "doctors": 2,
+          "revenue": 1000,
+          "visits": 2,
+          "patients": 2,
+          "unbilled_patients": 0,
+          "new_visits": 1
+        }
+      ],
+      "total": {
+        "doctors": 5,
+        "revenue": 3000,
+        "visits": 6,
+        "patients": 6,
+        "unbilled_patients": 1,
+        "new_visits": 3,
+        "cancelled_visits": 0
+      }
+    }
+  }
+}

@@ -6,6 +6,26 @@ This is the single document to work from. Section 1 says where we are, 2 says wh
 
 ---
 
+## 0e. Update, 14 Oct 2026: Phase 23 (M1) built
+
+- **23A Unite collection report upload** (`/finance/upload`, `finance.revenue.import`): sanitised rows only, reconciled to the report's own totals before commit; tested end to end against the real September export locally (reconciles to the fils: net 1,839,005.80, 1,362 patients; the file is not in the repository). Notes: `docs/23_PHASE_23A_NOTES.md`.
+- **23B Doctor performance** (`/finance/doctor-performance`, Excel download, target and bands under Finance, Targets and report lines, tiles on the Management dashboard): reproduces the corrected revenue comparison workbook (e.g. Dermatology 123,626.24 / 160 patients / 772.66). Notes: `docs/23_PHASE_23B_NOTES.md`.
+- **Contract Generator alignment** (`docs/finance/contract-rules-alignment.md`): how the HR contract terms feed doctor pay in M2; OQ-148 to OQ-157.
+- Database: production (`dljdxwgmstxfxyhbpntz`) has every migration up to `20261125000100_finance_access_window` (the `db-migrate` run of 14 Oct 18:35 UTC succeeded); Phase 23's three migrations apply when this merges to `main` (paste files `66_` to `68_` for a manual run).
+- **Before the first real Unite report upload:** the production project is in **us-east-1**, and OQ-49 (where UAE patient data may be hosted) is still open. A report upload stores patient PINs; answer OQ-49 first.
+
+## 0d. Update, 14 Oct 2026: management platform plan
+
+The owner's May 2026 models (turnaround template, department benchmarking and recruitment calculator) were reviewed against Pulse. Plan in `docs/40_MANAGEMENT_PLATFORM_PLAN.md`: one data layer and one metric register (six profit levels from net revenue to profit after allocation) feeding Group, Clinic, Department and Doctor views; phases M0 (turn on the data), M1 (revenue, = Phase 23A/23B), M2 (costs and contribution), M3 (capacity and rooms), M4 (forecasts and scenarios), M5 (cockpit). 13 defects in the May models are listed so they are not carried into code. New questions OQ-143 to OQ-147.
+
+## 0c. Update, 14 Oct 2026: Unite collection report analysed, Phase 23 planned
+
+Al Das sent the Unite "Daily Collection Multi-Clinic Report" for September (data request D1, also covers D2) and the hand-built "Revenue comparison" workbook. Findings and the plan are in `docs/39_UNITE_REPORTS_PLAN.md`:
+- the workbook reconciles to Unite's net billing (1,839,005.80) to the fils, but has 13 formula and reference errors (the worst: change % divided by the current month, follow-up % using the wrong month, a phantom doctor row, a department variance total that drops two departments);
+- every Pulse revenue page is empty while Unite capture stays OFF (OQ-94), because the planned report upload was never built;
+- Phase 23: **23A** import the Unite collection report (bridge while capture is OFF, capture wins later), **23B** doctor performance and month comparison (replaces the workbook: revenue per patient vs 750 with bands, follow-ups, department roll-up, reconciliation footer), **23C** Longevity and service lines (needs OQ-139 and D15), **23D** collections and data-quality view.
+- New questions OQ-138 to OQ-142; new data request D15.
+
 ## 0b. Update, 14 Oct 2026: Phase 22 (Pulse replaces Tally) merged
 
 **Everything the clinic still has to do, decide or send is in one list: `docs/TODO_FOR_AL_DAS.md`.**
