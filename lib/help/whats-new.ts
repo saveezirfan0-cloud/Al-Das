@@ -9,6 +9,12 @@ export const WHATS_NEW: readonly WhatsNewEntry[] = [
     body: "Administrators can now limit when, and from which networks, people reach Finance and Accounting: choose the days and hours (in the clinic's timezone), optionally list the approved network addresses, and pick the roles it applies to. Outside the window those pages, downloads and actions are refused with a short explanation, everything else in Pulse keeps working, and the administrators get one alert per person per day. Admin is never restricted. It is off until switched on under Settings, Security.",
   },
   {
+    id: "2026-11-15-menu-flyout",
+    date: "2026-11-15",
+    title: "Point at the menu to see its pages",
+    body: "Point at any icon in the left bar and its pages pop out beside it, so you can jump straight to the page you want. Press the pin at the top of that list to keep it open next to the bar; press the crossed-out pin to put it away again.",
+  },
+  {
     id: "2026-11-14-menu-areas",
     date: "2026-11-14",
     title: "Menu sorted into areas",

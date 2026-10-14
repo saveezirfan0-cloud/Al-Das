@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   Activity,
@@ -9,8 +9,8 @@ import {
   ChevronRight,
   House,
   Megaphone,
-  PanelLeftClose,
-  PanelLeftOpen,
+  Pin,
+  PinOff,
   Sun,
   Users,
   type LucideIcon,
@@ -115,9 +115,10 @@ function buildAreas(tree: readonly SidebarNode[]): { top: Area[]; bottom: Area[]
 }
 
 /**
- * Desktop navigation: a slim rail with one icon per area (names in a tooltip), and beside it a panel listing the
- * current area's pages, with module sections that fold away. An area with a single page (Home) gets no panel.
- * The phone drawer keeps the full tree (sidebar.tsx).
+ * Desktop navigation: a slim rail with one icon per area. Pointing at an area (or focusing it) pops its pages out in a
+ * flyout; the pin in the flyout docks that area's panel beside the rail, and the pin in the docked panel undocks it.
+ * Module sections fold away. An area with a single page (Home) shows a tooltip only. The phone drawer keeps the full
+ * tree (sidebar.tsx).
  */
 export function AppNav({
   tree: rawTree,
@@ -132,6 +133,7 @@ export function AppNav({
   defaultPanelHidden: boolean;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const tree = useBadgedItems(rawTree);
   const counts = useNavBadges();
   const uid = useId();
@@ -141,7 +143,7 @@ export function AppNav({
   const area = [...top, ...bottom].find((a) =>
     a.module ? a.module.href === trail.item : a.items.some((i) => i.href === trail.item),
   );
-  const hasPanel = !!area && (!!area.module || area.items.length > 1);
+  const hasPanel = (a: Area | undefined) => !!a && (!!a.module || a.items.length > 1);
 
   const [panelHidden, setPanelHidden] = useState(defaultPanelHidden);
   const [nav, setNav] = useState<NavState>(() => revealActive(navState, trail));
@@ -159,10 +161,47 @@ export function AppNav({
     document.cookie = navStateCookie(nav);
   }, [nav]);
 
-  function togglePanel() {
-    const next = !panelHidden;
-    setPanelHidden(next);
-    document.cookie = `${SIDEBAR_COOKIE}=${next ? "1" : "0"}; path=/; max-age=31536000; samesite=lax`;
+  function savePanelHidden(hidden: boolean) {
+    setPanelHidden(hidden);
+    document.cookie = `${SIDEBAR_COOKIE}=${hidden ? "1" : "0"}; path=/; max-age=31536000; samesite=lax`;
+  }
+
+  // Flyout with hover intent: a short delay each way, so sweeping across the rail doesn't flash panels and moving
+  // from the icon into the flyout doesn't close it.
+  const [peekKey, setPeekKey] = useState<string | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const docked = hasPanel(area) && !panelHidden;
+  const peekArea = [...top, ...bottom].find((a) => a.key === peekKey);
+  function openPeek(a: Area) {
+    clearTimeout(timer.current);
+    // The docked area is already on screen; other single-page areas have nothing to show.
+    if (!hasPanel(a) || (docked && a.key === area?.key)) {
+      setPeekKey(null);
+      return;
+    }
+    timer.current = setTimeout(() => setPeekKey(a.key), peekKey ? 0 : 120);
+  }
+  function keepPeek() {
+    clearTimeout(timer.current);
+  }
+  function closePeek(delay = 180) {
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setPeekKey(null), delay);
+  }
+  useEffect(() => () => clearTimeout(timer.current), []);
+  useEffect(() => setPeekKey(null), [pathname]);
+  useEffect(() => {
+    if (!peekKey) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setPeekKey(null);
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [peekKey]);
+
+  /** Docks an area's panel; pinning another area also opens its first page. */
+  function pin(a: Area) {
+    savePanelHidden(false);
+    setPeekKey(null);
+    if (a.key !== area?.key) router.push(a.href);
   }
 
   const pageCount = (href: string) => counts[href] ?? 0;
@@ -177,45 +216,56 @@ export function AppNav({
   function railItem(a: Area) {
     const Icon = a.icon;
     const active = area?.key === a.key;
+    const flyout = hasPanel(a);
+    const link = (
+      <Link
+        href={a.href}
+        aria-label={a.title}
+        aria-current={active ? "page" : undefined}
+        aria-haspopup={flyout ? "true" : undefined}
+        aria-expanded={flyout ? peekKey === a.key : undefined}
+        onMouseEnter={() => openPeek(a)}
+        onMouseLeave={() => closePeek()}
+        onFocus={() => openPeek(a)}
+        className="group/item relative flex justify-center rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+      >
+        {active && (
+          <span
+            className="bg-brand-accent absolute top-2.5 -left-3 h-6 w-1 rounded-r-full"
+            aria-hidden
+          />
+        )}
+        <span
+          className={cn(
+            "relative flex size-11 items-center justify-center rounded-xl transition-colors",
+            active
+              ? "bg-rail-active text-rail-active-foreground shadow-sm"
+              : "bg-rail-muted text-rail-foreground group-hover/item:bg-rail-hover",
+          )}
+        >
+          <Icon className="size-5" aria-hidden />
+          {areaCount(a) > 0 && (
+            <span
+              className="bg-destructive ring-rail absolute -top-0.5 -right-0.5 size-2.5 rounded-full ring-2"
+              aria-hidden
+            />
+          )}
+        </span>
+      </Link>
+    );
     return (
       <li key={a.key}>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Link
-              href={a.href}
-              aria-label={a.title}
-              aria-current={active ? "page" : undefined}
-              className="group/item relative flex justify-center rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-white/80"
-            >
-              {active && (
-                <span
-                  className="bg-brand-accent absolute top-2.5 -left-3 h-6 w-1 rounded-r-full"
-                  aria-hidden
-                />
-              )}
-              <span
-                className={cn(
-                  "relative flex size-11 items-center justify-center rounded-xl transition-colors",
-                  active
-                    ? "bg-rail-active text-rail-active-foreground shadow-sm"
-                    : "bg-rail-muted text-rail-foreground group-hover/item:bg-rail-hover",
-                )}
-              >
-                <Icon className="size-5" aria-hidden />
-                {areaCount(a) > 0 && (
-                  <span
-                    className="bg-destructive ring-rail absolute -top-0.5 -right-0.5 size-2.5 rounded-full ring-2"
-                    aria-hidden
-                  />
-                )}
-              </span>
-            </Link>
-          </TooltipTrigger>
-          <TooltipContent side="right" className="flex flex-col items-start gap-0">
-            <span className="font-medium">{a.title}</span>
-            {a.subtitle && <span className="opacity-75">{a.subtitle}</span>}
-          </TooltipContent>
-        </Tooltip>
+        {flyout ? (
+          link
+        ) : (
+          <Tooltip>
+            <TooltipTrigger asChild>{link}</TooltipTrigger>
+            <TooltipContent side="right" className="flex flex-col items-start gap-0">
+              <span className="font-medium">{a.title}</span>
+              {a.subtitle && <span className="opacity-75">{a.subtitle}</span>}
+            </TooltipContent>
+          </Tooltip>
+        )}
       </li>
     );
   }
@@ -317,7 +367,39 @@ export function AppNav({
     );
   }
 
-  const AreaIcon = area?.icon;
+  function panelHeader(a: Area, pinned: boolean) {
+    const Icon = a.icon;
+    return (
+      <div className="flex h-16 shrink-0 items-center gap-3 px-4">
+        <span className="bg-sidebar-accent text-sidebar-accent-foreground flex size-10 shrink-0 items-center justify-center rounded-xl">
+          <Icon className="size-5" aria-hidden />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate font-semibold">{a.title}</span>
+          {a.subtitle && (
+            <span className="text-muted-foreground block truncate text-xs">{a.subtitle}</span>
+          )}
+        </span>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => (pinned ? savePanelHidden(true) : pin(a))}
+              aria-label={pinned ? `Unpin ${a.title} menu` : `Pin ${a.title} menu`}
+              aria-pressed={pinned}
+              className="text-muted-foreground"
+            >
+              {pinned ? <PinOff aria-hidden /> : <Pin aria-hidden />}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            {pinned ? "Unpin: show this menu only when you point at it" : "Pin this menu open"}
+          </TooltipContent>
+        </Tooltip>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -340,53 +422,35 @@ export function AppNav({
         </div>
         <div className="border-rail-foreground/10 flex w-full shrink-0 flex-col gap-2 border-t px-3 py-3">
           <ul className="flex flex-col gap-2">{bottom.map(railItem)}</ul>
-          {hasPanel && panelHidden && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  onClick={togglePanel}
-                  aria-label={`Show ${area!.title} menu`}
-                  className="bg-rail-muted text-rail-foreground hover:bg-rail-hover flex size-11 items-center justify-center self-center rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-white/80"
-                >
-                  <PanelLeftOpen className="size-5" aria-hidden />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="right">Show {area!.title} menu</TooltipContent>
-            </Tooltip>
-          )}
         </div>
       </nav>
 
-      {area && AreaIcon && hasPanel && !panelHidden && (
+      {docked && area && (
         <aside
           aria-label={`${area.title} pages`}
           className="bg-sidebar text-sidebar-foreground border-sidebar-border hidden w-64 shrink-0 flex-col border-r md:flex print:hidden"
         >
-          <div className="flex h-16 shrink-0 items-center gap-3 px-4">
-            <span className="bg-sidebar-accent text-sidebar-accent-foreground flex size-10 shrink-0 items-center justify-center rounded-xl">
-              <AreaIcon className="size-5" aria-hidden />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate font-semibold">{area.title}</span>
-              {area.subtitle && (
-                <span className="text-muted-foreground block truncate text-xs">
-                  {area.subtitle}
-                </span>
-              )}
-            </span>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={togglePanel}
-              aria-label={`Hide ${area.title} menu`}
-              className="text-muted-foreground"
-            >
-              <PanelLeftClose aria-hidden />
-            </Button>
-          </div>
+          {panelHeader(area, true)}
           <nav aria-label={area.title} className="flex-1 overflow-y-auto px-3 pb-3">
             {panelBody(area)}
+          </nav>
+        </aside>
+      )}
+
+      {peekArea && (
+        <aside
+          aria-label={`${peekArea.title} pages`}
+          onMouseEnter={keepPeek}
+          onMouseLeave={() => closePeek()}
+          onFocus={keepPeek}
+          onBlur={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget as Node | null)) closePeek(0);
+          }}
+          className="bg-sidebar text-sidebar-foreground border-sidebar-border animate-in fade-in slide-in-from-left-2 fixed inset-y-0 left-[4.5rem] z-40 hidden w-64 flex-col border-r shadow-2xl duration-150 md:flex print:hidden"
+        >
+          {panelHeader(peekArea, false)}
+          <nav aria-label={peekArea.title} className="flex-1 overflow-y-auto px-3 pb-3">
+            {panelBody(peekArea)}
           </nav>
         </aside>
       )}
