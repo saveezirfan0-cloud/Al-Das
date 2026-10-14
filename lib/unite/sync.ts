@@ -33,7 +33,7 @@ export type SyncCounters = {
   updated: number;
   unchanged: number;
   skipped: number;
-  /** Patients put in the Sync Review queue (ambiguous, or unknown while auto-create is off). */
+  /** Patients put in the Sync review queue (ambiguous, or unknown while auto-create is off). */
   reviews: number;
   /** Appointments saved without a linked patient. */
   unlinked: number;
@@ -159,7 +159,7 @@ function prepared(p: {
 
 /**
  * Finds (or creates) the contact for a Unite patient: PIN → E.164 phone (primary and alternates)
- * → name + date of birth. More than one candidate goes to the Sync Review queue and is never
+ * → name + date of birth. More than one candidate goes to the Sync review queue and is never
  * auto-merged. Results are cached per sync run.
  */
 export async function resolvePatient(

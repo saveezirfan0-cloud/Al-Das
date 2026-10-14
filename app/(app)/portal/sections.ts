@@ -10,7 +10,7 @@ export type PortalSection = {
 export const PORTAL_SECTIONS: readonly PortalSection[] = [
   {
     href: "/portal/sync-review",
-    label: "Sync Review",
+    label: "Sync review",
     description:
       "Unite patients that could not be matched to a contact automatically. Link, create or dismiss.",
     read: "portal.sync_review.read",

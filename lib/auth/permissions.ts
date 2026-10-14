@@ -151,7 +151,7 @@ export const PERMISSIONS = [
   {
     key: "portal.sync_review.write",
     group: "Portal",
-    label: "Resolve Sync Review items",
+    label: "Resolve Sync review items",
     description: "Link, create or dismiss Unite patients that could not be matched",
   },
   {

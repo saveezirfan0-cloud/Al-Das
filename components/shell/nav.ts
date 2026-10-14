@@ -231,7 +231,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     permission: "settings.manage",
   },
   {
-    // branches are the Locations tab of Appointment rules (address, finance branch code, review link)
+    // branches are the Locations tab of Clinic and appointments (address, finance branch code, review link)
     href: "/settings/appointments?tab=locations",
     label: "Branches",
     icon: "branches",

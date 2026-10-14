@@ -185,7 +185,7 @@ describe("organisation navigation (CRM)", () => {
     expect(sees("/staff/rota", ["contacts.view", "tasks.view"])).toBe(false);
   });
 
-  it("finds the doctor settings from the Appointment rules page keywords", () => {
+  it("finds the doctor settings from the Clinic and appointments page keywords", () => {
     const page = SETTINGS_PAGES.find((p) => p.href === "/settings/appointments")!;
     expect(page.keywords).toEqual(
       expect.arrayContaining([
