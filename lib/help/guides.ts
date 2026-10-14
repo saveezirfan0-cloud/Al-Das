@@ -290,7 +290,7 @@ export const GUIDES: readonly Guide[] = [
   },
   {
     id: "finance-reports",
-    title: "Finance reports",
+    title: "Reports hub",
     pages: ["/finance/reports"],
     purpose:
       "Every finance and accounting report on one page: management, accounting, receivables and tax, each opening with the branch and period you picked.",

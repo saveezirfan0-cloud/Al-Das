@@ -31,7 +31,7 @@ export default async function ReportsIndexPage() {
               className="bg-card hover:bg-accent/40 focus-visible:ring-ring flex flex-col gap-1.5 rounded-xl border p-4 transition-colors outline-none focus-visible:ring-2"
             >
               <div className="flex items-center justify-between gap-2">
-                <span className="font-medium">Finance reports</span>
+                <span className="font-medium">Finance reports hub</span>
                 <ArrowRight className="text-muted-foreground size-4" aria-hidden />
               </div>
               <p className="text-muted-foreground text-sm">
