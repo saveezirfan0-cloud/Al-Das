@@ -199,7 +199,7 @@ These are the most valuable things to do before any client sees the product, bec
 | Public API | Rate limit is per key and fixed-window; reads are audited but sampled (one row per key and resource per 15 minutes); marketing opt-in through the API needs `consent` evidence; URLs limited to port 443. Open: marketing sends still check `stop_marketing` only |
 | AI | Limits are atomic (per user per minute, plus a workspace daily cap). Rate limits count calls, not tokens |
 | Finance | Several thresholds are placeholders until Sharaf agrees them; Unite IP allow-listing may need a fixed-IP relay (Vercel has no fixed outbound IPs) |
-| Security | **Built in Phase 15, unproven live:** MFA by role, session list, login history, record access log (see 4.11). Still open: a written backup and restore drill, working-hours or IP restriction for finance, soft-delete with a restore window, the Supabase Auth dashboard settings (password policy, leaked-password protection, TOTP switched on) |
+| Security | **Built in Phase 15, unproven live:** MFA by role, session list, login history, record access log (see 4.11). Backup and restore drill written (`docs/37_BACKUP_RESTORE_DRILL.md`; first rehearsal still to run). Still open: working-hours or IP restriction for finance, soft-delete with a restore window, the Supabase Auth dashboard settings (password policy, leaked-password protection, TOTP switched on) |
 
 ### 2.4 Housekeeping
 
