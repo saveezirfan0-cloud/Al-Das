@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -131,6 +132,7 @@ function RowActions({
   pending: boolean;
   label: string;
 }) {
+  const [ask, askDialog] = useConfirm();
   return (
     <div className="flex shrink-0 gap-1">
       <Button variant="ghost" size="icon-sm" aria-label={`Edit ${label}`} onClick={onEdit}>
@@ -141,13 +143,14 @@ function RowActions({
         size="icon-sm"
         aria-label={`Delete ${label}`}
         disabled={pending}
-        onClick={() => {
-          if (confirm(`Delete "${label}"? Appointments keep their history but lose this link.`))
+        onClick={async () => {
+          if (await ask(`Delete "${label}"? Appointments keep their history but lose this link.`))
             onDelete();
         }}
       >
         <Trash2 />
       </Button>
+      {askDialog}
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -206,8 +207,8 @@ export default async function WorkflowSettingsPage({
               ))}
               {(prices ?? []).length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-muted-foreground text-sm">
-                    No prices loaded.
+                  <TableCell colSpan={5}>
+                    <EmptyState title="No prices loaded" className="border-0 p-6" />
                   </TableCell>
                 </TableRow>
               )}

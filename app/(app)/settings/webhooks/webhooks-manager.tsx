@@ -4,6 +4,8 @@ import { useState, useTransition } from "react";
 import { Check, ClipboardCopy, Loader2, Plus, RefreshCw, Send, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { EmptyState } from "@/components/shell/empty-state";
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,6 +36,7 @@ const STATUS: Record<string, "success" | "warning" | "destructive" | "secondary"
 const when = (iso: string) => new Date(iso).toLocaleString("en-GB", { dateStyle: "short", timeStyle: "medium" });
 
 export function WebhooksManager({ subs, deliveries, events }: { subs: Sub[]; deliveries: Delivery[]; events: Array<{ name: string; label: string; description: string }> }) {
+  const [ask, askDialog] = useConfirm();
   const [open, setOpen] = useState(false);
   const [url, setUrl] = useState("");
   const [description, setDescription] = useState("");
@@ -69,7 +72,7 @@ export function WebhooksManager({ subs, deliveries, events }: { subs: Sub[]; del
       </div>
 
       {subs.length === 0 ? (
-        <p className="text-muted-foreground rounded-xl border border-dashed p-10 text-center text-sm">No endpoints yet.</p>
+        <EmptyState title="No endpoints yet" description="Add an endpoint to send Pulse events to another system." />
       ) : (
         <ul className="flex flex-col gap-3">
           {subs.map((s) => (
@@ -90,8 +93,8 @@ export function WebhooksManager({ subs, deliveries, events }: { subs: Sub[]; del
                   variant="outline"
                   size="sm"
                   disabled={pending}
-                  onClick={() => {
-                    if (confirm("Rotate the signing secret? The old one stops working immediately.")) start(async () => {
+                  onClick={async () => {
+                    if (await ask("Rotate the signing secret? The old one stops working immediately.")) start(async () => {
                       reveal(await rotateWebhookSecret(s.id));
                     });
                   }}
@@ -103,8 +106,8 @@ export function WebhooksManager({ subs, deliveries, events }: { subs: Sub[]; del
                   size="icon-sm"
                   aria-label={`Delete ${s.host}`}
                   disabled={pending}
-                  onClick={() => {
-                    if (confirm(`Delete the endpoint ${s.host} and its delivery log?`)) act(() => deleteWebhook(s.id));
+                  onClick={async () => {
+                    if (await ask(`Delete the endpoint ${s.host} and its delivery log?`)) act(() => deleteWebhook(s.id));
                   }}
                 >
                   <Trash2 />
@@ -269,6 +272,7 @@ function verify(secret, rawBody, header) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {askDialog}
     </div>
   );
 }

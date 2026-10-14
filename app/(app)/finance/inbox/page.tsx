@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { ScanBadge } from "@/components/media/scan-badge";
+import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -143,8 +144,8 @@ export default async function FinanceInboxPage() {
             <TableBody>
               {(docs ?? []).length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-muted-foreground text-sm">
-                    The inbox is empty.
+                  <TableCell colSpan={6}>
+                    <EmptyState title="The inbox is empty" className="border-0 p-6" />
                   </TableCell>
                 </TableRow>
               ) : (

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, Pause, Play, Rocket, Trash2, XCircle, CalendarClock } from "lucide-react";
 import { toast } from "sonner";
 
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -45,13 +46,14 @@ export function DrawerControls({
   status: CampaignStatus;
   closeHref: string;
 }) {
+  const [ask, askDialog] = useConfirm();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [reschedule, setReschedule] = useState(false);
   const [at, setAt] = useState("");
 
-  function run(fn: () => Promise<Result>, confirmText?: string, after?: () => void) {
-    if (confirmText && !window.confirm(confirmText)) return;
+  async function run(fn: () => Promise<Result>, confirmText?: string, after?: () => void) {
+    if (confirmText && !(await ask(confirmText))) return;
     startTransition(async () => {
       const r = await fn();
       if (!r.ok) {
@@ -163,6 +165,7 @@ export function DrawerControls({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {askDialog}
     </div>
   );
 }

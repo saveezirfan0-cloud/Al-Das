@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -102,8 +103,8 @@ export default async function ReceiptsPage({
             <TableBody>
               {rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-muted-foreground text-sm">
-                    No receipts match.
+                  <TableCell colSpan={7}>
+                    <EmptyState title="No receipts match" className="border-0 p-6" />
                   </TableCell>
                 </TableRow>
               ) : (

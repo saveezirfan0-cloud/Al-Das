@@ -1,4 +1,5 @@
 import { selectClass } from "@/components/finance/forms";
+import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -137,8 +138,8 @@ export default async function TrialBalancePage({
             <TableBody>
               {tb.lines.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-muted-foreground text-sm">
-                    Nothing posted up to this date.
+                  <TableCell colSpan={6}>
+                    <EmptyState title="Nothing posted up to this date" className="border-0 p-6" />
                   </TableCell>
                 </TableRow>
               )}

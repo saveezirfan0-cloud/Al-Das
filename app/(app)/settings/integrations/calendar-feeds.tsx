@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Copy, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { EmptyState } from "@/components/shell/empty-state";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -197,7 +198,10 @@ export function CalendarFeeds({
         </CardHeader>
         <CardContent>
           {feeds.length === 0 ? (
-            <p className="text-muted-foreground text-sm">No feeds yet.</p>
+            <EmptyState
+              title="No feeds yet"
+              description="Create a feed for a doctor so their calendar app shows their appointment times."
+            />
           ) : (
             <Table>
               <TableHeader>

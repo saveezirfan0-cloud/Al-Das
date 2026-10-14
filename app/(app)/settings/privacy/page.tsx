@@ -1,3 +1,4 @@
+import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -78,7 +79,10 @@ export default async function PrivacyPage() {
 
       <div className="flex flex-col gap-3">
         {(requests ?? []).length === 0 && (
-          <p className="text-muted-foreground text-sm">No requests yet.</p>
+          <EmptyState
+            title="No requests yet"
+            description="Raise a request when a patient asks for a copy of their data or for it to be erased. Two people always take part."
+          />
         )}
         {(requests ?? []).map((r) => (
           <Card key={r.id}>

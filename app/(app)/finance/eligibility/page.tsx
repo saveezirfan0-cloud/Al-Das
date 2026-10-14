@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -207,7 +208,7 @@ export default async function EligibilityPage({ searchParams }: { searchParams: 
       <Card>
         <CardContent className="pt-6">
           {rows.length === 0 ? (
-            <p className="text-muted-foreground text-sm">No checks recorded yet.</p>
+            <EmptyState title="No checks recorded yet" />
           ) : (
             <Table>
               <TableHeader>

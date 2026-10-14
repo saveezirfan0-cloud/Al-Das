@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -61,7 +62,10 @@ export default async function RemittancePage() {
         </CardHeader>
         <CardContent>
           {(batches ?? []).length === 0 ? (
-            <p className="text-muted-foreground text-sm">Nothing reconciled yet.</p>
+            <EmptyState
+              title="Nothing reconciled yet"
+              description="Upload a payer's payment advice to match it to claims."
+            />
           ) : (
             <Table>
               <TableHeader>

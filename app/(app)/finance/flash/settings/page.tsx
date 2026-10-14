@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -107,8 +108,8 @@ export default async function FlashSettingsPage({
             <TableBody>
               {lines.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-muted-foreground text-sm">
-                    No lines yet.
+                  <TableCell colSpan={6}>
+                    <EmptyState title="No lines yet" className="border-0 p-6" />
                   </TableCell>
                 </TableRow>
               ) : (

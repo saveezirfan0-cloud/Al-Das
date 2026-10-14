@@ -1,3 +1,4 @@
+import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -119,8 +120,8 @@ export default async function BankEntriesPage() {
               <TableBody>
                 {(lines ?? []).length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-muted-foreground text-sm">
-                      Nothing waiting.
+                    <TableCell colSpan={6}>
+                      <EmptyState title="Nothing waiting" className="border-0 p-6" />
                     </TableCell>
                   </TableRow>
                 )}
@@ -181,8 +182,8 @@ export default async function BankEntriesPage() {
             <TableBody>
               {entries.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-muted-foreground text-sm">
-                    No bank entries yet.
+                  <TableCell colSpan={9}>
+                    <EmptyState title="No bank entries yet" className="border-0 p-6" />
                   </TableCell>
                 </TableRow>
               )}

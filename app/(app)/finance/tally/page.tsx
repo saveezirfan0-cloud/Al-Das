@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -120,8 +121,12 @@ export default async function TallyExportPage() {
             <TableBody>
               {(exports ?? []).length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-muted-foreground text-sm">
-                    None yet.
+                  <TableCell colSpan={7}>
+                    <EmptyState
+                      title="No exports yet"
+                      description="Approved vouchers and close items appear here once they are exported for Tally."
+                      className="border-0 p-6"
+                    />
                   </TableCell>
                 </TableRow>
               ) : (

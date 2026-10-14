@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Copy, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -309,6 +310,7 @@ export function Specialists({
   /** The org's slot step (Booking rules), shown when a specialist has no own slot length. */
   defaultSlotMin: number;
 }) {
+  const [ask, askDialog] = useConfirm();
   const [form, setForm] = useState<Form | null>(null);
   const { pending, run } = useRun();
   const locName = (id: string) => locations.find((l) => l.id === id)?.name ?? "?";
@@ -385,9 +387,9 @@ export function Specialists({
                       size="icon-sm"
                       aria-label={`Delete ${s.name}`}
                       disabled={pending}
-                      onClick={() => {
+                      onClick={async () => {
                         if (
-                          confirm(
+                          await ask(
                             `Delete ${s.name}? Their appointments are kept without a specialist.`,
                           )
                         )
@@ -602,6 +604,7 @@ export function Specialists({
           )}
         </DialogContent>
       </Dialog>
+      {askDialog}
     </>
   );
 }

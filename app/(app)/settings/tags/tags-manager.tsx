@@ -4,6 +4,7 @@ import * as React from "react";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -115,6 +116,7 @@ function TagRow({
     after?: () => void,
   ) => void;
 }) {
+  const [ask, askDialog] = useConfirm();
   const [name, setName] = React.useState(tag.name);
   const [color, setColor] = React.useState(tag.color);
   const dirty = name !== tag.name || color !== tag.color;
@@ -155,9 +157,11 @@ function TagRow({
             variant="ghost"
             aria-label={`Delete ${tag.name}`}
             className="text-destructive"
-            onClick={() => {
+            onClick={async () => {
               if (
-                confirm(`Delete the tag "${tag.name}"? It is removed from ${tag.count} ${usedOn}.`)
+                await ask(
+                  `Delete the tag "${tag.name}"? It is removed from ${tag.count} ${usedOn}.`,
+                )
               )
                 run(() => deleteTag(tag.id));
             }}
@@ -166,6 +170,7 @@ function TagRow({
           </Button>
         </span>
       </TableCell>
+      {askDialog}
     </TableRow>
   );
 }

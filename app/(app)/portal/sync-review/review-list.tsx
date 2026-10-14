@@ -4,6 +4,7 @@ import * as React from "react";
 import { Loader2, Search } from "lucide-react";
 import { toast } from "sonner";
 
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,6 +52,7 @@ const REASONS: Record<string, string> = {
 };
 
 function ReviewCard({ item, canResolve }: { item: ReviewItem; canResolve: boolean }) {
+  const [ask, askDialog] = useConfirm();
   const [pending, startTransition] = React.useTransition();
   const [q, setQ] = React.useState("");
   const [found, setFound] = React.useState<
@@ -81,8 +83,8 @@ function ReviewCard({ item, canResolve }: { item: ReviewItem; canResolve: boolea
     };
   }, [q]);
 
-  function run(input: Parameters<typeof resolveReview>[0], confirmText?: string) {
-    if (confirmText && !confirm(confirmText)) return;
+  async function run(input: Parameters<typeof resolveReview>[0], confirmText?: string) {
+    if (confirmText && !(await ask(confirmText))) return;
     startTransition(async () => {
       const res = await resolveReview(input);
       if (res.ok) toast.success(res.message);
@@ -246,6 +248,7 @@ function ReviewCard({ item, canResolve }: { item: ReviewItem; canResolve: boolea
           </div>
         )}
       </CardContent>
+      {askDialog}
     </Card>
   );
 }

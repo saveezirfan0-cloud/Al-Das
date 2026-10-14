@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -80,6 +81,7 @@ const STATUS_STYLE: Record<FlowRow["status"], string> = {
 };
 
 export function FlowsList({ rows, canAi }: { rows: FlowRow[]; canAi: boolean }) {
+  const [ask, askDialog] = useConfirm();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
@@ -209,8 +211,8 @@ export function FlowsList({ rows, canAi }: { rows: FlowRow[]; canAi: boolean }) 
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-destructive"
-                        onSelect={() => {
-                          if (confirm(`Delete "${f.name}"? Its run history is deleted too.`))
+                        onSelect={async () => {
+                          if (await ask(`Delete "${f.name}"? Its run history is deleted too.`))
                             run(() => deleteFlow(f.id));
                         }}
                       >
@@ -290,6 +292,7 @@ export function FlowsList({ rows, canAi }: { rows: FlowRow[]; canAi: boolean }) 
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {askDialog}
     </div>
   );
 }

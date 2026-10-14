@@ -1,3 +1,4 @@
+import { CappedNote } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { can } from "@/lib/auth/can";
@@ -151,6 +152,7 @@ export default async function FollowUpsPage() {
         canWrite={can(member, "portal.clinical_followups.write")}
         today={new Date().toISOString().slice(0, 10)}
       />
+      {items.length >= 500 && <CappedNote shown={500} />}
     </div>
   );
 }

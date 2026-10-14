@@ -1,3 +1,4 @@
+import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,7 +45,10 @@ export default async function UploadPage() {
         </CardHeader>
         <CardContent>
           {(files ?? []).length === 0 ? (
-            <p className="text-muted-foreground text-sm">Nothing uploaded yet.</p>
+            <EmptyState
+              title="Nothing uploaded yet"
+              description="Upload the Diligence claim file above; Pulse keeps only the sanitised rows."
+            />
           ) : (
             <Table>
               <TableHeader>

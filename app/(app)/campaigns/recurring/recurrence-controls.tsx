@@ -5,19 +5,21 @@ import { useRouter } from "next/navigation";
 import { Pause, Play, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { Button } from "@/components/ui/button";
 
 import { deleteRecurrence, pauseRecurrence, resumeRecurrence } from "./actions";
 
 export function RecurrenceControls({ id, active }: { id: string; active: boolean }) {
+  const [ask, askDialog] = useConfirm();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
-  function run(
+  async function run(
     fn: () => Promise<{ ok: boolean; error?: string; message?: string }>,
     confirmText?: string,
   ) {
-    if (confirmText && !window.confirm(confirmText)) return;
+    if (confirmText && !(await ask(confirmText))) return;
     startTransition(async () => {
       const r = await fn();
       if (!r.ok) toast.error(r.error ?? "Something went wrong.");
@@ -68,6 +70,7 @@ export function RecurrenceControls({ id, active }: { id: string; active: boolean
       >
         <Trash2 />
       </Button>
+      {askDialog}
     </span>
   );
 }

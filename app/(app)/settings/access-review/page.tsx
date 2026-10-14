@@ -1,3 +1,4 @@
+import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -73,7 +74,10 @@ export default async function AccessReviewPage() {
         </CardHeader>
         <CardContent>
           {past.length === 0 ? (
-            <p className="text-muted-foreground text-sm">No review has been signed yet.</p>
+            <EmptyState
+              title="No review has been signed yet"
+              description="Go through the list above and sign it off once a quarter."
+            />
           ) : (
             <ul className="divide-y">
               {past.map((r) => {

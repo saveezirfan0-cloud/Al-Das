@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -94,8 +95,8 @@ export default async function BankSettingsPage() {
             <TableBody>
               {(accounts ?? []).length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-muted-foreground text-sm">
-                    No accounts yet.
+                  <TableCell colSpan={5}>
+                    <EmptyState title="No accounts yet" className="border-0 p-6" />
                   </TableCell>
                 </TableRow>
               ) : (
@@ -148,9 +149,12 @@ export default async function BankSettingsPage() {
             <TableBody>
               {formats.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-muted-foreground text-sm">
-                    No layouts yet. Add one when the first sample statement or settlement report
-                    arrives.
+                  <TableCell colSpan={5}>
+                    <EmptyState
+                      title="No layouts yet"
+                      description="Add one when the first sample statement or settlement report arrives."
+                      className="border-0 p-6"
+                    />
                   </TableCell>
                 </TableRow>
               ) : (
@@ -209,8 +213,8 @@ export default async function BankSettingsPage() {
             <TableBody>
               {rules.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-muted-foreground text-sm">
-                    No rules yet.
+                  <TableCell colSpan={7}>
+                    <EmptyState title="No rules yet" className="border-0 p-6" />
                   </TableCell>
                 </TableRow>
               ) : (

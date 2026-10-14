@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { confirmPartsFromText } from "@/lib/shell/confirm-text";
 
 /**
  * A confirmation step for destructive or sensitive actions. `typeToConfirm` asks the person to type a
@@ -113,23 +114,32 @@ export type ConfirmOptions = {
   title: string;
   description?: React.ReactNode;
   confirmLabel?: string;
+  /** The button that answers no (default "Cancel"). */
+  cancelLabel?: string;
   destructive?: boolean;
 };
 
 /**
  * The in-app replacement for the browser's `confirm()`: `const [confirm, confirmDialog] = useConfirm();` then
  * `if (!(await confirm({ title: "Mark as no-show?" }))) return;` and render `{confirmDialog}` once in the component.
- * Cancel, Escape and clicking outside all answer false.
+ * A plain question also works: `await confirm("Delete this file? This cannot be undone.")` makes the first sentence
+ * the title, the rest the description and "Delete" the (destructive) button (lib/shell/confirm-text.ts).
+ * Cancel, Escape and clicking outside all answer false. A browser `confirm(` call fails tests/unit/no-browser-confirm.
  */
-export function useConfirm(): [(options: ConfirmOptions) => Promise<boolean>, React.ReactNode] {
+export function useConfirm(): [
+  (options: ConfirmOptions | string) => Promise<boolean>,
+  React.ReactNode,
+] {
   const [request, setRequest] = React.useState<
     (ConfirmOptions & { resolve: (ok: boolean) => void }) | null
   >(null);
 
   const confirm = React.useCallback(
-    (options: ConfirmOptions) =>
+    (options: ConfirmOptions | string) =>
       new Promise<boolean>((resolve) => {
-        setRequest({ ...options, resolve });
+        const o = typeof options === "string" ? confirmPartsFromText(options) : options;
+        // opened on the next tick, so a menu that triggered it (dropdown item) has closed and released focus first
+        setTimeout(() => setRequest({ ...o, resolve }), 0);
       }),
     [],
   );
@@ -154,7 +164,7 @@ export function useConfirm(): [(options: ConfirmOptions) => Promise<boolean>, Re
         </DialogHeader>
         <DialogFooter>
           <Button type="button" variant="ghost" onClick={() => answer(false)}>
-            Cancel
+            {request?.cancelLabel ?? "Cancel"}
           </Button>
           <Button
             type="button"

@@ -1,3 +1,4 @@
+import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -134,7 +135,10 @@ export default async function CashupPage({ searchParams }: { searchParams: Promi
         </CardHeader>
         <CardContent>
           {(recent ?? []).length === 0 ? (
-            <p className="text-muted-foreground text-sm">No cash-ups yet.</p>
+            <EmptyState
+              title="No cash-ups yet"
+              description="Count the cash at the end of the day and record it above."
+            />
           ) : (
             <Table>
               <TableHeader>

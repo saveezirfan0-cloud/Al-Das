@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { RecordHistory } from "@/components/history/record-history";
 import { Download, ExternalLink, Loader2, Paperclip, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -77,6 +78,7 @@ export function RecordDrawer({
   onClose: () => void;
   onChanged: () => void;
 }) {
+  const [ask, askDialog] = useConfirm();
   const def = bootstrap.object;
   const [detail, setDetail] = React.useState<RecordDetail | null>(null);
   const [loading, setLoading] = React.useState(false);
@@ -139,14 +141,14 @@ export function RecordDrawer({
     });
   }
 
-  function remove() {
+  async function remove() {
     if (
       !detail ||
-      !confirm(
+      !(await ask(
         def.softDeleteEntity
           ? `Delete this ${def.label.toLowerCase()} record? It can be restored from Settings, Recently deleted for a while.`
           : `Delete this ${def.label.toLowerCase()} record? This cannot be undone.`,
-      )
+      ))
     )
       return;
     startTransition(async () => {
@@ -297,6 +299,7 @@ export function RecordDrawer({
           </>
         ) : null}
       </SheetContent>
+      {askDialog}
     </Sheet>
   );
 }
@@ -553,6 +556,7 @@ function Files({
   userName: (id: string | null) => string;
   onChanged: () => void;
 }) {
+  const [ask, askDialog] = useConfirm();
   const [busy, setBusy] = React.useState(false);
   const input = React.useRef<HTMLInputElement>(null);
 
@@ -592,7 +596,7 @@ function Files({
   }
 
   async function remove(id: string) {
-    if (!confirm("Remove this file?")) return;
+    if (!(await ask("Remove this file?"))) return;
     const res = await deletePortalAttachment(objectKey, id);
     if (!res.ok) return toast.error(res.error);
     onChanged();
@@ -651,6 +655,7 @@ function Files({
       <Badge variant="outline" className="self-start">
         Stored privately; links expire in 5 minutes
       </Badge>
+      {askDialog}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -22,11 +23,12 @@ export function RoleActions({
   role: RoleInput & { id: string; is_system: boolean };
   memberCount: number;
 }) {
+  const [ask, askDialog] = useConfirm();
   const [editing, setEditing] = useState(false);
   const [pending, startTransition] = useTransition();
 
-  function remove() {
-    if (!confirm(`Delete the ${role.name} role?`)) return;
+  async function remove() {
+    if (!(await ask(`Delete the ${role.name} role?`))) return;
     startTransition(async () => {
       const res = await deleteRole(role.id);
       if (res.ok) toast.success(res.message);
@@ -57,6 +59,7 @@ export function RoleActions({
         </DropdownMenuContent>
       </DropdownMenu>
       <RoleDialog mode="edit" role={role} open={editing} onOpenChange={setEditing} />
+      {askDialog}
     </>
   );
 }

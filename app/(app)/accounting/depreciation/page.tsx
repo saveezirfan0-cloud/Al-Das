@@ -1,3 +1,4 @@
+import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -120,8 +121,8 @@ export default async function DepreciationPage({
               <TableBody>
                 {lines.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-muted-foreground text-sm">
-                      Nothing to charge this month.
+                    <TableCell colSpan={4}>
+                      <EmptyState title="Nothing to charge this month" className="border-0 p-6" />
                     </TableCell>
                   </TableRow>
                 )}

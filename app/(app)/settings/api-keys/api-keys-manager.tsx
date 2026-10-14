@@ -4,6 +4,8 @@ import { useState, useTransition } from "react";
 import { Check, ClipboardCopy, KeyRound, Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
 
+import { EmptyState } from "@/components/shell/empty-state";
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -45,6 +47,7 @@ function status(k: KeyRow): { label: string; variant: "success" | "destructive" 
 }
 
 export function ApiKeysManager({ keys, baseUrl }: { keys: KeyRow[]; baseUrl: string }) {
+  const [ask, askDialog] = useConfirm();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [scopes, setScopes] = useState<ApiKeyScope[]>(["contacts:read"]);
@@ -76,7 +79,7 @@ export function ApiKeysManager({ keys, baseUrl }: { keys: KeyRow[]; baseUrl: str
       </div>
 
       {keys.length === 0 ? (
-        <p className="text-muted-foreground rounded-xl border border-dashed p-10 text-center text-sm">No API keys yet.</p>
+        <EmptyState title="No API keys yet" description="Create a key for each system that connects to Pulse; you see it once." />
       ) : (
         <Table>
           <TableHeader>
@@ -117,8 +120,8 @@ export function ApiKeysManager({ keys, baseUrl }: { keys: KeyRow[]; baseUrl: str
                         variant="ghost"
                         size="sm"
                         disabled={pending}
-                        onClick={() => {
-                          if (!confirm(`Revoke “${k.name}”? Systems using it will stop working immediately.`)) return;
+                        onClick={async () => {
+                          if (!(await ask(`Revoke “${k.name}”? Systems using it will stop working immediately.`))) return;
                           start(async () => {
                             const r = await revokeApiKey(k.id);
                             if (r.ok) toast.success(r.message);
@@ -248,6 +251,7 @@ curl -X POST ${baseUrl}/send-template \\
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {askDialog}
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { FileUp, Globe, Loader2, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,6 +39,7 @@ const STATUS_BADGE: Record<string, "secondary" | "warning" | "success" | "destru
 };
 
 export function KnowledgeManager({ groups, sources }: { groups: Group[]; sources: Source[] }) {
+  const [ask, askDialog] = useConfirm();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [url, setUrl] = useState("");
@@ -192,8 +194,8 @@ export function KnowledgeManager({ groups, sources }: { groups: Group[]; sources
                           size="icon-sm"
                           aria-label={`Delete ${s.name}`}
                           disabled={pending}
-                          onClick={() => {
-                            if (confirm(`Delete “${s.name}” and its sections?`)) act(() => deleteSource(s.id));
+                          onClick={async () => {
+                            if (await ask(`Delete “${s.name}” and its sections?`)) act(() => deleteSource(s.id));
                           }}
                         >
                           <Trash2 />
@@ -234,8 +236,8 @@ export function KnowledgeManager({ groups, sources }: { groups: Group[]; sources
                   variant="ghost"
                   size="icon-xs"
                   aria-label={`Delete group ${g.name}`}
-                  onClick={() => {
-                    if (confirm(`Delete the group “${g.name}”? Its sources are kept.`)) act(() => deleteGroup(g.id));
+                  onClick={async () => {
+                    if (await ask(`Delete the group “${g.name}”? Its sources are kept.`)) act(() => deleteGroup(g.id));
                   }}
                 >
                   <Trash2 />
@@ -246,6 +248,7 @@ export function KnowledgeManager({ groups, sources }: { groups: Group[]; sources
           </ul>
         </CardContent>
       </Card>
+      {askDialog}
     </div>
   );
 }
