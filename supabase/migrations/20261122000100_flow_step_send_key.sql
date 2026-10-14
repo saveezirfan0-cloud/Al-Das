@@ -9,6 +9,7 @@
 --   messages.flow_step_key                 the flow step that queued this message (queueOutbound returns it on a replay)
 --   appointments.flow_step_key             the flow step that booked this appointment (Book appointment node)
 --   fin_payment_requests.flow_step_key     the flow step that asked for this payment link (Payment link node)
+--   fin_payment_requests.create_attempted_at  stamped before the gateway call; a replay never repeats an ambiguous create
 --   book_appointment_for_flow_step(...)    book_appointment, unchanged, plus the key in the same transaction; refuses with
 --                                          'flow_step_booked' when the step already booked. Service role only.
 --   requeue_lost_flow_message(uuid, text)  a replay found its message still 'queued' with no outbound job (crash between
@@ -45,6 +46,11 @@ create unique index if not exists fin_payment_requests_flow_step_key_uidx on pub
   where flow_step_key is not null;
 comment on column public.fin_payment_requests.flow_step_key is
   'The flow step (<run id>:<step seq>) that asked for this link. Unique: a replayed Payment link step gets this request back.';
+-- Stamped just before the gateway is asked for a link. A replayed step that finds it set but no gateway reference stored
+-- cannot know whether a link exists, so it never asks again (an ambiguous create is never repeated by code).
+alter table public.fin_payment_requests add column if not exists create_attempted_at timestamptz;
+comment on column public.fin_payment_requests.create_attempted_at is
+  'When Pulse asked the gateway to create this link. Set with no provider_ref after a crash = ambiguous: never created again automatically.';
 
 -- ---------------------------------------------------------------------------
 -- 2. Booking from a flow step: book_appointment (signature, lock and slot rule unchanged) + the key, one transaction

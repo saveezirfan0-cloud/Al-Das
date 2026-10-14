@@ -10400,6 +10400,7 @@ export type Database = {
           amount_minor: number;
           amount_paid_minor: number | null;
           contact_id: string | null;
+          create_attempted_at: string | null;
           created_at: string;
           created_by: string | null;
           currency: string;
@@ -10426,6 +10427,7 @@ export type Database = {
           amount_minor: number;
           amount_paid_minor?: number | null;
           contact_id?: string | null;
+          create_attempted_at?: string | null;
           created_at?: string;
           created_by?: string | null;
           currency: string;
@@ -10451,6 +10453,7 @@ export type Database = {
           amount_minor?: number;
           amount_paid_minor?: number | null;
           contact_id?: string | null;
+          create_attempted_at?: string | null;
           created_at?: string;
           created_by?: string | null;
           currency?: string;
