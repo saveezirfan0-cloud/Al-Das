@@ -175,6 +175,8 @@ export async function sendAppointmentTemplate(
     appointmentId: string;
     key: NotifyKey;
     sentByUserId: string | null;
+    /** A flow step's key (createAppointment from a flow): the confirmation is queued once per step. */
+    flowStepKey?: string;
   },
 ): Promise<NotifyResult> {
   const { data: appt } = await admin
@@ -278,6 +280,7 @@ export async function sendAppointmentTemplate(
     body: [preview.headerText, preview.body].filter(Boolean).join("\n"),
     sentByUserId: input.sentByUserId,
     priority: false, // automations ride the bulk lane; live chat keeps outbound_priority
+    flowStepKey: input.flowStepKey,
   });
   return { ok: true, messageId: message.id };
 }
@@ -335,12 +338,22 @@ export type CreateAppointmentInput = {
   /** Book outside working hours / over a block (needs appointments.manage; checked by the caller). */
   override?: boolean;
   source?: "portal" | "bot";
+  /**
+   * A flow's Book appointment step (flowStepKey: run id + step seq). appointments.flow_step_key and the confirmation's
+   * messages.flow_step_key are unique, so a step replayed after a crash gets its booking (and its one confirmation) back
+   * instead of booking again.
+   */
+  flowStepKey?: string;
 };
 
 export async function createAppointment(
   admin: AdminClient,
   input: CreateAppointmentInput,
 ): Promise<ServiceResult<{ appointment: Appointment; notification: NotifyResult | null }>> {
+  if (input.flowStepKey) {
+    const earlier = await bookedByFlowStep(admin, input.orgId, input.flowStepKey);
+    if (earlier) return finishFlowStepReplay(admin, input, earlier);
+  }
   const [{ data: contact }, { data: service }, { data: specialist }, { data: location }] =
     await Promise.all([
       admin
@@ -390,7 +403,7 @@ export async function createAppointment(
   const endsAt = new Date(input.startsAt.getTime() + service.duration_min * 60_000);
   // One transaction under a per-specialist lock: re-checks the slot and inserts, so two staff booking
   // the same time at the same instant cannot both succeed (the TypeScript check above is only a fast path).
-  const { data: appointment, error } = await admin.rpc("book_appointment", {
+  const args = {
     p_org_id: input.orgId,
     p_contact_id: input.contactId,
     p_location_id: input.locationId,
@@ -405,7 +418,19 @@ export async function createAppointment(
     p_source: input.source ?? "portal",
     p_created_by: input.actorId as string,
     p_enforce: !input.override,
-  });
+  };
+  // A flow step books through the wrapper: the same book_appointment call plus the step key in one transaction.
+  const { data: appointment, error } = input.flowStepKey
+    ? await admin.rpc("book_appointment_for_flow_step", {
+        ...args,
+        p_flow_step_key: input.flowStepKey,
+      })
+    : await admin.rpc("book_appointment", args);
+  if (input.flowStepKey && (error?.message === "flow_step_booked" || error?.code === "23505")) {
+    // Another attempt of the same step booked it a moment ago (it holds the specialist lock first): use that booking.
+    const earlier = await bookedByFlowStep(admin, input.orgId, input.flowStepKey);
+    if (earlier) return finishFlowStepReplay(admin, input, earlier);
+  }
   if (error?.message === "slot_taken")
     return { ok: false, error: "That time was just taken. Pick another slot." };
   if (error || !appointment)
@@ -436,6 +461,46 @@ export async function createAppointment(
         appointmentId: appointment.id,
         key: "confirmed",
         sentByUserId: input.actorId,
+        flowStepKey: input.flowStepKey,
+      })
+    : null;
+  return { ok: true, appointment, notification };
+}
+
+/** The appointment a flow step already booked (appointments.flow_step_key), or null. */
+async function bookedByFlowStep(
+  admin: AdminClient,
+  orgId: string,
+  key: string,
+): Promise<Appointment | null> {
+  const { data } = await admin
+    .from("appointments")
+    .select("*")
+    .eq("org_id", orgId)
+    .eq("flow_step_key", key)
+    .maybeSingle();
+  return data;
+}
+
+/**
+ * A replayed Book appointment step: the booking exists, so nothing is booked again. Reminders are re-synced (idempotent) and
+ * the confirmation is asked for again with the same step key, so it is queued only if the first attempt never queued it.
+ * The timeline entry and the appointment.created event are not repeated (at most once: a crash between the booking and
+ * them loses them rather than doubling them).
+ */
+async function finishFlowStepReplay(
+  admin: AdminClient,
+  input: CreateAppointmentInput,
+  appointment: Appointment,
+): Promise<ServiceResult<{ appointment: Appointment; notification: NotifyResult | null }>> {
+  await syncAppointmentReminders(admin, appointment);
+  const notification = input.notify
+    ? await sendAppointmentTemplate(admin, {
+        orgId: input.orgId,
+        appointmentId: appointment.id,
+        key: "confirmed",
+        sentByUserId: input.actorId,
+        flowStepKey: input.flowStepKey,
       })
     : null;
   return { ok: true, appointment, notification };
@@ -599,7 +664,10 @@ export async function rescheduleAppointment(
     reason: "rescheduled",
   });
   // The time the patient moved away from is free again.
-  if (new Date(current.starts_at).getTime() !== new Date(appointment.starts_at).getTime() || current.specialist_id !== appointment.specialist_id) {
+  if (
+    new Date(current.starts_at).getTime() !== new Date(appointment.starts_at).getTime() ||
+    current.specialist_id !== appointment.specialist_id
+  ) {
     const freed = freedSlotFromRow(current);
     if (freed) await scheduleSlotFreed(input.orgId, freed);
   }

@@ -4904,6 +4904,7 @@ export type Database = {
           ends_at: string;
           external_id: string | null;
           external_status: string | null;
+          flow_step_key: string | null;
           id: string;
           is_walk_in: boolean;
           location_id: string | null;
@@ -4936,6 +4937,7 @@ export type Database = {
           ends_at: string;
           external_id?: string | null;
           external_status?: string | null;
+          flow_step_key?: string | null;
           id?: string;
           is_walk_in?: boolean;
           location_id?: string | null;
@@ -4967,6 +4969,7 @@ export type Database = {
           ends_at?: string;
           external_id?: string | null;
           external_status?: string | null;
+          flow_step_key?: string | null;
           id?: string;
           is_walk_in?: boolean;
           location_id?: string | null;
@@ -10402,6 +10405,7 @@ export type Database = {
           currency: string;
           expires_at: string | null;
           failure_code: string | null;
+          flow_step_key: string | null;
           id: string;
           invoice_id: string;
           invoice_number: string;
@@ -10427,6 +10431,7 @@ export type Database = {
           currency: string;
           expires_at?: string | null;
           failure_code?: string | null;
+          flow_step_key?: string | null;
           id?: string;
           invoice_id: string;
           invoice_number: string;
@@ -10451,6 +10456,7 @@ export type Database = {
           currency?: string;
           expires_at?: string | null;
           failure_code?: string | null;
+          flow_step_key?: string | null;
           id?: string;
           invoice_id?: string;
           invoice_number?: string;
@@ -23892,6 +23898,64 @@ export type Database = {
           ends_at: string;
           external_id: string | null;
           external_status: string | null;
+          flow_step_key: string | null;
+          id: string;
+          is_walk_in: boolean;
+          location_id: string | null;
+          notes: string | null;
+          notify_early: boolean;
+          number: number;
+          org_id: string;
+          service_id: string | null;
+          source: string;
+          specialist_id: string | null;
+          starts_at: string;
+          status: string;
+          unite_clinic_id: string | null;
+          updated_at: string;
+          visit_mode: string | null;
+          with_doctor_at: string | null;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "appointments";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      book_appointment_for_flow_step: {
+        Args: {
+          p_contact_id: string;
+          p_created_by: string;
+          p_department_id: string;
+          p_ends_at: string;
+          p_enforce: boolean;
+          p_flow_step_key: string;
+          p_location_id: string;
+          p_notes: string;
+          p_notify_early: boolean;
+          p_org_id: string;
+          p_service_id: string;
+          p_source: string;
+          p_specialist_id: string;
+          p_starts_at: string;
+          p_status: string;
+        };
+        Returns: {
+          arrived_at: string | null;
+          channel_id: string | null;
+          checked_out_at: string | null;
+          checkin_status: string | null;
+          contact_id: string | null;
+          created_at: string;
+          created_by: string | null;
+          custom: NonNullable<Json>;
+          department_id: string | null;
+          done_at: string | null;
+          ends_at: string;
+          external_id: string | null;
+          external_status: string | null;
+          flow_step_key: string | null;
           id: string;
           is_walk_in: boolean;
           location_id: string | null;
@@ -24730,6 +24794,7 @@ export type Database = {
           ends_at: string;
           external_id: string | null;
           external_status: string | null;
+          flow_step_key: string | null;
           id: string;
           is_walk_in: boolean;
           location_id: string | null;
@@ -24758,7 +24823,6 @@ export type Database = {
         Args: { p_actor: string; p_membership: string; p_org: string; p_reassign_to?: string };
         Returns: Json;
       };
-      outbound_message_enqueued: { Args: { p_message_id: string }; Returns: boolean };
       pick_round_robin_assignee: { Args: { p_org_id: string; p_team_id: string }; Returns: string };
       pick_round_robin_assignee_capped: {
         Args: { p_org_id: string; p_team_id: string };
@@ -25267,6 +25331,10 @@ export type Database = {
           day: string;
           volume: number;
         }[];
+      };
+      requeue_lost_flow_message: {
+        Args: { p_message_id: string; p_queue: string };
+        Returns: boolean;
       };
       reserve_send_slot: { Args: { p_cap: number; p_channel_id: string }; Returns: number };
       review_request_stats: { Args: { p_org: string; p_since: string }; Returns: Json };

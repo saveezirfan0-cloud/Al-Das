@@ -286,7 +286,7 @@ export function createCrmAdapters(
       return { id: String(res.data.id), created: input.mode !== "update" };
     },
 
-    async bookAppointment(run, input) {
+    async bookAppointment(run, input, opts) {
       if (!run.contact_id) throw new Error("This step needs a contact");
       const res = await s.createAppointment(admin, {
         orgId: run.org_id,
@@ -298,6 +298,7 @@ export function createCrmAdapters(
         startsAt: new Date(String(input.starts_at)),
         notify: input.notify === true,
         source: "bot",
+        flowStepKey: opts.stepKey,
       });
       if (!res.ok) throw new Error(res.error);
       return { id: res.appointment.id, created: true };

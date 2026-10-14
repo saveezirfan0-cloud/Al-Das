@@ -211,8 +211,8 @@ export type CreateRequestInput = {
   now?: Date;
   provider?: PaymentProvider;
   /**
-   * A flow's Payment link step (flowStepKey: run id + step seq). The message carries it (messages.flow_step_key, unique),
-   * so a step replayed after a crash gets the request it already sent back instead of a second link or message.
+   * A flow's Payment link step (flowStepKey: run id + step seq). The request row and its message both carry it (unique
+   * columns), so a step replayed after a crash gets the request it already made back instead of a second link or message.
    */
   flowStepKey?: string;
 };
@@ -222,13 +222,21 @@ export async function createPaymentRequest(
   input: CreateRequestInput,
 ): Promise<Result<{ requestId: string; expiresAt: string }>> {
   const now = input.now ?? new Date();
-  if (input.flowStepKey) {
-    const earlier = await requestSentByFlowStep(admin, input.orgId, input.flowStepKey);
-    if (earlier) return { ok: true, ...earlier };
-  }
+  const replay = input.flowStepKey
+    ? await flowStepRequest(admin, input.orgId, input.flowStepKey)
+    : null;
+  if (replay?.kind === "done") return { ok: true, ...replay.result };
   const setupRes = await loadPaymentSetup(admin, input.orgId, { provider: input.provider });
   if (!setupRes.ok) return setupRes;
   const { account, cfg, provider, template } = setupRes.setup;
+  if (replay?.kind === "unsent") {
+    // The earlier attempt of this step never queued its message, so nothing reached the patient: close that request and
+    // its gateway link, release the key, and start over.
+    const closed = await closeUnsentFlowStepRequest(admin, input.orgId, replay.request);
+    if (!closed) throw new Error("The payment request changed while the step was replayed");
+    if (replay.request.provider_ref && provider.expire)
+      await provider.expire(replay.request.provider_ref);
+  }
 
   const amountMinor = majorToMinor(input.amount, cfg.currency);
   if (amountMinor === null)
@@ -290,6 +298,7 @@ export async function createPaymentRequest(
       status: "pending",
       expires_at: expiresAt.toISOString(),
       created_by: input.actorId,
+      flow_step_key: input.flowStepKey ?? null,
     })
     .select("id")
     .single();
@@ -423,27 +432,85 @@ export async function createPaymentRequest(
   return { ok: true, requestId, expiresAt: finalExpiry.toISOString() };
 }
 
-/** The request a flow step already sent (its message carries the step key), or null. Ids and the expiry only. */
-async function requestSentByFlowStep(
+type FlowStepRequestRow = {
+  id: string;
+  status: string;
+  message_id: string | null;
+  expires_at: string | null;
+  provider_ref: string | null;
+};
+
+/**
+ * What a replayed Payment link step already did (fin_payment_requests.flow_step_key):
+ *  - done: the request exists and its message was queued (linked now if the crash fell between queueing and linking);
+ *    the step gets that request back whatever its status, so a second link is never made
+ *  - unsent: the request exists but no message carries the key, so the patient got nothing; the caller closes it and starts over
+ *  - none: this step never got as far as a request
+ */
+async function flowStepRequest(
   admin: AdminClient,
   orgId: string,
   key: string,
-): Promise<{ requestId: string; expiresAt: string } | null> {
+): Promise<
+  | { kind: "none" }
+  | { kind: "done"; result: { requestId: string; expiresAt: string } }
+  | { kind: "unsent"; request: FlowStepRequestRow }
+> {
+  const { data: request, error } = await admin
+    .from("fin_payment_requests")
+    .select("id, status, message_id, expires_at, provider_ref")
+    .eq("org_id", orgId)
+    .eq("flow_step_key", key)
+    .maybeSingle();
+  if (error) throw new Error("Could not read the payment request of this step");
+  if (!request) return { kind: "none" };
+  // expires_at is written with the row; the flow step only reads the request id.
+  const done = {
+    kind: "done" as const,
+    result: { requestId: request.id, expiresAt: request.expires_at ?? "" },
+  };
+  if (request.message_id) return done;
   const { data: message } = await admin
     .from("messages")
     .select("id")
     .eq("org_id", orgId)
     .eq("flow_step_key", key)
     .maybeSingle();
-  if (!message) return null;
-  const { data: request } = await admin
+  if (!message) return { kind: "unsent", request };
+  // The message was queued but the request was never linked to it: link it now (and mark it sent if it was waiting for that).
+  await admin
     .from("fin_payment_requests")
-    .select("id, expires_at")
+    .update(
+      request.status === "created"
+        ? { message_id: message.id, status: "sent" }
+        : { message_id: message.id },
+    )
+    .eq("id", request.id)
     .eq("org_id", orgId)
-    .eq("message_id", message.id)
-    .maybeSingle();
-  // expires_at is written with the row; the flow step only reads the request id.
-  return request ? { requestId: request.id, expiresAt: request.expires_at ?? "" } : null;
+    .is("message_id", null);
+  return done;
+}
+
+/** Closes a replayed step's request that never sent its message and releases the key. False if it changed meanwhile. */
+async function closeUnsentFlowStepRequest(
+  admin: AdminClient,
+  orgId: string,
+  request: FlowStepRequestRow,
+): Promise<boolean> {
+  const live = request.status === "pending" || request.status === "created";
+  const { data } = await admin
+    .from("fin_payment_requests")
+    .update(
+      live
+        ? { flow_step_key: null, status: "failed", failure_code: "step_replayed" }
+        : { flow_step_key: null },
+    )
+    .eq("id", request.id)
+    .eq("org_id", orgId)
+    .eq("status", request.status)
+    .is("message_id", null)
+    .select("id");
+  return (data?.length ?? 0) > 0;
 }
 
 /** Cancels an open request and asks the gateway to close the link where it can. A payment that still arrives is recorded and flagged. */

@@ -174,8 +174,37 @@ describe("advance: crash between 'queued' and 'step recorded'", () => {
   });
 });
 
-describe("payment_link passes the step key to the port", () => {
-  it("hands ctx.stepKey to createPaymentLink", async () => {
+describe("ports that send or book get the step key", () => {
+  const stepRun = (): RunRecord => ({
+    id: "00000000-0000-4000-8000-0000000000a1",
+    org_id: ORG,
+    flow_id: FLOW,
+    flow_version: 1,
+    contact_id: CONTACT,
+    conversation_id: CONV,
+    enquiry_id: null,
+    status: "running",
+    current_node_id: "p",
+    context: emptyContext(),
+    waiting_for: null,
+    step_count: 4,
+    parent_run_id: null,
+    error: null,
+  });
+  const ctxFor = (h: Harness, type: NodeType, data: Record<string, unknown>): ExecCtx => {
+    const run = stepRun();
+    return {
+      run,
+      node: node("p", type, data),
+      deps: h.deps,
+      contact: fakeContact(),
+      conversation: fakeConversation(),
+      scope: {},
+      stepKey: flowStepKey(run.id, 5),
+    };
+  };
+
+  it("payment_link hands ctx.stepKey to createPaymentLink", async () => {
     const seen: unknown[] = [];
     const crm: CrmPort = {
       createPaymentLink: async (_run, _input, opts) => {
@@ -183,34 +212,69 @@ describe("payment_link passes the step key to the port", () => {
         return { ok: true, requestId: "req-1" };
       },
     };
-    const h = harness({ crm });
-    const run: RunRecord = {
-      id: "00000000-0000-4000-8000-0000000000a1",
-      org_id: ORG,
-      flow_id: FLOW,
-      flow_version: 1,
-      contact_id: CONTACT,
-      conversation_id: CONV,
-      enquiry_id: null,
-      status: "running",
-      current_node_id: "p",
-      context: emptyContext(),
-      waiting_for: null,
-      step_count: 4,
-      parent_run_id: null,
-      error: null,
-    };
-    const ctx: ExecCtx = {
-      run,
-      node: node("p", "payment_link", { invoice_number: "INV-1", amount: "10.00" }),
-      deps: h.deps,
-      contact: fakeContact(),
-      conversation: fakeConversation(),
-      scope: {},
-      stepKey: flowStepKey(run.id, 5),
-    };
+    const ctx = ctxFor(harness({ crm }), "payment_link", {
+      invoice_number: "INV-1",
+      amount: "10.00",
+    });
     expect(await EXECUTORS.payment_link(ctx)).toMatchObject({ kind: "next" });
-    expect(seen).toEqual([{ stepKey: flowStepKey(run.id, 5) }]);
+    expect(seen).toEqual([{ stepKey: flowStepKey(ctx.run.id, 5) }]);
+  });
+
+  it("book_appointment hands ctx.stepKey to bookAppointment", async () => {
+    const seen: unknown[] = [];
+    const crm: CrmPort = {
+      bookAppointment: async (_run, _input, opts) => {
+        seen.push(opts);
+        return { id: "appt-1", created: true };
+      },
+    };
+    const ctx = ctxFor(harness({ crm }), "book_appointment", {
+      service_id: "00000000-0000-4000-8000-0000000000b2",
+      specialist_id: "00000000-0000-4000-8000-0000000000b3",
+      location_id: "00000000-0000-4000-8000-0000000000b4",
+      starts_at: "2026-10-20T08:00:00.000Z",
+      notify: true,
+    });
+    expect(await EXECUTORS.book_appointment(ctx)).toMatchObject({
+      kind: "next",
+      vars: { appointment_id: "appt-1" },
+    });
+    expect(seen).toEqual([{ stepKey: flowStepKey(ctx.run.id, 5) }]);
+  });
+
+  it("a Book appointment step replayed after a crash books once (the port answers the key with its booking)", async () => {
+    const booked = new Map<string, string>();
+    const crm: CrmPort = {
+      bookAppointment: async (_run, _input, opts) => {
+        const earlier = booked.get(opts.stepKey);
+        if (earlier) return { id: earlier, created: false };
+        booked.set(opts.stepKey, `appt-${booked.size + 1}`);
+        return { id: `appt-${booked.size}`, created: true };
+      },
+    };
+    const h = harness({ crm });
+    h.store.addFlow(
+      graph(
+        [
+          node("t", "trigger"),
+          node("b", "book_appointment", {
+            service_id: "00000000-0000-4000-8000-0000000000b2",
+            specialist_id: "00000000-0000-4000-8000-0000000000b3",
+            location_id: "00000000-0000-4000-8000-0000000000b4",
+            starts_at: "2026-10-20T08:00:00.000Z",
+          }),
+        ],
+        [edge("t", "b")],
+      ),
+    );
+    const id = await start(h);
+    await advance(h.deps, id);
+    crashBeforeStepRecorded(h);
+    await expect(advance(h.deps, id)).rejects.toThrow("connection lost");
+    await advance(h.deps, id);
+    expect([...booked.entries()]).toEqual([[flowStepKey(id, 2), "appt-1"]]);
+    expect(h.store.steps.find((s) => s.node_id === "b")!.output?.id).toBe("appt-1");
+    expect(h.store.runs.get(id)!.context.vars.appointment_id).toBe("appt-1");
   });
 });
 
@@ -220,7 +284,7 @@ describe("payment_link passes the step key to the port", () => {
 
 type Row = Record<string, unknown>;
 
-function fakeAdmin(opts: { enqueued?: boolean } = {}) {
+function fakeAdmin() {
   const messages: Row[] = [];
   const rpcCalls: Array<{ fn: string; args: unknown }> = [];
   let n = 0;
@@ -274,7 +338,7 @@ function fakeAdmin(opts: { enqueued?: boolean } = {}) {
     },
     async rpc(fn: string, args: unknown) {
       rpcCalls.push({ fn, args });
-      return { data: opts.enqueued ?? true, error: null };
+      return { data: false, error: null };
     },
   };
   return { admin: admin as unknown as AdminClient, messages, rpcCalls };
@@ -303,8 +367,8 @@ describe("queueOutbound with a flow step key", () => {
     expect(enqueue).toHaveBeenCalledWith("outbound", { message_id: m.id });
   });
 
-  it("a replay with the same key returns the first message and queues nothing", async () => {
-    const { admin, messages, rpcCalls } = fakeAdmin({ enqueued: true });
+  it("a replay with the same key returns the first message and only asks SQL to requeue it if lost", async () => {
+    const { admin, messages, rpcCalls } = fakeAdmin();
     const first = await queueOutbound(admin, input({ flowStepKey: "run-a:2" }));
     const again = await queueOutbound(
       admin,
@@ -313,13 +377,14 @@ describe("queueOutbound with a flow step key", () => {
     expect(again.id).toBe(first.id);
     expect(messages).toHaveLength(1);
     expect(enqueue).toHaveBeenCalledTimes(1);
+    // requeue_lost_flow_message claims and queues in one transaction (tests/db/flow-step-send-key.test.ts); it found a job.
     expect(rpcCalls).toEqual([
-      { fn: "outbound_message_enqueued", args: { p_message_id: first.id } },
+      { fn: "requeue_lost_flow_message", args: { p_message_id: first.id, p_queue: "outbound" } },
     ]);
   });
 
-  it("re-queues a message whose first enqueue was lost (still queued, no job waiting)", async () => {
-    const { admin, messages } = fakeAdmin({ enqueued: false });
+  it("a still-queued message is handed to the atomic SQL claim, never enqueued from TypeScript", async () => {
+    const { admin, messages, rpcCalls } = fakeAdmin();
     messages.push({
       id: "00000000-0000-4000-8000-0000000000aa",
       org_id: ORG,
@@ -330,15 +395,18 @@ describe("queueOutbound with a flow step key", () => {
     const again = await queueOutbound(admin, input({ flowStepKey: "run-a:2" }));
     expect(again.id).toBe("00000000-0000-4000-8000-0000000000aa");
     expect(messages).toHaveLength(1);
-    expect(enqueue).toHaveBeenCalledTimes(1);
-    expect(enqueue).toHaveBeenCalledWith("outbound", {
-      message_id: "00000000-0000-4000-8000-0000000000aa",
-    });
+    expect(enqueue).not.toHaveBeenCalled();
+    expect(rpcCalls).toEqual([
+      {
+        fn: "requeue_lost_flow_message",
+        args: { p_message_id: "00000000-0000-4000-8000-0000000000aa", p_queue: "outbound" },
+      },
+    ]);
   });
 
   it("never re-queues a message that is sending, sent or failed", async () => {
     for (const status of ["sending", "sent", "failed"]) {
-      const { admin, messages, rpcCalls } = fakeAdmin({ enqueued: false });
+      const { admin, messages, rpcCalls } = fakeAdmin();
       messages.push({
         id: "00000000-0000-4000-8000-0000000000ab",
         org_id: ORG,

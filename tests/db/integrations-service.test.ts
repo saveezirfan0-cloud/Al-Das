@@ -1145,28 +1145,113 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)(
         if (!r.ok) expect(r.error).toContain("already open");
       });
 
-      it("a replayed flow step gets the request it already sent back, with no new link or message", async () => {
-        const [row] = await payRows();
+      describe("a flow step replayed after a crash (fin_payment_requests.flow_step_key)", () => {
         const key = "00000000-0000-4000-8000-0000000000f7:5";
-        // As if a flow's Payment link step had queued this message (queueOutbound stores the step key).
-        await svc(() =>
-          q("update public.messages set flow_step_key = $2 where id = $1", [row.message_id, key]),
-        );
-        const fake = createFakePaymentProvider();
-        const replay = await create({ actorId: null, flowStepKey: key }, fake);
-        expect(replay).toMatchObject({ ok: true, requestId: row.id });
-        expect(fake.created).toHaveLength(0);
-        expect(await payRows()).toHaveLength(1);
-        const msgs = (
+        let stepInvoice: string;
+        let first: string;
+        let firstMessage: string;
+        const byId = async (rid: string) =>
+          (
+            await svc(() =>
+              q(
+                "select id, status, message_id, flow_step_key, failure_code, provider_ref from public.fin_payment_requests where id = $1",
+                [rid],
+              ),
+            )
+          ).rows[0];
+        const keyedMessages = async () =>
+          (
+            await svc(() =>
+              q("select id from public.messages where flow_step_key = $1 order by at", [key]),
+            )
+          ).rows.map((r) => r.id as string);
+        const stepCreate = (fake: ReturnType<typeof createFakePaymentProvider>) =>
+          create(
+            { actorId: null, invoiceNumber: "INV-3003", amount: "90.00", flowStepKey: key },
+            fake,
+          );
+
+        beforeAll(async () => {
+          stepInvoice = await svc(() =>
+            one(
+              "insert into public.fin_invoices (org_id, inv_display_number, patient_pin, total, record_hash) values ($1, 'INV-3003', 'PIN-100', 90, 'hash-3003')",
+              [org],
+            ),
+          );
+        });
+
+        it("stores the key on the request and on its message", async () => {
+          const fake = createFakePaymentProvider({ refPrefix: "cs_step_a" });
+          const r = await stepCreate(fake);
+          expect(r.ok).toBe(true);
+          if (!r.ok) return;
+          first = r.requestId;
+          const row = await byId(first);
+          expect(row).toMatchObject({ status: "sent", flow_step_key: key });
+          firstMessage = row.message_id;
+          expect(await keyedMessages()).toEqual([firstMessage]);
+          expect(stepInvoice).toBeTruthy();
+        });
+
+        it("crash after the message was queued but before it was linked: the replay links it, no second link", async () => {
           await svc(() =>
-            q("select count(*)::int as n from public.messages where flow_step_key = $1", [key]),
-          )
-        ).rows[0].n;
-        expect(msgs).toBe(1);
-        // Another step (another key) is a new attempt and still meets the one-open-link rule.
-        const other = await create({ actorId: null, flowStepKey: `${key}0` }, fake);
-        expect(other.ok).toBe(false);
-        if (!other.ok) expect(other.error).toContain("already open");
+            q(
+              "update public.fin_payment_requests set message_id = null, status = 'created' where id = $1",
+              [first],
+            ),
+          );
+          const fake = createFakePaymentProvider({ refPrefix: "cs_step_b" });
+          expect(await stepCreate(fake)).toMatchObject({ ok: true, requestId: first });
+          expect(fake.created).toHaveLength(0);
+          expect(await byId(first)).toMatchObject({ status: "sent", message_id: firstMessage });
+          expect(await keyedMessages()).toEqual([firstMessage]);
+          // Whatever happened to the request since (cancelled, expired, paid), the step gets it back, never a second link.
+          await svc(() =>
+            q("update public.fin_payment_requests set status = 'cancelled' where id = $1", [first]),
+          );
+          expect(await stepCreate(fake)).toMatchObject({ ok: true, requestId: first });
+          expect(fake.created).toHaveLength(0);
+          await svc(() =>
+            q("update public.fin_payment_requests set status = 'sent' where id = $1", [first]),
+          );
+        });
+
+        it("crash before the message was queued: the replay closes that link and sends a fresh one, once", async () => {
+          // As if the first attempt stopped after the gateway call: no message carries the key.
+          await svc(() =>
+            q("update public.messages set flow_step_key = null where id = $1", [firstMessage]),
+          );
+          await svc(() =>
+            q(
+              "update public.fin_payment_requests set message_id = null, status = 'created' where id = $1",
+              [first],
+            ),
+          );
+          const before = await byId(first);
+          const fake = createFakePaymentProvider({ refPrefix: "cs_step_c" });
+          const r = await stepCreate(fake);
+          expect(r.ok).toBe(true);
+          if (!r.ok) return;
+          expect(r.requestId).not.toBe(first);
+          expect(await byId(first)).toMatchObject({
+            status: "failed",
+            failure_code: "step_replayed",
+            flow_step_key: null,
+          });
+          expect(fake.expired).toEqual([before.provider_ref]);
+          expect(fake.created).toHaveLength(1);
+          const fresh = await byId(r.requestId);
+          expect(fresh).toMatchObject({ status: "sent", flow_step_key: key });
+          expect(await keyedMessages()).toEqual([fresh.message_id]);
+          // And replaying again returns the fresh request without another link.
+          expect(await stepCreate(fake)).toMatchObject({ ok: true, requestId: r.requestId });
+          expect(fake.created).toHaveLength(1);
+          await svc(() =>
+            q("update public.fin_payment_requests set status = 'cancelled' where id = $1", [
+              r.requestId,
+            ]),
+          );
+        });
       });
 
       it("never writes to the invoice (nothing is marked paid, nothing goes to Unite)", async () => {

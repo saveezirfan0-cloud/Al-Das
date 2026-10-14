@@ -204,8 +204,9 @@ async function flowStepMessage(
 
 /**
  * A replayed flow step found its message. If the first attempt stopped between the insert and the enqueue, the row is still
- * 'queued' with no outbound job: queue it now (once). A row that is waiting in a queue, sending, sent or failed is left alone,
- * so a message is never queued twice.
+ * 'queued' with no outbound job: requeue_lost_flow_message claims it (once, on the locked row) and queues it in the same
+ * transaction. A row that is waiting in a queue, sending, sent, failed or already re-queued is left alone, so a message is
+ * never queued twice.
  */
 async function requeueIfLost(
   admin: AdminClient,
@@ -213,11 +214,11 @@ async function requeueIfLost(
   queue: "outbound" | "outbound_priority",
 ): Promise<void> {
   if (message.status !== "queued" || message.wa_message_id) return;
-  const { data: pending, error } = await admin.rpc("outbound_message_enqueued", {
+  const { error } = await admin.rpc("requeue_lost_flow_message", {
     p_message_id: message.id,
+    p_queue: queue,
   });
   if (error) throw new Error(`queueOutbound: ${error.message}`);
-  if (!pending) await enqueue(queue, { message_id: message.id });
 }
 
 /** Internal note (Comment): stored, never sent. Mentions are created by the caller. */

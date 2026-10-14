@@ -230,7 +230,12 @@ export interface CrmPort {
   updateEnquiry?(run: RunRecord, input: Record<string, unknown>): Promise<CrmResult>;
   addTask?(run: RunRecord, input: Record<string, unknown>): Promise<CrmResult>;
   upsertPortalRecord?(run: RunRecord, input: Record<string, unknown>): Promise<CrmResult>;
-  bookAppointment?(run: RunRecord, input: Record<string, unknown>): Promise<CrmResult>;
+  /** `opts.stepKey` makes a replayed step get its booking back (appointments.flow_step_key) instead of booking again. */
+  bookAppointment?(
+    run: RunRecord,
+    input: Record<string, unknown>,
+    opts: SendOptions,
+  ): Promise<CrmResult>;
   /** Adds or removes a conversation label (tags with scope 'conversation'). */
   setConversationLabel?(
     run: RunRecord,
