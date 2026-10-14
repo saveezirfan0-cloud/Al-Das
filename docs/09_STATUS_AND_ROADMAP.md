@@ -201,10 +201,8 @@ These are the most valuable things to do before any client sees the product, bec
 
 ### 2.4 Housekeeping
 
-- `README.md` still says "Other module pages are placeholders until their phase", and `docs/06_PHASE_11_CUTOVER.md` / `docs/07_PHASE_11_NOTES.md` still say Phases 4 to 10 are not built. They are out of date. Update both (Phase 12 prompt includes this).
+- Done 14 Oct 2026: `README.md`, `docs/06` and `docs/07` carry the "Phases 4 to 10 are built" update, `app/(app)/dashboard/page.tsx` is Prettier-clean, and `docs/00_HOW_TO_USE.md` points to the pitch pack in `docs/pitch/`. The six helper functions the Supabase security advisor flagged (`clinical_setting*`, `is_reminder_excluded`, `is_working_day`, `workdays_between`) now pin `search_path` (migration `20261118000100`, paste file 58).
 - Several docs share a number prefix (`05_*`, `06_*`, `08_*`). Harmless, but rename once the numbering settles.
-- `app/(app)/dashboard/page.tsx` is not Prettier-formatted; run `pnpm format` in a dedicated commit so reviews stay clean.
-- `docs/00_HOW_TO_USE.md` mentions `AlDas_InHouse_Clinic_Platform_Proposal.pdf`, which is not in the repo. The new pitch pack in `docs/pitch/` replaces it.
 
 ---
 
