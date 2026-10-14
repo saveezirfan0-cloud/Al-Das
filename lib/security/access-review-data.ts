@@ -2,6 +2,7 @@ import "server-only";
 
 import { latestOf, type ReviewUser } from "@/lib/security/access-review";
 import type { AdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 
 /**
  * Gathers the facts an access review needs: every member of the org (active and suspended), their role,
@@ -21,19 +22,30 @@ export async function gatherReviewUsers(admin: AdminClient, orgId: string): Prom
         .select("id, name, key_prefix, last_used_at, created_by")
         .eq("org_id", orgId)
         .is("revoked_at", null),
-      admin
-        .from("auth_events")
-        .select("user_id, at")
-        .eq("org_id", orgId)
-        .in("event_type", ["sign_in", "mfa_verified"])
-        .order("at", { ascending: false })
-        .limit(5000),
-      admin
-        .from("user_sessions")
-        .select("user_id, last_seen_at")
-        .eq("org_id", orgId)
-        .order("last_seen_at", { ascending: false })
-        .limit(5000),
+      // The latest 5,000 of each, read in pages (PostgREST returns at most 1,000 per request).
+      fetchAll(
+        (from, to) =>
+          admin
+            .from("auth_events")
+            .select("user_id, at")
+            .eq("org_id", orgId)
+            .in("event_type", ["sign_in", "mfa_verified"])
+            .order("at", { ascending: false })
+            .order("id")
+            .range(from, to),
+        { max: 5000 },
+      ),
+      fetchAll(
+        (from, to) =>
+          admin
+            .from("user_sessions")
+            .select("user_id, last_seen_at")
+            .eq("org_id", orgId)
+            .order("last_seen_at", { ascending: false })
+            .order("id")
+            .range(from, to),
+        { max: 5000 },
+      ),
     ]);
 
   const lastSignIn = new Map<string, string>();

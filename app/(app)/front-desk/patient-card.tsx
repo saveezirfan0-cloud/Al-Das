@@ -19,6 +19,13 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -294,16 +301,53 @@ export function PatientCardView({
         )}
         {can.send && (
           <>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={pending}
-              onClick={() =>
-                run(() => sendDeskMessageAction({ contactId: c.id, kind: "location" }))
-              }
-            >
-              {pending ? <Loader2 className="animate-spin" /> : <MapPin />} Location
-            </Button>
+            {/* With an upcoming visit the message names that visit's branch; otherwise the desk picks the branch,
+                never the first one by name. */}
+            {!next && options.locations.length > 1 ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline" disabled={pending}>
+                    {pending ? <Loader2 className="animate-spin" /> : <MapPin />} Location
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuLabel>Send which branch?</DropdownMenuLabel>
+                  {options.locations.map((l) => (
+                    <DropdownMenuItem
+                      key={l.id}
+                      onSelect={() =>
+                        run(() =>
+                          sendDeskMessageAction({
+                            contactId: c.id,
+                            kind: "location",
+                            locationId: l.id,
+                          }),
+                        )
+                      }
+                    >
+                      {l.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={pending}
+                onClick={() =>
+                  run(() =>
+                    sendDeskMessageAction({
+                      contactId: c.id,
+                      kind: "location",
+                      locationId: next ? undefined : options.locations[0]?.id,
+                    }),
+                  )
+                }
+              >
+                {pending ? <Loader2 className="animate-spin" /> : <MapPin />} Location
+              </Button>
+            )}
             <span className="flex items-center gap-1">
               <Select value={late} onValueChange={setLate}>
                 <SelectTrigger size="sm" className="w-24" aria-label="Minutes late">

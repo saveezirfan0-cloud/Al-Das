@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useTransition } from "react";
 import {
   AlertCircle,
   ArrowLeft,
@@ -33,6 +33,7 @@ import { INTENT_LABELS, type Intent } from "@/lib/ai/intent/labels";
 import { contactDisplayName } from "@/lib/inbox/contact-name";
 import { FORWARD_MEDIA_KINDS, telHref } from "@/lib/inbox/extras";
 import { labelClass } from "@/lib/inbox/labels";
+import { droppedFromLive, mergeMessagePages } from "@/lib/inbox/paging";
 import type { MessageRow } from "@/lib/inbox/queries";
 import { cn } from "@/lib/utils";
 import { CHANNEL_TYPE_LABEL, channelTypeOf, replyWindow } from "@/lib/channels/types";
@@ -49,6 +50,7 @@ import {
   type ActionResult,
 } from "./actions";
 import { dismissAiTag } from "./ai-actions";
+import { loadEarlierMessages } from "./paging-actions";
 import { CloseDialog } from "./close-dialog";
 import { Composer } from "./composer";
 import { MediaBubble } from "./media-bubble";
@@ -104,8 +106,103 @@ function dayLabel(iso: string) {
   });
 }
 
+/** Earlier pages of one conversation loaded with "Load earlier messages". */
+type EarlierPages = {
+  conversationId: string;
+  rows: MessageRow[];
+  /** Cursor before the oldest loaded message; undefined until a page has been loaded. */
+  cursor: string | null | undefined;
+};
+
 export function Thread(props: InboxProps & { selected: ConversationDetail; onBack: () => void }) {
-  const { selected, messages, people, teams, labels, perms } = props;
+  const { selected, messages: livePage, people, teams, labels, perms } = props;
+  // D5: the latest page comes from the server and stays live (Realtime → router.refresh());
+  // earlier pages are prepended here for this conversation only.
+  const [earlierState, setEarlierState] = useState<EarlierPages>({
+    conversationId: selected.id,
+    rows: [],
+    cursor: undefined,
+  });
+  const earlier: EarlierPages =
+    earlierState.conversationId === selected.id
+      ? earlierState
+      : { conversationId: selected.id, rows: [], cursor: undefined };
+  const earlierCursor = earlier.cursor === undefined ? props.messagesCursor : earlier.cursor;
+  const [loadingEarlier, setLoadingEarlier] = useState(false);
+  const [earlierStatus, setEarlierStatus] = useState("");
+  const messages = earlier.rows.length ? mergeMessagePages(earlier.rows, livePage) : livePage;
+  const logRef = useRef<HTMLDivElement>(null);
+  /** Scroll position to restore after older messages are prepended (distance from the bottom). */
+  const anchor = useRef<{ conversationId: string; fromBottom: number } | null>(null);
+
+  // When new messages push the oldest ones out of the live page, keep them on screen once
+  // earlier pages are loaded, so the thread has no gap.
+  const prevLive = useRef<{ conversationId: string; rows: MessageRow[] }>({
+    conversationId: selected.id,
+    rows: livePage,
+  });
+  useEffect(() => {
+    const prev = prevLive.current;
+    prevLive.current = { conversationId: selected.id, rows: livePage };
+    if (prev.conversationId !== selected.id || prev.rows === livePage) return;
+    const dropped = droppedFromLive(prev.rows, livePage);
+    if (dropped.length === 0) return;
+    setEarlierState((s) =>
+      s.conversationId === selected.id && s.cursor !== undefined
+        ? { ...s, rows: mergeMessagePages(s.rows, dropped) }
+        : s,
+    );
+  }, [livePage, selected.id]);
+
+  useLayoutEffect(() => {
+    const a = anchor.current;
+    const el = logRef.current;
+    if (!a || !el || a.conversationId !== selected.id) return;
+    anchor.current = null;
+    el.scrollTop = el.scrollHeight - a.fromBottom;
+  }, [earlier.rows, selected.id]);
+
+  async function loadEarlier() {
+    if (loadingEarlier || !earlierCursor) return;
+    const conversationId = selected.id;
+    setLoadingEarlier(true);
+    setEarlierStatus("Loading earlier messages…");
+    try {
+      const r = await loadEarlierMessages({
+        conversation_id: conversationId,
+        before: earlierCursor,
+      });
+      if (!r.ok) {
+        setEarlierStatus("");
+        toast.error(r.error);
+        return;
+      }
+      const el = logRef.current;
+      if (el) anchor.current = { conversationId, fromBottom: el.scrollHeight - el.scrollTop };
+      setEarlierState((prev) => {
+        const base =
+          prev.conversationId === conversationId
+            ? prev
+            : { conversationId, rows: [], cursor: undefined };
+        return {
+          conversationId,
+          rows: mergeMessagePages(r.data.messages, base.rows),
+          cursor: r.data.nextCursor,
+        };
+      });
+      setEarlierStatus(
+        r.data.messages.length === 0
+          ? "No earlier messages."
+          : `Loaded ${r.data.messages.length} earlier message${r.data.messages.length === 1 ? "" : "s"}.`,
+      );
+    } catch {
+      setEarlierStatus("");
+      toast.error("Could not load earlier messages.");
+    } finally {
+      setLoadingEarlier(false);
+    }
+  }
+
   const [pending, startTransition] = useTransition();
   const [closeOpen, setCloseOpen] = useState(false);
   const [replyTo, setReplyTo] = useState<MessageRow | null>(null);
@@ -122,9 +219,11 @@ export function Thread(props: InboxProps & { selected: ConversationDetail; onBac
     adOpenedAt: selected.ad_referral ? selected.opened_at : null,
   });
 
+  // Follow the newest message (not prepended earlier pages, which keep their scroll position).
+  const newestId = livePage.length ? livePage[livePage.length - 1].id : null;
   useEffect(() => {
     bottom.current?.scrollIntoView({ block: "end" });
-  }, [messages.length, selected.id]);
+  }, [newestId, selected.id]);
 
   // The on-screen keyboard changes the visible height: keep the latest message in view above the composer.
   useEffect(() => {
@@ -159,6 +258,155 @@ export function Thread(props: InboxProps & { selected: ConversationDetail; onBac
     .map((m) => ({ id: m.media_path as string, label: m.media_filename }));
 
   let lastDay = "";
+  const liveIds = new Set(livePage.map((m) => m.id));
+  const earlierRows = messages.filter((m) => !liveIds.has(m.id));
+  const liveRows = messages.filter((m) => liveIds.has(m.id));
+  function renderMessage(m: MessageRow) {
+    const day = dayLabel(m.at);
+    const showDay = day !== lastDay;
+    lastDay = day;
+    const out = m.direction === "out";
+    const note = m.direction === "note";
+    const quoted = m.reply_to_wa_message_id ? byWaId.get(m.reply_to_wa_message_id) : null;
+    const sender = m.profiles ? `${m.profiles.first_name} ${m.profiles.last_name}`.trim() : null;
+    return (
+      <div key={m.id}>
+        {showDay && (
+          <div className="my-3 flex justify-center">
+            <span className="bg-background text-muted-foreground rounded-full border px-2 py-0.5 text-[11px]">
+              {day}
+            </span>
+          </div>
+        )}
+        <div className={cn("mb-1.5 flex", out || note ? "justify-end" : "justify-start")}>
+          <div
+            className={cn(
+              "group relative max-w-[88%] rounded-lg md:max-w-[75%] px-3 py-1.5 text-sm shadow-xs",
+              note
+                ? "border border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-50"
+                : out
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-background",
+            )}
+          >
+            {note && (
+              <div className="mb-0.5 text-[10px] font-semibold tracking-wide uppercase opacity-70">
+                Internal note{sender ? ` · ${sender}` : ""}
+              </div>
+            )}
+            {out && sender && !note && (
+              <div className="mb-0.5 text-[10px] opacity-70">{sender}</div>
+            )}
+            {quoted && (
+              <div
+                className={cn(
+                  "mb-1 border-l-2 pl-2 text-xs opacity-80",
+                  out ? "border-primary-foreground/50" : "border-primary/50",
+                )}
+              >
+                {quoted.body ?? quoted.kind}
+              </div>
+            )}
+            {m.kind === "reaction" ? (
+              <span className="text-lg">{m.body}</span>
+            ) : m.kind === "location" ? (
+              <span className="flex items-center gap-1">
+                <MapPin className="size-3.5" /> {m.body}
+              </span>
+            ) : ["image", "video", "audio", "document", "sticker"].includes(m.kind) ? (
+              <div className="flex flex-col gap-1">
+                <MediaBubble
+                  kind={m.kind}
+                  path={m.media_path}
+                  mime={m.media_mime}
+                  filename={m.media_filename}
+                  onOpen={() => {
+                    const i = pictures.findIndex((p) => p.id === m.media_path);
+                    if (i >= 0) setViewer(i);
+                  }}
+                  pending={
+                    m.direction === "in" &&
+                    !m.media_path &&
+                    m.status !== "failed" &&
+                    !m.error_message
+                  }
+                />
+                {m.body && (
+                  <p className="whitespace-pre-wrap" dir="auto">
+                    {m.body}
+                  </p>
+                )}
+              </div>
+            ) : m.kind === "template" ? (
+              <div>
+                <div className="mb-0.5 text-[10px] uppercase opacity-70">Template</div>
+                <p className="whitespace-pre-wrap" dir="auto">
+                  {m.body}
+                </p>
+              </div>
+            ) : m.kind === "unsupported" ? (
+              <p className="text-xs italic opacity-80">Unsupported message type (not shown).</p>
+            ) : (
+              <p className="break-words whitespace-pre-wrap" dir="auto">
+                {m.body}
+              </p>
+            )}
+            <div
+              className={cn(
+                "mt-0.5 flex items-center justify-end gap-1 text-[10px]",
+                out ? "text-primary-foreground/70" : "text-muted-foreground",
+              )}
+            >
+              <span>
+                {new Date(m.at).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
+              {out && <Ticks status={m.status} />}
+            </div>
+            {m.status === "failed" && (
+              <div className="mt-1 flex items-center gap-2 rounded bg-white/90 px-2 py-1 text-[11px] text-red-700 dark:bg-black/40 dark:text-red-200">
+                <span className="min-w-0 flex-1">{m.error_message ?? "Failed"}</span>
+                {perms.send && (
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1 underline"
+                    onClick={() => run(() => retryFailedMessage(m.id))}
+                  >
+                    <RotateCcw className="size-3" /> retry
+                  </button>
+                )}
+              </div>
+            )}
+            {!note && perms.send && (m.wa_message_id || forwardable(m)) && (
+              <div className="absolute -top-2 right-1 hidden gap-1 group-focus-within:flex group-hover:flex pointer-coarse:relative pointer-coarse:top-0 pointer-coarse:right-0 pointer-coarse:mt-1 pointer-coarse:flex pointer-coarse:justify-end">
+                {m.wa_message_id && (
+                  <button
+                    type="button"
+                    className="text-muted-foreground rounded bg-white/90 px-1 text-[10px] shadow pointer-coarse:min-h-11 pointer-coarse:px-3 pointer-coarse:text-xs dark:bg-black/60"
+                    onClick={() => setReplyTo(m)}
+                  >
+                    reply
+                  </button>
+                )}
+                {forwardable(m) && (
+                  <button
+                    type="button"
+                    className="text-muted-foreground inline-flex items-center gap-0.5 rounded bg-white/90 px-1 text-[10px] shadow pointer-coarse:min-h-11 pointer-coarse:px-3 pointer-coarse:text-xs dark:bg-black/60"
+                    aria-label="Forward this message"
+                    onClick={() => setForwarding(m.id)}
+                  >
+                    <Forward className="size-3" aria-hidden /> forward
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-w-0 flex-1 flex-col">
@@ -441,11 +689,24 @@ export function Thread(props: InboxProps & { selected: ConversationDetail; onBac
         )}
       </header>
 
-      <div
-        className="bg-muted/30 flex-1 overflow-y-auto px-4 py-3"
-        role="log"
-        aria-label="Messages"
-      >
+      <div ref={logRef} className="bg-muted/30 flex-1 overflow-y-auto px-4 py-3">
+        {earlierCursor && (
+          <div className="mb-3 flex justify-center">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => void loadEarlier()}
+              aria-busy={loadingEarlier}
+              aria-disabled={loadingEarlier}
+            >
+              {loadingEarlier ? "Loading…" : "Load earlier messages"}
+            </Button>
+          </div>
+        )}
+        <p className="sr-only" role="status" aria-live="polite">
+          {earlierStatus}
+        </p>
         {selected.ad_referral != null && (
           <p className="text-muted-foreground mb-3 text-center text-[11px]">
             Started from a click-to-WhatsApp ad
@@ -457,156 +718,15 @@ export function Thread(props: InboxProps & { selected: ConversationDetail; onBac
         {messages.length === 0 && (
           <p className="text-muted-foreground py-10 text-center text-sm">No messages yet.</p>
         )}
-        {messages.map((m) => {
-          const day = dayLabel(m.at);
-          const showDay = day !== lastDay;
-          lastDay = day;
-          const out = m.direction === "out";
-          const note = m.direction === "note";
-          const quoted = m.reply_to_wa_message_id ? byWaId.get(m.reply_to_wa_message_id) : null;
-          const sender = m.profiles
-            ? `${m.profiles.first_name} ${m.profiles.last_name}`.trim()
-            : null;
-          return (
-            <div key={m.id}>
-              {showDay && (
-                <div className="my-3 flex justify-center">
-                  <span className="bg-background text-muted-foreground rounded-full border px-2 py-0.5 text-[11px]">
-                    {day}
-                  </span>
-                </div>
-              )}
-              <div className={cn("mb-1.5 flex", out || note ? "justify-end" : "justify-start")}>
-                <div
-                  className={cn(
-                    "group relative max-w-[88%] rounded-lg md:max-w-[75%] px-3 py-1.5 text-sm shadow-xs",
-                    note
-                      ? "border border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-50"
-                      : out
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-background",
-                  )}
-                >
-                  {note && (
-                    <div className="mb-0.5 text-[10px] font-semibold tracking-wide uppercase opacity-70">
-                      Internal note{sender ? ` · ${sender}` : ""}
-                    </div>
-                  )}
-                  {out && sender && !note && (
-                    <div className="mb-0.5 text-[10px] opacity-70">{sender}</div>
-                  )}
-                  {quoted && (
-                    <div
-                      className={cn(
-                        "mb-1 border-l-2 pl-2 text-xs opacity-80",
-                        out ? "border-primary-foreground/50" : "border-primary/50",
-                      )}
-                    >
-                      {quoted.body ?? quoted.kind}
-                    </div>
-                  )}
-                  {m.kind === "reaction" ? (
-                    <span className="text-lg">{m.body}</span>
-                  ) : m.kind === "location" ? (
-                    <span className="flex items-center gap-1">
-                      <MapPin className="size-3.5" /> {m.body}
-                    </span>
-                  ) : ["image", "video", "audio", "document", "sticker"].includes(m.kind) ? (
-                    <div className="flex flex-col gap-1">
-                      <MediaBubble
-                        kind={m.kind}
-                        path={m.media_path}
-                        mime={m.media_mime}
-                        filename={m.media_filename}
-                        onOpen={() => {
-                          const i = pictures.findIndex((p) => p.id === m.media_path);
-                          if (i >= 0) setViewer(i);
-                        }}
-                        pending={
-                          m.direction === "in" &&
-                          !m.media_path &&
-                          m.status !== "failed" &&
-                          !m.error_message
-                        }
-                      />
-                      {m.body && (
-                        <p className="whitespace-pre-wrap" dir="auto">
-                          {m.body}
-                        </p>
-                      )}
-                    </div>
-                  ) : m.kind === "template" ? (
-                    <div>
-                      <div className="mb-0.5 text-[10px] uppercase opacity-70">Template</div>
-                      <p className="whitespace-pre-wrap" dir="auto">
-                        {m.body}
-                      </p>
-                    </div>
-                  ) : m.kind === "unsupported" ? (
-                    <p className="text-xs italic opacity-80">
-                      Unsupported message type (not shown).
-                    </p>
-                  ) : (
-                    <p className="break-words whitespace-pre-wrap" dir="auto">
-                      {m.body}
-                    </p>
-                  )}
-                  <div
-                    className={cn(
-                      "mt-0.5 flex items-center justify-end gap-1 text-[10px]",
-                      out ? "text-primary-foreground/70" : "text-muted-foreground",
-                    )}
-                  >
-                    <span>
-                      {new Date(m.at).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </span>
-                    {out && <Ticks status={m.status} />}
-                  </div>
-                  {m.status === "failed" && (
-                    <div className="mt-1 flex items-center gap-2 rounded bg-white/90 px-2 py-1 text-[11px] text-red-700 dark:bg-black/40 dark:text-red-200">
-                      <span className="min-w-0 flex-1">{m.error_message ?? "Failed"}</span>
-                      {perms.send && (
-                        <button
-                          type="button"
-                          className="inline-flex items-center gap-1 underline"
-                          onClick={() => run(() => retryFailedMessage(m.id))}
-                        >
-                          <RotateCcw className="size-3" /> retry
-                        </button>
-                      )}
-                    </div>
-                  )}
-                  {!note && perms.send && (m.wa_message_id || forwardable(m)) && (
-                    <div className="absolute -top-2 right-1 hidden gap-1 group-focus-within:flex group-hover:flex pointer-coarse:relative pointer-coarse:top-0 pointer-coarse:right-0 pointer-coarse:mt-1 pointer-coarse:flex pointer-coarse:justify-end">
-                      {m.wa_message_id && (
-                        <button
-                          type="button"
-                          className="text-muted-foreground rounded bg-white/90 px-1 text-[10px] shadow pointer-coarse:min-h-11 pointer-coarse:px-3 pointer-coarse:text-xs dark:bg-black/60"
-                          onClick={() => setReplyTo(m)}
-                        >
-                          reply
-                        </button>
-                      )}
-                      {forwardable(m) && (
-                        <button
-                          type="button"
-                          className="text-muted-foreground inline-flex items-center gap-0.5 rounded bg-white/90 px-1 text-[10px] shadow pointer-coarse:min-h-11 pointer-coarse:px-3 pointer-coarse:text-xs dark:bg-black/60"
-                          aria-label="Forward this message"
-                          onClick={() => setForwarding(m.id)}
-                        >
-                          <Forward className="size-3" aria-hidden /> forward
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          );
-        })}
+        {earlierRows.length > 0 && (
+          <div role="group" aria-label="Earlier messages">
+            {earlierRows.map(renderMessage)}
+          </div>
+        )}
+        {/* Only the latest page is a live region: prepended pages are not read out. */}
+        <div role="log" aria-label="Messages">
+          {liveRows.map(renderMessage)}
+        </div>
         <div ref={bottom} />
       </div>
 

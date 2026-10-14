@@ -12,6 +12,7 @@ import {
 } from "@/lib/accounting/sales";
 import { nameOf, peopleNames } from "@/lib/finance/vouchers-server";
 import type { AdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 
 /**
  * Server side of receivables (Phase 22E): loaders for pages, routes and actions. Service role; every caller has run can()
@@ -79,12 +80,16 @@ const CUSTOMER_COLS =
   "id, kind, name, trn, emirate, address_line1, address_line2, city, country, email, credit_terms_days, connected_person, payer_id, receivable_account_id, active";
 
 export async function loadCustomers(admin: AdminClient, orgId: string): Promise<CustomerView[]> {
-  const { data } = await admin
-    .from("acc_customers")
-    .select(CUSTOMER_COLS)
-    .eq("org_id", orgId)
-    .order("name")
-    .limit(2000);
+  // Every row, read in pages (PostgREST returns at most 1,000 per request).
+  const { data } = await fetchAll((from, to) =>
+    admin
+      .from("acc_customers")
+      .select(CUSTOMER_COLS)
+      .eq("org_id", orgId)
+      .order("name")
+      .order("id")
+      .range(from, to),
+  );
   return (data ?? []).map((c) => ({ ...c, kind: c.kind as CustomerKind }));
 }
 
@@ -148,13 +153,17 @@ export type SalesOptions = {
 /** What the sales invoice form offers: active customers, income ledgers, the sales tax codes, branches, cost centres. */
 export async function loadSalesOptions(admin: AdminClient, orgId: string): Promise<SalesOptions> {
   const [cust, acc, tax, branches, cc] = await Promise.all([
-    admin
-      .from("acc_customers")
-      .select("id, name, kind, trn, credit_terms_days")
-      .eq("org_id", orgId)
-      .eq("active", true)
-      .order("name")
-      .limit(2000),
+    // Every active customer, read in pages (PostgREST returns at most 1,000 per request).
+    fetchAll((from, to) =>
+      admin
+        .from("acc_customers")
+        .select("id, name, kind, trn, credit_terms_days")
+        .eq("org_id", orgId)
+        .eq("active", true)
+        .order("name")
+        .order("id")
+        .range(from, to),
+    ),
     admin
       .from("acc_accounts")
       .select("id, code, name")

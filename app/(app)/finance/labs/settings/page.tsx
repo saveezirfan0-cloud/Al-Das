@@ -22,6 +22,7 @@ import {
 import { isProviderKind, PROVIDER_KINDS } from "@/lib/finance/labs";
 import { loadLabSettings } from "@/lib/finance/labs-server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 
 import { FormatButton, type FormatView } from "../../bank/settings/forms";
 import { saveLabFormat } from "./actions";
@@ -39,12 +40,18 @@ export default async function LabSettingsPage() {
       .select("id, name, kind, fixed_monthly_fee, allocation_basis, active")
       .eq("org_id", member.orgId)
       .order("name"),
-    admin
-      .from("fin_ref_provider_tests")
-      .select("id, provider_id, code, expected_days, agreed_price")
-      .eq("org_id", member.orgId)
-      .order("code")
-      .limit(5000),
+    // Up to 5,000 tests, read in pages (PostgREST returns at most 1,000 per request).
+    fetchAll(
+      (from, to) =>
+        admin
+          .from("fin_ref_provider_tests")
+          .select("id, provider_id, code, expected_days, agreed_price")
+          .eq("org_id", member.orgId)
+          .order("code")
+          .order("id")
+          .range(from, to),
+      { max: 5000 },
+    ),
     admin
       .from("fin_import_formats")
       .select("id, kind, name, mapping, date_format, amount_style, active")

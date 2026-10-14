@@ -124,6 +124,30 @@ export async function listTasks(
   return { ok: true, data: { rows, total: count ?? 0 } };
 }
 
+/** One task, for a deep link (/tasks?task=<id>) from a notification. Same visibility rules as the list. */
+export async function getTaskAction(id: string): Promise<ActionResult<TaskRow>> {
+  const { ctx, canContacts, canEnquiries } = await ctxFor("tasks.view");
+  if (!uuid.safeParse(id).success) return fail("Invalid task.");
+  const { data } = await ctx.admin
+    .from("tasks")
+    .select(
+      "*, contact:contacts(id, full_name, phone_e164), enquiry:enquiries(id, number, title, deleted_at)",
+    )
+    .eq("org_id", ctx.orgId)
+    .eq("id", id)
+    .maybeSingle();
+  if (!data) return fail("This task no longer exists.");
+  const t = data as unknown as TaskRow;
+  return {
+    ok: true,
+    data: {
+      ...t,
+      contact: canContacts ? t.contact : null,
+      enquiry: canEnquiries ? t.enquiry : null,
+    },
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Create / update
 // ---------------------------------------------------------------------------

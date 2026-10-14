@@ -27,6 +27,7 @@ import {
 import { formatPhone } from "@/lib/phone";
 import { recordAccess, recordExport } from "@/lib/security/access-log";
 import { createAdminClient, type AdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 import type { Tables } from "@/lib/supabase/types";
 
 import type {
@@ -165,14 +166,21 @@ export async function listRange(input: {
   }
   const range = dayRange(p.data.from, p.data.to, tz);
 
-  let aq = admin
-    .from("appointments")
-    .select(APPT_SELECT)
-    .eq("org_id", member.orgId)
-    .gte("starts_at", range.gte)
-    .lt("starts_at", range.lt)
-    .order("starts_at")
-    .limit(2000);
+  // Up to 2,000 appointments, read in pages (PostgREST returns at most 1,000 per request).
+  const aq = fetchAll(
+    (from, to) => {
+      let q = admin
+        .from("appointments")
+        .select(APPT_SELECT)
+        .eq("org_id", member.orgId)
+        .gte("starts_at", range.gte)
+        .lt("starts_at", range.lt);
+      if (p.data.locationId) q = q.eq("location_id", p.data.locationId);
+      if (p.data.specialistId) q = q.eq("specialist_id", p.data.specialistId);
+      return q.order("starts_at").order("id").range(from, to);
+    },
+    { max: 2000 },
+  );
   let bq = admin
     .from("time_blocks")
     .select("id, specialist_id, location_id, starts_at, ends_at, reason")
@@ -181,11 +189,9 @@ export async function listRange(input: {
     .gt("ends_at", range.gte)
     .limit(1000);
   if (p.data.locationId) {
-    aq = aq.eq("location_id", p.data.locationId);
     bq = bq.or(`location_id.is.null,location_id.eq.${p.data.locationId}`);
   }
   if (p.data.specialistId) {
-    aq = aq.eq("specialist_id", p.data.specialistId);
     bq = bq.eq("specialist_id", p.data.specialistId);
   }
   const [{ data: appts, error }, { data: blocks }] = await Promise.all([aq, bq]);
@@ -307,7 +313,8 @@ export async function exportAppointments(
   const admin = createAdminClient(member.userId);
   const build = await listBuilder(admin, member.orgId, parsed.data);
   const [{ data, error }, { data: locs }, { data: specs }, { data: svcs }, tz] = await Promise.all([
-    build().limit(5000),
+    // Every row up to 5,000, in pages (PostgREST returns at most 1,000 per request); build() orders by id last.
+    fetchAll((from, to) => build().range(from, to), { max: 5000 }),
     admin.from("locations").select("id, name").eq("org_id", member.orgId),
     admin.from("specialists").select("id, name").eq("org_id", member.orgId),
     admin.from("services").select("id, name").eq("org_id", member.orgId),

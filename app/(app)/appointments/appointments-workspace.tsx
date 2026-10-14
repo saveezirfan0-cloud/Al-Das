@@ -52,6 +52,7 @@ export function AppointmentsWorkspace({
     viewExplicit: boolean;
     date: string;
     newContact: NewAppointmentDefaults["contact"] | null;
+    openId?: string | null;
   };
 }) {
   const [view, setView] = React.useState<View>(initial.view);
@@ -68,7 +69,7 @@ export function AppointmentsWorkspace({
   const [locationId, setLocationId] = React.useState(bootstrap.locations[0]?.id ?? "");
   const [calendarSpecialistId, setCalendarSpecialistId] = React.useState("");
   const [reloadKey, setReloadKey] = React.useState(0);
-  const [openAppt, setOpenAppt] = React.useState<string | null>(null);
+  const [openAppt, setOpenAppt] = React.useState<string | null>(initial.openId ?? null);
   const [drawer, setDrawer] = React.useState<{ open: boolean; defaults: NewAppointmentDefaults }>(
     initial.newContact
       ? { open: true, defaults: { contact: initial.newContact, date: initial.date } }

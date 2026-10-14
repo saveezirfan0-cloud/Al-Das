@@ -20,6 +20,7 @@ import {
 } from "@/lib/finance/close-timetable";
 import { memberIdsWithPermission, notify } from "@/lib/notify/dispatch-db";
 import type { AdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 import type { Json } from "@/lib/supabase/types";
 
 /** Server side of the close timetable (Phase 20G). Service role; callers have run can() (or are the daily job). */
@@ -182,13 +183,17 @@ export async function loadCloseKpis(
       .eq("org_id", orgId)
       .in("status", ["open", "in_progress"]);
   const [{ data: tasks }, { data: closes }, all, over, { data: first }] = await Promise.all([
-    admin
-      .from("fin_close_tasks")
-      .select("month, status, due_wd, done_at")
-      .eq("org_id", orgId)
-      .gte("month", oldest)
-      .lte("month", latest)
-      .limit(2000),
+    // Counted per month, so every task is read in pages (PostgREST returns at most 1,000 per request).
+    fetchAll((from, to) =>
+      admin
+        .from("fin_close_tasks")
+        .select("month, status, due_wd, done_at")
+        .eq("org_id", orgId)
+        .gte("month", oldest)
+        .lte("month", latest)
+        .order("id")
+        .range(from, to),
+    ),
     admin
       .from("fin_period_closes")
       .select("month, locked_at")

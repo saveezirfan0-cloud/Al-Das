@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { AdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 
 export type BatchRow = {
   id: string;
@@ -129,12 +130,16 @@ export async function getFinanceHealth(admin: AdminClient, orgId: string): Promi
       .in("status", ["open", "in_progress"]),
     admin.rpc("fin_invoice_number_gaps", { p_org_id: orgId, p_from: "2026-01-01" }),
     admin.rpc("fin_appointment_resolution", { p_org_id: orgId, p_days: 60 }),
-    admin
-      .from("ops_exceptions")
-      .select("rule_code")
-      .eq("org_id", orgId)
-      .in("status", ["open", "in_progress"])
-      .limit(20000),
+    // Counted per rule, so every open exception is read in pages (PostgREST returns at most 1,000 per request).
+    fetchAll((from, to) =>
+      admin
+        .from("ops_exceptions")
+        .select("rule_code")
+        .eq("org_id", orgId)
+        .in("status", ["open", "in_progress"])
+        .order("id")
+        .range(from, to),
+    ),
   ]);
 
   const rows: BatchRow[] = (batches.data ?? []).map((b) => ({

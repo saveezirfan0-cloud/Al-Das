@@ -142,15 +142,16 @@ export async function sendDeskMessage(
   } | null = null;
   if (input.kind === "location") {
     if (!locationId) {
-      const { data: first } = await admin
+      // No upcoming visit and no branch chosen: only a one-branch clinic can safely assume which address to send.
+      const { data: active } = await admin
         .from("locations")
         .select("id")
         .eq("org_id", input.orgId)
         .eq("active", true)
-        .order("name")
-        .limit(1)
-        .maybeSingle();
-      locationId = first?.id ?? null;
+        .limit(2);
+      if ((active ?? []).length > 1)
+        return { ok: false, error: "Choose which branch's location to send." };
+      locationId = active?.[0]?.id ?? null;
     }
     if (!locationId) return { ok: false, error: "No clinic location is set up." };
     const { data } = await admin

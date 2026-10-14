@@ -5,6 +5,7 @@ import type { JournalStatus, VoucherType } from "@/lib/accounting/journal";
 import type { DayBookData, LedgerData, TrialBalanceData } from "@/lib/accounting/reports";
 import { peopleNames } from "@/lib/finance/vouchers-server";
 import type { AdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 
 /**
  * Server side of Accounting (Phase 22A): loaders for pages, routes and actions. Service role; every caller has run can()
@@ -47,14 +48,18 @@ export type AccountView = AccountRow & {
 };
 
 export async function loadAccounts(admin: AdminClient, orgId: string): Promise<AccountView[]> {
-  const { data } = await admin
-    .from("acc_accounts")
-    .select(
-      "id, parent_id, code, name, nature, is_group, is_active, is_system, control, allow_manual, entity_id, currency, description, tally_group, affects_gross_profit, sort_order, cash_flow_class, requires_branch, requires_cost_centre, ct_treatment",
-    )
-    .eq("org_id", orgId)
-    .order("code")
-    .limit(5000);
+  // Every row, read in pages (PostgREST returns at most 1,000 per request).
+  const { data } = await fetchAll((from, to) =>
+    admin
+      .from("acc_accounts")
+      .select(
+        "id, parent_id, code, name, nature, is_group, is_active, is_system, control, allow_manual, entity_id, currency, description, tally_group, affects_gross_profit, sort_order, cash_flow_class, requires_branch, requires_cost_centre, ct_treatment",
+      )
+      .eq("org_id", orgId)
+      .order("code")
+      .order("id")
+      .range(from, to),
+  );
   return (data ?? []).map((a) => ({
     ...a,
     nature: a.nature as AccountNature,

@@ -9,6 +9,7 @@ import {
   type ProfitResult,
 } from "@/lib/finance/profitability";
 import type { AdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 
 /**
  * Reads the report inputs and runs the pure profitability calculation. Service-role reads: the CALLER must already have
@@ -26,20 +27,27 @@ export async function loadProfitability(
 ): Promise<ProfitResult> {
   const [inputs, comp, overheads, periods] = await Promise.all([
     admin.rpc("fin_profit_inputs", { p_org_id: orgId, p_from: range.from, p_to: range.to }),
-    admin
-      .from("fin_cost_doctor_comp")
-      .select("month, doctor_dha_id, amount")
-      .eq("org_id", orgId)
-      .gte("month", monthStart(range.from))
-      .lte("month", monthStart(range.to))
-      .limit(20000),
-    admin
-      .from("fin_cost_overheads")
-      .select("month, branch_code, pool, amount, basis")
-      .eq("org_id", orgId)
-      .gte("month", monthStart(range.from))
-      .lte("month", monthStart(range.to))
-      .limit(20000),
+    // Summed into the profit figures, so every row is read in pages (PostgREST returns at most 1,000 per request).
+    fetchAll((from, to) =>
+      admin
+        .from("fin_cost_doctor_comp")
+        .select("month, doctor_dha_id, amount")
+        .eq("org_id", orgId)
+        .gte("month", monthStart(range.from))
+        .lte("month", monthStart(range.to))
+        .order("id")
+        .range(from, to),
+    ),
+    fetchAll((from, to) =>
+      admin
+        .from("fin_cost_overheads")
+        .select("month, branch_code, pool, amount, basis")
+        .eq("org_id", orgId)
+        .gte("month", monthStart(range.from))
+        .lte("month", monthStart(range.to))
+        .order("id")
+        .range(from, to),
+    ),
     admin
       .from("fin_cost_periods")
       .select("month")

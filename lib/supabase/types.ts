@@ -4264,6 +4264,13 @@ export type Database = {
             foreignKeyName: "ad_attributions_conversation_id_fkey";
             columns: ["conversation_id"];
             isOneToOne: false;
+            referencedRelation: "v_conversation_engagement";
+            referencedColumns: ["conversation_id"];
+          },
+          {
+            foreignKeyName: "ad_attributions_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
             referencedRelation: "v_sla_breaches_now";
             referencedColumns: ["conversation_id"];
           },
@@ -4381,6 +4388,13 @@ export type Database = {
             foreignKeyName: "ai_message_intents_conversation_id_fkey";
             columns: ["conversation_id"];
             isOneToOne: false;
+            referencedRelation: "v_conversation_engagement";
+            referencedColumns: ["conversation_id"];
+          },
+          {
+            foreignKeyName: "ai_message_intents_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
             referencedRelation: "v_sla_breaches_now";
             referencedColumns: ["conversation_id"];
           },
@@ -4389,6 +4403,13 @@ export type Database = {
             columns: ["message_id"];
             isOneToOne: false;
             referencedRelation: "messages";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ai_message_intents_message_id_fkey";
+            columns: ["message_id"];
+            isOneToOne: false;
+            referencedRelation: "v_template_message_facts";
             referencedColumns: ["id"];
           },
           {
@@ -4494,6 +4515,13 @@ export type Database = {
             foreignKeyName: "ai_suggestion_outcomes_conversation_id_fkey";
             columns: ["conversation_id"];
             isOneToOne: false;
+            referencedRelation: "v_conversation_engagement";
+            referencedColumns: ["conversation_id"];
+          },
+          {
+            foreignKeyName: "ai_suggestion_outcomes_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
             referencedRelation: "v_sla_breaches_now";
             referencedColumns: ["conversation_id"];
           },
@@ -4570,6 +4598,13 @@ export type Database = {
             columns: ["conversation_id"];
             isOneToOne: false;
             referencedRelation: "mv_conversation_facts";
+            referencedColumns: ["conversation_id"];
+          },
+          {
+            foreignKeyName: "ai_usage_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "v_conversation_engagement";
             referencedColumns: ["conversation_id"];
           },
           {
@@ -4836,6 +4871,13 @@ export type Database = {
             columns: ["message_id"];
             isOneToOne: false;
             referencedRelation: "messages";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "appointment_reminders_message_id_fkey";
+            columns: ["message_id"];
+            isOneToOne: false;
+            referencedRelation: "v_template_message_facts";
             referencedColumns: ["id"];
           },
           {
@@ -5227,6 +5269,13 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "campaign_ab_variants_campaign_id_fkey";
+            columns: ["campaign_id"];
+            isOneToOne: true;
+            referencedRelation: "v_campaign_facts";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "campaign_ab_variants_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
@@ -5520,6 +5569,13 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "campaign_recipients_message_id_fkey";
+            columns: ["message_id"];
+            isOneToOne: false;
+            referencedRelation: "v_template_message_facts";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "campaign_recipients_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
@@ -5622,6 +5678,13 @@ export type Database = {
             columns: ["last_campaign_id"];
             isOneToOne: false;
             referencedRelation: "campaigns";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "campaign_recurrences_last_campaign_id_fkey";
+            columns: ["last_campaign_id"];
+            isOneToOne: false;
+            referencedRelation: "v_campaign_facts";
             referencedColumns: ["id"];
           },
           {
@@ -5753,13 +5816,6 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "campaigns_recurrence_id_fkey";
-            columns: ["recurrence_id"];
-            isOneToOne: false;
-            referencedRelation: "campaign_recurrences";
-            referencedColumns: ["id"];
-          },
-          {
             foreignKeyName: "campaigns_channel_id_fkey";
             columns: ["channel_id"];
             isOneToOne: false;
@@ -5778,6 +5834,13 @@ export type Database = {
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "campaigns_recurrence_id_fkey";
+            columns: ["recurrence_id"];
+            isOneToOne: false;
+            referencedRelation: "campaign_recurrences";
             referencedColumns: ["id"];
           },
           {
@@ -6234,6 +6297,13 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "clinical_feedback_source_message_id_fkey";
+            columns: ["source_message_id"];
+            isOneToOne: false;
+            referencedRelation: "v_template_message_facts";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "clinical_feedback_visit_id_fkey";
             columns: ["visit_id"];
             isOneToOne: false;
@@ -6541,6 +6611,13 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "clinical_message_log_message_id_fkey";
+            columns: ["message_id"];
+            isOneToOne: false;
+            referencedRelation: "v_template_message_facts";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "clinical_message_log_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
@@ -6559,6 +6636,13 @@ export type Database = {
             columns: ["reply_message_id"];
             isOneToOne: false;
             referencedRelation: "messages";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "clinical_message_log_reply_message_id_fkey";
+            columns: ["reply_message_id"];
+            isOneToOne: false;
+            referencedRelation: "v_template_message_facts";
             referencedColumns: ["id"];
           },
           {
@@ -6687,6 +6771,76 @@ export type Database = {
         };
         Relationships: [];
       };
+      contact_channel_identities: {
+        Row: {
+          channel_id: string;
+          contact_id: string;
+          created_at: string;
+          external_id: string;
+          id: string;
+          last_seen_at: string;
+          org_id: string;
+          platform: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          channel_id: string;
+          contact_id: string;
+          created_at?: string;
+          external_id: string;
+          id?: string;
+          last_seen_at?: string;
+          org_id: string;
+          platform: string;
+        };
+        Update: {
+          channel_id?: string;
+          contact_id?: string;
+          created_at?: string;
+          external_id?: string;
+          id?: string;
+          last_seen_at?: string;
+          org_id?: string;
+          platform?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "contact_channel_identities_channel_id_fkey";
+            columns: ["channel_id"];
+            isOneToOne: false;
+            referencedRelation: "channels";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "contact_channel_identities_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "contact_channel_identities_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_birthday_today";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "contact_channel_identities_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_chronic_recall_eligibility";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "contact_channel_identities_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       contact_chronic_conditions: {
         Row: {
           contact_id: string;
@@ -6759,62 +6913,6 @@ export type Database = {
             columns: ["ref_diagnosis_id"];
             isOneToOne: false;
             referencedRelation: "ref_diagnoses";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      contact_channel_identities: {
-        Row: {
-          channel_id: string;
-          contact_id: string;
-          created_at: string;
-          external_id: string;
-          id: string;
-          last_seen_at: string;
-          org_id: string;
-          platform: string;
-        };
-        ComputedFields: never;
-        Insert: {
-          channel_id: string;
-          contact_id: string;
-          created_at?: string;
-          external_id: string;
-          id?: string;
-          last_seen_at?: string;
-          org_id: string;
-          platform: string;
-        };
-        Update: {
-          channel_id?: string;
-          contact_id?: string;
-          created_at?: string;
-          external_id?: string;
-          id?: string;
-          last_seen_at?: string;
-          org_id?: string;
-          platform?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "contact_channel_identities_channel_id_fkey";
-            columns: ["channel_id"];
-            isOneToOne: false;
-            referencedRelation: "channels";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "contact_channel_identities_contact_id_fkey";
-            columns: ["contact_id"];
-            isOneToOne: false;
-            referencedRelation: "contacts";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "contact_channel_identities_org_id_fkey";
-            columns: ["org_id"];
-            isOneToOne: false;
-            referencedRelation: "orgs";
             referencedColumns: ["id"];
           },
         ];
@@ -7192,6 +7290,27 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "conversation_assignment_events_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "mv_conversation_facts";
+            referencedColumns: ["conversation_id"];
+          },
+          {
+            foreignKeyName: "conversation_assignment_events_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "v_conversation_engagement";
+            referencedColumns: ["conversation_id"];
+          },
+          {
+            foreignKeyName: "conversation_assignment_events_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "v_sla_breaches_now";
+            referencedColumns: ["conversation_id"];
+          },
+          {
             foreignKeyName: "conversation_assignment_events_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
@@ -7243,6 +7362,13 @@ export type Database = {
             columns: ["conversation_id"];
             isOneToOne: false;
             referencedRelation: "mv_conversation_facts";
+            referencedColumns: ["conversation_id"];
+          },
+          {
+            foreignKeyName: "conversation_labels_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "v_conversation_engagement";
             referencedColumns: ["conversation_id"];
           },
           {
@@ -10451,6 +10577,13 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "fin_payment_requests_message_id_fkey";
+            columns: ["message_id"];
+            isOneToOne: false;
+            referencedRelation: "v_template_message_facts";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "fin_payment_requests_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
@@ -11726,6 +11859,13 @@ export type Database = {
             columns: ["message_id"];
             isOneToOne: false;
             referencedRelation: "messages";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_recovery_reminders_message_id_fkey";
+            columns: ["message_id"];
+            isOneToOne: false;
+            referencedRelation: "v_template_message_facts";
             referencedColumns: ["id"];
           },
           {
@@ -13847,6 +13987,13 @@ export type Database = {
             foreignKeyName: "flow_runs_conversation_id_fkey";
             columns: ["conversation_id"];
             isOneToOne: false;
+            referencedRelation: "v_conversation_engagement";
+            referencedColumns: ["conversation_id"];
+          },
+          {
+            foreignKeyName: "flow_runs_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
             referencedRelation: "v_sla_breaches_now";
             referencedColumns: ["conversation_id"];
           },
@@ -14212,6 +14359,13 @@ export type Database = {
             columns: ["appointment_id"];
             isOneToOne: false;
             referencedRelation: "appointments";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "gcal_event_links_appointment_id_fkey";
+            columns: ["appointment_id"];
+            isOneToOne: false;
+            referencedRelation: "v_appointment_facts";
             referencedColumns: ["id"];
           },
           {
@@ -15864,6 +16018,13 @@ export type Database = {
             foreignKeyName: "kb_feedback_conversation_id_fkey";
             columns: ["conversation_id"];
             isOneToOne: false;
+            referencedRelation: "v_conversation_engagement";
+            referencedColumns: ["conversation_id"];
+          },
+          {
+            foreignKeyName: "kb_feedback_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
             referencedRelation: "v_sla_breaches_now";
             referencedColumns: ["conversation_id"];
           },
@@ -16376,6 +16537,13 @@ export type Database = {
             foreignKeyName: "mentions_conversation_id_fkey";
             columns: ["conversation_id"];
             isOneToOne: false;
+            referencedRelation: "v_conversation_engagement";
+            referencedColumns: ["conversation_id"];
+          },
+          {
+            foreignKeyName: "mentions_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
             referencedRelation: "v_sla_breaches_now";
             referencedColumns: ["conversation_id"];
           },
@@ -16391,6 +16559,13 @@ export type Database = {
             columns: ["message_id"];
             isOneToOne: false;
             referencedRelation: "messages";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "mentions_message_id_fkey";
+            columns: ["message_id"];
+            isOneToOne: false;
+            referencedRelation: "v_template_message_facts";
             referencedColumns: ["id"];
           },
           {
@@ -16488,13 +16663,6 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "messages_retry_of_message_id_fkey";
-            columns: ["retry_of_message_id"];
-            isOneToOne: false;
-            referencedRelation: "messages";
-            referencedColumns: ["id"];
-          },
-          {
             foreignKeyName: "messages_campaign_recipient_id_fkey";
             columns: ["campaign_recipient_id"];
             isOneToOne: false;
@@ -16519,6 +16687,13 @@ export type Database = {
             foreignKeyName: "messages_conversation_id_fkey";
             columns: ["conversation_id"];
             isOneToOne: false;
+            referencedRelation: "v_conversation_engagement";
+            referencedColumns: ["conversation_id"];
+          },
+          {
+            foreignKeyName: "messages_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
             referencedRelation: "v_sla_breaches_now";
             referencedColumns: ["conversation_id"];
           },
@@ -16534,6 +16709,20 @@ export type Database = {
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "messages_retry_of_message_id_fkey";
+            columns: ["retry_of_message_id"];
+            isOneToOne: false;
+            referencedRelation: "messages";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "messages_retry_of_message_id_fkey";
+            columns: ["retry_of_message_id"];
+            isOneToOne: false;
+            referencedRelation: "v_template_message_facts";
             referencedColumns: ["id"];
           },
           {
@@ -18125,6 +18314,13 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "recall_sends_message_id_fkey";
+            columns: ["message_id"];
+            isOneToOne: false;
+            referencedRelation: "v_template_message_facts";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "recall_sends_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
@@ -18143,6 +18339,13 @@ export type Database = {
             columns: ["reply_message_id"];
             isOneToOne: false;
             referencedRelation: "messages";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "recall_sends_reply_message_id_fkey";
+            columns: ["reply_message_id"];
+            isOneToOne: false;
+            referencedRelation: "v_template_message_facts";
             referencedColumns: ["id"];
           },
           {
@@ -18685,6 +18888,13 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "review_requests_message_id_fkey";
+            columns: ["message_id"];
+            isOneToOne: false;
+            referencedRelation: "v_template_message_facts";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "review_requests_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
@@ -19224,6 +19434,13 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "slot_offers_message_id_fkey";
+            columns: ["message_id"];
+            isOneToOne: false;
+            referencedRelation: "v_template_message_facts";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "slot_offers_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
@@ -19371,6 +19588,13 @@ export type Database = {
             columns: ["source_message_id"];
             isOneToOne: false;
             referencedRelation: "messages";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "sms_messages_source_message_id_fkey";
+            columns: ["source_message_id"];
+            isOneToOne: false;
+            referencedRelation: "v_template_message_facts";
             referencedColumns: ["id"];
           },
         ];
@@ -21173,11 +21397,46 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "web_chat_sessions_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_birthday_today";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "web_chat_sessions_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_chronic_recall_eligibility";
+            referencedColumns: ["contact_id"];
+          },
+          {
             foreignKeyName: "web_chat_sessions_conversation_id_fkey";
             columns: ["conversation_id"];
             isOneToOne: false;
             referencedRelation: "conversations";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "web_chat_sessions_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "mv_conversation_facts";
+            referencedColumns: ["conversation_id"];
+          },
+          {
+            foreignKeyName: "web_chat_sessions_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "v_conversation_engagement";
+            referencedColumns: ["conversation_id"];
+          },
+          {
+            foreignKeyName: "web_chat_sessions_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "v_sla_breaches_now";
+            referencedColumns: ["conversation_id"];
           },
           {
             foreignKeyName: "web_chat_sessions_org_id_fkey";
@@ -21793,7 +22052,43 @@ export type Database = {
           to_user_id: string | null;
         };
         ComputedFields: never;
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "conversation_assignment_events_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "conversation_assignment_events_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "mv_conversation_facts";
+            referencedColumns: ["conversation_id"];
+          },
+          {
+            foreignKeyName: "conversation_assignment_events_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "v_conversation_engagement";
+            referencedColumns: ["conversation_id"];
+          },
+          {
+            foreignKeyName: "conversation_assignment_events_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "v_sla_breaches_now";
+            referencedColumns: ["conversation_id"];
+          },
+          {
+            foreignKeyName: "conversation_assignment_events_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       v_birthday_today: {
         Row: {
@@ -21915,7 +22210,36 @@ export type Database = {
           status: string | null;
         };
         ComputedFields: never;
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "conversations_assignee_team_id_fkey";
+            columns: ["assignee_team_id"];
+            isOneToOne: false;
+            referencedRelation: "teams";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "conversations_assignee_user_id_fkey";
+            columns: ["assignee_user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "conversations_channel_id_fkey";
+            columns: ["channel_id"];
+            isOneToOne: false;
+            referencedRelation: "channels";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "conversations_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       v_enquiry_facts: {
         Row: {
@@ -22594,7 +22918,33 @@ export type Database = {
           user_id: string | null;
         };
         ComputedFields: never;
-        Relationships: [];
+        Insert: {
+          at?: string | null;
+          id?: number | null;
+          org_id?: string | null;
+          presence?: string | null;
+          previous?: string | null;
+          source?: string | null;
+          user_id?: string | null;
+        };
+        Update: {
+          at?: string | null;
+          id?: number | null;
+          org_id?: string | null;
+          presence?: string | null;
+          previous?: string | null;
+          source?: string | null;
+          user_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "member_presence_events_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       v_recall_call_list: {
         Row: {
@@ -22800,7 +23150,50 @@ export type Database = {
           wa_message_id: string | null;
         };
         ComputedFields: never;
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "conversations_channel_id_fkey";
+            columns: ["channel_id"];
+            isOneToOne: false;
+            referencedRelation: "channels";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "messages_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "messages_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "mv_conversation_facts";
+            referencedColumns: ["conversation_id"];
+          },
+          {
+            foreignKeyName: "messages_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "v_conversation_engagement";
+            referencedColumns: ["conversation_id"];
+          },
+          {
+            foreignKeyName: "messages_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "v_sla_breaches_now";
+            referencedColumns: ["conversation_id"];
+          },
+          {
+            foreignKeyName: "messages_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       v_unclassified_medications: {
         Row: {
@@ -23491,10 +23884,7 @@ export type Database = {
         Args: { p_org: string; p_rows: Json; p_since: string; p_until: string };
         Returns: Json;
       };
-      ad_spend_report: {
-        Args: { p_org: string; p_since: string };
-        Returns: Json;
-      };
+      ad_spend_report: { Args: { p_org: string; p_since: string }; Returns: Json };
       ai_add_conversation_tags: {
         Args: { p_conversation: string; p_org: string; p_tags: string[] };
         Returns: string[];
@@ -23589,17 +23979,15 @@ export type Database = {
         };
         Returns: Json;
       };
-      campaign_budget_claim: {
-        Args: { p_org: string; p_requested: number };
-        Returns: number;
-      };
-      campaign_budget_refund: {
-        Args: { p_count: number; p_org: string };
-        Returns: undefined;
-      };
+      campaign_budget_claim: { Args: { p_org: string; p_requested: number }; Returns: number };
+      campaign_budget_refund: { Args: { p_count: number; p_org: string }; Returns: undefined };
       campaign_budget_status: {
         Args: { p_org: string };
-        Returns: { month: string; monthly_limit: number | null; used: number }[];
+        Returns: {
+          month: string;
+          monthly_limit: number;
+          used: number;
+        }[];
       };
       campaign_dispatch: {
         Args: { p_campaign_id: string; p_items: Json };
@@ -23616,7 +24004,7 @@ export type Database = {
           p_run_at: string;
           p_skip_reason?: string;
         };
-        Returns: string | null;
+        Returns: string;
       };
       campaign_requeue_failed: {
         Args: { p_campaign_id: string; p_codes: number[] };
@@ -23766,12 +24154,7 @@ export type Database = {
         };
         Returns: Json;
       };
-      dearmor: { Args: { "": string }; Returns: string };
       demo_wipe_org: { Args: { p_org_id: string }; Returns: Json };
-      enquiry_ids_visible_to: {
-        Args: { p_ids: string[]; p_org_id: string; p_user_id: string };
-        Returns: string[];
-      };
       enquiries_count: {
         Args: { p_org_id: string; p_params: Json; p_q?: string; p_where: string };
         Returns: number;
@@ -23802,6 +24185,10 @@ export type Database = {
           stage_id: string;
           total: number;
         }[];
+      };
+      enquiry_ids_visible_to: {
+        Args: { p_ids: string[]; p_org_id: string; p_user_id: string };
+        Returns: string[];
       };
       erase_contact: {
         Args: { p_actor?: string; p_contact: string; p_org: string };
@@ -24224,8 +24611,6 @@ export type Database = {
         Returns: Json;
       };
       gcal_clear_busy_blocks: { Args: { p_org: string; p_specialist: string }; Returns: number };
-      gen_random_uuid: { Args: Record<PropertyKey, never>; Returns: string };
-      gen_salt: { Args: { "": string }; Returns: string };
       ins_apply_matches: { Args: { p_matches: Json; p_org_id: string }; Returns: number };
       ins_claims_for_remittance: {
         Args: { p_invoice_keys: string[]; p_numbers: string[]; p_org_id: string };
@@ -24422,7 +24807,6 @@ export type Database = {
         Args: { p_actor: string; p_membership: string; p_org: string; p_reassign_to?: string };
         Returns: Json;
       };
-      pgp_armor_headers: { Args: { "": string }; Returns: Record<string, unknown>[] };
       pick_round_robin_assignee: { Args: { p_org_id: string; p_team_id: string }; Returns: string };
       pick_round_robin_assignee_capped: {
         Args: { p_org_id: string; p_team_id: string };
@@ -24486,24 +24870,6 @@ export type Database = {
       reconcile_snapshot: { Args: { p_org_id: string }; Returns: Json };
       refresh_metrics: { Args: { p_name?: string }; Returns: string[] };
       release_flow_lock: { Args: { p_key: string; p_owner: string }; Returns: undefined };
-      report_ai_engagement: {
-        Args: {
-          p_channels?: string[];
-          p_from: string;
-          p_org: string;
-          p_teams?: string[];
-          p_to: string;
-        };
-        Returns: {
-          ai_assisted: number;
-          bot_engaged: number;
-          closed: number;
-          closed_without_human: number;
-          closed_without_reply: number;
-          engaged: number;
-          handled_by_automation: number;
-        }[];
-      };
       report_agents: {
         Args: {
           p_from: string;
@@ -24522,23 +24888,22 @@ export type Database = {
           user_id: string;
         }[];
       };
-      report_assignment_close: {
+      report_ai_engagement: {
         Args: {
+          p_channels?: string[];
           p_from: string;
           p_org: string;
           p_teams?: string[];
           p_to: string;
-          p_users?: string[];
         };
         Returns: {
+          ai_assisted: number;
+          bot_engaged: number;
           closed: number;
-          first_avg_seconds: number | null;
-          first_median_seconds: number | null;
-          is_total: boolean;
-          last_avg_seconds: number | null;
-          last_median_seconds: number | null;
-          user_id: string | null;
-          with_assignment: number;
+          closed_without_human: number;
+          closed_without_reply: number;
+          engaged: number;
+          handled_by_automation: number;
         }[];
       };
       report_appointments_by_day: {
@@ -24583,6 +24948,25 @@ export type Database = {
           confirmed: number;
           no_show: number;
           total: number;
+        }[];
+      };
+      report_assignment_close: {
+        Args: {
+          p_from: string;
+          p_org: string;
+          p_teams?: string[];
+          p_to: string;
+          p_users?: string[];
+        };
+        Returns: {
+          closed: number;
+          first_avg_seconds: number;
+          first_median_seconds: number;
+          is_total: boolean;
+          last_avg_seconds: number;
+          last_median_seconds: number;
+          user_id: string;
+          with_assignment: number;
         }[];
       };
       report_campaigns: {
@@ -24725,7 +25109,7 @@ export type Database = {
           created: number;
           disqualified: number;
           lost: number;
-          median_days_to_close: number | null;
+          median_days_to_close: number;
           month: string;
           open: number;
           won: number;
@@ -24793,7 +25177,7 @@ export type Database = {
           reassigned: number;
           removed: number;
           unassigned: number;
-          user_id: string | null;
+          user_id: string;
         }[];
       };
       report_presence_events: {
@@ -24939,6 +25323,15 @@ export type Database = {
         Returns: string;
       };
       review_request_stats: { Args: { p_org: string; p_since: string }; Returns: Json };
+      route_conversation: {
+        Args: {
+          p_conversation_id: string;
+          p_org_id: string;
+          p_round_robin: boolean;
+          p_team_id: string;
+        };
+        Returns: Json;
+      };
       security_maintenance: { Args: { p_now?: string }; Returns: Json };
       seed_clinical_settings: { Args: { p_org: string }; Returns: undefined };
       seed_clinical_settings_phase21: { Args: { p_org: string }; Returns: undefined };
@@ -24952,15 +25345,6 @@ export type Database = {
       seed_recall_programmes: { Args: { p_org: string }; Returns: undefined };
       seed_reminder_exclusions: { Args: { p_org: string }; Returns: undefined };
       seed_unite_appointment_status_map: { Args: { p_org: string }; Returns: undefined };
-      route_conversation: {
-        Args: {
-          p_conversation_id: string;
-          p_org_id: string;
-          p_round_robin: boolean;
-          p_team_id: string;
-        };
-        Returns: Json;
-      };
       set_presence: { Args: { p_org_id: string; p_presence: string }; Returns: undefined };
       show_limit: { Args: Record<PropertyKey, never>; Returns: number };
       show_trgm: { Args: { "": string }; Returns: string[] };
@@ -24981,16 +25365,6 @@ export type Database = {
         };
         Returns: Json;
       };
-      uuid_generate_v1: { Args: Record<PropertyKey, never>; Returns: string };
-      uuid_generate_v1mc: { Args: Record<PropertyKey, never>; Returns: string };
-      uuid_generate_v3: { Args: { name: string; namespace: string }; Returns: string };
-      uuid_generate_v4: { Args: Record<PropertyKey, never>; Returns: string };
-      uuid_generate_v5: { Args: { name: string; namespace: string }; Returns: string };
-      uuid_nil: { Args: Record<PropertyKey, never>; Returns: string };
-      uuid_ns_dns: { Args: Record<PropertyKey, never>; Returns: string };
-      uuid_ns_oid: { Args: Record<PropertyKey, never>; Returns: string };
-      uuid_ns_url: { Args: Record<PropertyKey, never>; Returns: string };
-      uuid_ns_x500: { Args: Record<PropertyKey, never>; Returns: string };
       web_chat_receive: {
         Args: {
           p_at?: string;

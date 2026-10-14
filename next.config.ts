@@ -1,7 +1,30 @@
 import createBundleAnalyzer from "@next/bundle-analyzer";
+import { withSentryConfig } from "@sentry/nextjs/config";
 import type { NextConfig } from "next";
 
 const isDev = process.env.NODE_ENV !== "production";
+
+/**
+ * Where the browser SDK sends errors. Sentry's ingest hosts are oNNN.ingest.sentry.io and, for the US and EU regions,
+ * oNNN.ingest.us.sentry.io / oNNN.ingest.de.sentry.io; the exact host of NEXT_PUBLIC_SENTRY_DSN is added when it is set.
+ */
+function sentryConnectSrc(): string {
+  const hosts = new Set([
+    "https://*.ingest.sentry.io",
+    "https://*.ingest.us.sentry.io",
+    "https://*.ingest.de.sentry.io",
+  ]);
+  const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
+  if (dsn) {
+    try {
+      const u = new URL(dsn);
+      if (u.protocol === "https:") hosts.add(`https://${u.host}`);
+    } catch {
+      // A malformed DSN is reported by the SDK; the CSP keeps the defaults.
+    }
+  }
+  return [...hosts].join(" ");
+}
 
 /**
  * CSP ships in report-only mode first: Next injects inline scripts and Sentry/Supabase
@@ -15,7 +38,7 @@ const csp = [
   "img-src 'self' data: blob: https://*.supabase.co",
   "media-src 'self' blob: https://*.supabase.co",
   "font-src 'self' data:",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.ingest.sentry.io",
+  `connect-src 'self' https://*.supabase.co wss://*.supabase.co ${sentryConnectSrc()}`,
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -64,4 +87,25 @@ const withBundleAnalyzer = createBundleAnalyzer({
   openAnalyzer: false,
 });
 
-export default withBundleAnalyzer(nextConfig);
+/**
+ * Source maps go to Sentry only when SENTRY_AUTH_TOKEN (with SENTRY_ORG and SENTRY_PROJECT) is set at build time; they
+ * are deleted from the output after upload. Without the token the build is exactly as before: no Sentry build plugin,
+ * no upload, no extra loaders. Runtime reporting does not depend on this (instrumentation.ts).
+ */
+const uploadSourceMaps =
+  !!process.env.SENTRY_AUTH_TOKEN && !!process.env.SENTRY_ORG && !!process.env.SENTRY_PROJECT;
+
+const withSentry = (config: NextConfig): NextConfig =>
+  uploadSourceMaps
+    ? withSentryConfig(config, {
+        org: process.env.SENTRY_ORG,
+        project: process.env.SENTRY_PROJECT,
+        authToken: process.env.SENTRY_AUTH_TOKEN,
+        silent: !process.env.CI,
+        telemetry: false,
+        widenClientFileUpload: false,
+        sourcemaps: { deleteSourcemapsAfterUpload: true },
+      })
+    : config;
+
+export default withSentry(withBundleAnalyzer(nextConfig));
