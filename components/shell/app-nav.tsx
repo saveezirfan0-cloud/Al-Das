@@ -352,6 +352,8 @@ export function AppNav({
           {waiting} waiting
         </span>
       ) : null;
+    // Spread only when there is a count: an explicit undefined would also wipe the tooltip's own aria-describedby.
+    const describedBy = count ? { "aria-describedby": countId } : {};
     if (!flyout)
       return (
         <li key={a.key}>
@@ -360,7 +362,7 @@ export function AppNav({
               <Link
                 href={a.href}
                 aria-label={a.title}
-                aria-describedby={count ? countId : undefined}
+                {...describedBy}
                 aria-current={active ? "page" : undefined}
                 onMouseEnter={() => openPeek(a)}
                 onFocus={() => openPeek(a)}
@@ -386,7 +388,7 @@ export function AppNav({
                 else triggers.current.delete(a.key);
               }}
               aria-label={a.title}
-              aria-describedby={count ? countId : undefined}
+              {...describedBy}
               aria-current={active ? "true" : undefined}
               aria-expanded={expanded}
               aria-controls={expanded ? (dockedHere ? dockedId : flyoutId) : undefined}
