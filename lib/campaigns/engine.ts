@@ -280,9 +280,9 @@ export async function runFanout(
     const batch = (pending ?? []) as unknown as PendingRecipient[];
     if (batch.length === 0) return { dispatched, skipped, state: "drained" };
 
-    // Version A is the campaign's own template and mapping; version B (Phase 20g A/B test) has the same category,
-    // so consent is decided once, by A's category, exactly as before.
-    const marketing = isMarketingCategory(template.category);
+    // Version A is the campaign's own template and mapping; version B is the Phase 20g A/B test. Consent is decided
+    // per recipient by the category of the template that recipient gets: a category can change after creation
+    // (Meta's template_category webhook), so B is never assumed to match A here.
     const versionA: VariantSettings<typeof template> = {
       template,
       map: stringMap(campaign.variable_map),
@@ -299,15 +299,17 @@ export async function runFanout(
 
     const items: Array<Record<string, Json>> = [];
     for (const r of batch) {
-      // Re-check consent right before sending: 131050 or an opt-out can land mid-campaign.
-      const skip = classifyRecipient(r.contacts, { marketing });
-      if (skip) {
-        items.push({ recipient_id: r.id, skip });
-        continue;
-      }
       const version = settingsForVariant(r.variant, versionA, versionB);
       if (!version) {
         items.push({ recipient_id: r.id, skip: "variant_missing" });
+        continue;
+      }
+      // Re-check consent right before sending: 131050 or an opt-out can land mid-campaign.
+      const skip = classifyRecipient(r.contacts, {
+        marketing: isMarketingCategory(version.template.category),
+      });
+      if (skip) {
+        items.push({ recipient_id: r.id, skip });
         continue;
       }
       const components = version.template.components as unknown as MetaTemplateComponent[];
@@ -612,16 +614,24 @@ export async function guardCampaignMessage(
 ): Promise<"send" | "released"> {
   const { data: r } = await admin
     .from("campaign_recipients")
-    .select("id, campaigns(status, wa_templates(category))")
+    .select(
+      "id, variant, campaigns(status, wa_templates(category), campaign_ab_variants(wa_templates(category)))",
+    )
     .eq("id", recipientId)
     .maybeSingle();
   const status = r?.campaigns?.status as CampaignStatus | undefined;
   if (!r || !status) return "send";
+  // The category of the template this recipient's message uses (Phase 20g: version B has its own); a B recipient
+  // whose version cannot be read is treated as marketing (fail closed).
+  const category =
+    r.variant === "b"
+      ? (r.campaigns?.campaign_ab_variants?.wa_templates?.category ?? "MARKETING")
+      : r.campaigns?.wa_templates?.category;
 
   let release: { status: "pending" | "skipped"; reason: string | null } | null = null;
   if (status === "cancelled") release = { status: "skipped", reason: "cancelled" };
   else if (status === "paused") release = { status: "pending", reason: null };
-  else if (isMarketingCategory(r.campaigns?.wa_templates?.category) && contact.stop_marketing)
+  else if (isMarketingCategory(category) && contact.stop_marketing)
     release = { status: "skipped", reason: "stop_marketing" };
   if (!release) return "send";
 
