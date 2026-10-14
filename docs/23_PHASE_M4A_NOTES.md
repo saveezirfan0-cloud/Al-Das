@@ -149,4 +149,4 @@ calculated (`engine: recruitment-v1`). Saving recomputes on the server; the brow
 - Ramp-up from past hires (docs/40 M4) needs the hire dates of current doctors (`fin_ref_doctors` has none yet).
 - Contribution levels from the metric register (docs/40 §2): this calculator is the first scenario on its own pure
   engine; when the register lands, L3 doctor contribution should read the same pay rules.
-- Paste file: `deploy/supabase-paste/74_finance_recruitment.sql`.
+- Paste file: `deploy/supabase-paste/87_finance_recruitment.sql`.

@@ -58,7 +58,7 @@ Booking is untouched: `app.slot_conflict` and `slotFits` never read rooms.
 - A chosen branch with no `locations.branch_code` shows hours and rooms but no revenue, with a note. Revenue is not
   guessed.
 
-## Follow-up: room measures from the staff rota (after PR #72 merges)
+## Follow-up: room measures from the staff rota (PR #72 is merged; this is the next step)
 
 PR #72's `rota_shifts` has dated shifts per staff member and branch, with `room` as free text (up to 40 characters).
 To finish the room measures:

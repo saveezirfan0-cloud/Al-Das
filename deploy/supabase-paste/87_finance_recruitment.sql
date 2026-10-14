@@ -2,7 +2,7 @@
 -- Run the files in numeric order. A failed file rolls back as a whole, so it is safe to retry.
 -- Recruitment calculator (M4A): recruitment defaults, saved scenarios, and the Ramadan, Eid and holiday calendar
 -- (seeded once per organisation with approximate dates that Finance corrects).
--- Needs every earlier file first, up to and including 73_rooms_capacity.sql.
+-- Needs every earlier file first, up to and including 86_rooms_capacity.sql.
 -- Check the project name in the Supabase header first: this is for the Pulse project only.
 
 -- ======================================================================

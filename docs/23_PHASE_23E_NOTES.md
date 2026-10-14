@@ -86,4 +86,4 @@ defaults and apply only to an org with no settings row.
 - No "resolved" notice when an alert clears, and no page listing open alerts (`fin_mgmt_alert_state` is service only).
 - Department-line revenue targets are not alerted on; neither are patient or ARPP targets.
 - No management dashboard tile for open alerts.
-- Paste file: `deploy/supabase-paste/71_finance_management_alerts.sql`.
+- Paste file: `deploy/supabase-paste/84_finance_management_alerts.sql`.

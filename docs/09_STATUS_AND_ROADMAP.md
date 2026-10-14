@@ -13,10 +13,10 @@ Built on the uploaded Unite collection report (no Unite API call anywhere):
 - **23D-2 Insurance billed vs claimed** (`/finance/insurance-billing`): Unite-billed insurance invoices against Diligence submissions by invoice number; billed-not-submitted, amount differences, ambiguous numbers.
 - **M1 Management alerts**: report late, revenue behind target, doctors below the revenue-per-patient band; daily, once per alert, through Notifications.
 - **M2A Contribution** (`/finance/contribution`): doctor, department and clinic contribution from the pay and overheads Finance loaded (never calculated pay), Provisional until the month is approved.
-- **M3A Rooms and capacity** (Settings, Rooms; `/finance/capacity`): available hours and revenue per available hour; room occupancy waits for the staff rota (PR #72) to link rooms.
+- **M3A Rooms and capacity** (Settings, Rooms; `/finance/capacity`): available hours and revenue per available hour; room occupancy needs the staff rota's free-text room linked to these rooms (follow-up in the M3A notes).
 - **M4A Recruitment calculator** (`/finance/recruitment`): candidate viability against the clinic's own doctors, one engine for page, saved scenario and Excel; Ramadan and Eid calendar.
-- Paste files `69_` to `74_`. New questions OQ-158 to OQ-160.
-- **Still blocked on answers, deliberately not guessed:** Longevity revenue (OQ-139), contract-rule doctor pay (OQ-148 to OQ-157), the revenue forecast (needs 13 months of history), room occupancy (the staff rota, PR #72), and OQ-49 (data residency) before the first real report upload.
+- Paste files `82_` to `87_` (after #72's `80_` and `81_`). New questions OQ-158 to OQ-160.
+- **Still blocked on answers, deliberately not guessed:** Longevity revenue (OQ-139), contract-rule doctor pay (OQ-148 to OQ-157), the revenue forecast (needs 13 months of history), room occupancy (linking rota rooms to rooms), and OQ-49 (data residency) before the first real report upload.
 
 ## 0e. Update, 14 Oct 2026: Phase 23 (M1) built
 
