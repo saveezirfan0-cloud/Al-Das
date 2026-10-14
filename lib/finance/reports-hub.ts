@@ -200,6 +200,8 @@ export type ReportCard = {
   uses: readonly HubUse[];
   query?: Query;
   exports?: ReadonlyArray<{ label: "Excel" | "CSV" | "PDF"; href: string; query?: Query }>;
+  /** Phase G: the card can e-mail its report to the member (the same document as its Excel download). */
+  email?: "daily_flash" | "monthly_summary";
 };
 
 const ACC_REPORTS = ["accounting.reports.view"] as const;
@@ -219,6 +221,8 @@ const PAYABLES = [
 ] as const;
 
 const months: Query = (c) => ({ from: c.range.fromMonth, to: c.range.toMonth });
+/** The flash shows one day: the period's last day, never after yesterday (today is not finished). */
+const flashDay = (c: HubContext) => (c.to < c.yesterday ? c.to : c.yesterday);
 const dates: Query = (c) => ({ from: c.range.from, to: c.to });
 const statement =
   (compare: boolean): Query =>
@@ -253,14 +257,20 @@ export const REPORT_CARDS: readonly ReportCard[] = [
     href: "/finance/flash",
     permissions: ["finance.flash.view"],
     uses: ["day"],
-    query: (c) => ({ date: c.to < c.yesterday ? c.to : c.yesterday }),
+    query: (c) => ({ date: flashDay(c) }),
     exports: [
       {
         label: "Excel",
         href: "/api/finance/flash",
-        query: (c) => ({ date: c.to < c.yesterday ? c.to : c.yesterday }),
+        query: (c) => ({ date: flashDay(c) }),
+      },
+      {
+        label: "PDF",
+        href: "/api/finance/flash",
+        query: (c) => ({ date: flashDay(c), format: "pdf" }),
       },
     ],
+    email: "daily_flash",
   },
   {
     key: "summary",
@@ -274,11 +284,22 @@ export const REPORT_CARDS: readonly ReportCard[] = [
     query: (c) => ({ ...months(c), branch: c.picker.branch }),
     exports: [
       {
+        label: "Excel",
+        href: "/api/finance/summary",
+        query: (c) => ({ format: "xlsx", ...months(c), branch: c.picker.branch }),
+      },
+      {
+        label: "PDF",
+        href: "/api/finance/summary",
+        query: (c) => ({ format: "pdf", ...months(c), branch: c.picker.branch }),
+      },
+      {
         label: "CSV",
         href: "/api/finance/summary",
         query: (c) => ({ ...months(c), branch: c.picker.branch }),
       },
     ],
+    email: "monthly_summary",
   },
   {
     key: "revenue",
@@ -551,4 +572,23 @@ export function hubQuery(p: HubPicker): string {
     branch: p.branch ?? "all",
     ...(p.compare ? { compare: "1" } : {}),
   }).toString();
+}
+
+/** What the card's e-mail sends for the picked period (the same document as its Excel download), or null. */
+export function cardEmail(
+  card: ReportCard,
+  c: HubContext,
+):
+  | { report: "daily_flash"; day: string }
+  | { report: "monthly_summary"; from: string; to: string; branch: string | null }
+  | null {
+  if (card.email === "daily_flash") return { report: "daily_flash", day: flashDay(c) };
+  if (card.email === "monthly_summary")
+    return {
+      report: "monthly_summary",
+      from: c.range.fromMonth,
+      to: c.range.toMonth,
+      branch: c.picker.branch,
+    };
+  return null;
 }

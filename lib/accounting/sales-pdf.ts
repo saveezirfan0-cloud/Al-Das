@@ -8,6 +8,9 @@ import { toWinAnsi } from "@/lib/finance/close-pdf";
  */
 
 export const PAGE_W = 595.28;
+
+/** The words on every internal or e-mailed copy that is not the tax invoice itself (Phase G). */
+export const INTERNAL_COPY = "Internal copy - not a tax invoice";
 const PAGE_H = 841.89;
 export const MARGIN = 40;
 
@@ -204,6 +207,11 @@ export type TaxInvoicePdfInput = {
   paymentInstructions: string | null;
   sha256: string | null;
   issuedAt: string | null;
+  /**
+   * Phase G: an e-mailed copy, not the tax invoice. The heading says "Invoice copy" / "Credit note copy" and every page
+   * says INTERNAL_COPY (the UAE e-invoice will be issued through the accredited provider, OQ-122).
+   */
+  copy?: boolean;
 };
 
 /**
@@ -214,7 +222,15 @@ export type TaxInvoicePdfInput = {
  */
 export async function taxInvoicePdf(i: TaxInvoicePdfInput): Promise<Buffer> {
   const credit = i.kind === "credit_note";
-  const heading = credit ? "Tax Credit Note" : i.form === "simplified" ? "Tax Invoice (simplified)" : "Tax Invoice";
+  const heading = i.copy
+    ? credit
+      ? "Credit note copy"
+      : "Invoice copy"
+    : credit
+      ? "Tax Credit Note"
+      : i.form === "simplified"
+        ? "Tax Invoice (simplified)"
+        : "Tax Invoice";
   const p = await makeDoc(`${heading} ${i.number}`, new Date(i.issuedAt ?? `${i.date}T00:00:00Z`));
   const top = p.y;
   p.text(i.seller.name, MARGIN, 12, p.bold);
@@ -244,6 +260,16 @@ export async function taxInvoicePdf(i: TaxInvoicePdfInput): Promise<Buffer> {
     p.y -= 12;
   }
   p.y = Math.min(p.y, leftEnd) - 10;
+  if (i.copy) {
+    p.para(INTERNAL_COPY, 10, p.bold);
+    p.para(
+      "A copy for your records, made from the document Pulse issued. It is not a tax invoice.",
+      8.5,
+      p.font,
+      p.grey,
+    );
+    p.y -= 4;
+  }
   if (i.status === "void") {
     p.para("VOID: this invoice was cancelled by a credit note in full.", 10, p.bold);
     p.y -= 4;
@@ -313,7 +339,7 @@ export async function taxInvoicePdf(i: TaxInvoicePdfInput): Promise<Buffer> {
     p.y -= 10;
     p.para(`Issued by Pulse. Content sha256 ${i.sha256}`, 7, p.mono, p.grey);
   }
-  p.footer(`${heading} ${i.number}`);
+  p.footer(i.copy ? `${heading} ${i.number} - ${INTERNAL_COPY}` : `${heading} ${i.number}`);
   return Buffer.from(await p.doc.save());
 }
 

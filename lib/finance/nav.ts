@@ -300,6 +300,13 @@ export const FINANCE_SETUP_PAGES: readonly SetupPage[] = [
     keywords: ["daily targets", "flash", "arpp"],
   },
   {
+    // Phase G: the daily flash and the monthly summary e-mailed to chosen members
+    href: "/finance/report-emails",
+    label: "Report e-mails",
+    permissions: ["finance.report_emails.manage"],
+    keywords: ["scheduled reports", "daily flash e-mail", "monthly summary e-mail", "email reports"],
+  },
+  {
     href: "/finance/vouchers/settings",
     label: "Voucher settings",
     permissions: ["finance.vouchers.settings", "finance.tally.export"],

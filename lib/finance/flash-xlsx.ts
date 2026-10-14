@@ -16,6 +16,8 @@ export type FlashWorkbookInput = {
   comparison?: GridComparison | null;
   topDoctors: number;
   builtAt: string;
+  /** "Provisional: ..." or "Final: ..." (the month's CEO lock), printed under each summary heading. */
+  status?: string | null;
 };
 
 const MONEY = "#,##0;[Red](#,##0)";
@@ -91,6 +93,7 @@ export async function flashWorkbook(input: FlashWorkbookInput): Promise<Buffer> 
     ws.columns = [{ width: 38 }, { width: 16 }, { width: 14 }, { width: 14 }, { width: 14 }, { width: 12 }];
     title(ws, input.org);
     title(ws, heading);
+    if (input.status) ws.addRow([input.status]).font = { italic: true };
     ws.addRow([]);
     header(ws, ["Key performance indicators", "Actual", "Target", "Variance", "Variance %"]);
     kpiRow(ws, "Net revenue", s.kpis.revenue);

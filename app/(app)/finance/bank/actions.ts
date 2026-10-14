@@ -27,7 +27,9 @@ import {
   parseSettlement,
   readImportFile,
 } from "@/lib/finance/parse-import";
+import { previewImportTable } from "@/lib/finance/import-preview";
 import { redactText } from "@/lib/redact";
+import type { UploadPreview } from "@/lib/upload/preview";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/types";
 
@@ -67,6 +69,48 @@ export type ImportOutcome = {
   firstDate: string | null;
   lastDate: string | null;
 };
+
+/**
+ * Phase G upload preview: reads the file the person dropped with the import's own reader and shows the mapped columns of
+ * the first rows (texts redacted as they would be stored), the names of columns the layout does not map, and any mapped
+ * column that is missing. Nothing is stored or logged; the file is dropped when this returns.
+ */
+export async function previewStatement(fd: FormData): Promise<ActionResult<UploadPreview>> {
+  const member = await gate(MANAGE);
+  if (!member) return fail(DENIED);
+  const file = fd.get("file");
+  const kind = fd.get("kind");
+  const formatId = uuid.safeParse(fd.get("format_id"));
+  if (!isBankImportKind(kind)) return fail("Choose what you are importing.");
+  if (!formatId.success) return fail("Choose the layout first.");
+  if (!(file instanceof File) || file.size === 0) return fail("Choose a file.");
+  if (file.size > MAX_IMPORT_BYTES) return fail("The file is larger than 5 MB. Split it.");
+  if (!/\.(csv|xlsx)$/i.test(file.name)) return fail("Upload a .csv or .xlsx file.");
+  const admin = createAdminClient(); // service role AFTER the permission check: the layout only
+  const { data: format } = await admin
+    .from("fin_import_formats")
+    .select("kind, mapping, date_format, amount_style, active")
+    .eq("org_id", member.orgId)
+    .eq("id", formatId.data)
+    .maybeSingle();
+  if (!format || !format.active || format.kind !== kind)
+    return fail("Choose an active layout for this kind of file.");
+  let table: unknown[][];
+  try {
+    table = await readImportFile(Buffer.from(await file.arrayBuffer()));
+  } catch {
+    return fail("The file could not be read. Save it as .csv or .xlsx and try again.");
+  }
+  return {
+    ok: true,
+    data: previewImportTable(table, {
+      kind,
+      mapping: (format.mapping ?? {}) as Record<string, string>,
+      dateFormat: format.date_format as DateFormat,
+      amountStyle: format.amount_style as AmountStyle,
+    }),
+  };
+}
 
 /** Reads an uploaded statement or settlement report, stores the sanitised rows atomically, and keeps only the sha256. */
 export async function importStatement(fd: FormData): Promise<ActionResult<ImportOutcome>> {

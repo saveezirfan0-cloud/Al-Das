@@ -591,6 +591,13 @@ export const PERMISSIONS = [
       "Ask the AI to review an open bank reconciliation (ids, amounts, dates and references only) and accept or reject its suggestions. The AI only suggests pairs from Pulse's own shortlist; a person decides each one. Also needs Run bank reconciliation, and AI must be on for the workspace.",
   },
   {
+    key: "finance.report_emails.manage",
+    group: "Finance",
+    label: "Schedule report e-mails",
+    description:
+      "Choose when the daily flash and the monthly summary are e-mailed and to which members (Settings, Finance setup, Report e-mails). Each person still needs that report's own permission to receive it. Audited.",
+  },
+  {
     key: "accounting.view",
     group: "Accounting",
     label: "Open Accounting",
@@ -786,6 +793,7 @@ const FINANCE_PRESET: readonly string[] = [
   "finance.vouchers.pay",
   "finance.tally.export",
   "finance.inbox.manage",
+  "finance.report_emails.manage",
 ];
 
 /**

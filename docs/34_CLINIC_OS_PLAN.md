@@ -328,8 +328,9 @@ on a phone or a printer).
 - **Enquiries.** CSV import.
 
 ### Phase G — Finance and accounting for the finance team (2 weeks)
-**Status (14 Oct 2026): first slice built (type-checked, linted, unit-tested; not yet driven in a browser or against
-Resend).**
+**Status (14 Oct 2026): built** (second slice: migration `20261207000100_finance_report_emails.sql`, paste file
+`84_finance_report_emails.sql`; type-checked, linted, unit- and database-tested; not yet driven in a browser or run
+against a Resend sandbox, which is Phase H).
 - Built:
   - Reports hub `/finance/reports` (first under Finance, Overview; a card under Insights, Reports): Management,
     Accounting, Receivables/RCM and Tax cards, each shown to holders of that report's own key. One picker (branch from
@@ -352,8 +353,35 @@ Resend).**
     (`PAYABLES_READ`, no new key, no migration).
   - Excel downloads (every row, read in pages with `fetchAll`) of the invoices, claims, denials, journals, day book and
     general ledger lists.
-- Still to do in this phase: scheduled report e-mails (daily flash, monthly summary), e-mailing a customer invoice, the
-  one upload component, PDF and e-mail on more hub cards, and a run against a Resend sandbox (Phase H).
+- Built in the second slice:
+  - Scheduled report e-mails (Settings, Finance setup, Report e-mails, `/finance/report-emails`, new key
+    `finance.report_emails.manage` for Finance and Finance Manager): the daily flash at a local time (yesterday's) and the
+    monthly summary on day 1 to 28 (last month's, compared with the month before), as Excel attachments. Schedules live
+    in `fin_report_schedules` (a table, not `orgs.settings`: the job reads every organisation in one query, the runs need
+    a parent row, and `orgs.settings` is validated by the finance access window trigger); `pg_cron` pings
+    `/api/jobs/finance_report_emails` every 10 minutes; `lib/finance/report-emails.ts` works out what is due in the org
+    timezone and `fin_report_schedule_claim` claims each (schedule, period) once in SQL (`fin_report_schedule_runs`,
+    unique), so a retry or a second server never sends twice. Recipients are members only (user ids); at send time each
+    must hold the report's own key with the finance access window applied exactly as a request would (`can()` with
+    `restrictedAreas`; a job has no client address, so a window with an address list sends nothing), checked when queued
+    and again by the `finance_document_email` job. The body is a fixed sentence (period only, no figures, no names); the
+    attachment says Provisional until the CEO lock. Training workspaces send nothing. Each send is audited and logged as
+    an export by its recipient.
+  - E-mail a customer invoice: on an issued sales invoice or credit note (Accounting, Sales invoices; business customers
+    in `acc_customers`, never patients), `accounting.sales.manage`, rate limited, audited and logged as an export. The
+    attachment is a copy of the issued document marked "Internal copy - not a tax invoice" (the UAE e-invoice will come
+    from the accredited provider, OQ-122). The Unite invoice view is not e-mailed: it carries the patient's PIN and
+    service lines and has no business customer.
+  - One upload component (`components/shell/file-upload.tsx`, rules in `lib/upload/preview.ts`): drag and drop or Choose
+    file, type and size checked before sending, a server preview of the first rows of the MAPPED columns only (texts
+    redacted, a Unite PIN masked), the names of columns that will be ignored (never their values), the mapped columns
+    a file lacks, and Import / Upload. Used by the bank statement import and the lab and provider import; their parsers,
+    layouts (`fin_import_formats`) and the "file not kept" rule are unchanged.
+  - Reports hub: the daily flash gains PDF, the monthly summary Excel and PDF (`lib/finance/flash-pdf.ts`,
+    `lib/finance/summary-report.ts`, both labelled Provisional / Final), and both get "E-mail me" (to the person's own
+    profile address, the card's key).
+- Still to do: the upload component on the costs and budgets imports, the remaining hub cards' e-mail, and the run
+  against a Resend sandbox (Phase H).
 
 - **Reports hub.** One page of report cards (Management, Accounting, Receivables/RCM, Tax), with a shared branch,
   period and comparison picker. Each card can View, Excel, PDF and E-mail. Also listed in Insights.

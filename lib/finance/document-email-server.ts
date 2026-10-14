@@ -7,6 +7,8 @@ import {
   renderCustomerStatement,
 } from "@/lib/accounting/receivable-documents-server";
 import { loadCustomer } from "@/lib/accounting/receivables-server";
+import { renderSalesDocument } from "@/lib/accounting/sales-document-server";
+import { recordAudit } from "@/lib/audit";
 import { sendEmail, type EmailTransport } from "@/lib/email";
 import { loadCloseByMonth } from "@/lib/finance/close-server";
 import {
@@ -21,10 +23,15 @@ import {
   type DocumentEmailPorts,
   type DocumentSpec,
 } from "@/lib/finance/document-email";
+import { renderFlashDocument, renderSummaryDocument } from "@/lib/finance/report-documents-server";
+import { recipientDecision, type ReportEmailKind } from "@/lib/finance/report-emails";
 import { closePackPdfFile } from "@/lib/finance/signed-pdfs-server";
 import { enqueue } from "@/lib/jobs/enqueue";
 import { createNotification } from "@/lib/notifications";
+import { recordExport } from "@/lib/security/access-log";
+import { readFinanceAccess } from "@/lib/security/finance-access";
 import type { AdminClient } from "@/lib/supabase/admin";
+import type { Json } from "@/lib/supabase/types";
 
 /**
  * E-mailing finance documents (Phase G), the server part. The action checks the permission of the underlying export,
@@ -38,8 +45,10 @@ export async function queueDocumentEmail(input: {
   userId: string;
   document: DocumentSpec;
   recipientEmail: string;
+  /** A fixed id (the scheduled e-mails derive one per run and recipient, so a duplicate is the same e-mail). */
+  requestId?: string;
 }): Promise<string> {
-  const requestId = randomUUID();
+  const requestId = input.requestId ?? randomUUID();
   const job: DocumentEmailJob = {
     type: DOCUMENT_EMAIL_JOB,
     request_id: requestId,
@@ -82,27 +91,94 @@ export async function closeSigners(
     });
 }
 
+type OrgRow = { name: string; timezone: string | null; settings: Json | null };
+
+/**
+ * A member who should receive a report, re-read now: still an active member, holding the report's own key with the
+ * finance access window applied (the same decision a request makes, lib/finance/report-emails.ts), with an address.
+ */
+async function reportRecipient(
+  admin: AdminClient,
+  orgId: string,
+  org: OrgRow,
+  kind: ReportEmailKind,
+  userId: string,
+): Promise<{ email: string; name: string | null } | null | "not_allowed"> {
+  const [{ data: membership }, { data: profile }] = await Promise.all([
+    admin
+      .from("memberships")
+      .select("role_id, status, roles(permissions)")
+      .eq("org_id", orgId)
+      .eq("user_id", userId)
+      .eq("status", "active")
+      .maybeSingle(),
+    admin.from("profiles").select("email, first_name, last_name").eq("id", userId).maybeSingle(),
+  ]);
+  const perms = membership?.roles?.permissions;
+  const decision = recipientDecision(
+    kind,
+    {
+      userId,
+      membership: membership
+        ? {
+            roleId: membership.role_id,
+            status: membership.status,
+            permissions: Array.isArray(perms)
+              ? perms.filter((p): p is string => typeof p === "string")
+              : [],
+          }
+        : null,
+      email: profile?.email ?? null,
+      name: null,
+    },
+    {
+      orgId,
+      now: new Date(),
+      timezone: org.timezone ?? "Asia/Dubai",
+      financeAccess: readFinanceAccess(org.settings),
+    },
+  );
+  if (decision.ok)
+    return {
+      email: decision.email,
+      name: profile ? `${profile.first_name ?? ""} ${profile.last_name ?? ""}`.trim() || null : null,
+    };
+  return decision.reason === "no_permission" || decision.reason === "finance_window"
+    ? "not_allowed"
+    : null;
+}
+
+type Rendered = { rows: number };
+
 function ports(
   admin: AdminClient,
   job: DocumentEmailJob,
   transport: EmailTransport | undefined,
-): DocumentEmailPorts {
+  rendered: Rendered,
+): DocumentEmailPorts & { loadOrg(): Promise<OrgRow> } {
   const d = job.document;
-  let org: { name: string; timezone: string | null } | null = null;
-  const loadOrg = async () => {
+  let org: OrgRow | null = null;
+  const loadOrg = async (): Promise<OrgRow> => {
     if (!org) {
       const { data } = await admin
         .from("orgs")
-        .select("name, timezone")
+        .select("name, timezone, settings")
         .eq("id", job.org_id)
         .maybeSingle();
-      org = { name: data?.name ?? "", timezone: data?.timezone ?? null };
+      org = {
+        name: data?.name ?? "",
+        timezone: data?.timezone ?? null,
+        settings: (data?.settings as Json | null) ?? null,
+      };
     }
     return org;
   };
   return {
+    loadOrg,
     orgName: async () => (await loadOrg()).name,
     async recipient() {
+      if (d.kind === "daily_flash" || d.kind === "monthly_summary")
+        return reportRecipient(admin, job.org_id, await loadOrg(), d.kind, d.recipient_user_id);
       if (d.kind === "close_pack") {
         const close = await loadCloseByMonth(admin, job.org_id, d.month);
         if (!close) return null;
@@ -116,6 +192,42 @@ function ports(
       return { email: c.email!, name: c.name };
     },
     async render() {
+      if (d.kind === "daily_flash" || d.kind === "monthly_summary") {
+        const o = await loadOrg();
+        const who = { id: job.org_id, name: o.name };
+        const doc =
+          d.kind === "daily_flash"
+            ? await renderFlashDocument(admin, who, d.day, "xlsx")
+            : await renderSummaryDocument(
+                admin,
+                who,
+                { from: d.from, to: d.to, branch: d.branch },
+                "xlsx",
+              );
+        rendered.rows = doc.rows;
+        return {
+          attachment: {
+            filename: documentFilename(d),
+            content: doc.body,
+            contentType: doc.contentType,
+          },
+          provisional: doc.provisional,
+        };
+      }
+      if (d.kind === "sales_invoice") {
+        // a copy of the issued document, and only when it still belongs to the customer that was confirmed
+        const doc = await renderSalesDocument(admin, job.org_id, d.invoice_id, { copy: true });
+        if (!doc || doc.customerId !== d.customer_id) return null;
+        rendered.rows = 1;
+        return {
+          attachment: {
+            filename: documentFilename(d, { number: doc.number }),
+            content: doc.pdf,
+            contentType: "application/pdf",
+          },
+          reference: { number: doc.number, date: doc.date, creditNote: doc.kind === "credit_note" },
+        };
+      }
       if (d.kind === "customer_statement") {
         const doc = await renderCustomerStatement(
           admin,
@@ -171,13 +283,43 @@ function ports(
   };
 }
 
-/** Runs one queued request. A refusal tells the person who asked (generic words); a failed send throws to retry. */
+/**
+ * Runs one queued request. A refusal tells the person who asked (generic words); a failed send throws to retry. A
+ * scheduled report that was sent is logged as an export by its recipient and audited (ids, kind and period only).
+ */
 export async function deliverDocumentEmail(
   admin: AdminClient,
   job: DocumentEmailJob,
   opts: { transport?: EmailTransport } = {},
 ): Promise<DocumentEmailOutcome> {
-  const outcome = await runDocumentEmail(job, ports(admin, job, opts.transport));
+  const rendered: Rendered = { rows: 0 };
+  const p = ports(admin, job, opts.transport, rendered);
+  const outcome = await runDocumentEmail(job, p);
+  const d = job.document;
+  if (outcome === "sent" && (d.kind === "daily_flash" || d.kind === "monthly_summary") && d.run_id) {
+    const o = await p.loadOrg();
+    await recordExport(
+      admin,
+      {
+        orgId: job.org_id,
+        userId: d.recipient_user_id,
+        org: { timezone: o.timezone ?? "Asia/Dubai", settings: o.settings ?? {} },
+      },
+      { dataset: `finance:${d.kind}:scheduled_email`, rows: rendered.rows, format: "xlsx" },
+    );
+    await recordAudit(admin, {
+      orgId: job.org_id,
+      userId: d.recipient_user_id,
+      action: "finance.report_email.sent",
+      entity: "fin_report_schedule_runs",
+      entityId: d.run_id,
+      diff: {
+        kind: d.kind,
+        period: d.kind === "daily_flash" ? d.day : d.from,
+        request_id: job.request_id,
+      },
+    });
+  }
   const notice = OUTCOME_NOTICE[outcome];
   if (notice)
     await createNotification(admin, {

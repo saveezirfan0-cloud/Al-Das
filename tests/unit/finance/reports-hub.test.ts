@@ -13,6 +13,7 @@ import type { MemberLike } from "@/lib/auth/can";
 import { FINANCE_ROLES, ACCOUNTING_ROLES, PERMISSION_KEYS } from "@/lib/auth/permissions";
 import { FINANCE_NAV, financeLanding } from "@/lib/finance/nav";
 import {
+  cardEmail,
   cardLinks,
   currentKey,
   HUB_NAV_PERMISSIONS,
@@ -267,6 +268,41 @@ describe("cards", () => {
       "/api/accounting/trial-balance?from=2026-09-01&to=2026-09-30",
     );
     expect(cardLinks(card("branches"), ctxFor()).exports).toEqual([]);
+  });
+
+  it("Phase G: the flash and the summary have PDF downloads and an e-mail of the same period", () => {
+    const c = ctxFor({ branch: "G" });
+    expect(
+      cardLinks(card("flash"), c).exports.map((e) => [e.label, path(e.href), params(e.href)]),
+    ).toEqual([
+      ["Excel", "/api/finance/flash", { date: "2026-09-30" }],
+      ["PDF", "/api/finance/flash", { date: "2026-09-30", format: "pdf" }],
+    ]);
+    expect(
+      cardLinks(card("summary"), c).exports.map((e) => [e.label, params(e.href).format ?? "csv"]),
+    ).toEqual([
+      ["Excel", "xlsx"],
+      ["PDF", "pdf"],
+      ["CSV", "csv"],
+    ]);
+    // the export routes read format (and only the parameters they already read)
+    for (const route of ["app/api/finance/flash/route.ts", "app/api/finance/summary/route.ts"])
+      expect(readFileSync(join(process.cwd(), route), "utf8")).toContain('get("format")');
+    expect(cardEmail(card("flash"), c)).toEqual({ report: "daily_flash", day: "2026-09-30" });
+    expect(cardEmail(card("flash"), ctxFor({ key: "2026-10" }))).toEqual({
+      report: "daily_flash",
+      day: "2026-10-13",
+    });
+    expect(cardEmail(card("summary"), c)).toEqual({
+      report: "monthly_summary",
+      from: "2026-09",
+      to: "2026-09",
+      branch: "G",
+    });
+    expect(cardEmail(card("profit-and-loss"), c)).toBeNull();
+    // each e-mailing card is gated by the key the e-mail checks
+    expect(card("flash").permissions).toContain("finance.flash.view");
+    expect(card("summary").permissions).toContain("finance.view");
   });
 
   it("round-trips its own query string", () => {

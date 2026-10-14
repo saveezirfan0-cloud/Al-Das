@@ -1725,3 +1725,29 @@ export const PHASE_F_TABLES = [
   "task_checklist_templates",
   "task_comments",
 ] as const;
+
+/**
+ * Phase G (scheduled report e-mails): a daily flash schedule and one claimed run for an org, so the cross-org sweeps are
+ * not vacuous. Ids and settings only (the recipient is the seeding user); service role (no write policy). Synthetic.
+ */
+export async function seedPhaseGRows(c: Client, orgId: string, userId: string) {
+  const ids: Record<string, string> = {};
+  await asServiceRole(c, async () => {
+    ids.schedule = (
+      await c.query<{ id: string }>(
+        "insert into public.fin_report_schedules (org_id, kind, enabled, send_time, recipient_ids, enabled_at, created_by, updated_by) values ($1, 'daily_flash', true, '07:00', array[$2::uuid], now(), $2, $2) on conflict (org_id, kind) do update set enabled = excluded.enabled returning id::text as id",
+        [orgId, userId],
+      )
+    ).rows[0].id;
+    ids.run = (
+      await c.query<{ id: string }>(
+        "insert into public.fin_report_schedule_runs (org_id, schedule_id, kind, period_key, status, recipients) values ($1, $2, 'daily_flash', '2026-09-30', 'queued', 1) on conflict (schedule_id, period_key) do update set recipients = 1 returning id::text as id",
+        [orgId, ids.schedule],
+      )
+    ).rows[0].id;
+  });
+  return ids;
+}
+
+/** Phase G tables with a browser (select) policy (finance.report_emails.manage). */
+export const PHASE_G_TABLES = ["fin_report_schedule_runs", "fin_report_schedules"] as const;

@@ -9,6 +9,12 @@ export const WHATS_NEW: readonly WhatsNewEntry[] = [
     body: "On a computer, Tab to an area of the menu and press Enter (or the right arrow) to open its pages; the arrows move between them, Esc brings you back, and Tab past the last page moves on to the next area. Pages now have the same name in the menu, at the top of the page and in the browser tab: Settings, Clinic and appointments (once Appointment rules), Accounting overview (once Dashboard) and Portal, Sync review. Quick search still finds them by their old names. CRM, Branches is now highlighted while you are on the Branches tab.",
   },
   {
+    id: "2026-12-07-finance-report-emails",
+    date: "2026-10-14",
+    title: "Reports by e-mail, invoices to customers, and one way to upload files",
+    body: "Finance can now have the daily flash e-mailed every morning and the monthly summary once a month to the members they choose (Settings, Finance setup, Report e-mails). Only people who can see a report in Pulse can receive it, and that is checked again at every send; the e-mail has no figures, the report is the attached Excel file, marked Provisional until the month is locked. On the Reports hub the daily flash and the monthly summary now have PDF downloads and E-mail me. An issued sales invoice or credit note can be e-mailed to the business customer as a copy marked Internal copy - not a tax invoice. Bank statements and lab or provider files are uploaded in a new box: drag the file in or press Choose file, see the first rows of the columns that will be read and the names of any columns that will be ignored, then confirm.",
+  },
+  {
     id: "2026-12-04-simple-to-use",
     date: "2026-10-14",
     title: "A simpler Pulse: clearer menu, record search and your own home page",
