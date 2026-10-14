@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { assertCan, can, canAll, canAny, ForbiddenError, type MemberLike } from "@/lib/auth/can";
+import {
+  assertCan,
+  can,
+  canAll,
+  canAny,
+  FORBIDDEN_DIGEST,
+  ForbiddenError,
+  type MemberLike,
+} from "@/lib/auth/can";
 
 const base: MemberLike = {
   userId: "u",
@@ -43,6 +51,8 @@ describe("can()", () => {
     } catch (e) {
       expect((e as ForbiddenError).status).toBe(403);
       expect((e as ForbiddenError).permission).toBe("settings.manage");
+      // A fixed digest (no permission name, no message) so the page error boundary shows "no access", not a crash.
+      expect((e as ForbiddenError).digest).toBe(FORBIDDEN_DIGEST);
     }
   });
 });
