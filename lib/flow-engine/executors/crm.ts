@@ -228,13 +228,19 @@ export const book_appointment: Executor = async (ctx) => {
   const startsAt = Date.parse(raw);
   if (!Number.isFinite(startsAt)) return fail("The appointment time is not a date and time");
   if (startsAt <= ctx.deps.now().getTime()) return fail("The appointment time is in the past");
-  const res = await port.call(ctx.deps.crm, ctx.run, {
-    service_id: cfg.data.service_id,
-    specialist_id: cfg.data.specialist_id,
-    location_id: cfg.data.location_id,
-    starts_at: new Date(startsAt).toISOString(),
-    notify: cfg.data.notify,
-  });
+  const res = await port.call(
+    ctx.deps.crm,
+    ctx.run,
+    {
+      service_id: cfg.data.service_id,
+      specialist_id: cfg.data.specialist_id,
+      location_id: cfg.data.location_id,
+      starts_at: new Date(startsAt).toISOString(),
+      notify: cfg.data.notify,
+    },
+    // The step key: a replay after a crash gets this step's booking back instead of a second one.
+    { stepKey: ctx.stepKey },
+  );
   return { kind: "next", output: { id: res.id }, vars: { appointment_id: res.id } };
 };
 

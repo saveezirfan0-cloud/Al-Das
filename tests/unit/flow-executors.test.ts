@@ -42,6 +42,8 @@ function runRecord(over: Partial<RunRecord> = {}): RunRecord {
   };
 }
 
+let stepSeq = 0;
+
 async function exec(
   h: Harness,
   type: NodeType,
@@ -60,6 +62,7 @@ async function exec(
     contact: opts.contact === undefined ? fakeContact() : opts.contact,
     conversation: opts.conversation === undefined ? fakeConversation() : opts.conversation,
     scope: opts.scope ?? { contact: { first_name: "Sara" }, vars: { CLINIC: "Al Das" } },
+    stepKey: `step-${++stepSeq}`,
   };
   return EXECUTORS[type](ctx);
 }
