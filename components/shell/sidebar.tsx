@@ -108,6 +108,7 @@ export function Sidebar({
   navState,
   className,
   onNavigate,
+  branchSwitcher,
 }: {
   tree: readonly SidebarNode[];
   orgName: string;
@@ -116,6 +117,8 @@ export function Sidebar({
   className?: string;
   /** Closes the phone drawer after a tap. */
   onNavigate?: () => void;
+  /** The branch switcher (components/shell/branch-switcher.tsx), shown above the menu. */
+  branchSwitcher?: React.ReactNode;
 }) {
   const pathname = usePathname();
   const tree = useBadgedItems(rawTree);
@@ -351,6 +354,7 @@ export function Sidebar({
         )}
       </div>
 
+      {branchSwitcher && <div className="shrink-0 border-b p-2">{branchSwitcher}</div>}
       <nav aria-label="Main" className="flex-1 overflow-y-auto p-2">
         <ul className="flex flex-col gap-0.5">{top.map(renderItem)}</ul>
         {NAV_GROUPS.map((group, g) => {

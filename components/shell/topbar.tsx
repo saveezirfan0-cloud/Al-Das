@@ -22,6 +22,7 @@ export function Topbar({
   orgName,
   user,
   helpVideos,
+  branchSwitcher,
 }: {
   items: readonly SidebarNode[];
   navState: NavState;
@@ -29,6 +30,8 @@ export function Topbar({
   user: UserMenuProps;
   /** Recorded training clips by id (orgs.settings.help.videos), for the ? button. */
   helpVideos: Record<string, string>;
+  /** The phone drawer's branch switcher. */
+  branchSwitcher?: React.ReactNode;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -66,6 +69,7 @@ export function Topbar({
             orgName={orgName}
             className="w-full border-0"
             onNavigate={() => setOpen(false)}
+            branchSwitcher={branchSwitcher}
           />
         </SheetContent>
       </Sheet>

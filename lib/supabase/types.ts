@@ -16116,6 +16116,7 @@ export type Database = {
       };
       locations: {
         Row: {
+          branch_code: string | null;
           active: boolean;
           address: string | null;
           created_at: string;
@@ -16133,6 +16134,7 @@ export type Database = {
         };
         ComputedFields: never;
         Insert: {
+          branch_code?: string | null;
           active?: boolean;
           address?: string | null;
           created_at?: string;
@@ -16149,6 +16151,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          branch_code?: string | null;
           active?: boolean;
           address?: string | null;
           created_at?: string;
@@ -16345,10 +16348,56 @@ export type Database = {
           },
         ];
       };
-      memberships: {
+      membership_locations: {
         Row: {
           created_at: string;
+          location_id: string;
+          membership_id: string;
+          org_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          location_id: string;
+          membership_id: string;
+          org_id: string;
+        };
+        Update: {
+          created_at?: string;
+          location_id?: string;
+          membership_id?: string;
+          org_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "membership_locations_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "membership_locations_membership_id_fkey";
+            columns: ["membership_id"];
+            isOneToOne: false;
+            referencedRelation: "memberships";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "membership_locations_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      memberships: {
+        Row: {
+          branch_scope: string;
+          created_at: string;
           enquiry_scope: string;
+          home_location_id: string | null;
           id: string;
           last_seen_at: string | null;
           max_open_conversations: number | null;
@@ -16363,8 +16412,10 @@ export type Database = {
         };
         ComputedFields: never;
         Insert: {
+          branch_scope?: string;
           created_at?: string;
           enquiry_scope?: string;
+          home_location_id?: string | null;
           id?: string;
           last_seen_at?: string | null;
           max_open_conversations?: number | null;
@@ -16378,8 +16429,10 @@ export type Database = {
           user_id: string;
         };
         Update: {
+          branch_scope?: string;
           created_at?: string;
           enquiry_scope?: string;
+          home_location_id?: string | null;
           id?: string;
           last_seen_at?: string | null;
           max_open_conversations?: number | null;
@@ -16393,6 +16446,13 @@ export type Database = {
           user_id?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "memberships_home_location_id_fkey";
+            columns: ["home_location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "memberships_org_id_fkey";
             columns: ["org_id"];
