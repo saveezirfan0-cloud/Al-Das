@@ -7,6 +7,7 @@ import {
   copyPreviousTargets,
   deleteReportLine,
   saveFlashDisplay,
+  savePerfBands,
   saveReportLine,
   saveTargets,
 } from "./actions";
@@ -186,6 +187,30 @@ export function DisplayForm({ shareBasis, topDoctors }: { shareBasis: string; to
           <Input name="flash_top_doctors" inputMode="numeric" defaultValue={topDoctors} />
         </Field>
       </div>
+    </ActionForm>
+  );
+}
+
+/** Doctor performance (Phase 23B): the revenue-per-patient target and the lower edges of the two middle bands. */
+export function PerfBandsForm({ target, near, moderate }: { target: number; near: number; moderate: number }) {
+  return (
+    <ActionForm action={savePerfBands} submitLabel="Save target and bands">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Field label="Target, Achieved from (AED)">
+          <Input name="perf_arpp_target" inputMode="decimal" defaultValue={target} required />
+        </Field>
+        <Field label="Near Target from (AED)">
+          <Input name="perf_band_near" inputMode="decimal" defaultValue={near} required />
+        </Field>
+        <Field label="Moderate from (AED)">
+          <Input name="perf_band_moderate" inputMode="decimal" defaultValue={moderate} required />
+        </Field>
+      </div>
+      <p className="text-muted-foreground text-xs">
+        Revenue per patient at or above the target is Achieved; from Near Target up to the target is Near Target; from
+        Moderate up to Near Target is Moderate; below Moderate is Below Target. Each band starts exactly at its number,
+        so nothing falls between bands. Expected revenue is patients times the target.
+      </p>
     </ActionForm>
   );
 }

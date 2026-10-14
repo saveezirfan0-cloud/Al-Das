@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/table";
 import { requirePerm } from "@/lib/auth/session";
 import { todayIn } from "@/lib/finance/action-support";
+import { DEFAULT_PERF_SETTINGS } from "@/lib/finance/doctor-performance";
 import { monthOf, targetFromRow } from "@/lib/finance/flash";
 import { monthTitle } from "@/lib/finance/flash-xlsx";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -23,6 +24,7 @@ import {
   CopyTargetsButton,
   DisplayForm,
   EditLineButton,
+  PerfBandsForm,
   NewLineButton,
   TargetsForm,
   type LineView,
@@ -55,7 +57,7 @@ export default async function FlashSettingsPage({
       .eq("month", month),
     admin
       .from("fin_ref_finance_settings")
-      .select("flash_share_basis, flash_top_doctors")
+      .select("flash_share_basis, flash_top_doctors, perf_arpp_target, perf_band_near, perf_band_moderate")
       .eq("org_id", member.orgId)
       .maybeSingle(),
   ]);
@@ -75,7 +77,7 @@ export default async function FlashSettingsPage({
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Flash targets and lines"
-        description="How invoices are grouped on the daily flash report and the targets they are measured against. Every change is audited."
+        description="How invoices are grouped on the daily flash report, the targets they are measured against, and the revenue-per-patient bands of the doctor performance page. Every change is audited."
       >
         <Button asChild variant="outline">
           <Link href="/finance/flash">Back to the flash report</Link>
@@ -180,6 +182,19 @@ export default async function FlashSettingsPage({
           <DisplayForm
             shareBasis={settings?.flash_share_basis ?? "section"}
             topDoctors={settings?.flash_top_doctors ?? 5}
+          />
+        </CardContent>
+      </Card>
+
+      <Card id="performance">
+        <CardHeader>
+          <CardTitle className="text-base">Doctor performance: revenue per patient</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <PerfBandsForm
+            target={Number(settings?.perf_arpp_target ?? DEFAULT_PERF_SETTINGS.target)}
+            near={Number(settings?.perf_band_near ?? DEFAULT_PERF_SETTINGS.near)}
+            moderate={Number(settings?.perf_band_moderate ?? DEFAULT_PERF_SETTINGS.moderate)}
           />
         </CardContent>
       </Card>

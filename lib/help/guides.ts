@@ -306,6 +306,25 @@ export const GUIDES: readonly Guide[] = [
       "The internal copy is for finance files only. The patient's invoice is the one Unite issued; never send the internal copy as a tax invoice.",
       "Until a Diligence claim is matched, the whole insurance invoice waits on the insurer and the patient's copay is not known yet.",
       "Downloads are logged with your name.",
+      ],
+    },
+    {
+    id: "finance-doctor-performance",
+    title: "Doctor performance",
+    pages: ["/finance/doctor-performance"],
+    purpose:
+      "Each doctor's and department's revenue, patients and revenue per patient against the target, this month against the previous month, built from the Unite collection report. It replaces the hand-built revenue comparison workbook.",
+    steps: [
+      "Pick a month (the latest month with report data opens by default) and, if you work in more than one, a branch.",
+      "Departments are listed by revenue with their doctors under them; a doctor who works in two departments appears under both.",
+      "The band compares revenue per patient with the target: Achieved, Near Target, Moderate or Below Target. Finance sets the target and band edges under Targets and report lines.",
+      "Download Excel gives the same figures as plain values, with a Definitions sheet.",
+    ],
+    watchOut: [
+      "A department and the clinic count each patient once, so their patients are not the sum of the doctors.",
+      "Change % is against the previous month. It is blank when that month had no revenue.",
+      "Figures cover only the dates of committed uploads; a warning shows when a month is only partly covered.",
+      "These are activity measures, not a judgement of clinical quality.",
     ],
   },
   {

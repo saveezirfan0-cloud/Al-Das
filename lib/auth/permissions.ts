@@ -366,6 +366,12 @@ export const PERMISSIONS = [
     description: "Revenue by doctor, department, branch and service",
   },
   {
+    key: "finance.revenue.import",
+    group: "Finance",
+    label: "Unite collection report upload",
+    description: "Upload and commit the Unite daily collection report (sanitised; the file is not kept)",
+  },
+  {
     key: "finance.export.run",
     group: "Finance",
     label: "Accounting export",
@@ -754,6 +760,7 @@ const FINANCE_PRESET: readonly string[] = [
   "finance.close.tasks",
   "finance.cashup.manage",
   "finance.revenue.view",
+  "finance.revenue.import",
   "finance.export.run",
   "finance.costs.manage",
   "finance.costs.view",

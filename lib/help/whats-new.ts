@@ -21,6 +21,12 @@ export const WHATS_NEW: readonly WhatsNewEntry[] = [
     body: "Each WhatsApp number can now belong to a branch and send its new chats to that branch's team first (Settings, WhatsApp channels, Edit). Chats show their branch, and the Inbox, Tasks and their counts follow the branch switcher, with a Branch filter to look at another branch or all of yours. New tasks start in your current branch, and people limited to some branches only see those branches' tasks. Patients have a home branch on their record and in the list filters. In Accounting, the trial balance, general ledger, balance sheet, cash flow and receivables ageing can show one branch, and the profit and loss has Branches side by side; each branch's finance code is set under Settings, Appointment rules, Locations.",
   },
   {
+    id: "2026-11-26-doctor-performance",
+    date: "2026-10-14",
+    title: "Doctor performance from the Unite collection report",
+    body: "Finance can upload Unite's Daily Collection report under Finance, Uploads. Pulse checks that the rows add up to the report's own totals before anything is used, keeps no patient names, card numbers or remarks, and does not keep the file. The new Finance, Doctor performance page then shows each doctor and department for a month against the previous one: revenue, patients, revenue per patient against the target (750 by default) with its band, expected revenue and gap, new visits and follow-ups, with an Excel download. The target and the band limits are set under Finance, Targets and report lines.",
+  },
+  {
     id: "2026-11-15-finance-access-window",
     date: "2026-10-14",
     title: "Finance access window",
