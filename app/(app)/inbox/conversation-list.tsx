@@ -590,146 +590,148 @@ export function ConversationList({
                         />
                       </span>
                     )}
-                    <SwipeRow
-                      disabled={!perms.send || selecting}
-                      onSwipeRight={() => takeIt(c)}
-                      onSwipeLeft={() => closeIt(c)}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => (selecting ? togglePick(c.id) : onSelect(c.id))}
-                        aria-current={active ? "true" : undefined}
-                        className={cn(
-                          "hover:bg-accent/60 flex w-full items-start gap-3 px-3 py-2.5 text-left",
-                          active && "bg-accent",
-                        )}
+                    <div className="min-w-0 flex-1">
+                      <SwipeRow
+                        disabled={!perms.send || selecting}
+                        onSwipeRight={() => takeIt(c)}
+                        onSwipeLeft={() => closeIt(c)}
                       >
-                        <div className="relative shrink-0">
-                          <Avatar className="size-9">
-                            <AvatarFallback>{initials(name)}</AvatarFallback>
-                          </Avatar>
-                          <span
-                            className="bg-background absolute -right-1 -bottom-1 rounded-full p-px"
-                            title={c.channels?.name ?? "WhatsApp"}
-                          >
-                            <span className="flex size-4 items-center justify-center rounded-full bg-emerald-700 text-[9px] font-bold text-white">
-                              W
-                            </span>
-                          </span>
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-baseline gap-2">
+                        <button
+                          type="button"
+                          onClick={() => (selecting ? togglePick(c.id) : onSelect(c.id))}
+                          aria-current={active ? "true" : undefined}
+                          className={cn(
+                            "hover:bg-accent/60 flex w-full items-start gap-3 px-3 py-2.5 text-left",
+                            active && "bg-accent",
+                          )}
+                        >
+                          <div className="relative shrink-0">
+                            <Avatar className="size-9">
+                              <AvatarFallback>{initials(name)}</AvatarFallback>
+                            </Avatar>
                             <span
-                              className={cn(
-                                "truncate text-sm",
-                                c.unread_count > 0 ? "font-semibold" : "font-medium",
-                              )}
+                              className="bg-background absolute -right-1 -bottom-1 rounded-full p-px"
+                              title={c.channels?.name ?? "WhatsApp"}
                             >
-                              {name}
-                            </span>
-                            <span className="text-muted-foreground ml-auto shrink-0 text-[11px]">
-                              {timeLabel(c.last_message_at)}
+                              <span className="flex size-4 items-center justify-center rounded-full bg-emerald-700 text-[9px] font-bold text-white">
+                                W
+                              </span>
                             </span>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <p
-                              className={cn(
-                                "text-muted-foreground min-w-0 flex-1 truncate text-xs",
-                                c.unread_count > 0 && "text-foreground",
-                              )}
-                            >
-                              {c.last_message_direction === "out" && (
-                                <span className="opacity-60">You: </span>
-                              )}
-                              {c.last_message_preview ?? "No messages yet"}
-                            </p>
-                            {c.bot_active && (
-                              <Bot
-                                className="text-muted-foreground size-3.5 shrink-0"
-                                aria-label="Bot active"
-                              />
-                            )}
-                            {c.unread_count > 0 && (
-                              <span className="bg-primary text-primary-foreground shrink-0 rounded-full px-1.5 text-[10px] font-semibold">
-                                {c.unread_count}
-                              </span>
-                            )}
-                          </div>
-                          <div className="mt-1 flex flex-wrap items-center gap-1">
-                            {(c.ai_tags ?? []).includes("emergency") && (
-                              <span className="rounded bg-red-100 dark:bg-red-500/15 px-1 text-[10px] font-semibold text-red-800 dark:text-red-300">
-                                Possible emergency
-                              </span>
-                            )}
-                            {(c.ai_tags ?? [])
-                              .filter((t) => t !== "emergency" && t in INTENT_LABELS)
-                              .map((t) => (
-                                <span key={t} className="bg-muted rounded px-1 text-[10px]">
-                                  {INTENT_LABELS[t as Intent]}
-                                </span>
-                              ))}
-                            {c.status === "waiting" && (
-                              <span className="rounded bg-amber-100 dark:bg-amber-500/15 px-1 text-[10px] text-amber-800 dark:text-amber-300">
-                                waiting
-                              </span>
-                            )}
-                            {c.status === "closed" && (
-                              <span className="bg-muted rounded px-1 text-[10px]">closed</span>
-                            )}
-                            {c.snoozed_until && c.status !== "closed" && (
-                              <span
-                                className="bg-muted text-muted-foreground inline-flex items-center gap-0.5 rounded px-1 text-[10px]"
-                                title={`Snoozed until ${new Date(c.snoozed_until).toLocaleString()}`}
-                              >
-                                <AlarmClock className="size-3" aria-hidden /> snoozed
-                              </span>
-                            )}
-                            {wait && (
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-baseline gap-2">
                               <span
                                 className={cn(
-                                  "rounded px-1 text-[10px] tabular-nums",
-                                  wait.level === "red"
-                                    ? "bg-red-100 font-semibold text-red-800 dark:bg-red-500/15 dark:text-red-300"
-                                    : wait.level === "amber"
-                                      ? "bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"
-                                      : "bg-muted text-muted-foreground",
+                                  "truncate text-sm",
+                                  c.unread_count > 0 ? "font-semibold" : "font-medium",
                                 )}
-                                title="Time since the patient's last message, without a reply"
                               >
-                                waiting {formatWaiting(wait.waitingMs)}
+                                {name}
                               </span>
-                            )}
-                            {c.conversation_labels.map(
-                              (l) =>
-                                l.tags && (
-                                  <span
-                                    key={l.tag_id}
-                                    className={cn(
-                                      "rounded px-1 text-[10px] font-medium",
-                                      labelClass(l.tags.color),
-                                    )}
-                                  >
-                                    {l.tags.name}
+                              <span className="text-muted-foreground ml-auto shrink-0 text-[11px]">
+                                {timeLabel(c.last_message_at)}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <p
+                                className={cn(
+                                  "text-muted-foreground min-w-0 flex-1 truncate text-xs",
+                                  c.unread_count > 0 && "text-foreground",
+                                )}
+                              >
+                                {c.last_message_direction === "out" && (
+                                  <span className="opacity-60">You: </span>
+                                )}
+                                {c.last_message_preview ?? "No messages yet"}
+                              </p>
+                              {c.bot_active && (
+                                <Bot
+                                  className="text-muted-foreground size-3.5 shrink-0"
+                                  aria-label="Bot active"
+                                />
+                              )}
+                              {c.unread_count > 0 && (
+                                <span className="bg-primary text-primary-foreground shrink-0 rounded-full px-1.5 text-[10px] font-semibold">
+                                  {c.unread_count}
+                                </span>
+                              )}
+                            </div>
+                            <div className="mt-1 flex flex-wrap items-center gap-1">
+                              {(c.ai_tags ?? []).includes("emergency") && (
+                                <span className="rounded bg-red-100 dark:bg-red-500/15 px-1 text-[10px] font-semibold text-red-800 dark:text-red-300">
+                                  Possible emergency
+                                </span>
+                              )}
+                              {(c.ai_tags ?? [])
+                                .filter((t) => t !== "emergency" && t in INTENT_LABELS)
+                                .map((t) => (
+                                  <span key={t} className="bg-muted rounded px-1 text-[10px]">
+                                    {INTENT_LABELS[t as Intent]}
                                   </span>
-                                ),
-                            )}
-                            {showBranches && c.location_id && branchNames[c.location_id] && (
-                              <span
-                                className="border-border text-muted-foreground rounded border px-1 text-[10px]"
-                                title="Branch of the number this chat runs on"
-                              >
-                                {branchNames[c.location_id]}
-                              </span>
-                            )}
-                            {assignee && (
-                              <span className="text-muted-foreground ml-auto text-[10px]">
-                                {assignee.name.split(" ")[0]}
-                              </span>
-                            )}
+                                ))}
+                              {c.status === "waiting" && (
+                                <span className="rounded bg-amber-100 dark:bg-amber-500/15 px-1 text-[10px] text-amber-800 dark:text-amber-300">
+                                  waiting
+                                </span>
+                              )}
+                              {c.status === "closed" && (
+                                <span className="bg-muted rounded px-1 text-[10px]">closed</span>
+                              )}
+                              {c.snoozed_until && c.status !== "closed" && (
+                                <span
+                                  className="bg-muted text-muted-foreground inline-flex items-center gap-0.5 rounded px-1 text-[10px]"
+                                  title={`Snoozed until ${new Date(c.snoozed_until).toLocaleString()}`}
+                                >
+                                  <AlarmClock className="size-3" aria-hidden /> snoozed
+                                </span>
+                              )}
+                              {wait && (
+                                <span
+                                  className={cn(
+                                    "rounded px-1 text-[10px] tabular-nums",
+                                    wait.level === "red"
+                                      ? "bg-red-100 font-semibold text-red-800 dark:bg-red-500/15 dark:text-red-300"
+                                      : wait.level === "amber"
+                                        ? "bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"
+                                        : "bg-muted text-muted-foreground",
+                                  )}
+                                  title="Time since the patient's last message, without a reply"
+                                >
+                                  waiting {formatWaiting(wait.waitingMs)}
+                                </span>
+                              )}
+                              {c.conversation_labels.map(
+                                (l) =>
+                                  l.tags && (
+                                    <span
+                                      key={l.tag_id}
+                                      className={cn(
+                                        "rounded px-1 text-[10px] font-medium",
+                                        labelClass(l.tags.color),
+                                      )}
+                                    >
+                                      {l.tags.name}
+                                    </span>
+                                  ),
+                              )}
+                              {showBranches && c.location_id && branchNames[c.location_id] && (
+                                <span
+                                  className="border-border text-muted-foreground rounded border px-1 text-[10px]"
+                                  title="Branch of the number this chat runs on"
+                                >
+                                  {branchNames[c.location_id]}
+                                </span>
+                              )}
+                              {assignee && (
+                                <span className="text-muted-foreground ml-auto text-[10px]">
+                                  {assignee.name.split(" ")[0]}
+                                </span>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </button>
-                    </SwipeRow>
+                        </button>
+                      </SwipeRow>
+                    </div>
                   </li>
                 );
               })}

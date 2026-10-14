@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-12-05-inbox-crm-tasks-v2",
+    date: "2026-10-14",
+    title: "Snooze, waiting times, task boards and daily checklists",
+    body: "Inbox: snooze a chat until a time (it comes back on its own, or as soon as the patient writes), see how long each patient has waited for a reply (amber, then red), tick several chats to assign or close them together, search the text of messages, make a task from a chat, and see when a colleague is already typing in the same chat. A patient's record now has History (messages, appointments, enquiries, tasks and notes in one list), Tasks and, for finance staff, Invoices, with the owner and home branch at the top. Tasks have a status, priority, team, checklist, comments with @mentions, files and repeats, a Board and a Calendar view, and you are told when someone gives you a task or mentions you. Each branch can have opening and closing checklists that appear as a task every morning. Enquiries can be imported from a CSV file.",
+  },
+  {
     id: "2026-12-03-finance-reports-hub",
     date: "2026-10-14",
     title: "Finance reports in one place, invoice view and e-mailed statements",

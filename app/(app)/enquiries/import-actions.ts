@@ -155,26 +155,29 @@ export async function previewEnquiryImport(
     member.orgId,
     keyed.map((r) => refKey(member.orgId, r.key!)),
   );
-  const out: PreviewRow[] = rows.map((r) => ({
+  const preview: PreviewRow[] = rows.map((r) => ({
     line: r.line,
     status:
       r.status === "ok" && r.key && done.has(refKey(member.orgId, r.key)) ? "exists" : r.status,
     errors: r.errors,
     duplicateOf: r.duplicateOf,
   }));
-  return {
-    ok: true,
-    data: {
-      rows: out,
-      summary: {
-        total: out.length,
-        ok: out.filter((r) => r.status === "ok").length,
-        invalid: out.filter((r) => r.status === "invalid").length,
-        duplicates: out.filter((r) => r.status === "duplicate").length,
-        exists: out.filter((r) => r.status === "exists").length,
-      },
-    },
+  const summary: PreviewSummary = {
+    total: preview.length,
+    ok: preview.filter((r) => r.status === "ok").length,
+    invalid: preview.filter((r) => r.status === "invalid").length,
+    duplicates: preview.filter((r) => r.status === "duplicate").length,
+    exists: preview.filter((r) => r.status === "exists").length,
   };
+  // The dry run is audited too (counts only), so the log shows a file was checked before it was imported.
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "enquiry.import_checked",
+    entity: "enquiry",
+    diff: summary,
+  });
+  return { ok: true, data: { rows: preview, summary } };
 }
 
 const chunkSchema = fileSchema.extend({

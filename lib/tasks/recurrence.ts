@@ -32,14 +32,14 @@ export function nextOccurrence(
   notBefore?: Date,
 ): Date {
   // Work in the local wall clock as a "UTC" date, then convert back, so DST changes keep the local time.
-  const localWall = new Date(`${formatInTimeZone(dueAt, timezone, "yyyy-MM-dd'T'HH:mm:ss")}Z`);
+  const localWall = new Date(`${formatInTimeZone(dueAt, timezone, "yyyy-MM-dd'T'HH:mm:ss.SSS")}Z`);
   const floor = Math.max(dueAt.getTime(), notBefore?.getTime() ?? 0);
   for (let n = 1; n <= 400; n++) {
     const wall = add(localWall, recurrence, n);
-    const next = fromZonedTime(wall.toISOString().slice(0, 19), timezone);
+    const next = fromZonedTime(wall.toISOString().slice(0, 23), timezone);
     if (next.getTime() > floor) return next;
   }
-  return fromZonedTime(add(localWall, recurrence, 400).toISOString().slice(0, 19), timezone);
+  return fromZonedTime(add(localWall, recurrence, 400).toISOString().slice(0, 23), timezone);
 }
 
 /** Dedupe key of the scheduled "make the next one" job for a task at a due time. */

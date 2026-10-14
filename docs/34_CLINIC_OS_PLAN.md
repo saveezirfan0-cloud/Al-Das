@@ -213,6 +213,30 @@ docs and help guides updated, and the `nav-qa` agent run.
   - Later: rooms as bookable resources, a queue-token screen and an arrival kiosk.
 
 ### Phase F — Inbox, CRM and tasks v2 (2 weeks)
+**Status (14 Oct 2026): first slice built** (migration `20261205000100_inbox_tasks_v2.sql`, paste file
+`83_inbox_tasks_v2.sql`; type-checked, linted, unit- and database-tested; not yet driven in a browser).
+- Built:
+  - Inbox: Snoozed folder and Snooze menu (`conversations.snoozed_until`, `inbox.unsnooze` scheduled job; a patient's
+    message or a close clears it), "waiting 12 m" chips with amber/red thresholds (`first_response_*_minutes` in
+    `orgs.settings.inbox`, defaults 15 / 60, set from the list's filter menu), select mode with bulk assign / close
+    through the single-conversation paths (`lib/inbox/assign.ts`, `closeConversationRecord`; close refused when a
+    category or summary is required), message-text search (`search_messages()`, security invoker, trigram, 3+
+    characters, 30 hits, snippet only, query never logged), "Someone else is replying" (Realtime presence, ids only),
+    Create task from a chat (patient, chat and the chat's branch).
+  - Patient 360: History (messages, appointments, enquiries, tasks, notes; merged and paged, `lib/contacts/history.ts`),
+    Tasks (open first) and Invoices (`finance.invoices.view`, `v_fin_invoice_list` by Unite PIN, amounts and dates)
+    tabs; owner and home branch in the header.
+  - Tasks v2: status (in step with `done` by trigger), priority, team, repeats (`task.recur` job and on completion,
+    `task_spawn_next()` idempotent), checklist items, comments with @mentions (`task.mentioned`), Media Library files
+    (counted by `media_asset_usage()`), `task.assigned`, Board (dnd-kit) and Calendar (FullCalendar) views on demand,
+    status / priority / team / checklist filters; per-branch daily opening and closing checklists
+    (`task_checklist_templates`, hourly `pulse:tasks_daily`, one task per template and local day).
+  - Enquiries: CSV import with column mapping, dry run with problems per row, idempotent re-runs (`external_refs`,
+    hashed key), audited with counts only.
+- Still to do in this phase: a Settings, Inbox field for the waiting colours (today in the list's filter menu), a
+  Settings page entry for the daily checklists (today a button on Tasks), drag-to-reschedule on the task calendar,
+  uploading new files straight into a task, and a browser pass of the new screens.
+
 - **Inbox.**
   - Snooze, first-response SLA ("waiting 12 m"), bulk assign/close.
   - "Someone else is replying" warning.

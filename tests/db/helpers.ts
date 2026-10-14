@@ -1670,3 +1670,55 @@ export async function seedOrganisationRows(c: Client, orgId: string) {
 
 /** Phase C tables with a browser (select) policy (hr.view; the rota also appointments.view). */
 export const ORGANISATION_TABLES = ["rota_shifts", "staff_duties", "staff_members"] as const;
+
+/**
+ * Phase F (tasks v2, docs/34): one synthetic task with a checklist line, a comment and a Media Library file, and one
+ * daily checklist template, so the cross-org sweeps are not vacuous for these tables. Service role.
+ */
+export async function seedPhaseFRows(c: Client, orgId: string, userId: string) {
+  const ids: Record<string, string> = {};
+  await asServiceRole(c, async () => {
+    const one = async (sql: string, params: unknown[]) =>
+      (await c.query<{ id: string }>(sql + " returning id::text as id", params)).rows[0].id;
+    const loc = (
+      await c.query<{ id: string }>(
+        "insert into public.locations (org_id, name) values ($1, 'Sweep branch F') on conflict (org_id, name) do update set address = excluded.address returning id::text",
+        [orgId],
+      )
+    ).rows[0].id;
+    ids.template = await one(
+      `insert into public.task_checklist_templates (org_id, location_id, name, items) values ($1, $2, 'Opening Seed-F', '["Lights on","Till float"]'::jsonb)`,
+      [orgId, loc],
+    );
+    ids.task = await one(
+      "insert into public.tasks (org_id, subject, due_at, priority, status) values ($1, 'Sweep task F', now() + interval '1 day', 'high', 'in_progress')",
+      [orgId],
+    );
+    ids.item = await one(
+      "insert into public.task_checklist_items (org_id, task_id, title) values ($1, $2, 'Seed line')",
+      [orgId, ids.task],
+    );
+    ids.comment = await one(
+      "insert into public.task_comments (org_id, task_id, author_id, body) values ($1, $2, $3, 'Seed comment')",
+      [orgId, ids.task, userId],
+    );
+    const asset = await one(
+      "insert into public.media_assets (org_id, name, kind, mime_type, size_bytes, storage_path, status, uploaded_by) values ($1::uuid, 'Seed file F', 'document', 'application/pdf', 1234, $1::uuid::text || '/' || gen_random_uuid()::text || '/original.pdf', 'ready', $2)",
+      [orgId, userId],
+    );
+    ids.attachment = await one(
+      "insert into public.task_attachments (org_id, task_id, media_asset_id, added_by) values ($1, $2, $3, $4)",
+      [orgId, ids.task, asset, userId],
+    );
+    ids.location = loc;
+  });
+  return ids;
+}
+
+/** Phase F tables with a browser (select) policy (tasks.view, and the task or the branch must be visible). */
+export const PHASE_F_TABLES = [
+  "task_attachments",
+  "task_checklist_items",
+  "task_checklist_templates",
+  "task_comments",
+] as const;

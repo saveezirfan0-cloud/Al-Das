@@ -1,6 +1,7 @@
 import { registerTask } from "@/lib/jobs/tasks";
 import type { JobLogger } from "@/lib/jobs/types";
 import type { AdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 import { scheduleReminder } from "@/lib/tasks/service";
 
 /**
@@ -24,11 +25,14 @@ export async function runTasksDaily(
   now: Date = new Date(),
 ): Promise<TasksDailyTotals> {
   const totals: TasksDailyTotals = { orgs: 0, created: 0, failed_orgs: 0 };
-  const { data: templates } = await admin
-    .from("task_checklist_templates")
-    .select("org_id")
-    .eq("active", true)
-    .limit(5000);
+  const { data: templates } = await fetchAll<{ id: string; org_id: string }>((from, to) =>
+    admin
+      .from("task_checklist_templates")
+      .select("id, org_id")
+      .eq("active", true)
+      .order("id")
+      .range(from, to),
+  );
   const orgIds = [...new Set((templates ?? []).map((t) => t.org_id))];
   for (const orgId of orgIds) {
     totals.orgs++;
