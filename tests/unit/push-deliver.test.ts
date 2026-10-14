@@ -195,6 +195,12 @@ describe("push endpoints and subscriptions", () => {
 });
 
 describe("VAPID keys (pnpm push:keys)", () => {
+  it("always returns a 32-byte private key (Node drops leading zero bytes, about 1 key in 256)", () => {
+    for (let i = 0; i < 2000; i++) {
+      expect(Buffer.from(generateVapidKeys().privateKey, "base64url")).toHaveLength(32);
+    }
+  });
+
   it("generates a pair in the format push services expect", () => {
     const { publicKey, privateKey } = generateVapidKeys();
     expect(Buffer.from(publicKey, "base64url")).toHaveLength(65);
