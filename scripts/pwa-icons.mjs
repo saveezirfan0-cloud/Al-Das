@@ -11,7 +11,7 @@ const dir = readdirSync(store).find((d) => d.startsWith("sharp@"));
 const require = createRequire(path.join(store, dir ?? "", "node_modules/sharp/package.json"));
 const sharp = require("sharp");
 
-const BLUE = "#1d4f9c";
+const BLUE = "#277880"; // Al Das deep teal (white mark 5.1:1)
 const line = (scale, offset) =>
   `<g transform="translate(${offset} ${offset}) scale(${scale})"><path d="M8 33h13l5-12 8 24 6-16 4 4h12" fill="none" stroke="#fff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/></g>`;
 // "any" icons keep the rounded tile; maskable icons are full-bleed with the mark inside the 80% safe zone.

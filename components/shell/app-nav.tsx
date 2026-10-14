@@ -95,7 +95,7 @@ export function AppNav({
         >
           {active && (
             <span
-              className="bg-rail-foreground absolute top-2 -left-3 h-6 w-1 rounded-r-full"
+              className="bg-brand-accent absolute top-2 -left-3 h-6 w-1 rounded-r-full"
               aria-hidden
             />
           )}
@@ -103,7 +103,7 @@ export function AppNav({
             className={cn(
               "relative flex size-10 shrink-0 items-center justify-center rounded-xl transition-colors",
               active
-                ? "bg-primary text-primary-foreground shadow-sm"
+                ? "bg-rail-active text-rail-active-foreground shadow-sm"
                 : "bg-rail-muted text-rail-foreground group-hover/item:bg-rail-hover",
             )}
           >
@@ -144,7 +144,7 @@ export function AppNav({
             href="/dashboard"
             className="flex h-14 shrink-0 items-center gap-3 px-3 outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-inset"
           >
-            <span className="bg-primary text-primary-foreground flex size-10 shrink-0 items-center justify-center rounded-xl shadow-sm">
+            <span className="bg-brand-accent text-rail-active-foreground flex size-10 shrink-0 items-center justify-center rounded-xl shadow-sm">
               <Activity className="size-5" aria-hidden />
             </span>
             <span className="min-w-0 opacity-0 transition-opacity group-hover/rail:opacity-100 group-has-[:focus-visible]/rail:opacity-100">
