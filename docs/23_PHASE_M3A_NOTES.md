@@ -99,7 +99,7 @@ Pulse sees only bookings made in Pulse until Unite appointments flow, so any boo
 3. **A room's branch is fixed after creation** in the rooms page (delete and re-add to move it), so later shift links
    cannot point across branches.
 
-## Open questions to raise (not yet in `docs/audit/open-questions.md`)
+## Open questions (OQ-158 to OQ-160 in `docs/audit/open-questions.md`)
 
 - Real opening hours per branch and weekday (would replace `room_open_hours_per_day`). Owner: Operations.
 - Cost per hour, once room hours exist: per rota hour (used) or per open hour? Owner: Finance Manager.
@@ -108,6 +108,5 @@ Pulse sees only bookings made in Pulse until Unite appointments flow, so any boo
 
 ## Not done in this slice
 
-- A `deploy/supabase-paste` file for the migration (paste files follow review).
 - Rooms as bookable resources (Phase E, later).
 - The metric register entry for these measures (docs/40 §2.3).

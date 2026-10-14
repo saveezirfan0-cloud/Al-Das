@@ -6,6 +6,18 @@ This is the single document to work from. Section 1 says where we are, 2 says wh
 
 ---
 
+## 0f. Update, 14 Oct 2026: Phase 23 sprint 2 built
+
+Built on the uploaded Unite collection report (no Unite API call anywhere):
+- **23D-1 Collections and data quality** (`/finance/collections`): payment modes, patient share vs insurance, consumption and credit by day, branch, doctor and invoice type; data-quality signals; Excel.
+- **23D-2 Insurance billed vs claimed** (`/finance/insurance-billing`): Unite-billed insurance invoices against Diligence submissions by invoice number; billed-not-submitted, amount differences, ambiguous numbers.
+- **M1 Management alerts**: report late, revenue behind target, doctors below the revenue-per-patient band; daily, once per alert, through Notifications.
+- **M2A Contribution** (`/finance/contribution`): doctor, department and clinic contribution from the pay and overheads Finance loaded (never calculated pay), Provisional until the month is approved.
+- **M3A Rooms and capacity** (Settings, Rooms; `/finance/capacity`): available hours and revenue per available hour; room occupancy waits for the staff rota (PR #72) to link rooms.
+- **M4A Recruitment calculator** (`/finance/recruitment`): candidate viability against the clinic's own doctors, one engine for page, saved scenario and Excel; Ramadan and Eid calendar.
+- Paste files `69_` to `74_`. New questions OQ-158 to OQ-160.
+- **Still blocked on answers, deliberately not guessed:** Longevity revenue (OQ-139), contract-rule doctor pay (OQ-148 to OQ-157), the revenue forecast (needs 13 months of history), room occupancy (the staff rota, PR #72), and OQ-49 (data residency) before the first real report upload.
+
 ## 0e. Update, 14 Oct 2026: Phase 23 (M1) built
 
 - **23A Unite collection report upload** (`/finance/upload`, `finance.revenue.import`): sanitised rows only, reconciled to the report's own totals before commit; tested end to end against the real September export locally (reconciles to the fils: net 1,839,005.80, 1,362 patients; the file is not in the repository). Notes: `docs/23_PHASE_23A_NOTES.md`.
