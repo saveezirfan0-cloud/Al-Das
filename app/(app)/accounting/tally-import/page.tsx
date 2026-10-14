@@ -49,6 +49,7 @@ export default async function TallyImportPage({
       "id, status, created_at, created_by, committed_at, file_bytes, opening_date, first_date, last_date, reconciled_at, periods_locked_at, report, result",
     )
     .eq("org_id", member.orgId)
+    .eq("source", "file") // a Tally bridge pull (22J) is applied through these tables too, then removed
     .order("created_at", { ascending: false })
     .limit(30);
   const rows = imports ?? [];

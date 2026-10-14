@@ -30,6 +30,7 @@ export type Database = {
           tally_alter_id: number | null;
           tally_group: string | null;
           tally_guid: string | null;
+          tally_name: string | null;
           updated_at: string;
         };
         ComputedFields: never;
@@ -59,6 +60,7 @@ export type Database = {
           tally_alter_id?: number | null;
           tally_group?: string | null;
           tally_guid?: string | null;
+          tally_name?: string | null;
           updated_at?: string;
         };
         Update: {
@@ -87,6 +89,7 @@ export type Database = {
           tally_alter_id?: number | null;
           tally_group?: string | null;
           tally_guid?: string | null;
+          tally_name?: string | null;
           updated_at?: string;
         };
         Relationships: [
@@ -3377,6 +3380,174 @@ export type Database = {
           },
         ];
       };
+      acc_tally_bridge_settings: {
+        Row: {
+          cost_category: string;
+          org_id: string;
+          pull_enabled: boolean;
+          push_enabled: boolean;
+          push_from: string | null;
+          push_sources: string[];
+          revenue_mode: string;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          cost_category?: string;
+          org_id: string;
+          pull_enabled?: boolean;
+          push_enabled?: boolean;
+          push_from?: string | null;
+          push_sources?: string[];
+          revenue_mode?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          cost_category?: string;
+          org_id?: string;
+          pull_enabled?: boolean;
+          push_enabled?: boolean;
+          push_from?: string | null;
+          push_sources?: string[];
+          revenue_mode?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "acc_tally_bridge_settings_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: true;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_tally_bridge_settings_updated_by_fkey";
+            columns: ["updated_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      acc_tally_cursors: {
+        Row: {
+          alter_id: number | null;
+          cursor: string;
+          org_id: string;
+          stamp: string | null;
+          stamp_key: string | null;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          alter_id?: number | null;
+          cursor: string;
+          org_id: string;
+          stamp?: string | null;
+          stamp_key?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          alter_id?: number | null;
+          cursor?: string;
+          org_id?: string;
+          stamp?: string | null;
+          stamp_key?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "acc_tally_cursors_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      acc_tally_devices: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          label: string;
+          last_seen_at: string | null;
+          org_id: string;
+          paired_at: string | null;
+          pairing_expires_at: string | null;
+          pairing_sha256: string | null;
+          revoked_at: string | null;
+          revoked_by: string | null;
+          status: string;
+          tally_state: string | null;
+          token_sha256: string | null;
+          updated_at: string;
+          version: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          label: string;
+          last_seen_at?: string | null;
+          org_id: string;
+          paired_at?: string | null;
+          pairing_expires_at?: string | null;
+          pairing_sha256?: string | null;
+          revoked_at?: string | null;
+          revoked_by?: string | null;
+          status?: string;
+          tally_state?: string | null;
+          token_sha256?: string | null;
+          updated_at?: string;
+          version?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          label?: string;
+          last_seen_at?: string | null;
+          org_id?: string;
+          paired_at?: string | null;
+          pairing_expires_at?: string | null;
+          pairing_sha256?: string | null;
+          revoked_at?: string | null;
+          revoked_by?: string | null;
+          status?: string;
+          tally_state?: string | null;
+          token_sha256?: string | null;
+          updated_at?: string;
+          version?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "acc_tally_devices_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_tally_devices_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_tally_devices_revoked_by_fkey";
+            columns: ["revoked_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       acc_tally_imports: {
         Row: {
           committed_at: string | null;
@@ -3398,6 +3569,7 @@ export type Database = {
           reconciled_by: string | null;
           report: NonNullable<Json>;
           result: NonNullable<Json>;
+          source: string;
           status: string;
           updated_at: string;
         };
@@ -3422,6 +3594,7 @@ export type Database = {
           reconciled_by?: string | null;
           report?: NonNullable<Json>;
           result?: NonNullable<Json>;
+          source?: string;
           status?: string;
           updated_at?: string;
         };
@@ -3445,6 +3618,7 @@ export type Database = {
           reconciled_by?: string | null;
           report?: NonNullable<Json>;
           result?: NonNullable<Json>;
+          source?: string;
           status?: string;
           updated_at?: string;
         };
@@ -3486,6 +3660,187 @@ export type Database = {
           },
         ];
       };
+      acc_tally_jobs: {
+        Row: {
+          attempts: number;
+          check_first: boolean;
+          created_at: string;
+          device_id: string | null;
+          done_at: string | null;
+          error_code: string | null;
+          id: string;
+          kind: string;
+          org_id: string;
+          params: NonNullable<Json>;
+          push_id: string | null;
+          result: Json | null;
+          sent_at: string | null;
+          seq: number;
+          status: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          attempts?: number;
+          check_first?: boolean;
+          created_at?: string;
+          device_id?: string | null;
+          done_at?: string | null;
+          error_code?: string | null;
+          id?: string;
+          kind: string;
+          org_id: string;
+          params?: NonNullable<Json>;
+          push_id?: string | null;
+          result?: Json | null;
+          sent_at?: string | null;
+          seq?: never;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          attempts?: number;
+          check_first?: boolean;
+          created_at?: string;
+          device_id?: string | null;
+          done_at?: string | null;
+          error_code?: string | null;
+          id?: string;
+          kind?: string;
+          org_id?: string;
+          params?: NonNullable<Json>;
+          push_id?: string | null;
+          result?: Json | null;
+          sent_at?: string | null;
+          seq?: never;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "acc_tally_jobs_device_id_fkey";
+            columns: ["device_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_tally_devices";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_tally_jobs_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_tally_jobs_push_id_fkey";
+            columns: ["push_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_tally_push";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      acc_tally_push: {
+        Row: {
+          amount: number;
+          attempts: number;
+          content: Json | null;
+          created_at: string;
+          detail: string | null;
+          done_at: string | null;
+          id: string;
+          journal_sha256: string;
+          mirror_journal_id: string | null;
+          org_id: string;
+          reason: string | null;
+          remote_id: string;
+          reversed: boolean;
+          reverses_id: string | null;
+          role: string;
+          source_id: string;
+          source_kind: string;
+          status: string;
+          tally_master_id: number | null;
+          updated_at: string;
+          version: number;
+          voucher_date: string;
+          voucher_type: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          amount?: number;
+          attempts?: number;
+          content?: Json | null;
+          created_at?: string;
+          detail?: string | null;
+          done_at?: string | null;
+          id?: string;
+          journal_sha256: string;
+          mirror_journal_id?: string | null;
+          org_id: string;
+          reason?: string | null;
+          remote_id: string;
+          reversed?: boolean;
+          reverses_id?: string | null;
+          role?: string;
+          source_id: string;
+          source_kind: string;
+          status: string;
+          tally_master_id?: number | null;
+          updated_at?: string;
+          version: number;
+          voucher_date: string;
+          voucher_type: string;
+        };
+        Update: {
+          amount?: number;
+          attempts?: number;
+          content?: Json | null;
+          created_at?: string;
+          detail?: string | null;
+          done_at?: string | null;
+          id?: string;
+          journal_sha256?: string;
+          mirror_journal_id?: string | null;
+          org_id?: string;
+          reason?: string | null;
+          remote_id?: string;
+          reversed?: boolean;
+          reverses_id?: string | null;
+          role?: string;
+          source_id?: string;
+          source_kind?: string;
+          status?: string;
+          tally_master_id?: number | null;
+          updated_at?: string;
+          version?: number;
+          voucher_date?: string;
+          voucher_type?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "acc_tally_push_mirror_journal_id_fkey";
+            columns: ["mirror_journal_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_journals";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_tally_push_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_tally_push_reverses_id_fkey";
+            columns: ["reverses_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_tally_push";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       acc_tally_reconciliations: {
         Row: {
           as_at: string;
@@ -3500,6 +3855,7 @@ export type Database = {
           org_id: string;
           reconciled: boolean;
           rows: NonNullable<Json>;
+          source: string;
           total_difference: number;
         };
         ComputedFields: never;
@@ -3516,6 +3872,7 @@ export type Database = {
           org_id: string;
           reconciled: boolean;
           rows?: NonNullable<Json>;
+          source?: string;
           total_difference?: number;
         };
         Update: {
@@ -3531,6 +3888,7 @@ export type Database = {
           org_id?: string;
           reconciled?: boolean;
           rows?: NonNullable<Json>;
+          source?: string;
           total_difference?: number;
         };
         Relationships: [
@@ -3625,6 +3983,73 @@ export type Database = {
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      acc_tally_sync_log: {
+        Row: {
+          at: string;
+          code: string | null;
+          counts: Json | null;
+          direction: string;
+          id: number;
+          job_id: string | null;
+          message: string | null;
+          org_id: string;
+          outcome: string;
+          push_id: string | null;
+          remote_id: string | null;
+          tally_guid: string | null;
+          voucher_date: string | null;
+          voucher_number: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          at?: string;
+          code?: string | null;
+          counts?: Json | null;
+          direction: string;
+          id?: never;
+          job_id?: string | null;
+          message?: string | null;
+          org_id: string;
+          outcome: string;
+          push_id?: string | null;
+          remote_id?: string | null;
+          tally_guid?: string | null;
+          voucher_date?: string | null;
+          voucher_number?: string | null;
+        };
+        Update: {
+          at?: string;
+          code?: string | null;
+          counts?: Json | null;
+          direction?: string;
+          id?: never;
+          job_id?: string | null;
+          message?: string | null;
+          org_id?: string;
+          outcome?: string;
+          push_id?: string | null;
+          remote_id?: string | null;
+          tally_guid?: string | null;
+          voucher_date?: string | null;
+          voucher_number?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "acc_tally_sync_log_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_tally_sync_log_push_id_fkey";
+            columns: ["push_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_tally_push";
             referencedColumns: ["id"];
           },
         ];
@@ -21930,6 +22355,100 @@ export type Database = {
         Args: { p_import_id: string; p_org_id: string; p_user_id: string };
         Returns: Json;
       };
+      acc_tally_bridge_candidates: {
+        Args: { p_after: string; p_after_key: string; p_limit: number; p_org_id: string };
+        Returns: Json;
+      };
+      acc_tally_bridge_capture: {
+        Args: { p_id: string; p_kind: string; p_org_id: string };
+        Returns: Json;
+      };
+      acc_tally_bridge_claim: {
+        Args: { p_device_id: string; p_limit: number; p_org_id: string; p_today: string };
+        Returns: Json;
+      };
+      acc_tally_bridge_device: {
+        Args: { p_tally_state: string; p_token_sha256: string; p_version: string };
+        Returns: Json;
+      };
+      acc_tally_bridge_export_result: {
+        Args: {
+          p_code: string;
+          p_counts: Json;
+          p_device_id: string;
+          p_job_id: string;
+          p_ok: boolean;
+          p_org_id: string;
+        };
+        Returns: Json;
+      };
+      acc_tally_bridge_import_result: {
+        Args: {
+          p_code: string;
+          p_device_id: string;
+          p_job_id: string;
+          p_master_id: number;
+          p_message: string;
+          p_org_id: string;
+          p_outcome: string;
+        };
+        Returns: Json;
+      };
+      acc_tally_bridge_job: {
+        Args: { p_device_id: string; p_job_id: string; p_org_id: string };
+        Returns: Json;
+      };
+      acc_tally_bridge_pair_create: {
+        Args: { p_code_sha256: string; p_label: string; p_org_id: string; p_user_id: string };
+        Returns: Json;
+      };
+      acc_tally_bridge_pair_exchange: {
+        Args: { p_code_sha256: string; p_token_sha256: string; p_version: string };
+        Returns: Json;
+      };
+      acc_tally_bridge_pull_cancelled: {
+        Args: { p_items: Json; p_job_id: string; p_org_id: string };
+        Returns: Json;
+      };
+      acc_tally_bridge_pull_finish: {
+        Args: {
+          p_alter_id: number;
+          p_cursor: string;
+          p_import_id: string;
+          p_job_id: string;
+          p_names: Json;
+          p_org_id: string;
+          p_refusals: Json;
+        };
+        Returns: Json;
+      };
+      acc_tally_bridge_push_apply: {
+        Args: { p_cursor: Json; p_items: Json; p_org_id: string; p_today: string };
+        Returns: Json;
+      };
+      acc_tally_bridge_record_tb: {
+        Args: {
+          p_as_at: string;
+          p_job_id: string;
+          p_org_id: string;
+          p_rows: Json;
+          p_sha256: string;
+        };
+        Returns: Json;
+      };
+      acc_tally_bridge_retry: {
+        Args: { p_org_id: string; p_push_id: string; p_today: string; p_user_id: string };
+        Returns: Json;
+      };
+      acc_tally_bridge_revoke: {
+        Args: { p_device_id: string; p_org_id: string; p_user_id: string };
+        Returns: Json;
+      };
+      acc_tally_bridge_save_settings: {
+        Args: { p: Json; p_org_id: string; p_user_id: string };
+        Returns: Json;
+      };
+      acc_tally_bridge_tick: { Args: { p_org_id: string; p_today: string }; Returns: Json };
       acc_tally_finish: {
         Args: { p_import_id: string; p_org_id: string; p_user_id: string };
         Returns: Json;

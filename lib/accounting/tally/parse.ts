@@ -45,6 +45,9 @@ export type TallyLedgerRec = {
   /** Pulse's sign: debit minus credit, in cents (fils). */
   openingDrMinusCr: number;
   openingInvalid: boolean;
+  /** CLOSINGBALANCE as Pulse's sign (debit minus credit, fils) when the export carries it (the Tally bridge's trial
+   * balance asks for it); null when absent or unreadable. */
+  closingDrMinusCr: number | null;
   openingBills: number;
   currency: string | null;
 };
@@ -83,6 +86,8 @@ export type TallyVoucherProblem =
 
 export type TallyVoucherRec = {
   guid: string | null;
+  /** REMOTEID (attribute or element): the Tally bridge (22J) sends Pulse's own vouchers with "pulse-..." here. */
+  remoteId: string | null;
   alterId: number | null;
   masterId: number | null;
   date: string | null;
@@ -218,8 +223,10 @@ function readVoucher(node: XNode): TallyVoucherRec {
     if (entry) entries.push(entry);
   }
   if (entries.length > MAX_ENTRIES_PER_VOUCHER) problems.add("too_many_lines");
+  const remote = (node.attrs.REMOTEID ?? textOf(node, "REMOTEID") ?? "").trim();
   return {
     guid,
+    remoteId: remote ? remote.slice(0, 120) : null,
     alterId: intOf(node, "ALTERID"),
     masterId: intOf(node, "MASTERID"),
     date,
@@ -268,6 +275,8 @@ export function parseTallyXml(bytes: Uint8Array): TallyParseResult {
       case "LEDGER": {
         if (!name) return;
         const opening = parseTallyAmount(textOf(node, "OPENINGBALANCE"));
+        const closingText = textOf(node, "CLOSINGBALANCE");
+        const closing = closingText === null ? null : parseTallyAmount(closingText);
         out.ledgers.push({
           name,
           guid: guidOf(node),
@@ -275,6 +284,7 @@ export function parseTallyXml(bytes: Uint8Array): TallyParseResult {
           parent: cleanParent(textOf(node, "PARENT")),
           openingDrMinusCr: opening.ok ? tallyToDrMinusCr(opening.cents) : 0,
           openingInvalid: !opening.ok,
+          closingDrMinusCr: closing && closing.ok ? tallyToDrMinusCr(closing.cents) : null,
           openingBills: childrenNamed(node, "BILLALLOCATIONS.LIST").length,
           currency: textOf(node, "CURRENCYNAME"),
         });

@@ -17,6 +17,7 @@ export const INTEGRATION_KINDS = [
   "esign",
   "finance_mailbox",
   "document_seal",
+  "tally_bridge",
 ] as const;
 export type IntegrationKind = (typeof INTEGRATION_KINDS)[number];
 
@@ -67,7 +68,9 @@ export type IntegrationDef = {
   acceptsFiles?: boolean;
   /** True when switching it on makes Pulse sign documents in the organisation's name (the organisation seal). */
   signsDocuments?: boolean;
-  /** Typed in full to switch it on (only for integrations that contact patients, take money, share patient data, accept files or sign in the organisation's name). */
+  /** True when switching it on lets Pulse write into the clinic's accounting books outside Pulse (the Tally bridge). */
+  writesBooks?: boolean;
+  /** Typed in full to switch it on (only for integrations that contact patients, take money, share patient data, accept files, sign in the organisation's name or write into the accounting books). */
   confirmWord: string | null;
   /** Permission to open its page and work with it (feeds, test, counters). Switching it on or off always needs integrations.manage. */
   viewPermission: "integrations.manage" | "integrations.calendar";
@@ -667,6 +670,35 @@ export const INTEGRATIONS: readonly IntegrationDef[] = [
     consequence:
       "Final approval certificates and locked month-end close packs downloaded from Pulse will carry a digital signature in the organisation's name, made with this certificate, and anyone holding the PDF can check it. Use a certificate issued to the organisation, and switch this off at once if the certificate or its password may have leaked.",
   },
+  {
+    kind: "tally_bridge",
+    // The connector on the Tally PC calls Pulse (outbound HTTPS from the clinic); Pulse never calls out. Its calls to
+    // Pulse are recorded in integration_calls under "tally_bridge".
+    outbound: false,
+    title: "Tally bridge (accounting)",
+    description:
+      "Keeps TallyPrime in step with Pulse until the ledger start: Pulse's approved items are sent to Tally as vouchers, and what is entered in Tally comes back into Pulse's ledger. A small connector on the Tally PC does the talking: it reaches Tally on that PC only and Pulse over HTTPS only, so Tally is never exposed to the internet. Pair it and choose what to send under Accounting, Setup, Tally bridge. The data stays between the clinic's Tally and Pulse.",
+    contactsPatients: false,
+    movesMoney: false,
+    sharesData: false,
+    writesBooks: true,
+    confirmWord: "CONNECT TALLY",
+    viewPermission: "integrations.manage",
+    providers: [{ id: "connector", label: "Pulse Tally connector (on the Tally PC)", fields: [] }],
+    commonFields: [
+      {
+        key: "company",
+        label: "Tally company name",
+        type: "text",
+        required: true,
+        max: 120,
+        placeholder: "Demo Clinic LLC",
+        help: "Exactly as the company is named in TallyPrime (it must be open in Tally for the bridge to work).",
+      },
+    ],
+    consequence:
+      "Once pushing is also switched on (Accounting, Setup, Tally bridge), Pulse will create vouchers in the clinic's Tally company for the items and dates chosen there, and vouchers entered in Tally will be copied into Pulse's ledger. The connector never deletes or changes anything in Tally that Pulse did not create.",
+  },
 ];
 
 export function integrationDef(kind: IntegrationKind): IntegrationDef {
@@ -700,7 +732,8 @@ export function needsConfirmation(kind: IntegrationKind): boolean {
     d.movesMoney ||
     d.sharesData ||
     d.acceptsFiles === true ||
-    d.signsDocuments === true
+    d.signsDocuments === true ||
+    d.writesBooks === true
   );
 }
 

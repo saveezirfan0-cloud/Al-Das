@@ -73,4 +73,6 @@ export const CALL_PROVIDERS: Record<IntegrationKind, readonly string[]> = {
   finance_mailbox: [],
   // Signing is local (the stored certificate, node:crypto); there is no provider and no call to record.
   document_seal: [],
+  // Inbound only: the connector on the Tally PC calls Pulse; its calls are recorded under this name.
+  tally_bridge: ["tally_bridge"],
 };

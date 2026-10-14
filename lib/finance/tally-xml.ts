@@ -310,3 +310,91 @@ export function buildTallyXml(input: {
     total: total / 100,
   };
 }
+
+/**
+ * One voucher for the Tally bridge (Phase 22J): an "Import Data" request with a single VOUCHER whose REMOTEID and GUID are
+ * Pulse's deterministic id (`pulse-...`), ACTION "Create", in one of the dedicated "Pulse ..." voucher types, numbered
+ * with Pulse's own number (the type uses manual numbering with "Prevent duplicates"). Same sign convention as above:
+ * a debit entry is ISDEEMEDPOSITIVE Yes with a negative AMOUNT. The connector checks this shape again before it forwards
+ * it to Tally (one voucher, a pulse- REMOTEID, never Delete). Throws when the entries do not balance or the id is not
+ * Pulse's; the same input always gives the same bytes. Not yet verified against a real TallyPrime company (OQ-92).
+ */
+export type BridgeVoucherInput = {
+  company: string | null;
+  costCategory: string;
+  remoteId: string;
+  number: string;
+  /** YYYY-MM-DD */
+  date: string;
+  /** "Pulse Journal", "Pulse Payment", ... */
+  tallyType: string;
+  narration: string;
+  entries: ReadonlyArray<{
+    ledger: string;
+    side: "debit" | "credit";
+    cents: number;
+    cost_centre?: string;
+  }>;
+};
+
+export function buildBridgeVoucherXml(v: BridgeVoucherInput): string {
+  if (!/^pulse-[A-Za-z0-9-]{1,110}$/.test(v.remoteId)) throw new Error("not a Pulse voucher id");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v.date)) throw new Error("invalid voucher date");
+  if (v.entries.length < 2) throw new Error("a voucher needs two entries");
+  for (const e of v.entries)
+    if (!Number.isSafeInteger(e.cents) || e.cents <= 0 || !e.ledger.trim())
+      throw new Error("invalid voucher entry");
+  const debit = v.entries.filter((e) => e.side === "debit").reduce((a, e) => a + e.cents, 0);
+  const credit = v.entries.filter((e) => e.side === "credit").reduce((a, e) => a + e.cents, 0);
+  if (debit !== credit) throw new Error("unbalanced Tally voucher");
+  const i = "            ";
+  const type = xmlEscape(v.tallyType);
+  const company = v.company?.trim()
+    ? [
+        "        <STATICVARIABLES>",
+        `          <SVCURRENTCOMPANY>${xmlEscape(v.company.trim())}</SVCURRENTCOMPANY>`,
+        "        </STATICVARIABLES>",
+      ]
+    : [];
+  return (
+    [
+      "<ENVELOPE>",
+      "  <HEADER>",
+      "    <TALLYREQUEST>Import Data</TALLYREQUEST>",
+      "  </HEADER>",
+      "  <BODY>",
+      "    <IMPORTDATA>",
+      "      <REQUESTDESC>",
+      "        <REPORTNAME>Vouchers</REPORTNAME>",
+      ...company,
+      "      </REQUESTDESC>",
+      "      <REQUESTDATA>",
+      '        <TALLYMESSAGE xmlns:UDF="TallyUDF">',
+      `          <VOUCHER REMOTEID="${v.remoteId}" VCHTYPE="${type}" ACTION="Create" OBJVIEW="Accounting Voucher View">`,
+      `${i}<GUID>${v.remoteId}</GUID>`,
+      `${i}<DATE>${tallyDate(v.date)}</DATE>`,
+      `${i}<VOUCHERTYPENAME>${type}</VOUCHERTYPENAME>`,
+      `${i}<VOUCHERNUMBER>${xmlEscape(clip(v.number, 60))}</VOUCHERNUMBER>`,
+      `${i}<NARRATION>${xmlEscape(clip(v.narration, 400))}</NARRATION>`,
+      `${i}<PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>`,
+      ...v.entries.map((e) =>
+        ledgerEntry(
+          {
+            ledger: e.ledger.trim(),
+            cents: e.cents,
+            debit: e.side === "debit",
+            costCentre: e.cost_centre?.trim() || null,
+          },
+          v.costCategory,
+          i,
+        ),
+      ),
+      "          </VOUCHER>",
+      "        </TALLYMESSAGE>",
+      "      </REQUESTDATA>",
+      "    </IMPORTDATA>",
+      "  </BODY>",
+      "</ENVELOPE>",
+    ].join("\n") + "\n"
+  );
+}

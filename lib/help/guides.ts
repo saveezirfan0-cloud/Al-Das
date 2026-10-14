@@ -936,6 +936,26 @@ export const GUIDES: readonly Guide[] = [
     watchOut: ["Locking is final: nothing can be posted into a locked month again."],
   },
   {
+    id: "accounting-tally-bridge",
+    title: "Tally bridge",
+    pages: ["/accounting/tally-bridge"],
+    purpose:
+      "Keep TallyPrime in step with Pulse until the ledger start: Pulse's items go to Tally as vouchers and what is entered in Tally comes back into Pulse.",
+    steps: [
+      "Once: install the connector on the Tally PC as a Windows service, switch on Tally's XML server for this PC only, and create the Pulse voucher types in Tally (Pulse Journal, Pulse Payment, Pulse Receipt, Pulse Contra, Pulse Sales, Pulse Purchase, Pulse Credit Note, Pulse Debit Note) with manual numbering and Prevent duplicates. The Phase 22J notes have every step.",
+      "An administrator switches the integration on under Settings, Integrations, Tally bridge (type CONNECT TALLY) and enters the Tally company name.",
+      "Here, create a pairing code and type it into the connector on the Tally PC within 30 minutes.",
+      "Choose the first date to send, what is sent (only what nobody enters in Tally by hand any more) and switch on push and pull. Start with pull only and check the trial balance card.",
+      "Watch the Waiting list: an account without a Tally ledger, or a voucher Tally refused, waits with its reason. Fix it (in Posting rules or in Tally) and press Send again where offered.",
+      "At the cut-over set the ledger start under Entities and fiscal years: pushing stops by itself. Switch pulling off once the last Tally adjustments are in, then revoke the connector.",
+    ],
+    watchOut: [
+      "Every voucher carries a Pulse id: sending it again never makes a second one, and a changed item is reversed in Tally and sent again, never edited or deleted.",
+      "Items dated before the push-from date are never sent. A Tally voucher dated on or after the ledger start is never copied into Pulse.",
+      "Nothing in Tally is ever deleted by the bridge. A voucher deleted in Tally by hand is not noticed by the pull; it shows as drift in the trial balance check.",
+    ],
+  },
+  {
     id: "accounting-year-end",
     title: "Year-end close",
     pages: ["/accounting/year-end"],

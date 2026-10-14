@@ -290,6 +290,12 @@ export const ACCOUNTING_NAV: readonly AccountingNavEntry[] = [
     section: "Setup",
     permissions: ["accounting.import"],
   },
+  {
+    href: "/accounting/tally-bridge",
+    label: "Tally bridge",
+    section: "Setup",
+    permissions: ["accounting.import"],
+  },
 ];
 
 /** Every accounting.* key: holding any of them shows the Accounting item in the sidebar. */
