@@ -141,7 +141,7 @@ export function InboxShell(props: InboxProps) {
             <p className="text-xs">
               {props.conversations.length === 0
                 ? "Nothing in this folder yet."
-                : `${props.conversations.length} in this folder`}
+                : `${props.conversations.length}${props.conversationsCursor ? "+" : ""} in this folder`}
             </p>
           </div>
         )}

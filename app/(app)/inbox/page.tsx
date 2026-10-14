@@ -9,8 +9,8 @@ import type { QuickReplyContext } from "@/lib/inbox/quick-reply";
 import { parseInboxQuery, viewFilterToQuery, type InboxQuery } from "@/lib/inbox/folders";
 import {
   folderCounts,
-  listConversations,
-  listMessages,
+  listConversationsPage,
+  listMessagesPage,
   type ConversationListRow,
 } from "@/lib/inbox/queries";
 import { readInboxSettings } from "@/lib/inbox/settings";
@@ -110,23 +110,24 @@ export default async function InboxPage({
   }
 
   const selectedId = typeof params.c === "string" ? params.c : null;
-  const [conversations, counts, selectedRow] = await Promise.all([
-    listConversations(supabase, query, ctx),
-    folderCounts(
-      supabase,
-      ctx,
-      (teams ?? []).map((t) => t.id),
-    ),
-    selectedId
-      ? supabase
-          .from("conversations")
-          .select(
-            "*, contacts(*), channels(id, name, display_phone), conversation_labels(tag_id, tags(id, name, color))",
-          )
-          .eq("id", selectedId)
-          .maybeSingle()
-      : Promise.resolve({ data: null }),
-  ]);
+  const [{ rows: conversations, nextCursor: conversationsCursor }, counts, selectedRow] =
+    await Promise.all([
+      listConversationsPage(supabase, query, ctx),
+      folderCounts(
+        supabase,
+        ctx,
+        (teams ?? []).map((t) => t.id),
+      ),
+      selectedId
+        ? supabase
+            .from("conversations")
+            .select(
+              "*, contacts(*), channels(id, name, display_phone), conversation_labels(tag_id, tags(id, name, color))",
+            )
+            .eq("id", selectedId)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+    ]);
 
   // The conversation list is a patient list too: sampled, like the other list screens.
   await recordAccess(admin, member, {
@@ -137,6 +138,7 @@ export default async function InboxPage({
 
   let selected: InboxProps["selected"] = null;
   let messages: InboxProps["messages"] = [];
+  let messagesCursor: string | null = null;
   let sidebar: SidebarData | null = null;
   let quickReplyContext: QuickReplyContext = {
     agent_name: `${member.profile.first_name} ${member.profile.last_name}`.trim() || null,
@@ -167,7 +169,7 @@ export default async function InboxPage({
     // Opening a conversation shows the patient's messages: always logged (id only).
     await recordAccess(admin, member, { entity: "conversation", entityId: sel.id, action: "view" });
     const [msgs, media, sameName, others] = await Promise.all([
-      listMessages(supabase, sel.id),
+      listMessagesPage(supabase, sel.id),
       supabase
         .from("messages")
         .select("id, kind, media_path, media_mime, media_filename, at, body")
@@ -194,7 +196,8 @@ export default async function InboxPage({
         .order("last_message_at", { ascending: false })
         .limit(10),
     ]);
-    messages = msgs;
+    messages = msgs.messages;
+    messagesCursor = msgs.nextCursor;
     const merge: MergeSuggestion[] = (sameName.data ?? []).map((d) => ({
       id: d.id,
       name: contactDisplayName(d),
@@ -358,8 +361,10 @@ export default async function InboxPage({
       require_summary_on_close: settings.require_summary_on_close,
     },
     conversations,
+    conversationsCursor,
     selected,
     messages,
+    messagesCursor,
     sidebar,
   };
 
