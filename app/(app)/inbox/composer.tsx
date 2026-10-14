@@ -1,9 +1,11 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
   Camera,
+  Contact,
   FileText,
   Image as ImageIcon,
   Images,
@@ -12,6 +14,7 @@ import {
   Mic,
   Paperclip,
   Send,
+  ShoppingBag,
   Smile,
   Square,
   X,
@@ -48,6 +51,15 @@ import { AiPanel } from "./ai-panel";
 import { ShortcutMenu } from "./shortcut-menu";
 import { TemplatePicker } from "./template-picker";
 import type { ConversationDetail, InboxProps, QuickReply } from "./types";
+
+// G11 (contact card, catalogue product): the dialogs load only when opened.
+const ContactCardDialog = dynamic(
+  () => import("./extras-dialogs").then((m) => m.ContactCardDialog),
+  { ssr: false },
+);
+const ProductDialog = dynamic(() => import("./extras-dialogs").then((m) => m.ProductDialog), {
+  ssr: false,
+});
 
 const EMOJI = [
   "😊",
@@ -130,6 +142,7 @@ export function Composer({
   const [attachment, setAttachment] = useState<NonNullable<QuickReply["media"]> | null>(null);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [recording, setRecording] = useState(false);
+  const [extra, setExtra] = useState<"card" | "product" | null>(null);
   // The AI suggestion currently in the box, so sending can report whether it was used as written. Never stored client-side beyond this.
   const suggestion = useRef<{ usageId: string; text: string } | null>(null);
   const recorder = useRef<MediaRecorder | null>(null);
@@ -150,6 +163,7 @@ export function Composer({
   // Phase 20e: website chat, Instagram and Messenger are text only (no templates, files, voice notes, flows or number switch).
   const channelType = channelTypeOf(channels.find((c) => c.id === selected.channel_id)?.type);
   const waFeatures = hasWhatsAppFeatures(channelType);
+  const hasCatalog = !!channels.find((c) => c.id === selected.channel_id)?.has_catalog;
   const slash =
     mode === "chat" && text.startsWith("/") && !text.includes("\n")
       ? text.slice(1).toLowerCase()
@@ -616,6 +630,26 @@ export function Composer({
                 >
                   {recording ? <Square /> : <Mic />}
                 </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Share a contact card"
+                  disabled={chatDisabled}
+                  onClick={() => setExtra("card")}
+                >
+                  <Contact />
+                </Button>
+                {hasCatalog && (
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label="Send a catalogue product"
+                    disabled={chatDisabled}
+                    onClick={() => setExtra("product")}
+                  >
+                    <ShoppingBag />
+                  </Button>
+                )}
               </>
             )}
             {ai.available && (
@@ -671,6 +705,16 @@ export function Composer({
           title="Send a library file"
           onPick={(a) => setAttachment({ id: a.id, name: a.name, kind: a.kind })}
         />
+      )}
+      {extra === "card" && (
+        <ContactCardDialog
+          open
+          onOpenChange={(o) => !o && setExtra(null)}
+          conversationId={selected.id}
+        />
+      )}
+      {extra === "product" && (
+        <ProductDialog open onOpenChange={(o) => !o && setExtra(null)} conversationId={selected.id} />
       )}
       <TemplatePicker
         open={templateOpen}

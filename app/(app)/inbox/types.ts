@@ -15,6 +15,8 @@ export type ChannelInfo = {
   status: string;
   /** whatsapp | web | instagram | messenger (Phase 20e). Only WhatsApp has templates, media and number switching. */
   type: string;
+  /** G11: a WhatsApp catalogue ID is set (Settings, Channels), so catalogue products can be sent. */
+  has_catalog?: boolean;
 };
 export type LabelInfo = { id: string; name: string; color: string };
 export type CategoryInfo = { id: string; name: string };
