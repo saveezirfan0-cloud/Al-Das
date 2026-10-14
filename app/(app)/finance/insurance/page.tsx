@@ -118,7 +118,7 @@ export default async function InsurancePage({ searchParams }: { searchParams: Pr
         <Alert>
           <AlertTitle>No claims in this range yet</AlertTitle>
           <AlertDescription>
-            Claims appear after a Diligence report is imported (Finance → Insurance upload). Try a
+            Claims appear after a Diligence report is imported (Finance → Claims, Uploads). Try a
             wider range if one has been.
           </AlertDescription>
         </Alert>

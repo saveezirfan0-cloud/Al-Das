@@ -303,7 +303,7 @@ export const GUIDES: readonly Guide[] = [
     steps: [
       "Start at the Reports hub, then work the Exceptions assigned to you.",
       "Pages that belong together are tabs under one menu entry (Performance, Insurance and receivables, Claims, Payables, Month-end close, Exports).",
-      "Upload the Diligence claim file under Claims, Insurance upload.",
+      "Upload the Diligence claim file under Claims, Uploads.",
       "Finance setup (reference data, workflow settings, targets, bank and lab settings) is under Settings, Finance setup.",
     ],
     watchOut: ["Finance data never shows patient names, only the Unite PIN."],
@@ -1368,9 +1368,10 @@ export const GUIDES: readonly Guide[] = [
   },
   {
     id: "finance-upload",
-    title: "Insurance upload",
+    title: "Uploads",
     pages: ["/finance/upload"],
-    purpose: "Bring in the Diligence claims report so claims can be matched to invoices.",
+    purpose:
+      "Bring in the Diligence claims report so claims can be matched to invoices, and the Unite collection report for doctor performance.",
     steps: [
       "Upload the Diligence claims report weekly and at month end.",
       "Check the preview: unknown columns are ignored, never guessed.",

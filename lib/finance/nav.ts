@@ -133,7 +133,12 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
   },
   tabGroup("Claims", "Claims & collections", [
     { href: "/finance/claims", label: "Claims", permissions: ["finance.claims.view"] },
-    { href: "/finance/upload", label: "Insurance upload", permissions: ["finance.claims.import"] },
+    {
+      // the page takes the Diligence claims file (claims.import) and the Unite collection report (revenue.import, 23A)
+      href: "/finance/upload",
+      label: "Uploads",
+      permissions: ["finance.claims.import", "finance.revenue.import"],
+    },
     { href: "/finance/followup", label: "Follow-up", permissions: ["finance.claims.view"] },
   ]),
   {

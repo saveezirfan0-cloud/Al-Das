@@ -347,6 +347,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
       "finance.close.signoff.ceo",
       "finance.cashup.manage",
       "finance.revenue.view",
+      "finance.revenue.import",
       "finance.export.run",
       "finance.costs.manage",
       "finance.costs.view",
