@@ -290,6 +290,27 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)(
         expect(await sms(id2)).toMatchObject({ status: "failed", error_code: "http_422" });
       });
 
+      it("marks a sent SMS sent even when the gateway repeats a message id (the row id stands in)", async () => {
+        const first = await queued();
+        const second = await queued();
+        gatewayReplies = [
+          { status: 200, body: { id: "gw-same" } },
+          { status: 200, body: { id: "gw-same" } },
+        ];
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+        try {
+          expect(await processSmsJob(admin, first, { readCt: 1, now: NOW })).toBe("sent");
+          expect(await processSmsJob(admin, second, { readCt: 1, now: NOW })).toBe("sent");
+        } finally {
+          warn.mockRestore();
+        }
+        expect(await sms(first)).toMatchObject({ status: "sent", provider_message_id: "gw-same" });
+        expect(await sms(second)).toMatchObject({
+          status: "sent",
+          provider_message_id: `dup:${second}`,
+        });
+      });
+
       it("refuses delivery receipts for the generic gateway (it has none), whatever the signature", async () => {
         const url = `${APP_URL}/api/webhooks/integrations/sms/${accountId}`;
         const params = { MessageSid: "gw-abc-1", MessageStatus: "delivered" };

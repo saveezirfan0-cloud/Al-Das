@@ -43,9 +43,36 @@ describe("gateway address", () => {
       "https://printer.local/send",
       "https://metadata.google.internal/computeMetadata",
       "https://1.1.1.1.in-addr.arpa/x",
+      // review fix: a trailing dot survives WHATWG URL parsing and must not slip past the name checks
+      "https://localhost./send",
+      "https://metadata.google.internal./computeMetadata",
+      "https://foo.local./send",
+      "https://sms.gateway.example./send",
+      "https://127.0.0.1./send",
+      "https://gateway.default.svc/send",
+      "https://sms.corp/send",
+      "https://router.home.arpa/send",
+      "https://0x7f.0.0.1/send",
       "not a url",
     ])
       expect(gatewayUrlProblem(bad), bad).not.toBeNull();
+    expect(gatewayUrlProblem("https://localhost./send")).toMatch(/dot/);
+  });
+
+  it("a trailing-dot host is never built into an adapter, so the client can never call it", () => {
+    expect(
+      createHttpSmsProvider({
+        url: "https://metadata.google.internal./x",
+        auth: "bearer",
+        username: "",
+        encoding: "json",
+        body: "to={to}&message={text}",
+        idField: "",
+        testUrl: "",
+        secret: "t",
+        sender: "S",
+      }),
+    ).toBeNull();
   });
 });
 
