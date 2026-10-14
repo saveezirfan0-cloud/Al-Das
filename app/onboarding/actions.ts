@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { recordAudit } from "@/lib/audit";
 import { SYSTEM_ROLES } from "@/lib/auth/permissions";
-import { getCurrentUser } from "@/lib/auth/session";
+import { getCurrentMember, getCurrentUser, isMemberLookupError } from "@/lib/auth/session";
 import { serverEnv } from "@/lib/env";
 import { checkRateLimit, RATE_RULES, waitText } from "@/lib/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -33,6 +33,15 @@ export async function createWorkspace(
     return { error: "Workspace creation is disabled. Ask an administrator for an invite." };
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+
+  // Someone who already belongs to a workspace, or whose membership could not be checked, never creates another.
+  try {
+    if (await getCurrentMember()) redirect("/dashboard");
+  } catch (e) {
+    if (isMemberLookupError(e))
+      return { error: "Could not check your existing workspaces. Try again in a minute." };
+    throw e;
+  }
 
   const parsed = schema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: parsed.error.issues[0]?.message };

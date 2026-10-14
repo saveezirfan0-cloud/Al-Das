@@ -8,10 +8,23 @@ import type { User } from "@supabase/supabase-js";
 import { assertCan, type MemberLike } from "@/lib/auth/can";
 import { parseEnquiryScope } from "@/lib/enquiries/scope";
 import { AUTH_MODE_HEADER, isAuthMode } from "@/lib/supabase/auth-mode";
+import { redactText } from "@/lib/redact";
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/supabase/types";
 
 export const ORG_COOKIE = "pulse_org";
+
+/** The membership lookup itself failed (database error), as opposed to the user having no workspace. */
+export class MemberLookupError extends Error {
+  constructor() {
+    super("Could not load your workspace membership");
+    this.name = "MemberLookupError";
+  }
+}
+
+export function isMemberLookupError(e: unknown): boolean {
+  return e instanceof Error && e.name === "MemberLookupError";
+}
 
 export type CurrentMember = MemberLike & {
   membershipId: string;
@@ -78,7 +91,7 @@ export const getCurrentUser = cache(async (): Promise<User | null> => {
 
 /**
  * The signed-in user's membership in the current org (cookie-selected, else the
- * first active one). Null when signed out or without a membership.
+ * first active one). Null when signed out or without a membership; throws MemberLookupError when the lookup fails.
  * Reads go through the user's own client so RLS applies.
  */
 export const getCurrentMember = cache(async (): Promise<CurrentMember | null> => {
@@ -86,7 +99,7 @@ export const getCurrentMember = cache(async (): Promise<CurrentMember | null> =>
   if (!user) return null;
 
   const supabase = await createClient();
-  const { data: memberships } = await supabase
+  const { data: memberships, error } = await supabase
     .from("memberships")
     .select(
       "id, org_id, role_id, status, presence, enquiry_scope, roles(name, permissions), orgs(*)",
@@ -95,6 +108,15 @@ export const getCurrentMember = cache(async (): Promise<CurrentMember | null> =>
     .eq("status", "active")
     .order("created_at");
 
+  // A failed lookup is not "no workspace": treating it as one sent members to /onboarding and let them create a
+  // duplicate workspace (e.g. when a migration the query needs had not been applied yet).
+  if (error) {
+    console.error("[auth] membership lookup failed", {
+      code: error.code,
+      message: redactText(error.message),
+    });
+    throw new MemberLookupError();
+  }
   if (!memberships || memberships.length === 0) return null;
 
   const cookieStore = await cookies();
@@ -130,6 +152,16 @@ export const getCurrentMember = cache(async (): Promise<CurrentMember | null> =>
       .map((o) => ({ id: o.id, name: o.name, slug: o.slug })),
   };
 });
+
+/** Best effort, for sign-out and auth-event logging: a failed lookup counts as no membership, never as an error. */
+export async function getCurrentMemberIfAvailable(): Promise<CurrentMember | null> {
+  try {
+    return await getCurrentMember();
+  } catch (e) {
+    if (isMemberLookupError(e)) return null;
+    throw e;
+  }
+}
 
 /** Redirects to /login (signed out) or /onboarding (no workspace). */
 export async function requireMember(): Promise<CurrentMember> {
