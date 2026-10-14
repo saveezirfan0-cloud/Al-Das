@@ -1,6 +1,8 @@
 import { readAiSettings } from "@/lib/ai/settings";
 import { can } from "@/lib/auth/can";
 import { requireMember } from "@/lib/auth/session";
+import { accessFilterIds } from "@/lib/branches/filter";
+import { memberBranchView } from "@/lib/branches/guard";
 import { formatCardTime, loadPatientCard } from "@/lib/front-desk/server";
 import { loadDeskOptions } from "@/lib/front-desk/options";
 import { quickReplyAppointmentValues } from "@/lib/front-desk/patient-card";
@@ -247,11 +249,18 @@ export default async function InboxPage({
     // Front desk screen pop: the patient card beside the conversation (only for people who use the desk).
     const showDesk = can(member, "frontdesk.use") && can(member, "appointments.view");
     const tz = member.org.timezone || "Asia/Dubai";
-    const card = showDesk ? await loadPatientCard(admin, member.orgId, c.id) : null;
-    const desk = showDesk
+    // Phase B: the card and the desk dialogs keep to the branches this member may work in.
+    const branch = showDesk ? await memberBranchView(admin, member) : null;
+    const card = branch
+      ? await loadPatientCard(admin, member.orgId, c.id, new Date(), accessFilterIds(branch.access))
+      : null;
+    const desk = branch
       ? {
           card,
-          options: await loadDeskOptions(admin, member.orgId, tz),
+          options: await loadDeskOptions(admin, member.orgId, tz, {
+            access: branch.access,
+            current: branch.current,
+          }),
           can: {
             appointments: can(member, "appointments.manage"),
             contacts: can(member, "contacts.manage"),

@@ -1,5 +1,6 @@
 import "server-only";
 
+import { withBranchFilter } from "@/lib/branches/filter";
 import { isUnanswered, sortUnconfirmed } from "@/lib/front-desk/end-of-day";
 import { loadBoardRows, shiftDate, localDayRange } from "@/lib/front-desk/server";
 import { redactText } from "@/lib/redact";
@@ -48,12 +49,14 @@ export async function loadEndOfDay(
   orgId: string,
   timezone: string,
   today: string,
+  /** Phase B: the member's branch filter (branchView().filterIds); tomorrow's list and the notes keep to it. */
+  branchIds: readonly string[] | null = null,
 ): Promise<EndOfDayData> {
   const tomorrow = shiftDate(today, 1);
   const todayRange = localDayRange(today, timezone);
 
   const [tomorrowRows, convs, calls, failed, notes] = await Promise.all([
-    loadBoardRows(admin, orgId, timezone, tomorrow),
+    loadBoardRows(admin, orgId, timezone, tomorrow, null, branchIds),
     admin
       .from("conversations")
       .select(
@@ -83,13 +86,16 @@ export async function loadEndOfDay(
       .gte("at", todayRange.gte)
       .order("at", { ascending: false })
       .limit(60),
-    admin
-      .from("handover_notes")
-      .select(
-        "id, body, created_at, profiles:profiles!handover_notes_created_by_fkey(first_name, last_name)",
-      )
-      .eq("org_id", orgId)
-      .is("resolved_at", null)
+    withBranchFilter(
+      admin
+        .from("handover_notes")
+        .select(
+          "id, body, created_at, profiles:profiles!handover_notes_created_by_fkey(first_name, last_name)",
+        )
+        .eq("org_id", orgId)
+        .is("resolved_at", null),
+      branchIds,
+    )
       .order("created_at", { ascending: false })
       .limit(20),
   ]);

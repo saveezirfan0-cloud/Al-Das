@@ -17,7 +17,15 @@ import { localDate, localMinutesToInstant } from "@/lib/appointments/slots";
 import { APPOINTMENT_STATUSES, isAppointmentStatus } from "@/lib/appointments/status";
 import { recordAudit } from "@/lib/audit";
 import { can } from "@/lib/auth/can";
-import { requirePerm } from "@/lib/auth/session";
+import { requirePerm, type CurrentMember } from "@/lib/auth/session";
+import { canSeeLocation, readBranchAccess } from "@/lib/branches/access";
+import { accessFilterIds, withBranchFilter } from "@/lib/branches/filter";
+import {
+  BRANCH_DENIED,
+  branchAllowed,
+  memberBranchView,
+  rowOutsideBranches,
+} from "@/lib/branches/guard";
 import { toCsv } from "@/lib/csv";
 import {
   ensureRoom,
@@ -128,6 +136,19 @@ function dayRange(from: string, to: string, tz: string): { gte: string; lt: stri
   };
 }
 
+/**
+ * Phase B: the branch filter for a list read. A branch named by the screen must be one the member may work in
+ * (`denied`); with none named, the member's branch view (switcher choice, else every branch they may see).
+ */
+async function listBranchFilter(
+  admin: AdminClient,
+  member: CurrentMember,
+  locationId: string | null | undefined,
+): Promise<{ denied: boolean; filterIds: string[] | null }> {
+  if (locationId) return { denied: !branchAllowed(member, locationId), filterIds: null };
+  return { denied: false, filterIds: (await memberBranchView(admin, member)).filterIds };
+}
+
 // ---------------------------------------------------------------------------
 // Reads
 // ---------------------------------------------------------------------------
@@ -153,6 +174,8 @@ export async function listRange(input: {
     .safeParse(input);
   if (!p.success) return fail("Invalid range.");
   const admin = createAdminClient(member.userId);
+  const branch = await listBranchFilter(admin, member, p.data.locationId);
+  if (branch.denied) return fail(BRANCH_DENIED);
   let tz = await orgTimezone(admin, member.orgId);
   const tzLocation = p.data.tzLocationId ?? p.data.locationId;
   if (tzLocation) {
@@ -177,6 +200,7 @@ export async function listRange(input: {
         .lt("starts_at", range.lt);
       if (p.data.locationId) q = q.eq("location_id", p.data.locationId);
       if (p.data.specialistId) q = q.eq("specialist_id", p.data.specialistId);
+      q = withBranchFilter(q, branch.filterIds);
       return q.order("starts_at").order("id").range(from, to);
     },
     { max: 2000 },
@@ -194,6 +218,7 @@ export async function listRange(input: {
   if (p.data.specialistId) {
     bq = bq.eq("specialist_id", p.data.specialistId);
   }
+  bq = withBranchFilter(bq, branch.filterIds);
   const [{ data: appts, error }, { data: blocks }] = await Promise.all([aq, bq]);
   if (error) return fail("Could not load appointments.");
   return {
@@ -229,7 +254,13 @@ const listSchema = z.object({
 });
 
 /** Resolves the async parts of a filter (timezone, patient search) and returns a query factory. */
-async function listBuilder(admin: AdminClient, orgId: string, q: z.infer<typeof listSchema>) {
+async function listBuilder(
+  admin: AdminClient,
+  orgId: string,
+  q: z.infer<typeof listSchema>,
+  /** Phase B: the member's branch filter (null = none). */
+  branchIds: readonly string[] | null = null,
+) {
   const tz = await orgTimezone(admin, orgId);
   const term = (q.q ?? "").replace(/[%_,()\\]/g, " ").trim();
   let ors: string[] | null = null;
@@ -261,6 +292,7 @@ async function listBuilder(admin: AdminClient, orgId: string, q: z.infer<typeof 
       if (q.to) query = query.lt("starts_at", range.lt);
     }
     if (q.locationId) query = query.eq("location_id", q.locationId);
+    query = withBranchFilter(query, branchIds);
     if (q.specialistId) query = query.eq("specialist_id", q.specialistId);
     if (q.serviceId) query = query.eq("service_id", q.serviceId);
     if (q.status?.length) query = query.in("status", q.status);
@@ -280,7 +312,9 @@ export async function listAppointments(
   const admin = createAdminClient(member.userId);
   const pageSize = parsed.data.pageSize ?? 100;
   const page = parsed.data.page ?? 1;
-  const build = await listBuilder(admin, member.orgId, parsed.data);
+  const branch = await listBranchFilter(admin, member, parsed.data.locationId);
+  if (branch.denied) return fail(BRANCH_DENIED);
+  const build = await listBuilder(admin, member.orgId, parsed.data, branch.filterIds);
   const { data, count, error } = await build().range((page - 1) * pageSize, page * pageSize - 1);
   if (error) return fail("Could not load appointments.");
   await recordAccess(admin, member, {
@@ -311,7 +345,9 @@ export async function exportAppointments(
   const parsed = listSchema.safeParse(scope === "all" ? {} : input);
   if (!parsed.success) return fail("Invalid filters.");
   const admin = createAdminClient(member.userId);
-  const build = await listBuilder(admin, member.orgId, parsed.data);
+  const branch = await listBranchFilter(admin, member, parsed.data.locationId);
+  if (branch.denied) return fail(BRANCH_DENIED);
+  const build = await listBuilder(admin, member.orgId, parsed.data, branch.filterIds);
   const [{ data, error }, { data: locs }, { data: specs }, { data: svcs }, tz] = await Promise.all([
     // Every row up to 5,000, in pages (PostgREST returns at most 1,000 per request); build() orders by id last.
     fetchAll((from, to) => build().range(from, to), { max: 5000 }),
@@ -398,6 +434,7 @@ export async function getFreeSlots(input: {
     })
     .safeParse(input);
   if (!p.success) return fail("Choose a location, specialist, service and date.");
+  if (!branchAllowed(member, p.data.locationId)) return fail(BRANCH_DENIED);
   const admin = createAdminClient(member.userId);
   const { data: service } = await admin
     .from("services")
@@ -444,7 +481,7 @@ export async function getAppointmentDetail(id: string): Promise<ActionResult<App
     .eq("id", id)
     .eq("org_id", member.orgId)
     .maybeSingle();
-  if (!a) return fail("Appointment not found.");
+  if (!a || !branchAllowed(member, a.location_id)) return fail("Appointment not found.");
   await recordAccess(admin, member, { entity: "appointment", entityId: id, action: "view" });
   const [{ data: reminders }, { data: history }] = await Promise.all([
     admin
@@ -504,6 +541,7 @@ export async function bookAppointment(
   const member = await requirePerm("appointments.manage");
   const p = bookSchema.safeParse(input);
   if (!p.success) return fail(p.error.issues[0]?.message ?? "Check the appointment details.");
+  if (!branchAllowed(member, p.data.locationId)) return fail(BRANCH_DENIED);
   const admin = createAdminClient(member.userId);
   const res = await createAppointment(admin, {
     orgId: member.orgId,
@@ -553,6 +591,7 @@ export async function blockTime(input: z.input<typeof blockSchema>): Promise<Act
   const member = await requirePerm("appointments.manage");
   const p = blockSchema.safeParse(input);
   if (!p.success) return fail("Check the block details.");
+  if (!branchAllowed(member, p.data.locationId)) return fail(BRANCH_DENIED);
   const res = await createTimeBlock(createAdminClient(member.userId), {
     orgId: member.orgId,
     actorId: member.userId,
@@ -602,6 +641,7 @@ export async function setStatus(input: {
   if (!uuid.safeParse(input.id).success || !isAppointmentStatus(input.to))
     return fail("Invalid status change.");
   const admin = createAdminClient(member.userId);
+  if (await rowOutsideBranches(admin, member, "appointments", input.id)) return fail(BRANCH_DENIED);
   const res = await changeAppointmentStatus(admin, {
     orgId: member.orgId,
     appointmentId: input.id,
@@ -642,7 +682,9 @@ export async function moveAppointment(
   const member = await requirePerm("appointments.manage");
   const p = moveSchema.safeParse(input);
   if (!p.success) return fail("Check the new time.");
+  if (!branchAllowed(member, p.data.locationId)) return fail(BRANCH_DENIED);
   const admin = createAdminClient(member.userId);
+  if (await rowOutsideBranches(admin, member, "appointments", p.data.id)) return fail(BRANCH_DENIED);
   const res = await rescheduleAppointment(admin, {
     orgId: member.orgId,
     appointmentId: p.data.id,
@@ -674,6 +716,7 @@ export async function updateAppointmentNotes(input: {
     .safeParse(input);
   if (!p.success) return fail("Invalid notes.");
   const admin = createAdminClient(member.userId);
+  if (await rowOutsideBranches(admin, member, "appointments", p.data.id)) return fail(BRANCH_DENIED);
   const { error } = await admin
     .from("appointments")
     .update({ notes: p.data.notes || null, notify_early: p.data.notifyEarly })
@@ -696,7 +739,9 @@ export async function updateAppointmentNotes(input: {
 export async function sendReminderNow(id: string): Promise<ActionResult> {
   const member = await requirePerm("appointments.manage");
   if (!uuid.safeParse(id).success) return fail("Invalid appointment.");
-  const res = await sendAppointmentTemplate(createAdminClient(member.userId), {
+  const admin = createAdminClient(member.userId);
+  if (await rowOutsideBranches(admin, member, "appointments", id)) return fail(BRANCH_DENIED);
+  const res = await sendAppointmentTemplate(admin, {
     orgId: member.orgId,
     appointmentId: id,
     key: "reminder",
@@ -715,11 +760,14 @@ export async function listContactAppointments(
   if (!uuid.safeParse(contactId).success) return fail("Invalid patient.");
   const admin = createAdminClient(member.userId);
   const [{ data, error }, timezone] = await Promise.all([
-    admin
-      .from("appointments")
-      .select(APPT_SELECT)
-      .eq("org_id", member.orgId)
-      .eq("contact_id", contactId)
+    withBranchFilter(
+      admin
+        .from("appointments")
+        .select(APPT_SELECT)
+        .eq("org_id", member.orgId)
+        .eq("contact_id", contactId),
+      accessFilterIds(readBranchAccess(member)),
+    )
       .order("starts_at", { ascending: false })
       .limit(50),
     orgTimezone(admin, member.orgId),
@@ -749,11 +797,12 @@ export async function setVisitMode(input: z.input<typeof visitModeSchema>): Prom
   const admin = createAdminClient(member.userId);
   const { data: before } = await admin
     .from("appointments")
-    .select("id, visit_mode")
+    .select("id, visit_mode, location_id")
     .eq("id", p.data.id)
     .eq("org_id", member.orgId)
     .maybeSingle();
   if (!before) return fail("Appointment not found.");
+  if (!canSeeLocation(readBranchAccess(member), before.location_id)) return fail(BRANCH_DENIED);
   if ((before.visit_mode ?? null) === p.data.mode) return { ok: true };
   const { error } = await admin
     .from("appointments")
@@ -795,6 +844,8 @@ export async function getVideoJoinLink(
   if (p.data.renew && !can(member, "appointments.manage"))
     return fail("You do not have permission to make a new link.");
   const admin = createAdminClient(member.userId);
+  if (await rowOutsideBranches(admin, member, "appointments", p.data.id))
+    return fail("Appointment not found.");
   const r = await ensureRoom(admin, {
     orgId: member.orgId,
     appointmentId: p.data.id,

@@ -120,3 +120,20 @@ create policy waitlist_entries_delete on public.waitlist_entries for delete to a
 drop policy handover_notes_select on public.handover_notes;
 create policy handover_notes_select on public.handover_notes for select to authenticated
   using (app.has_perm(org_id, 'frontdesk.use') and app.location_visible_to(org_id, auth.uid(), location_id));
+
+-- New rows: a member may only create them in a branch they may see.
+drop policy enquiries_insert on public.enquiries;
+create policy enquiries_insert on public.enquiries for insert to authenticated
+  with check (app.has_perm(org_id, 'enquiries.manage') and app.location_visible_to(org_id, auth.uid(), location_id));
+drop policy waitlist_entries_insert on public.waitlist_entries;
+create policy waitlist_entries_insert on public.waitlist_entries for insert to authenticated
+  with check (app.has_perm(org_id, 'frontdesk.use') and app.has_perm(org_id, 'appointments.manage')
+              and app.location_visible_to(org_id, auth.uid(), location_id));
+drop policy handover_notes_insert on public.handover_notes;
+create policy handover_notes_insert on public.handover_notes for insert to authenticated
+  with check (app.has_perm(org_id, 'frontdesk.use') and created_by = (select auth.uid())
+              and app.location_visible_to(org_id, auth.uid(), location_id));
+drop policy handover_notes_update on public.handover_notes;
+create policy handover_notes_update on public.handover_notes for update to authenticated
+  using (app.has_perm(org_id, 'frontdesk.use') and app.location_visible_to(org_id, auth.uid(), location_id))
+  with check (app.has_perm(org_id, 'frontdesk.use') and app.location_visible_to(org_id, auth.uid(), location_id));

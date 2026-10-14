@@ -9,6 +9,10 @@ import {
   chooseBranch,
   readBranchAccess,
 } from "@/lib/branches/access";
+import {
+  accessFilterIds,
+  withBranchFilter,
+} from "@/lib/branches/filter";
 
 const A = "00000000-0000-4000-8000-00000000000a";
 const B = "00000000-0000-4000-8000-00000000000b";
@@ -59,5 +63,31 @@ describe("branch access", () => {
     expect(branchOrFilter([A])).toBe(`location_id.in.(${A}),location_id.is.null`);
     expect(branchOrFilter([])).toBe("location_id.is.null");
     expect(branchOrFilter(["x),org_id.eq.(y"])).toBe("location_id.is.null");
+  });
+});
+
+describe("service-role branch filters (lib/branches/filter.ts)", () => {
+  it("adds the PostgREST condition only when there is a filter", () => {
+    const calls: string[] = [];
+    const q = {
+      or(f: string) {
+        calls.push(f);
+        return q;
+      },
+    };
+    expect(withBranchFilter(q, null)).toBe(q);
+    expect(calls).toEqual([]);
+    withBranchFilter(q, [A, C]);
+    withBranchFilter(q, [], "w.location_id");
+    expect(calls).toEqual([
+      `location_id.in.(${A},${C}),location_id.is.null`,
+      "w.location_id.is.null",
+    ]);
+  });
+
+  it("the access-only filter lists every branch a limited member may see", () => {
+    expect(accessFilterIds(everyone)).toBeNull();
+    expect(accessFilterIds(twoBranches)).toEqual([A, C]);
+    expect(accessFilterIds(oneBranch)).toEqual([B]);
   });
 });
