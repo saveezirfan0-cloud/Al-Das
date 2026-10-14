@@ -162,7 +162,7 @@ begin
     execute format('select round(coalesce(sum(%I), 0), 2) from public.fin_report_visits where upload_id = $1', k)
       into v_sum using v_id;
     v_rows := v_rows || jsonb_build_object(k, v_sum);
-    if (v_report ->> k) is null or (v_report ->> k)::numeric is distinct from v_sum then
+    if (v_report ->> k) is null or round((v_report ->> k)::numeric, 2) is distinct from v_sum then
       v_ok := false;
     end if;
   end loop;
@@ -210,10 +210,13 @@ begin
                         where b.org_id = p_org_id and b.active and b.unite_clinic_long_name = v.clinic_name)
    where v.upload_id = u.id;
 
+  -- supersede only the clinics this upload covers, so a one-clinic export never hides the other clinics' rows
   update public.fin_report_visits v
      set is_current = false
    where v.org_id = p_org_id and v.is_current and v.upload_id <> u.id
-     and v.report_date between u.from_date and u.to_date;
+     and v.report_date between u.from_date and u.to_date
+     and coalesce(v.clinic_name, '') in (
+       select distinct coalesce(n.clinic_name, '') from public.fin_report_visits n where n.upload_id = u.id);
   get diagnostics v_superseded = row_count;
 
   update public.fin_report_visits v set is_current = true where v.upload_id = u.id;
