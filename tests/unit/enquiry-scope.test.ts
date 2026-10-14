@@ -24,6 +24,27 @@ describe("restricted enquiry view (Phase 20c)", () => {
     }
   });
 
+  it("adds the branch rule (Phase B) for a member limited to some branches, alone or with the view", () => {
+    const bag = new ParamBag();
+    expect(
+      enquiryScopeSql({ userId: USER, scope: "all", branchScope: "all" }, (v) => bag.text(v)),
+    ).toBeNull();
+    expect(
+      enquiryScopeSql({ userId: USER, scope: "all", branchScope: "selected" }, (v) => bag.text(v)),
+    ).toBe("app.location_visible_to(e.org_id, (($1 ->> 0))::uuid, e.location_id)");
+    const both = new ParamBag();
+    expect(
+      enquiryScopeSql({ userId: USER, scope: "own", branchScope: "selected" }, (v) => both.text(v)),
+    ).toBe(
+      "app.enquiry_visible_to(e.org_id, (($1 ->> 0))::uuid, e.assignee_id, e.created_by) and " +
+        "app.location_visible_to(e.org_id, (($1 ->> 0))::uuid, e.location_id)",
+    );
+    expect(both.params).toEqual([USER]);
+    expect(
+      enquiryScopeSql({ userId: "nope", scope: "all", branchScope: "selected" }, () => "x"),
+    ).toBe("false");
+  });
+
   it("fails closed on a malformed user id or stored scope", () => {
     expect(enquiryScopeSql({ userId: "x' or true --", scope: "own" }, () => "never")).toBe("false");
     expect(parseEnquiryScope("all")).toBe("all");

@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/shell/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requirePerm } from "@/lib/auth/session";
+import { parseBranchScope } from "@/lib/branches/access";
 import { parseEnquiryScope } from "@/lib/enquiries/scope";
 import { inviteState } from "@/lib/invites/token";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -21,11 +22,12 @@ export default async function UsersPage() {
     { data: teams },
     { data: invites },
     { data: teamMembers },
+    { data: locations },
   ] = await Promise.all([
     admin
       .from("memberships")
       .select(
-        "id, user_id, status, presence, presence_at, created_at, role_id, max_open_conversations, enquiry_scope, roles(name), profiles:profiles!memberships_user_id_fkey(first_name, last_name, email, designation)",
+        "id, user_id, status, presence, presence_at, created_at, role_id, max_open_conversations, enquiry_scope, branch_scope, home_location_id, membership_locations(location_id), roles(name), profiles:profiles!memberships_user_id_fkey(first_name, last_name, email, designation)",
       )
       .eq("org_id", member.orgId)
       .order("created_at"),
@@ -39,6 +41,12 @@ export default async function UsersPage() {
       .is("revoked_at", null)
       .order("created_at", { ascending: false }),
     admin.from("team_members").select("user_id, teams(name)").eq("org_id", member.orgId),
+    admin
+      .from("locations")
+      .select("id, name")
+      .eq("org_id", member.orgId)
+      .eq("active", true)
+      .order("name"),
   ]);
 
   const teamsByUser = new Map<string, string[]>();
@@ -62,6 +70,9 @@ export default async function UsersPage() {
     isSelf: m.id === member.membershipId,
     maxOpen: m.max_open_conversations,
     enquiryScope: parseEnquiryScope(m.enquiry_scope),
+    branchScope: parseBranchScope(m.branch_scope),
+    branchIds: (m.membership_locations ?? []).map((l) => l.location_id),
+    homeLocationId: m.home_location_id,
   }));
 
   const pending = (invites ?? []).map((i) => ({
@@ -75,7 +86,10 @@ export default async function UsersPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Users" description="Who can sign in, with which role, and in which teams.">
+      <PageHeader
+        title="Users"
+        description="Who can sign in, with which role, in which teams and branches."
+      >
         <InviteDialog roles={roles ?? []} teams={teams ?? []} />
       </PageHeader>
       <Card>
@@ -86,7 +100,7 @@ export default async function UsersPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <MembersTable rows={rows} roles={roles ?? []} />
+          <MembersTable rows={rows} roles={roles ?? []} locations={locations ?? []} />
         </CardContent>
       </Card>
       <Card>

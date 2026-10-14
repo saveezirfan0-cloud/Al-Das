@@ -49,7 +49,9 @@ export function WalkInDialog({
   const [consent, setConsent] = useState(false);
   const [promo, setPromo] = useState(false);
   const [onBoard, setOnBoard] = useState(false);
-  const [locationId, setLocationId] = useState(options.locations[0]?.id ?? "");
+  const [locationId, setLocationId] = useState(
+    options.currentLocationId ?? options.locations[0]?.id ?? "",
+  );
   const [specialistId, setSpecialistId] = useState("");
   const [serviceId, setServiceId] = useState("");
 

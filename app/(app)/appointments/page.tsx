@@ -1,5 +1,7 @@
 import { can } from "@/lib/auth/can";
 import { requirePerm } from "@/lib/auth/session";
+import { allowedLocations, canSeeLocation } from "@/lib/branches/access";
+import { branchView } from "@/lib/branches/server";
 import { readAppointmentSettings } from "@/lib/appointments/settings";
 import { localDate } from "@/lib/appointments/slots";
 import { formatPhone } from "@/lib/phone";
@@ -72,6 +74,13 @@ export default async function AppointmentsPage({
       .maybeSingle(),
   ]);
 
+  // Phase B: only the branches this member may work in; the diary opens on the switcher's (or home / only) branch.
+  const branch = await branchView(
+    member,
+    (locations ?? []).map((l) => l.id),
+  );
+  const myLocations = allowedLocations(locations ?? [], branch.access);
+
   const timezone = orgRow?.timezone ?? "Asia/Dubai";
   const rules = readAppointmentSettings(orgRow?.settings);
   const today = localDate(new Date(), timezone);
@@ -84,12 +93,14 @@ export default async function AppointmentsPage({
       export: can(member, "contacts.export"),
       contacts: can(member, "contacts.manage"),
     },
-    locations: locations ?? [],
+    locations: myLocations,
     departments: departments ?? [],
     services: services ?? [],
     specialists: (specialists ?? []).map((s) => ({
       ...s,
-      location_ids: (links ?? []).filter((l) => l.specialist_id === s.id).map((l) => l.location_id),
+      location_ids: (links ?? [])
+        .filter((l) => l.specialist_id === s.id && canSeeLocation(branch.access, l.location_id))
+        .map((l) => l.location_id),
       service_ids: (svcLinks ?? [])
         .filter((l) => l.specialist_id === s.id)
         .map((l) => l.service_id),
@@ -132,6 +143,7 @@ export default async function AppointmentsPage({
         view: view === "calendar" || view === "table" || view === "agenda" ? view : "day",
         viewExplicit: !!view,
         date: DATE.test(one("date") ?? "") ? (one("date") as string) : today,
+        locationId: branch.current ?? myLocations[0]?.id ?? null,
         newContact,
         // A notification or link can open one appointment: /appointments?appointment=<id> (the drawer loads it under RLS).
         openId: UUID_RE.test(one("appointment") ?? "") ? (one("appointment") as string) : null,

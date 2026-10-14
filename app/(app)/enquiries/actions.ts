@@ -5,7 +5,8 @@ import { z } from "zod";
 
 import { recordAudit } from "@/lib/audit";
 import { can } from "@/lib/auth/can";
-import { requirePerm } from "@/lib/auth/session";
+import { requirePerm, type CurrentMember } from "@/lib/auth/session";
+import { BRANCH_DENIED, branchAllowed } from "@/lib/branches/guard";
 import { searchContactOptions, type ContactOption } from "@/lib/contacts/search-options";
 import { addTimelineEvent } from "@/lib/contacts/timeline";
 import { CARD_FIELD_KEYS } from "@/lib/enquiries/constants";
@@ -75,7 +76,10 @@ function refresh() {
 
 /** Phase 20c: may this member act on this enquiry under their restricted enquiry view? */
 async function mayTouch(
-  member: { userId: string; orgId: string; enquiryScope?: string | null },
+  member: Pick<
+    CurrentMember,
+    "userId" | "orgId" | "enquiryScope" | "branchScope" | "branchIds" | "homeLocationId"
+  >,
   id: string,
 ) {
   const admin = createAdminClient(member.userId);
@@ -354,6 +358,7 @@ export async function createNewEnquiry(
   const parsed = newEnquirySchema.safeParse(input);
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid input");
   const d = parsed.data;
+  if (!branchAllowed(member, d.location_id)) return fail(BRANCH_DENIED);
   const admin = createAdminClient(member.userId);
   try {
     const ctx = await loadEnquiryContext(admin, member.orgId);
@@ -392,6 +397,7 @@ export async function updateEnquiryDetails(id: string, input: unknown): Promise<
   const parsed = enquiryDetailsSchema.partial().safeParse(input);
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid input");
   const d = parsed.data;
+  if (!branchAllowed(member, d.location_id)) return fail(BRANCH_DENIED);
   const admin = createAdminClient(member.userId);
   if (!(await canSeeEnquiry(admin, member.orgId, await enquiryViewer(admin, member), id)))
     return fail("Enquiry not found.");
@@ -569,6 +575,8 @@ export async function bulkEnquiries(
         est_value: "estValue",
       } as const;
       for (const f of o.fields) patch[map[f]] = o[f] ?? null;
+      if (o.fields.includes("location_id") && !branchAllowed(member, o.location_id))
+        return fail(BRANCH_DENIED);
       op = { type: "edit", patch };
       break;
     }

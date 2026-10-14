@@ -7,6 +7,14 @@ import { changeAppointmentStatus, createAppointment } from "@/lib/appointments/s
 import { recordAudit } from "@/lib/audit";
 import { can } from "@/lib/auth/can";
 import { requirePerm } from "@/lib/auth/session";
+import { readBranchAccess } from "@/lib/branches/access";
+import { accessFilterIds } from "@/lib/branches/filter";
+import {
+  BRANCH_DENIED,
+  branchAllowed,
+  memberBranchView,
+  rowOutsideBranches,
+} from "@/lib/branches/guard";
 import { addTimelineEvent } from "@/lib/contacts/timeline";
 import { matchContact } from "@/lib/contacts/import-writer";
 import { emit } from "@/lib/events/emit";
@@ -64,11 +72,12 @@ export async function setCheckin(input: z.input<typeof checkinSchema>): Promise<
   const admin = createAdminClient(member.userId);
   const { data: a } = await admin
     .from("appointments")
-    .select("id, status, source, checkin_status")
+    .select("id, status, source, checkin_status, location_id")
     .eq("id", p.data.appointmentId)
     .eq("org_id", member.orgId)
     .maybeSingle();
   if (!a) return fail("Appointment not found.");
+  if (!branchAllowed(member, a.location_id)) return fail(BRANCH_DENIED);
   if (a.status === "cancelled" || a.status === "no_show")
     return fail(`This appointment is ${a.status === "no_show" ? "marked no-show" : "cancelled"}.`);
   const from = isCheckinState(a.checkin_status) ? a.checkin_status : null;
@@ -118,11 +127,12 @@ export async function markNoShow(appointmentId: string): Promise<ActionResult> {
   const admin = createAdminClient(member.userId);
   const { data: a } = await admin
     .from("appointments")
-    .select("id, source, checkin_status")
+    .select("id, source, checkin_status, location_id")
     .eq("id", appointmentId)
     .eq("org_id", member.orgId)
     .maybeSingle();
   if (!a) return fail("Appointment not found.");
+  if (!branchAllowed(member, a.location_id)) return fail(BRANCH_DENIED);
   if (a.source === "unite") return fail("This booking is managed in Unite. Change it there.");
   if (a.checkin_status) return fail("This patient has already arrived.");
   const res = await changeAppointmentStatus(admin, {
@@ -153,11 +163,12 @@ export async function cancelFromDesk(input: {
   const admin = createAdminClient(member.userId);
   const { data: a } = await admin
     .from("appointments")
-    .select("id, source")
+    .select("id, source, location_id")
     .eq("id", input.appointmentId)
     .eq("org_id", member.orgId)
     .maybeSingle();
   if (!a) return fail("Appointment not found.");
+  if (!branchAllowed(member, a.location_id)) return fail(BRANCH_DENIED);
   if (a.source === "unite") return fail("This booking is managed in Unite. Cancel it there.");
   const res = await changeAppointmentStatus(admin, {
     orgId: member.orgId,
@@ -192,7 +203,13 @@ export async function getPatientCard(contactId: string): Promise<ActionResult<Pa
   if (denied) return needs(denied);
   if (!uuid.safeParse(contactId).success) return fail("Invalid patient.");
   const admin = createAdminClient(member.userId);
-  const card = await loadPatientCard(admin, member.orgId, contactId);
+  const card = await loadPatientCard(
+    admin,
+    member.orgId,
+    contactId,
+    new Date(),
+    accessFilterIds(readBranchAccess(member)),
+  );
   if (!card) return fail("Patient not found.");
   await recordAccess(admin, member, { entity: "contact", entityId: contactId, action: "view" });
   return { ok: true, data: card };
@@ -244,6 +261,7 @@ export async function sendDeskMessageAction(
   if (!p.success) return fail("Check the message details.");
   if (p.data.kind === "running_late" && !isLateChoice(p.data.minutes ?? 0))
     return fail("Choose how late: 10, 15, 20, 30, 45 or 60 minutes.");
+  if (!branchAllowed(member, p.data.locationId)) return fail(BRANCH_DENIED);
   const admin = createAdminClient(member.userId);
   const res = await sendDeskMessage(admin, {
     orgId: member.orgId,
@@ -282,6 +300,7 @@ export async function registerWalkIn(
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Check the form.");
   const d = parsed.data;
   if (d.add_to_today && !can(member, "appointments.manage")) return needs("appointments.manage");
+  if (d.add_to_today && !branchAllowed(member, d.locationId)) return fail(BRANCH_DENIED);
   const phone = walkInPhone(d.phone);
   if (!phone)
     return fail(
@@ -444,6 +463,7 @@ export async function addToWaitlist(
   if (denied) return needs(denied);
   const p = waitSchema.safeParse(input);
   if (!p.success) return fail(p.error.issues[0]?.message ?? "Check the waiting list entry.");
+  if (!branchAllowed(member, p.data.locationId)) return fail(BRANCH_DENIED);
   const admin = createAdminClient(member.userId);
   const { data, error } = await admin
     .from("waitlist_entries")
@@ -483,6 +503,8 @@ export async function removeFromWaitlist(entryId: string): Promise<ActionResult>
   if (denied) return needs(denied);
   if (!uuid.safeParse(entryId).success) return fail("Invalid entry.");
   const admin = createAdminClient(member.userId);
+  if (await rowOutsideBranches(admin, member, "waitlist_entries", entryId))
+    return fail(BRANCH_DENIED);
   const { data, error } = await admin
     .from("waitlist_entries")
     .update({ status: "removed" })
@@ -670,12 +692,15 @@ export async function addHandoverNote(input: z.input<typeof noteSchema>): Promis
   if (denied) return needs(denied);
   const p = noteSchema.safeParse(input);
   if (!p.success) return fail(p.error.issues[0]?.message ?? "Check the note.");
+  if (!branchAllowed(member, p.data.locationId)) return fail(BRANCH_DENIED);
   const admin = createAdminClient(member.userId);
+  // Phase B: a note belongs to the branch the desk is showing (none when it shows every branch).
+  const locationId = p.data.locationId ?? (await memberBranchView(admin, member)).current;
   const { error } = await admin.from("handover_notes").insert({
     org_id: member.orgId,
     body: p.data.body,
     pinned: p.data.pinned,
-    location_id: p.data.locationId ?? null,
+    location_id: locationId ?? null,
     created_by: member.userId,
   });
   if (error) {
@@ -694,6 +719,7 @@ export async function resolveHandoverNote(
   if (denied) return needs(denied);
   if (!uuid.safeParse(noteId).success) return fail("Invalid note.");
   const admin = createAdminClient(member.userId);
+  if (await rowOutsideBranches(admin, member, "handover_notes", noteId)) return fail(BRANCH_DENIED);
   const { error } = await admin
     .from("handover_notes")
     .update(

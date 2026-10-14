@@ -6,12 +6,14 @@ import { NAV_ITEMS, SIDEBAR_COOKIE } from "@/components/shell/nav";
 import { NavBadgesProvider } from "@/components/shell/nav-badges";
 import { ShellDataProvider } from "@/components/shell/shell-data";
 import { AppNav } from "@/components/shell/app-nav";
+import { BranchSwitcher } from "@/components/shell/branch-switcher";
 import { Topbar } from "@/components/shell/topbar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { TrainingBanner } from "@/components/shell/training-banner";
 import { can } from "@/lib/auth/can";
 import { readHelpSettings } from "@/lib/help/clips";
 import { requireMember } from "@/lib/auth/session";
+import { BRANCH_COOKIE, readBranchAccess } from "@/lib/branches/access";
 import { NAV_MODULES } from "@/lib/nav/modules";
 import { NAV_STATE_COOKIE, parseNavState } from "@/lib/nav/state";
 import { buildNavTree } from "@/lib/nav/tree";
@@ -22,6 +24,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const cookieStore = await cookies();
   const collapsed = cookieStore.get(SIDEBAR_COOKIE)?.value === "1";
   const navState = parseNavState(cookieStore.get(NAV_STATE_COOKIE)?.value);
+  // Branch switcher (Phase B): access comes from the member, the choice from a cookie; names load in the browser.
+  const branchAccess = readBranchAccess(member);
+  const branchCookie = cookieStore.get(BRANCH_COOKIE)?.value ?? null;
+  const branchSwitcher = (variant: "rail" | "drawer") => (
+    <BranchSwitcher
+      orgId={member.orgId}
+      access={branchAccess}
+      cookieValue={branchCookie}
+      variant={variant}
+    />
+  );
 
   // The overdue-task badge and the notification list are fetched in the browser and kept fresh by Realtime
   // (components/shell/shell-data.tsx), so this layout no longer runs two queries on every page render. The tree is
@@ -93,6 +106,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               navState={navState}
               orgName={member.org.name}
               defaultPanelHidden={collapsed}
+              branchSwitcher={branchSwitcher("rail")}
             />
             <div className="flex min-w-0 flex-1 flex-col print:block">
               {member.org.is_training && <TrainingBanner />}
@@ -100,6 +114,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 items={items}
                 navState={navState}
                 helpVideos={readHelpSettings(member.org.settings).videos}
+                branchSwitcher={branchSwitcher("drawer")}
                 orgName={member.org.name}
                 user={{
                   userId: member.userId,

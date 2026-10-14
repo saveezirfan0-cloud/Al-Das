@@ -6,6 +6,7 @@ import { cache } from "react";
 import type { User } from "@supabase/supabase-js";
 
 import { assertCan, type MemberLike } from "@/lib/auth/can";
+import { parseBranchScope, type BranchScope } from "@/lib/branches/access";
 import { parseEnquiryScope } from "@/lib/enquiries/scope";
 import { AUTH_MODE_HEADER, isAuthMode } from "@/lib/supabase/auth-mode";
 import { redactText } from "@/lib/redact";
@@ -34,6 +35,10 @@ export type CurrentMember = MemberLike & {
   presence: "online" | "away" | "offline";
   /** Phase 20c: restricted enquiry view (memberships.enquiry_scope); lib/enquiries/visibility.ts reads it. */
   enquiryScope?: "all" | "team" | "own";
+  /** Phase B branch access (lib/branches/access.ts): 'all' or the chosen branches, plus the home branch. */
+  branchScope?: BranchScope;
+  branchIds?: string[];
+  homeLocationId?: string | null;
   roleName: string;
   /** Other orgs the user belongs to (for the org switcher). */
   orgs: Array<{ id: string; name: string; slug: string }>;
@@ -102,7 +107,7 @@ export const getCurrentMember = cache(async (): Promise<CurrentMember | null> =>
   const { data: memberships, error } = await supabase
     .from("memberships")
     .select(
-      "id, org_id, role_id, status, presence, enquiry_scope, roles(name, permissions), orgs(*)",
+      "id, org_id, role_id, status, presence, enquiry_scope, branch_scope, home_location_id, membership_locations(location_id), roles(name, permissions), orgs(*)",
     )
     .eq("user_id", user.id)
     .eq("status", "active")
@@ -142,6 +147,9 @@ export const getCurrentMember = cache(async (): Promise<CurrentMember | null> =>
     status: membership.status as "active" | "suspended",
     presence: membership.presence as "online" | "away" | "offline",
     enquiryScope: parseEnquiryScope(membership.enquiry_scope),
+    branchScope: parseBranchScope(membership.branch_scope),
+    branchIds: (membership.membership_locations ?? []).map((l) => l.location_id),
+    homeLocationId: membership.home_location_id,
     permissions,
     user,
     profile,

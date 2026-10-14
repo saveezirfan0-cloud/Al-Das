@@ -29,9 +29,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { initials, PresenceDot } from "@/components/shell/user-menu";
+import type { BranchScope } from "@/lib/branches/access";
 import { ENQUIRY_VIEW_SCOPE_LABELS, type EnquiryViewScope } from "@/lib/enquiries/scope";
 
 import { changeMemberRole, removeMember, setMemberStatus } from "./actions";
+import { BranchAccessDialog } from "./branch-access-dialog";
 import { MemberRoutingDialog } from "./member-routing-dialog";
 import { OffboardDialog } from "./offboard-dialog";
 
@@ -49,18 +51,33 @@ export type MemberRow = {
   isSelf: boolean;
   maxOpen: number | null;
   enquiryScope: EnquiryViewScope;
+  branchScope: BranchScope;
+  branchIds: string[];
+  homeLocationId: string | null;
 };
 
 export function MembersTable({
   rows,
   roles,
+  locations,
 }: {
   rows: MemberRow[];
   roles: Array<{ id: string; name: string }>;
+  locations: Array<{ id: string; name: string }>;
 }) {
   const [pending, startTransition] = useTransition();
   const [offboarding, setOffboarding] = useState<MemberRow | null>(null);
   const [routing, setRouting] = useState<MemberRow | null>(null);
+  const [branches, setBranches] = useState<MemberRow | null>(null);
+  const locationName = (id: string | null) => locations.find((l) => l.id === id)?.name ?? null;
+  const branchLabel = (r: MemberRow) => {
+    const names =
+      r.branchScope === "all"
+        ? "All branches"
+        : r.branchIds.map(locationName).filter(Boolean).join(", ") || "No branch";
+    const home = locationName(r.homeLocationId);
+    return home ? `${names} · home ${home}` : names;
+  };
 
   function run(fn: () => Promise<{ ok: boolean; message?: string; error?: string }>) {
     startTransition(async () => {
@@ -77,6 +94,7 @@ export function MembersTable({
           <TableHead>Member</TableHead>
           <TableHead>Role</TableHead>
           <TableHead>Teams</TableHead>
+          <TableHead>Branches</TableHead>
           <TableHead>Status</TableHead>
           <TableHead className="w-10" />
         </TableRow>
@@ -121,6 +139,9 @@ export function MembersTable({
                 </div>
               )}
             </TableCell>
+            <TableCell className="text-muted-foreground max-w-56 text-sm">
+              {branchLabel(r)}
+            </TableCell>
             <TableCell>
               {r.status === "active" ? (
                 <Badge variant="secondary">Active</Badge>
@@ -159,6 +180,9 @@ export function MembersTable({
                       </DropdownMenuRadioGroup>
                     </DropdownMenuSubContent>
                   </DropdownMenuSub>
+                  <DropdownMenuItem onSelect={() => setBranches(r)}>
+                    Branch access…
+                  </DropdownMenuItem>
                   <DropdownMenuItem onSelect={() => setRouting(r)}>
                     Routing and enquiry view…
                   </DropdownMenuItem>
@@ -200,6 +224,19 @@ export function MembersTable({
           </TableRow>
         ))}
       </TableBody>
+      {branches && (
+        <BranchAccessDialog
+          key={branches.id}
+          membershipId={branches.id}
+          displayName={branches.name || branches.email}
+          locations={locations}
+          scope={branches.branchScope}
+          locationIds={branches.branchIds}
+          homeLocationId={branches.homeLocationId}
+          open
+          onOpenChange={(o) => !o && setBranches(null)}
+        />
+      )}
       {routing && (
         <MemberRoutingDialog
           key={routing.id}
