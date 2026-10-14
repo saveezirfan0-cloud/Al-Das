@@ -116,14 +116,15 @@ describe("measures", () => {
     expect(measures(C(10, 2, 3), ZERO, s).followUps).toBe(0);
   });
 
-  it("judges the band on the exact figure (Unite's three decimals, never rounded first)", () => {
+  it("judges the band on the figure shown (to the fils), so badge and number always agree", () => {
     expect(measures(C(6500, 15, 10), ZERO, s)).toMatchObject({
       revenuePerPatient: 650,
       band: "moderate",
     });
-    // 649.9985 shows as 650.00 but is below 650
-    expect(measures(C(6499.985, 15, 10), ZERO, s).band).toBe("below");
-    expect(measures(C(1949.997, 5, 3), ZERO, s).band).toBe("below");
+    // 649.9985 shows as 650.00, so it is Moderate; 649.994 shows as 649.99, so it is Below Target
+    expect(measures(C(6499.985, 15, 10), ZERO, s).band).toBe("moderate");
+    expect(measures(C(1949.997, 5, 3), ZERO, s).band).toBe("moderate");
+    expect(measures(C(6499.94, 15, 10), ZERO, s).band).toBe("below");
     // binary float noise cannot move an edge: 2100.3 / 3 is 700.0999… in floating point
     expect(bandOf(2100.3 / 3, { target: 750, near: 700.1, moderate: 650 })).toBe("near");
   });
@@ -171,7 +172,7 @@ describe("buildDoctorPerformance", () => {
       revenue: 6499.985,
       visits: 15,
       followUps: 5,
-      band: "below",
+      band: "moderate",
       expectedRevenue: 7500,
       gap: -1000.015,
       change: 3499.985,

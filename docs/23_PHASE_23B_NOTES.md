@@ -40,7 +40,7 @@ Per department and doctor (grouped by `doctor_key`, the normalised Unite name) f
 | Unbilled | patients whose summed net for that doctor and department in the month is ≤ 0 |
 | New | visits Unite marks New |
 | Follow-ups | visits − patients (repeat visits in the month), never negative |
-| Revenue / patient | revenue ÷ patients, exact; null with no patients. Screens and the workbook show it to 2 decimals; the band is judged on the exact figure (compared at a millionth of a dirham, so float noise cannot move an edge), so 649.9985 shows as 650.00 and is Below Target |
+| Revenue / patient | revenue ÷ patients, exact; null with no patients. Screens and the workbook show it to 2 decimals; the band is judged on that 2-decimal figure (half up, via millionths so float noise cannot move an edge), so the badge always agrees with the number shown: 649.9985 shows as 650.00 and is Moderate |
 | Band | ≥ target Achieved; ≥ near Near Target; ≥ moderate Moderate; else Below Target. Half-open, no gaps |
 | Expected | patients × target; Gap = revenue − expected; Achievement = revenue ÷ expected (null when expected is 0) |
 | Change, change % | revenue(M) − revenue(M−1); change % = change ÷ revenue(M−1), null when M−1 had no revenue |

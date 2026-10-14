@@ -25,9 +25,11 @@ export const BAND_LABEL: Record<Band, string> = {
 /** Half-open bands with no gaps: >= target Achieved, >= near Near Target, >= moderate Moderate, else Below Target. */
 export function bandOf(value: number | null, s: PerfSettings): Band | null {
   if (value === null || !Number.isFinite(value)) return null;
-  // compared at a millionth of a dirham, so binary float noise (2100.3 / 3 = 700.0999…) cannot move a band edge
-  const v = Math.round(value * 1e6);
-  const at = (edge: number) => v >= Math.round(edge * 1e6);
+  // judged on the figure people see (to the fils, half up), so the badge always agrees with the number shown;
+  // rounded via millionths first so binary float noise (2100.3 / 3 = 700.0999…) cannot move a band edge
+  const fils = (x: number) => Math.round(Math.round(x * 1e6) / 1e4);
+  const v = fils(value);
+  const at = (edge: number) => v >= fils(edge);
   if (at(s.target)) return "achieved";
   if (at(s.near)) return "near";
   if (at(s.moderate)) return "moderate";
