@@ -192,7 +192,17 @@ export const SETTINGS_PAGES: readonly SettingsPage[] = [
     href: "/settings/appointments",
     label: "Appointment rules",
     section: "Clinic operations",
-    keywords: ["hours", "reminders", "slots"],
+    keywords: [
+      "hours",
+      "reminders",
+      "slots",
+      "doctors",
+      "specialists",
+      "locations",
+      "branches",
+      "services",
+      "working hours",
+    ],
     allow: admin,
   },
   {

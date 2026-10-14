@@ -15,6 +15,12 @@ export const WHATS_NEW: readonly WhatsNewEntry[] = [
     body: "The Front desk has a Book button: it opens on your branch, shows one day of free times for each doctor who does the service, and books the patient you looked up. Cancel and No-show now ask once in a small window instead of two browser pop-ups, and a cancellation still offers the slot to the waiting list. When a patient arrives, the board shows whether their insurance card is on file or expired, their eligibility and their consent forms, or says Not checked when that information is switched off or not yours to see. Walk-ins can be registered without a phone or with a number from another country, and the WhatsApp tick is now a real choice: without it Pulse sends them nothing on WhatsApp. Print a slip (first name, time, doctor, branch and booking number) from the printer icon on the board; Finance users also see the payment record, which is not a tax invoice. End of day shows each branch's seen, no-shows, cancellations, walk-ins and median wait, with a link to the cash-up. In Appointments, bookings show the desk's check-in state, can be dragged to another time or doctor (they jump back with the reason if the time is taken), and the new Branch week shows every doctor of a branch from Monday to Sunday.",
   },
   {
+    id: "2026-12-04-clinic-setup-crm",
+    date: "2026-10-14",
+    title: "Set up your clinic, and one CRM for patients, doctors and staff",
+    body: "A new workspace now walks you through the set-up: the dashboard shows the next steps (branches, services, doctors and their hours, the team, staff records, the WhatsApp number) until they are done, and the Go-live checklist lists them all. Settings, Clinic and appointments opens on Locations until you have one and then goes in set-up order. CRM now holds Patients, Enquiries, Doctors, Appointments, Staff and the Rota. A doctor's card shows their next appointments, this week's shifts and their staff record, with Add doctor on the list. Managers can now see staff records. Administrators can add the finance and accounting roles from Settings, Roles.",
+  },
+  {
     id: "2026-12-03-finance-reports-hub",
     date: "2026-10-14",
     title: "Finance reports in one place, invoice view and e-mailed statements",

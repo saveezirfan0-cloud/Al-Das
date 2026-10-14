@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { requirePerm } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+import { FinanceRolesButton } from "./finance-roles-button";
 import { RoleDialog } from "./role-dialog";
 import { RoleActions } from "./role-actions";
 
@@ -30,6 +31,7 @@ export default async function RolesPage() {
         title="Roles"
         description="What each role can see and do. System roles can be adjusted but not renamed or deleted."
       >
+        {member.permissions.includes("*") && <FinanceRolesButton />}
         <RoleDialog mode="create" />
       </PageHeader>
       <div className="grid gap-4 lg:grid-cols-2">

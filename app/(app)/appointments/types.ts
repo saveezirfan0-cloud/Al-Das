@@ -64,7 +64,8 @@ export type SpecialistOption = {
 export type AppointmentsBootstrap = {
   timezone: string;
   today: string;
-  can: { manage: boolean; export: boolean; contacts: boolean };
+  /** settings: may open Settings, Appointments (empty states link there). */
+  can: { manage: boolean; export: boolean; contacts: boolean; settings: boolean };
   locations: Array<{ id: string; name: string; timezone: string }>;
   departments: Array<{ id: string; name: string }>;
   services: Array<{

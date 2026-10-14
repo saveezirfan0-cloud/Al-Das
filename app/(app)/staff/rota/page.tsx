@@ -91,6 +91,7 @@ export default async function RotaPage({
       staffOptions={visibleStaff.map((s) => ({ value: s.id, label: s.fullName }))}
       canManage={can(member, "hr.manage")}
       canStaff={hrView}
+      canSettings={can(member, "settings.manage")}
     />
   );
 }

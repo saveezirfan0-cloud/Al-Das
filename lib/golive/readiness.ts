@@ -43,9 +43,28 @@ export type IntegrationFact = {
   viewPermission: string;
 };
 
+/** Head counts for the clinic's own set-up (lib/golive/clinic-setup-server.ts). Counts only, never names. */
+export type ClinicFacts = {
+  /** Active locations (branches), and those with a finance branch code. */
+  locations: number;
+  locationsWithCode: number;
+  services: number;
+  /** Active doctors (specialists), those with working hours (each block names a branch), and those linked to a user. */
+  doctors: number;
+  doctorsWithHours: number;
+  doctorsLinked: number;
+  members: number;
+  pendingInvites: number;
+  /** Staff records; null when the viewer cannot read staff (hr.view), and then the row is left out. */
+  staff: number | null;
+};
+
+export type WhatsAppFacts = { channels: number; active: number };
+
 export type GoLiveInput = {
   env: EnvLike;
-  whatsapp: { channels: number; active: number; approvedTemplates: number };
+  clinic: ClinicFacts;
+  whatsapp: WhatsAppFacts & { approvedTemplates: number };
   trainingMode: boolean;
   unite: { credentials: boolean; syncOn: boolean };
   /** Finance setup steps (lib/finance/readiness.ts); null when the viewer cannot read finance data. */
@@ -334,6 +353,134 @@ function integrationRow(i: IntegrationFact): ReadinessRow {
   return { ...base, status: "missing", detail: `Off. ${i.problems[0]}${more}` };
 }
 
+const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+const APPT_SETTINGS = "/settings/appointments";
+
+/**
+ * The clinic's own set-up, in the order it is done: a branch, services, doctors and their hours, the team, the doctors'
+ * user links, staff records and the WhatsApp number. Shared by the Go-live checklist and the dashboard's first-run card.
+ */
+export function clinicSetupRows(c: ClinicFacts, wa: WhatsAppFacts): ReadinessRow[] {
+  const base = { group: "Required" as const, perm: "settings.manage" };
+  const branches = plural(c.locations, "branch", "branches");
+  const doctors = plural(c.doctors, "doctor");
+  const rows: ReadinessRow[] = [
+    {
+      ...base,
+      key: "branch",
+      label: "First branch with a finance code",
+      status: c.locations === 0 ? "missing" : c.locationsWithCode === 0 ? "warn" : "ok",
+      detail:
+        c.locations === 0
+          ? "No branch yet: add the clinic's first location."
+          : c.locationsWithCode === 0
+            ? `${branches}, none with a finance branch code: add it so revenue and the ledger can be split by branch.`
+            : `${branches}, ${c.locationsWithCode} with a finance branch code.`,
+      href: `${APPT_SETTINGS}?tab=locations`,
+    },
+    {
+      ...base,
+      key: "services",
+      label: "Services patients can book",
+      status: c.services === 0 ? "missing" : "ok",
+      detail:
+        c.services === 0
+          ? "No service yet: add what patients can book and how long it takes."
+          : `${plural(c.services, "active service")}.`,
+      href: `${APPT_SETTINGS}?tab=services`,
+    },
+    {
+      ...base,
+      key: "doctors",
+      label: "Doctors with working hours",
+      status:
+        c.doctors === 0
+          ? c.locations === 0
+            ? "blocked"
+            : "missing"
+          : c.doctorsWithHours === 0
+            ? "warn"
+            : "ok",
+      detail:
+        c.doctors === 0
+          ? c.locations === 0
+            ? "Add a branch first: working hours belong to a branch."
+            : "No doctor yet: add one with the branches and hours they work."
+          : c.doctorsWithHours === 0
+            ? `${doctors}, none with working hours: nobody can be booked yet.`
+            : `${c.doctorsWithHours} of ${doctors} have working hours.`,
+      href: `${APPT_SETTINGS}?tab=doctors`,
+    },
+    {
+      ...base,
+      key: "users",
+      label: "Team invited",
+      status: c.members > 1 ? "ok" : c.pendingInvites > 0 ? "warn" : "missing",
+      detail:
+        c.members > 1
+          ? `${plural(c.members, "member")} in this workspace.`
+          : c.pendingInvites > 0
+            ? `Only you so far; ${plural(c.pendingInvites, "invitation")} not accepted yet.`
+            : "Only you so far: invite the team and give each person a role.",
+      href: "/settings/users",
+    },
+    {
+      ...base,
+      key: "doctor-users",
+      label: "Doctors linked to their user",
+      status: c.doctors === 0 ? "blocked" : c.doctorsLinked === 0 ? "missing" : "ok",
+      detail:
+        c.doctors === 0
+          ? "Add a doctor first."
+          : c.doctorsLinked === 0
+            ? "No doctor is linked to a Pulse user: link each doctor so My day shows their own patients."
+            : `${c.doctorsLinked} of ${doctors} linked to a user (My day).`,
+      href: `${APPT_SETTINGS}?tab=doctors`,
+    },
+  ];
+  if (c.staff !== null)
+    rows.push({
+      group: "Required",
+      key: "staff",
+      label: "Staff records",
+      status: c.staff === 0 ? "missing" : "ok",
+      detail:
+        c.staff === 0
+          ? "No staff record yet: add the team for the rota and the visa and licence reminders."
+          : `${plural(c.staff, "staff member")}.`,
+      href: "/staff",
+      perm: "hr.view",
+    });
+  rows.push({
+    ...base,
+    key: "whatsapp",
+    label: "WhatsApp number connected",
+    status: wa.active > 0 ? "ok" : wa.channels > 0 ? "warn" : "missing",
+    detail:
+      wa.active > 0
+        ? `${wa.active} active number(s).`
+        : wa.channels > 0
+          ? `${wa.channels} number(s) added, none active.`
+          : "No WhatsApp number has been added.",
+    href: "/settings/channels",
+  });
+  return rows;
+}
+
+/** The first-run card: how many clinic set-up rows are done and the next steps (a step waiting on another goes last). */
+export function setupProgress(rows: readonly ReadinessRow[], limit = 3) {
+  const open = rows.filter((r) => r.status !== "ok");
+  return {
+    done: rows.length - open.length,
+    total: rows.length,
+    complete: open.length === 0,
+    next: [
+      ...open.filter((r) => r.status !== "blocked"),
+      ...open.filter((r) => r.status === "blocked"),
+    ].slice(0, limit),
+  };
+}
+
 export function goLiveRows(input: GoLiveInput): ReadinessRow[] {
   const now = input.now ?? Date.now();
   const wa = input.whatsapp;
@@ -343,20 +490,7 @@ export function goLiveRows(input: GoLiveInput): ReadinessRow[] {
 
   return [
     ...required.slice(0, 2),
-    {
-      key: "whatsapp",
-      label: "WhatsApp number connected",
-      group: "Required",
-      status: wa.active > 0 ? "ok" : wa.channels > 0 ? "warn" : "missing",
-      detail:
-        wa.active > 0
-          ? `${wa.active} active number(s).`
-          : wa.channels > 0
-            ? `${wa.channels} number(s) added, none active.`
-            : "No WhatsApp number has been added.",
-      href: "/settings/channels",
-      perm: "settings.manage",
-    },
+    ...clinicSetupRows(input.clinic, wa),
     {
       key: "templates",
       label: "Approved message templates",

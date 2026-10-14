@@ -200,11 +200,13 @@ describe("Phase C permissions (organisation)", () => {
     }
   });
 
-  it("gives HR records to the HR preset (and Admin through '*') only", () => {
-    const holders = SYSTEM_ROLES.filter((r) =>
-      r.permissions.some((p) => permissionMatches(p, "hr.view")),
-    ).map((r) => r.name);
-    expect(holders).toEqual(["Admin", "HR"]);
+  it("lets HR and the Manager read staff records, and only HR (and Admin through '*') edit them", () => {
+    const holders = (key: string) =>
+      SYSTEM_ROLES.filter((r) => r.permissions.some((p) => permissionMatches(p, key))).map(
+        (r) => r.name,
+      );
+    expect(holders("hr.view")).toEqual(["Admin", "Manager", "HR"]);
+    expect(holders("hr.manage")).toEqual(["Admin", "HR"]);
     expect(perms("HR")).toEqual(["hr.view", "hr.manage"]);
   });
 

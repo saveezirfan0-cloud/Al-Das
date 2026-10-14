@@ -7,7 +7,9 @@ import { recordAudit } from "@/lib/audit";
 import { SYSTEM_ROLES } from "@/lib/auth/permissions";
 import { getCurrentMember, getCurrentUser, isMemberLookupError } from "@/lib/auth/session";
 import { serverEnv } from "@/lib/env";
+import { seedFinanceSetup } from "@/lib/finance/seed";
 import { checkRateLimit, RATE_RULES, waitText } from "@/lib/rate-limit";
+import { redactText } from "@/lib/redact";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export type OnboardingState = { error?: string } | undefined;
@@ -24,7 +26,7 @@ const schema = z.object({
     ),
 });
 
-/** First-run only: creates the workspace with the seed roles and makes the caller Admin. */
+/** First-run only: creates the workspace with the seed roles (finance and accounting included) and makes the caller Admin. */
 export async function createWorkspace(
   _prev: OnboardingState,
   formData: FormData,
@@ -64,7 +66,7 @@ export async function createWorkspace(
     if (error.code === "23505") return { error: "That workspace URL is taken. Pick another." };
     return { error: "Could not create the workspace." };
   }
-  if (orgId)
+  if (orgId) {
     await recordAudit(admin, {
       orgId,
       userId: user.id,
@@ -72,5 +74,14 @@ export async function createWorkspace(
       entity: "org",
       entityId: orgId,
     });
+    // The finance and accounting roles come with SYSTEM_ROLES and the reference rows with the org triggers; this makes
+    // sure of both with the same steps as `pnpm finance:seed`. A failure never fails the new workspace: an Admin can
+    // run it again under Settings, Roles.
+    try {
+      await seedFinanceSetup(admin, orgId);
+    } catch (err) {
+      console.error("[onboarding] finance setup failed", { error: redactText(err, 100) });
+    }
+  }
   redirect("/dashboard");
 }

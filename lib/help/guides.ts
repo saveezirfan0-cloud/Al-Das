@@ -81,6 +81,7 @@ export const GUIDES: readonly Guide[] = [
       "The highlighted row is your next patient: the first one waiting, or the next one booked.",
       "Open a row to see the appointment. The desk moves patients through Arrived, With doctor and Done.",
       "Your tasks due today (and any overdue) are listed below; the follow-up queue link opens clinical follow-ups.",
+      "My calendar opens your diary for the coming days; CRM, Rota shows who else is on in your branch this week.",
     ],
     watchOut: [
       "The page only knows your appointments once your Pulse user is linked to your doctor record (Settings, Appointments).",
@@ -96,11 +97,14 @@ export const GUIDES: readonly Guide[] = [
     steps: [
       "Search by name or specialty, or pick a branch to see who works there.",
       "The licence column turns amber when a licence expires within the reminder days and red once it has expired.",
-      "Open a doctor to see their working hours per branch, upcoming time off and how many patients they have today.",
-      "Open calendar shows that doctor's diary. People who manage settings or staff can edit the specialty, licence, extension and short bio.",
+      "Open a doctor to see their next appointments, this week's shifts, working hours per branch and upcoming time off.",
+      "From the drawer, Open calendar shows the doctor's diary, Open the rota shows the week, and the staff record link opens their HR record and duties.",
+      "People who manage settings or staff can edit the specialty, licence, extension and short bio.",
+      "Add doctor (for administrators) opens Settings, Appointments, where a doctor gets their branches, services and working hours.",
     ],
     watchOut: [
       "Working hours, services and branches are changed under Settings, Appointments, not here.",
+      "Patients in the drawer appear by first name or initials only; open the diary for the full appointment.",
       "Keep the bio short and professional; it is not a place for patient details.",
     ],
   },
@@ -115,6 +119,7 @@ export const GUIDES: readonly Guide[] = [
       "The Duties tab is their checklist (daily, weekly, monthly or once). The Rota tab shows their next four weeks of shifts.",
       "Expiring or expired only filters the visas and licences that need action. Reminder days sets how early everyone is told.",
       "Archive someone who has left: they leave the lists and the rota, and Restore brings them back.",
+      "A doctor's staff record is also linked from their drawer on the Doctors page. Managers can read records; HR edits them.",
     ],
     watchOut: [
       "Pay is never recorded here; it stays in Finance with its own permission.",
@@ -130,6 +135,8 @@ export const GUIDES: readonly Guide[] = [
       "Pick the branch and use the arrows to move between weeks.",
       "Press + in a day to add a shift for that person, or Add shift at the top. Choose the role (front desk, doctor, nurse) and the room.",
       "Click a shift to change or remove it. An end time before the start means the shift runs past midnight.",
+      "Anyone who can see the diary can read the rota (CRM, Rota); only HR adds, moves and removes shifts.",
+      "A doctor's shifts this week also show in their drawer on the Doctors page.",
     ],
     watchOut: [
       "A person cannot have two shifts at the same time, even in different branches; Pulse refuses the second one.",

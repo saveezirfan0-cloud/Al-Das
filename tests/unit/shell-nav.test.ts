@@ -157,3 +157,43 @@ describe("Phase 16 navigation", () => {
     );
   });
 });
+
+describe("organisation navigation (CRM)", () => {
+  const crm = NAV_ITEMS.filter((i) => i.group === "CRM").map((i) => i.href);
+  const sees = (href: string, perms: string[]) => {
+    const item = NAV_ITEMS.find((i) => i.href === href)!;
+    if (item.permission) return perms.includes(item.permission);
+    return item.permissions ? item.permissions.some((p) => perms.includes(p)) : true;
+  };
+
+  it("lists patients, enquiries, doctors, appointments, staff and the rota together, Appointments after Doctors", () => {
+    expect(crm).toEqual([
+      "/contacts",
+      "/enquiries",
+      "/doctors",
+      "/appointments",
+      "/staff",
+      "/staff/rota",
+    ]);
+  });
+
+  it("gates the Rota like its page: hr.view or appointments.view", () => {
+    expect(sees("/staff/rota", ["hr.view"])).toBe(true);
+    expect(sees("/staff/rota", ["appointments.view"])).toBe(true);
+    expect(sees("/staff/rota", ["contacts.view", "tasks.view"])).toBe(false);
+  });
+
+  it("finds the doctor settings from the Appointment rules page keywords", () => {
+    const page = SETTINGS_PAGES.find((p) => p.href === "/settings/appointments")!;
+    expect(page.keywords).toEqual(
+      expect.arrayContaining([
+        "doctors",
+        "specialists",
+        "locations",
+        "branches",
+        "services",
+        "working hours",
+      ]),
+    );
+  });
+});

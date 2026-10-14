@@ -23,7 +23,7 @@ import { buildProvenance } from "@/lib/finance/provenance";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata = { title: "Doctors" };
+export const metadata = { title: "Doctor activity" };
 export const dynamic = "force-dynamic";
 
 type Search = { from?: string; to?: string };
@@ -85,7 +85,7 @@ export default async function DoctorsPage({ searchParams }: { searchParams: Prom
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Doctors"
+        title="Doctor activity"
         description="Invoices, patients and revenue by doctor. These are activity measures, not a judgement of clinical quality."
       />
       <Alert>

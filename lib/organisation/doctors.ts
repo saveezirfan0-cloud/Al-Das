@@ -77,3 +77,18 @@ export type DoctorProfileInput = z.input<typeof doctorProfileSchema>;
 export function doctorCalendarHref(specialistId: string): string {
   return `/appointments?view=calendar&specialist=${encodeURIComponent(specialistId)}`;
 }
+
+/**
+ * How the doctor drawer names a patient: the first name for someone who may open patient records, initials for
+ * everyone else, "Patient" when there is no usable name (or the record was deleted). Never the full name.
+ */
+export function patientShortName(
+  fullName: string | null | undefined,
+  showFirstName: boolean,
+): string {
+  const words = (fullName ?? "").trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return "Patient";
+  if (showFirstName) return words[0];
+  const ends = words.length > 1 ? [words[0], words[words.length - 1]] : [words[0]];
+  return ends.map((w) => `${Array.from(w)[0]!.toUpperCase()}.`).join(" ");
+}

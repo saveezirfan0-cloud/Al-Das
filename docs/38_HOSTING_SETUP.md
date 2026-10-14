@@ -19,7 +19,7 @@ new wiring and the one-time steps.
 - A changed variable reaches the app only after a redeploy.
 
 ## Builds
-- Vercel's build machine has 2 cores and 8 GB. With the Sentry source-map upload on, `next build`'s own type and lint pass ran out of memory (14 Oct), so on Vercel (`VERCEL=1`) the build skips it (`next.config.ts`). GitHub CI still runs `pnpm typecheck`, `pnpm lint` and a full `pnpm build` on every pull request; merge to `main` only through a pull request with green CI.
+- Vercel's build machine has 2 cores and 8 GB. With the Sentry source-map upload on, `next build`'s own type and lint pass ran out of memory (14 Oct), so on Vercel (`VERCEL=1`) the build skips it (`next.config.ts`). The Sentry source-map upload itself adds about 2.4 GB (peak 7.4 GB measured with it, 4.5 GB without), so on Vercel the build also turns on webpack's memory optimisations, keeps page-data work to one worker and uploads source maps once after the build (`useRunAfterProductionCompileHook`), which measured 6.9 GB. If builds still run out of memory, turn the upload off by removing `SENTRY_AUTH_TOKEN` from the Vercel build environment: error reporting keeps working, only stack traces stay minified. GitHub CI still runs `pnpm typecheck`, `pnpm lint` and a full `pnpm build` on every pull request; merge to `main` only through a pull request with green CI.
 
 ## Database
 - Migrations reach production through `.github/workflows/db-migrate.yml` (`supabase db push`): on every merge to `main` that touches `supabase/migrations/`, or by hand under Actions, Database migrations, Run workflow. It needs the repository secret `SUPABASE_DB_URL` (Supabase, Connect, **Session pooler** URI with the database password).
@@ -36,4 +36,4 @@ new wiring and the one-time steps.
 4. Emails, Templates, Magic Link: subject `Your Pulse sign-in link`, body = `supabase/templates/magic_link.html`. This is the only Supabase e-mail Pulse triggers (sign-in by link). Invites and alerts are sent by Pulse through Resend.
 
 ## First sign-in
-Authentication, Users, Add user (e-mail + password, auto-confirm). Set `ALLOW_WORKSPACE_CREATION=true` in Vercel, redeploy, sign in, create the workspace at `/onboarding`, then remove the variable and redeploy. Settings, System health should show every `pulse:*` cron row `succeeded` within a minute.
+Authentication, Users, Add user (e-mail + password, auto-confirm). Set `ALLOW_WORKSPACE_CREATION=true` in Vercel, redeploy, sign in, create the workspace at `/onboarding`, then remove the variable and redeploy. Settings, System health should show every `pulse:*` cron row `succeeded` within a minute. Then follow the "Set up your clinic" card on the dashboard (or Settings, Go-live checklist): first branch, services, doctors and hours, invite the team.

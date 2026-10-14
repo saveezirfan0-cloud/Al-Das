@@ -1,11 +1,13 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import * as React from "react";
-import { CalendarPlus, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarPlus, ChevronLeft, ChevronRight, MapPin, Stethoscope } from "lucide-react";
 import { toast } from "sonner";
 
 import { useConfirm } from "@/components/shell/confirm-dialog";
+import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -337,9 +339,18 @@ export function AppointmentsWorkspace({
       </div>
 
       {bootstrap.locations.length === 0 && view !== "table" ? (
-        <div className="text-muted-foreground rounded-xl border p-8 text-center text-sm">
-          Set up locations, services and specialists in Settings → Appointments to start booking.
-        </div>
+        <EmptyState
+          icon={MapPin}
+          title="No branches to book at yet"
+          description="Add the clinic's locations, the services patients can book and the doctors with their hours (Settings, Appointments) to start booking."
+          action={
+            bootstrap.can.settings && (
+              <Button asChild size="sm">
+                <Link href="/settings/appointments?tab=locations">Set up appointments</Link>
+              </Button>
+            )
+          }
+        />
       ) : view === "day" ? (
         <div className={loading ? "opacity-60 transition-opacity" : undefined}>
           <ResourceGrid
@@ -353,6 +364,7 @@ export function AppointmentsWorkspace({
             holidays={bootstrap.rules.holidays}
             granularity={bootstrap.rules.slot_granularity_min}
             canManage={bootstrap.can.manage}
+            canSettings={bootstrap.can.settings}
             onSlotClick={(specialistId, startIso) => openNew({ specialistId, startIso, date })}
             onAppointmentClick={setOpenAppt}
             onMove={bootstrap.can.manage ? moveByDrag : undefined}
@@ -410,9 +422,18 @@ export function AppointmentsWorkspace({
             onMove={bootstrap.can.manage ? moveByDrag : undefined}
           />
         ) : (
-          <div className="text-muted-foreground rounded-xl border p-8 text-center text-sm">
-            No specialists work at this location yet.
-          </div>
+          <EmptyState
+            icon={Stethoscope}
+            title="No doctors work at this location yet"
+            description="A doctor appears here once they are set to work at this branch."
+            action={
+              bootstrap.can.settings && (
+                <Button asChild size="sm">
+                  <Link href="/settings/appointments?tab=doctors">Add doctors and hours</Link>
+                </Button>
+              )
+            }
+          />
         )
       ) : (
         <AppointmentsTable bootstrap={bootstrap} reloadKey={reloadKey} onRowClick={setOpenAppt} />

@@ -56,6 +56,13 @@ too. About 180 pages, ~3,100 unit tests, ~1,390 database tests. All 130 menu lin
 - D3 adds `lib/supabase/fetch-all.ts` and the guard test `tests/unit/no-large-limit.test.ts`.
 - D4: Sentry is wired and off until a DSN is set.
 - Also built: the Go-live checklist at `/settings/readiness`, and the extended preflight.
+- First-run set-up (Oct 2026): the checklist starts with the clinic's own Required rows (a branch with a finance
+  code, services, doctors with hours, the team, doctors linked to users, staff records, the WhatsApp number;
+  `clinicSetupRows()` in `lib/golive/readiness.ts`, head counts from `lib/golive/clinic-setup-server.ts`). The
+  dashboard shows a "Set up your clinic" card with the next three to people with `settings.manage` until all are done.
+  Settings, Appointments opens on Locations while there are none (tabs Locations, Departments, Services, Doctors and
+  hours, Booking rules; `?tab=`). Empty diaries and the rota link to it for `settings.manage`. Settings, Roles has an
+  Admin-only "Add finance and accounting roles" (the `pnpm finance:seed` steps, `lib/finance/seed.ts`).
 
 Still open in Phase A:
 - The live-database check (the Pulse Supabase project is not reachable from this workspace's connector).
