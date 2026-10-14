@@ -50,7 +50,16 @@ export function AppointmentsSettings({
   financeBranches: Array<{ code: string; name: string }>;
 }) {
   return (
-    <Tabs defaultValue={initialTab} className="flex flex-col gap-4">
+    <Tabs
+      defaultValue={initialTab}
+      // keep ?tab= in step, so a reload, a shared link and the menu's highlight (CRM, Branches) follow the open tab
+      onValueChange={(tab) => {
+        const params = new URLSearchParams(window.location.search);
+        params.set("tab", tab);
+        window.history.replaceState(null, "", `?${params.toString()}`);
+      }}
+      className="flex flex-col gap-4"
+    >
       <TabsList className="w-fit flex-wrap">
         <TabsTrigger value="locations">Branches</TabsTrigger>
         <TabsTrigger value="departments">Departments</TabsTrigger>

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   Activity,
@@ -171,12 +171,13 @@ export function AppNav({
   branchSwitcher?: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const search = useSearchParams();
   const router = useRouter();
   const tree = useBadgedItems(rawTree);
   const counts = useNavBadges();
   const uid = useId();
 
-  const trail = useMemo(() => activeTrail(tree, pathname), [tree, pathname]);
+  const trail = useMemo(() => activeTrail(tree, pathname, search), [tree, pathname, search]);
   const { top, bottom } = useMemo(() => buildAreas(tree), [tree]);
   const area = [...top, ...bottom].find((a) =>
     a.module ? a.module.href === trail.item : a.items.some((i) => i.href === trail.item),

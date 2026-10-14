@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Fragment, useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   Activity,
@@ -137,15 +137,16 @@ export function Sidebar({
   branchSwitcher?: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const search = useSearchParams();
   const tree = useBadgedItems(rawTree);
   const counts = useNavBadges();
   const uid = useId();
   const inDrawer = !!onNavigate;
 
   const trail = useMemo(() => {
-    const t = activeTrail(tree, pathname);
+    const t = activeTrail(tree, pathname, search);
     return { ...t, group: tree.find((n) => n.href === t.item)?.group };
-  }, [tree, pathname]);
+  }, [tree, pathname, search]);
   const keys = useMemo(() => treeKeys(tree), [tree]);
 
   // The drawer mounts in the browser only, so it can read the cookie as it is now.
