@@ -9,6 +9,7 @@ export type NavIcon =
   | "myday"
   | "doctors"
   | "staff"
+  | "rota"
   | "inbox"
   | "contacts"
   | "enquiries"
@@ -100,6 +101,14 @@ export const NAV_ITEMS: readonly NavItem[] = [
     permissions: ["appointments.view", "hr.view"],
   },
   {
+    href: "/appointments",
+    label: "Appointments",
+    icon: "appointments",
+    group: "CRM",
+    keywords: ["calendar", "bookings", "diary"],
+    permission: "appointments.view",
+  },
+  {
     href: "/staff",
     label: "Staff",
     icon: "staff",
@@ -108,20 +117,20 @@ export const NAV_ITEMS: readonly NavItem[] = [
     permission: "hr.view",
   },
   {
+    href: "/staff/rota",
+    label: "Rota",
+    icon: "rota",
+    group: "CRM",
+    keywords: ["shifts", "who is on", "schedule", "week", "duty roster", "staff"],
+    permissions: ["hr.view", "appointments.view"],
+  },
+  {
     href: "/tasks",
     label: "Tasks",
     icon: "tasks",
     group: "Today",
     keywords: ["to do", "calls"],
     permission: "tasks.view",
-  },
-  {
-    href: "/appointments",
-    label: "Appointments",
-    icon: "appointments",
-    group: "Today",
-    keywords: ["calendar", "bookings", "diary"],
-    permission: "appointments.view",
   },
   {
     href: "/campaigns",
