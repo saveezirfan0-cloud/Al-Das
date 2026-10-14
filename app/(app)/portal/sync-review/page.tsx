@@ -6,6 +6,7 @@ import { requirePerm } from "@/lib/auth/session";
 import { SANOFLOW_REVIEW_HINTS, sanoflowReviewActions } from "@/lib/migration/sanoflow-review";
 import { formatPhone } from "@/lib/phone";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 import { cn } from "@/lib/utils";
 
 import { ReviewList, type ReviewItem } from "./review-list";
@@ -63,13 +64,17 @@ export default async function SyncReviewPage({
   const keys = (reviews ?? []).map((r) => r.external_id);
   const { data: waiting } =
     keys.length && source === "unite"
-      ? await admin
-          .from("appointments")
-          .select("custom")
-          .eq("org_id", member.orgId)
-          .eq("source", "unite")
-          .is("contact_id", null)
-          .limit(2000)
+      ? // Counted per patient key below, so every row is read in pages (PostgREST returns at most 1,000 per request).
+        await fetchAll((from, to) =>
+          admin
+            .from("appointments")
+            .select("custom")
+            .eq("org_id", member.orgId)
+            .eq("source", "unite")
+            .is("contact_id", null)
+            .order("id")
+            .range(from, to),
+        )
       : { data: [] };
   const waitingByKey = new Map<string, number>();
   for (const a of waiting ?? []) {

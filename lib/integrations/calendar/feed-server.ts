@@ -10,6 +10,7 @@ import {
   parseFeedToken,
 } from "@/lib/integrations/calendar/token";
 import type { AdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 import type { Tables } from "@/lib/supabase/types";
 
 /** Calendar feed storage and rendering. The browser never sees a token hash or an old token; the URL is returned once. */
@@ -177,15 +178,21 @@ export async function feedAppointments(
   }
   if (specialistIds.length === 0) return [];
   const { from, to } = feedWindow(now);
-  const { data } = await admin
-    .from("appointments")
-    .select("id, starts_at, ends_at, status, updated_at, locations(name)")
-    .eq("org_id", feed.org_id)
-    .in("specialist_id", specialistIds)
-    .gte("starts_at", from.toISOString())
-    .lte("starts_at", to.toISOString())
-    .order("starts_at", { ascending: true })
-    .limit(MAX_EVENTS);
+  // Up to MAX_EVENTS, read in pages (PostgREST returns at most 1,000 rows per request).
+  const { data } = await fetchAll(
+    (lo, hi) =>
+      admin
+        .from("appointments")
+        .select("id, starts_at, ends_at, status, updated_at, locations(name)")
+        .eq("org_id", feed.org_id)
+        .in("specialist_id", specialistIds)
+        .gte("starts_at", from.toISOString())
+        .lte("starts_at", to.toISOString())
+        .order("starts_at", { ascending: true })
+        .order("id")
+        .range(lo, hi),
+    { max: MAX_EVENTS },
+  );
   return (data ?? []).map((a) => ({
     id: a.id,
     startsAt: a.starts_at,

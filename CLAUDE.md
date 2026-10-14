@@ -211,7 +211,8 @@ META_APP_ID, META_APP_SECRET, META_WEBHOOK_VERIFY_TOKEN, META_SYSTEM_USER_TOKEN,
 UNITE_BASE_URL, UNITE_APP_ID, UNITE_APP_KEY
 AIRTABLE_PAT, MAKE_API_TOKEN, MAKE_ZONE=us2, MAKE_TEAM_ID=1494412   # migration/audit only; remove after cut-over
 ANTHROPIC_API_KEY, ANTHROPIC_MODEL, EMBEDDINGS_API_KEY
-RESEND_API_KEY, SENTRY_DSN
+RESEND_API_KEY, SENTRY_DSN, NEXT_PUBLIC_SENTRY_DSN   # Sentry is off without a DSN; events are scrubbed by lib/observability/scrub.ts
+SENTRY_AUTH_TOKEN, SENTRY_ORG, SENTRY_PROJECT   # optional, build-time source-map upload only
 META_GRAPH_BASE_URL   # load tests only; honoured only for http://localhost|127.0.0.1, never set in production
 VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT   # Web Push, from `pnpm push:keys`; without them push is simply off
 PULSE_VERIFY_JWT_LOCALLY=0   # optional: make page navigations call Supabase Auth again (default verifies the token locally)

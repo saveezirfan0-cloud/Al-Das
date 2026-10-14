@@ -52,6 +52,7 @@ import {
   type DenialRow,
 } from "@/lib/finance/summary-extras";
 import { createClient } from "@/lib/supabase/server";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 
 export const metadata = { title: "Monthly summary" };
 export const dynamic = "force-dynamic";
@@ -126,34 +127,64 @@ export default async function SummaryPage({ searchParams }: { searchParams: Prom
     .order("branch_code");
   if (branch) sq = sq.eq("branch_code", branch);
 
-  let rq = supabase
-    .from("v_fin_revenue_monthly")
-    .select(
-      "branch_code, department, doctor_name, doctor_dha_id, service_category, gross, discount, net, vat",
-    )
-    .gte("month", `${range.from}-01`)
-    .lte("month", `${range.to}-01`)
-    .limit(20_000);
-  if (branch) rq = rq.eq("branch_code", branch);
-  if (safe(sp.department)) rq = rq.eq("department", safe(sp.department));
-  if (safe(sp.doctor)) rq = rq.eq("doctor_dha_id", safe(sp.doctor));
+  // Revenue, claims and denials are summed here, so every row is read (PostgREST returns at most 1,000 per
+  // request). The views have no id: they are ordered by their full GROUP BY key, which is unique.
+  const rq = fetchAll((from, to) => {
+    let q = supabase
+      .from("v_fin_revenue_monthly")
+      .select(
+        "branch_code, department, doctor_name, doctor_dha_id, service_category, gross, discount, net, vat",
+      )
+      .gte("month", `${range.from}-01`)
+      .lte("month", `${range.to}-01`);
+    if (branch) q = q.eq("branch_code", branch);
+    if (safe(sp.department)) q = q.eq("department", safe(sp.department));
+    if (safe(sp.doctor)) q = q.eq("doctor_dha_id", safe(sp.doctor));
+    return q
+      .order("org_id")
+      .order("month")
+      .order("branch_code")
+      .order("department")
+      .order("doctor_dha_id")
+      .order("doctor_name")
+      .order("service_category")
+      .order("inv_type")
+      .range(from, to);
+  });
 
   let aq = supabase
     .from("v_fin_receivables_ageing")
     .select("bucket, claim_activities, outstanding");
   if (branch) aq = aq.eq("branch_code", branch);
-  let cq = supabase
-    .from("v_fin_claims_status")
-    .select(
-      "claim_year, claim_month, payer_id, submitted, accepted, rejected, pending, resubmitted, net, remitted, rejected_amount",
-    )
-    .gte("claim_year", Number(range.from.slice(0, 4)))
-    .lte("claim_year", Number(range.to.slice(0, 4)));
-  if (branch) cq = cq.eq("branch_code", branch);
-  const dq = supabase
-    .from("v_fin_denials")
-    .select("denial_type, last_denial_code, claim_activities, rejected_amount")
-    .limit(5000);
+  const cq = fetchAll((from, to) => {
+    let q = supabase
+      .from("v_fin_claims_status")
+      .select(
+        "claim_year, claim_month, payer_id, submitted, accepted, rejected, pending, resubmitted, net, remitted, rejected_amount",
+      )
+      .gte("claim_year", Number(range.from.slice(0, 4)))
+      .lte("claim_year", Number(range.to.slice(0, 4)));
+    if (branch) q = q.eq("branch_code", branch);
+    return q
+      .order("org_id")
+      .order("claim_year")
+      .order("claim_month")
+      .order("payer_id")
+      .order("branch_code")
+      .range(from, to);
+  });
+  const dq = fetchAll((from, to) =>
+    supabase
+      .from("v_fin_denials")
+      .select("denial_type, last_denial_code, claim_activities, rejected_amount")
+      .order("org_id")
+      .order("denial_type")
+      .order("last_denial_code")
+      .order("doctor_dha_id")
+      .order("service_category")
+      .order("payer_id")
+      .range(from, to),
+  );
 
   const [
     { data: summary },

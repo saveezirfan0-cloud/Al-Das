@@ -35,20 +35,19 @@ export default async function AccountsPage() {
   const accounts = await loadAccounts(admin, member.orgId);
   const tree = flattenTree(accounts);
   const cfClass = effectiveCashFlowClasses(accounts);
-  const used = new Set<string>();
-  if (manage) {
-    // which ledgers already have lines (they are deactivated, never deleted)
-    const { data } = await admin
-      .from("acc_journal_lines")
-      .select("account_id")
-      .eq("org_id", member.orgId)
-      .limit(20000);
-    for (const l of data ?? []) used.add(l.account_id);
-  }
   const groups = tree
     .filter((a) => a.is_group)
     .map((a) => ({ id: a.id, label: `${"  ".repeat(a.depth)}${a.name} (${a.code})` }));
   const hasChildren = new Set(accounts.map((a) => a.parent_id).filter(Boolean));
+  // Which deletable ledgers already have lines (they are deactivated, never deleted). Only accounts that could show a
+  // Delete button are checked.
+  const used = manage
+    ? await accountsWithLines(
+        admin,
+        member.orgId,
+        accounts.filter((a) => !a.is_system && !hasChildren.has(a.id)).map((a) => a.id),
+      )
+    : new Set<string>();
 
   return (
     <div className="flex flex-col gap-4">
@@ -159,4 +158,35 @@ export default async function AccountsPage() {
       </Card>
     </div>
   );
+}
+
+/**
+ * The accounts among `ids` that have at least one journal line. PostgREST returns at most 1,000 rows per request and
+ * cannot SELECT DISTINCT, so each chunk is walked in account order and skips past every account it has already seen
+ * (`account_id > last`): a busy account costs at most one page instead of all its lines.
+ */
+async function accountsWithLines(
+  admin: ReturnType<typeof createAdminClient>,
+  orgId: string,
+  ids: string[],
+): Promise<Set<string>> {
+  const used = new Set<string>();
+  for (let i = 0; i < ids.length; i += 100) {
+    const chunk = ids.slice(i, i + 100);
+    let last: string | null = null;
+    for (let guard = 0; guard <= chunk.length; guard++) {
+      let q = admin
+        .from("acc_journal_lines")
+        .select("account_id")
+        .eq("org_id", orgId)
+        .in("account_id", chunk);
+      if (last) q = q.gt("account_id", last);
+      const { data, error } = await q.order("account_id").limit(1000);
+      if (error || !data?.length) break;
+      for (const l of data) used.add(l.account_id);
+      if (data.length < 1000) break;
+      last = data[data.length - 1].account_id;
+    }
+  }
+  return used;
 }

@@ -20,11 +20,13 @@ import {
 } from "@/components/ui/select";
 import { INTENT_LABELS, type Intent } from "@/lib/ai/intent/labels";
 import { contactDisplayName } from "@/lib/inbox/contact-name";
-import { FOLDERS, type InboxQuery } from "@/lib/inbox/folders";
+import { FOLDERS, toSearchParams, type InboxQuery } from "@/lib/inbox/folders";
 import { labelClass } from "@/lib/inbox/labels";
+import { mergeConversationPages } from "@/lib/inbox/paging";
 import { cn } from "@/lib/utils";
 
 import { assignConversation, closeConversation } from "./actions";
+import { loadOlderConversations } from "./paging-actions";
 import { SaveViewDialog } from "./save-view-dialog";
 import { SwipeRow } from "./swipe-row";
 import type { InboxProps } from "./types";
@@ -51,9 +53,20 @@ export function initials(name: string): string {
   return s.toUpperCase() || "?";
 }
 
+type Row = InboxProps["conversations"][number];
+
+/** Older pages loaded with "Load older conversations", for one query (filters, folder, sort). */
+type OlderPages = {
+  key: string;
+  rows: Row[];
+  /** Cursor after the last loaded page; undefined until a page has been loaded. */
+  cursor: string | null | undefined;
+};
+
 export function ConversationList({
   query,
-  conversations,
+  conversations: firstPage,
+  conversationsCursor,
   selected,
   channels,
   labels,
@@ -74,6 +87,20 @@ export function ConversationList({
   const [saveOpen, setSaveOpen] = useState(false);
   const [, startTransition] = useTransition();
   const [sound, setSound] = useState(false);
+  // D5: the first page comes from the server and stays live (Realtime → router.refresh());
+  // older pages are appended here and kept as loaded. A different query starts afresh.
+  const queryKey = toSearchParams(query);
+  const [olderState, setOlderState] = useState<OlderPages>({
+    key: queryKey,
+    rows: [],
+    cursor: undefined,
+  });
+  const older: OlderPages =
+    olderState.key === queryKey ? olderState : { key: queryKey, rows: [], cursor: undefined };
+  const nextCursor = older.cursor === undefined ? conversationsCursor : older.cursor;
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [olderStatus, setOlderStatus] = useState("");
+  const conversations = mergeConversationPages(firstPage, older.rows);
   useEffect(() => setSearch(query.q), [query.q]);
   useEffect(() => {
     const sync = () => setSound(readSoundPref());
@@ -82,7 +109,52 @@ export function ConversationList({
     return () => window.removeEventListener(SOUND_EVENT, sync);
   }, []);
 
-  function takeIt(c: InboxProps["conversations"][number]) {
+  async function loadOlder() {
+    if (loadingOlder || !nextCursor) return;
+    const key = queryKey;
+    setLoadingOlder(true);
+    setOlderStatus("Loading older conversations…");
+    try {
+      const r = await loadOlderConversations({
+        query: {
+          folder: query.folder,
+          team: query.team,
+          q: query.q,
+          status: query.status,
+          sort: query.sort,
+          label: query.label,
+          channel: query.channel,
+          assignee: query.assignee,
+        },
+        cursor: nextCursor,
+      });
+      if (!r.ok) {
+        setOlderStatus("");
+        toast.error(r.error);
+        return;
+      }
+      setOlderState((prev) => {
+        const base = prev.key === key ? prev : { key, rows: [], cursor: undefined };
+        return {
+          key,
+          rows: mergeConversationPages(base.rows, r.data.rows),
+          cursor: r.data.nextCursor,
+        };
+      });
+      setOlderStatus(
+        r.data.rows.length === 0
+          ? "No older conversations."
+          : `Loaded ${r.data.rows.length} older conversation${r.data.rows.length === 1 ? "" : "s"}.`,
+      );
+    } catch {
+      setOlderStatus("");
+      toast.error("Could not load older conversations.");
+    } finally {
+      setLoadingOlder(false);
+    }
+  }
+
+  function takeIt(c: Row) {
     if (c.assignee_user_id === me.userId)
       return void toast.info("That conversation is already yours.");
     startTransition(async () => {
@@ -95,7 +167,7 @@ export function ConversationList({
       else toast.error(r.error);
     });
   }
-  function closeIt(c: InboxProps["conversations"][number]) {
+  function closeIt(c: Row) {
     if (c.status === "closed") return void toast.info("Already closed.");
     // Workspaces that demand a category or summary need the close dialog, which lives in the conversation.
     if (settings.require_category_on_close || settings.require_summary_on_close) {
@@ -125,7 +197,10 @@ export function ConversationList({
     >
       <div className="flex items-center gap-1 border-b px-3 py-2">
         <h2 className="truncate text-sm font-semibold">{title}</h2>
-        <span className="text-muted-foreground text-xs">{conversations.length}</span>
+        <span className="text-muted-foreground text-xs">
+          {conversations.length}
+          {nextCursor ? "+" : ""}
+        </span>
         <div className="ml-auto flex items-center">
           <Button
             variant="ghost"
@@ -403,6 +478,23 @@ export function ConversationList({
               })}
             </ul>
           )}
+          {nextCursor && (
+            <div className="flex justify-center border-t p-3">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => void loadOlder()}
+                aria-busy={loadingOlder}
+                aria-disabled={loadingOlder}
+              >
+                {loadingOlder ? "Loading…" : "Load older conversations"}
+              </Button>
+            </div>
+          )}
+          <p className="sr-only" role="status" aria-live="polite">
+            {olderStatus}
+          </p>
         </ScrollArea>
       </PullToRefresh>
       <SaveViewDialog open={saveOpen} onOpenChange={setSaveOpen} query={query} teams={teams} />

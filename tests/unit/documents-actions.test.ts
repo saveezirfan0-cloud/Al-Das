@@ -355,6 +355,7 @@ function fakeAdmin(script: {
         "gte",
         "order",
         "limit",
+        "range",
         "neq",
         "or",
         "contains",

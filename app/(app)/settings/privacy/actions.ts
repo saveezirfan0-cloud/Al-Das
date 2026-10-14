@@ -18,6 +18,7 @@ import {
 import { DOCUMENT_BUCKET, isDocumentPathInOrg } from "@/lib/media/paths";
 import { removeObjects } from "@/lib/media/probe";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 import type { Json } from "@/lib/supabase/types";
 
 export type ActionResult = { ok: true; message: string } | { ok: false; error: string };
@@ -248,24 +249,54 @@ export async function executeErasure(id: string): Promise<ActionResult> {
   if (!verdict.ok) return verdict;
 
   // 1. Media files (storage is outside the database transaction, so it goes first and is retryable).
-  const { data: convs } = await admin
-    .from("conversations")
-    .select("id")
-    .eq("org_id", member.orgId)
-    .eq("contact_id", req.contact_id);
-  const convIds = (convs ?? []).map((c) => c.id);
-  let removedFiles = 0;
-  if (convIds.length) {
-    const { data: media } = await admin
-      .from("messages")
-      .select("media_path")
+  // Every row is read in pages (PostgREST returns at most 1,000 per request); a failed read stops here so
+  // nothing is anonymised while files could be left behind.
+  const filesReadError = {
+    ok: false as const,
+    error: "Could not list the patient's files. Nothing was changed; try again.",
+  };
+  const {
+    data: convs,
+    error: convErr,
+    truncated: convCut,
+  } = await fetchAll((from, to) =>
+    admin
+      .from("conversations")
+      .select("id")
       .eq("org_id", member.orgId)
-      .in("conversation_id", convIds)
-      .not("media_path", "is", null)
-      .limit(20_000);
+      .eq("contact_id", req.contact_id)
+      .order("id")
+      .range(from, to),
+  );
+  if (convErr || convCut) return filesReadError;
+  const convIds = convs.map((c) => c.id);
+  let removedFiles = 0;
+  const media: Array<{ media_path: string | null }> = [];
+  for (let i = 0; i < convIds.length; i += 100) {
+    const part = convIds.slice(i, i + 100);
+    const {
+      data: rows,
+      error: mediaErr,
+      truncated: mediaCut,
+    } = await fetchAll(
+      (from, to) =>
+        admin
+          .from("messages")
+          .select("id, media_path")
+          .eq("org_id", member.orgId)
+          .in("conversation_id", part)
+          .not("media_path", "is", null)
+          .order("id")
+          .range(from, to),
+      { max: 1_000_000 },
+    );
+    if (mediaErr || mediaCut) return filesReadError;
+    media.push(...rows);
+  }
+  if (media.length) {
     const paths = [
       ...new Set(
-        (media ?? [])
+        media
           .map((m) => m.media_path)
           .filter((p): p is string => !!p && p.startsWith(`${member.orgId}/`)),
       ),
@@ -286,13 +317,23 @@ export async function executeErasure(id: string): Promise<ActionResult> {
 
   // 1b. The patient's uploaded documents (referrals, lab reports, insurance cards, consent forms), same rule: files
   // first, retryable, and nothing else is touched if any file cannot be removed.
-  const { data: docs } = await admin
-    .from("patient_documents")
-    .select("id, storage_path")
-    .eq("org_id", member.orgId)
-    .eq("contact_id", req.contact_id)
-    .limit(20_000);
-  const docList = docs ?? [];
+  const {
+    data: docs,
+    error: docsErr,
+    truncated: docsCut,
+  } = await fetchAll(
+    (from, to) =>
+      admin
+        .from("patient_documents")
+        .select("id, storage_path")
+        .eq("org_id", member.orgId)
+        .eq("contact_id", req.contact_id)
+        .order("id")
+        .range(from, to),
+    { max: 1_000_000 },
+  );
+  if (docsErr || docsCut) return filesReadError;
+  const docList = docs;
   // The patient segment of a path can differ after a record merge, so only org and document id are compared.
   if (docList.some((d) => !isDocumentPathInOrg(d.storage_path, member.orgId, d.id))) {
     return {

@@ -3,6 +3,7 @@ import "server-only";
 import type { ChequeStatus } from "@/lib/accounting/banking";
 import { todayIn } from "@/lib/finance/action-support";
 import type { AdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 
 /**
  * Server side of Banking and cash (Phase 22F): loaders for the pages. Service role; every caller has run can() first.
@@ -24,13 +25,17 @@ export type LedgerOption = {
 
 /** Active ledgers (not groups). */
 export async function loadLedgers(admin: AdminClient, orgId: string): Promise<LedgerOption[]> {
-  const { data } = await admin
-    .from("acc_accounts")
-    .select("id, code, name, control, is_active")
-    .eq("org_id", orgId)
-    .eq("is_group", false)
-    .order("code")
-    .limit(5000);
+  // Every row, read in pages (PostgREST returns at most 1,000 per request).
+  const { data } = await fetchAll((from, to) =>
+    admin
+      .from("acc_accounts")
+      .select("id, code, name, control, is_active")
+      .eq("org_id", orgId)
+      .eq("is_group", false)
+      .order("code")
+      .order("id")
+      .range(from, to),
+  );
   return data ?? [];
 }
 

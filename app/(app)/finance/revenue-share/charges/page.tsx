@@ -22,6 +22,7 @@ import { money } from "@/lib/finance/format";
 import { CHARGE_KIND_LABELS, CHARGE_KINDS, type ChargeKind } from "@/lib/finance/revshare";
 import { MONTH_RE } from "@/lib/finance/revshare-server";
 import { createClient } from "@/lib/supabase/server";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 
 import { ChargeSheet, ChargesUpload, DeleteChargeButton } from "../controls";
 import { RevshareTabs, VIEW_PERMS } from "../tabs";
@@ -51,14 +52,18 @@ export default async function DoctorChargesPage({
   // The member's own client: row level security decides what is returned.
   const supabase = await createClient();
   const [{ data: charges }, { data: run }] = await Promise.all([
-    supabase
-      .from("fin_doctor_charges")
-      .select("id, doctor_dha_id, kind, amount, source, reference, note, created_at")
-      .eq("month", `${month}-01`)
-      .order("doctor_dha_id")
-      .order("kind")
-      .order("created_at")
-      .limit(5000),
+    // Totalled per doctor below, so every row is read in pages (PostgREST returns at most 1,000 per request).
+    fetchAll((from, to) =>
+      supabase
+        .from("fin_doctor_charges")
+        .select("id, doctor_dha_id, kind, amount, source, reference, note, created_at")
+        .eq("month", `${month}-01`)
+        .order("doctor_dha_id")
+        .order("kind")
+        .order("created_at")
+        .order("id")
+        .range(from, to),
+    ),
     supabase.from("fin_revshare_runs").select("status").eq("month", `${month}-01`).maybeSingle(),
   ]);
   const frozen = !!run && run.status !== "draft";

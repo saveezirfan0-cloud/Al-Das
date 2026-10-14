@@ -89,6 +89,7 @@ export async function fetchAlerts(
     .select("id, kind, user_id, summary, detail, created_at, acknowledged_at")
     .eq("org_id", orgId)
     .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
     .range(range[0], range[1]);
   const since = periodStart(f.period);
   if (since) q = q.gte("created_at", since);

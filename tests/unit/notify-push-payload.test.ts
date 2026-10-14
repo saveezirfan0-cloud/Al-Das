@@ -64,7 +64,11 @@ describe("push payloads carry ids and generic text only", () => {
   it("opens the right page, and only ever a same-origin path", () => {
     expect(pushUrl("inbox.message", { conversation_id: UUID })).toBe(`/inbox?c=${UUID}`);
     expect(pushUrl("sla.breach", { enquiry_id: UUID })).toBe(`/enquiries?enquiry=${UUID}`);
-    expect(pushUrl("task.due", { task_id: UUID })).toBe("/tasks");
+    expect(pushUrl("task.due", { task_id: UUID })).toBe(`/tasks?task=${UUID}`);
+    expect(pushUrl("task.due", {})).toBe("/tasks");
+    expect(pushUrl("reminder.failed", { appointment_id: UUID })).toBe(
+      `/appointments?appointment=${UUID}`,
+    );
     expect(pushUrl("something.else", {})).toBe("/notifications");
     expect(pushUrl("inbox.message", { conversation_id: "//evil.example/x" })).toBe("/inbox");
     expect(buildPushPayload("inbox.message", { conversation_id: UUID.toUpperCase() })!.url).toBe(
@@ -89,6 +93,13 @@ describe("push payloads carry ids and generic text only", () => {
 describe("notification links in the centre", () => {
   it("links by validated ids", () => {
     expect(notificationHref("mention", { conversation_id: UUID })).toBe(`/inbox?c=${UUID}`);
+    // A task about an enquiry opens the task, the same place its push opens.
+    expect(notificationHref("task.due", { task_id: UUID, enquiry_id: UUID })).toBe(
+      `/tasks?task=${UUID}`,
+    );
+    expect(notificationHref("reminder.failed", { appointment_id: UUID })).toBe(
+      `/appointments?appointment=${UUID}`,
+    );
     expect(notificationHref("finance.close_due", { count: 2 })).toBe("/finance/close/timetable");
     expect(notificationHref("finance.followup_due", { count: 3 })).toBe("/finance/followup");
     expect(notificationHref("enquiry.sla_breached", { enquiry_id: UUID })).toBe(
@@ -96,7 +107,7 @@ describe("notification links in the centre", () => {
     );
     expect(notificationHref("task.due", {})).toBe("/tasks");
     expect(notificationHref("appointment.reminder_failed", { appointment_id: UUID })).toBe(
-      "/appointments",
+      `/appointments?appointment=${UUID}`,
     );
     expect(notificationHref("system", {})).toBeNull();
     expect(notificationHref("mention", { conversation_id: "../../etc" })).toBeNull();
@@ -121,7 +132,7 @@ describe("insurance card expiry notifications (Phase 16)", () => {
 
   it("pushes a fixed sentence with no name, and opens Tasks when a task exists", () => {
     const p = buildPushPayload("document.expiring", { task_id: UUID })!;
-    expect(p.url).toBe("/tasks");
+    expect(p.url).toBe(`/tasks?task=${UUID}`);
     expect(`${p.title} ${p.body}`).not.toMatch(/[0-9@+]/);
     expect(JSON.stringify(p)).not.toMatch(/Sara|\+971|chest/);
     expect(pushUrl("document.expiring", {})).toBe("/notifications");

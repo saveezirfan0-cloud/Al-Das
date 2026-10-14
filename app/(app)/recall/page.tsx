@@ -2,6 +2,7 @@ import { PageHeader } from "@/components/shell/page-header";
 import { can } from "@/lib/auth/can";
 import { requirePerm } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 
 import { parseTestNumbers } from "@/lib/recall/engine";
 
@@ -54,12 +55,16 @@ export default async function RecallPage() {
       .eq("org_id", member.orgId)
       .order("week_start", { ascending: false })
       .limit(60),
-    admin
-      .from("recall_sends")
-      .select("programme_id, status")
-      .eq("org_id", member.orgId)
-      .gte("created_at", new Date(Date.now() - 7 * 86_400_000).toISOString())
-      .limit(5000),
+    // Counted per programme below, so every row is read in pages (PostgREST returns at most 1,000 per request).
+    fetchAll((from, to) =>
+      admin
+        .from("recall_sends")
+        .select("programme_id, status")
+        .eq("org_id", member.orgId)
+        .gte("created_at", new Date(Date.now() - 7 * 86_400_000).toISOString())
+        .order("id")
+        .range(from, to),
+    ),
     settingValue(admin, member.orgId, "recall_send_mode"),
     settingValue(admin, member.orgId, "test_recipient_numbers"),
     clinicalMessagingEnabled(admin, member.orgId),

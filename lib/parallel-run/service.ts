@@ -9,6 +9,7 @@ import {
   type ScenarioKey,
 } from "@/lib/parallel-run/diff";
 import type { AdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 
 const PROGRAMME_FOR: Partial<Record<ScenarioKey, string>> = {
   birthday: "birthday",
@@ -47,19 +48,22 @@ export async function nativeRefs(
   if (!prog) return [];
   const { from, to } = dayBounds(day);
 
-  const q = admin
-    .from("recall_sends")
-    .select("contact_id, contacts(external_id)")
-    .eq("org_id", orgId)
-    .eq("programme_id", prog.id);
-  const { data } =
-    scenario === "chronic_update"
-      ? await q.gte("replied_at", from).lt("replied_at", to).limit(5000)
-      : await q
-          .in("status", ["queued", "eligible", "sent", "delivered", "read"])
-          .gte("eligible_at", from)
-          .lt("eligible_at", to)
-          .limit(5000);
+  // The diff needs the whole day, so rows are read in pages (PostgREST returns at most 1,000 per request).
+  const { data } = await fetchAll((lo, hi) => {
+    const q = admin
+      .from("recall_sends")
+      .select("contact_id, contacts(external_id)")
+      .eq("org_id", orgId)
+      .eq("programme_id", prog.id);
+    const scoped =
+      scenario === "chronic_update"
+        ? q.gte("replied_at", from).lt("replied_at", to)
+        : q
+            .in("status", ["queued", "eligible", "sent", "delivered", "read"])
+            .gte("eligible_at", from)
+            .lt("eligible_at", to);
+    return scoped.order("id").range(lo, hi);
+  });
 
   const refs = new Set<string>();
   for (const r of data ?? []) {
@@ -94,12 +98,16 @@ export async function computeDiff(
 ) {
   const native = await nativeRefs(admin, orgId, scenario, day);
   if (native === null) return null;
-  const { data: made } = await admin
-    .from("parallel_run_make_outputs")
-    .select("ref_hash")
-    .eq("org_id", orgId)
-    .eq("scenario_key", scenario)
-    .eq("run_date", day);
+  const { data: made } = await fetchAll((lo, hi) =>
+    admin
+      .from("parallel_run_make_outputs")
+      .select("ref_hash")
+      .eq("org_id", orgId)
+      .eq("scenario_key", scenario)
+      .eq("run_date", day)
+      .order("ref_hash")
+      .range(lo, hi),
+  );
   if (!made?.length) return null; // no Make output imported for that day: nothing to compare
   const d = diffSets(
     made.map((m) => m.ref_hash),
@@ -136,14 +144,17 @@ export { previousDay };
 /** Phase 6 reminders due that clinic-local day (excluded / cancelled ones are not messages Make would have sent). */
 async function reminderRefs(admin: AdminClient, orgId: string, day: string): Promise<string[]> {
   const { from, to } = dayBounds(day);
-  const { data } = await admin
-    .from("appointment_reminders")
-    .select("appointments(external_id)")
-    .eq("org_id", orgId)
-    .in("status", ["scheduled", "sent", "failed"])
-    .gte("due_at", from)
-    .lt("due_at", to)
-    .limit(5000);
+  const { data } = await fetchAll((lo, hi) =>
+    admin
+      .from("appointment_reminders")
+      .select("appointments(external_id)")
+      .eq("org_id", orgId)
+      .in("status", ["scheduled", "sent", "failed"])
+      .gte("due_at", from)
+      .lt("due_at", to)
+      .order("id")
+      .range(lo, hi),
+  );
   const refs = new Set<string>();
   for (const r of data ?? []) {
     const id = r.appointments?.external_id;
