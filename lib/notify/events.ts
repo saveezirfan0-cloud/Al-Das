@@ -231,6 +231,26 @@ export const NOTIFICATION_EVENTS = [
     defaults: { in_app: true, email: false, push: true },
   },
   {
+    key: "task.assigned",
+    group: "Work",
+    label: "A task is assigned to me",
+    description:
+      "A colleague gives you a task, or a new task is made for you. Push and e-mail say only that a task was assigned; open Pulse to see which.",
+    channels: ALL,
+    defaults: { in_app: true, email: false, push: true },
+    permission: "tasks.view",
+  },
+  {
+    key: "task.mentioned",
+    group: "Work",
+    label: "Someone mentions me on a task",
+    description:
+      "A colleague @mentions you in a task comment. Push and e-mail say only that you were mentioned; open Pulse to read it.",
+    channels: ALL,
+    defaults: { in_app: true, email: false, push: true },
+    permission: "tasks.view",
+  },
+  {
     key: "escalation",
     group: "Escalation",
     label: "A conversation was not picked up",

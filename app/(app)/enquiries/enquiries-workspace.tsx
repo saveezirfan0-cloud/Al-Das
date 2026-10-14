@@ -26,6 +26,7 @@ import type { OptionSources } from "@/components/filter-builder/filter-builder";
 import { FilterPanel } from "@/components/filter-builder/filter-panel";
 import { PageHeader } from "@/components/shell/page-header";
 import { Badge } from "@/components/ui/badge";
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -72,6 +73,7 @@ const SCOPES: Array<{ key: EnquiryScope; label: string }> = [
 ];
 
 export function EnquiriesWorkspace({ bootstrap }: { bootstrap: EnquiriesBootstrap }) {
+  const [confirm, confirmDialog] = useConfirm();
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -418,7 +420,13 @@ export function EnquiriesWorkspace({ bootstrap }: { bootstrap: EnquiriesBootstra
   }
 
   async function removeView(v: EnquiryViewSummary) {
-    if (!confirm(`Delete the view “${v.name}”?`)) return;
+    const ok = await confirm({
+      title: `Delete the view “${v.name}”?`,
+      description: "Only the saved filters go; no enquiry is deleted.",
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (!ok) return;
     const res = await deleteEnquiryView(v.id);
     if (!res.ok) return void toast.error(res.error);
     setViews((prev) => prev.filter((x) => x.id !== v.id));
@@ -451,6 +459,7 @@ export function EnquiriesWorkspace({ bootstrap }: { bootstrap: EnquiriesBootstra
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-4">
+      {confirmDialog}
       <PageHeader
         title="Enquiries"
         description="Pipelines for everything between a first message and a booked patient."

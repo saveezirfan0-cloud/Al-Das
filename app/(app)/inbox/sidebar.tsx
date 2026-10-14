@@ -7,6 +7,7 @@ import { useEffect, useState, useTransition } from "react";
 import { CalendarPlus, KanbanSquare, Loader2, Merge, Unlink } from "lucide-react";
 import { toast } from "sonner";
 
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -57,6 +58,7 @@ export function Sidebar({
   const desk = sidebar?.desk ?? null;
   const [form, setForm] = useState(toForm(c));
   const [pending, startTransition] = useTransition();
+  const [confirm, confirmDialog] = useConfirm();
   const [unlinkOpen, setUnlinkOpen] = useState(false);
   const isWhatsApp =
     channelTypeOf(channels.find((ch) => ch.id === selected.channel_id)?.type) === "whatsapp";
@@ -76,13 +78,13 @@ export function Sidebar({
     });
   }
 
-  function merge(dupId: string) {
-    if (
-      !confirm(
-        "Merge that contact into this one? Its conversations and phones move here and it is removed.",
-      )
-    )
-      return;
+  async function merge(dupId: string) {
+    const ok = await confirm({
+      title: "Merge that contact into this one?",
+      description: "Its conversations and phones move here and it is removed.",
+      confirmLabel: "Merge",
+    });
+    if (!ok) return;
     startTransition(async () => {
       const r = await mergeContacts(c.id, dupId);
       if (r.ok) toast.success(r.message);
@@ -95,6 +97,7 @@ export function Sidebar({
       className={cn("bg-background w-80 shrink-0 flex-col border-l", className)}
       aria-label="Conversation details"
     >
+      {confirmDialog}
       <Tabs defaultValue={desk ? "patient" : "contact"} className="flex h-full flex-col">
         <TabsList className={cn("m-2 grid", desk ? "grid-cols-5" : "grid-cols-4")}>
           {desk && <TabsTrigger value="patient">Patient</TabsTrigger>}

@@ -355,6 +355,7 @@ export default async function InboxPage({
       settings: can(member, "settings.manage"),
       enquiriesManage: can(member, "enquiries.manage"),
       media: can(member, "media.view") || can(member, "media.manage"),
+      tasksManage: can(member, "tasks.manage"),
     },
     ai: { available: can(member, "ai.use") && readAiSettings(org?.settings).enabled },
     query,
@@ -398,7 +399,10 @@ export default async function InboxPage({
     settings: {
       require_category_on_close: settings.require_category_on_close,
       require_summary_on_close: settings.require_summary_on_close,
+      first_response_amber_minutes: settings.first_response_amber_minutes,
+      first_response_red_minutes: settings.first_response_red_minutes,
     },
+    timezone: member.org.timezone || "Asia/Dubai",
     branches: allowedLocations(branchList, branch.access),
     branchNames: Object.fromEntries(branchList.map((l) => [l.id, l.name])),
     currentBranch: branch.current,

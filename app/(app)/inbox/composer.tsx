@@ -126,11 +126,16 @@ export function Composer({
   windowOpen,
   replyTo,
   onClearReply,
+  onComposing,
+  onStoppedComposing,
 }: InboxProps & {
   selected: ConversationDetail;
   windowOpen: boolean;
   replyTo: MessageRow | null;
   onClearReply: () => void;
+  /** Phase F: tells colleagues on the same chat that someone is writing a reply (no text is shared). */
+  onComposing?: () => void;
+  onStoppedComposing?: () => void;
 }) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("chat");
@@ -242,6 +247,7 @@ export function Composer({
       setText("");
       setAttachment(null);
       onClearReply();
+      onStoppedComposing?.();
     });
   }
 
@@ -497,6 +503,9 @@ export function Composer({
           onChange={(e) => {
             setText(e.target.value);
             setCaret(e.target.selectionStart);
+            // Only patient replies count: an internal note does not clash with anyone.
+            if (mode === "chat" && e.target.value.trim()) onComposing?.();
+            else onStoppedComposing?.();
           }}
           onSelect={(e) => setCaret((e.target as HTMLTextAreaElement).selectionStart)}
           onKeyDown={(e) => {

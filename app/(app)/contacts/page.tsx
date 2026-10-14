@@ -50,6 +50,8 @@ export default async function ContactsPage() {
       enquiriesManage: can(member, "enquiries.manage"),
       documentsView: can(member, "documents.view"),
       drip: canDrip,
+      tasksView: can(member, "tasks.view"),
+      invoicesView: can(member, "finance.invoices.view"),
     },
     dripFlows: (dripFlows ?? []).map((f) => ({
       id: f.id,

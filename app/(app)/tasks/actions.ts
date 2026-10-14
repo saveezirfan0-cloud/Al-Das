@@ -21,6 +21,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type { Tables } from "@/lib/supabase/types";
 import { TASK_TYPES } from "@/lib/tasks/constants";
 import { TASK_STATES, taskStateRange } from "@/lib/tasks/range";
+import { TASK_PRIORITIES, TASK_RECURRENCES, TASK_STATUSES } from "@/lib/tasks/status";
 import {
   createTask,
   deleteTasks,
@@ -94,6 +95,14 @@ const listSchema = z.object({
     .union([z.literal("all"), uuid])
     .nullable()
     .optional(),
+  /** Phase F filters: status, priority, team, daily checklists only. */
+  status: z.enum(TASK_STATUSES).nullable().optional(),
+  priority: z.enum(TASK_PRIORITIES).nullable().optional(),
+  team: uuid.nullable().optional(),
+  checklists: z.boolean().optional(),
+  /** Calendar view: tasks due in [from, to) (both ISO); with a range the state filter is ignored. */
+  from: z.string().datetime({ offset: true }).nullable().optional(),
+  to: z.string().datetime({ offset: true }).nullable().optional(),
 });
 export type ListTasksInput = z.input<typeof listSchema>;
 
@@ -119,11 +128,19 @@ export async function listTasks(
   query = withBranchFilter(query, branchIds);
   if (q.assignee === "me") query = query.eq("assignee_id", userId);
   else if (q.assignee !== "all") query = query.eq("assignee_id", q.assignee);
-  if (range.done !== undefined) query = query.eq("done", range.done);
-  if (range.dueBefore) query = query.lt("due_at", range.dueBefore.toISOString());
-  if (range.dueFrom) query = query.gte("due_at", range.dueFrom.toISOString());
-  if (range.dueTo) query = query.lt("due_at", range.dueTo.toISOString());
+  if (q.from && q.to) {
+    query = query.gte("due_at", q.from).lt("due_at", q.to);
+  } else {
+    if (range.done !== undefined) query = query.eq("done", range.done);
+    if (range.dueBefore) query = query.lt("due_at", range.dueBefore.toISOString());
+    if (range.dueFrom) query = query.gte("due_at", range.dueFrom.toISOString());
+    if (range.dueTo) query = query.lt("due_at", range.dueTo.toISOString());
+  }
   if (q.type) query = query.eq("type", q.type);
+  if (q.status) query = query.eq("status", q.status);
+  if (q.priority) query = query.eq("priority", q.priority);
+  if (q.team) query = query.eq("team_id", q.team);
+  if (q.checklists) query = query.not("checklist_template_id", "is", null);
   const term = q.search?.trim();
   if (term) query = query.ilike("subject", `%${term.replace(/[\\%_]/g, (m) => `\\${m}`)}%`);
 
@@ -187,6 +204,11 @@ const taskSchema = z.object({
   enquiry_id: z.preprocess(blank, uuid.nullable().optional()),
   /** Phase B: the task's branch (null = no branch). Undefined leaves it as it is on update. */
   location_id: z.preprocess(blank, uuid.nullable().optional()),
+  /** Phase F (tasks v2). */
+  priority: z.enum(TASK_PRIORITIES).default("normal"),
+  status: z.enum(TASK_STATUSES).optional(),
+  team_id: z.preprocess(blank, uuid.nullable().optional()),
+  recurrence: z.preprocess(blank, z.enum(TASK_RECURRENCES).nullable().optional()),
 });
 
 export async function createTaskAction(input: unknown): Promise<ActionResult<{ id: string }>> {
@@ -207,6 +229,10 @@ export async function createTaskAction(input: unknown): Promise<ActionResult<{ i
       assigneeId: d.assignee_id === undefined ? undefined : d.assignee_id,
       contactId: d.contact_id ?? null,
       enquiryId: d.enquiry_id ?? null,
+      priority: d.priority,
+      status: d.status,
+      teamId: d.team_id ?? null,
+      recurrence: d.recurrence ?? null,
     });
     refresh();
     return { ok: true, message: "Task created.", data: created };
@@ -238,6 +264,10 @@ export async function updateTaskAction(id: string, input: unknown): Promise<Acti
       // instead of treating the missing value as "unlink".
       contactId: canContacts ? (d.contact_id ?? null) : undefined,
       enquiryId: canEnquiries ? (d.enquiry_id ?? null) : undefined,
+      priority: d.priority,
+      status: d.status,
+      teamId: d.team_id === undefined ? undefined : d.team_id,
+      recurrence: d.recurrence === undefined ? undefined : d.recurrence,
     });
     refresh();
     return { ok: true, message: "Saved." };
@@ -264,6 +294,21 @@ export async function setTasksDoneAction(ids: string[], done: boolean): Promise<
     };
   } catch (e) {
     return fail(describe(e, "Could not update the tasks."));
+  }
+}
+
+/** Board drag and drop: one task to another status column (done stays in step with the old done flag). */
+export async function setTaskStatusAction(id: string, status: string): Promise<ActionResult> {
+  const { ctx, member } = await ctxFor("tasks.manage");
+  const parsedStatus = z.enum(TASK_STATUSES).safeParse(status);
+  if (!uuid.safeParse(id).success || !parsedStatus.success) return fail("Invalid request");
+  if (await rowOutsideBranches(ctx.admin, member, "tasks", id)) return fail(BRANCH_DENIED);
+  try {
+    await updateTask(ctx, id, { status: parsedStatus.data });
+    refresh();
+    return { ok: true, message: "Moved." };
+  } catch (e) {
+    return fail(describe(e, "Could not move the task."));
   }
 }
 
