@@ -63,10 +63,12 @@ const securityHeaders = [
  * `pnpm build` that still runs that pass, so only the Vercel build skips the repeat (docs/38_HOSTING_SETUP.md).
  */
 const onVercel = process.env.VERCEL === "1";
+/** The end-to-end workflow (.github/workflows/e2e.yml) skips it too: the CI checks job already runs both. */
+const skipBuildChecks = onVercel || process.env.PULSE_SKIP_BUILD_CHECKS === "1";
 
 const nextConfig: NextConfig = {
-  typescript: { ignoreBuildErrors: onVercel },
-  eslint: { ignoreDuringBuilds: onVercel },
+  typescript: { ignoreBuildErrors: skipBuildChecks },
+  eslint: { ignoreDuringBuilds: skipBuildChecks },
   // unpdf bundles pdf.js, which uses `import.meta` in ways webpack cannot bundle. Load it from
   // node_modules at runtime instead (used only by the kb_ingest handler for PDF sources).
   serverExternalPackages: ["unpdf"],

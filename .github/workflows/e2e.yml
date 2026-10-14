@@ -1,0 +1,123 @@
+name: End-to-end
+
+# Signed-in Playwright suite (tests/e2e/signed-in) against a local Supabase stack in Docker, plus the signed-out specs.
+# Not a required check. Nothing here reaches a live service: the stack is local, the workspace is synthetic and in
+# training mode (no WhatsApp sends), and the app has no Meta, Unite or provider credentials. See tests/e2e/README.md.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: End-to-end (signed in)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      E2E_SIGNED_IN: "1"
+      E2E_SERVER: start
+      E2E_PORT: "3100"
+      APP_URL: http://127.0.0.1:3100
+      # A local, made-up secret: only this job's server and its tests know it.
+      JOB_SECRET: e2e-job-secret-0123456789abcdef
+      NEXT_TELEMETRY_DISABLED: "1"
+      # The checks job (ci.yml) already typechecks and lints; the e2e build only needs the compile.
+      PULSE_SKIP_BUILD_CHECKS: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # Docker images take a couple of minutes to pull and the 135+ migrations a minute to apply, so the stack starts
+      # in the background while dependencies and the browser install. supabase/seed.sql (the dev workspace) is
+      # skipped: the suite seeds its own workspace (tests/e2e/fixtures/seed.ts). The change stays in this runner.
+      - name: Start Supabase (background)
+        run: |
+          sed -i '/^\[db\.seed\]/,/^\[/ s/^enabled = true/enabled = false/' supabase/config.toml
+          nohup supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor,postgres-meta \
+            > supabase-start.log 2>&1 &
+          echo $! > supabase-start.pid
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Cache Playwright browsers
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - name: Install Chromium
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Install Chromium system packages
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        run: pnpm exec playwright install-deps chromium
+
+      - name: Wait for Supabase and export its local URL and keys
+        run: |
+          timeout 600 tail --pid="$(cat supabase-start.pid)" -f /dev/null || true
+          if ! supabase status -o env > supabase.env 2> /dev/null; then
+            echo "::error::supabase start failed"
+            cat supabase-start.log
+            exit 1
+          fi
+          grep -E '^[A-Z_][A-Z0-9_]*=' supabase.env > supabase.vars
+          set -a; . ./supabase.vars; set +a
+          anon="${ANON_KEY:-$PUBLISHABLE_KEY}"
+          service="${SERVICE_ROLE_KEY:-$SECRET_KEY}"
+          if [ -z "$API_URL" ] || [ -z "$anon" ] || [ -z "$service" ]; then
+            echo "::error::supabase status did not report the API URL and keys"
+            exit 1
+          fi
+          echo "::add-mask::$service"
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$anon"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$service"
+          } >> "$GITHUB_ENV"
+          rm supabase.env supabase.vars
+
+      - name: Cache Next.js build cache
+        uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: next-e2e-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('app/**', 'components/**', 'lib/**', 'next.config.ts') }}
+          restore-keys: |
+            next-e2e-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
+
+      # NEXT_PUBLIC_* are inlined at build time, so the build runs after the stack is up.
+      - name: Build
+        run: pnpm build
+
+      - name: Seed the synthetic workspace and test logins
+        run: pnpm e2e:seed
+
+      - name: Playwright
+        run: pnpm e2e
+
+      - name: Upload the Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+      - name: Supabase start log
+        if: failure()
+        run: cat supabase-start.log || true
