@@ -19,7 +19,7 @@ to actual tables, is never posted, and is never pay.
 | Pure engine | `lib/finance/recruitment.ts` (`computeRecruitment`, `buildScenarioReport`, `pickBenchmark`, `recruitBand`, `eventsInWindow`, the input and settings schemas) |
 | Loader | `lib/finance/recruitment-server.ts` (service role after `can()`; branch scope from `loadPerfScope`) |
 | Workbook | `lib/finance/recruitment-xlsx.ts` |
-| SQL | migration `20261127000600_finance_recruitment_scenarios.sql` |
+| SQL | migration `20261203000600_finance_recruitment_scenarios.sql` |
 | Menu and help | Finance, Overview, Recruitment calculator (visible only with both keys: `FinanceNavEntry.allow`); guide `finance-recruitment` |
 
 ## Database
