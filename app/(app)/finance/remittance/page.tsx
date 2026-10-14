@@ -48,7 +48,8 @@ export default async function RemittancePage() {
         <Card>
           <CardContent className="pt-6 text-sm">
             No agreed prices are loaded, so short payments are judged against the claim&apos;s own
-            net amount. Load the payer price lists in Finance, Workflow settings for a real check.
+            net amount. Load the payer price lists in Settings, Finance workflow settings for a real
+            check.
           </CardContent>
         </Card>
       )}

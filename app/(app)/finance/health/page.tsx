@@ -52,7 +52,7 @@ export default async function FinanceHealthPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Data health"
+        title="Finance data health"
         description="Unite capture, the Diligence import and reference-data gaps."
       />
 

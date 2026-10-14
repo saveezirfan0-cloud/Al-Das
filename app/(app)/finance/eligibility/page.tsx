@@ -94,8 +94,8 @@ export default async function EligibilityPage({ searchParams }: { searchParams: 
           <Card>
             <CardContent className="pt-6 text-sm">
               The “not ready to bill” flag is switched off. Set{" "}
-              <strong>Check ready-to-bill from</strong> in Finance, Workflow settings to start
-              flagging insurance invoices dated from that day.
+              <strong>Check ready-to-bill from</strong> in Settings, Finance workflow settings to
+              start flagging insurance invoices dated from that day.
             </CardContent>
           </Card>
         )}

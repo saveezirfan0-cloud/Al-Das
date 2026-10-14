@@ -294,7 +294,7 @@ function financeRow(steps: readonly ReadinessStep[] | null): ReadinessRow {
     return {
       ...base,
       status: "blocked",
-      detail: "Needs a finance role to check (Finance, Data health).",
+      detail: "Needs a finance role to check (Settings, Finance data health).",
     };
   const done = doneCount(steps);
   const next = nextStep(steps);

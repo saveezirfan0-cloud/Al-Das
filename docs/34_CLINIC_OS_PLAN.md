@@ -178,6 +178,34 @@ docs and help guides updated, and the `nav-qa` agent run.
 - **Doctor/Nurse preset and "My day"**: own appointments today, check-in states, follow-up queue, tasks.
 
 ### Phase D — Simple to use (2 weeks, in parallel with B/C)
+**Status (14 Oct 2026): Simple to use (Phase D), first slice built** (no migration; type-checked, linted,
+unit-tested; not yet driven in a browser).
+- Built:
+  - Menu as in §3: Today (front desk, my day, appointments, tasks, clinical follow-ups), Messaging (inbox, templates,
+    campaigns, flows, recall, media), CRM with People (patients, enquiries) and Organisation (doctors, staff, and the
+    Teams and Branches settings pages linked from there), Finance, Accounting, Insights (reports, management, portal),
+    Settings. Inbox hidden without `inbox.send` / `inbox.view_all`. Rail areas follow the group order.
+  - Finance menu from 45 entries to 21: sibling pages are tab groups (`tabs` on the nav entry; a tab strip on each page,
+    every tab still in Ctrl+K); the 7 finance and 10 accounting setup pages are listed under Settings, Finance setup and
+    Accounting setup at their own URLs (finance access window unchanged). Receivables pages cross-linked; page titles
+    match the menu.
+  - Ctrl+K record search: patients (name, phone normalised to E.164), enquiries (number, title), tasks (subject); five
+    per kind, debounced, rate limited, each kind behind its view key and the list pages' visibility and branch rules.
+  - `landingPathFor` (`lib/shell/landing.ts`) for every role; the dashboard shows only actionable tiles plus Today's
+    appointments; a first-run checklist per role (dismissed per device).
+  - `useConfirm()` everywhere outside the Phase E/F areas (a test blocks new browser `confirm()`), `EmptyState` and
+    `CappedNote` on finance, accounting and settings lists, `DrawerFooter` + `useUnsavedGuard` on the Staff and Doctors
+    drawers.
+  - Words: Patients and doctor in UI text and permission labels (keys unchanged); `<Term>` glossary tooltips
+    (`lib/help/glossary.ts`, 18 terms) on accounting reports.
+  - A guide for every menu, tab and settings page (a test checks), and a What's new entry.
+- Still to do in this phase:
+  - Browser `confirm()` in the front desk, appointments, inbox, patients, tasks and enquiries (Phase E/F agents; the
+    test's allow-list names them), and the first-run card on the Front desk and Inbox landing pages.
+  - `lib/front-desk/landing.ts` can become a re-export of `lib/shell/landing.ts` (Phase E owns that directory).
+  - DataGrid on the remaining finance and accounting lists; the drawer footer on more drawers.
+  - "My work queue" for Finance (no work-queue page exists yet; Finance lands on the Reports hub).
+
 - **Navigation.**
   - Restructure areas as in §3 (Messaging area, CRM People/Organisation, Today gains Clinical follow-ups).
   - Hide Inbox from roles without inbox rights.

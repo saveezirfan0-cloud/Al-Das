@@ -81,7 +81,7 @@ export default async function BankAccountsPage() {
                   <TableCell colSpan={4}>
                     <EmptyState
                       title="No bank accounts yet"
-                      description="Finance adds them under Bank reconciliation, Settings."
+                      description="Finance adds them under Settings, Bank reconciliation settings."
                       className="border-0 p-6"
                     />
                   </TableCell>

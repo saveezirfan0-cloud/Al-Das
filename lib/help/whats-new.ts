@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-12-04-simple-to-use",
+    date: "2026-10-14",
+    title: "A simpler Pulse: clearer menu, record search and your own home page",
+    body: "The menu is grouped the way the clinic works: Today (front desk, my day, appointments, tasks and clinical follow-ups), Messaging (inbox, templates, campaigns, flows, recall and media), CRM (patients and enquiries, then doctors, staff, teams and branches), Finance, Accounting and Insights (reports, the management dashboard and the portal). The Finance menu is down from 44 entries to 21: pages that belong together are tabs under one entry, and finance and accounting setup moved to Settings. Press Ctrl K to find a patient by name or phone, an enquiry by number or title, or a task, as well as any page. Pulse opens on the page that suits your role, the dashboard shows only what you can act on (with today's appointments), and a short first-steps card helps new people start. Confirmations now appear inside Pulse, lists say what to do when they are empty, unsaved changes in the Staff and Doctors drawers are protected, and accounting words such as debit, credit and on account explain themselves when you point at them.",
+  },
+  {
     id: "2026-12-03-finance-reports-hub",
     date: "2026-10-14",
     title: "Finance reports in one place, invoice view and e-mailed statements",

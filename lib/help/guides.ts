@@ -234,10 +234,10 @@ export const GUIDES: readonly Guide[] = [
   {
     id: "reports",
     title: "Reports and dashboards",
-    pages: ["/reports", "/dashboard"],
+    pages: ["/reports"],
     purpose: "How the clinic is doing, by day, week and team.",
     steps: [
-      "The Overview shows today's numbers. Management shows trends.",
+      "Pick a report card. The finance card opens the finance Reports hub.",
       "Change the period at the top. Export needs a separate permission.",
       "AI reply quality (if you have access) shows each Monday how AI suggestions were used and which patient questions the knowledge base could not answer.",
     ],
@@ -282,9 +282,10 @@ export const GUIDES: readonly Guide[] = [
     pages: ["/finance"],
     purpose: "Invoices, insurance claims and the exceptions that need a person.",
     steps: [
-      "Start at the monthly summary, then open exceptions assigned to you.",
-      "Upload the claim file from the insurer under Insurance.",
-      "Check Data freshness before you trust a number.",
+      "Start at the Reports hub, then work the Exceptions assigned to you.",
+      "Pages that belong together are tabs under one menu entry (Performance, Insurance and receivables, Claims, Payables, Month-end close, Exports).",
+      "Upload the Diligence claim file under Claims, Insurance upload.",
+      "Finance setup (reference data, workflow settings, targets, bank and lab settings) is under Settings, Finance setup.",
     ],
     watchOut: ["Finance data never shows patient names, only the Unite PIN."],
   },
@@ -787,7 +788,8 @@ export const GUIDES: readonly Guide[] = [
       "Use Ctrl K to jump straight to a setting.",
       "Users and Roles decide who can do what. Give people the smallest role that lets them work.",
       "Front desk, Appointment rules and Training mode are under their own pages.",
-      "Branches: under Appointment rules, Locations, give each branch its finance branch code so ledger reports can show it. Under WhatsApp channels, Edit, choose each WhatsApp number's branch and the team its new chats go to first.",
+      "Finance setup and Accounting setup (bank accounts, targets, approval tiers, tax codes, posting rules) are here too, each for the people who hold its permission.",
+      "Branches (CRM, Branches): give each branch its finance branch code so ledger reports can show it. Under WhatsApp channels, Edit, choose each WhatsApp number's branch and the team its new chats go to first.",
     ],
     watchOut: [
       "Changes apply to everyone at once and are written to the Activity log.",
@@ -831,7 +833,7 @@ export const GUIDES: readonly Guide[] = [
   {
     id: "routing",
     title: "Teams and routing",
-    pages: ["/settings/teams", "/settings/users"],
+    pages: ["/settings/teams", "/settings/users", "/settings/roles"],
     purpose:
       "Decide who gets new WhatsApp conversations, what patients hear when nobody is free, and who sees which enquiries.",
     steps: [
@@ -1230,6 +1232,335 @@ export const GUIDES: readonly Guide[] = [
     ],
     watchOut: [
       "After the close, the trial balance no longer shows earlier years' profit for that year: it is in retained earnings.",
+    ],
+  },
+  {
+    id: "dashboard",
+    title: "Dashboard",
+    pages: ["/dashboard", "/dashboard/team"],
+    purpose: "What needs you right now: only the tiles your role can act on.",
+    steps: [
+      "Today's appointments counts today's bookings in the branches the switcher shows.",
+      "Conversation tiles open the inbox folder they count; task and enquiry tiles open those lists.",
+      "Your first steps card lists three to five things to try first. Hide it with the cross when you are done.",
+      "Team lead (if you have access) shows who is online and what is waiting.",
+    ],
+    watchOut: [
+      "Counts follow the branch switcher at the top of the menu: All branches shows every branch you work in.",
+    ],
+  },
+  {
+    id: "management",
+    title: "Management dashboard",
+    pages: ["/dashboard/management"],
+    purpose: "How the clinic is doing this period, against the period before.",
+    steps: [
+      "Pick the period and the channel at the top.",
+      "Each tile compares with the previous period; open a report for the detail.",
+      "The same numbers go out in the digest e-mail, so the page and the e-mail always agree.",
+    ],
+    watchOut: [
+      "Numbers use the clinic's time zone. Finance figures are in the finance Reports hub.",
+    ],
+  },
+  {
+    id: "portal",
+    title: "Portal",
+    pages: ["/portal"],
+    purpose: "Back-office screens and reference data rebuilt from Airtable.",
+    steps: [
+      "Pick a section or an object from the list. Clinical follow-ups also sit under Today.",
+      "Lists work like the other grids: filters, saved views and a drawer for each record.",
+      "Bulk edit and portal tags need the object's write permission.",
+    ],
+    watchOut: ["Clinical records are health data: open only what you need for your work."],
+  },
+  {
+    id: "finance-performance",
+    title: "Finance performance",
+    pages: [
+      "/finance/summary",
+      "/finance/revenue",
+      "/finance/branches",
+      "/finance/doctors",
+      "/finance/profitability",
+    ],
+    purpose: "How much the clinic generated, billed and was paid, by month, branch and doctor.",
+    steps: [
+      "Use the tabs to move between the monthly summary, revenue, by branch, by doctor and profitability.",
+      "Pick the period (and branch where offered) and press Apply.",
+      "Each measure has one definition, explained under the page title; amounts are in AED.",
+      "Profitability uses the costs Finance keeps under Costs.",
+    ],
+    watchOut: [
+      "Profit figures are Provisional until Finance approves the month.",
+      "By doctor shows activity, not a judgement of clinical quality.",
+    ],
+  },
+  {
+    id: "finance-insurance",
+    title: "Insurance and receivables",
+    pages: ["/finance/insurance", "/finance/scorecards", "/finance/forecast"],
+    purpose: "Where insurance claims stand, how each payer behaves and what cash to expect.",
+    steps: [
+      "Overview: submitted, accepted, rejected, paid and outstanding claims by claim month.",
+      "By payer and age: what is still owed, by how long it has waited.",
+      "Payer scorecards: denials and time to pay per payer, doctor, department and branch.",
+      "Collections forecast: expected insurance cash by week.",
+    ],
+    watchOut: [
+      "The forecast is an estimate from how payers paid before, not a promise.",
+      "Scorecard colours need a minimum number of claims to mean anything.",
+    ],
+  },
+  {
+    id: "finance-exceptions",
+    title: "Finance exceptions",
+    pages: ["/finance/exceptions"],
+    purpose: "Billing and insurance problems that need a person, one queue per rule.",
+    steps: [
+      "Filter to your queue, then open an exception to see what is wrong and what to do.",
+      "Fix the cause in Unite or Pulse; the exception clears itself when the cause is gone.",
+      "Comment or assign it to someone else when you cannot fix it yourself.",
+    ],
+    watchOut: [
+      "Exceptions show the Unite PIN only, never patient names.",
+      "Visit-versus-invoice signals are review prompts, not proof of anything.",
+    ],
+  },
+  {
+    id: "finance-upload",
+    title: "Insurance upload",
+    pages: ["/finance/upload"],
+    purpose: "Bring in the Diligence claims report so claims can be matched to invoices.",
+    steps: [
+      "Upload the Diligence claims report weekly and at month end.",
+      "Check the preview: unknown columns are ignored, never guessed.",
+      "Confirm to commit; the previous uploads list shows what came in.",
+    ],
+    watchOut: [
+      "The file holds names and Emirates IDs: Pulse keeps only sanitised rows and deletes the original at once. Never e-mail the file around.",
+    ],
+  },
+  {
+    id: "finance-costs",
+    title: "Costs",
+    pages: ["/finance/costs"],
+    purpose: "The cost inputs behind contribution margin and profitability.",
+    steps: [
+      "Enter or import service costs and overheads for the month.",
+      "Doctor compensation needs its own permission and is shown only to those who hold it.",
+      "Profitability reads these numbers; change them here, not in the report.",
+    ],
+    watchOut: [
+      "A cost of 0 means unknown and is refused: leave it blank until you have the real figure.",
+    ],
+  },
+  {
+    id: "finance-setup",
+    title: "Finance setup",
+    pages: ["/finance/reference", "/finance/workflow-settings", "/finance/health"],
+    purpose: "The mappings, thresholds and data checks every finance page relies on.",
+    steps: [
+      "Finance reference data maps Unite and Diligence values to branches, departments and service categories.",
+      "Finance workflow settings holds the numbers behind pre-authorisations, denials, remittance, scorecards, the forecast and the cash-up.",
+      "Finance data health shows Unite capture, the Diligence import and reference-data gaps.",
+      "All three are under Settings, Finance setup.",
+    ],
+    watchOut: [
+      "Every change is audited and applies to everyone at once.",
+      "Unite capture stays off until an administrator switches it on; never test it against the live system.",
+    ],
+  },
+  {
+    id: "settings-account",
+    title: "Your account and notifications",
+    pages: ["/settings/account", "/settings/notifications"],
+    purpose: "Your own profile, password, devices and how Pulse tells you about new work.",
+    steps: [
+      "Account: change your name, password and two-step sign-in, and see the devices you are signed in on.",
+      "Notifications: choose in-app, e-mail or push for each kind of event, and set quiet hours.",
+      "Allow notifications in the browser if you want push on this device.",
+    ],
+    watchOut: [
+      "Push and e-mail never contain patient names or message text, only that something needs you.",
+    ],
+  },
+  {
+    id: "settings-readiness",
+    title: "Go-live checklist",
+    pages: ["/settings/readiness"],
+    purpose: "Every connection and setting the clinic needs before going live, in one list.",
+    steps: [
+      "Work down the Required rows first; Optional rows can wait.",
+      "Each row says what is missing and links to where it is fixed.",
+      "Rows blocked by a decision wait for the clinic's answer, not for Pulse.",
+    ],
+    watchOut: ["A green row means the setting exists, not that it was tested with real traffic."],
+  },
+  {
+    id: "settings-fields-tags",
+    title: "Custom fields and tags",
+    pages: ["/settings/custom-fields", "/settings/tags"],
+    purpose: "Extra patient fields and the labels used on patients, enquiries and portal records.",
+    steps: [
+      "Custom fields: add a field once and it shows in the patient drawer, the grid, filters, imports and exports.",
+      "Tags: each kind (patient, enquiry, portal) has its own list and its own permission.",
+      "Rename a tag to fix a typo everywhere it is used.",
+    ],
+    watchOut: [
+      "Deleting a field or tag removes it from every record and saved filter that uses it.",
+    ],
+  },
+  {
+    id: "settings-training",
+    title: "Training mode",
+    pages: ["/settings/training"],
+    purpose: "Practise safely, and link the training videos people see under Help.",
+    steps: [
+      "Turn on Training mode (type the confirmation) before practising: nothing is sent to patients.",
+      "Paste the link of each recorded training video; it appears under Help, Training at once.",
+      "Turn it off again before real work starts.",
+    ],
+    watchOut: [
+      "Training mode stops all WhatsApp sending for the whole workspace, not only for you.",
+    ],
+  },
+  {
+    id: "settings-channels",
+    title: "WhatsApp channels and inbox rules",
+    pages: ["/settings/channels", "/settings/inbox"],
+    purpose: "The clinic's WhatsApp numbers and how the inbox shares out chats.",
+    steps: [
+      "WhatsApp channels: connect each number, then choose its branch and the team its new chats go to first.",
+      "Inbox rules: office hours, the away message, how long before an idle person is shown as away, and the reply-time targets.",
+      "Categories, labels and quick replies for the inbox are kept here too.",
+    ],
+    watchOut: [
+      "Changing a number's branch or team affects new chats only; existing chats stay where they are.",
+    ],
+  },
+  {
+    id: "settings-unite",
+    title: "Unite EMR",
+    pages: ["/settings/unite"],
+    purpose: "The read-only link that brings patients, visits and appointments in from Unite.",
+    steps: [
+      "Check the last sync and the recent calls to see that data is flowing.",
+      "Patients that could not be matched go to Portal, Sync Review.",
+    ],
+    watchOut: ["Pulse never writes to Unite. Change Unite data in Unite."],
+  },
+  {
+    id: "settings-developers",
+    title: "API keys and webhooks",
+    pages: ["/settings/api-keys", "/settings/webhooks"],
+    purpose: "Let the clinic's own systems talk to Pulse, safely.",
+    steps: [
+      "API keys: create one per system; the key is shown once, so copy it straight into that system.",
+      "Webhooks: add an endpoint to receive Pulse events; each delivery is signed with the endpoint's secret.",
+      "Revoke a key or rotate a secret as soon as it may have leaked.",
+    ],
+    watchOut: [
+      "A key can read and write patient records: give it only to systems the clinic controls.",
+    ],
+  },
+  {
+    id: "settings-ai",
+    title: "AI settings",
+    pages: ["/settings/knowledge-base", "/settings/ai-copilots"],
+    purpose: "What the AI assistant may answer from, and what the copilots may do.",
+    steps: [
+      "Knowledge base: add the clinic's own answers (prices, preparation, opening hours) in groups.",
+      "AI copilots: switch each copilot on or off and set the daily limits.",
+      "Tags that start flows need the clinical lead's sign-off.",
+    ],
+    watchOut: [
+      "Everything AI writes is a draft for a person to check. AI never diagnoses or advises on medicines.",
+    ],
+  },
+  {
+    id: "settings-appointments",
+    title: "Appointment rules and front desk",
+    pages: ["/settings/appointments", "/settings/front-desk"],
+    purpose:
+      "Branches, doctors, services, working hours and booking rules, and how the front desk works.",
+    steps: [
+      "Appointment rules: tabs for Doctors, Branches, Departments, Services and Booking rules.",
+      "Give each doctor their branches, services and working hours; the diary offers only those slots.",
+      "Booking rules: slot length, reminders and their WhatsApp templates.",
+      "Front desk: the waiting-list offers, the desk QR code and the running-late and location messages.",
+    ],
+    watchOut: [
+      "Waiting-list offers stay off until switched on here.",
+      "Appointments from Unite are never refused by these rules, only flagged.",
+    ],
+  },
+  {
+    id: "settings-documents",
+    title: "Patient documents settings",
+    pages: ["/settings/documents"],
+    purpose: "Whether patient documents are on, which categories exist and how long they are kept.",
+    steps: [
+      "Type the confirmation to switch patient documents on (a data-residency decision).",
+      "Set a retention policy per category; nothing is deleted without one.",
+      "Check storage use and any files waiting for the malware scan.",
+    ],
+    watchOut: [
+      "Unscanned is not the same as clean. Files marked infected are never shown or sent.",
+    ],
+  },
+  {
+    id: "settings-enquiries",
+    title: "Enquiry pipelines",
+    pages: ["/settings/enquiries"],
+    purpose: "The stages enquiries move through, their targets and the automatic rules.",
+    steps: [
+      "Add or rename stages for each pipeline and set the time each stage should take.",
+      "Rules can assign or move enquiries when something happens.",
+      "Lost reasons are a pick-list here; staff can still type their own.",
+    ],
+    watchOut: ["Deleting a pipeline or stage changes reports for past enquiries too."],
+  },
+  {
+    id: "settings-audit",
+    title: "Activity log and access review",
+    pages: ["/settings/activity", "/settings/access-review"],
+    purpose: "Who changed or opened what, and a regular check of who has access.",
+    steps: [
+      "Activity log: filter by person, record type or action; sign-ins and record opens are here too.",
+      "Access review: go through each person's role once a quarter, remove what they no longer need and sign it off.",
+    ],
+    watchOut: [
+      "The log shows ids, not patient names or message text.",
+      "Off-board people the day they leave.",
+    ],
+  },
+  {
+    id: "settings-privacy",
+    title: "Patient data requests",
+    pages: ["/settings/privacy"],
+    purpose: "Patient requests for a copy of their data, or for it to be erased.",
+    steps: [
+      "Raise a request when a patient asks; note how you checked who they are.",
+      "A second person approves it before anything is exported or erased.",
+      "Erasure removes the patient's documents first, then their record.",
+    ],
+    watchOut: [
+      "Erasure cannot be undone. Finance and legal records may have to be kept; check before approving.",
+    ],
+  },
+  {
+    id: "settings-system-health",
+    title: "System health",
+    pages: ["/settings/system-health"],
+    purpose: "Whether background jobs and queues are running on time.",
+    steps: [
+      "Check the scheduled jobs and their last runs.",
+      "A queue that keeps growing or a job that keeps failing needs the technical team.",
+    ],
+    watchOut: [
+      "Retrying a failed job is safe: jobs are written to run twice without doing the work twice.",
     ],
   },
 ];

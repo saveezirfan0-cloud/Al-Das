@@ -89,7 +89,7 @@ export default async function ReceivablesPage({
         <AlertDescription>
           This is Pulse&apos;s proposal for the ARP report (accounts receivable from payers by age).
           Its exact definition is still open; compare it with the sheet you use today and tell us
-          what differs. The age buckets are set in Finance, Workflow settings.
+          what differs. The age buckets are set in Settings, Finance workflow settings.
         </AlertDescription>
       </Alert>
 

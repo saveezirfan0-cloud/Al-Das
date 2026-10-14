@@ -277,7 +277,7 @@ export const ACCOUNTING_SETUP_PAGES: ReadonlyArray<Omit<AccountingNavEntry, "sec
   },
   {
     href: "/accounting/receivables-settings",
-    label: "Sales and receipts settings",
+    label: "Sales settings",
     permissions: ["accounting.settings.manage"],
   },
   {
@@ -292,7 +292,7 @@ export const ACCOUNTING_SETUP_PAGES: ReadonlyArray<Omit<AccountingNavEntry, "sec
   },
   {
     href: "/accounting/report-settings",
-    label: "Accounting report settings",
+    label: "Report settings",
     permissions: ["accounting.settings.manage", "accounting.reports.view"],
   },
   {
