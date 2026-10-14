@@ -7,6 +7,7 @@ import {
   consentCheck,
   eligibilityCheck,
   insuranceCheck,
+  notCheckedLines,
   unavailableReason,
 } from "@/lib/front-desk/arrival-check";
 import {
@@ -149,6 +150,14 @@ describe("arrival check panel (fails closed)", () => {
     expect(insuranceCheck({ available: true, cards: null, today, leadDays: 14 }).tone).toBe(
       "unknown",
     );
+  });
+
+  it("says all three are not checked when nothing could be loaded", () => {
+    expect(notCheckedLines("could not load")).toEqual([
+      { key: "insurance", tone: "unknown", label: "Not checked (could not load)" },
+      { key: "eligibility", tone: "unknown", label: "Not checked (could not load)" },
+      { key: "consent", tone: "unknown", label: "Not checked (could not load)" },
+    ]);
   });
 
   it("reads the insurance card from expiry dates only", () => {

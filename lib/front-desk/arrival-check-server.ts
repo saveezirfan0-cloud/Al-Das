@@ -6,6 +6,7 @@ import {
   consentCheck,
   eligibilityCheck,
   insuranceCheck,
+  notCheckedLines,
   unavailableReason,
   type CardDoc,
   type CheckLine,
@@ -99,17 +100,7 @@ export async function loadArrivalChecks(
   const out: Record<string, CheckLine[]> = {};
   for (const a of appointments) {
     if (!a.contact_id) {
-      out[a.id] = [
-        insuranceCheck({
-          available: false,
-          why: "no patient record",
-          cards: null,
-          today,
-          leadDays: 0,
-        }),
-        eligibilityCheck({ available: false, why: "no patient record", checks: null, today }),
-        consentCheck({ available: false, why: "no patient record", requests: null }),
-      ];
+      out[a.id] = notCheckedLines("no patient record");
       continue;
     }
     out[a.id] = [

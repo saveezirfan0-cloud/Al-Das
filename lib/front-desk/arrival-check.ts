@@ -117,6 +117,15 @@ export function consentCheck(input: {
   return { key: "consent", tone: "alert", label: "Consent form not signed" };
 }
 
+/** All three lines as "Not checked" (no patient record, or the checks could not be loaded at all). */
+export function notCheckedLines(why: string): CheckLine[] {
+  return [
+    NOT_CHECKED("insurance", why),
+    NOT_CHECKED("eligibility", why),
+    NOT_CHECKED("consent", why),
+  ];
+}
+
 /** Why a section could not be checked, in the desk's words (the first reason that applies). */
 export function unavailableReason(flags: {
   featureOn: boolean;

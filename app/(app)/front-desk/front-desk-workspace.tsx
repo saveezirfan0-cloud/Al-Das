@@ -39,7 +39,7 @@ import {
   nextCheckinState,
   type CheckinState,
 } from "@/lib/front-desk/checkin";
-import type { CheckLine } from "@/lib/front-desk/arrival-check";
+import { notCheckedLines, type CheckLine } from "@/lib/front-desk/arrival-check";
 import type { BoardRow, PatientCardData } from "@/lib/front-desk/server";
 import { isTypingTarget } from "@/lib/help/shortcuts";
 import { useIsPhone } from "@/lib/hooks/use-media-query";
@@ -164,11 +164,19 @@ export function FrontDeskWorkspace({
     }
     let cancelled = false;
     setChecksLoading(true);
-    void getArrivalChecks(arrivedKey.split(",")).then((r) => {
-      if (cancelled) return;
-      setChecksLoading(false);
-      if (r.ok && r.data) setChecks(r.data);
-    });
+    const ids = arrivedKey.split(",");
+    void getArrivalChecks(ids)
+      .catch(() => ({ ok: false as const, error: "unavailable" }))
+      .then((r) => {
+        if (cancelled) return;
+        setChecksLoading(false);
+        // Fails closed: when the checks cannot be loaded every line says so, never a blank or a tick.
+        setChecks(
+          r.ok && r.data
+            ? r.data
+            : Object.fromEntries(ids.map((id) => [id, notCheckedLines("could not load")])),
+        );
+      });
     return () => {
       cancelled = true;
     };
