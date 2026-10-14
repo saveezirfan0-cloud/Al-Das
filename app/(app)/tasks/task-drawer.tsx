@@ -1,14 +1,15 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { RecordHistorySection } from "@/components/history/record-history";
-import { Loader2, Save, Trash2 } from "lucide-react";
+import { ListChecks, Loader2, MessageSquare, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { ContactPicker } from "@/app/(app)/enquiries/contact-picker";
 import { OptionSelect } from "@/app/(app)/enquiries/option-select";
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -21,17 +22,28 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { fromLocalInput, toLocalInput } from "@/lib/enquiries/datetime";
 import { TASK_TYPES, TASK_TYPE_LABELS, type TaskType } from "@/lib/tasks/constants";
+import {
+  TASK_PRIORITIES,
+  TASK_PRIORITY_LABELS,
+  TASK_RECURRENCES,
+  TASK_RECURRENCE_LABELS,
+  TASK_STATUSES,
+  TASK_STATUS_LABELS,
+  type TaskPriority,
+  type TaskRecurrence,
+  type TaskStatus,
+} from "@/lib/tasks/status";
 
 import {
   createTaskAction,
   deleteTasksAction,
   searchContactsForTask,
-  setTasksDoneAction,
   updateTaskAction,
   type EnquiryOption,
   type TaskRow,
 } from "./actions";
 import { EnquiryPicker } from "./enquiry-picker";
+import { TaskParts } from "./task-parts";
 import type { TasksBootstrap } from "./types";
 
 type Form = {
@@ -42,9 +54,13 @@ type Form = {
   assignee_id: string | null;
   contact: { id: string; full_name: string; phone_e164: string | null } | null;
   enquiry: EnquiryOption | null;
-  done: boolean;
   /** Phase B: the task's branch (null = no branch). */
   location_id: string | null;
+  /** Phase F (tasks v2). Status "done" ticks the task off. */
+  status: TaskStatus;
+  priority: TaskPriority;
+  team_id: string | null;
+  recurrence: TaskRecurrence | null;
 };
 
 /** Next full hour in the org timezone, as a datetime-local value. */
@@ -62,8 +78,11 @@ function blankForm(b: TasksBootstrap, preset?: Partial<Form>): Form {
     assignee_id: b.userId,
     contact: null,
     enquiry: null,
-    done: false,
     location_id: b.currentBranch,
+    status: "todo",
+    priority: "normal",
+    team_id: null,
+    recurrence: null,
     ...preset,
   };
 }
@@ -80,8 +99,11 @@ function toForm(t: TaskRow, tz: string): Form {
       t.enquiry && !t.enquiry.deleted_at
         ? { id: t.enquiry.id, number: t.enquiry.number, title: t.enquiry.title }
         : null,
-    done: t.done,
     location_id: t.location_id,
+    status: (t.status as TaskStatus) ?? (t.done ? "done" : "todo"),
+    priority: (t.priority as TaskPriority) ?? "normal",
+    team_id: t.team_id,
+    recurrence: (t.recurrence as TaskRecurrence | null) ?? null,
   };
 }
 
@@ -102,6 +124,7 @@ export function TaskDrawer({
   const editing = draft.task;
   const [form, setForm] = React.useState<Form>(() => blankForm(bootstrap));
   const [pending, startTransition] = React.useTransition();
+  const [confirm, confirmDialog] = useConfirm();
 
   React.useEffect(() => {
     if (!draft.open) return;
@@ -123,23 +146,19 @@ export function TaskDrawer({
       contact_id: form.contact?.id ?? null,
       enquiry_id: form.enquiry?.id ?? null,
       location_id: form.location_id,
+      status: form.status,
+      priority: form.priority,
+      team_id: form.team_id,
+      recurrence: form.recurrence,
     };
     startTransition(async () => {
       if (editing) {
         const res = await updateTaskAction(editing.id, payload);
         if (!res.ok) return void toast.error(res.error);
-        if (form.done !== editing.done) {
-          const doneRes = await setTasksDoneAction([editing.id], form.done);
-          if (!doneRes.ok) toast.error(doneRes.error);
-        }
         toast.success(res.message ?? "Saved.");
       } else {
         const res = await createTaskAction(payload);
         if (!res.ok) return void toast.error(res.error);
-        if (form.done) {
-          const doneRes = await setTasksDoneAction([res.data.id], true);
-          if (!doneRes.ok) toast.error(doneRes.error);
-        }
         toast.success(res.message ?? "Task created.");
       }
       onSaved();
@@ -196,16 +215,75 @@ export function TaskDrawer({
                 autoFocus
               />
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-1.5">
+                <Label htmlFor="t-status">Status</Label>
+                <OptionSelect
+                  id="t-status"
+                  allowNone={false}
+                  disabled={!canManage}
+                  value={form.status}
+                  options={TASK_STATUSES.map((s) => ({ value: s, label: TASK_STATUS_LABELS[s] }))}
+                  onChange={(v) => set({ status: (v ?? "todo") as TaskStatus })}
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="t-priority">Priority</Label>
+                <OptionSelect
+                  id="t-priority"
+                  allowNone={false}
+                  disabled={!canManage}
+                  value={form.priority}
+                  options={TASK_PRIORITIES.map((p) => ({
+                    value: p,
+                    label: TASK_PRIORITY_LABELS[p],
+                  }))}
+                  onChange={(v) => set({ priority: (v ?? "normal") as TaskPriority })}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-1.5">
+                <Label htmlFor="t-assignee">Assigned to</Label>
+                <OptionSelect
+                  id="t-assignee"
+                  noneLabel="Unassigned"
+                  disabled={!canManage}
+                  value={form.assignee_id}
+                  options={bootstrap.users.map((u) => ({ value: u.id, label: u.label }))}
+                  onChange={(v) => set({ assignee_id: v })}
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="t-team">Team</Label>
+                <OptionSelect
+                  id="t-team"
+                  noneLabel="No team"
+                  disabled={!canManage}
+                  value={form.team_id}
+                  options={bootstrap.teams.map((t) => ({ value: t.id, label: t.name }))}
+                  onChange={(v) => set({ team_id: v })}
+                />
+              </div>
+            </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="t-assignee">Assigned to</Label>
+              <Label htmlFor="t-repeat">Repeats</Label>
               <OptionSelect
-                id="t-assignee"
-                noneLabel="Unassigned"
+                id="t-repeat"
+                noneLabel="Does not repeat"
                 disabled={!canManage}
-                value={form.assignee_id}
-                options={bootstrap.users.map((u) => ({ value: u.id, label: u.label }))}
-                onChange={(v) => set({ assignee_id: v })}
+                value={form.recurrence}
+                options={TASK_RECURRENCES.map((r) => ({
+                  value: r,
+                  label: TASK_RECURRENCE_LABELS[r],
+                }))}
+                onChange={(v) => set({ recurrence: (v as TaskRecurrence | null) ?? null })}
               />
+              {form.recurrence && (
+                <p className="text-muted-foreground text-xs">
+                  The next one is made when this is done, or at its due time if nobody ticks it off.
+                </p>
+              )}
             </div>
             {(bootstrap.branches.length > 1 || form.location_id) && (
               <div className="grid gap-1.5">
@@ -262,14 +340,33 @@ export function TaskDrawer({
                 onChange={(e) => set({ notes: e.target.value })}
               />
             </div>
-            <label className="flex items-center gap-2 text-sm">
-              <Checkbox
-                checked={form.done}
-                disabled={!canManage}
-                onCheckedChange={(c) => set({ done: c === true })}
-              />{" "}
-              Mark as done
-            </label>
+            {editing?.conversation_id && (
+              <Link
+                href={`/inbox?c=${editing.conversation_id}`}
+                className="text-primary inline-flex items-center gap-1 text-sm hover:underline"
+              >
+                <MessageSquare className="size-4" aria-hidden /> Open the chat it came from
+              </Link>
+            )}
+            {editing?.checklist_template_id && (
+              <p className="text-muted-foreground inline-flex items-center gap-1 text-xs">
+                <ListChecks className="size-4" aria-hidden /> Made from the branch&apos;s daily
+                checklist.
+              </p>
+            )}
+            {editing ? (
+              <TaskParts
+                taskId={editing.id}
+                timezone={bootstrap.timezone}
+                users={bootstrap.users}
+                canManage={canManage}
+                canMedia={bootstrap.can.media}
+              />
+            ) : (
+              <p className="text-muted-foreground text-xs">
+                Checklist items, comments and files can be added once the task is created.
+              </p>
+            )}
             {editing && <RecordHistorySection table="tasks" recordId={editing.id} />}
           </div>
           {canManage && (
@@ -280,8 +377,15 @@ export function TaskDrawer({
                   variant="ghost"
                   className="text-destructive"
                   disabled={pending}
-                  onClick={() => {
-                    if (!confirm("Delete this task?")) return;
+                  onClick={async () => {
+                    const ok = await confirm({
+                      title: "Delete this task?",
+                      description:
+                        "It can be restored from Settings, Recently deleted for a while.",
+                      confirmLabel: "Delete",
+                      destructive: true,
+                    });
+                    if (!ok) return;
                     startTransition(async () => {
                       const res = await deleteTasksAction([editing.id]);
                       if (!res.ok) return void toast.error(res.error);
@@ -304,6 +408,7 @@ export function TaskDrawer({
             </div>
           )}
         </form>
+        {confirmDialog}
       </SheetContent>
     </Sheet>
   );

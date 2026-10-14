@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type {
@@ -9,11 +10,26 @@ import type {
   VisibilityState,
   ColumnSizingState,
 } from "@tanstack/react-table";
-import { CheckCheck, Loader2, Plus, RotateCcw, Search, Trash2, UserCog, X } from "lucide-react";
+import {
+  CalendarDays,
+  CheckCheck,
+  KanbanSquare,
+  List,
+  ListChecks,
+  Loader2,
+  Plus,
+  Repeat,
+  RotateCcw,
+  Search,
+  Trash2,
+  UserCog,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { OptionSelect } from "@/app/(app)/enquiries/option-select";
 import { DataGrid, type DataGridColumn } from "@/components/data-grid/data-grid";
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { PageHeader } from "@/components/shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,12 +41,21 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatDateTime } from "@/lib/contacts/format";
 import { parseSoftDeleteSignal, SOFT_DELETE_WINDOW_EVENT } from "@/lib/soft-delete/signal";
 import { createClient } from "@/lib/supabase/client";
 import { TASK_TYPES, TASK_TYPE_LABELS } from "@/lib/tasks/constants";
 import { dueState } from "@/lib/tasks/due";
 import { TASK_STATES, type TaskState } from "@/lib/tasks/range";
+import {
+  TASK_PRIORITIES,
+  TASK_PRIORITY_LABELS,
+  TASK_STATUSES,
+  TASK_STATUS_LABELS,
+  type TaskPriority,
+  type TaskStatus,
+} from "@/lib/tasks/status";
 import { cn } from "@/lib/utils";
 
 import {
@@ -38,11 +63,32 @@ import {
   deleteTasksAction,
   getTaskAction,
   listTasks,
+  setTaskStatusAction,
   setTasksDoneAction,
   type TaskRow,
 } from "./actions";
+import { ChecklistTemplatesDialog } from "./checklist-templates-dialog";
 import { TaskDrawer, type TaskDraft } from "./task-drawer";
 import type { TasksBootstrap } from "./types";
+
+// The board (dnd-kit) and the calendar (FullCalendar) load only when someone opens that view.
+const TaskBoard = dynamic(() => import("./task-board").then((m) => m.TaskBoard), {
+  ssr: false,
+  loading: () => <Skeleton className="h-96 w-full rounded-xl" aria-label="Loading the board" />,
+});
+const TaskCalendar = dynamic(() => import("./task-calendar").then((m) => m.TaskCalendar), {
+  ssr: false,
+  loading: () => (
+    <Skeleton className="h-[34rem] w-full rounded-xl" aria-label="Loading the calendar" />
+  ),
+});
+
+type View = "list" | "board" | "calendar";
+const VIEWS: Array<{ key: View; label: string; icon: typeof List }> = [
+  { key: "list", label: "List", icon: List },
+  { key: "board", label: "Board", icon: KanbanSquare },
+  { key: "calendar", label: "Calendar", icon: CalendarDays },
+];
 
 const STATE_LABELS: Record<TaskState, string> = {
   open: "Open",
@@ -72,6 +118,21 @@ export function TasksWorkspace({ bootstrap }: { bootstrap: TasksBootstrap }) {
       ? branchParam
       : null;
   const showBranches = Object.keys(bootstrap.branchNames).length > 1;
+  // Phase F: list / board / calendar, and status, priority, team and "daily checklists" filters.
+  const viewParam = params.get("view");
+  const view: View = viewParam === "board" || viewParam === "calendar" ? viewParam : "list";
+  const status = TASK_STATUSES.includes(params.get("status") as TaskStatus)
+    ? (params.get("status") as TaskStatus)
+    : null;
+  const priority = TASK_PRIORITIES.includes(params.get("priority") as TaskPriority)
+    ? (params.get("priority") as TaskPriority)
+    : null;
+  const teamParam = params.get("team");
+  const team = bootstrap.teams.some((t) => t.id === teamParam) ? teamParam : null;
+  const checklists = params.get("checklists") === "1";
+  const [templatesOpen, setTemplatesOpen] = React.useState(false);
+  const [boardRows, setBoardRows] = React.useState<TaskRow[]>([]);
+  const [confirm, confirmDialog] = useConfirm();
 
   const [search, setSearch] = React.useState("");
   const [debounced, setDebounced] = React.useState("");
@@ -124,9 +185,57 @@ export function TasksWorkspace({ bootstrap }: { bootstrap: TasksBootstrap }) {
   React.useEffect(() => {
     setPage(1);
     setRowSelection({});
-  }, [state, assignee, type, branch, debounced, sorting, pageSize]);
+  }, [
+    state,
+    assignee,
+    type,
+    branch,
+    debounced,
+    sorting,
+    pageSize,
+    status,
+    priority,
+    team,
+    checklists,
+  ]);
+
+  const shared = React.useMemo(
+    () => ({
+      assignee,
+      type,
+      search: debounced || null,
+      branch,
+      status,
+      priority,
+      team,
+      checklists,
+    }),
+    [assignee, type, debounced, branch, status, priority, team, checklists],
+  );
+
+  // Board: open work (up to 200) and the 30 most recently due finished tasks.
+  React.useEffect(() => {
+    if (view !== "board") return;
+    let cancelled = false;
+    setLoading(true);
+    Promise.all([
+      listTasks({ ...shared, state: "open", sort: "due_at", dir: "asc", page: 1, pageSize: 200 }),
+      listTasks({ ...shared, state: "done", sort: "due_at", dir: "desc", page: 1, pageSize: 30 }),
+    ]).then(([open, done]) => {
+      if (cancelled) return;
+      setLoading(false);
+      if (!open.ok) return void toast.error(open.error);
+      if (!done.ok) return void toast.error(done.error);
+      setBoardRows([...open.data.rows, ...done.data.rows]);
+      setTotal(open.data.total);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [view, shared, reloadKey]);
 
   React.useEffect(() => {
+    if (view !== "list") return;
     let cancelled = false;
     setLoading(true);
     const sort = sorting[0];
@@ -141,6 +250,10 @@ export function TasksWorkspace({ bootstrap }: { bootstrap: TasksBootstrap }) {
       page,
       pageSize,
       branch,
+      status,
+      priority,
+      team,
+      checklists,
     }).then((res) => {
       if (cancelled) return;
       setLoading(false);
@@ -151,7 +264,22 @@ export function TasksWorkspace({ bootstrap }: { bootstrap: TasksBootstrap }) {
     return () => {
       cancelled = true;
     };
-  }, [assignee, state, type, branch, debounced, sorting, page, pageSize, reloadKey]);
+  }, [
+    view,
+    assignee,
+    state,
+    type,
+    branch,
+    debounced,
+    sorting,
+    page,
+    pageSize,
+    reloadKey,
+    status,
+    priority,
+    team,
+    checklists,
+  ]);
 
   // Realtime: someone else's task changes refresh the list.
   const timer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -244,6 +372,15 @@ export function TasksWorkspace({ bootstrap }: { bootstrap: TasksBootstrap }) {
               {TASK_TYPE_LABELS[t.type as (typeof TASK_TYPES)[number]] ?? t.type}
             </Badge>
             <span className="truncate font-medium">{t.subject}</span>
+            {t.recurrence && (
+              <Repeat className="text-muted-foreground size-3.5 shrink-0" aria-label="Repeats" />
+            )}
+            {t.checklist_template_id && (
+              <ListChecks
+                className="text-muted-foreground size-3.5 shrink-0"
+                aria-label="Daily checklist"
+              />
+            )}
           </span>
         ),
         { sortKey: "subject", size: 320, locked: true },
@@ -261,6 +398,35 @@ export function TasksWorkspace({ bootstrap }: { bootstrap: TasksBootstrap }) {
           );
         },
         { sortKey: "due_at", size: 200 },
+      ),
+      col(
+        "status",
+        "Status",
+        (t) => (
+          <Badge
+            variant={
+              t.status === "done" ? "secondary" : t.status === "blocked" ? "warning" : "outline"
+            }
+          >
+            {TASK_STATUS_LABELS[t.status as TaskStatus] ?? t.status}
+          </Badge>
+        ),
+        { size: 120 },
+      ),
+      col(
+        "priority",
+        "Priority",
+        (t) =>
+          t.priority === "urgent" || t.priority === "high" ? (
+            <span className="font-medium text-red-700 dark:text-red-300">
+              {TASK_PRIORITY_LABELS[t.priority as TaskPriority]}
+            </span>
+          ) : (
+            <span className="text-muted-foreground">
+              {TASK_PRIORITY_LABELS[t.priority as TaskPriority] ?? t.priority}
+            </span>
+          ),
+        { size: 100 },
       ),
       col(
         "assignee",
@@ -335,6 +501,9 @@ export function TasksWorkspace({ bootstrap }: { bootstrap: TasksBootstrap }) {
         title="Tasks"
         description="Calls, follow-ups and reminders, with a nudge when they fall due."
       >
+        <Button size="sm" variant="outline" onClick={() => setTemplatesOpen(true)}>
+          <ListChecks /> Daily checklists
+        </Button>
         {bootstrap.can.manage && (
           <Button size="sm" onClick={() => setDraft({ open: true, task: null })}>
             <Plus /> New task
@@ -343,6 +512,22 @@ export function TasksWorkspace({ bootstrap }: { bootstrap: TasksBootstrap }) {
       </PageHeader>
 
       <div className="flex flex-wrap items-center gap-2">
+        <div role="group" aria-label="View" className="bg-muted inline-flex rounded-lg p-0.5">
+          {VIEWS.map((v) => (
+            <button
+              key={v.key}
+              type="button"
+              aria-pressed={view === v.key}
+              onClick={() => setParam({ view: v.key === "list" ? null : v.key })}
+              className={cn(
+                "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-sm",
+                view === v.key ? "bg-background font-medium shadow-xs" : "text-muted-foreground",
+              )}
+            >
+              <v.icon className="size-4" aria-hidden /> {v.label}
+            </button>
+          ))}
+        </div>
         <div
           role="group"
           aria-label="Whose tasks"
@@ -363,14 +548,59 @@ export function TasksWorkspace({ bootstrap }: { bootstrap: TasksBootstrap }) {
             </button>
           ))}
         </div>
+        {view === "list" && (
+          <div className="w-36">
+            <OptionSelect
+              ariaLabel="Due"
+              allowNone={false}
+              value={state}
+              options={TASK_STATES.map((s) => ({ value: s, label: STATE_LABELS[s] }))}
+              onChange={(v) => setParam({ state: v && v !== "open" ? v : null })}
+            />
+          </div>
+        )}
+        {view !== "board" && (
+          <div className="w-36">
+            <OptionSelect
+              ariaLabel="Status"
+              noneLabel="Any status"
+              value={status}
+              options={TASK_STATUSES.map((s) => ({ value: s, label: TASK_STATUS_LABELS[s] }))}
+              onChange={(v) => setParam({ status: v })}
+            />
+          </div>
+        )}
         <div className="w-36">
           <OptionSelect
-            allowNone={false}
-            value={state}
-            options={TASK_STATES.map((s) => ({ value: s, label: STATE_LABELS[s] }))}
-            onChange={(v) => setParam({ state: v && v !== "open" ? v : null })}
+            ariaLabel="Priority"
+            noneLabel="Any priority"
+            value={priority}
+            options={TASK_PRIORITIES.map((p) => ({ value: p, label: TASK_PRIORITY_LABELS[p] }))}
+            onChange={(v) => setParam({ priority: v })}
           />
         </div>
+        {bootstrap.teams.length > 0 && (
+          <div className="w-40">
+            <OptionSelect
+              ariaLabel="Team"
+              noneLabel="Any team"
+              value={team}
+              options={bootstrap.teams.map((t) => ({ value: t.id, label: t.name }))}
+              onChange={(v) => setParam({ team: v })}
+            />
+          </div>
+        )}
+        <button
+          type="button"
+          aria-pressed={checklists}
+          onClick={() => setParam({ checklists: checklists ? null : "1" })}
+          className={cn(
+            "inline-flex h-9 items-center gap-1 rounded-md border px-2.5 text-sm",
+            checklists ? "bg-primary/10 border-primary text-foreground" : "text-muted-foreground",
+          )}
+        >
+          <ListChecks className="size-4" aria-hidden /> Checklists only
+        </button>
         <div className="w-36">
           <OptionSelect
             noneLabel="All types"
@@ -419,7 +649,7 @@ export function TasksWorkspace({ bootstrap }: { bootstrap: TasksBootstrap }) {
         </div>
       </div>
 
-      {selectedIds.length > 0 && bootstrap.can.manage && (
+      {view === "list" && selectedIds.length > 0 && bootstrap.can.manage && (
         <div className="bg-primary/5 flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-sm">
           <span className="font-medium">{selectedIds.length} selected</span>
           <Button variant="ghost" size="sm" onClick={() => setRowSelection({})}>
@@ -467,10 +697,15 @@ export function TasksWorkspace({ bootstrap }: { bootstrap: TasksBootstrap }) {
             size="sm"
             className="text-destructive"
             disabled={pending}
-            onClick={() =>
-              confirm(`Delete ${selectedIds.length} task${selectedIds.length === 1 ? "" : "s"}?`) &&
-              bulk(() => deleteTasksAction(selectedIds))
-            }
+            onClick={async () => {
+              const ok = await confirm({
+                title: `Delete ${selectedIds.length} task${selectedIds.length === 1 ? "" : "s"}?`,
+                description: "They can be restored from Settings, Recently deleted for a while.",
+                confirmLabel: "Delete",
+                destructive: true,
+              });
+              if (ok) bulk(() => deleteTasksAction(selectedIds));
+            }}
           >
             <Trash2 /> Delete
           </Button>
@@ -478,32 +713,62 @@ export function TasksWorkspace({ bootstrap }: { bootstrap: TasksBootstrap }) {
         </div>
       )}
 
-      <DataGrid
-        columns={columns}
-        data={rows}
-        loading={loading}
-        total={total}
-        page={page}
-        pageSize={pageSize}
-        onPageChange={setPage}
-        onPageSizeChange={setPageSize}
-        sorting={sorting}
-        onSortingChange={setSorting}
-        columnVisibility={columnVisibility}
-        onColumnVisibilityChange={setColumnVisibility}
-        columnSizing={columnSizing}
-        onColumnSizingChange={setColumnSizing}
-        columnOrder={columnOrder}
-        onColumnOrderChange={setColumnOrder}
-        rowSelection={rowSelection}
-        onRowSelectionChange={setRowSelection}
-        onRowClick={(t) => setDraft({ open: true, task: t })}
-        emptyText={
-          state === "open" && assignee === "me" && !debounced
-            ? "Nothing to do. Enjoy it."
-            : "No tasks match."
-        }
-      />
+      {view === "board" && (
+        <TaskBoard
+          rows={boardRows}
+          timezone={bootstrap.timezone}
+          userName={userName}
+          canMove={bootstrap.can.manage}
+          onOpen={(t) => setDraft({ open: true, task: t })}
+          onMove={(id, to) =>
+            startTransition(async () => {
+              // Move the card at once; the reload confirms (or puts it back on an error).
+              setBoardRows((rows) =>
+                rows.map((r) => (r.id === id ? { ...r, status: to, done: to === "done" } : r)),
+              );
+              const res = await setTaskStatusAction(id, to);
+              if (!res.ok) toast.error(res.error);
+              reload();
+            })
+          }
+        />
+      )}
+      {view === "calendar" && (
+        <TaskCalendar
+          timezone={bootstrap.timezone}
+          filters={shared}
+          reloadKey={reloadKey}
+          onOpen={(t) => setDraft({ open: true, task: t })}
+        />
+      )}
+      {view === "list" && (
+        <DataGrid
+          columns={columns}
+          data={rows}
+          loading={loading}
+          total={total}
+          page={page}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+          sorting={sorting}
+          onSortingChange={setSorting}
+          columnVisibility={columnVisibility}
+          onColumnVisibilityChange={setColumnVisibility}
+          columnSizing={columnSizing}
+          onColumnSizingChange={setColumnSizing}
+          columnOrder={columnOrder}
+          onColumnOrderChange={setColumnOrder}
+          rowSelection={rowSelection}
+          onRowSelectionChange={setRowSelection}
+          onRowClick={(t) => setDraft({ open: true, task: t })}
+          emptyText={
+            state === "open" && assignee === "me" && !debounced
+              ? "Nothing to do. Enjoy it."
+              : "No tasks match."
+          }
+        />
+      )}
 
       <TaskDrawer
         draft={draft}
@@ -511,6 +776,12 @@ export function TasksWorkspace({ bootstrap }: { bootstrap: TasksBootstrap }) {
         bootstrap={bootstrap}
         onSaved={reload}
       />
+      <ChecklistTemplatesDialog
+        open={templatesOpen}
+        onOpenChange={setTemplatesOpen}
+        bootstrap={bootstrap}
+      />
+      {confirmDialog}
       <span className="sr-only" aria-live="polite">
         {loading ? "Loading tasks" : `${total} tasks`}
       </span>

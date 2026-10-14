@@ -3,6 +3,18 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-12-05-inbox-crm-tasks-v2",
+    date: "2026-10-14",
+    title: "Snooze, waiting times, task boards and daily checklists",
+    body: "Inbox: snooze a chat until a time (it comes back on its own, or as soon as the patient writes), see how long each patient has waited for a reply (amber, then red), tick several chats to assign or close them together, search the text of messages, make a task from a chat, and see when a colleague is already typing in the same chat. A patient's record now has History (messages, appointments, enquiries, tasks and notes in one list), Tasks and, for finance staff, Invoices, with the owner and home branch at the top. Tasks have a status, priority, team, checklist, comments with @mentions, files and repeats, a Board and a Calendar view, and you are told when someone gives you a task or mentions you. Each branch can have opening and closing checklists that appear as a task every morning. Enquiries can be imported from a CSV file.",
+  },
+  {
+    id: "2026-12-04-front-desk-v2",
+    date: "2026-10-14",
+    title: "Front desk and diary: book at the desk, slips, drag to move",
+    body: "The Front desk has a Book button: it opens on your branch, shows one day of free times for each doctor who does the service, and books the patient you looked up. Cancel and No-show now ask once in a small window instead of two browser pop-ups, and a cancellation still offers the slot to the waiting list. When a patient arrives, the board shows whether their insurance card is on file or expired, their eligibility and their consent forms, or says Not checked when that information is switched off or not yours to see. Walk-ins can be registered without a phone or with a number from another country, and the WhatsApp tick is now a real choice: without it Pulse sends them nothing on WhatsApp. Print a slip (first name, time, doctor, branch and booking number) from the printer icon on the board; Finance users also see the payment record, which is not a tax invoice. End of day shows each branch's seen, no-shows, cancellations, walk-ins and median wait, with a link to the cash-up. In Appointments, bookings show the desk's check-in state, can be dragged to another time or doctor (they jump back with the reason if the time is taken), and the new Branch week shows every doctor of a branch from Monday to Sunday.",
+  },
+  {
     id: "2026-12-04-clinic-setup-crm",
     date: "2026-10-14",
     title: "Set up your clinic, and one CRM for patients, doctors and staff",

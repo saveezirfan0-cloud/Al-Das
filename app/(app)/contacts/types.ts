@@ -19,6 +19,9 @@ export type ContactsBootstrap = {
     documentsView: boolean;
     /** flows.manage as well as contacts.manage: may choose a segment's drip flow (Phase 20b). */
     drip: boolean;
+    /** Phase F Patient 360 tabs: tasks.view (Tasks) and finance.invoices.view (Invoices). */
+    tasksView: boolean;
+    invoicesView: boolean;
   };
   /** Flows with the "Contact added to a segment (drip)" trigger, for the segment dialog. Empty without `can.drip`. */
   dripFlows: Array<{ id: string; name: string; active: boolean }>;

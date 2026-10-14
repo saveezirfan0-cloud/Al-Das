@@ -19,6 +19,8 @@ import {
   type WaitlistEntry,
 } from "@/lib/front-desk/waitlist";
 import { readFrontDeskSettings } from "@/lib/front-desk/settings";
+import { WHATSAPP_DECLINED_REASON } from "@/lib/front-desk/whatsapp-consent";
+import { recipientDeclinedWhatsApp } from "@/lib/front-desk/whatsapp-consent-server";
 import { resolveRecipient, type HouseholdContact } from "@/lib/household/addressing";
 import { loadHouseholdLink } from "@/lib/household/server";
 import { readAppointmentSettings } from "@/lib/appointments/settings";
@@ -222,6 +224,9 @@ async function createAndSendOffer(
     await loadHouseholdLink(admin, o.orgId, contact.id),
   );
   if (!target) return fail("no_whatsapp");
+  // Phase E: registered at the desk without the WhatsApp agreement: never offered on WhatsApp.
+  if (await recipientDeclinedWhatsApp(admin, o.orgId, target.recipient.id))
+    return fail(WHATSAPP_DECLINED_REASON);
 
   const [{ data: specialist }, { data: location }, { data: service }, { data: channels }] =
     await Promise.all([

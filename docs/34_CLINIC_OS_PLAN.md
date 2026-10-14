@@ -206,6 +206,49 @@ docs and help guides updated, and the `nav-qa` agent run.
 - **Help.** A guide for every page that lacks one (portal queues, key finance pages) and a first-run checklist per role.
 
 ### Phase E — Front desk and appointments v2 (2 weeks)
+**Status (14 Oct 2026): first slice built** (migration `20261206000100_front_desk_v2.sql`, paste file
+`82_front_desk_v2.sql`; type-checked, linted, unit- and database-tested, production build; not yet driven in a browser,
+on a phone or a printer).
+- Built:
+  - **Book at the desk** (`app/(app)/front-desk/book-drawer.tsx`): opens on the switcher's (or home / only) branch
+    (`presetBranch`), offers only services someone at the branch does, and lists one day of free times per doctor from
+    the slot engine (`getDeskDaySlots` → `slotsForDay` → `generateSlots` / `slotFits`; pure ordering in
+    `lib/front-desk/book.ts`). Books through `bookAppointment` → `public.book_appointment` (per-doctor lock, capacity
+    re-checked); the patient comes from the desk's search or card; the result offers Print slip.
+  - **One cancel / no-show dialog** on `useConfirm()` (`visit-close.tsx`), used by the board and the patient card (with
+    an optional "tell the patient" tick). Cancelling still runs `changeAppointmentStatus` → `scheduleSlotFreed()`. No
+    cancel-reason list exists in Pulse, so none was invented. Every browser `confirm()` in the front desk and
+    appointments folders is gone.
+  - **Arrival check panel** on the board line at Arrived (`getArrivalChecks`, `lib/front-desk/arrival-check*.ts`):
+    insurance card (patient documents on + `documents.view`; expiry and status only, never titles), eligibility
+    (`fin_eligibility_checks`, read-only, `finance.eligibility.manage`) and consent forms (e-signature on + documents on +
+    `documents.view`). Each fails closed to "Not checked (reason)".
+  - **Walk-ins** without a phone or with another country's number (`walkInPhoneDecision`: blank, a UAE mobile, or a
+    possible E.164 number with its country code). The WhatsApp tick is unticked by default and optional; a new record
+    with a number and no tick gets `contacts.whatsapp_declined_at`, and appointment messages
+    (`sendAppointmentTemplate`), reminders (excluded `no_whatsapp_consent`, no SMS fallback), waiting-list offers and the
+    desk's location / running-late messages are then never queued. An existing patient found by number is not changed
+    by an empty box. The card shows the flag and "Patient agrees to WhatsApp now" (`recordWhatsAppAgreement`, audited).
+  - **Slip and payment record** at `/front-desk/slip/[id]` (`frontdesk.use` + `appointments.view`, branch rule,
+    `recordAccess`): first name, day and time, doctor, branch and address, booking number; nothing clinical. With
+    `finance.invoices.view`, `?kind=receipt` lists the Unite mirror's payments on the visit's invoices and paid payment
+    links (`lib/front-desk/slip*.ts`), marked "not a tax invoice".
+  - **End of day per branch** on `/front-desk/end-of-day`: booked, seen, no-shows, cancelled, walk-ins and the median
+    Arrived → With doctor wait per branch (`lib/front-desk/day-summary.ts`), with a Cash-up link per branch for holders
+    of `finance.cashup.manage` (branch finance code from `locations.branch_code`).
+  - **Diary**: a check-in chip (In / Dr / Done / Out, dark-mode pairs) in Resource day, Branch week, the Specialist
+    calendar, the agenda and the drawer; drag-and-drop in Resource day (mouse and pen; touch keeps scrolling) and the
+    Specialist calendar (FullCalendar, still `next/dynamic`) through `moveAppointment` → `move_appointment`, put back
+    with the reason on refusal, with a `useConfirm()` question before moving a confirmed booking whose reminder went out
+    (`lib/appointments/drag-move.ts`) and a "Tell the patient when I drag" switch; a **Branch week** tab
+    (`?view=week`) with every doctor of the branch from Monday to Sunday (`lib/appointments/week.ts`), branch-aware
+    through `listRange`'s branch rule.
+- **Not done, on purpose:** the Receptionist does NOT get `finance.cashup.manage`. The cash-up is not branch-scoped
+  (`fin_cashups` RLS is `app.has_perm(org_id, 'finance.cashup.manage')` for every branch, and the page lists every
+  branch), so the key would open every branch's cash-up and expected takings, and it falls under the finance access
+  window. Granting it per branch needs a branch rule on `fin_cashups` / `fin_cashup_lines` and the page first.
+- Still to do: rooms, the queue-token screen and the arrival kiosk (below); a browser, phone and printer pass.
+
 - **Front desk.**
   - Book inside the desk: drawer with branch preset and one day of slots.
   - One cancel dialog instead of two `confirm()` pop-ups.
@@ -220,6 +263,30 @@ docs and help guides updated, and the `nav-qa` agent run.
   - Later: rooms as bookable resources, a queue-token screen and an arrival kiosk.
 
 ### Phase F — Inbox, CRM and tasks v2 (2 weeks)
+**Status (14 Oct 2026): first slice built** (migration `20261206000200_inbox_tasks_v2.sql`, paste file
+`83_inbox_tasks_v2.sql`; type-checked, linted, unit- and database-tested; not yet driven in a browser).
+- Built:
+  - Inbox: Snoozed folder and Snooze menu (`conversations.snoozed_until`, `inbox.unsnooze` scheduled job; a patient's
+    message or a close clears it), "waiting 12 m" chips with amber/red thresholds (`first_response_*_minutes` in
+    `orgs.settings.inbox`, defaults 15 / 60, set from the list's filter menu), select mode with bulk assign / close
+    through the single-conversation paths (`lib/inbox/assign.ts`, `closeConversationRecord`; close refused when a
+    category or summary is required), message-text search (`search_messages()`, security invoker, trigram, 3+
+    characters, 30 hits, snippet only, query never logged), "Someone else is replying" (Realtime presence, ids only),
+    Create task from a chat (patient, chat and the chat's branch).
+  - Patient 360: History (messages, appointments, enquiries, tasks, notes; merged and paged, `lib/contacts/history.ts`),
+    Tasks (open first) and Invoices (`finance.invoices.view`, `v_fin_invoice_list` by Unite PIN, amounts and dates)
+    tabs; owner and home branch in the header.
+  - Tasks v2: status (in step with `done` by trigger), priority, team, repeats (`task.recur` job and on completion,
+    `task_spawn_next()` idempotent), checklist items, comments with @mentions (`task.mentioned`), Media Library files
+    (counted by `media_asset_usage()`), `task.assigned`, Board (dnd-kit) and Calendar (FullCalendar) views on demand,
+    status / priority / team / checklist filters; per-branch daily opening and closing checklists
+    (`task_checklist_templates`, hourly `pulse:tasks_daily`, one task per template and local day).
+  - Enquiries: CSV import with column mapping, dry run with problems per row, idempotent re-runs (`external_refs`,
+    hashed key), audited with counts only.
+- Still to do in this phase: a Settings, Inbox field for the waiting colours (today in the list's filter menu), a
+  Settings page entry for the daily checklists (today a button on Tasks), drag-to-reschedule on the task calendar,
+  uploading new files straight into a task, and a browser pass of the new screens.
+
 - **Inbox.**
   - Snooze, first-response SLA ("waiting 12 m"), bulk assign/close.
   - "Someone else is replying" warning.

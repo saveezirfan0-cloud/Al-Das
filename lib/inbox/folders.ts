@@ -15,6 +15,7 @@ export const FOLDERS = [
   { key: "waiting", label: "Waiting" },
   { key: "unread", label: "Unread" },
   { key: "mentions", label: "Mentions" },
+  { key: "snoozed", label: "Snoozed" },
   { key: "closed", label: "Closed" },
 ] as const;
 
@@ -143,6 +144,8 @@ export type ConversationLike = {
   bot_active: boolean;
   unread_count: number;
   channel_id: string;
+  /** Phase F: a snoozed conversation sits in Snoozed only until it wakes up (missing = not snoozed). */
+  snoozed_until?: string | null;
 };
 
 export type FolderContext = {
@@ -159,7 +162,10 @@ export function matchesFolder(
   team: string | null,
   ctx: FolderContext,
 ): boolean {
-  const live = c.status !== "closed";
+  const snoozed = !!c.snoozed_until && c.status !== "closed";
+  if (folder === "snoozed" && !team) return snoozed;
+  // Snoozed chats leave the working folders and team queues until they wake up (Mentions and Closed keep them).
+  const live = c.status !== "closed" && !snoozed;
   if (team) return live && c.assignee_team_id === team;
   switch (folder) {
     case "open":
@@ -177,12 +183,14 @@ export function matchesFolder(
     case "unassigned":
       return live && !c.assignee_user_id && !c.assignee_team_id;
     case "waiting":
-      return c.status === "waiting";
+      return live && c.status === "waiting";
     case "unread":
       return live && c.unread_count > 0;
     case "mentions":
       return !!c.id && !!ctx.mentionConversationIds?.has(c.id);
     case "closed":
       return c.status === "closed";
+    case "snoozed":
+      return snoozed;
   }
 }

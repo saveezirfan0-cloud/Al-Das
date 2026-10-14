@@ -1,13 +1,25 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { ArrowDownUp, Bookmark, Bot, Filter, Search, Volume2, VolumeX, X } from "lucide-react";
+import {
+  AlarmClock,
+  ArrowDownUp,
+  Bookmark,
+  Bot,
+  CheckSquare,
+  Filter,
+  Search,
+  Volume2,
+  VolumeX,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { PullToRefresh } from "@/components/shell/pull-to-refresh";
 import { readSoundPref, SOUND_EVENT, writeSoundPref } from "@/components/shell/shell-data";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -24,13 +36,18 @@ import { ALL_BRANCHES } from "@/lib/branches/access";
 import { FOLDERS, toSearchParams, type InboxQuery } from "@/lib/inbox/folders";
 import { labelClass } from "@/lib/inbox/labels";
 import { mergeConversationPages } from "@/lib/inbox/paging";
+import { firstResponse, formatWaiting } from "@/lib/inbox/sla";
 import { cn } from "@/lib/utils";
 
 import { assignConversation, closeConversation } from "./actions";
+import { ConversationBulkBar } from "./conversation-bulk-bar";
+import { MessageSearchResults } from "./message-search-results";
 import { loadOlderConversations } from "./paging-actions";
 import { SaveViewDialog } from "./save-view-dialog";
+import { SlaSettings } from "./sla-settings";
 import { SwipeRow } from "./swipe-row";
 import type { InboxProps } from "./types";
+import { searchMessageText, type MessageHit } from "./work-actions";
 
 const ANY = "__any__";
 
@@ -105,6 +122,57 @@ export function ConversationList({
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [olderStatus, setOlderStatus] = useState("");
   const conversations = mergeConversationPages(firstPage, older.rows);
+  // Phase F: tick several chats to assign or close them together.
+  const [selecting, setSelecting] = useState(false);
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  // Phase F: search the text of messages instead of names and phones.
+  const [searchMode, setSearchMode] = useState<"names" | "messages">("names");
+  const [msgHits, setMsgHits] = useState<MessageHit[] | null>(null);
+  const [msgTerm, setMsgTerm] = useState("");
+  const [msgLoading, setMsgLoading] = useState(false);
+  // "waiting 12 m" moves on without a server round trip.
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(t);
+  }, []);
+  const thresholds = {
+    amberMinutes: settings.first_response_amber_minutes,
+    redMinutes: settings.first_response_red_minutes,
+  };
+  useEffect(() => {
+    setPicked(new Set());
+  }, [queryKey]);
+
+  function togglePick(id: string) {
+    setPicked((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else if (next.size < 100) next.add(id);
+      else toast.info("Up to 100 conversations at a time.");
+      return next;
+    });
+  }
+
+  async function runMessageSearch(term: string) {
+    const t = term.trim();
+    if (t.length < 3) {
+      toast.info("Type at least 3 characters to search messages.");
+      return;
+    }
+    setMsgLoading(true);
+    setMsgTerm(t);
+    try {
+      const r = await searchMessageText({ q: t });
+      if (r.ok) setMsgHits(r.data.hits);
+      else {
+        setMsgHits(null);
+        toast.error(r.error);
+      }
+    } finally {
+      setMsgLoading(false);
+    }
+  }
   useEffect(() => setSearch(query.q), [query.q]);
   useEffect(() => {
     const sync = () => setSound(readSoundPref());
@@ -258,6 +326,22 @@ export function ConversationList({
           </span>
         )}
         <div className="ml-auto flex items-center">
+          {perms.send && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={selecting ? "Stop selecting" : "Select conversations"}
+              aria-pressed={selecting}
+              title="Select several conversations to assign or close"
+              className={cn(selecting && "text-primary")}
+              onClick={() => {
+                setSelecting((v) => !v);
+                setPicked(new Set());
+              }}
+            >
+              <CheckSquare />
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="icon-sm"
@@ -411,39 +495,82 @@ export function ConversationList({
                   <Bookmark /> Save view
                 </Button>
               </div>
+              {perms.settings && (
+                <SlaSettings
+                  amber={settings.first_response_amber_minutes}
+                  red={settings.first_response_red_minutes}
+                />
+              )}
             </PopoverContent>
           </Popover>
         </div>
       </div>
       <form
-        className="relative border-b px-3 py-2"
+        className="border-b px-3 py-2"
         onSubmit={(e) => {
           e.preventDefault();
-          onNavigate({ q: search.trim() });
+          if (searchMode === "messages") void runMessageSearch(search);
+          else onNavigate({ q: search.trim() });
         }}
       >
-        <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-5 size-4 -translate-y-1/2" />
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search name or phone"
-          className="h-8 pl-8 text-sm"
-          aria-label="Search conversations"
-        />
-        {query.q && (
-          <button
-            type="button"
-            aria-label="Clear search"
-            className="text-muted-foreground absolute top-1/2 right-5 -translate-y-1/2"
-            onClick={() => onNavigate({ q: "" })}
-          >
-            <X className="size-4" />
-          </button>
-        )}
+        <div className="relative">
+          <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2 size-4 -translate-y-1/2" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={searchMode === "messages" ? "Search message text" : "Search name or phone"}
+            className="h-8 pl-8 text-sm"
+            aria-label={searchMode === "messages" ? "Search message text" : "Search conversations"}
+          />
+          {(searchMode === "names" ? !!query.q : msgHits !== null || !!search) && (
+            <button
+              type="button"
+              aria-label="Clear search"
+              className="text-muted-foreground absolute top-1/2 right-2 -translate-y-1/2"
+              onClick={() => {
+                setSearch("");
+                setMsgHits(null);
+                if (searchMode === "names") onNavigate({ q: "" });
+              }}
+            >
+              <X className="size-4" />
+            </button>
+          )}
+        </div>
+        <div role="group" aria-label="Search in" className="mt-1.5 flex gap-1 text-[11px]">
+          {(["names", "messages"] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              aria-pressed={searchMode === m}
+              onClick={() => {
+                setSearchMode(m);
+                setMsgHits(null);
+                if (m === "messages" && query.q) onNavigate({ q: "" });
+              }}
+              className={cn(
+                "rounded px-1.5 py-0.5",
+                searchMode === m
+                  ? "bg-muted text-foreground font-medium"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {m === "names" ? "Names and phones" : "Message text"}
+            </button>
+          ))}
+        </div>
       </form>
       <PullToRefresh className="flex-1" scrollerSelector="[data-radix-scroll-area-viewport]">
         <ScrollArea className="min-h-0 flex-1">
-          {conversations.length === 0 ? (
+          {searchMode === "messages" && (msgHits !== null || msgLoading) ? (
+            <MessageSearchResults
+              term={msgTerm}
+              hits={msgHits}
+              loading={msgLoading}
+              activeId={selected?.id ?? null}
+              onOpen={onSelect}
+            />
+          ) : conversations.length === 0 ? (
             <p className="text-muted-foreground p-6 text-center text-sm">No conversations here.</p>
           ) : (
             <ul className="divide-y">
@@ -451,125 +578,160 @@ export function ConversationList({
                 const name = c.contacts ? contactDisplayName(c.contacts) : "Unknown";
                 const active = selected?.id === c.id;
                 const assignee = c.assignee_user_id ? peopleById.get(c.assignee_user_id) : null;
+                const wait = firstResponse(c, now, thresholds);
                 return (
-                  <li key={c.id}>
-                    <SwipeRow
-                      disabled={!perms.send}
-                      onSwipeRight={() => takeIt(c)}
-                      onSwipeLeft={() => closeIt(c)}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => onSelect(c.id)}
-                        aria-current={active ? "true" : undefined}
-                        className={cn(
-                          "hover:bg-accent/60 flex w-full items-start gap-3 px-3 py-2.5 text-left",
-                          active && "bg-accent",
-                        )}
+                  <li key={c.id} className="flex items-stretch">
+                    {selecting && (
+                      <span className="flex items-center pl-3">
+                        <Checkbox
+                          checked={picked.has(c.id)}
+                          onCheckedChange={() => togglePick(c.id)}
+                          aria-label={`Select the conversation with ${name}`}
+                        />
+                      </span>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <SwipeRow
+                        disabled={!perms.send || selecting}
+                        onSwipeRight={() => takeIt(c)}
+                        onSwipeLeft={() => closeIt(c)}
                       >
-                        <div className="relative shrink-0">
-                          <Avatar className="size-9">
-                            <AvatarFallback>{initials(name)}</AvatarFallback>
-                          </Avatar>
-                          <span
-                            className="bg-background absolute -right-1 -bottom-1 rounded-full p-px"
-                            title={c.channels?.name ?? "WhatsApp"}
-                          >
-                            <span className="flex size-4 items-center justify-center rounded-full bg-emerald-700 text-[9px] font-bold text-white">
-                              W
-                            </span>
-                          </span>
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-baseline gap-2">
+                        <button
+                          type="button"
+                          onClick={() => (selecting ? togglePick(c.id) : onSelect(c.id))}
+                          aria-current={active ? "true" : undefined}
+                          className={cn(
+                            "hover:bg-accent/60 flex w-full items-start gap-3 px-3 py-2.5 text-left",
+                            active && "bg-accent",
+                          )}
+                        >
+                          <div className="relative shrink-0">
+                            <Avatar className="size-9">
+                              <AvatarFallback>{initials(name)}</AvatarFallback>
+                            </Avatar>
                             <span
-                              className={cn(
-                                "truncate text-sm",
-                                c.unread_count > 0 ? "font-semibold" : "font-medium",
-                              )}
+                              className="bg-background absolute -right-1 -bottom-1 rounded-full p-px"
+                              title={c.channels?.name ?? "WhatsApp"}
                             >
-                              {name}
-                            </span>
-                            <span className="text-muted-foreground ml-auto shrink-0 text-[11px]">
-                              {timeLabel(c.last_message_at)}
+                              <span className="flex size-4 items-center justify-center rounded-full bg-emerald-700 text-[9px] font-bold text-white">
+                                W
+                              </span>
                             </span>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <p
-                              className={cn(
-                                "text-muted-foreground min-w-0 flex-1 truncate text-xs",
-                                c.unread_count > 0 && "text-foreground",
-                              )}
-                            >
-                              {c.last_message_direction === "out" && (
-                                <span className="opacity-60">You: </span>
-                              )}
-                              {c.last_message_preview ?? "No messages yet"}
-                            </p>
-                            {c.bot_active && (
-                              <Bot
-                                className="text-muted-foreground size-3.5 shrink-0"
-                                aria-label="Bot active"
-                              />
-                            )}
-                            {c.unread_count > 0 && (
-                              <span className="bg-primary text-primary-foreground shrink-0 rounded-full px-1.5 text-[10px] font-semibold">
-                                {c.unread_count}
-                              </span>
-                            )}
-                          </div>
-                          <div className="mt-1 flex flex-wrap items-center gap-1">
-                            {(c.ai_tags ?? []).includes("emergency") && (
-                              <span className="rounded bg-red-100 dark:bg-red-500/15 px-1 text-[10px] font-semibold text-red-800 dark:text-red-300">
-                                Possible emergency
-                              </span>
-                            )}
-                            {(c.ai_tags ?? [])
-                              .filter((t) => t !== "emergency" && t in INTENT_LABELS)
-                              .map((t) => (
-                                <span key={t} className="bg-muted rounded px-1 text-[10px]">
-                                  {INTENT_LABELS[t as Intent]}
-                                </span>
-                              ))}
-                            {c.status === "waiting" && (
-                              <span className="rounded bg-amber-100 dark:bg-amber-500/15 px-1 text-[10px] text-amber-800 dark:text-amber-300">
-                                waiting
-                              </span>
-                            )}
-                            {c.status === "closed" && (
-                              <span className="bg-muted rounded px-1 text-[10px]">closed</span>
-                            )}
-                            {c.conversation_labels.map(
-                              (l) =>
-                                l.tags && (
-                                  <span
-                                    key={l.tag_id}
-                                    className={cn(
-                                      "rounded px-1 text-[10px] font-medium",
-                                      labelClass(l.tags.color),
-                                    )}
-                                  >
-                                    {l.tags.name}
-                                  </span>
-                                ),
-                            )}
-                            {showBranches && c.location_id && branchNames[c.location_id] && (
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-baseline gap-2">
                               <span
-                                className="border-border text-muted-foreground rounded border px-1 text-[10px]"
-                                title="Branch of the number this chat runs on"
+                                className={cn(
+                                  "truncate text-sm",
+                                  c.unread_count > 0 ? "font-semibold" : "font-medium",
+                                )}
                               >
-                                {branchNames[c.location_id]}
+                                {name}
                               </span>
-                            )}
-                            {assignee && (
-                              <span className="text-muted-foreground ml-auto text-[10px]">
-                                {assignee.name.split(" ")[0]}
+                              <span className="text-muted-foreground ml-auto shrink-0 text-[11px]">
+                                {timeLabel(c.last_message_at)}
                               </span>
-                            )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <p
+                                className={cn(
+                                  "text-muted-foreground min-w-0 flex-1 truncate text-xs",
+                                  c.unread_count > 0 && "text-foreground",
+                                )}
+                              >
+                                {c.last_message_direction === "out" && (
+                                  <span className="opacity-60">You: </span>
+                                )}
+                                {c.last_message_preview ?? "No messages yet"}
+                              </p>
+                              {c.bot_active && (
+                                <Bot
+                                  className="text-muted-foreground size-3.5 shrink-0"
+                                  aria-label="Bot active"
+                                />
+                              )}
+                              {c.unread_count > 0 && (
+                                <span className="bg-primary text-primary-foreground shrink-0 rounded-full px-1.5 text-[10px] font-semibold">
+                                  {c.unread_count}
+                                </span>
+                              )}
+                            </div>
+                            <div className="mt-1 flex flex-wrap items-center gap-1">
+                              {(c.ai_tags ?? []).includes("emergency") && (
+                                <span className="rounded bg-red-100 dark:bg-red-500/15 px-1 text-[10px] font-semibold text-red-800 dark:text-red-300">
+                                  Possible emergency
+                                </span>
+                              )}
+                              {(c.ai_tags ?? [])
+                                .filter((t) => t !== "emergency" && t in INTENT_LABELS)
+                                .map((t) => (
+                                  <span key={t} className="bg-muted rounded px-1 text-[10px]">
+                                    {INTENT_LABELS[t as Intent]}
+                                  </span>
+                                ))}
+                              {c.status === "waiting" && (
+                                <span className="rounded bg-amber-100 dark:bg-amber-500/15 px-1 text-[10px] text-amber-800 dark:text-amber-300">
+                                  waiting
+                                </span>
+                              )}
+                              {c.status === "closed" && (
+                                <span className="bg-muted rounded px-1 text-[10px]">closed</span>
+                              )}
+                              {c.snoozed_until && c.status !== "closed" && (
+                                <span
+                                  className="bg-muted text-muted-foreground inline-flex items-center gap-0.5 rounded px-1 text-[10px]"
+                                  title={`Snoozed until ${new Date(c.snoozed_until).toLocaleString()}`}
+                                >
+                                  <AlarmClock className="size-3" aria-hidden /> snoozed
+                                </span>
+                              )}
+                              {wait && (
+                                <span
+                                  className={cn(
+                                    "rounded px-1 text-[10px] tabular-nums",
+                                    wait.level === "red"
+                                      ? "bg-red-100 font-semibold text-red-800 dark:bg-red-500/15 dark:text-red-300"
+                                      : wait.level === "amber"
+                                        ? "bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"
+                                        : "bg-muted text-muted-foreground",
+                                  )}
+                                  title="Time since the patient's last message, without a reply"
+                                >
+                                  waiting {formatWaiting(wait.waitingMs)}
+                                </span>
+                              )}
+                              {c.conversation_labels.map(
+                                (l) =>
+                                  l.tags && (
+                                    <span
+                                      key={l.tag_id}
+                                      className={cn(
+                                        "rounded px-1 text-[10px] font-medium",
+                                        labelClass(l.tags.color),
+                                      )}
+                                    >
+                                      {l.tags.name}
+                                    </span>
+                                  ),
+                              )}
+                              {showBranches && c.location_id && branchNames[c.location_id] && (
+                                <span
+                                  className="border-border text-muted-foreground rounded border px-1 text-[10px]"
+                                  title="Branch of the number this chat runs on"
+                                >
+                                  {branchNames[c.location_id]}
+                                </span>
+                              )}
+                              {assignee && (
+                                <span className="text-muted-foreground ml-auto text-[10px]">
+                                  {assignee.name.split(" ")[0]}
+                                </span>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </button>
-                    </SwipeRow>
+                        </button>
+                      </SwipeRow>
+                    </div>
                   </li>
                 );
               })}
@@ -594,6 +756,17 @@ export function ConversationList({
           </p>
         </ScrollArea>
       </PullToRefresh>
+      {selecting && picked.size > 0 && (
+        <ConversationBulkBar
+          ids={[...picked]}
+          me={me.userId}
+          people={people}
+          teams={teams}
+          closeNeedsDialog={settings.require_category_on_close || settings.require_summary_on_close}
+          onDone={() => setPicked(new Set())}
+          onClear={() => setPicked(new Set())}
+        />
+      )}
       <SaveViewDialog open={saveOpen} onOpenChange={setSaveOpen} query={query} teams={teams} />
     </section>
   );

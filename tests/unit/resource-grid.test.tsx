@@ -36,6 +36,7 @@ const appt: ApptRow = {
   created_at: "2026-10-01T00:00:00.000Z",
   reminder: null,
   visit_mode: null,
+  checkin_status: null,
 };
 
 const base = {
@@ -75,5 +76,33 @@ describe("ResourceGrid", () => {
     expect(html).not.toContain("/settings/appointments");
     const linked = renderToStaticMarkup(<ResourceGrid {...base} specialists={[]} canSettings />);
     expect(linked).toContain(`href="/settings/appointments?tab=doctors"`);
+  });
+
+  it("Phase E: shows the desk's check-in state and keeps the name before the time", () => {
+    const html = renderToStaticMarkup(
+      <ResourceGrid {...base} appointments={[{ ...appt, checkin_status: "with_doctor" }]} />,
+    );
+    expect(html).toContain("With doctor");
+    expect(html.indexOf("Sara Test")).toBeLessThan(html.indexOf("09:30–10:00"));
+    expect(html.indexOf("09:30–10:00")).toBeLessThan(html.indexOf("With doctor"));
+  });
+
+  it("Phase E: marks draggable bookings only when moving is allowed", () => {
+    const withMove = renderToStaticMarkup(<ResourceGrid {...base} onMove={() => {}} />);
+    expect(withMove).toContain("drag to move");
+    expect(withMove).toContain('data-specialist-col="s1"');
+    expect(renderToStaticMarkup(<ResourceGrid {...base} />)).not.toContain("drag to move");
+    const unite = renderToStaticMarkup(
+      <ResourceGrid {...base} onMove={() => {}} appointments={[{ ...appt, source: "unite" }]} />,
+    );
+    expect(unite).not.toContain("drag to move");
+    const arrived = renderToStaticMarkup(
+      <ResourceGrid
+        {...base}
+        onMove={() => {}}
+        appointments={[{ ...appt, checkin_status: "arrived" }]}
+      />,
+    );
+    expect(arrived).not.toContain("drag to move");
   });
 });

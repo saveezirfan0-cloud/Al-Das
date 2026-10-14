@@ -97,6 +97,8 @@ export type InboxProps = {
     appointmentsManage: boolean;
     /** May pick files from the Media Library (media.view or media.manage). */
     media: boolean;
+    /** Phase F: may create a task from a chat (tasks.manage). */
+    tasksManage: boolean;
   };
   /** AI assist is usable here: the member has ai.use AND the workspace switched it on. */
   ai: { available: boolean };
@@ -112,7 +114,15 @@ export type InboxProps = {
   quickReplyContext: QuickReplyContext;
   templates: TemplateInfo[];
   people: Person[];
-  settings: { require_category_on_close: boolean; require_summary_on_close: boolean };
+  settings: {
+    require_category_on_close: boolean;
+    require_summary_on_close: boolean;
+    /** Phase F: first-response colours on the list (minutes without a reply). */
+    first_response_amber_minutes: number;
+    first_response_red_minutes: number;
+  };
+  /** The workspace timezone (snooze presets, "tomorrow 9:00"). */
+  timezone: string;
   /** Phase B: the branches this member may choose in the filter (active ones), and every branch's name for the chips. */
   branches: Array<{ id: string; name: string }>;
   branchNames: Record<string, string>;

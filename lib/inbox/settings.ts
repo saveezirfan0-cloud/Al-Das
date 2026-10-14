@@ -38,6 +38,12 @@ export const inboxSettingsSchema = z.object({
    * by app.auto_away_minutes(); bounds in lib/presence/idle.ts.
    */
   auto_away_minutes: z.number().int().min(5).max(480).nullable().default(null),
+  /**
+   * Phase F first-response colours on the conversation list ("waiting 12 m"): amber from this many minutes without a
+   * reply, red from the second. A pair that makes no sense falls back to 15 / 60 (lib/inbox/sla.ts normaliseThresholds).
+   */
+  first_response_amber_minutes: z.number().int().min(1).max(10080).default(15),
+  first_response_red_minutes: z.number().int().min(2).max(10080).default(60),
 });
 
 export type InboxSettings = z.infer<typeof inboxSettingsSchema>;
