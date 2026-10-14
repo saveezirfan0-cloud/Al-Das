@@ -1,0 +1,35 @@
+name: Database migrations
+
+# Applies new files in supabase/migrations to the production Supabase project with the
+# Supabase CLI (tracked in supabase_migrations.schema_migrations, so each file runs once).
+# Needs the repository secret SUPABASE_DB_URL: the Session pooler connection string from
+# Supabase > Connect (IPv4; GitHub runners cannot reach the IPv6-only direct host).
+
+on:
+  push:
+    branches: [main]
+    paths: [supabase/migrations/**]
+  workflow_dispatch:
+
+concurrency:
+  group: db-migrate
+  cancel-in-progress: false
+
+jobs:
+  push:
+    name: supabase db push
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Pending migrations
+        run: supabase migration list --db-url "$SUPABASE_DB_URL"
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      - name: Apply
+        run: supabase db push --db-url "$SUPABASE_DB_URL" --yes
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}

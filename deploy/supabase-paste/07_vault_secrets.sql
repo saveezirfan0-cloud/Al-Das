@@ -12,7 +12,7 @@ select encode(gen_random_bytes(32), 'hex') as new_job_secret;
 do $$
 declare
   v_secret text := 'PASTE_SECRET_HERE';
-  v_url    text := 'https://al-das.vercel.app';
+  v_url    text := 'https://al-das-al-das.vercel.app';
   v_id uuid;
 begin
   if v_secret = 'PASTE_SECRET_HERE' then
