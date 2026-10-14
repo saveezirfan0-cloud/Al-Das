@@ -12925,6 +12925,132 @@ export type Database = {
           },
         ];
       };
+      fin_report_schedule_runs: {
+        Row: {
+          claimed_at: string;
+          finished_at: string | null;
+          id: string;
+          kind: string;
+          org_id: string;
+          period_key: string;
+          reason: string | null;
+          recipients: number;
+          schedule_id: string;
+          skipped: number;
+          status: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          claimed_at?: string;
+          finished_at?: string | null;
+          id?: string;
+          kind: string;
+          org_id: string;
+          period_key: string;
+          reason?: string | null;
+          recipients?: number;
+          schedule_id: string;
+          skipped?: number;
+          status?: string;
+        };
+        Update: {
+          claimed_at?: string;
+          finished_at?: string | null;
+          id?: string;
+          kind?: string;
+          org_id?: string;
+          period_key?: string;
+          reason?: string | null;
+          recipients?: number;
+          schedule_id?: string;
+          skipped?: number;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_report_schedule_runs_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_report_schedule_runs_schedule_id_fkey";
+            columns: ["schedule_id"];
+            isOneToOne: false;
+            referencedRelation: "fin_report_schedules";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      fin_report_schedules: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          day_of_month: number | null;
+          enabled: boolean;
+          enabled_at: string | null;
+          id: string;
+          kind: string;
+          org_id: string;
+          recipient_ids: string[];
+          send_time: string;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          day_of_month?: number | null;
+          enabled?: boolean;
+          enabled_at?: string | null;
+          id?: string;
+          kind: string;
+          org_id: string;
+          recipient_ids?: string[];
+          send_time?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          day_of_month?: number | null;
+          enabled?: boolean;
+          enabled_at?: string | null;
+          id?: string;
+          kind?: string;
+          org_id?: string;
+          recipient_ids?: string[];
+          send_time?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_report_schedules_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_report_schedules_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_report_schedules_updated_by_fkey";
+            columns: ["updated_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       fin_report_uploads: {
         Row: {
           committed_at: string | null;
@@ -25425,6 +25551,10 @@ export type Database = {
         Returns: Json;
       };
       fin_rederive_branches: { Args: { p_org_id: string }; Returns: number };
+      fin_report_schedule_claim: {
+        Args: { p_period_key: string; p_schedule_id: string };
+        Returns: string;
+      };
       fin_report_commit: {
         Args: { p_org_id: string; p_upload_id: string; p_user_id: string };
         Returns: Json;

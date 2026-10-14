@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { EmailDocumentButton } from "@/components/finance/email-document-button";
 import { PageHeader } from "@/components/shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,12 +19,14 @@ import { loadArSettings, loadSalesDetail } from "@/lib/accounting/receivables-se
 import { creditNoteLate, invoiceTotals, POSTING_STATUS_LABELS } from "@/lib/accounting/sales";
 import { can, canAny, ForbiddenError } from "@/lib/auth/can";
 import { requireMember } from "@/lib/auth/session";
+import { customerEmailProblem } from "@/lib/finance/document-email";
 import { money } from "@/lib/finance/format";
 import { recordAccess } from "@/lib/security/access-log";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import { SalesStatusBadge } from "../list";
 import { DiscardSalesDoc, IssueSalesDoc, VoidSalesInvoice } from "../controls";
+import { emailSalesDocument } from "../email-actions";
 
 export const metadata = { title: "Sales document" };
 export const dynamic = "force-dynamic";
@@ -66,6 +69,19 @@ export default async function SalesDocPage({ params }: { params: Promise<{ id: s
           <Button asChild variant="outline" size="sm">
             <a href={`/api/accounting/sales-invoices/${d.id}/pdf`}>PDF</a>
           </Button>
+        )}
+        {d.status !== "draft" && d.number && sales && (
+          <EmailDocumentButton
+            label={credit ? "E-mail credit note" : "E-mail invoice"}
+            title={credit ? "E-mail a copy of the credit note" : "E-mail a copy of the invoice"}
+            description={`A copy of ${d.number} goes out as a PDF from Pulse's address, marked "Internal copy - not a tax invoice". Replies come back to the finance team.`}
+            recipients={d.customer.email ? [{ name: d.customer.name, email: d.customer.email }] : []}
+            disabledReason={customerEmailProblem(d.customer)}
+            action={emailSalesDocument.bind(null, {
+              invoiceId: d.id,
+              recipient: d.customer.email ?? "",
+            })}
+          />
         )}
         {d.status === "draft" && sales && (
           <>

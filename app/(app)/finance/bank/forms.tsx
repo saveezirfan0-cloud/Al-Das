@@ -2,14 +2,14 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import { ActionForm, Field, RunButton, selectClass } from "@/components/finance/forms";
-import { Button } from "@/components/ui/button";
+import { FileUpload } from "@/components/shell/file-upload";
 import { Input } from "@/components/ui/input";
+import { FINANCE_IMPORT_LIMITS } from "@/lib/upload/preview";
 
-import { createRun, deleteImport, importStatement } from "./actions";
+import { createRun, deleteImport, importStatement, previewStatement } from "./actions";
 
 type Option = { id: string; label: string };
 export type FormatOption = { id: string; kind: string; name: string };
@@ -24,24 +24,23 @@ export function ImportForm({
   modes: string[];
 }) {
   const [kind, setKind] = React.useState<"bank_statement" | "settlement">("bank_statement");
-  const [pending, start] = React.useTransition();
-  const form = React.useRef<HTMLFormElement>(null);
   const layouts = formats.filter((f) => f.kind === kind);
+  const [formatId, setFormatId] = React.useState(layouts[0]?.id ?? "");
+  const form = React.useRef<HTMLFormElement>(null);
+  // the chosen layout must belong to the kind; fall back to the kind's first layout
+  const layout = layouts.some((f) => f.id === formatId) ? formatId : (layouts[0]?.id ?? "");
+  /** The form's fields plus the dropped file, as the server actions take them. */
+  const withFile = (file: File) => {
+    const fd = new FormData(form.current ?? undefined);
+    fd.set("format_id", layout);
+    fd.set("file", file);
+    return fd;
+  };
   return (
     <form
       ref={form}
       className="flex flex-col gap-3"
-      onSubmit={(e) => {
-        e.preventDefault();
-        const fd = new FormData(e.currentTarget);
-        start(async () => {
-          const res = await importStatement(fd);
-          if (res.ok) {
-            toast.success(res.message ?? "Imported");
-            form.current?.reset();
-          } else toast.error(res.error);
-        });
-      }}
+      onSubmit={(e) => e.preventDefault()}
     >
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="What is it?">
@@ -63,7 +62,13 @@ export function ImportForm({
               : undefined
           }
         >
-          <select name="format_id" className={selectClass} required>
+          <select
+            name="format_id"
+            className={selectClass}
+            value={layout}
+            onChange={(e) => setFormatId(e.target.value)}
+            required
+          >
             {layouts.map((f) => (
               <option key={f.id} value={f.id}>
                 {f.name}
@@ -92,15 +97,23 @@ export function ImportForm({
             </select>
           </Field>
         )}
-        <Field label="File (.csv or .xlsx, up to 5 MB)">
-          <Input name="file" type="file" accept=".csv,.xlsx" required />
-        </Field>
       </div>
-      <div>
-        <Button type="submit" disabled={pending || layouts.length === 0}>
-          {pending ? <Loader2 className="animate-spin" /> : <Upload />} Import
-        </Button>
-      </div>
+      <FileUpload
+        label="File"
+        accept={FINANCE_IMPORT_LIMITS.extensions}
+        maxBytes={FINANCE_IMPORT_LIMITS.maxBytes}
+        hint="A .csv or .xlsx file up to 5 MB. Only the columns in the layout are read; the file itself is not kept."
+        previewKey={`${kind}:${layout}`}
+        disabledReason={layouts.length === 0 ? "Add a layout for this kind of file first." : null}
+        preview={(file) => previewStatement(withFile(file))}
+        confirmLabel="Import"
+        onConfirm={async (file) => {
+          const res = await importStatement(withFile(file));
+          if (res.ok) toast.success(res.message ?? "Imported");
+          else toast.error(res.error);
+          return res.ok;
+        }}
+      />
     </form>
   );
 }

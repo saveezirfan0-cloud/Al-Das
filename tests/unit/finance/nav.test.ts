@@ -364,8 +364,9 @@ describe("Finance navigation", () => {
       "Month-end",
     ]);
     // nothing was dropped: the menu, the tabs and the setup pages still reach every page the old menu listed (45), plus
-    // Phase 23's Doctor performance
-    expect(financePagesFor(member(["*"]))).toHaveLength(46);
+    // Phase 23's Doctor performance and Phase G's Report e-mails (a setup page)
+    expect(financePagesFor(member(["*"]))).toHaveLength(47);
+    expect(FINANCE_SETUP_PAGES.map((p) => p.href)).toContain("/finance/report-emails");
     // the tab strip lists only the tabs a member may open, and only when there are two or more
     const md = financeTabGroupsFor(member(role("Medical Director")));
     expect(md.map((g) => g.label)).toEqual(["Performance"]);

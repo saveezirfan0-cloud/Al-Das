@@ -5,11 +5,16 @@ import { can } from "@/lib/auth/can";
 import { getCurrentMember } from "@/lib/auth/session";
 import { toCsv } from "@/lib/csv";
 import { SUMMARY_COLUMNS, currentMonth, monthParam, monthsAgo } from "@/lib/finance/summary";
+import { renderSummaryDocument } from "@/lib/finance/report-documents-server";
 import { recordExport } from "@/lib/security/access-log";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
-/** GET /api/finance/summary?from=yyyy-mm&to=yyyy-mm&branch=P → text/csv. Requires finance.view. */
+/**
+ * GET /api/finance/summary?from=yyyy-mm&to=yyyy-mm&branch=P&format=csv|xlsx|pdf → the monthly summary. Requires
+ * finance.view. CSV (default) is the plain rows; Excel and PDF (Phase G) add totals, the comparison with the period before
+ * and the Provisional / Final label from the CEO month lock. Audited and logged as an export.
+ */
 export async function GET(req: Request) {
   const member = await getCurrentMember();
   if (!member) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
@@ -23,6 +28,37 @@ export async function GET(req: Request) {
     .replace(/[^A-Za-z0-9]/g, "")
     .slice(0, 4)
     .toUpperCase();
+  const format = url.searchParams.get("format");
+
+  if (format === "xlsx" || format === "pdf") {
+    const range = from <= to ? { from, to } : { from: to, to: from };
+    const admin = createAdminClient(); // service role AFTER the permission check
+    try {
+      const doc = await renderSummaryDocument(
+        admin,
+        { id: member.orgId, name: member.org.name },
+        { ...range, branch: branch || null },
+        format,
+      );
+      await recordAudit(admin, {
+        orgId: member.orgId,
+        userId: member.userId,
+        action: "finance.summary.exported",
+        entity: "v_fin_monthly_measures",
+        diff: { ...range, branch: branch || null, rows: doc.rows, format },
+      });
+      await recordExport(admin, member, { dataset: "finance:summary", rows: doc.rows, format });
+      return new NextResponse(new Uint8Array(doc.body), {
+        headers: {
+          "Content-Type": doc.contentType,
+          "Content-Disposition": `attachment; filename="finance-summary-${range.from}-${range.to}.${format}"`,
+          "Cache-Control": "no-store",
+        },
+      });
+    } catch {
+      return NextResponse.json({ error: "query failed" }, { status: 500 });
+    }
+  }
 
   let q = (await createClient())
     .from("v_fin_monthly_measures")
