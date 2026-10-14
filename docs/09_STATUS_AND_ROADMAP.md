@@ -6,6 +6,10 @@ This is the single document to work from. Section 1 says where we are, 2 says wh
 
 ---
 
+## 0d. Update, 14 Oct 2026: management platform plan
+
+The owner's May 2026 models (turnaround template, department benchmarking and recruitment calculator) were reviewed against Pulse. Plan in `docs/40_MANAGEMENT_PLATFORM_PLAN.md`: one data layer and one metric register (six profit levels from net revenue to profit after allocation) feeding Group, Clinic, Department and Doctor views; phases M0 (turn on the data), M1 (revenue, = Phase 23A/23B), M2 (costs and contribution), M3 (capacity and rooms), M4 (forecasts and scenarios), M5 (cockpit). 13 defects in the May models are listed so they are not carried into code. New questions OQ-143 to OQ-147.
+
 ## 0c. Update, 14 Oct 2026: Unite collection report analysed, Phase 23 planned
 
 Al Das sent the Unite "Daily Collection Multi-Clinic Report" for September (data request D1, also covers D2) and the hand-built "Revenue comparison" workbook. Findings and the plan are in `docs/39_UNITE_REPORTS_PLAN.md`:
