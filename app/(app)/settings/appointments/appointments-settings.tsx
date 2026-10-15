@@ -1,6 +1,7 @@
 "use client";
 
 import type { AppointmentSettings } from "@/lib/appointments/settings";
+import type { AppointmentSettingsTab } from "@/lib/appointments/settings-tabs";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import {
@@ -20,6 +21,7 @@ import {
 import { Specialists, type SpecialistRow } from "./specialists";
 
 export function AppointmentsSettings({
+  initialTab,
   orgTimezone,
   rules,
   locations,
@@ -32,6 +34,8 @@ export function AppointmentsSettings({
   users,
   financeBranches,
 }: {
+  /** From ?tab=; the page opens on Locations while there are none. */
+  initialTab: AppointmentSettingsTab;
   orgTimezone: string;
   rules: AppointmentSettings;
   locations: Location[];
@@ -46,24 +50,23 @@ export function AppointmentsSettings({
   financeBranches: Array<{ code: string; name: string }>;
 }) {
   return (
-    <Tabs defaultValue="specialists" className="flex flex-col gap-4">
+    <Tabs
+      defaultValue={initialTab}
+      // keep ?tab= in step, so a reload, a shared link and the menu's highlight (CRM, Branches) follow the open tab
+      onValueChange={(tab) => {
+        const params = new URLSearchParams(window.location.search);
+        params.set("tab", tab);
+        window.history.replaceState(null, "", `?${params.toString()}`);
+      }}
+      className="flex flex-col gap-4"
+    >
       <TabsList className="w-fit flex-wrap">
-        <TabsTrigger value="specialists">Specialists</TabsTrigger>
-        <TabsTrigger value="locations">Locations</TabsTrigger>
+        <TabsTrigger value="locations">Branches</TabsTrigger>
         <TabsTrigger value="departments">Departments</TabsTrigger>
         <TabsTrigger value="services">Services</TabsTrigger>
+        <TabsTrigger value="doctors">Doctors and hours</TabsTrigger>
         <TabsTrigger value="rules">Booking rules</TabsTrigger>
       </TabsList>
-      <TabsContent value="specialists">
-        <Specialists
-          specialists={specialists}
-          locations={locations}
-          departments={departments}
-          services={services}
-          users={users}
-          defaultSlotMin={rules.slot_granularity_min}
-        />
-      </TabsContent>
       <TabsContent value="locations">
         <Locations
           items={locations}
@@ -76,6 +79,16 @@ export function AppointmentsSettings({
       </TabsContent>
       <TabsContent value="services">
         <Services items={services} departments={departments} />
+      </TabsContent>
+      <TabsContent value="doctors">
+        <Specialists
+          specialists={specialists}
+          locations={locations}
+          departments={departments}
+          services={services}
+          users={users}
+          defaultSlotMin={rules.slot_granularity_min}
+        />
       </TabsContent>
       <TabsContent value="rules">
         <BookingRules

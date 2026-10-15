@@ -26,6 +26,8 @@ export type ApptRow = {
   reminder: ReminderSummary;
   /** Phase 19b: null follows the service's default visit mode. */
   visit_mode: string | null;
+  /** Phase E: the front desk's check-in state (Arrived / With doctor / Done / Checked out), Pulse only. */
+  checkin_status: string | null;
   /**
    * Phase 20c: the booking breaks today's capacity rules (a block, or no place left), e.g. a Unite
    * appointment. Display only: nothing is refused or changed. Absent when not checked.
@@ -62,7 +64,8 @@ export type SpecialistOption = {
 export type AppointmentsBootstrap = {
   timezone: string;
   today: string;
-  can: { manage: boolean; export: boolean; contacts: boolean };
+  /** settings: may open Settings, Appointments (empty states link there). */
+  can: { manage: boolean; export: boolean; contacts: boolean; settings: boolean };
   locations: Array<{ id: string; name: string; timezone: string }>;
   departments: Array<{ id: string; name: string }>;
   services: Array<{

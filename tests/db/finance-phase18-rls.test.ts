@@ -333,6 +333,8 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 18: finance upgrades, access", () => 
       p === "finance.targets.manage" ||
       p === "finance.followup.manage" ||
       p === "finance.inbox.manage" ||
+      // finance.report_emails.manage arrived with Phase G (20261207000100, tested in finance-report-emails.test.ts)
+      p === "finance.report_emails.manage" ||
       p.startsWith("finance.payables.") ||
       p.startsWith("finance.vouchers.") ||
       p === "finance.tally.export" ||

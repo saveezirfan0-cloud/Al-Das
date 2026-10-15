@@ -1,3 +1,4 @@
+import { CappedNote } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { can } from "@/lib/auth/can";
@@ -78,6 +79,7 @@ export default async function UnclassifiedMedicationsPage() {
         </AlertDescription>
       </Alert>
       <ClassifyList items={items} canWrite={can(member, "portal.medication_classes.write")} />
+      {rows.length >= 500 && <CappedNote shown={500} />}
     </div>
   );
 }

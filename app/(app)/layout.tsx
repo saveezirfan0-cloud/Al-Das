@@ -18,6 +18,7 @@ import { NAV_MODULES } from "@/lib/nav/modules";
 import { NAV_STATE_COOKIE, parseNavState } from "@/lib/nav/state";
 import { buildNavTree } from "@/lib/nav/tree";
 import type { QuickLink } from "@/lib/shell/quick-links";
+import { subPageLinksFor } from "@/lib/shell/sub-page-links";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const member = await requireMember();
@@ -54,34 +55,27 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       keywords: ["videos", "guides", "shortcuts", "what's new", "feedback", "onboarding", "?"],
       hint: "Help",
     },
-    ...(can(member, "frontdesk.use")
-      ? [
-          {
-            href: "/front-desk/end-of-day",
-            label: "End of day sheet",
-            keywords: ["handover", "print", "unconfirmed", "close up"],
-            hint: "Front desk",
-          },
-          {
-            href: "/front-desk/qr",
-            label: "Desk QR code",
-            keywords: ["poster", "register", "walk-in", "print"],
-            hint: "Front desk",
-          },
-        ]
-      : []),
     ...items.flatMap((i) => [
       { href: i.href, label: i.label, keywords: i.keywords, hint: i.group },
       // every registered module page, with "<module> · <section>" as context
       ...(i.sections ?? []).flatMap((s) =>
-        s.pages.map((p) => ({
-          href: p.href,
-          label: p.label,
-          keywords: p.keywords,
-          hint: `${i.label} · ${s.title}`,
-        })),
+        s.pages.flatMap((p) => [
+          {
+            href: p.href,
+            label: p.label,
+            // a tab group's entry opens its first tab: its tab names find it too
+            keywords: [...(p.keywords ?? []), ...(p.tabs ?? []).map((t) => t.label)],
+            hint: `${i.label} · ${s.title}`,
+          },
+          // every other tab of a tab group (Phase D) stays one search away
+          ...(p.tabs ?? [])
+            .filter((t) => t.href !== p.href)
+            .map((t) => ({ href: t.href, label: t.label, hint: `${i.label} · ${p.label}` })),
+        ]),
       ),
     ]),
+    // pages reached from inside another page (in-page tabs, buttons), each behind its page's own key
+    ...subPageLinksFor(member),
   ];
 
   const name = `${member.profile.first_name} ${member.profile.last_name}`.trim();
@@ -136,7 +130,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </div>
           </div>
           <MobileTabs items={items} />
-          <CommandPalette links={quickLinks} />
+          <CommandPalette
+            links={quickLinks}
+            searchRecords={
+              can(member, "contacts.view") ||
+              can(member, "enquiries.view") ||
+              can(member, "tasks.view")
+            }
+          />
         </NavBadgesProvider>
       </ShellDataProvider>
     </TooltipProvider>

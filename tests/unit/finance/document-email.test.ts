@@ -13,6 +13,7 @@ import {
   documentFilename,
   documentSpec,
   maskAddress,
+  memberRecipientOf,
   OUTCOME_NOTICE,
   recipientHash,
   runDocumentEmail,
@@ -131,6 +132,87 @@ describe("document e-mail rules", () => {
         { draft: true },
       ),
     ).toBe("month-end-close-2026-09-draft.pdf");
+  });
+});
+
+describe("Phase G: reports and invoice copies", () => {
+  const RUN = "55555555-5555-4555-8555-555555555555";
+  const INVOICE = "66666666-6666-4666-8666-666666666666";
+  const flash = { kind: "daily_flash" as const, day: "2026-10-13", recipient_user_id: USER, run_id: RUN };
+  const summary = {
+    kind: "monthly_summary" as const,
+    from: "2026-09",
+    to: "2026-09",
+    branch: null,
+    recipient_user_id: USER,
+    run_id: null,
+  };
+
+  it("validates the new kinds (a run id is optional, the branch is a code)", () => {
+    expect(documentSpec.parse({ kind: "daily_flash", day: "2026-10-13", recipient_user_id: USER })).toEqual({
+      ...flash,
+      run_id: null,
+    });
+    expect(documentSpec.safeParse({ ...flash, day: "2026-13-01" }).success).toBe(false);
+    expect(documentSpec.safeParse({ ...summary, from: "2026-10", to: "2026-09" }).success).toBe(false);
+    expect(documentSpec.safeParse({ ...summary, branch: "G; drop" }).success).toBe(false);
+    expect(documentSpec.safeParse({ ...summary, branch: "G" }).success).toBe(true);
+    expect(
+      documentSpec.safeParse({ kind: "sales_invoice", customer_id: CUSTOMER, invoice_id: INVOICE }).success,
+    ).toBe(true);
+    expect(memberRecipientOf(flash)).toBe(USER);
+    expect(
+      memberRecipientOf({ kind: "sales_invoice", customer_id: CUSTOMER, invoice_id: INVOICE }),
+    ).toBeNull();
+  });
+
+  it("words a report e-mail with a fixed sentence and the period only: no figures, no names", () => {
+    const f = documentEmailText(flash, { orgName: "Synthetic Clinic", recipientName: "Sam Demo", provisional: true });
+    expect(f.subject).toBe("Synthetic Clinic: daily flash report for 2026-10-13 (provisional)");
+    expect(f.text.startsWith("Hello,")).toBe(true);
+    expect(f.text).not.toContain("Sam");
+    // the only digits are the date
+    expect(f.text.replace("2026-10-13", "")).not.toMatch(/\d/);
+    const s2 = documentEmailText(summary, { orgName: "Synthetic Clinic", recipientName: null, provisional: false });
+    expect(s2.subject).toBe("Synthetic Clinic: monthly finance summary, September 2026");
+    expect(s2.text.replace("September 2026", "")).not.toMatch(/\d|AED/);
+    expect(documentFilename(flash)).toBe("flash-report-2026-10-13.xlsx");
+    expect(documentFilename(summary)).toBe("finance-summary-2026-09.xlsx");
+  });
+
+  it("words an invoice copy with its number and date, never an amount", () => {
+    const t = documentEmailText(
+      { kind: "sales_invoice", customer_id: CUSTOMER, invoice_id: INVOICE },
+      {
+        orgName: "Synthetic Clinic",
+        recipientName: "Synthetic Corporate LLC",
+        reference: { number: "SI/2026-27/00001", date: "2026-09-30", creditNote: false },
+      },
+    );
+    expect(t.subject).toBe("Synthetic Clinic: copy of invoice SI/2026-27/00001");
+    expect(t.text).toContain("Dear Synthetic Corporate LLC,");
+    expect(t.text).not.toMatch(/AED/);
+    expect(
+      documentFilename(
+        { kind: "sales_invoice", customer_id: CUSTOMER, invoice_id: INVOICE },
+        { number: "SI/2026-27/00001" },
+      ),
+    ).toBe("SI-2026-27-00001-copy.pdf");
+  });
+
+  it("refuses a member who no longer holds the report's permission, before rendering", async () => {
+    let rendered = false;
+    const { p, sent } = ports({
+      recipient: async () => "not_allowed",
+      render: async () => {
+        rendered = true;
+        return { attachment };
+      },
+    });
+    await expect(runDocumentEmail(job({ document: flash }), p)).resolves.toBe("recipient_not_allowed");
+    expect(rendered).toBe(false);
+    expect(sent).toEqual([]);
+    expect(OUTCOME_NOTICE.recipient_not_allowed).not.toMatch(/@/);
   });
 });
 

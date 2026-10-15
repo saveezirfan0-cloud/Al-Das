@@ -77,7 +77,7 @@ export default async function ClinicalFeedbackPage({
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Clinical feedback"
-        description="What patients answered to clinical check-ins: the score, side effects and whether a doctor was alerted. Calls and outcomes are recorded in the Follow-Up Queue."
+        description="What patients answered to clinical check-ins: the score, side effects and whether a doctor was alerted. Calls and outcomes are recorded in Clinical follow-ups."
       />
       <nav aria-label="Filter" className="flex gap-3 text-sm">
         <Link

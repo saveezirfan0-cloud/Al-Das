@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { selectClass } from "@/components/finance/forms";
+import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -103,8 +104,8 @@ export default async function DayBookPage({ searchParams }: { searchParams: Prom
             <TableBody>
               {book.journals.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-muted-foreground text-sm">
-                    Nothing posted in this range.
+                  <TableCell colSpan={5}>
+                    <EmptyState title="Nothing posted in this range" className="border-0 p-6" />
                   </TableCell>
                 </TableRow>
               )}

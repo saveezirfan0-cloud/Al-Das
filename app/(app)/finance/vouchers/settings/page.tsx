@@ -1,3 +1,4 @@
+import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -169,8 +170,8 @@ export default async function VoucherSettingsPage() {
                   <TableBody>
                     {(ledgers ?? []).length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={4} className="text-muted-foreground text-sm">
-                          Nothing mapped yet.
+                        <TableCell colSpan={4}>
+                          <EmptyState title="Nothing mapped yet" className="border-0 p-6" />
                         </TableCell>
                       </TableRow>
                     ) : (

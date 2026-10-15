@@ -4,6 +4,7 @@ import * as React from "react";
 import { Loader2, Tag, Trash2, UserCog, Layers, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -72,6 +73,7 @@ export function BulkBar({
   onDone: () => void;
 }) {
   const [pending, startTransition] = React.useTransition();
+  const [confirm, confirmDialog] = useConfirm();
   const [editOpen, setEditOpen] = React.useState(false);
   const [newTagOpen, setNewTagOpen] = React.useState(false);
   const [newTag, setNewTag] = React.useState("");
@@ -214,18 +216,21 @@ export function BulkBar({
         size="sm"
         className="text-destructive ml-auto"
         disabled={pending}
-        onClick={() => {
-          if (
-            confirm(
-              `Delete ${ids.length} contact${ids.length === 1 ? "" : "s"}? They disappear from lists and campaigns and can be restored from Settings, Recently deleted for a while.`,
-            )
-          )
-            run(() => deleteContacts(ids));
+        onClick={async () => {
+          const ok = await confirm({
+            title: `Delete ${ids.length} patient${ids.length === 1 ? "" : "s"}?`,
+            description:
+              "They disappear from lists and campaigns and can be restored from Settings, Recently deleted for a while.",
+            confirmLabel: "Delete",
+            destructive: true,
+          });
+          if (ok) run(() => deleteContacts(ids));
         }}
       >
         <Trash2 /> Delete
       </Button>
       {pending && <Loader2 className="size-4 animate-spin" />}
+      {confirmDialog}
 
       <BulkEditDialog
         open={editOpen}

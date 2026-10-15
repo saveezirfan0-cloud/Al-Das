@@ -3,10 +3,46 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
-    id: "2026-12-03-management-reports",
+    id: "2026-12-08-management-reports",
     date: "2026-10-14",
     title: "Collections, insurance billing, contribution, capacity and recruitment",
     body: "Five new Finance pages build on the uploaded Unite collection report. Collections and data quality shows how each month was paid and flags rows worth checking. Insurance billed vs claimed lists invoices billed to an insurer that Diligence shows were never submitted. Contribution shows what each doctor, department and clinic contributes after the pay and overheads Finance has loaded, marked Provisional until the month is approved. Capacity shows each doctor's available hours and revenue per hour, with rooms kept under Settings, Rooms. The Recruitment calculator tests whether a candidate doctor would pay for themselves against the clinic's own doctors. Finance is also told, once per alert, when the report is late, revenue is behind target, or doctors fall below the revenue-per-patient band.",
+  },
+  {
+    id: "2026-12-06-menu-keyboard-names",
+    date: "2026-10-14",
+    title: "The menu works from the keyboard, and pages keep one name",
+    body: "On a computer, Tab to an area of the menu and press Enter (or the right arrow) to open its pages; the arrows move between them, Esc brings you back, and Tab past the last page moves on to the next area. Pages now have the same name in the menu, at the top of the page and in the browser tab: Settings, Clinic and appointments (once Appointment rules), Accounting overview (once Dashboard) and Portal, Sync review. Quick search still finds them by their old names. CRM, Branches is now highlighted while you are on the Branches tab.",
+  },
+  {
+    id: "2026-12-07-finance-report-emails",
+    date: "2026-10-14",
+    title: "Reports by e-mail, invoices to customers, and one way to upload files",
+    body: "Finance can now have the daily flash e-mailed every morning and the monthly summary once a month to the members they choose (Settings, Finance setup, Report e-mails). Only people who can see a report in Pulse can receive it, and that is checked again at every send; the e-mail has no figures, the report is the attached Excel file, marked Provisional until the month is locked. On the Reports hub the daily flash and the monthly summary now have PDF downloads and E-mail me. An issued sales invoice or credit note can be e-mailed to the business customer as a copy marked Internal copy - not a tax invoice. Bank statements and lab or provider files are uploaded in a new box: drag the file in or press Choose file, see the first rows of the columns that will be read and the names of any columns that will be ignored, then confirm.",
+  },
+  {
+    id: "2026-12-04-simple-to-use",
+    date: "2026-10-14",
+    title: "A simpler Pulse: clearer menu, record search and your own home page",
+    body: "The menu is grouped the way the clinic works: Today (front desk, my day, appointments, tasks and clinical follow-ups), Messaging (inbox, templates, campaigns, flows, recall and media), CRM (patients and enquiries, then doctors, staff, teams and branches), Finance, Accounting and Insights (reports, the management dashboard and the portal). The Finance menu is down from 44 entries to 21: pages that belong together are tabs under one entry, and finance and accounting setup moved to Settings. Press Ctrl K to find a patient by name or phone, an enquiry by number or title, or a task, as well as any page. Pulse opens on the page that suits your role, the dashboard shows only what you can act on (with today's appointments), and a short first-steps card helps new people start. Confirmations now appear inside Pulse, lists say what to do when they are empty, unsaved changes in the Staff and Doctors drawers are protected, and accounting words such as debit, credit and on account explain themselves when you point at them.",
+  },
+  {
+    id: "2026-12-05-inbox-crm-tasks-v2",
+    date: "2026-10-14",
+    title: "Snooze, waiting times, task boards and daily checklists",
+    body: "Inbox: snooze a chat until a time (it comes back on its own, or as soon as the patient writes), see how long each patient has waited for a reply (amber, then red), tick several chats to assign or close them together, search the text of messages, make a task from a chat, and see when a colleague is already typing in the same chat. A patient's record now has History (messages, appointments, enquiries, tasks and notes in one list), Tasks and, for finance staff, Invoices, with the owner and home branch at the top. Tasks have a status, priority, team, checklist, comments with @mentions, files and repeats, a Board and a Calendar view, and you are told when someone gives you a task or mentions you. Each branch can have opening and closing checklists that appear as a task every morning. Enquiries can be imported from a CSV file.",
+  },
+  {
+    id: "2026-12-04-front-desk-v2",
+    date: "2026-10-14",
+    title: "Front desk and diary: book at the desk, slips, drag to move",
+    body: "The Front desk has a Book button: it opens on your branch, shows one day of free times for each doctor who does the service, and books the patient you looked up. Cancel and No-show now ask once in a small window instead of two browser pop-ups, and a cancellation still offers the slot to the waiting list. When a patient arrives, the board shows whether their insurance card is on file or expired, their eligibility and their consent forms, or says Not checked when that information is switched off or not yours to see. Walk-ins can be registered without a phone or with a number from another country, and the WhatsApp tick is now a real choice: without it Pulse sends them nothing on WhatsApp. Print a slip (first name, time, doctor, branch and booking number) from the printer icon on the board; Finance users also see the payment record, which is not a tax invoice. End of day shows each branch's seen, no-shows, cancellations, walk-ins and median wait, with a link to the cash-up. In Appointments, bookings show the desk's check-in state, can be dragged to another time or doctor (they jump back with the reason if the time is taken), and the new Branch week shows every doctor of a branch from Monday to Sunday.",
+  },
+  {
+    id: "2026-12-04-clinic-setup-crm",
+    date: "2026-10-14",
+    title: "Set up your clinic, and one CRM for patients, doctors and staff",
+    body: "A new workspace now walks you through the set-up: the dashboard shows the next steps (branches, services, doctors and their hours, the team, staff records, the WhatsApp number) until they are done, and the Go-live checklist lists them all. Settings, Clinic and appointments opens on Locations until you have one and then goes in set-up order. CRM now holds Patients, Enquiries, Doctors, Appointments, Staff and the Rota. A doctor's card shows their next appointments, this week's shifts and their staff record, with Add doctor on the list. Managers can now see staff records. Administrators can add the finance and accounting roles from Settings, Roles. A doctor's card also has a Finance link for finance staff: it ties the doctor to their finance record (DHA id) and their name in the Unite report, suggesting the match, and Performance then opens on that doctor. Finance can add a doctor by DHA id under Finance, Reference data.",
   },
   {
     id: "2026-12-03-finance-reports-hub",
@@ -24,7 +60,7 @@ export const WHATS_NEW: readonly WhatsNewEntry[] = [
     id: "2026-12-01-branch-dimension",
     date: "2026-10-14",
     title: "Branches across Pulse",
-    body: "Each WhatsApp number can now belong to a branch and send its new chats to that branch's team first (Settings, WhatsApp channels, Edit). Chats show their branch, and the Inbox, Tasks and their counts follow the branch switcher, with a Branch filter to look at another branch or all of yours. New tasks start in your current branch, and people limited to some branches only see those branches' tasks. Patients have a home branch on their record and in the list filters. In Accounting, the trial balance, general ledger, balance sheet, cash flow and receivables ageing can show one branch, and the profit and loss has Branches side by side; each branch's finance code is set under Settings, Appointment rules, Locations.",
+    body: "Each WhatsApp number can now belong to a branch and send its new chats to that branch's team first (Settings, WhatsApp channels, Edit). Chats show their branch, and the Inbox, Tasks and their counts follow the branch switcher, with a Branch filter to look at another branch or all of yours. New tasks start in your current branch, and people limited to some branches only see those branches' tasks. Patients have a home branch on their record and in the list filters. In Accounting, the trial balance, general ledger, balance sheet, cash flow and receivables ageing can show one branch, and the profit and loss has Branches side by side; each branch's finance code is set under Settings, Clinic and appointments, Branches.",
   },
   {
     id: "2026-11-26-doctor-performance",

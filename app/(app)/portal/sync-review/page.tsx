@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 
 import { ReviewList, type ReviewItem } from "./review-list";
 
-export const metadata = { title: "Sync Review" };
+export const metadata = { title: "Sync review" };
 
 const STATUSES = ["open", "resolved", "dismissed"] as const;
 const SOURCES = [
@@ -125,8 +125,8 @@ export default async function SyncReviewPage({
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Sync Review"
-        description="Unite patients and Sanoflow import records that could not be matched to a single contact or booked. Nothing is merged automatically."
+        title="Sync review"
+        description="Unite patients and Sanoflow import records that could not be matched to a single patient record or booked. Nothing is merged automatically."
       />
       <div className="flex gap-1">
         {SOURCES.map((s) => (

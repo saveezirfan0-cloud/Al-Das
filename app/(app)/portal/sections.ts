@@ -10,7 +10,7 @@ export type PortalSection = {
 export const PORTAL_SECTIONS: readonly PortalSection[] = [
   {
     href: "/portal/sync-review",
-    label: "Sync Review",
+    label: "Sync review",
     description:
       "Unite patients that could not be matched to a contact automatically. Link, create or dismiss.",
     read: "portal.sync_review.read",
@@ -18,7 +18,7 @@ export const PORTAL_SECTIONS: readonly PortalSection[] = [
   },
   {
     href: "/portal/follow-ups",
-    label: "Follow-Up Queue",
+    label: "Clinical follow-ups",
     description:
       "Visits that tripped a clinical rule, with the call outcome. Internal tasks for nurses and the call centre.",
     read: "portal.clinical_followups.read",

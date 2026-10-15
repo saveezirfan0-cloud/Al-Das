@@ -5,24 +5,22 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
+  CalendarPlus,
   ClipboardList,
   Hourglass,
   Loader2,
   Printer,
   QrCode,
   RefreshCw,
-  Search,
   StickyNote,
 } from "lucide-react";
 import { formatInTimeZone } from "date-fns-tz";
 import { toast } from "sonner";
 
 import { getVideoJoinLink } from "@/app/(app)/appointments/actions";
-import { searchContactsQuick } from "@/app/(app)/contacts/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
@@ -41,6 +39,7 @@ import {
   nextCheckinState,
   type CheckinState,
 } from "@/lib/front-desk/checkin";
+import { notCheckedLines, type CheckLine } from "@/lib/front-desk/arrival-check";
 import type { BoardRow, PatientCardData } from "@/lib/front-desk/server";
 import { isTypingTarget } from "@/lib/help/shortcuts";
 import { useIsPhone } from "@/lib/hooks/use-media-query";
@@ -49,13 +48,16 @@ import { cn } from "@/lib/utils";
 
 import {
   addHandoverNote,
+  getArrivalChecks,
   getPatientCard,
-  markNoShow,
   removeFromWaitlist,
   resolveHandoverNote,
   setCheckin,
 } from "./actions";
+import { ArrivalChecks } from "./arrival-checks";
+import { PatientSearch, type FoundPatient } from "./patient-search";
 import type { DeskCan, DeskData, DeskOptions } from "./types";
+import { useVisitClose } from "./visit-close";
 import { WalkInDialog } from "./walk-in-dialog";
 
 const OFFER_FAILURE_HINT: Record<string, string> = {
@@ -63,6 +65,7 @@ const OFFER_FAILURE_HINT: Record<string, string> = {
     "The 24-hour window is closed and no offer template is set (Settings, Front desk).",
   no_whatsapp: "This patient has no WhatsApp number.",
   no_channel: "No active WhatsApp number can send the template.",
+  no_whatsapp_consent: "The patient did not agree to WhatsApp messages at the desk.",
   template_variables_unmapped: "The offer template has variables that are not mapped.",
   queue_failed: "The message could not be queued.",
 };
@@ -73,7 +76,12 @@ const PatientCardView = dynamic(() => import("./patient-card").then((m) => m.Pat
   loading: () => <p className="text-muted-foreground text-sm">Loading the patient card…</p>,
 });
 
-type Filter = "all" | "expected" | "in_clinic" | "finished" | "no_show";
+// Phase E: the Book drawer loads when it is first opened, not with the board.
+const BookDrawer = dynamic(() => import("./book-drawer").then((m) => m.BookDrawer), {
+  ssr: false,
+});
+
+type Filter ="all" | "expected" | "in_clinic" | "finished" | "no_show";
 
 const FILTERS: Array<{ key: Filter; label: string }> = [
   { key: "all", label: "All" },
@@ -131,11 +139,54 @@ export function FrontDeskWorkspace({
   const [card, setCard] = useState<PatientCardData | null>(null);
   const [cardLoading, setCardLoading] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [bookOpen, setBookOpen] = useState(false);
+  const [bookMounted, setBookMounted] = useState(false);
+  const [bookFor, setBookFor] = useState<FoundPatient | null>(null);
+  const [checks, setChecks] = useState<Record<string, CheckLine[]>>({});
+  const [checksLoading, setChecksLoading] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
   const tz = options.timezone;
   const now = useMemo(() => new Date(), [data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const refresh = useCallback(() => router.refresh(), [router]);
+  const visitClose = useVisitClose(refresh);
+
+  function openBook(p: FoundPatient | null) {
+    setBookFor(p);
+    setBookMounted(true);
+    setBookOpen(true);
+  }
+
+  // Phase E: the check panel for everyone at Arrived (insurance card, eligibility, consent forms), refreshed with the board.
+  const arrivedKey = data.rows
+    .filter((r) => r.checkin_status === "arrived" && r.status !== "cancelled" && r.status !== "no_show")
+    .map((r) => r.id)
+    .slice(0, 60)
+    .join(",");
+  useEffect(() => {
+    if (!arrivedKey) {
+      setChecks({});
+      return;
+    }
+    let cancelled = false;
+    setChecksLoading(true);
+    const ids = arrivedKey.split(",");
+    void getArrivalChecks(ids)
+      .catch(() => ({ ok: false as const, error: "unavailable" }))
+      .then((r) => {
+        if (cancelled) return;
+        setChecksLoading(false);
+        // Fails closed: when the checks cannot be loaded every line says so, never a blank or a tick.
+        setChecks(
+          r.ok && r.data
+            ? r.data
+            : Object.fromEntries(ids.map((id) => [id, notCheckedLines("could not load")])),
+        );
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [arrivedKey, data]);
 
   // Keep the board current without anyone pressing anything.
   useEffect(() => {
@@ -208,6 +259,7 @@ export function FrontDeskWorkspace({
       can={can}
       searchRef={searchRef}
       onPick={loadCard}
+      onBook={(p) => openBook(p)}
       onChanged={() => {
         refresh();
         if (selectedId) void loadCard(selectedId);
@@ -229,6 +281,25 @@ export function FrontDeskWorkspace({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {can.appointments && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() =>
+                openBook(
+                  card
+                    ? {
+                        id: card.contact.id,
+                        name: card.contact.name,
+                        phone: card.contact.phone ? formatPhone(card.contact.phone) : null,
+                      }
+                    : null,
+                )
+              }
+            >
+              <CalendarPlus /> Book
+            </Button>
+          )}
           {can.contacts && (
             <WalkInDialog
               options={options}
@@ -313,18 +384,35 @@ export function FrontDeskWorkspace({
                         selected={selectedId === r.contact_id}
                         disabled={pending}
                         compact={isPhone}
+                        checks={checks[r.id]}
+                        checksLoading={checksLoading}
                         onOpen={() => r.contact_id && void loadCard(r.contact_id)}
                         onCheckin={(to) => act(() => setCheckin({ appointmentId: r.id, to }))}
-                        onNoShow={() => {
-                          if (confirm("Mark this patient as a no-show?"))
-                            act(() => markNoShow(r.id));
-                        }}
+                        onClose={(kind) =>
+                          visitClose.close({
+                            appointmentId: r.id,
+                            kind,
+                            patientName: r.patient_name,
+                          })
+                        }
                       />
                     ))}
                   </ul>
                 </div>
               ))}
             </div>
+          )}
+          {visitClose.dialog}
+          {bookMounted && (
+            <BookDrawer
+              open={bookOpen}
+              onOpenChange={setBookOpen}
+              options={options}
+              patient={bookFor}
+              initialDate={data.date}
+              today={data.today}
+              onBooked={() => refresh()}
+            />
           )}
         </section>
 
@@ -380,9 +468,11 @@ function BoardLine({
   selected,
   disabled,
   compact,
+  checks,
+  checksLoading,
   onOpen,
   onCheckin,
-  onNoShow,
+  onClose,
 }: {
   row: BoardRow;
   now: Date;
@@ -392,9 +482,13 @@ function BoardLine({
   selected: boolean;
   disabled: boolean;
   compact: boolean;
+  /** Phase E: the arrival check panel lines (only for patients at Arrived). */
+  checks?: CheckLine[];
+  checksLoading?: boolean;
   onOpen: () => void;
   onCheckin: (to: CheckinState | null) => void;
-  onNoShow: () => void;
+  /** Cancel or no-show, through the one confirmation dialog. */
+  onClose: (kind: "cancel" | "no_show") => void;
 }) {
   const section = boardSection(row, now, graceMin);
   const state = isCheckinState(row.checkin_status) ? row.checkin_status : null;
@@ -488,12 +582,40 @@ function BoardLine({
             </Button>
           )}
           {!state && section === "late" && !isUnite && (
-            <Button size="xs" variant="outline" disabled={disabled} onClick={onNoShow}>
+            <Button
+              size="xs"
+              variant="outline"
+              disabled={disabled}
+              onClick={() => onClose("no_show")}
+            >
               No-show
+            </Button>
+          )}
+          {!state && (section === "expected" || section === "late") && !isUnite && (
+            <Button
+              size="xs"
+              variant="ghost"
+              disabled={disabled}
+              onClick={() => onClose("cancel")}
+              aria-label={`Cancel the appointment of ${row.patient_name}`}
+            >
+              Cancel
             </Button>
           )}
         </span>
       )}
+      {!closed && (
+        <Button size="xs" variant="ghost" asChild>
+          <Link
+            href={`/front-desk/slip/${row.id}`}
+            aria-label={`Print the appointment slip of ${row.patient_name}`}
+            title="Print slip"
+          >
+            <Printer />
+          </Link>
+        </Button>
+      )}
+      {state === "arrived" && !closed && <ArrivalChecks lines={checks} loading={checksLoading} />}
     </li>
   );
 }
@@ -527,7 +649,7 @@ function SidePanels({
   const openNotes = data.notes.filter((n) => !n.resolved_at).length;
   return (
     <Tabs value={tab} onValueChange={setTab} className="gap-3">
-      {cardPanel === null && <PatientSearch searchRef={searchRef} onPick={onPick} />}
+      {cardPanel === null && <PatientSearch searchRef={searchRef} onPick={(p) => onPick(p.id)} />}
       <TabsList className={cn("grid w-full", cardPanel === null ? "grid-cols-3" : "grid-cols-4")}>
         {cardPanel !== null && <TabsTrigger value="patient">Patient</TabsTrigger>}
         <TabsTrigger value="slots">Slots</TabsTrigger>
@@ -555,75 +677,6 @@ function SidePanels({
   );
 }
 
-function PatientSearch({
-  searchRef,
-  onPick,
-}: {
-  searchRef: React.RefObject<HTMLInputElement | null>;
-  onPick: (id: string) => void;
-}) {
-  const [q, setQ] = useState("");
-  const [rows, setRows] = useState<Array<{ id: string; name: string; phone: string | null }>>([]);
-  useEffect(() => {
-    if (q.trim().length < 2) {
-      setRows([]);
-      return;
-    }
-    let cancelled = false;
-    const h = setTimeout(() => {
-      void searchContactsQuick(q.trim()).then((r) => {
-        if (!cancelled && r.ok && r.data)
-          setRows(
-            r.data.rows.map((x) => ({
-              id: x.id,
-              name: x.full_name || "Unnamed",
-              phone: x.phone_e164 ? formatPhone(x.phone_e164) : null,
-            })),
-          );
-      });
-    }, 250);
-    return () => {
-      cancelled = true;
-      clearTimeout(h);
-    };
-  }, [q]);
-
-  return (
-    <div className="flex flex-col gap-2">
-      <div className="relative">
-        <Search className="text-muted-foreground absolute top-2.5 left-2.5 size-4" />
-        <Input
-          ref={searchRef}
-          className="pl-8"
-          placeholder="Find a patient: name or phone (press /)"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          aria-label="Find a patient"
-        />
-      </div>
-      {rows.length > 0 && (
-        <ul className="divide-y rounded-md border text-sm">
-          {rows.map((r) => (
-            <li key={r.id}>
-              <button
-                type="button"
-                className="hover:bg-accent flex w-full items-center justify-between gap-2 px-3 py-2 text-left"
-                onClick={() => {
-                  onPick(r.id);
-                  setQ("");
-                }}
-              >
-                <span className="font-medium">{r.name}</span>
-                <span className="text-muted-foreground text-xs">{r.phone}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
 function PatientPanel({
   card,
   loading,
@@ -631,6 +684,7 @@ function PatientPanel({
   can,
   searchRef,
   onPick,
+  onBook,
   onChanged,
 }: {
   card: PatientCardData | null;
@@ -639,18 +693,32 @@ function PatientPanel({
   can: DeskCan;
   searchRef: React.RefObject<HTMLInputElement | null>;
   onPick: (id: string) => void;
+  /** Phase E: Book opens the desk's Book drawer for this patient. */
+  onBook: (patient: FoundPatient) => void;
   onChanged: () => void;
 }) {
   return (
     <div className="flex flex-col gap-3">
-      <PatientSearch searchRef={searchRef} onPick={onPick} />
+      <PatientSearch searchRef={searchRef} onPick={(p) => onPick(p.id)} />
       {loading && (
         <p className="text-muted-foreground flex items-center gap-2 text-sm">
           <Loader2 className="size-4 animate-spin" /> Loading the patient…
         </p>
       )}
       {!loading && card && (
-        <PatientCardView card={card} options={options} can={can} onChanged={onChanged} />
+        <PatientCardView
+          card={card}
+          options={options}
+          can={can}
+          onChanged={onChanged}
+          onBook={() =>
+            onBook({
+              id: card.contact.id,
+              name: card.contact.name,
+              phone: card.contact.phone ? formatPhone(card.contact.phone) : null,
+            })
+          }
+        />
       )}
       {!loading && !card && (
         <p className="text-muted-foreground rounded-lg border border-dashed p-6 text-center text-sm">
@@ -665,7 +733,7 @@ function SlotsPanel({ data, tz }: { data: DeskData; tz: string }) {
   if (data.slots.length === 0)
     return (
       <p className="text-muted-foreground rounded-lg border border-dashed p-6 text-center text-sm">
-        No free slots found in the next week. Check working hours under Settings, Appointment rules.
+        No free slots found in the next week. Check working hours under Settings, Clinic and appointments.
       </p>
     );
   return (

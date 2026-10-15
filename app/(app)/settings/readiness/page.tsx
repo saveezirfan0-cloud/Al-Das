@@ -7,6 +7,7 @@ import { can } from "@/lib/auth/can";
 import { requirePerm } from "@/lib/auth/session";
 import { loadFreshness } from "@/lib/finance/freshness";
 import { readinessSteps } from "@/lib/finance/readiness";
+import { loadClinicSetupFacts } from "@/lib/golive/clinic-setup-server";
 import {
   goLiveRows,
   summariseRows,
@@ -43,23 +44,21 @@ export default async function GoLiveReadinessPage() {
   const org = member.orgId;
   const manageIntegrations = can(member, "integrations.manage");
 
-  const [health, integrations, unite, training, channels, templates, freshness] = await Promise.all(
-    [
-      getSystemHealth(admin),
-      loadIntegrationHealth(admin, org),
-      loadUniteAccount(admin, org),
-      isTrainingOrg(admin, org),
-      admin.from("channels").select("status").eq("org_id", org).eq("type", "whatsapp"),
-      admin
-        .from("wa_templates")
-        .select("id", { count: "exact", head: true })
-        .eq("org_id", org)
-        .eq("status", "APPROVED")
-        .is("archived_at", null),
-      // Finance data through the member's own client (RLS): no finance role, no finance facts.
-      createClient().then(loadFreshness),
-    ],
-  );
+  const [health, integrations, unite, training, setup, templates, freshness] = await Promise.all([
+    getSystemHealth(admin),
+    loadIntegrationHealth(admin, org),
+    loadUniteAccount(admin, org),
+    isTrainingOrg(admin, org),
+    loadClinicSetupFacts(admin, org, { staff: can(member, "hr.view") }),
+    admin
+      .from("wa_templates")
+      .select("id", { count: "exact", head: true })
+      .eq("org_id", org)
+      .eq("status", "APPROVED")
+      .is("archived_at", null),
+    // Finance data through the member's own client (RLS): no finance role, no finance facts.
+    createClient().then(loadFreshness),
+  ]);
 
   // What is still missing for an integration that is off. Only for people who may manage integrations (the check can open
   // the stored seal certificate); everyone else sees on/off and health.
@@ -81,15 +80,11 @@ export default async function GoLiveReadinessPage() {
     }),
   );
 
-  const channelRows = channels.data ?? [];
   const rows = goLiveRows({
     // Only yes/no leaves lib/golive/readiness.ts; no value is rendered.
     env: process.env,
-    whatsapp: {
-      channels: channelRows.length,
-      active: channelRows.filter((c) => c.status === "active").length,
-      approvedTemplates: templates.count ?? 0,
-    },
+    clinic: setup.clinic,
+    whatsapp: { ...setup.whatsapp, approvedTemplates: templates.count ?? 0 },
     trainingMode: training,
     unite: {
       credentials: !!unite && hasCredentials(unite.row),

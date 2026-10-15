@@ -22,7 +22,7 @@ Why so careful: the Unite Finance API hands each record over **once**. If a resp
    ```
    Until both exist, the cron jobs print a notice and do nothing.
 5. **Check cron is alive.** In the app: Settings → System health. The `finance_capture` queue should show "Idle"/"OK" with a handler registered. The hourly `pulse:finance_capture_tick` will enqueue nothing while capture is off.
-6. **Roles and reference data.** Run `pnpm finance:seed --org=<your-org-slug>` (adds Finance, Billing, Insurance, CEO, Medical Director roles and the branch / rule rows). Then Settings → Users: invite Sharaf (Insurance), Billing and Finance staff, the CEO and the Medical Director with the matching role.
+6. **Roles and reference data.** A workspace created at `/onboarding` already has them. For an older one, an Admin presses **Add finance and accounting roles** under Settings → Roles, or runs `pnpm finance:seed --org=<your-org-slug>` (same steps, `lib/finance/seed.ts`; adds Finance, Billing, Insurance, CEO, Medical Director, Cost/Payroll and Accounting roles and the branch / rule rows; idempotent). Then Settings → Users: invite Sharaf (Insurance), Billing and Finance staff, the CEO and the Medical Director with the matching role.
 7. **Branch names.** Branches P / M / G exist, but their Unite clinic names are blank. They are filled in section 5 after the first batch shows what Unite calls them.
 
 ## 2. Make: what exists and what to do about it [you]

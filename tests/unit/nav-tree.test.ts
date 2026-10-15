@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { NAV_ITEMS } from "@/components/shell/nav";
-import { SETTINGS_PAGES } from "@/components/shell/settings-pages";
+import { SETTINGS_FOREIGN_PREFIXES, SETTINGS_PAGES } from "@/components/shell/settings-pages";
 import type { MemberLike } from "@/lib/auth/can";
 import { FINANCE_NAV } from "@/lib/finance/nav";
 import { NAV_MODULES, type ModuleEntry } from "@/lib/nav/modules";
@@ -21,7 +21,7 @@ import {
   serializeNavState,
   setOpen,
 } from "@/lib/nav/state";
-import { activeTrail, buildNavTree, sectionKey, treeKeys } from "@/lib/nav/tree";
+import { activeTrail, buildNavTree, hrefMatch, sectionKey, treeKeys } from "@/lib/nav/tree";
 
 const member = (permissions: string[]): MemberLike => ({
   userId: "u",
@@ -112,7 +112,14 @@ describe("module registry", () => {
     for (const [href, entries] of Object.entries(NAV_MODULES)) {
       expect(tops, href).toContain(href);
       expect(new Set(entries.map((e) => e.href)).size).toBe(entries.length);
-      for (const e of entries) expect(e.href.startsWith(href + "/"), e.href).toBe(true);
+      // Settings also lists the finance and accounting setup pages at their own URLs (Phase D)
+      const prefixes =
+        href === "/settings" ? [href + "/", ...SETTINGS_FOREIGN_PREFIXES] : [href + "/"];
+      for (const e of entries)
+        expect(
+          prefixes.some((p) => e.href.startsWith(p)),
+          e.href,
+        ).toBe(true);
     }
   });
 });
@@ -136,6 +143,22 @@ describe("activeTrail", () => {
     expect(activeTrail(tree, "/bookshelf")).toEqual({});
   });
 
+  it("matches an entry with a query only on its exact path with the same parameter values", () => {
+    expect(hrefMatch("/a/b?tab=x", "/a/b", "?tab=x")).toBe("/a/b?tab=x".length);
+    expect(hrefMatch("/a/b?tab=x", "/a/b", new URLSearchParams("tab=x&y=2"))).toBeGreaterThan(
+      hrefMatch("/a/b", "/a/b", "?tab=x"),
+    );
+    expect(hrefMatch("/a/b?tab=x", "/a/b", "?tab=y")).toBe(-1);
+    expect(hrefMatch("/a/b?tab=x", "/a/b", "")).toBe(-1);
+    expect(hrefMatch("/a/b?tab=x", "/a/b", undefined)).toBe(-1);
+    expect(hrefMatch("/a/b?tab=x", "/a/b/c", "?tab=x")).toBe(-1);
+    expect(hrefMatch("/a/b?tab=x&v=1", "/a/b", "?v=1&tab=x")).toBe("/a/b?tab=x&v=1".length);
+    expect(hrefMatch("/a/b?tab=x&v=1", "/a/b", "?tab=x")).toBe(-1);
+    // a plain href still matches its path and below, whatever the query
+    expect(hrefMatch("/a", "/a/b", "?tab=x")).toBe(2);
+    expect(hrefMatch("/a", "/ab", "")).toBe(-1);
+  });
+
   it("collects every module and section key", () => {
     const keys = treeKeys(tree);
     expect(keys.modules).toEqual(["/books", "/empty"]); // "*" holds every key
@@ -150,7 +173,7 @@ describe("nav state cookie", () => {
   it("round-trips modules, minimised sections and groups", () => {
     let s = setOpen({}, moduleKey("/finance"), true);
     s = setOpen(s, sectionStateKey(sectionKey("/finance", "Billing & claims")), false);
-    s = setOpen(s, groupKey("Insight & back office"), false);
+    s = setOpen(s, groupKey("Insights"), false);
     s = setOpen(s, moduleKey("/settings"), false);
     const raw = serializeNavState(s);
     expect(raw).not.toMatch(/[;,\s]/); // safe as a cookie value

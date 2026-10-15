@@ -2,11 +2,11 @@
 -- Run the files in numeric order. A failed file rolls back as a whole, so it is safe to retry.
 -- Management alerts (M1): alert settings, the service-only alert state table with its atomic claim, and the inputs
 -- function the daily finance job reads (amounts and codes only).
--- Needs every earlier file first, up to and including 83_finance_insurance_billing.sql.
+-- Needs every earlier file first, up to and including 86_finance_insurance_billing.sql.
 -- Check the project name in the Supabase header first: this is for the Pulse project only.
 
 -- ======================================================================
--- 20261203000300_finance_management_alerts.sql
+-- 20261208000300_finance_management_alerts.sql
 -- ======================================================================
 -- M1 management alerts (docs/40_MANAGEMENT_PLATFORM_PLAN.md §4 M1, docs/23_PHASE_23E_NOTES.md).
 --

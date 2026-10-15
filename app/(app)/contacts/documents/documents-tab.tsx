@@ -20,6 +20,7 @@ import dynamic from "next/dynamic";
 import type { ImageEdit } from "@/components/media/image-editor";
 import { ScanBadge } from "@/components/media/scan-badge";
 import { Badge } from "@/components/ui/badge";
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -64,8 +65,10 @@ const ImageEditorDialog = dynamic(
 );
 
 const EXPIRY_CLASS: Record<string, string> = {
-  expired: "border-red-300 dark:border-red-500/30 bg-red-50 text-red-800 dark:bg-red-950/40 dark:text-red-200",
-  expiring: "border-amber-300 dark:border-amber-500/30 bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200",
+  expired:
+    "border-red-300 dark:border-red-500/30 bg-red-50 text-red-800 dark:bg-red-950/40 dark:text-red-200",
+  expiring:
+    "border-amber-300 dark:border-amber-500/30 bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200",
 };
 
 function whenLabel(iso: string, tz: string): string {
@@ -97,6 +100,7 @@ export function ContactDocuments({
     entries: AccessEntry[] | null;
   } | null>(null);
   const [pending, start] = useTransition();
+  const [confirm, confirmDialog] = useConfirm();
 
   const load = useCallback(async () => {
     const r = await listContactDocuments(contactId);
@@ -135,6 +139,7 @@ export function ContactDocuments({
 
   return (
     <div className="flex flex-col gap-3">
+      {confirmDialog}
       {!view.enabled && (
         <p className="rounded-md border border-amber-300 dark:border-amber-500/30 bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
           Patient documents are switched off for this workspace, so nothing can be added yet. An
@@ -265,13 +270,14 @@ export function ContactDocuments({
                       size="sm"
                       className="pointer-coarse:h-11 text-destructive"
                       disabled={pending}
-                      onClick={() => {
-                        if (
-                          !window.confirm(
-                            "Delete this document permanently? This cannot be undone.",
-                          )
-                        )
-                          return;
+                      onClick={async () => {
+                        const ok = await confirm({
+                          title: "Delete this document permanently?",
+                          description: "This cannot be undone.",
+                          confirmLabel: "Delete",
+                          destructive: true,
+                        });
+                        if (!ok) return;
                         start(async () => {
                           const r = await deleteDocument(d.id);
                           if (r.ok) {

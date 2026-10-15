@@ -93,9 +93,11 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
         title="Campaigns"
         description="Template broadcasts to a segment or an uploaded list, with delivery funnel and retries."
       >
-        <Button asChild variant="outline" size="sm">
-          <Link href="/templates">Manage templates</Link>
-        </Button>
+        {can(member, "templates.manage") && (
+          <Button asChild variant="outline" size="sm">
+            <Link href="/templates">Manage templates</Link>
+          </Button>
+        )}
         <Button asChild variant="outline" size="sm">
           <Link href="/campaigns/history">Campaign history</Link>
         </Button>

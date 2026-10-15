@@ -139,7 +139,7 @@ describe("Phase 16 navigation", () => {
   it("shows the Media Library to anyone who can view or manage it, and to nobody else", () => {
     const item = NAV_ITEMS.find((i) => i.href === "/media")!;
     expect(item).toBeDefined();
-    expect(item.group).toBe("Growth");
+    expect(item.group).toBe("Messaging");
     expect(item.permissions).toEqual(["media.view", "media.manage"]);
     const sees = (perms: string[]) => item.permissions!.some((p) => perms.includes(p));
     expect(sees(["media.view"])).toBe(true);
@@ -154,6 +154,48 @@ describe("Phase 16 navigation", () => {
     expect(page.allow(member(["settings.manage"]))).toBe(true);
     expect(page.keywords).toEqual(
       expect.arrayContaining(["insurance card", "retention", "storage"]),
+    );
+  });
+});
+
+describe("organisation navigation (CRM)", () => {
+  const crm = NAV_ITEMS.filter((i) => i.group === "CRM").map((i) => i.href);
+  const sees = (href: string, perms: string[]) => {
+    const item = NAV_ITEMS.find((i) => i.href === href)!;
+    if (item.permission) return perms.includes(item.permission);
+    return item.permissions ? item.permissions.some((p) => perms.includes(p)) : true;
+  };
+
+  it("lists patients, enquiries, doctors, staff, the rota, teams and branches together; Appointments sits in Today (docs/34 §3)", () => {
+    expect(crm).toEqual([
+      "/contacts",
+      "/enquiries",
+      "/doctors",
+      "/staff",
+      "/staff/rota",
+      "/settings/teams",
+      "/settings/appointments?tab=locations",
+    ]);
+    expect(NAV_ITEMS.find((i) => i.href === "/appointments")?.group).toBe("Today");
+  });
+
+  it("gates the Rota like its page: hr.view or appointments.view", () => {
+    expect(sees("/staff/rota", ["hr.view"])).toBe(true);
+    expect(sees("/staff/rota", ["appointments.view"])).toBe(true);
+    expect(sees("/staff/rota", ["contacts.view", "tasks.view"])).toBe(false);
+  });
+
+  it("finds the doctor settings from the Clinic and appointments page keywords", () => {
+    const page = SETTINGS_PAGES.find((p) => p.href === "/settings/appointments")!;
+    expect(page.keywords).toEqual(
+      expect.arrayContaining([
+        "doctors",
+        "specialists",
+        "locations",
+        "branches",
+        "services",
+        "working hours",
+      ]),
     );
   });
 });

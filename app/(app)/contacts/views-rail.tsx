@@ -4,6 +4,7 @@ import * as React from "react";
 import { Copy, Layers, MoreHorizontal, Plus, RefreshCw, Users } from "lucide-react";
 import { toast } from "sonner";
 
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -44,6 +45,7 @@ export function ViewsRail({
   onSegmentsChanged: (segments: SegmentSummary[]) => void;
 }) {
   const [refreshing, setRefreshing] = React.useState(false);
+  const [confirm, confirmDialog] = useConfirm();
 
   async function refresh() {
     setRefreshing(true);
@@ -59,7 +61,13 @@ export function ViewsRail({
   }
 
   async function remove(id: string) {
-    if (!confirm("Delete this segment? Contacts are not deleted.")) return;
+    const ok = await confirm({
+      title: "Delete this segment?",
+      description: "The patients in it are not deleted.",
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (!ok) return;
     const res = await deleteSegment(id);
     if (!res.ok) {
       toast.error(res.error);
@@ -95,6 +103,7 @@ export function ViewsRail({
 
   return (
     <aside className="hidden w-56 shrink-0 flex-col gap-4 md:flex" aria-label="Contact views">
+      {confirmDialog}
       <nav className="flex flex-col gap-0.5">
         <h3 className="text-muted-foreground px-2 text-xs font-semibold tracking-wide uppercase">
           Views

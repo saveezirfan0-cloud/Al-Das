@@ -1,14 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   Activity,
   BarChart3,
   ChevronRight,
   House,
-  Megaphone,
+  Landmark,
+  MessagesSquare,
   Pin,
   PinOff,
   Sun,
@@ -26,6 +27,7 @@ import {
   setOpen,
   type NavState,
 } from "@/lib/nav/state";
+import { panelKeyAction, railKeyAction } from "@/lib/nav/rail-keys";
 import { activeTrail } from "@/lib/nav/tree";
 import { cn } from "@/lib/utils";
 
@@ -34,17 +36,22 @@ import { useNavBadges } from "./nav-badges";
 import { useBadgedItems } from "./shell-data";
 import { CountPill, ICONS, type SidebarNode } from "./sidebar";
 
-/** How each sidebar group appears as an area in the rail. */
-const GROUP_AREAS: Record<NavGroup, { title: string; subtitle: string; icon: LucideIcon }> = {
-  Today: { title: "Today", subtitle: "Front desk, inbox and diary", icon: Sun },
-  CRM: { title: "CRM", subtitle: "Patients and enquiries", icon: Users },
-  Growth: { title: "Growth", subtitle: "Campaigns, templates and flows", icon: Megaphone },
-  "Insight & back office": {
-    title: "Insights",
-    subtitle: "Reports and back office",
-    icon: BarChart3,
-  },
-};
+/**
+ * How each sidebar group appears as an area in the rail (docs/34 §3). "Back office" holds only modules with sections
+ * (Finance, Accounting), which are areas of their own, so its entry shows only if a plain page is ever added to it.
+ */
+export const GROUP_AREAS: Record<NavGroup, { title: string; subtitle: string; icon: LucideIcon }> =
+  {
+    Today: { title: "Today", subtitle: "Front desk, diary, tasks and follow-ups", icon: Sun },
+    Messaging: {
+      title: "Messaging",
+      subtitle: "Inbox, templates, campaigns and flows",
+      icon: MessagesSquare,
+    },
+    CRM: { title: "CRM", subtitle: "Patients, enquiries and the organisation", icon: Users },
+    "Back office": { title: "Back office", subtitle: "Finance and accounting", icon: Landmark },
+    Insights: { title: "Insights", subtitle: "Reports, management and portal", icon: BarChart3 },
+  };
 
 /** One-line descriptions for the areas that are modules with their own sections. */
 const MODULE_SUBTITLES: Record<string, string> = {
@@ -53,7 +60,7 @@ const MODULE_SUBTITLES: Record<string, string> = {
   "/settings": "Workspace and your account",
 };
 
-type Area = {
+export type Area = {
   key: string;
   title: string;
   subtitle: string;
@@ -66,12 +73,22 @@ type Area = {
 };
 
 /**
- * Builds the rail areas from the tree: Dashboard is Home, each sidebar group is one area of plain pages, and each
- * module with sections (Finance, Accounting, Settings) is its own area. Areas the member cannot see are dropped.
+ * Builds the rail areas from the tree: Dashboard is Home; each sidebar group is one area of plain pages, followed by an
+ * area for each module with sections in that group (Finance, Accounting); Settings sits at the bottom. Areas the member
+ * cannot see are dropped.
  */
-function buildAreas(tree: readonly SidebarNode[]): { top: Area[]; bottom: Area[] } {
+export function buildAreas(tree: readonly SidebarNode[]): { top: Area[]; bottom: Area[] } {
   const top: Area[] = [];
   const bottom: Area[] = [];
+  const moduleArea = (n: SidebarNode): Area => ({
+    key: n.href,
+    title: n.label,
+    subtitle: MODULE_SUBTITLES[n.href] ?? "",
+    icon: ICONS[n.icon],
+    href: n.href,
+    items: [],
+    module: n,
+  });
   const home = tree.find((n) => n.href === "/dashboard");
   if (home)
     top.push({
@@ -86,20 +103,11 @@ function buildAreas(tree: readonly SidebarNode[]): { top: Area[]; bottom: Area[]
     const items = tree.filter((n) => n.group === group && !n.sections);
     if (items.length > 0)
       top.push({ key: group, ...GROUP_AREAS[group], href: items[0].href, items });
+    for (const n of tree) if (n.group === group && n.sections) top.push(moduleArea(n));
   }
-  for (const n of tree) {
-    if (!n.sections) continue;
-    const area: Area = {
-      key: n.href,
-      title: n.label,
-      subtitle: MODULE_SUBTITLES[n.href] ?? "",
-      icon: ICONS[n.icon],
-      href: n.href,
-      items: [],
-      module: n,
-    };
-    (n.icon === "settings" ? bottom : top).push(area);
-  }
+  // modules outside the groups: Settings at the bottom, anything else at the end of the top list
+  for (const n of tree)
+    if (n.sections && !n.group) (n.icon === "settings" ? bottom : top).push(moduleArea(n));
   // Settings without sub-pages for this member still belongs at the bottom.
   const settings = tree.find((n) => n.icon === "settings" && !n.sections);
   if (settings)
@@ -114,11 +122,38 @@ function buildAreas(tree: readonly SidebarNode[]): { top: Area[]; bottom: Area[]
   return { top, bottom };
 }
 
+const TABBABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+/** The controls Tab can reach inside `root`, in document order (hidden ones skipped). */
+function tabbables(root: ParentNode | null | undefined): HTMLElement[] {
+  if (!root) return [];
+  return Array.from(root.querySelectorAll<HTMLElement>(TABBABLE)).filter(
+    (el) => el.tabIndex >= 0 && el.getClientRects().length > 0,
+  );
+}
+
+/** Focuses the first page link in a panel (or its first control when every section is folded). */
+function focusFirstLink(panel: HTMLElement | null) {
+  if (!panel) return;
+  (panel.querySelector<HTMLElement>("nav a[href]") ?? tabbables(panel)[0])?.focus();
+}
+
+/** Focuses what Tab would reach after `trigger` if `skip` (the flyout) were not there; the trigger itself at the end. */
+function focusAfter(trigger: HTMLElement, skip: HTMLElement) {
+  const all = tabbables(document).filter((el) => !skip.contains(el));
+  (all[all.indexOf(trigger) + 1] ?? trigger).focus();
+}
+
 /**
- * Desktop navigation: a slim rail with one icon per area. Pointing at an area (or focusing it) pops its pages out in a
- * flyout; the pin in the flyout docks that area's panel beside the rail, and the pin in the docked panel undocks it.
- * Module sections fold away. An area with a single page (Home) shows a tooltip only. The phone drawer keeps the full
- * tree (sidebar.tsx).
+ * Desktop navigation: a slim rail with one icon per area. Pointing at an area pops its pages out in a flyout; the pin
+ * in the flyout docks that area's panel beside the rail, and the pin in the docked panel undocks it. Module sections
+ * fold away. An area with a single page (Home) is a link with a tooltip.
+ *
+ * Keyboard (lib/nav/rail-keys.ts): an area with pages is a disclosure button. Enter, Space or Right arrow opens its
+ * pages and focuses the first link; Escape or Left arrow returns to the button; Tab past the last control closes the
+ * flyout and moves on to the next area. A pointer click on the button still opens the area's first page. The phone
+ * drawer keeps the full tree (sidebar.tsx).
  */
 export function AppNav({
   tree: rawTree,
@@ -136,12 +171,13 @@ export function AppNav({
   branchSwitcher?: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const search = useSearchParams();
   const router = useRouter();
   const tree = useBadgedItems(rawTree);
   const counts = useNavBadges();
   const uid = useId();
 
-  const trail = useMemo(() => activeTrail(tree, pathname), [tree, pathname]);
+  const trail = useMemo(() => activeTrail(tree, pathname, search), [tree, pathname, search]);
   const { top, bottom } = useMemo(() => buildAreas(tree), [tree]);
   const area = [...top, ...bottom].find((a) =>
     a.module ? a.module.href === trail.item : a.items.some((i) => i.href === trail.item),
@@ -193,6 +229,57 @@ export function AppNav({
   }
   useEffect(() => () => clearTimeout(timer.current), []);
   useEffect(() => setPeekKey(null), [pathname]);
+
+  // Keyboard: the rail buttons by area, the two panels, and a request to focus the flyout's first link once it renders.
+  const triggers = useRef(new Map<string, HTMLElement>());
+  const flyoutRef = useRef<HTMLElement>(null);
+  const dockedRef = useRef<HTMLElement>(null);
+  const focusOnOpen = useRef(false);
+  const flyoutId = `${uid}-flyout`;
+  const dockedId = `${uid}-docked`;
+  /** The area whose name shows as a tooltip because its button has keyboard focus (pointing shows the flyout). */
+  const [hint, setHint] = useState<string | null>(null);
+
+  function openFromKeyboard(a: Area) {
+    clearTimeout(timer.current);
+    setHint(null);
+    if (docked && a.key === area?.key) {
+      focusFirstLink(dockedRef.current);
+      return;
+    }
+    if (peekKey === a.key) {
+      focusFirstLink(flyoutRef.current);
+      return;
+    }
+    focusOnOpen.current = true;
+    setPeekKey(a.key);
+  }
+  useEffect(() => {
+    if (!peekKey || !focusOnOpen.current) return;
+    focusOnOpen.current = false;
+    focusFirstLink(flyoutRef.current);
+  }, [peekKey]);
+
+  function onPanelKeyDown(e: React.KeyboardEvent<HTMLElement>, a: Area, flyout: boolean) {
+    const items = tabbables(e.currentTarget);
+    const index = items.indexOf(document.activeElement as HTMLElement);
+    const act = panelKeyAction(e, index, items.length, flyout);
+    if (!act) return;
+    if (act.kind === "focus") {
+      e.preventDefault();
+      items[act.index]?.focus();
+      return;
+    }
+    const trigger = triggers.current.get(a.key);
+    if (!trigger) return;
+    e.preventDefault();
+    if (flyout) {
+      clearTimeout(timer.current);
+      setPeekKey(null);
+    }
+    if (act.kind === "back") trigger.focus();
+    else focusAfter(trigger, e.currentTarget);
+  }
   useEffect(() => {
     if (!peekKey) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setPeekKey(null);
@@ -220,18 +307,14 @@ export function AppNav({
     const Icon = a.icon;
     const active = area?.key === a.key;
     const flyout = hasPanel(a);
-    const link = (
-      <Link
-        href={a.href}
-        aria-label={a.title}
-        aria-current={active ? "page" : undefined}
-        aria-haspopup={flyout ? "true" : undefined}
-        aria-expanded={flyout ? peekKey === a.key : undefined}
-        onMouseEnter={() => openPeek(a)}
-        onMouseLeave={() => closePeek()}
-        onFocus={() => openPeek(a)}
-        className="group/item relative flex justify-center rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-white/80"
-      >
+    const dockedHere = docked && active;
+    const expanded = flyout && (peekKey === a.key || dockedHere);
+    const waiting = areaCount(a);
+    const countId = `${uid}-${a.key}-count`;
+    const itemClass =
+      "group/item relative flex w-full justify-center rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-white/80";
+    const inner = (
+      <>
         {active && (
           <span
             className="bg-brand-accent absolute top-2.5 -left-3 h-6 w-1 rounded-r-full"
@@ -247,28 +330,97 @@ export function AppNav({
           )}
         >
           <Icon className="size-5" aria-hidden />
-          {areaCount(a) > 0 && (
+          {waiting > 0 && (
+            // the rail is dark in both themes: red-400 keeps 4.9:1 against the rail-coloured ring (destructive is 2.4:1)
             <span
-              className="bg-destructive ring-rail absolute -top-0.5 -right-0.5 size-2.5 rounded-full ring-2"
+              className="ring-rail absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-red-400 ring-2"
               aria-hidden
             />
           )}
         </span>
-      </Link>
+      </>
     );
+    const tip = (
+      <TooltipContent side="right" className="flex flex-col items-start gap-0">
+        <span className="font-medium">{a.title}</span>
+        {a.subtitle && <span className="opacity-75">{a.subtitle}</span>}
+      </TooltipContent>
+    );
+    const count =
+      waiting > 0 ? (
+        <span id={countId} className="sr-only">
+          {waiting} waiting
+        </span>
+      ) : null;
+    // Spread only when there is a count: an explicit undefined would also wipe the tooltip's own aria-describedby.
+    const describedBy = count ? { "aria-describedby": countId } : {};
+    if (!flyout)
+      return (
+        <li key={a.key}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Link
+                href={a.href}
+                aria-label={a.title}
+                {...describedBy}
+                aria-current={active ? "page" : undefined}
+                onMouseEnter={() => openPeek(a)}
+                onFocus={() => openPeek(a)}
+                className={itemClass}
+              >
+                {inner}
+              </Link>
+            </TooltipTrigger>
+            {tip}
+          </Tooltip>
+          {count}
+        </li>
+      );
     return (
       <li key={a.key}>
-        {flyout ? (
-          link
-        ) : (
-          <Tooltip>
-            <TooltipTrigger asChild>{link}</TooltipTrigger>
-            <TooltipContent side="right" className="flex flex-col items-start gap-0">
-              <span className="font-medium">{a.title}</span>
-              {a.subtitle && <span className="opacity-75">{a.subtitle}</span>}
-            </TooltipContent>
-          </Tooltip>
-        )}
+        {/* The name shows as a tooltip only while the button has keyboard focus; pointing opens the flyout instead. */}
+        <Tooltip open={hint === a.key && !expanded}>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              ref={(el) => {
+                if (el) triggers.current.set(a.key, el);
+                else triggers.current.delete(a.key);
+              }}
+              aria-label={a.title}
+              {...describedBy}
+              aria-current={active ? "true" : undefined}
+              aria-expanded={expanded}
+              aria-controls={expanded ? (dockedHere ? dockedId : flyoutId) : undefined}
+              onMouseEnter={() => {
+                router.prefetch(a.href);
+                openPeek(a);
+              }}
+              onMouseLeave={() => closePeek()}
+              onFocus={(e) => {
+                if (e.currentTarget.matches(":focus-visible")) setHint(a.key);
+              }}
+              onBlur={() => setHint((h) => (h === a.key ? null : h))}
+              onKeyDown={(e) => {
+                if (railKeyAction(e, true) !== "open") return;
+                e.preventDefault();
+                openFromKeyboard(a);
+              }}
+              onClick={(e) => {
+                // detail 0: activated without a pointer (a screen reader's click): open the pages like Enter
+                if (e.detail === 0) return openFromKeyboard(a);
+                clearTimeout(timer.current);
+                setPeekKey(null);
+                router.push(a.href);
+              }}
+              className={itemClass}
+            >
+              {inner}
+            </button>
+          </TooltipTrigger>
+          {tip}
+        </Tooltip>
+        {count}
       </li>
     );
   }
@@ -286,11 +438,17 @@ export function AppNav({
     if (!a.module)
       return (
         <ul className="flex flex-col gap-1">
-          {a.items.map((i) => {
+          {a.items.map((i, n) => {
             const Icon = ICONS[i.icon];
             const active = trail.item === i.href;
+            const heading = i.subgroup && i.subgroup !== a.items[n - 1]?.subgroup;
             return (
               <li key={i.href}>
+                {heading && (
+                  <p className="text-muted-foreground px-3 pt-2 pb-1 text-[11px] font-semibold tracking-wide uppercase">
+                    {i.subgroup}
+                  </p>
+                )}
                 <Link
                   href={i.href}
                   aria-current={active ? "page" : undefined}
@@ -322,11 +480,14 @@ export function AppNav({
                 aria-expanded={sOpen}
                 aria-controls={sid}
                 onClick={() => setNav((st) => setOpen(st, sectionStateKey(s.key), !sOpen))}
-                className="text-sidebar-foreground hover:bg-sidebar-accent/60 flex h-10 w-full items-center gap-2 rounded-lg px-3 text-left text-sm font-semibold"
+                className="text-sidebar-foreground hover:bg-sidebar-accent/60 focus-visible:ring-sidebar-ring flex h-10 w-full items-center gap-2 rounded-lg px-3 text-left text-sm font-semibold outline-none focus-visible:ring-2"
               >
                 <span className="truncate">{s.title}</span>
                 {!sOpen && waiting > 0 ? (
-                  <span className="bg-destructive size-1.5 rounded-full" aria-hidden />
+                  <>
+                    <span className="bg-destructive size-1.5 rounded-full" aria-hidden />
+                    <span className="sr-only">, {waiting} waiting</span>
+                  </>
                 ) : null}
                 <ChevronRight
                   className={cn(
@@ -431,7 +592,10 @@ export function AppNav({
 
       {docked && area && (
         <aside
+          id={dockedId}
+          ref={dockedRef}
           aria-label={`${area.title} pages`}
+          onKeyDown={(e) => onPanelKeyDown(e, area, false)}
           className="bg-sidebar text-sidebar-foreground border-sidebar-border hidden w-64 shrink-0 flex-col border-r md:flex print:hidden"
         >
           {panelHeader(area, true)}
@@ -443,14 +607,17 @@ export function AppNav({
 
       {peekArea && (
         <aside
+          id={flyoutId}
+          ref={flyoutRef}
           aria-label={`${peekArea.title} pages`}
+          onKeyDown={(e) => onPanelKeyDown(e, peekArea, true)}
           onMouseEnter={keepPeek}
           onMouseLeave={() => closePeek()}
           onFocus={keepPeek}
           onBlur={(e) => {
             if (!e.currentTarget.contains(e.relatedTarget as Node | null)) closePeek(0);
           }}
-          className="bg-sidebar text-sidebar-foreground border-sidebar-border animate-in fade-in slide-in-from-left-2 fixed inset-y-0 left-[4.5rem] z-40 hidden w-64 flex-col border-r shadow-2xl duration-150 md:flex print:hidden"
+          className="bg-sidebar text-sidebar-foreground border-sidebar-border animate-in fade-in slide-in-from-left-2 motion-reduce:animate-none fixed inset-y-0 left-[4.5rem] z-40 hidden w-64 flex-col border-r shadow-2xl duration-150 md:flex print:hidden"
         >
           {panelHeader(peekArea, false)}
           <nav aria-label={peekArea.title} className="flex-1 overflow-y-auto px-3 pb-3">

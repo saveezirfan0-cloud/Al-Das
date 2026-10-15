@@ -2,11 +2,11 @@
 -- Run the files in numeric order. A failed file rolls back as a whole, so it is safe to retry.
 -- Contribution (M2A): the report-doctor to DHA id link table and the inputs function behind Finance, Contribution
 -- (service role only; amounts and codes, pay only through finance.costs.compensation in the app).
--- Needs every earlier file first, up to and including 84_finance_management_alerts.sql.
+-- Needs every earlier file first, up to and including 87_finance_management_alerts.sql.
 -- Check the project name in the Supabase header first: this is for the Pulse project only.
 
 -- ======================================================================
--- 20261203000400_finance_contribution.sql
+-- 20261208000400_finance_contribution.sql
 -- ======================================================================
 -- Phase M2A: contribution by doctor, department and clinic (docs/40_MANAGEMENT_PLATFORM_PLAN.md §2, levels L3, L5 and L6;
 -- docs/23_PHASE_M2A_NOTES.md).

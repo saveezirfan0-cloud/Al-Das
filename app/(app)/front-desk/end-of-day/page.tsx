@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 import { can } from "@/lib/auth/can";
 import { memberBranchView } from "@/lib/branches/guard";
 import { requirePerm } from "@/lib/auth/session";
+import { cashupHref, summariseDayByBranch } from "@/lib/front-desk/day-summary";
 import { ADVICE_LABEL, sheetSummary } from "@/lib/front-desk/end-of-day";
 import { loadEndOfDay } from "@/lib/front-desk/end-of-day-server";
-import { todayIn } from "@/lib/front-desk/server";
+import { loadBoardRows, todayIn } from "@/lib/front-desk/server";
 import { formatPhone } from "@/lib/phone";
 import { recordAccess } from "@/lib/security/access-log";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -29,7 +30,16 @@ export default async function EndOfDayPage() {
   const admin = createAdminClient();
   // Phase B: the sheet keeps to the branch the desk is showing (or every branch the member may see).
   const branch = await memberBranchView(admin, member);
-  const data = await loadEndOfDay(admin, member.orgId, tz, todayIn(tz), branch.filterIds);
+  const today = todayIn(tz);
+  const [data, todayRows, { data: codes }] = await Promise.all([
+    loadEndOfDay(admin, member.orgId, tz, today, branch.filterIds),
+    // Phase E: how today went at each branch (counts only), from today's board.
+    loadBoardRows(admin, member.orgId, tz, today, null, branch.filterIds),
+    admin.from("locations").select("id, branch_code").eq("org_id", member.orgId),
+  ]);
+  const byBranch = summariseDayByBranch(todayRows);
+  const canCashup = can(member, "finance.cashup.manage");
+  const codeOf = new Map((codes ?? []).map((l) => [l.id, l.branch_code]));
   await recordAccess(admin, member, {
     entity: "appointment",
     action: "list",
@@ -62,6 +72,75 @@ export default async function EndOfDayPage() {
           failed: data.failed.length,
         })}
       </p>
+
+      <section className="break-inside-avoid" aria-labelledby="eod-branches">
+        <h2 id="eod-branches" className="mb-2 border-b pb-1 text-base font-semibold">
+          Today by branch
+        </h2>
+        {byBranch.branches.length === 0 ? (
+          <p className="text-muted-foreground text-sm print:text-black">
+            No appointments today in the branches you see.
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-muted-foreground text-left text-xs print:text-black">
+                  <th className="py-1 pr-3">Branch</th>
+                  <th className="py-1 pr-3 text-right">Booked</th>
+                  <th className="py-1 pr-3 text-right">Seen</th>
+                  <th className="py-1 pr-3 text-right">No-shows</th>
+                  <th className="py-1 pr-3 text-right">Cancelled</th>
+                  <th className="py-1 pr-3 text-right">Walk-ins</th>
+                  <th className="py-1 pr-3 text-right">Median wait</th>
+                  <th className="py-1 print:hidden">
+                    <span className="sr-only">Cash-up</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...byBranch.branches, ...(byBranch.branches.length > 1 ? [byBranch.total] : [])].map(
+                  (b) => {
+                    const href = b.location_id
+                      ? cashupHref(codeOf.get(b.location_id), today, canCashup)
+                      : null;
+                    const isTotal = b === byBranch.total;
+                    return (
+                      <tr
+                        key={b.location_id ?? (isTotal ? "total" : "none")}
+                        className={isTotal ? "border-t-2 font-medium" : "border-t"}
+                      >
+                        <td className="py-1.5 pr-3">{b.location_name}</td>
+                        <td className="py-1.5 pr-3 text-right tabular-nums">{b.booked}</td>
+                        <td className="py-1.5 pr-3 text-right tabular-nums">{b.seen}</td>
+                        <td className="py-1.5 pr-3 text-right tabular-nums">{b.noShows}</td>
+                        <td className="py-1.5 pr-3 text-right tabular-nums">{b.cancelled}</td>
+                        <td className="py-1.5 pr-3 text-right tabular-nums">{b.walkIns}</td>
+                        <td className="py-1.5 pr-3 text-right tabular-nums">
+                          {b.medianWaitMin === null ? "—" : `${b.medianWaitMin} min`}
+                        </td>
+                        <td className="py-1.5 print:hidden">
+                          {href && (
+                            <Link className="text-primary underline" href={href}>
+                              Cash-up
+                            </Link>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  },
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="text-muted-foreground mt-1 text-xs print:text-black">
+          Seen counts patients who reached the doctor. Waiting time runs from Arrived to With doctor.
+          {byBranch.total.stillWaiting > 0 &&
+            ` ${byBranch.total.stillWaiting} still waiting now.`}
+          {!canCashup && " The cash-up is done by Finance (finance.cashup.manage)."}
+        </p>
+      </section>
 
       <Section
         title={`Unconfirmed for tomorrow, ${day(data.tomorrow)}`}

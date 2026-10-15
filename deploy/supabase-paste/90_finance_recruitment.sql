@@ -2,11 +2,11 @@
 -- Run the files in numeric order. A failed file rolls back as a whole, so it is safe to retry.
 -- Recruitment calculator (M4A): recruitment defaults, saved scenarios, and the Ramadan, Eid and holiday calendar
 -- (seeded once per organisation with approximate dates that Finance corrects).
--- Needs every earlier file first, up to and including 86_rooms_capacity.sql.
+-- Needs every earlier file first, up to and including 89_rooms_capacity.sql.
 -- Check the project name in the Supabase header first: this is for the Pulse project only.
 
 -- ======================================================================
--- 20261203000600_finance_recruitment_scenarios.sql
+-- 20261208000600_finance_recruitment_scenarios.sql
 -- ======================================================================
 -- M4 (first scenario): recruitment viability calculator (docs/40_MANAGEMENT_PLATFORM_PLAN.md §4 M4,
 -- docs/23_PHASE_M4A_NOTES.md). Replaces the owner's May "Department Benchmarking Recruitment" workbook, without its

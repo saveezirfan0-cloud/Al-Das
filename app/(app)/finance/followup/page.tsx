@@ -105,8 +105,8 @@ export default async function FollowupPage({ searchParams }: { searchParams: Pro
           <AlertTitle>Follow-up tasks are off</AlertTitle>
           <AlertDescription>
             This list always works. To get a task for each claim as it reaches a stage, set
-            &ldquo;Create follow-up tasks from&rdquo; in Finance, Workflow settings. Stages reached
-            before that date never create a task.
+            &ldquo;Create follow-up tasks from&rdquo; in Settings, Finance workflow settings. Stages
+            reached before that date never create a task.
           </AlertDescription>
         </Alert>
       )}

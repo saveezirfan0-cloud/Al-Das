@@ -19,7 +19,7 @@ to actual tables, is never posted, and is never pay.
 | Pure engine | `lib/finance/recruitment.ts` (`computeRecruitment`, `buildScenarioReport`, `pickBenchmark`, `recruitBand`, `eventsInWindow`, the input and settings schemas) |
 | Loader | `lib/finance/recruitment-server.ts` (service role after `can()`; branch scope from `loadPerfScope`) |
 | Workbook | `lib/finance/recruitment-xlsx.ts` |
-| SQL | migration `20261203000600_finance_recruitment_scenarios.sql` |
+| SQL | migration `20261208000600_finance_recruitment_scenarios.sql` |
 | Menu and help | Finance, Overview, Recruitment calculator (visible only with both keys: `FinanceNavEntry.allow`); guide `finance-recruitment` |
 
 ## Database
@@ -149,4 +149,4 @@ calculated (`engine: recruitment-v1`). Saving recomputes on the server; the brow
 - Ramp-up from past hires (docs/40 M4) needs the hire dates of current doctors (`fin_ref_doctors` has none yet).
 - Contribution levels from the metric register (docs/40 §2): this calculator is the first scenario on its own pure
   engine; when the register lands, L3 doctor contribution should read the same pay rules.
-- Paste file: `deploy/supabase-paste/87_finance_recruitment.sql`.
+- Paste file: `deploy/supabase-paste/90_finance_recruitment.sql`.

@@ -75,7 +75,7 @@ export function EnquirySettingsTabs({
       </TabsContent>
       <TabsContent value="clinic" className="pt-4">
         <div className="max-w-3xl rounded-xl border p-5 text-sm">
-          <p className="font-medium">Locations, departments, services and specialists</p>
+          <p className="font-medium">Branches, departments, services and doctors</p>
           <p className="text-muted-foreground mt-1">
             Enquiries use the same clinic lists as appointments, so they are managed once, in{" "}
             <Link

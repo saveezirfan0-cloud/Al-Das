@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -65,6 +66,7 @@ export function MembersTable({
   roles: Array<{ id: string; name: string }>;
   locations: Array<{ id: string; name: string }>;
 }) {
+  const [ask, askDialog] = useConfirm();
   const [pending, startTransition] = useTransition();
   const [offboarding, setOffboarding] = useState<MemberRow | null>(null);
   const [routing, setRouting] = useState<MemberRow | null>(null);
@@ -209,8 +211,8 @@ export function MembersTable({
                       )}
                       <DropdownMenuItem
                         variant="destructive"
-                        onSelect={() => {
-                          if (confirm(`Remove ${r.name || r.email} from the workspace?`))
+                        onSelect={async () => {
+                          if (await ask(`Remove ${r.name || r.email} from the workspace?`))
                             run(() => removeMember(r.id));
                         }}
                       >
@@ -256,6 +258,7 @@ export function MembersTable({
           onOpenChange={(o) => !o && setOffboarding(null)}
         />
       )}
+      {askDialog}
     </Table>
   );
 }

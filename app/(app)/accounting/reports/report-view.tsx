@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { selectClass } from "@/components/finance/forms";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Term } from "@/components/shell/term";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,7 +34,9 @@ export function ReportStatus({ doc }: { doc: ReportDoc }) {
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
         {doc.provisional ? (
-          <Badge variant="warning">Provisional</Badge>
+          <Badge variant="warning">
+            <Term k="provisional" />
+          </Badge>
         ) : (
           <Badge variant="success">Final: every month in range is closed</Badge>
         )}

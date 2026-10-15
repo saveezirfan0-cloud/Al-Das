@@ -2,11 +2,11 @@
 -- Run the files in numeric order. A failed file rolls back as a whole, so it is safe to retry.
 -- Insurance billed vs claimed (Phase 23D-2): the tolerance and grace-day settings and the function that pairs
 -- Unite report insurance invoices with Diligence claims by invoice number (service role only; no patient ids).
--- Needs every earlier file first, up to and including 82_finance_collections.sql.
+-- Needs every earlier file first, up to and including 85_finance_collections.sql.
 -- Check the project name in the Supabase header first: this is for the Pulse project only.
 
 -- ======================================================================
--- 20261203000200_finance_insurance_billing_recon.sql
+-- 20261208000200_finance_insurance_billing_recon.sql
 -- ======================================================================
 -- Phase 23D-2: insurance billed vs claimed (docs/23_PHASE_23D2_NOTES.md).
 --

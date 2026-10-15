@@ -4,6 +4,7 @@ import * as React from "react";
 import { Archive, ArchiveRestore, Loader2, Plus, Star, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { OptionSelect } from "@/app/(app)/enquiries/option-select";
 import { SortableItem, SortableList } from "@/components/sortable/sortable-list";
 import { Badge } from "@/components/ui/badge";
@@ -131,6 +132,7 @@ function PipelineCard({
   pipeline: PipelineInfo;
   stageCounts: Record<string, number>;
 }) {
+  const [ask, askDialog] = useConfirm();
   const [name, setName] = React.useState(p.name);
   const [stages, setStages] = React.useState<StageInfo[]>(p.stages);
   const [newStage, setNewStage] = React.useState("");
@@ -203,10 +205,10 @@ function PipelineCard({
               className="text-destructive"
               aria-label={`Delete ${p.name}`}
               disabled={pending}
-              onClick={() =>
-                confirm(
+              onClick={async () =>
+                (await ask(
                   `Delete the pipeline “${p.name}”? This only works if it never held an enquiry.`,
-                ) && run(() => deletePipelineAction(p.id))
+                )) && run(() => deletePipelineAction(p.id))
               }
             >
               <Trash2 />
@@ -273,6 +275,7 @@ function PipelineCard({
         count={removing ? (stageCounts[removing.id] ?? 0) : 0}
         onClose={() => setRemoving(null)}
       />
+      {askDialog}
     </Card>
   );
 }

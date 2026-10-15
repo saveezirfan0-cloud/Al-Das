@@ -15,7 +15,7 @@ Built on the uploaded Unite collection report (no Unite API call anywhere):
 - **M2A Contribution** (`/finance/contribution`): doctor, department and clinic contribution from the pay and overheads Finance loaded (never calculated pay), Provisional until the month is approved.
 - **M3A Rooms and capacity** (Settings, Rooms; `/finance/capacity`): available hours and revenue per available hour; room occupancy needs the staff rota's free-text room linked to these rooms (follow-up in the M3A notes).
 - **M4A Recruitment calculator** (`/finance/recruitment`): candidate viability against the clinic's own doctors, one engine for page, saved scenario and Excel; Ramadan and Eid calendar.
-- Paste files `82_` to `87_` (after #72's `80_` and `81_`). New questions OQ-158 to OQ-160.
+- Migrations `20261208000100` to `000600` (after main's `20261207`); paste files `85_` to `90_`. New questions OQ-158 to OQ-160.
 - **Still blocked on answers, deliberately not guessed:** Longevity revenue (OQ-139), contract-rule doctor pay (OQ-148 to OQ-157), the revenue forecast (needs 13 months of history), room occupancy (linking rota rooms to rooms), and OQ-49 (data residency) before the first real report upload.
 
 ## 0e. Update, 14 Oct 2026: Phase 23 (M1) built

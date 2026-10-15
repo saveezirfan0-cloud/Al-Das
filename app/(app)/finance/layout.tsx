@@ -1,9 +1,10 @@
 import { enforceFinanceWindow, requireMember } from "@/lib/auth/session";
 import { todayIn } from "@/lib/finance/action-support";
-import { financeNavFor } from "@/lib/finance/nav";
+import { FINANCE_SETUP_PAGES, financeNavFor, financeTabGroupsFor } from "@/lib/finance/nav";
 import { loadFinanceBadges } from "@/lib/finance/nav-badges";
 import { createClient } from "@/lib/supabase/server";
 
+import { ModuleTabs } from "@/components/shell/module-tabs";
 import { PublishNavBadges } from "@/components/shell/nav-badges";
 
 import { SettingsNav } from "../settings/settings-nav";
@@ -27,7 +28,14 @@ export default async function FinanceLayout({ children }: { children: React.Reac
       <PublishNavBadges
         counts={Object.fromEntries(items.filter((i) => i.badge).map((i) => [i.href, i.badge!]))}
       />
-      <div className="min-w-0 flex-1">{children}</div>
+      <div className="min-w-0 flex-1">
+        {/* sibling pages under one menu entry show as tabs (Phase D); setup pages live under Settings */}
+        <ModuleTabs
+          groups={financeTabGroupsFor(member)}
+          exclude={FINANCE_SETUP_PAGES.map((p) => p.href)}
+        />
+        {children}
+      </div>
     </div>
   );
 }

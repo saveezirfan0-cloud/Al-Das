@@ -251,7 +251,7 @@ describe.skipIf(!TEST_DATABASE_URL)("rooms and capacity", () => {
 
   it("the migration's Manager grant is idempotent", async () => {
     const file = fs.readFileSync(
-      path.join(process.cwd(), "supabase/migrations/20261203000500_rooms_capacity.sql"),
+      path.join(process.cwd(), "supabase/migrations/20261208000500_rooms_capacity.sql"),
       "utf8",
     );
     const grant = /update public\.roles r[\s\S]*?;/.exec(file)![0];

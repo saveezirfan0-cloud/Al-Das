@@ -92,6 +92,7 @@ export default async function AppointmentsPage({
       manage: can(member, "appointments.manage"),
       export: can(member, "contacts.export"),
       contacts: can(member, "contacts.manage"),
+      settings: can(member, "settings.manage"),
     },
     locations: myLocations,
     departments: departments ?? [],
@@ -151,7 +152,10 @@ export default async function AppointmentsPage({
     <AppointmentsWorkspace
       bootstrap={bootstrap}
       initial={{
-        view: view === "calendar" || view === "table" || view === "agenda" ? view : "day",
+        view:
+          view === "calendar" || view === "table" || view === "agenda" || view === "week"
+            ? view
+            : "day",
         viewExplicit: !!view,
         date: DATE.test(one("date") ?? "") ? (one("date") as string) : today,
         locationId: specialistLocation,

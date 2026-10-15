@@ -18,16 +18,18 @@ export const GUIDES: readonly Guide[] = [
     pages: ["/front-desk"],
     purpose: "Run reception from one screen: who is coming, who has arrived, who needs a call.",
     steps: [
-      "The Today board lists arrivals by time. Tap Arrived when a patient walks in, then With doctor, Done and Checked out as the visit moves along.",
+      "The Today board lists arrivals by time. Tap Arrived when a patient walks in, then With doctor, Done and Checked out. At Arrived a short check shows the insurance card, eligibility and consent forms (or Not checked).",
       "Search for a patient (press / to jump to the box) to see their card: next appointment, last visit, open enquiry and any flags.",
-      "Use the card buttons: Book, Move, Cancel, Call (it opens your phone and logs a call task), Location and Running late.",
-      "Register a walk-in with N. Ask for the consent tick before you save.",
-      "At the end of the shift write a handover note and print the End of day sheet.",
+      "Book opens a drawer on your branch: pick the service and the day, then one of each doctor's free times. Print the slip for the patient from the printer icon on the board.",
+      "Cancel and No-show ask once in a small window; a cancellation can tell the patient and offers the slot to the waiting list.",
+      "Register a walk-in with N. The phone may be left out or be from another country (type + and the country code). Tick WhatsApp only if the patient agrees: without it nothing is sent on WhatsApp.",
+      "At the end of the shift write a handover note and open End of day: each branch's seen, no-shows, cancellations, walk-ins and median wait, with a link to the cash-up for Finance.",
     ],
     watchOut: [
       "Check-in is kept in Pulse only. Unite is never changed from here.",
       "A free-form message only goes out inside 24 hours of the patient's last message; after that a template is needed.",
-      "Unconfirmed patients with a failed reminder need a phone call.",
+      "Unconfirmed patients with a failed reminder, or who did not agree to WhatsApp, need a phone call.",
+      "The slip shows the first name, time, doctor, branch and booking number only. The payment record is not a tax invoice.",
     ],
   },
   {
@@ -36,10 +38,10 @@ export const GUIDES: readonly Guide[] = [
     pages: ["/inbox"],
     purpose: "Answer patients on WhatsApp together, without two people replying to the same chat.",
     steps: [
-      "Take a conversation with the Take button, or wait for it to be assigned to you. With more than one branch, each chat shows the branch of its number and the list follows the branch switcher (Filters picks another branch, or All my branches).",
+      "Take a conversation with the Take button, or wait for it to be assigned to you. \"waiting 12 m\" on a row is how long the patient has waited for a reply (amber, then red). The tick-box button at the top selects several chats to assign or close together.",
       "Type / in the message box to use a quick reply. Names and appointment details fill in for you.",
       "If the 24-hour window has closed, pick a template instead of typing a message.",
-      "Use the Patient tab on the right to see the next appointment and any flags without leaving the chat.",
+      "Use the Patient tab on the right to see the next appointment and any flags without leaving the chat. Task at the top makes a follow-up task linked to the patient and this chat; Snooze hides the chat until a time you pick (it comes back sooner if the patient writes).",
       "Close the conversation when it is finished, with a category if your clinic asks for one. In the same box you can create the patient's enquiry or move theirs on (stage, won, or lost with a reason).",
       "Extras: forward on a message sends it to another open chat; the buttons by the message box share a contact card or a catalogue product; Call at the top rings the patient from your phone; More, Move chat to a new contact is for a shared phone.",
     ],
@@ -47,6 +49,7 @@ export const GUIDES: readonly Guide[] = [
       "Never copy patient details into another chat or email. Forwarding a patient's message to someone else shares it with them: forward only what that person should see.",
       "An internal note is not sent to the patient, but colleagues can read it.",
       "Forwards, contact cards and products only go out within 24 hours of the patient's last message.",
+      "\"Someone is replying\" above the message box means a colleague is typing in the same chat: check before you send. Message text under the search box finds words in chats you can open.",
     ],
   },
   {
@@ -55,15 +58,33 @@ export const GUIDES: readonly Guide[] = [
     pages: ["/appointments"],
     purpose: "See and change the diary for every doctor and place.",
     steps: [
-      "Choose the day and place, then click a free slot or use New appointment.",
+      "Choose the day and place, then click a free slot or use New appointment. Branch week shows every doctor of the branch from Monday to Sunday.",
       "Pick the patient, service, doctor and one of the free times shown.",
-      "Open an appointment to confirm, move or cancel it. The patient is told if you tick Notify.",
+      "To move a booking, drag it to another time or doctor in Resource day (or the Specialist calendar), or open it and pick a new time. The switch Tell the patient when I drag decides whether they get the Rescheduled message.",
+      "The small chip on a booking is the front desk's check-in: In (arrived), Dr (with the doctor), Done or Out.",
       "Reminders go out on their own; a failed reminder creates a call task.",
       "For a video appointment, open it and press Join video visit (also on the Front desk board). Copy link gives you the address; New link replaces it if it was shared by mistake.",
     ],
     watchOut: [
       "Appointments that come from Unite are read-only here. Change them in Unite.",
-      "If a slot was just taken you will be asked to pick another. That protects against double booking.",
+      "If a slot was just taken, or the doctor is full, a dragged booking jumps back and the reason is shown. That protects against double booking.",
+      "Moving a confirmed booking whose reminder already went out asks first.",
+    ],
+  },
+  {
+    id: "clinical-follow-ups",
+    title: "Clinical follow-ups",
+    pages: ["/portal/follow-ups"],
+    purpose: "Call back the patients whose visit tripped a clinical rule, most urgent first.",
+    steps: [
+      "Work the list from the top: High priority first, then the oldest due date.",
+      "Open a row to see why it was raised. Record what the patient said, the escalation and who owns it.",
+      "Press Notify doctor when the doctor needs to know; write their answer in Doctor response.",
+      "Save keeps the item open; Save & close takes it off the list.",
+    ],
+    watchOut: [
+      "These are internal tasks: nothing here messages the patient.",
+      "Pulse never diagnoses or advises on medicines. If the patient sounds unwell, follow the clinic's escalation rule.",
     ],
   },
   {
@@ -76,6 +97,7 @@ export const GUIDES: readonly Guide[] = [
       "The highlighted row is your next patient: the first one waiting, or the next one booked.",
       "Open a row to see the appointment. The desk moves patients through Arrived, With doctor and Done.",
       "Your tasks due today (and any overdue) are listed below; the follow-up queue link opens clinical follow-ups.",
+      "My calendar opens your diary for the coming days; CRM, Rota shows who else is on in your branch this week.",
     ],
     watchOut: [
       "The page only knows your appointments once your Pulse user is linked to your doctor record (Settings, Appointments).",
@@ -91,11 +113,15 @@ export const GUIDES: readonly Guide[] = [
     steps: [
       "Search by name or specialty, or pick a branch to see who works there.",
       "The licence column turns amber when a licence expires within the reminder days and red once it has expired.",
-      "Open a doctor to see their working hours per branch, upcoming time off and how many patients they have today.",
-      "Open calendar shows that doctor's diary. People who manage settings or staff can edit the specialty, licence, extension and short bio.",
+      "Open a doctor to see their next appointments, this week's shifts, working hours and time off, with links to their calendar, the rota and their staff record.",
+      "People who manage settings or staff can edit the specialty, licence, extension and short bio.",
+      "Finance link (finance reference rights) shows which finance doctor (DHA id) and Unite report name are this doctor. With settings rights too, confirm the suggestion, pick another or clear it; Performance then opens on this doctor.",
+      "Add doctor (for administrators) opens Settings, Appointments, where a doctor gets their branches, services and working hours.",
     ],
     watchOut: [
       "Working hours, services and branches are changed under Settings, Appointments, not here.",
+      "Finance link suggestions come from the same licence number or the same name; when several match, nothing is suggested and you pick by hand.",
+      "Patients in the drawer appear by first name or initials only; open the diary for the full appointment.",
       "Keep the bio short and professional; it is not a place for patient details.",
     ],
   },
@@ -110,6 +136,7 @@ export const GUIDES: readonly Guide[] = [
       "The Duties tab is their checklist (daily, weekly, monthly or once). The Rota tab shows their next four weeks of shifts.",
       "Expiring or expired only filters the visas and licences that need action. Reminder days sets how early everyone is told.",
       "Archive someone who has left: they leave the lists and the rota, and Restore brings them back.",
+      "A doctor's staff record is also linked from their drawer on the Doctors page. Managers can read records; HR edits them.",
     ],
     watchOut: [
       "Pay is never recorded here; it stays in Finance with its own permission.",
@@ -125,6 +152,8 @@ export const GUIDES: readonly Guide[] = [
       "Pick the branch and use the arrows to move between weeks.",
       "Press + in a day to add a shift for that person, or Add shift at the top. Choose the role (front desk, doctor, nurse) and the room.",
       "Click a shift to change or remove it. An end time before the start means the shift runs past midnight.",
+      "Anyone who can see the diary can read the rota (CRM, Rota); only HR adds, moves and removes shifts.",
+      "A doctor's shifts this week also show in their drawer on the Doctors page.",
     ],
     watchOut: [
       "A person cannot have two shifts at the same time, even in different branches; Pulse refuses the second one.",
@@ -133,7 +162,7 @@ export const GUIDES: readonly Guide[] = [
   },
   {
     id: "contacts",
-    title: "Contacts",
+    title: "Patients",
     pages: ["/contacts"],
     purpose: "Every patient and enquirer in one searchable list.",
     steps: [
@@ -142,6 +171,7 @@ export const GUIDES: readonly Guide[] = [
       "Two records for the same person? Use Merge. Two people who share a phone (a parent and child) are linked as a household instead.",
       "Home branch on the record says which branch usually sees the patient; add the Home branch column or filter by it. Patients can still book and message any branch.",
       "The Documents tab (if you have access) keeps referral letters, lab reports, insurance cards and consent forms. Add one with a title, a category and, for an insurance card, its expiry date.",
+      "History shows messages, appointments, enquiries, tasks and notes in one list; Tasks lists the patient's tasks (open first) and Invoices (finance access only) the Unite invoices for their PIN.",
     ],
     watchOut: [
       "Phone numbers must include the country code if they are not UAE numbers.",
@@ -155,13 +185,14 @@ export const GUIDES: readonly Guide[] = [
     pages: ["/tasks"],
     purpose: "Things somebody has to do: calls, follow-ups, reminders.",
     steps: [
-      "Tasks assigned to you are listed first, oldest due date at the top.",
-      "Open a task to see the patient and notes. Tick it off when it is done and write the outcome.",
-      "A call logged from the Front desk shows up here until you close it.",
+      "Tasks assigned to you are listed first, oldest due date at the top. List, Board and Calendar switch the view; on the Board drag a card to change its status.",
+      "Open a task to set its status, priority, team and whether it repeats, tick its checklist, add comments (type @ to mention a colleague) and attach files from the Media Library.",
+      "A call logged from the Front desk, or a task made from a chat, shows up here until you close it.",
+      "Daily checklists: each branch's opening and closing list becomes a task every morning. Checklists only shows them; administrators edit the lists under Daily checklists.",
       "With more than one branch, a new task starts in the branch chosen in the switcher (change it in the task). The list follows the switcher; pick another branch or All my branches above the list.",
     ],
     watchOut: [
-      "Overdue tasks show a red badge in the menu.",
+      "Overdue tasks show a red badge in the menu. A repeating task makes the next one when it is done, or at its due time if nobody ticks it off.",
       "People limited to some branches only see those branches' tasks and tasks without a branch.",
     ],
   },
@@ -174,8 +205,12 @@ export const GUIDES: readonly Guide[] = [
       "Drag a card to the next stage as the conversation moves forward.",
       "Create an enquiry from a conversation with Create enquiry.",
       "Mark it won when the patient books, or lost with a reason.",
+      "Import CSV adds many at once: match the columns, check the rows with problems, then import. Running the same file again adds nothing twice.",
     ],
-    watchOut: ["The first reply is timed. A breached SLA notifies the team."],
+    watchOut: [
+      "The first reply is timed. A breached SLA notifies the team.",
+      "An imported row whose phone belongs to several patients is skipped: merge or link them first.",
+    ],
   },
   {
     id: "campaigns",
@@ -218,10 +253,10 @@ export const GUIDES: readonly Guide[] = [
   {
     id: "reports",
     title: "Reports and dashboards",
-    pages: ["/reports", "/dashboard"],
+    pages: ["/reports"],
     purpose: "How the clinic is doing, by day, week and team.",
     steps: [
-      "The Overview shows today's numbers. Management shows trends.",
+      "Pick a report card. The finance card opens the finance Reports hub.",
       "Change the period at the top. Export needs a separate permission.",
       "AI reply quality (if you have access) shows each Monday how AI suggestions were used and which patient questions the knowledge base could not answer.",
     ],
@@ -266,27 +301,47 @@ export const GUIDES: readonly Guide[] = [
     pages: ["/finance"],
     purpose: "Invoices, insurance claims and the exceptions that need a person.",
     steps: [
-      "Start at the monthly summary, then open exceptions assigned to you.",
-      "Upload the claim file from the insurer under Insurance.",
-      "Check Data freshness before you trust a number.",
+      "Start at the Reports hub, then work the Exceptions assigned to you.",
+      "Pages that belong together are tabs under one menu entry (Performance, Insurance and receivables, Claims, Payables, Month-end close, Exports).",
+      "Upload the Diligence claim file under Claims, Uploads.",
+      "Finance setup (reference data, workflow settings, targets, bank and lab settings) is under Settings, Finance setup.",
     ],
     watchOut: ["Finance data never shows patient names, only the Unite PIN."],
   },
   {
     id: "finance-reports",
-    title: "Finance reports",
+    title: "Reports hub",
     pages: ["/finance/reports"],
     purpose:
       "Every finance and accounting report on one page: management, accounting, receivables and tax, each opening with the branch and period you picked.",
     steps: [
       "Pick the branch, then Month, Quarter or Year and which one. Tick Compare to set the reports that can compare against the period before.",
-      "Press View on a card to open the report with those choices, or Excel, CSV or PDF to download the same view.",
+      "Press View on a card to open the report with those choices, or Excel, CSV or PDF to download the same view. The daily flash and the monthly summary also have PDF and E-mail me (the Excel file, to the address on your own profile).",
       "Each card shows what it takes from the picker. A card that says Shows all branches or no comparison cannot narrow that way.",
       "A running month or quarter stops at today; the daily flash opens on the period's last day (yesterday at the latest).",
     ],
     watchOut: [
       "You only see the reports your role may open; ask an administrator if one is missing.",
       "Finance figures are for the whole organisation. The branch narrows the reports that support it; it never widens what you may see.",
+      "An e-mailed report says Provisional until the month is closed and locked by the CEO sign-off. The e-mail itself carries no figures.",
+    ],
+  },
+  {
+    id: "finance-report-emails",
+    title: "Report e-mails",
+    pages: ["/finance/report-emails"],
+    purpose:
+      "Sends the daily flash every morning and the monthly summary once a month, as Excel files, to the members you choose.",
+    steps: [
+      "Daily flash: tick Send this report by e-mail and choose the time (your organisation's local time). Each morning it sends yesterday's flash.",
+      "Monthly summary: choose the day of the month (1 to 28) and the time. It sends last month's summary with the month before for comparison.",
+      "Tick the people who should receive it. Only members who can see that report in Pulse are listed; addresses come from their own profiles.",
+      "Press Save. The next send time is shown under the list; Recent sends shows each period, whether it went out and to how many people.",
+    ],
+    watchOut: [
+      "Each period is sent once, however often the job runs. A report switched on after today's time starts tomorrow (next month for the summary).",
+      "Permissions are checked again at every send: someone who loses the permission, leaves, or is outside the finance access window at that time is skipped. With a network address list in the window, nothing is e-mailed.",
+      "A training workspace never sends. The e-mail has no figures; the report is the attachment, marked Provisional until the month is locked.",
     ],
   },
   {
@@ -306,9 +361,9 @@ export const GUIDES: readonly Guide[] = [
       "The internal copy is for finance files only. The patient's invoice is the one Unite issued; never send the internal copy as a tax invoice.",
       "Until a Diligence claim is matched, the whole insurance invoice waits on the insurer and the patient's copay is not known yet.",
       "Downloads are logged with your name.",
-      ],
-    },
-    {
+    ],
+  },
+  {
     id: "finance-doctor-performance",
     title: "Doctor performance",
     pages: ["/finance/doctor-performance"],
@@ -552,7 +607,7 @@ export const GUIDES: readonly Guide[] = [
       "Proves that every Unite collection reached the bank: card and EPG (T+2), Tabby (T+6 working days), cash deposits and insurers' bulk payments, net of the processors' fees, by bank account and month.",
     steps: [
       "Once, in Accounts and rules: add each bank account (last 4 digits only), a file layout per bank or processor (the header of each column in their export), and for each payment mode its lag in working days, fee % and bank account.",
-      "Import the bank statement (and, where you have it, the processor's settlement report) as .csv or .xlsx. The same file twice, or overlapping dates, are refused.",
+      "Import the bank statement (and, where you have it, the processor's settlement report): drag the .csv or .xlsx file onto the box or press Choose file, check the preview (the first rows of the columns the layout reads, and any columns that will be ignored), then press Import. The same file twice, or overlapping dates, are refused.",
       "Open the month's reconciliation for an account. Save the automatic matches, then accept or reject each proposed match: the score and its reasons are shown.",
       "Give a reason for every expected receipt that is late and for every bank credit nothing explains, then mark it reviewed. A second person signs it off.",
       "Optional: press Ask AI to review on an open reconciliation. The AI suggests, for each open item, one of Pulse's own candidates (or no match) with a reason, and writes a short summary. Accept or Reject each suggestion; an accepted pair is saved exactly as if you had accepted the proposal yourself. The line above the list shows how many suggestions were accepted and rejected.",
@@ -572,7 +627,7 @@ export const GUIDES: readonly Guide[] = [
       "Checks every lab test and referral on a provider's monthly file against what Unite billed (patient PIN, day and test code) before its cost is charged to the doctor: tests done but not billed, tests billed that the lab has no record of, price differences and late results.",
     steps: [
       "Once, in Providers, tests and layouts: add the in-house lab (its monthly fee and how to share it), each send-out lab, hospital and radiology provider, each provider's tests (expected days and agreed price), and a file layout per provider (the header of each column in their file).",
-      "Each month, upload each provider's file (one per branch is fine) for the month of service. Names and ID numbers in the file are never read; the same file twice is refused.",
+      "Each month, upload each provider's file (one per branch is fine) for the month of service: drag it onto the box or press Choose file, check the preview and the list of ignored columns, then press Upload. Names and ID numbers in the file are never read; the same file twice is refused.",
       "Open the statement: give a reason for every line not matched to Unite and every billed test missing from the lab's file (one reason can cover a whole list), check price differences and late results, then mark it reviewed.",
       "A second person posts it: each doctor's cost becomes a lab or referral charge for the month, deducted in the revenue share.",
     ],
@@ -886,8 +941,9 @@ export const GUIDES: readonly Guide[] = [
     steps: [
       "Use Ctrl K to jump straight to a setting.",
       "Users and Roles decide who can do what. Give people the smallest role that lets them work.",
-      "Front desk, Appointment rules and Training mode are under their own pages.",
-      "Branches: under Appointment rules, Locations, give each branch its finance branch code so ledger reports can show it. Under WhatsApp channels, Edit, choose each WhatsApp number's branch and the team its new chats go to first.",
+      "Front desk, Clinic and appointments and Training mode are under their own pages.",
+      "Finance setup and Accounting setup (bank accounts, targets, approval tiers, tax codes, posting rules) are here too, each for the people who hold its permission.",
+      "Branches (CRM, Branches): give each branch its finance branch code so ledger reports can show it. Under WhatsApp channels, Edit, choose each WhatsApp number's branch and the team its new chats go to first.",
     ],
     watchOut: [
       "Changes apply to everyone at once and are written to the Activity log.",
@@ -931,7 +987,7 @@ export const GUIDES: readonly Guide[] = [
   {
     id: "routing",
     title: "Teams and routing",
-    pages: ["/settings/teams", "/settings/users"],
+    pages: ["/settings/teams", "/settings/users", "/settings/roles"],
     purpose:
       "Decide who gets new WhatsApp conversations, what patients hear when nobody is free, and who sees which enquiries.",
     steps: [
@@ -1030,7 +1086,7 @@ export const GUIDES: readonly Guide[] = [
       "Day book: choose the dates to see each journal with its lines (a year at most).",
       "General ledger: choose an account or a whole group and the dates; open any number to see its journal.",
       "Trial balance: choose the dates; download it as Excel. It must say Balanced.",
-      "Branch (general ledger and trial balance): show only the lines that name one finance branch code. Link each clinic to its code under Settings, Appointment rules, Locations.",
+      "Branch (general ledger and trial balance): show only the lines that name one finance branch code. Link each clinic to its code under Settings, Clinic and appointments, Locations.",
       "Excel on the day book, the general ledger and the journals list downloads every line in the range, read in pages, not only what fits on the screen.",
     ],
     watchOut: [
@@ -1054,7 +1110,7 @@ export const GUIDES: readonly Guide[] = [
       "Customers: add the business with its TRN (blank when not VAT registered), address, credit terms, and for an insurer its payer.",
       "Sales invoices, New invoice: choose the customer, add a line per item with its income account and VAT code, and save the draft.",
       "Open the draft and press Issue: it gets its number (for example SI/2026-27/00001) and is posted to the ledger. Above the approval limit someone else with the journal approval permission presses Approve and issue.",
-      "PDF downloads the tax invoice. A customer without a TRN gets a simplified tax invoice up to AED 10,000; everyone else a full one.",
+      "PDF downloads the tax invoice. A customer without a TRN gets a simplified tax invoice up to AED 10,000; everyone else a full one. E-mail invoice sends the customer a copy marked Internal copy - not a tax invoice, to the address on their customer record.",
       "To reduce an invoice, open it and press Credit note; to cancel it entirely, press Void (a credit note in full).",
     ],
     watchOut: [
@@ -1330,6 +1386,336 @@ export const GUIDES: readonly Guide[] = [
     ],
     watchOut: [
       "After the close, the trial balance no longer shows earlier years' profit for that year: it is in retained earnings.",
+    ],
+  },
+  {
+    id: "dashboard",
+    title: "Dashboard",
+    pages: ["/dashboard", "/dashboard/team"],
+    purpose: "What needs you right now: only the tiles your role can act on.",
+    steps: [
+      "Today's appointments counts today's bookings in the branches the switcher shows.",
+      "Conversation tiles open the inbox folder they count; task and enquiry tiles open those lists.",
+      "Your first steps card lists three to five things to try first. Hide it with the cross when you are done.",
+      "Team lead (if you have access) shows who is online and what is waiting.",
+    ],
+    watchOut: [
+      "Counts follow the branch switcher at the top of the menu: All branches shows every branch you work in.",
+    ],
+  },
+  {
+    id: "management",
+    title: "Management dashboard",
+    pages: ["/dashboard/management"],
+    purpose: "How the clinic is doing this period, against the period before.",
+    steps: [
+      "Pick the period and the channel at the top.",
+      "Each tile compares with the previous period; open a report for the detail.",
+      "The same numbers go out in the digest e-mail, so the page and the e-mail always agree.",
+    ],
+    watchOut: [
+      "Numbers use the clinic's time zone. Finance figures are in the finance Reports hub.",
+    ],
+  },
+  {
+    id: "portal",
+    title: "Portal",
+    pages: ["/portal"],
+    purpose: "Back-office screens and reference data rebuilt from Airtable.",
+    steps: [
+      "Pick a section or an object from the list. Clinical follow-ups also sit under Today.",
+      "Lists work like the other grids: filters, saved views and a drawer for each record.",
+      "Bulk edit and portal tags need the object's write permission.",
+    ],
+    watchOut: ["Clinical records are health data: open only what you need for your work."],
+  },
+  {
+    id: "finance-performance",
+    title: "Finance performance",
+    pages: [
+      "/finance/summary",
+      "/finance/revenue",
+      "/finance/branches",
+      "/finance/doctors",
+      "/finance/profitability",
+    ],
+    purpose: "How much the clinic generated, billed and was paid, by month, branch and doctor.",
+    steps: [
+      "Use the tabs to move between the monthly summary, revenue, by branch, by doctor and profitability.",
+      "Pick the period (and branch where offered) and press Apply.",
+      "Each measure has one definition, explained under the page title; amounts are in AED.",
+      "Profitability uses the costs Finance keeps under Costs.",
+    ],
+    watchOut: [
+      "Profit figures are Provisional until Finance approves the month.",
+      "By doctor shows activity, not a judgement of clinical quality.",
+    ],
+  },
+  {
+    id: "finance-insurance",
+    title: "Insurance and receivables",
+    pages: ["/finance/insurance", "/finance/scorecards", "/finance/forecast"],
+    purpose: "Where insurance claims stand, how each payer behaves and what cash to expect.",
+    steps: [
+      "Overview: submitted, accepted, rejected, paid and outstanding claims by claim month.",
+      "By payer and age: what is still owed, by how long it has waited.",
+      "Payer scorecards: denials and time to pay per payer, doctor, department and branch.",
+      "Collections forecast: expected insurance cash by week.",
+    ],
+    watchOut: [
+      "The forecast is an estimate from how payers paid before, not a promise.",
+      "Scorecard colours need a minimum number of claims to mean anything.",
+    ],
+  },
+  {
+    id: "finance-exceptions",
+    title: "Finance exceptions",
+    pages: ["/finance/exceptions"],
+    purpose: "Billing and insurance problems that need a person, one queue per rule.",
+    steps: [
+      "Filter to your queue, then open an exception to see what is wrong and what to do.",
+      "Fix the cause in Unite or Pulse; the exception clears itself when the cause is gone.",
+      "Comment or assign it to someone else when you cannot fix it yourself.",
+    ],
+    watchOut: [
+      "Exceptions show the Unite PIN only, never patient names.",
+      "Visit-versus-invoice signals are review prompts, not proof of anything.",
+    ],
+  },
+  {
+    id: "finance-upload",
+    title: "Uploads",
+    pages: ["/finance/upload"],
+    purpose:
+      "Bring in the Diligence claims report so claims can be matched to invoices, and the Unite collection report for doctor performance.",
+    steps: [
+      "Upload the Diligence claims report weekly and at month end.",
+      "Check the preview: unknown columns are ignored, never guessed.",
+      "Confirm to commit; the previous uploads list shows what came in.",
+    ],
+    watchOut: [
+      "The file holds names and Emirates IDs: Pulse keeps only sanitised rows and deletes the original at once. Never e-mail the file around.",
+    ],
+  },
+  {
+    id: "finance-costs",
+    title: "Costs",
+    pages: ["/finance/costs"],
+    purpose: "The cost inputs behind contribution margin and profitability.",
+    steps: [
+      "Enter or import service costs and overheads for the month.",
+      "Doctor compensation needs its own permission and is shown only to those who hold it.",
+      "Profitability reads these numbers; change them here, not in the report.",
+    ],
+    watchOut: [
+      "A cost of 0 means unknown and is refused: leave it blank until you have the real figure.",
+    ],
+  },
+  {
+    id: "finance-setup",
+    title: "Finance setup",
+    pages: ["/finance/reference", "/finance/workflow-settings", "/finance/health"],
+    purpose: "The mappings, thresholds and data checks every finance page relies on.",
+    steps: [
+      "Finance reference data maps Unite and Diligence values to branches, departments and service categories.",
+      "Finance workflow settings holds the numbers behind pre-authorisations, denials, remittance, scorecards, the forecast and the cash-up.",
+      "Finance data health shows Unite capture, the Diligence import and reference-data gaps.",
+      "All three are under Settings, Finance setup.",
+    ],
+    watchOut: [
+      "Every change is audited and applies to everyone at once.",
+      "Unite capture stays off until an administrator switches it on; never test it against the live system.",
+    ],
+  },
+  {
+    id: "settings-account",
+    title: "Your account and notifications",
+    pages: ["/settings/account", "/settings/notifications"],
+    purpose: "Your own profile, password, devices and how Pulse tells you about new work.",
+    steps: [
+      "Account: change your name, password and two-step sign-in, and see the devices you are signed in on.",
+      "Notifications: choose in-app, e-mail or push for each kind of event, and set quiet hours.",
+      "Allow notifications in the browser if you want push on this device.",
+    ],
+    watchOut: [
+      "Push and e-mail never contain patient names or message text, only that something needs you.",
+    ],
+  },
+  {
+    id: "settings-readiness",
+    title: "Go-live checklist",
+    pages: ["/settings/readiness"],
+    purpose: "Every connection and setting the clinic needs before going live, in one list.",
+    steps: [
+      "Work down the Required rows first; Optional rows can wait.",
+      "Each row says what is missing and links to where it is fixed.",
+      "Rows blocked by a decision wait for the clinic's answer, not for Pulse.",
+    ],
+    watchOut: ["A green row means the setting exists, not that it was tested with real traffic."],
+  },
+  {
+    id: "settings-fields-tags",
+    title: "Custom fields and tags",
+    pages: ["/settings/custom-fields", "/settings/tags"],
+    purpose: "Extra patient fields and the labels used on patients, enquiries and portal records.",
+    steps: [
+      "Custom fields: add a field once and it shows in the patient drawer, the grid, filters, imports and exports.",
+      "Tags: each kind (patient, enquiry, portal) has its own list and its own permission.",
+      "Rename a tag to fix a typo everywhere it is used.",
+    ],
+    watchOut: [
+      "Deleting a field or tag removes it from every record and saved filter that uses it.",
+    ],
+  },
+  {
+    id: "settings-training",
+    title: "Training mode",
+    pages: ["/settings/training"],
+    purpose: "Practise safely, and link the training videos people see under Help.",
+    steps: [
+      "Turn on Training mode (type the confirmation) before practising: nothing is sent to patients.",
+      "Paste the link of each recorded training video; it appears under Help, Training at once.",
+      "Turn it off again before real work starts.",
+    ],
+    watchOut: [
+      "Training mode stops all WhatsApp sending for the whole workspace, not only for you.",
+    ],
+  },
+  {
+    id: "settings-channels",
+    title: "WhatsApp channels and inbox rules",
+    pages: ["/settings/channels", "/settings/inbox"],
+    purpose: "The clinic's WhatsApp numbers and how the inbox shares out chats.",
+    steps: [
+      "WhatsApp channels: connect each number, then choose its branch and the team its new chats go to first.",
+      "Inbox rules: office hours, the away message, how long before an idle person is shown as away, and the reply-time targets.",
+      "Categories, labels and quick replies for the inbox are kept here too.",
+    ],
+    watchOut: [
+      "Changing a number's branch or team affects new chats only; existing chats stay where they are.",
+    ],
+  },
+  {
+    id: "settings-unite",
+    title: "Unite EMR",
+    pages: ["/settings/unite"],
+    purpose: "The read-only link that brings patients, visits and appointments in from Unite.",
+    steps: [
+      "Check the last sync and the recent calls to see that data is flowing.",
+      "Patients that could not be matched go to Portal, Sync review.",
+    ],
+    watchOut: ["Pulse never writes to Unite. Change Unite data in Unite."],
+  },
+  {
+    id: "settings-developers",
+    title: "API keys and webhooks",
+    pages: ["/settings/api-keys", "/settings/webhooks"],
+    purpose: "Let the clinic's own systems talk to Pulse, safely.",
+    steps: [
+      "API keys: create one per system; the key is shown once, so copy it straight into that system.",
+      "Webhooks: add an endpoint to receive Pulse events; each delivery is signed with the endpoint's secret.",
+      "Revoke a key or rotate a secret as soon as it may have leaked.",
+    ],
+    watchOut: [
+      "A key can read and write patient records: give it only to systems the clinic controls.",
+    ],
+  },
+  {
+    id: "settings-ai",
+    title: "AI settings",
+    pages: ["/settings/knowledge-base", "/settings/ai-copilots"],
+    purpose: "What the AI assistant may answer from, and what the copilots may do.",
+    steps: [
+      "Knowledge base: add the clinic's own answers (prices, preparation, opening hours) in groups.",
+      "AI copilots: switch each copilot on or off and set the daily limits.",
+      "Tags that start flows need the clinical lead's sign-off.",
+    ],
+    watchOut: [
+      "Everything AI writes is a draft for a person to check. AI never diagnoses or advises on medicines.",
+    ],
+  },
+  {
+    id: "settings-appointments",
+    title: "Clinic and appointments, and front desk",
+    pages: ["/settings/appointments", "/settings/front-desk"],
+    purpose:
+      "Branches, doctors, services, working hours and booking rules, and how the front desk works.",
+    steps: [
+      "Clinic and appointments: tabs for Branches, Departments, Services, Doctors and hours, and Booking rules.",
+      "Give each doctor their branches, services and working hours; the diary offers only those slots.",
+      "Booking rules: slot length, reminders and their WhatsApp templates.",
+      "Front desk: the waiting-list offers, the desk QR code and the running-late and location messages.",
+    ],
+    watchOut: [
+      "Waiting-list offers stay off until switched on here.",
+      "Appointments from Unite are never refused by these rules, only flagged.",
+    ],
+  },
+  {
+    id: "settings-documents",
+    title: "Patient documents settings",
+    pages: ["/settings/documents"],
+    purpose: "Whether patient documents are on, which categories exist and how long they are kept.",
+    steps: [
+      "Type the confirmation to switch patient documents on (a data-residency decision).",
+      "Set a retention policy per category; nothing is deleted without one.",
+      "Check storage use and any files waiting for the malware scan.",
+    ],
+    watchOut: [
+      "Unscanned is not the same as clean. Files marked infected are never shown or sent.",
+    ],
+  },
+  {
+    id: "settings-enquiries",
+    title: "Enquiry pipelines",
+    pages: ["/settings/enquiries"],
+    purpose: "The stages enquiries move through, their targets and the automatic rules.",
+    steps: [
+      "Add or rename stages for each pipeline and set the time each stage should take.",
+      "Rules can assign or move enquiries when something happens.",
+      "Lost reasons are a pick-list here; staff can still type their own.",
+    ],
+    watchOut: ["Deleting a pipeline or stage changes reports for past enquiries too."],
+  },
+  {
+    id: "settings-audit",
+    title: "Activity log and access review",
+    pages: ["/settings/activity", "/settings/access-review"],
+    purpose: "Who changed or opened what, and a regular check of who has access.",
+    steps: [
+      "Activity log: filter by person, record type or action; sign-ins and record opens are here too.",
+      "Access review: go through each person's role once a quarter, remove what they no longer need and sign it off.",
+    ],
+    watchOut: [
+      "The log shows ids, not patient names or message text.",
+      "Off-board people the day they leave.",
+    ],
+  },
+  {
+    id: "settings-privacy",
+    title: "Patient data requests",
+    pages: ["/settings/privacy"],
+    purpose: "Patient requests for a copy of their data, or for it to be erased.",
+    steps: [
+      "Raise a request when a patient asks; note how you checked who they are.",
+      "A second person approves it before anything is exported or erased.",
+      "Erasure removes the patient's documents first, then their record.",
+    ],
+    watchOut: [
+      "Erasure cannot be undone. Finance and legal records may have to be kept; check before approving.",
+    ],
+  },
+  {
+    id: "settings-system-health",
+    title: "System health",
+    pages: ["/settings/system-health"],
+    purpose: "Whether background jobs and queues are running on time.",
+    steps: [
+      "Check the scheduled jobs and their last runs.",
+      "A queue that keeps growing or a job that keeps failing needs the technical team.",
+    ],
+    watchOut: [
+      "Retrying a failed job is safe: jobs are written to run twice without doing the work twice.",
     ],
   },
 ];

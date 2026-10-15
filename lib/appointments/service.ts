@@ -21,6 +21,8 @@ import { addTimelineEvent } from "@/lib/contacts/timeline";
 import { resolveRecipient, type HouseholdContact } from "@/lib/household/addressing";
 import { loadHouseholdLink } from "@/lib/household/server";
 import { freedSlotFromRow, scheduleSlotFreed } from "@/lib/front-desk/freed";
+import { WHATSAPP_DECLINED_ERROR } from "@/lib/front-desk/whatsapp-consent";
+import { recipientDeclinedWhatsApp } from "@/lib/front-desk/whatsapp-consent-server";
 import { emit } from "@/lib/events/emit";
 import { ensureConversation } from "@/lib/inbox/conversations";
 import { scheduleReviewRequestSafely } from "@/lib/integrations/reviews/server";
@@ -225,6 +227,9 @@ export async function sendAppointmentTemplate(
     await loadHouseholdLink(admin, input.orgId, contact.id),
   );
   if (!target) return { ok: false, error: "The patient has no WhatsApp identifier." };
+  // Phase E: a walk-in registered without the WhatsApp agreement (on the person the message would reach) gets nothing.
+  if (await recipientDeclinedWhatsApp(admin, input.orgId, target.recipient.id))
+    return { ok: false, error: WHATSAPP_DECLINED_ERROR };
   if (!tpl) return { ok: false, error: "The mapped template no longer exists." };
   if (tpl.status !== "APPROVED")
     return { ok: false, error: `Template "${tpl.name}" is ${tpl.status}, not approved.` };

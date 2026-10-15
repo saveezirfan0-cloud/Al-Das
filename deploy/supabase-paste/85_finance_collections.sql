@@ -2,11 +2,11 @@
 -- Run the files in numeric order. A failed file rolls back as a whole, so it is safe to retry.
 -- Collections and data quality (Phase 23D): the late-invoice setting and the aggregate function behind
 -- Finance, Collections (service role only; sums and counts by day, branch, doctor and invoice type, no patient ids).
--- Needs every earlier file first, up to and including 81_organisation.sql.
+-- Needs every earlier file first, up to and including 84_finance_report_emails.sql.
 -- Check the project name in the Supabase header first: this is for the Pulse project only.
 
 -- ======================================================================
--- 20261203000100_finance_collections.sql
+-- 20261208000100_finance_collections.sql
 -- ======================================================================
 -- Phase 23D-1: collections and data quality from the Unite collection report (docs/39_UNITE_REPORTS_PLAN.md §1.2 and
 -- §4 23D, docs/23_PHASE_23D_NOTES.md).

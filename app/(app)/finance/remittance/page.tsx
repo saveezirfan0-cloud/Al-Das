@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -47,7 +48,8 @@ export default async function RemittancePage() {
         <Card>
           <CardContent className="pt-6 text-sm">
             No agreed prices are loaded, so short payments are judged against the claim&apos;s own
-            net amount. Load the payer price lists in Finance, Workflow settings for a real check.
+            net amount. Load the payer price lists in Settings, Finance workflow settings for a real
+            check.
           </CardContent>
         </Card>
       )}
@@ -61,7 +63,10 @@ export default async function RemittancePage() {
         </CardHeader>
         <CardContent>
           {(batches ?? []).length === 0 ? (
-            <p className="text-muted-foreground text-sm">Nothing reconciled yet.</p>
+            <EmptyState
+              title="Nothing reconciled yet"
+              description="Upload a payer's payment advice to match it to claims."
+            />
           ) : (
             <Table>
               <TableHeader>

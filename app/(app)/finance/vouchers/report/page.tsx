@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -151,8 +152,8 @@ export default async function VoucherReportPage({
             <TableBody>
               {r.byTier.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-muted-foreground text-sm">
-                    No submitted vouchers this month.
+                  <TableCell colSpan={4}>
+                    <EmptyState title="No submitted vouchers this month" className="border-0 p-6" />
                   </TableCell>
                 </TableRow>
               ) : (

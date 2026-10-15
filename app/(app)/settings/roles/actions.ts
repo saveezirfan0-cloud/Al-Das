@@ -8,6 +8,8 @@ import { z } from "zod";
 import { recordAudit } from "@/lib/audit";
 import { isAssignablePermission } from "@/lib/auth/permissions";
 import { requirePerm } from "@/lib/auth/session";
+import { seedFinanceSetup } from "@/lib/finance/seed";
+import { redactText } from "@/lib/redact";
 import { raiseAlert } from "@/lib/security/alerts";
 import { roleChangeAlert } from "@/lib/security/anomaly";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -188,4 +190,38 @@ export async function deleteRole(roleId: string): Promise<ActionResult> {
   );
   revalidatePath("/settings/roles");
   return { ok: true, message: "Role deleted." };
+}
+
+/**
+ * Adds the Finance, Insurance, CEO, Cost/Payroll and Accounting role presets and the finance reference rows, as
+ * `pnpm finance:seed` does (for a workspace that was created without them). Admin only: settings.manage like every
+ * role change, plus full access, because these roles carry finance and accounting rights. Idempotent: roles that
+ * already exist (same name) are left as they are.
+ */
+export async function addFinanceRoles(): Promise<ActionResult> {
+  const member = await requirePerm("settings.manage");
+  if (!member.permissions.includes("*"))
+    return { ok: false, error: "Only an administrator can add the finance and accounting roles." };
+  const admin = createAdminClient(member.userId);
+  let rolesAdded: number;
+  try {
+    ({ rolesAdded } = await seedFinanceSetup(admin, member.orgId));
+  } catch (err) {
+    console.error("[roles] finance setup failed", { error: redactText(err, 100) });
+    return { ok: false, error: "Could not add the finance and accounting roles." };
+  }
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "role.finance_presets_added",
+    entity: "role",
+    diff: { roles_added: rolesAdded },
+  });
+  revalidatePath("/settings/roles");
+  return {
+    ok: true,
+    message: rolesAdded
+      ? `${rolesAdded} role${rolesAdded === 1 ? "" : "s"} added.`
+      : "All finance and accounting roles were already there.",
+  };
 }

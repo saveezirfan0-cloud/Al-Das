@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -22,6 +23,7 @@ import { deleteVariable, saveVariable } from "../actions";
 type Row = { id: string; key: string; value: string; enabled: boolean };
 
 export function VariablesManager({ rows }: { rows: Row[] }) {
+  const [ask, askDialog] = useConfirm();
   const router = useRouter();
   const [key, setKey] = useState("");
   const [value, setValue] = useState("");
@@ -128,8 +130,8 @@ export function VariablesManager({ rows }: { rows: Row[] }) {
                     variant="ghost"
                     size="icon-sm"
                     aria-label={`Delete ${r.key}`}
-                    onClick={() =>
-                      confirm(`Delete ${r.key}? Flows using it will render it empty.`) &&
+                    onClick={async () =>
+                      (await ask(`Delete ${r.key}? Flows using it will render it empty.`)) &&
                       run(() => deleteVariable(r.id), undefined)
                     }
                   >
@@ -141,6 +143,7 @@ export function VariablesManager({ rows }: { rows: Row[] }) {
           </TableBody>
         </Table>
       )}
+      {askDialog}
     </div>
   );
 }

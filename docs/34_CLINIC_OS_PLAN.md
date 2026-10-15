@@ -56,6 +56,13 @@ too. About 180 pages, ~3,100 unit tests, ~1,390 database tests. All 130 menu lin
 - D3 adds `lib/supabase/fetch-all.ts` and the guard test `tests/unit/no-large-limit.test.ts`.
 - D4: Sentry is wired and off until a DSN is set.
 - Also built: the Go-live checklist at `/settings/readiness`, and the extended preflight.
+- First-run set-up (Oct 2026): the checklist starts with the clinic's own Required rows (a branch with a finance
+  code, services, doctors with hours, the team, doctors linked to users, staff records, the WhatsApp number;
+  `clinicSetupRows()` in `lib/golive/readiness.ts`, head counts from `lib/golive/clinic-setup-server.ts`). The
+  dashboard shows a "Set up your clinic" card with the next three to people with `settings.manage` until all are done.
+  Settings, Appointments opens on Locations while there are none (tabs Locations, Departments, Services, Doctors and
+  hours, Booking rules; `?tab=`). Empty diaries and the rota link to it for `settings.manage`. Settings, Roles has an
+  Admin-only "Add finance and accounting roles" (the `pnpm finance:seed` steps, `lib/finance/seed.ts`).
 
 Still open in Phase A:
 - The live-database check (the Pulse Supabase project is not reachable from this workspace's connector).
@@ -106,7 +113,7 @@ docs and help guides updated, and the `nav-qa` agent run.
   - Enforcement in RLS and in the service-role loaders: front desk, appointments, enquiries, waiting list, handover notes
     and tasks.
   - The branch switcher in the rail and the phone drawer.
-  - `locations.branch_code`, set under Settings, Appointment rules, Locations (picker of the finance codes, unique, audited).
+  - `locations.branch_code`, set under Settings, Clinic and appointments, Branches (picker of the finance codes, unique, audited).
   - `location_id` on channels, teams, contacts (home branch), tasks and conversations; `channels.default_team_id`.
     New conversations take their number's branch and route to its team first.
   - Inbox: branch filter (follows the switcher; "All my branches" or one branch), branch chip on rows, counts per branch.
@@ -178,6 +185,34 @@ docs and help guides updated, and the `nav-qa` agent run.
 - **Doctor/Nurse preset and "My day"**: own appointments today, check-in states, follow-up queue, tasks.
 
 ### Phase D — Simple to use (2 weeks, in parallel with B/C)
+**Status (14 Oct 2026): Simple to use (Phase D), first slice built** (no migration; type-checked, linted,
+unit-tested; not yet driven in a browser).
+- Built:
+  - Menu as in §3: Today (front desk, my day, appointments, tasks, clinical follow-ups), Messaging (inbox, templates,
+    campaigns, flows, recall, media), CRM with People (patients, enquiries) and Organisation (doctors, staff, and the
+    Teams and Branches settings pages linked from there), Finance, Accounting, Insights (reports, management, portal),
+    Settings. Inbox hidden without `inbox.send` / `inbox.view_all`. Rail areas follow the group order.
+  - Finance menu from 45 entries to 21: sibling pages are tab groups (`tabs` on the nav entry; a tab strip on each page,
+    every tab still in Ctrl+K); the 7 finance and 10 accounting setup pages are listed under Settings, Finance setup and
+    Accounting setup at their own URLs (finance access window unchanged). Receivables pages cross-linked; page titles
+    match the menu.
+  - Ctrl+K record search: patients (name, phone normalised to E.164), enquiries (number, title), tasks (subject); five
+    per kind, debounced, rate limited, each kind behind its view key and the list pages' visibility and branch rules.
+  - `landingPathFor` (`lib/shell/landing.ts`) for every role; the dashboard shows only actionable tiles plus Today's
+    appointments; a first-run checklist per role (dismissed per device).
+  - `useConfirm()` everywhere outside the Phase E/F areas (a test blocks new browser `confirm()`), `EmptyState` and
+    `CappedNote` on finance, accounting and settings lists, `DrawerFooter` + `useUnsavedGuard` on the Staff and Doctors
+    drawers.
+  - Words: Patients and doctor in UI text and permission labels (keys unchanged); `<Term>` glossary tooltips
+    (`lib/help/glossary.ts`, 18 terms) on accounting reports.
+  - A guide for every menu, tab and settings page (a test checks), and a What's new entry.
+- Still to do in this phase:
+  - Browser `confirm()` in the front desk, appointments, inbox, patients, tasks and enquiries (Phase E/F agents; the
+    test's allow-list names them), and the first-run card on the Front desk and Inbox landing pages.
+  - `lib/front-desk/landing.ts` can become a re-export of `lib/shell/landing.ts` (Phase E owns that directory).
+  - DataGrid on the remaining finance and accounting lists; the drawer footer on more drawers.
+  - "My work queue" for Finance (no work-queue page exists yet; Finance lands on the Reports hub).
+
 - **Navigation.**
   - Restructure areas as in §3 (Messaging area, CRM People/Organisation, Today gains Clinical follow-ups).
   - Hide Inbox from roles without inbox rights.
@@ -199,6 +234,49 @@ docs and help guides updated, and the `nav-qa` agent run.
 - **Help.** A guide for every page that lacks one (portal queues, key finance pages) and a first-run checklist per role.
 
 ### Phase E — Front desk and appointments v2 (2 weeks)
+**Status (14 Oct 2026): first slice built** (migration `20261206000100_front_desk_v2.sql`, paste file
+`82_front_desk_v2.sql`; type-checked, linted, unit- and database-tested, production build; not yet driven in a browser,
+on a phone or a printer).
+- Built:
+  - **Book at the desk** (`app/(app)/front-desk/book-drawer.tsx`): opens on the switcher's (or home / only) branch
+    (`presetBranch`), offers only services someone at the branch does, and lists one day of free times per doctor from
+    the slot engine (`getDeskDaySlots` → `slotsForDay` → `generateSlots` / `slotFits`; pure ordering in
+    `lib/front-desk/book.ts`). Books through `bookAppointment` → `public.book_appointment` (per-doctor lock, capacity
+    re-checked); the patient comes from the desk's search or card; the result offers Print slip.
+  - **One cancel / no-show dialog** on `useConfirm()` (`visit-close.tsx`), used by the board and the patient card (with
+    an optional "tell the patient" tick). Cancelling still runs `changeAppointmentStatus` → `scheduleSlotFreed()`. No
+    cancel-reason list exists in Pulse, so none was invented. Every browser `confirm()` in the front desk and
+    appointments folders is gone.
+  - **Arrival check panel** on the board line at Arrived (`getArrivalChecks`, `lib/front-desk/arrival-check*.ts`):
+    insurance card (patient documents on + `documents.view`; expiry and status only, never titles), eligibility
+    (`fin_eligibility_checks`, read-only, `finance.eligibility.manage`) and consent forms (e-signature on + documents on +
+    `documents.view`). Each fails closed to "Not checked (reason)".
+  - **Walk-ins** without a phone or with another country's number (`walkInPhoneDecision`: blank, a UAE mobile, or a
+    possible E.164 number with its country code). The WhatsApp tick is unticked by default and optional; a new record
+    with a number and no tick gets `contacts.whatsapp_declined_at`, and appointment messages
+    (`sendAppointmentTemplate`), reminders (excluded `no_whatsapp_consent`, no SMS fallback), waiting-list offers and the
+    desk's location / running-late messages are then never queued. An existing patient found by number is not changed
+    by an empty box. The card shows the flag and "Patient agrees to WhatsApp now" (`recordWhatsAppAgreement`, audited).
+  - **Slip and payment record** at `/front-desk/slip/[id]` (`frontdesk.use` + `appointments.view`, branch rule,
+    `recordAccess`): first name, day and time, doctor, branch and address, booking number; nothing clinical. With
+    `finance.invoices.view`, `?kind=receipt` lists the Unite mirror's payments on the visit's invoices and paid payment
+    links (`lib/front-desk/slip*.ts`), marked "not a tax invoice".
+  - **End of day per branch** on `/front-desk/end-of-day`: booked, seen, no-shows, cancelled, walk-ins and the median
+    Arrived → With doctor wait per branch (`lib/front-desk/day-summary.ts`), with a Cash-up link per branch for holders
+    of `finance.cashup.manage` (branch finance code from `locations.branch_code`).
+  - **Diary**: a check-in chip (In / Dr / Done / Out, dark-mode pairs) in Resource day, Branch week, the Specialist
+    calendar, the agenda and the drawer; drag-and-drop in Resource day (mouse and pen; touch keeps scrolling) and the
+    Specialist calendar (FullCalendar, still `next/dynamic`) through `moveAppointment` → `move_appointment`, put back
+    with the reason on refusal, with a `useConfirm()` question before moving a confirmed booking whose reminder went out
+    (`lib/appointments/drag-move.ts`) and a "Tell the patient when I drag" switch; a **Branch week** tab
+    (`?view=week`) with every doctor of the branch from Monday to Sunday (`lib/appointments/week.ts`), branch-aware
+    through `listRange`'s branch rule.
+- **Not done, on purpose:** the Receptionist does NOT get `finance.cashup.manage`. The cash-up is not branch-scoped
+  (`fin_cashups` RLS is `app.has_perm(org_id, 'finance.cashup.manage')` for every branch, and the page lists every
+  branch), so the key would open every branch's cash-up and expected takings, and it falls under the finance access
+  window. Granting it per branch needs a branch rule on `fin_cashups` / `fin_cashup_lines` and the page first.
+- Still to do: rooms, the queue-token screen and the arrival kiosk (below); a browser, phone and printer pass.
+
 - **Front desk.**
   - Book inside the desk: drawer with branch preset and one day of slots.
   - One cancel dialog instead of two `confirm()` pop-ups.
@@ -213,6 +291,30 @@ docs and help guides updated, and the `nav-qa` agent run.
   - Later: rooms as bookable resources, a queue-token screen and an arrival kiosk.
 
 ### Phase F — Inbox, CRM and tasks v2 (2 weeks)
+**Status (14 Oct 2026): first slice built** (migration `20261206000200_inbox_tasks_v2.sql`, paste file
+`83_inbox_tasks_v2.sql`; type-checked, linted, unit- and database-tested; not yet driven in a browser).
+- Built:
+  - Inbox: Snoozed folder and Snooze menu (`conversations.snoozed_until`, `inbox.unsnooze` scheduled job; a patient's
+    message or a close clears it), "waiting 12 m" chips with amber/red thresholds (`first_response_*_minutes` in
+    `orgs.settings.inbox`, defaults 15 / 60, set from the list's filter menu), select mode with bulk assign / close
+    through the single-conversation paths (`lib/inbox/assign.ts`, `closeConversationRecord`; close refused when a
+    category or summary is required), message-text search (`search_messages()`, security invoker, trigram, 3+
+    characters, 30 hits, snippet only, query never logged), "Someone else is replying" (Realtime presence, ids only),
+    Create task from a chat (patient, chat and the chat's branch).
+  - Patient 360: History (messages, appointments, enquiries, tasks, notes; merged and paged, `lib/contacts/history.ts`),
+    Tasks (open first) and Invoices (`finance.invoices.view`, `v_fin_invoice_list` by Unite PIN, amounts and dates)
+    tabs; owner and home branch in the header.
+  - Tasks v2: status (in step with `done` by trigger), priority, team, repeats (`task.recur` job and on completion,
+    `task_spawn_next()` idempotent), checklist items, comments with @mentions (`task.mentioned`), Media Library files
+    (counted by `media_asset_usage()`), `task.assigned`, Board (dnd-kit) and Calendar (FullCalendar) views on demand,
+    status / priority / team / checklist filters; per-branch daily opening and closing checklists
+    (`task_checklist_templates`, hourly `pulse:tasks_daily`, one task per template and local day).
+  - Enquiries: CSV import with column mapping, dry run with problems per row, idempotent re-runs (`external_refs`,
+    hashed key), audited with counts only.
+- Still to do in this phase: a Settings, Inbox field for the waiting colours (today in the list's filter menu), a
+  Settings page entry for the daily checklists (today a button on Tasks), drag-to-reschedule on the task calendar,
+  uploading new files straight into a task, and a browser pass of the new screens.
+
 - **Inbox.**
   - Snooze, first-response SLA ("waiting 12 m"), bulk assign/close.
   - "Someone else is replying" warning.
@@ -226,8 +328,9 @@ docs and help guides updated, and the `nav-qa` agent run.
 - **Enquiries.** CSV import.
 
 ### Phase G — Finance and accounting for the finance team (2 weeks)
-**Status (14 Oct 2026): first slice built (type-checked, linted, unit-tested; not yet driven in a browser or against
-Resend).**
+**Status (14 Oct 2026): built** (second slice: migration `20261207000100_finance_report_emails.sql`, paste file
+`84_finance_report_emails.sql`; type-checked, linted, unit- and database-tested; not yet driven in a browser or run
+against a Resend sandbox, which is Phase H).
 - Built:
   - Reports hub `/finance/reports` (first under Finance, Overview; a card under Insights, Reports): Management,
     Accounting, Receivables/RCM and Tax cards, each shown to holders of that report's own key. One picker (branch from
@@ -250,8 +353,35 @@ Resend).**
     (`PAYABLES_READ`, no new key, no migration).
   - Excel downloads (every row, read in pages with `fetchAll`) of the invoices, claims, denials, journals, day book and
     general ledger lists.
-- Still to do in this phase: scheduled report e-mails (daily flash, monthly summary), e-mailing a customer invoice, the
-  one upload component, PDF and e-mail on more hub cards, and a run against a Resend sandbox (Phase H).
+- Built in the second slice:
+  - Scheduled report e-mails (Settings, Finance setup, Report e-mails, `/finance/report-emails`, new key
+    `finance.report_emails.manage` for Finance and Finance Manager): the daily flash at a local time (yesterday's) and the
+    monthly summary on day 1 to 28 (last month's, compared with the month before), as Excel attachments. Schedules live
+    in `fin_report_schedules` (a table, not `orgs.settings`: the job reads every organisation in one query, the runs need
+    a parent row, and `orgs.settings` is validated by the finance access window trigger); `pg_cron` pings
+    `/api/jobs/finance_report_emails` every 10 minutes; `lib/finance/report-emails.ts` works out what is due in the org
+    timezone and `fin_report_schedule_claim` claims each (schedule, period) once in SQL (`fin_report_schedule_runs`,
+    unique), so a retry or a second server never sends twice. Recipients are members only (user ids); at send time each
+    must hold the report's own key with the finance access window applied exactly as a request would (`can()` with
+    `restrictedAreas`; a job has no client address, so a window with an address list sends nothing), checked when queued
+    and again by the `finance_document_email` job. The body is a fixed sentence (period only, no figures, no names); the
+    attachment says Provisional until the CEO lock. Training workspaces send nothing. Each send is audited and logged as
+    an export by its recipient.
+  - E-mail a customer invoice: on an issued sales invoice or credit note (Accounting, Sales invoices; business customers
+    in `acc_customers`, never patients), `accounting.sales.manage`, rate limited, audited and logged as an export. The
+    attachment is a copy of the issued document marked "Internal copy - not a tax invoice" (the UAE e-invoice will come
+    from the accredited provider, OQ-122). The Unite invoice view is not e-mailed: it carries the patient's PIN and
+    service lines and has no business customer.
+  - One upload component (`components/shell/file-upload.tsx`, rules in `lib/upload/preview.ts`): drag and drop or Choose
+    file, type and size checked before sending, a server preview of the first rows of the MAPPED columns only (texts
+    redacted, a Unite PIN masked), the names of columns that will be ignored (never their values), the mapped columns
+    a file lacks, and Import / Upload. Used by the bank statement import and the lab and provider import; their parsers,
+    layouts (`fin_import_formats`) and the "file not kept" rule are unchanged.
+  - Reports hub: the daily flash gains PDF, the monthly summary Excel and PDF (`lib/finance/flash-pdf.ts`,
+    `lib/finance/summary-report.ts`, both labelled Provisional / Final), and both get "E-mail me" (to the person's own
+    profile address, the card's key).
+- Still to do: the upload component on the costs and budgets imports, the remaining hub cards' e-mail, and the run
+  against a Resend sandbox (Phase H).
 
 - **Reports hub.** One page of report cards (Management, Accounting, Receivables/RCM, Tax), with a shared branch,
   period and comparison picker. Each card can View, Excel, PDF and E-mail. Also listed in Insights.

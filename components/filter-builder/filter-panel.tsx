@@ -86,7 +86,7 @@ export function FilterPanel({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="flex w-full flex-col sm:max-w-2xl">
         <SheetHeader>
-          <SheetTitle>Filter contacts</SheetTitle>
+          <SheetTitle>Filter patients</SheetTitle>
           <SheetDescription>
             Combine conditions with AND / OR groups. Exclusion filters remove matches from the
             result.
@@ -94,7 +94,7 @@ export function FilterPanel({
         </SheetHeader>
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4">
           <section className="flex flex-col gap-2">
-            <h3 className="text-sm font-medium">Include contacts where</h3>
+            <h3 className="text-sm font-medium">Include patients where</h3>
             <FilterBuilder
               group={draft.include}
               onChange={(g) => setDraft({ ...draft, include: g })}

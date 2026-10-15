@@ -191,14 +191,14 @@ export function NodeForm({ type, config, onChange, lookups }: Props) {
             hint="Use it later as {vars.answer}."
           />
           <SelectField
-            label="Also save to contact field"
+            label="Also save to patient field"
             value={str(config.save_to, "none")}
             onChange={(v) => set({ save_to: v === "none" ? undefined : v })}
             options={[
               { value: "none", label: "Do not save" },
               ...CONTACT_FIELDS.filter((f) => f.value !== "gender"),
             ]}
-            hint="Only an e-mail answer can go to the e-mail field. For a custom field use Update contact field with {vars.answer}."
+            hint="Only an e-mail answer can go to the e-mail field. For a custom field use Update patient field with {vars.answer}."
           />
           <NumberField
             label="Give up after (seconds)"
@@ -799,7 +799,7 @@ export function NodeForm({ type, config, onChange, lookups }: Props) {
             options={(lookups.services ?? []).map((x) => ({ value: x.id, label: x.name }))}
           />
           <SelectField
-            label="Specialist"
+            label="Doctor"
             value={str(config.specialist_id)}
             onChange={(specialist_id) => set({ specialist_id })}
             options={(lookups.specialists ?? []).map((x) => ({ value: x.id, label: x.name }))}

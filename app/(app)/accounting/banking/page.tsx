@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -77,8 +78,12 @@ export default async function BankAccountsPage() {
             <TableBody>
               {position.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-muted-foreground text-sm">
-                    No bank accounts yet. Finance adds them under Bank reconciliation, Settings.
+                  <TableCell colSpan={4}>
+                    <EmptyState
+                      title="No bank accounts yet"
+                      description="Finance adds them under Settings, Bank reconciliation settings."
+                      className="border-0 p-6"
+                    />
                   </TableCell>
                 </TableRow>
               )}
@@ -284,8 +289,8 @@ export default async function BankAccountsPage() {
             <TableBody>
               {uncleared.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-muted-foreground text-sm">
-                    Every posted cheque has cleared.
+                  <TableCell colSpan={6}>
+                    <EmptyState title="Every posted cheque has cleared" className="border-0 p-6" />
                   </TableCell>
                 </TableRow>
               )}

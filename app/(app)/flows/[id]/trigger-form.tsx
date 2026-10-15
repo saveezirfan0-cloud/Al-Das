@@ -386,7 +386,7 @@ function DripSegments({ flowId, lookups }: { flowId: string; lookups: BuilderLoo
   return (
     <Field
       label="Segments that start this flow"
-      hint="Choose this flow as the drip flow on a static segment (Contacts, Segments). It starts once for each contact added after that, never for contacts already in it. Dynamic segments use the Recurring trigger instead."
+      hint="Choose this flow as the drip flow on a static segment (Patients, Segments). It starts once for each patient added after that, never for patients already in it. Dynamic segments use the Recurring trigger instead."
     >
       {using.length ? (
         <ul className="flex flex-col gap-1 text-sm">
@@ -491,8 +491,8 @@ function RecurringForm({
         value={segmentId || "none"}
         onChange={(v) => onChange({ segment_id: v === "none" ? undefined : v })}
         options={[
-          { value: "none", label: "No contact (one run)" },
-          ...lookups.segments.map((s) => ({ value: s.id, label: `Every contact in "${s.name}"` })),
+          { value: "none", label: "No patient (one run)" },
+          ...lookups.segments.map((s) => ({ value: s.id, label: `Every patient in "${s.name}"` })),
         ]}
         hint="With a segment the flow starts once per member (up to 200 per tick)."
       />

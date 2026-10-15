@@ -1,15 +1,21 @@
 import { PageHeader } from "@/components/shell/page-header";
 import { requirePerm } from "@/lib/auth/session";
 import { readAppointmentSettings } from "@/lib/appointments/settings";
+import { initialSettingsTab } from "@/lib/appointments/settings-tabs";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 import { AppointmentsSettings } from "./appointments-settings";
 
-export const metadata = { title: "Appointment settings" };
+export const metadata = { title: "Clinic and appointments" };
 
-export default async function AppointmentSettingsPage() {
+export default async function AppointmentSettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string | string[] }>;
+}) {
   const member = await requirePerm("settings.manage");
+  const { tab } = await searchParams;
   const admin = createAdminClient();
   const supabase = await createClient();
   const org = member.orgId;
@@ -83,10 +89,11 @@ export default async function AppointmentSettingsPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Appointments"
-        description="Locations, services, specialists and working hours, plus the booking rules and WhatsApp templates behind reminders."
+        title="Clinic and appointments"
+        description="Set up in this order: your branches (locations), the services patients can book, then the doctors with the branches and hours they work. Booking rules and the WhatsApp templates behind reminders are on the last tab."
       />
       <AppointmentsSettings
+        initialTab={initialSettingsTab(tab, (locations ?? []).length)}
         orgTimezone={orgRow?.timezone ?? "Asia/Dubai"}
         rules={readAppointmentSettings(orgRow?.settings)}
         locations={locations ?? []}

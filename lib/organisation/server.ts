@@ -1,11 +1,23 @@
 import "server-only";
 
-import { fromZonedTime } from "date-fns-tz";
+import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
 
 import { localDate, shiftLocalDate } from "@/lib/appointments/slots";
-import { allowedLocations, canSeeLocation, type BranchAccess } from "@/lib/branches/access";
-import { hoursSummary } from "@/lib/organisation/doctors";
-import { isRotaRole } from "@/lib/organisation/rota";
+import {
+  allowedLocations,
+  branchFilterIds,
+  branchOrFilter,
+  canSeeLocation,
+  type BranchAccess,
+} from "@/lib/branches/access";
+import { hoursSummary, patientShortName } from "@/lib/organisation/doctors";
+import {
+  isRotaRole,
+  ROTA_ROLE_LABELS,
+  shiftLabel,
+  weekStart,
+  weekWindow,
+} from "@/lib/organisation/rota";
 import {
   EMPLOYMENT_TYPES,
   type DutyFrequency,
@@ -13,6 +25,7 @@ import {
 } from "@/lib/organisation/staff";
 import type {
   BranchOption,
+  DoctorDetail,
   DoctorRow,
   DutyRow,
   Option,
@@ -108,7 +121,7 @@ export async function loadDoctors(
     admin
       .from("specialists")
       .select(
-        "id, name, title, specialty, department_id, active, licence_number, licence_authority, licence_expires_on, phone_ext, bio, user_id, profiles:profiles!specialists_user_id_fkey(first_name, last_name, email)",
+        "id, name, title, specialty, department_id, active, licence_number, licence_authority, licence_expires_on, phone_ext, bio, user_id, report_doctor_key, profiles:profiles!specialists_user_id_fkey(first_name, last_name, email)",
       )
       .eq("org_id", orgId)
       .order("name"),
@@ -176,6 +189,7 @@ export async function loadDoctors(
       bio: s.bio,
       userId: s.user_id,
       userLabel: personLabel(s.profiles),
+      reportDoctorKey: s.report_doctor_key,
       todayCount: counts.get(s.id) ?? 0,
       hours: hoursSummary(
         myHours,
@@ -188,6 +202,115 @@ export async function loadDoctors(
     });
   }
   return { rows, branches: allowed, today };
+}
+
+/**
+ * One doctor's linked view for the drawer: the next appointments (with `appointments`), this week's rota shifts and
+ * the linked staff record (with `hr`). Null when the doctor does not exist or works only in branches the person may not
+ * see. Appointments and shifts follow the branch rule; patients are named by first name (with `contacts`) or initials.
+ */
+export async function loadDoctorDetail(
+  admin: AdminClient,
+  orgId: string,
+  doctorId: string,
+  access: BranchAccess,
+  opts: { timezone: string; appointments: boolean; contacts: boolean; hr: boolean; limit?: number },
+  now: Date = new Date(),
+): Promise<DoctorDetail | null> {
+  const [{ data: doctor }, { data: links }, { data: staff }, { data: locations }] =
+    await Promise.all([
+      admin.from("specialists").select("id").eq("org_id", orgId).eq("id", doctorId).maybeSingle(),
+      admin
+        .from("specialist_locations")
+        .select("location_id")
+        .eq("org_id", orgId)
+        .eq("specialist_id", doctorId),
+      admin
+        .from("staff_members")
+        .select("id, job_title, home_location_id")
+        .eq("org_id", orgId)
+        .eq("specialist_id", doctorId)
+        .is("deleted_at", null)
+        .maybeSingle(),
+      admin.from("locations").select("id, name, timezone").eq("org_id", orgId),
+    ]);
+  if (!doctor) return null;
+  const locIds = (links ?? []).map((l) => l.location_id);
+  if (locIds.length > 0 && !locIds.some((id) => canSeeLocation(access, id))) return null;
+  const loc = new Map((locations ?? []).map((l) => [l.id, l]));
+
+  let upcoming: DoctorDetail["upcoming"] = null;
+  if (opts.appointments) {
+    let q = admin
+      .from("appointments")
+      .select(
+        "id, starts_at, location_id, contact:contacts(full_name, deleted_at), service:services(name)",
+      )
+      .eq("org_id", orgId)
+      .eq("specialist_id", doctorId)
+      .gte("starts_at", now.toISOString())
+      .not("status", "in", "(cancelled,no_show)")
+      .order("starts_at")
+      .limit(opts.limit ?? 5);
+    const ids = branchFilterIds(access, null);
+    if (ids) q = q.or(branchOrFilter(ids));
+    const { data } = await q;
+    upcoming = (data ?? [])
+      .filter((a) => canSeeLocation(access, a.location_id))
+      .map((a) => {
+        const l = a.location_id ? loc.get(a.location_id) : undefined;
+        const contact = a.contact && !a.contact.deleted_at ? a.contact.full_name : null;
+        return {
+          id: a.id,
+          when: formatInTimeZone(
+            new Date(a.starts_at),
+            l?.timezone || opts.timezone,
+            "EEE d MMM, HH:mm",
+          ),
+          service: a.service?.name ?? null,
+          branch: l?.name ?? null,
+          patient: patientShortName(contact, opts.contacts),
+        };
+      });
+  }
+
+  let shifts: DoctorDetail["shifts"] = [];
+  const monday = weekStart(todayWindow(opts.timezone, now).today);
+  const window = monday ? weekWindow(monday, opts.timezone) : null;
+  if (staff && window) {
+    const { data } = await admin
+      .from("rota_shifts")
+      .select(SHIFT_COLUMNS)
+      .eq("org_id", orgId)
+      .eq("staff_member_id", staff.id)
+      .gte("starts_at", window.from)
+      .lt("starts_at", window.to)
+      .order("starts_at")
+      .limit(50);
+    shifts = (data ?? [])
+      .filter((r) => canSeeLocation(access, r.location_id))
+      .map(toShift)
+      .map((r) => {
+        const l = loc.get(r.locationId);
+        const tz = l?.timezone || opts.timezone;
+        return {
+          id: r.id,
+          day: formatInTimeZone(new Date(r.startsAt), tz, "EEE d MMM"),
+          time: shiftLabel(r, tz),
+          branch: l?.name ?? null,
+          role: ROTA_ROLE_LABELS[r.roleLabel],
+        };
+      });
+  }
+
+  return {
+    upcoming,
+    shifts,
+    staff:
+      opts.hr && staff && canSeeLocation(access, staff.home_location_id)
+        ? { id: staff.id, jobTitle: staff.job_title }
+        : null,
+  };
 }
 
 // ---------------------------------------------------------------------------

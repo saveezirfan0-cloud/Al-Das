@@ -8,7 +8,7 @@ export type PermissionKey = (typeof PERMISSIONS)[number]["key"];
 
 export const PERMISSION_GROUPS = [
   "Inbox",
-  "Contacts",
+  "Patients",
   "Enquiries & tasks",
   "Appointments",
   "Front desk",
@@ -41,13 +41,13 @@ export const PERMISSIONS = [
     label: "Send messages",
     description: "Reply to patients in the inbox",
   },
-  { key: "contacts.view", group: "Contacts", label: "View contacts" },
-  { key: "contacts.manage", group: "Contacts", label: "Create and edit contacts" },
+  { key: "contacts.view", group: "Patients", label: "View patients" },
+  { key: "contacts.manage", group: "Patients", label: "Create and edit patients" },
   {
     key: "contacts.export",
-    group: "Contacts",
-    label: "Export contacts",
-    description: "Download contact data as CSV",
+    group: "Patients",
+    label: "Export patients",
+    description: "Download patient records as CSV",
   },
   { key: "enquiries.view", group: "Enquiries & tasks", label: "View enquiries" },
   { key: "enquiries.manage", group: "Enquiries & tasks", label: "Create and move enquiries" },
@@ -124,7 +124,7 @@ export const PERMISSIONS = [
     group: "Media & documents",
     label: "View patient documents",
     description:
-      "Open referral letters, lab reports, insurance cards and consent forms on a patient. Patient health data: not included in contacts.view.",
+      "Open referral letters, lab reports, insurance cards and consent forms on a patient. Patient health data: not included in View patients.",
   },
   {
     key: "documents.manage",
@@ -158,20 +158,20 @@ export const PERMISSIONS = [
   {
     key: "portal.sync_review.write",
     group: "Portal",
-    label: "Resolve Sync Review items",
+    label: "Resolve Sync review items",
     description: "Link, create or dismiss Unite patients that could not be matched",
   },
   {
     key: "portal.clinical_followups.read",
     group: "Clinical",
-    label: "View the Follow-Up Queue",
+    label: "View clinical follow-ups",
     description:
       "Clinical follow-ups, feedback and the evaluations behind them (patient health data)",
   },
   {
     key: "portal.clinical_followups.write",
     group: "Clinical",
-    label: "Work the Follow-Up Queue",
+    label: "Work clinical follow-ups",
     description: "Update call outcomes, assign and close follow-ups",
   },
   {
@@ -376,7 +376,8 @@ export const PERMISSIONS = [
     key: "finance.revenue.import",
     group: "Finance",
     label: "Unite collection report upload",
-    description: "Upload and commit the Unite daily collection report (sanitised; the file is not kept)",
+    description:
+      "Upload and commit the Unite daily collection report (sanitised; the file is not kept)",
   },
   {
     key: "finance.export.run",
@@ -472,7 +473,8 @@ export const PERMISSIONS = [
     key: "finance.payables.manage",
     group: "Finance",
     label: "Manage suppliers and supplier invoices",
-    description: "Add and edit suppliers and supplier invoices, and upload their documents. Audited.",
+    description:
+      "Add and edit suppliers and supplier invoices, and upload their documents. Audited.",
   },
   {
     key: "finance.vouchers.prepare",
@@ -539,7 +541,8 @@ export const PERMISSIONS = [
     key: "finance.bank.signoff",
     group: "Finance",
     label: "Sign off bank reconciliation",
-    description: "Sign a reviewed bank reconciliation. The signer must be a different person from the preparer. Audited.",
+    description:
+      "Sign a reviewed bank reconciliation. The signer must be a different person from the preparer. Audited.",
   },
   {
     key: "finance.labs.view",
@@ -598,6 +601,13 @@ export const PERMISSIONS = [
       "Ask the AI to review an open bank reconciliation (ids, amounts, dates and references only) and accept or reject its suggestions. The AI only suggests pairs from Pulse's own shortlist; a person decides each one. Also needs Run bank reconciliation, and AI must be on for the workspace.",
   },
   {
+    key: "finance.report_emails.manage",
+    group: "Finance",
+    label: "Schedule report e-mails",
+    description:
+      "Choose when the daily flash and the monthly summary are e-mailed and to which members (Settings, Finance setup, Report e-mails). Each person still needs that report's own permission to receive it. Audited.",
+  },
+  {
     key: "accounting.view",
     group: "Accounting",
     label: "Open Accounting",
@@ -640,7 +650,8 @@ export const PERMISSIONS = [
     key: "accounting.sales.manage",
     group: "Accounting",
     label: "Sales invoices and credit notes",
-    description: "Raise sales invoices and credit notes to insurers, corporates and tenants (a later slice).",
+    description:
+      "Raise sales invoices and credit notes to insurers, corporates and tenants (a later slice).",
   },
   {
     key: "accounting.receipts.manage",
@@ -793,6 +804,7 @@ const FINANCE_PRESET: readonly string[] = [
   "finance.vouchers.pay",
   "finance.tally.export",
   "finance.inbox.manage",
+  "finance.report_emails.manage",
 ];
 
 /**
@@ -993,6 +1005,7 @@ export const SYSTEM_ROLES: readonly RolePreset[] = [
       "appointments.manage",
       "frontdesk.use",
       "rooms.manage",
+      "hr.view",
       "campaigns.view",
       "campaigns.create",
       "templates.manage",
@@ -1054,7 +1067,7 @@ export const SYSTEM_ROLES: readonly RolePreset[] = [
   {
     name: "Care coordinator",
     description:
-      "Works the clinical Follow-Up Queue and patient conversations. Cannot sign off clinical settings.",
+      "Works the clinical follow-ups and patient conversations. Cannot sign off clinical settings.",
     permissions: [
       "inbox.send",
       "contacts.view",

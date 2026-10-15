@@ -4,6 +4,7 @@ import * as React from "react";
 import { ContactAppointments } from "./contact-appointments";
 import { ContactConversations } from "./contact-conversations";
 import { ContactEnquiries } from "./contact-enquiries";
+import { ContactHistory, ContactInvoices, ContactTasks } from "./patient-360-tabs";
 import dynamic from "next/dynamic";
 
 // The Documents tab brings the uploader and the photo editor; load them only when someone opens the tab.
@@ -14,6 +15,7 @@ const ContactDocuments = dynamic(
 import { Loader2, MessageSquare, Phone, Plus, Save, Star, Trash2, GitMerge } from "lucide-react";
 import { toast } from "sonner";
 
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -100,6 +102,7 @@ export function ContactDrawer({
   const [newPhone, setNewPhone] = React.useState("");
   const [note, setNote] = React.useState("");
   const [mergeOpen, setMergeOpen] = React.useState(false);
+  const [confirm, confirmDialog] = useConfirm();
 
   // Callbacks from the workspace are recreated on every render; keep the latest
   // in refs so the load effect only depends on the contact id.
@@ -179,6 +182,27 @@ export function ContactDrawer({
                       <Badge variant="secondary">Unite {contact.external_id}</Badge>
                     )}
                   </SheetDescription>
+                  {/* Patient 360: who looks after the patient and where they are usually seen. */}
+                  <p className="text-muted-foreground mt-0.5 flex flex-wrap gap-x-3 text-xs">
+                    <span>
+                      Owner:{" "}
+                      <span className="text-foreground">
+                        {contact.owner_id
+                          ? (bootstrap.users.find((u) => u.id === contact.owner_id)?.label ??
+                            "Former member")
+                          : "Nobody yet"}
+                      </span>
+                    </span>
+                    <span>
+                      Home branch:{" "}
+                      <span className="text-foreground">
+                        {contact.location_id
+                          ? (bootstrap.branches.find((b) => b.id === contact.location_id)?.name ??
+                            "Other branch")
+                          : "Not set"}
+                      </span>
+                    </span>
+                  </p>
                 </div>
                 {canManage && (
                   <div className="flex gap-1">
@@ -190,13 +214,15 @@ export function ContactDrawer({
                       size="icon-sm"
                       aria-label="Delete contact"
                       className="text-destructive"
-                      onClick={() => {
-                        if (
-                          confirm(
-                            "Delete this contact? It disappears from lists and campaigns and can be restored from Settings, Recently deleted for a while.",
-                          )
-                        )
-                          run(() => deleteContacts([contact.id]), onClose);
+                      onClick={async () => {
+                        const ok = await confirm({
+                          title: "Delete this patient?",
+                          description:
+                            "They disappear from lists and campaigns and can be restored from Settings, Recently deleted for a while.",
+                          confirmLabel: "Delete",
+                          destructive: true,
+                        });
+                        if (ok) run(() => deleteContacts([contact.id]), onClose);
                       }}
                     >
                       <Trash2 />
@@ -391,11 +417,16 @@ export function ContactDrawer({
 
               {/* Right: tabs */}
               <Tabs defaultValue="timeline" className="flex min-h-0 flex-col gap-0 p-4">
-                <TabsList className="w-full">
+                <TabsList className="h-auto w-full flex-wrap justify-start">
                   <TabsTrigger value="timeline">Timeline</TabsTrigger>
+                  <TabsTrigger value="history">History</TabsTrigger>
                   <TabsTrigger value="inbox">Inbox</TabsTrigger>
                   <TabsTrigger value="enquiries">Enquiries</TabsTrigger>
                   <TabsTrigger value="appointments">Appointments</TabsTrigger>
+                  {bootstrap.can.tasksView && <TabsTrigger value="tasks">Tasks</TabsTrigger>}
+                  {bootstrap.can.invoicesView && (
+                    <TabsTrigger value="invoices">Invoices</TabsTrigger>
+                  )}
                   <TabsTrigger value="campaigns">Campaigns</TabsTrigger>
                   {bootstrap.can.documentsView && (
                     <TabsTrigger value="documents">Documents</TabsTrigger>
@@ -434,6 +465,23 @@ export function ContactDrawer({
                   )}
                   <Timeline events={detail.timeline} timezone={bootstrap.timezone} />
                 </TabsContent>
+                <TabsContent value="history" className="min-h-0 overflow-y-auto pt-3">
+                  <ContactHistory contactId={contact.id} timezone={bootstrap.timezone} />
+                </TabsContent>
+                {bootstrap.can.tasksView && (
+                  <TabsContent value="tasks" className="min-h-0 overflow-y-auto pt-3">
+                    <ContactTasks
+                      contactId={contact.id}
+                      timezone={bootstrap.timezone}
+                      users={bootstrap.users}
+                    />
+                  </TabsContent>
+                )}
+                {bootstrap.can.invoicesView && (
+                  <TabsContent value="invoices" className="min-h-0 overflow-y-auto pt-3">
+                    <ContactInvoices contactId={contact.id} />
+                  </TabsContent>
+                )}
                 <TabsContent value="inbox" className="pt-3">
                   <ContactConversations contactId={contact.id} />
                 </TabsContent>
@@ -487,6 +535,7 @@ export function ContactDrawer({
               </Tabs>
             </div>
 
+            {confirmDialog}
             {canManage && (
               <MergeDialog
                 open={mergeOpen}

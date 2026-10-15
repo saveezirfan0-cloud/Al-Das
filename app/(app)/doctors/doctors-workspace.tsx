@@ -3,15 +3,27 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CalendarDays, Clock, Loader2, Save, Search, Users } from "lucide-react";
+import {
+  CalendarDays,
+  Clock,
+  IdCard,
+  Loader2,
+  Plus,
+  Search,
+  Stethoscope,
+  Users,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { OptionSelect } from "@/app/(app)/enquiries/option-select";
 import { DataGrid, type DataGridColumn } from "@/components/data-grid/data-grid";
 import { useLocalGrid } from "@/components/data-grid/use-local-grid";
 import { ExpiryBadge } from "@/components/organisation/expiry-badge";
+import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Badge } from "@/components/ui/badge";
+import { DrawerFooter, useUnsavedGuard } from "@/components/shell/drawer-footer";
+import { isDirty } from "@/lib/shell/unsaved";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,10 +35,12 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
+import { performanceHref } from "@/lib/organisation/doctor-links";
 import { doctorCalendarHref } from "@/lib/organisation/doctors";
-import type { BranchOption, DoctorRow } from "@/lib/organisation/types";
+import type { BranchOption, DoctorDetail, DoctorRow } from "@/lib/organisation/types";
 
-import { updateDoctorProfileAction } from "./actions";
+import { loadDoctorDetailAction, updateDoctorProfileAction } from "./actions";
+import { DoctorFinanceLinkSection } from "./finance-link";
 
 type Can = {
   edit: boolean;
@@ -35,9 +49,15 @@ type Can = {
   rota: boolean;
   revenue: boolean;
   revshare: boolean;
+  /** finance.reference.manage: sees the Finance link section. */
+  financeLink: boolean;
+  /** ...and settings.manage: changes it. */
+  financeLinkManage: boolean;
 };
 
 const ALL = "all";
+/** Doctors are added (with branches, services and hours) under Settings, Appointments, which opens on Specialists. */
+const ADD_DOCTOR_HREF = "/settings/appointments";
 
 export function DoctorsWorkspace({
   rows,
@@ -198,6 +218,13 @@ export function DoctorsWorkspace({
             </Link>
           </Button>
         )}
+        {can.settings && (
+          <Button asChild>
+            <Link href={ADD_DOCTOR_HREF}>
+              <Plus aria-hidden /> Add doctor
+            </Link>
+          </Button>
+        )}
       </PageHeader>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -238,12 +265,29 @@ export function DoctorsWorkspace({
         </label>
       </div>
 
-      <DataGrid
-        columns={columns}
-        {...grid}
-        onRowClick={(r) => setOpen(r.id)}
-        emptyText="No doctors here yet. Doctors are added under Settings, Appointments."
-      />
+      {rows.length === 0 ? (
+        <EmptyState
+          icon={Stethoscope}
+          title="No doctors yet"
+          description="Doctors are added under Settings, Appointments, with their branches, services and working hours. They then appear here, in the diary and on the rota."
+          action={
+            can.settings && (
+              <Button asChild>
+                <Link href={ADD_DOCTOR_HREF}>
+                  <Plus aria-hidden /> Add the first doctor
+                </Link>
+              </Button>
+            )
+          }
+        />
+      ) : (
+        <DataGrid
+          columns={columns}
+          {...grid}
+          onRowClick={(r) => setOpen(r.id)}
+          emptyText="No doctors match these filters."
+        />
+      )}
 
       <DoctorDrawer
         doctor={current}
@@ -279,34 +323,45 @@ function DoctorDrawer({
     phone_ext: "",
     bio: "",
   });
+  // what was loaded or last saved: the drawer asks before closing on anything else (Phase D)
+  const [saved, setSaved] = React.useState<typeof form | null>(null);
 
   React.useEffect(() => {
     if (!doctor) return;
-    setForm({
+    const loaded = {
       specialty: doctor.specialty ?? "",
       licence_number: doctor.licenceNumber ?? "",
       licence_authority: doctor.licenceAuthority || "DHA",
       licence_expires_on: doctor.licenceExpiresOn ?? "",
       phone_ext: doctor.phoneExt ?? "",
       bio: doctor.bio ?? "",
-    });
+    };
+    setForm(loaded);
+    setSaved(loaded);
   }, [doctor]);
 
   const set = (patch: Partial<typeof form>) => setForm((f) => ({ ...f, ...patch }));
+  const dirty = can.edit && isDirty(form, saved);
+  const { confirmClose, guardDialog } = useUnsavedGuard(dirty);
+  async function close() {
+    if (await confirmClose()) onClose();
+  }
 
   function save(e: React.FormEvent) {
     e.preventDefault();
     if (!doctor) return;
+    const sent = form;
     startTransition(async () => {
-      const res = await updateDoctorProfileAction(doctor.id, form);
+      const res = await updateDoctorProfileAction(doctor.id, sent);
       if (!res.ok) return void toast.error(res.error);
+      setSaved(sent);
       toast.success(res.message ?? "Saved.");
       router.refresh();
     });
   }
 
   return (
-    <Sheet open={!!doctor} onOpenChange={(o) => !o && onClose()}>
+    <Sheet open={!!doctor} onOpenChange={(o) => !o && void close()}>
       <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-lg">
         {doctor && (
           <>
@@ -340,7 +395,7 @@ function DoctorDrawer({
                     )}
                     {can.revenue && (
                       <Button asChild size="sm" variant="outline">
-                        <Link href="/finance/doctors">Performance</Link>
+                        <Link href={performanceHref(doctor.reportDoctorKey)}>Performance</Link>
                       </Button>
                     )}
                     {can.revshare && (
@@ -350,6 +405,16 @@ function DoctorDrawer({
                     )}
                   </div>
                 </section>
+
+                <DoctorLinks doctorId={doctor.id} can={can} />
+
+                {can.financeLink && (
+                  <DoctorFinanceLinkSection
+                    key={doctor.id}
+                    doctorId={doctor.id}
+                    canManage={can.financeLinkManage}
+                  />
+                )}
 
                 <section className="grid gap-2" aria-labelledby="doc-hours">
                   <h3 id="doc-hours" className="text-sm font-semibold">
@@ -479,19 +544,113 @@ function DoctorDrawer({
                 </section>
               </div>
               {can.edit && (
-                <div className="flex items-center gap-2 border-t p-4">
-                  <Button type="button" variant="ghost" className="ml-auto" onClick={onClose}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={pending}>
-                    {pending ? <Loader2 className="animate-spin" /> : <Save />} Save
-                  </Button>
-                </div>
+                <DrawerFooter onCancel={() => void close()} saving={pending} dirty={dirty} />
               )}
             </form>
           </>
         )}
+        {guardDialog}
       </SheetContent>
     </Sheet>
+  );
+}
+
+/** What the doctor is linked to: the next appointments, this week's shifts and the staff record (loaded on open). */
+function DoctorLinks({ doctorId, can }: { doctorId: string; can: Can }) {
+  const [detail, setDetail] = React.useState<DoctorDetail | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    let live = true;
+    setDetail(null);
+    setError(null);
+    void loadDoctorDetailAction(doctorId).then((res) => {
+      if (!live) return;
+      if (res.ok) setDetail(res.data);
+      else setError(res.error);
+    });
+    return () => {
+      live = false;
+    };
+  }, [doctorId]);
+
+  if (error) return <p className="text-muted-foreground text-sm">{error}</p>;
+  if (!detail)
+    return (
+      <p className="text-muted-foreground flex items-center gap-2 text-sm" role="status">
+        <Loader2 aria-hidden className="size-4 animate-spin" /> Loading appointments and rota…
+      </p>
+    );
+
+  return (
+    <>
+      {detail.upcoming && (
+        <section className="grid gap-2" aria-labelledby="doc-next">
+          <h3 id="doc-next" className="text-sm font-semibold">
+            Next appointments
+          </h3>
+          {detail.upcoming.length === 0 ? (
+            <p className="text-muted-foreground text-sm">Nothing booked ahead.</p>
+          ) : (
+            <ul className="grid gap-1.5 text-sm">
+              {detail.upcoming.map((a) => (
+                <li key={a.id}>
+                  <span className="font-medium">{a.when}</span>
+                  {" · "}
+                  {[a.patient, a.service, a.branch].filter(Boolean).join(" · ")}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+
+      <section className="grid gap-2" aria-labelledby="doc-rota">
+        <h3 id="doc-rota" className="text-sm font-semibold">
+          Rota this week
+        </h3>
+        {detail.shifts.length === 0 ? (
+          <p className="text-muted-foreground text-sm">No shifts this week.</p>
+        ) : (
+          <ul className="grid gap-1.5 text-sm">
+            {detail.shifts.map((s) => (
+              <li key={s.id}>
+                <span className="font-medium">{s.day}</span> {s.time}
+                {[s.branch, s.role]
+                  .filter(Boolean)
+                  .map((x) => ` · ${x}`)
+                  .join("")}
+              </li>
+            ))}
+          </ul>
+        )}
+        {can.rota && (
+          <Link
+            href="/staff/rota"
+            className="text-primary text-sm underline-offset-4 hover:underline"
+          >
+            Open the rota
+          </Link>
+        )}
+      </section>
+
+      {detail.staff && (
+        <section className="grid gap-2" aria-labelledby="doc-staff">
+          <h3 id="doc-staff" className="text-sm font-semibold">
+            Staff record
+          </h3>
+          <p className="flex items-center gap-1.5 text-sm">
+            <IdCard aria-hidden className="text-muted-foreground size-4" />
+            {detail.staff.jobTitle ?? "No job title"}
+          </p>
+          <Link
+            href={`/staff?staff=${encodeURIComponent(detail.staff.id)}`}
+            className="text-primary text-sm underline-offset-4 hover:underline"
+          >
+            Open the staff record (duties and shifts)
+          </Link>
+        </section>
+      )}
+    </>
   );
 }

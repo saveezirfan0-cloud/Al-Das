@@ -10,7 +10,7 @@ late) and §5 (thresholds are settings). Built on 23A (Unite collection report u
 | Pure rules    | `lib/finance/management-alerts.ts` (`reportIsLate`, `revenueProgress`, `revenueBehindScopes`, `isBehind`, `doctorsBelowBand`, `alertTransitions`, settings schema, in-app copy)                                                                                         |
 | Runner        | `lib/finance/management-alerts-server.ts` (`runManagementAlerts`, service role, no caller input)                                                                                                                                                                        |
 | Job           | step 7 of the daily `finance_workflows` job (`lib/finance/workflows.ts`, pg_cron 03:50 UTC); runs in its own `contained` step, so a failure never stops the other steps and is retried the next day                                                                     |
-| SQL           | migration `20261203000300_finance_management_alerts.sql`: four settings columns, `fin_mgmt_alert_state` (service only, no policies), `fin_mgmt_alert_claim()` and `fin_mgmt_alert_inputs()` (SECURITY DEFINER, `search_path = ''`, service role)                        |
+| SQL           | migration `20261208000300_finance_management_alerts.sql`: four settings columns, `fin_mgmt_alert_state` (service only, no policies), `fin_mgmt_alert_claim()` and `fin_mgmt_alert_inputs()` (SECURITY DEFINER, `search_path = ''`, service role)                        |
 | Notifications | events `finance.report_late`, `finance.revenue_behind`, `finance.band_below` in `lib/notify/events.ts` (people choose their channels under Settings, Notifications); fixed push/e-mail sentences in `lib/notify/push-payload.ts`; centre links in `lib/notify/links.ts` |
 | Settings      | Finance, Targets and report lines (`/finance/flash/settings#alerts`, `finance.targets.manage`), audited as `finance.management_alerts.settings_saved`                                                                                                                   |
 | Tests         | `tests/unit/finance/management-alerts.test.ts`, `tests/unit/finance/management-alerts-server.test.ts`, `tests/unit/notify-push-payload.test.ts` (M1 block), `tests/db/finance-management-alerts.test.ts`                                                                |
@@ -86,4 +86,4 @@ defaults and apply only to an org with no settings row.
 - No "resolved" notice when an alert clears, and no page listing open alerts (`fin_mgmt_alert_state` is service only).
 - Department-line revenue targets are not alerted on; neither are patient or ARPP targets.
 - No management dashboard tile for open alerts.
-- Paste file: `deploy/supabase-paste/84_finance_management_alerts.sql`.
+- Paste file: `deploy/supabase-paste/87_finance_management_alerts.sql`.

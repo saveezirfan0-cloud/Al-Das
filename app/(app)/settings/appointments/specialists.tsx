@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Copy, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -309,6 +310,7 @@ export function Specialists({
   /** The org's slot step (Booking rules), shown when a specialist has no own slot length. */
   defaultSlotMin: number;
 }) {
+  const [ask, askDialog] = useConfirm();
   const [form, setForm] = useState<Form | null>(null);
   const { pending, run } = useRun();
   const locName = (id: string) => locations.find((l) => l.id === id)?.name ?? "?";
@@ -331,20 +333,21 @@ export function Specialists({
       <Card>
         <CardHeader className="flex flex-row items-start justify-between gap-3">
           <div>
-            <CardTitle>Specialists</CardTitle>
+            <CardTitle>Doctors</CardTitle>
             <CardDescription>
-              Doctors and other bookable staff. The Unite doctor id links synced appointments to
-              them.
+              Doctors and other bookable staff, with the branches, services and hours they work. Link
+              each one to their Pulse user so My day shows their own patients. The Unite doctor id links
+              synced appointments to them. Licences and profiles are in CRM, Doctors.
             </CardDescription>
           </div>
           <Button size="sm" onClick={() => setForm(blank)}>
-            <Plus /> Add specialist
+            <Plus /> Add doctor
           </Button>
         </CardHeader>
         <CardContent>
           {specialists.length === 0 ? (
             <p className="text-muted-foreground text-sm">
-              No specialists yet. Add locations and services first, then add the doctors.
+              No doctors yet. Add branches and services first, then add the doctors.
             </p>
           ) : (
             <ul className="divide-y text-sm">
@@ -385,10 +388,10 @@ export function Specialists({
                       size="icon-sm"
                       aria-label={`Delete ${s.name}`}
                       disabled={pending}
-                      onClick={() => {
+                      onClick={async () => {
                         if (
-                          confirm(
-                            `Delete ${s.name}? Their appointments are kept without a specialist.`,
+                          await ask(
+                            `Delete ${s.name}? Their appointments are kept without a doctor.`,
                           )
                         )
                           run(() => deleteSpecialist(s.id));
@@ -415,7 +418,7 @@ export function Specialists({
               }}
             >
               <DialogHeader>
-                <DialogTitle>{form.id ? "Edit specialist" : "New specialist"}</DialogTitle>
+                <DialogTitle>{form.id ? "Edit doctor" : "New doctor"}</DialogTitle>
               </DialogHeader>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="flex flex-col gap-1.5">
@@ -602,6 +605,7 @@ export function Specialists({
           )}
         </DialogContent>
       </Dialog>
+      {askDialog}
     </>
   );
 }

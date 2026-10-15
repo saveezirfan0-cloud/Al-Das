@@ -16,6 +16,7 @@ import {
 import { formatInTimeZone } from "date-fns-tz";
 import { toast } from "sonner";
 
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,14 +40,15 @@ import { formatPhone } from "@/lib/phone";
 import { cn } from "@/lib/utils";
 
 import {
-  cancelFromDesk,
   logCall,
+  recordWhatsAppAgreement,
   removeFromWaitlist,
   sendDeskMessageAction,
   unlinkDependant,
 } from "./actions";
 import { DependantDialog, RescheduleDialog, WaitlistDialog } from "./dialogs";
 import type { DeskCan, DeskOptions } from "./types";
+import { useVisitClose } from "./visit-close";
 
 const FLAG_TONE: Record<CardFlag["tone"], string> = {
   info: "bg-muted text-foreground",
@@ -67,6 +69,7 @@ export function PatientCardView({
   options,
   can,
   onChanged,
+  onBook,
   compact,
 }: {
   card: PatientCardData;
@@ -74,9 +77,13 @@ export function PatientCardView({
   can: DeskCan;
   /** Called after an action that changes what the card shows (the host reloads it). */
   onChanged?: () => void;
+  /** Phase E: on the desk, Book opens the desk's Book drawer; elsewhere (inbox) it links to the diary. */
+  onBook?: () => void;
   compact?: boolean;
 }) {
   const [pending, startTransition] = useTransition();
+  const [confirm, confirmDialog] = useConfirm();
+  const visitClose = useVisitClose(onChanged);
   const [late, setLate] = useState<string>("15");
   const tz = options.timezone;
   const c = card.contact;
@@ -119,6 +126,25 @@ export function PatientCardView({
               </li>
             ))}
           </ul>
+        )}
+        {c.whatsapp_declined && can.contacts && (
+          <Button
+            size="xs"
+            variant="outline"
+            className="mt-2"
+            disabled={pending}
+            onClick={async () => {
+              const ok = await confirm({
+                title: "The patient agrees to WhatsApp now?",
+                description:
+                  "Ask the patient first. From now on Pulse may send their appointment reminders and messages on WhatsApp.",
+                confirmLabel: "Record agreement",
+              });
+              if (ok) run(() => recordWhatsAppAgreement(c.id));
+            }}
+          >
+            Patient agrees to WhatsApp now
+          </Button>
         )}
       </header>
 
@@ -207,10 +233,15 @@ export function PatientCardView({
                       type="button"
                       className="text-muted-foreground hover:text-foreground underline"
                       disabled={pending}
-                      onClick={() =>
-                        confirm(`Unlink ${d.name} from this household?`) &&
-                        run(() => unlinkDependant(d.link_id))
-                      }
+                      onClick={async () => {
+                        const ok = await confirm({
+                          title: `Unlink ${d.name} from this household?`,
+                          description:
+                            "Their appointment messages stop going to this number. Both records stay.",
+                          confirmLabel: "Unlink",
+                        });
+                        if (ok) run(() => unlinkDependant(d.link_id));
+                      }}
                     >
                       Unlink
                     </button>
@@ -253,13 +284,18 @@ export function PatientCardView({
       )}
 
       <div className="flex flex-wrap gap-2 border-t pt-3" role="group" aria-label="One-tap actions">
-        {can.appointments && (
-          <Button size="sm" asChild>
-            <Link href={`/appointments?new=${c.id}`}>
+        {can.appointments &&
+          (onBook ? (
+            <Button size="sm" onClick={onBook}>
               <CalendarPlus /> Book
-            </Link>
-          </Button>
-        )}
+            </Button>
+          ) : (
+            <Button size="sm" asChild>
+              <Link href={`/appointments?new=${c.id}`}>
+                <CalendarPlus /> Book
+              </Link>
+            </Button>
+          ))}
         {can.appointments && next && next.status !== "cancelled" && (
           <RescheduleDialog appointmentId={next.id} options={options} onDone={onChanged}>
             <Button size="sm" variant="outline">
@@ -271,12 +307,14 @@ export function PatientCardView({
           <Button
             size="sm"
             variant="outline"
-            disabled={pending}
-            onClick={() => {
-              if (!confirm("Cancel this appointment? The slot goes back on offer.")) return;
-              const notify = confirm("Send the patient a cancellation message as well?");
-              run(() => cancelFromDesk({ appointmentId: next.id, notify }));
-            }}
+            disabled={pending || visitClose.pending}
+            onClick={() =>
+              visitClose.close({
+                appointmentId: next.id,
+                kind: "cancel",
+                patientName: next.patient_name ?? c.name,
+              })
+            }
           >
             <CalendarX2 /> Cancel
           </Button>
@@ -384,6 +422,8 @@ export function PatientCardView({
           <WaitlistDialog contactId={c.id} options={options} onDone={onChanged} />
         )}
       </div>
+      {confirmDialog}
+      {visitClose.dialog}
     </section>
   );
 }

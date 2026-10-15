@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -68,26 +69,30 @@ export function UploadCertificateForm({ replacing }: { replacing: boolean }) {
 }
 
 export function RevokeCertificateButton() {
+  const [ask, askDialog] = useConfirm();
   const router = useRouter();
   const [pending, start] = React.useTransition();
   return (
-    <Button
-      variant="outline"
-      className="min-h-11"
-      disabled={pending}
-      onClick={() => {
-        if (!window.confirm("Revoke your signing certificate? Pulse deletes its copy of the file."))
-          return;
-        start(async () => {
-          const r = await revokeSigningCertificate();
-          if (r.ok) {
-            toast.success(r.message);
-            router.refresh();
-          } else toast.error(r.error);
-        });
-      }}
-    >
-      {pending && <Loader2 className="animate-spin" />} Revoke
-    </Button>
+    <>
+      <Button
+        variant="outline"
+        className="min-h-11"
+        disabled={pending}
+        onClick={async () => {
+          if (!(await ask("Revoke your signing certificate? Pulse deletes its copy of the file.")))
+            return;
+          start(async () => {
+            const r = await revokeSigningCertificate();
+            if (r.ok) {
+              toast.success(r.message);
+              router.refresh();
+            } else toast.error(r.error);
+          });
+        }}
+      >
+        {pending && <Loader2 className="animate-spin" />} Revoke
+      </Button>
+      {askDialog}
+    </>
   );
 }

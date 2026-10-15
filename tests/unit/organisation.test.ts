@@ -7,7 +7,12 @@ import { landingPathFor } from "@/lib/front-desk/landing";
 import { getEvent } from "@/lib/notify/events";
 import { notificationHref } from "@/lib/notify/links";
 import { buildPushPayload, genericEmail } from "@/lib/notify/push-payload";
-import { doctorCalendarHref, doctorProfileSchema, hoursSummary } from "@/lib/organisation/doctors";
+import {
+  doctorCalendarHref,
+  doctorProfileSchema,
+  hoursSummary,
+  patientShortName,
+} from "@/lib/organisation/doctors";
 import {
   DEFAULT_STAFF_EXPIRY_LEAD_DAYS,
   dueForReminder,
@@ -245,6 +250,14 @@ describe("doctors", () => {
   it("links to the calendar view the appointments page reads", () => {
     expect(doctorCalendarHref(UUID)).toBe(`/appointments?view=calendar&specialist=${UUID}`);
   });
+
+  it("names a patient in the drawer by first name or initials, never in full", () => {
+    expect(patientShortName("Layla Demo-07 Test", true)).toBe("Layla");
+    expect(patientShortName("Layla Demo-07 Test", false)).toBe("L. T.");
+    expect(patientShortName("  layla  ", false)).toBe("L.");
+    expect(patientShortName("", true)).toBe("Patient");
+    expect(patientShortName(null, false)).toBe("Patient");
+  });
 });
 
 describe("my day", () => {
@@ -293,9 +306,8 @@ describe("landing", () => {
       landingPathFor({ ...base, roleName: " doctor ", permissions: ["appointments.view"] }),
     ).toBe("/my-day");
     expect(landingPathFor({ ...base, roleName: "Doctor", permissions: [] })).toBe("/dashboard");
-    expect(landingPathFor({ ...base, roleName: "HR", permissions: ["hr.view"] })).toBe(
-      "/dashboard",
-    );
+    // Phase D: the HR role opens on Staff (lib/shell/landing.ts)
+    expect(landingPathFor({ ...base, roleName: "HR", permissions: ["hr.view"] })).toBe("/staff");
     expect(
       landingPathFor({ ...base, roleName: "Receptionist", permissions: ["frontdesk.use"] }),
     ).toBe("/front-desk");

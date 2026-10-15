@@ -111,7 +111,7 @@ export function restoreOutcomeMessage(entity: SoftDeleteEntity, outcome: string)
         ok: false,
         message:
           entity === "contact"
-            ? "Another contact now uses this phone number, WhatsApp account or Unite PIN. Change or remove it on that contact first, then restore this one."
+            ? "Another patient record now uses this phone number, WhatsApp account or Unite PIN. Change or remove it on that record first, then restore this one."
             : entity === "task"
               ? "That appointment already has an open call task. Close it first."
               : "A live record conflicts with this one.",
@@ -121,7 +121,7 @@ export function restoreOutcomeMessage(entity: SoftDeleteEntity, outcome: string)
         ok: false,
         message:
           entity === "task"
-            ? "Its contact or enquiry has been deleted, merged or erased. If it is in Recently deleted, restore it first; otherwise this task cannot be restored."
+            ? "Its patient or enquiry has been deleted, merged or erased. If it is in Recently deleted, restore it first; otherwise this task cannot be restored."
             : "Its contact has been deleted, merged or erased. If the contact is in Recently deleted, restore it first; otherwise this enquiry cannot be restored.",
       };
     default:

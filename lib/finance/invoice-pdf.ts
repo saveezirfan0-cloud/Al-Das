@@ -1,4 +1,4 @@
-import { MARGIN, makeDoc, PAGE_W } from "@/lib/accounting/sales-pdf";
+import { INTERNAL_COPY, MARGIN, makeDoc, PAGE_W } from "@/lib/accounting/sales-pdf";
 import type { InvoicePdfData } from "@/lib/finance/invoice-server";
 
 /**
@@ -7,7 +7,7 @@ import type { InvoicePdfData } from "@/lib/finance/invoice-server";
  * the Unite PIN only, as on the invoice page. pdf-lib with the built-in fonts, like the other finance documents.
  */
 
-export const INTERNAL_COPY = "Internal copy - not a tax invoice";
+export { INTERNAL_COPY };
 
 const n2 = (v: number | null | undefined) =>
   v === null || v === undefined || !Number.isFinite(v)

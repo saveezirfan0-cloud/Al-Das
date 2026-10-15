@@ -18,6 +18,7 @@ import { toast } from "sonner";
 
 import dynamic from "next/dynamic";
 
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import type { ImageEdit } from "@/components/media/image-editor";
 import { ScanBadge } from "@/components/media/scan-badge";
 import { Badge } from "@/components/ui/badge";
@@ -104,6 +105,7 @@ export function MediaLibrary({
   scanner: string;
   totalBytes: number;
 }) {
+  const [ask, askDialog] = useConfirm();
   const router = useRouter();
   const [open, setOpen] = useState<LibraryAsset | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -317,11 +319,11 @@ export function MediaLibrary({
               variant="ghost"
               size="sm"
               className="pointer-coarse:h-11"
-              onClick={() => {
+              onClick={async () => {
                 if (
-                  !window.confirm(
+                  !(await ask(
                     `Delete the folder "${currentFolder.name}"? Its files are kept and become unfiled.`,
-                  )
+                  ))
                 )
                   return;
                 startFolder(async () => {
@@ -575,6 +577,7 @@ export function MediaLibrary({
           setEditing(null);
         }}
       />
+      {askDialog}
     </div>
   );
 }
@@ -594,6 +597,7 @@ function AssetSheet({
   onChanged: () => void;
   onZoom: (a: LibraryAsset) => void;
 }) {
+  const [ask, askDialog] = useConfirm();
   const [name, setName] = useState("");
   const [folder, setFolder] = useState("");
   const [tagText, setTagText] = useState("");
@@ -812,8 +816,8 @@ function AssetSheet({
                     variant="destructive"
                     disabled={pending || blocking.length > 0}
                     className="pointer-coarse:h-11"
-                    onClick={() => {
-                      if (!window.confirm("Delete this file for everyone? This cannot be undone."))
+                    onClick={async () => {
+                      if (!(await ask("Delete this file for everyone? This cannot be undone.")))
                         return;
                       start(async () => {
                         const r = await deleteAsset(asset.id);
@@ -838,6 +842,7 @@ function AssetSheet({
           </>
         )}
       </SheetContent>
+      {askDialog}
     </Sheet>
   );
 }

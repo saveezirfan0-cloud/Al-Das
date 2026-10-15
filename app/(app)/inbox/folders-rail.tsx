@@ -167,7 +167,8 @@ export function FoldersRail({
               href="/inbox/failed"
               className="hover:bg-sidebar-accent/60 flex items-center gap-2 rounded-md px-2 py-1.5 text-sm"
             >
-              <AlertTriangle className="size-3.5 text-amber-600 dark:text-amber-400" /> Failed messages
+              <AlertTriangle className="size-3.5 text-amber-600 dark:text-amber-400" /> Failed
+              messages
             </Link>
           </div>
         </div>

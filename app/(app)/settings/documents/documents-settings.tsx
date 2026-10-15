@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -74,6 +75,7 @@ export function DocumentsSettings({
 }
 
 function SwitchCard({ settings }: { settings: DocumentSettings }) {
+  const [ask, askDialog] = useConfirm();
   const [phrase, setPhrase] = useState("");
   const { pending, run } = useRun();
   return (
@@ -106,8 +108,8 @@ function SwitchCard({ settings }: { settings: DocumentSettings }) {
               variant="outline"
               className="w-fit"
               disabled={pending}
-              onClick={() => {
-                if (!window.confirm("Stop new patient document uploads?")) return;
+              onClick={async () => {
+                if (!(await ask("Stop new patient document uploads?"))) return;
                 run(() => disableDocuments());
               }}
             >
@@ -144,6 +146,7 @@ function SwitchCard({ settings }: { settings: DocumentSettings }) {
           </form>
         )}
       </CardContent>
+      {askDialog}
     </Card>
   );
 }
@@ -216,6 +219,7 @@ function RetentionCard({ policies }: { policies: PolicyRow[] }) {
 }
 
 function PolicyRowEditor({ policy }: { policy: PolicyRow }) {
+  const [ask, askDialog] = useConfirm();
   const [days, setDays] = useState(policy.retain_days === null ? "" : String(policy.retain_days));
   const [auto, setAuto] = useState(policy.auto_delete);
   const { pending, run } = useRun();
@@ -276,11 +280,11 @@ function PolicyRowEditor({ policy }: { policy: PolicyRow }) {
             size="sm"
             variant="destructive"
             disabled={pending}
-            onClick={() => {
+            onClick={async () => {
               if (
-                !window.confirm(
+                !(await ask(
                   `Delete ${policy.past} ${categoryLabel(policy.category)} document(s) past their retention period? This cannot be undone.`,
-                )
+                ))
               )
                 return;
               run(() => purgePastRetention(policy.category));
@@ -290,6 +294,7 @@ function PolicyRowEditor({ policy }: { policy: PolicyRow }) {
           </Button>
         )}
       </div>
+      {askDialog}
     </div>
   );
 }

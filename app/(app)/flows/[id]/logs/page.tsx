@@ -86,7 +86,7 @@ export default async function FlowLogsPage({
           <TableHeader>
             <TableRow>
               <TableHead>Started</TableHead>
-              <TableHead>Contact</TableHead>
+              <TableHead>Patient</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Steps</TableHead>
               <TableHead>Version</TableHead>

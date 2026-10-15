@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -182,8 +183,12 @@ export default async function LabsPage() {
             <TableBody>
               {(statements ?? []).length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-muted-foreground text-sm">
-                    No statements yet. Upload a provider&apos;s file to start one.
+                  <TableCell colSpan={8}>
+                    <EmptyState
+                      title="No statements yet"
+                      description="Upload a provider's file to start one."
+                      className="border-0 p-6"
+                    />
                   </TableCell>
                 </TableRow>
               ) : (

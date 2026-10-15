@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { OpenDocumentButton } from "@/components/finance/finance-upload";
+import { CappedNote, EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -143,8 +144,12 @@ export default async function PayablesPage({
             <TableBody>
               {(invoices ?? []).length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-muted-foreground text-sm">
-                    Nothing here.
+                  <TableCell colSpan={8}>
+                    <EmptyState
+                      title="No supplier invoices here"
+                      description="Change the filter, or add a supplier invoice."
+                      className="border-0 p-6"
+                    />
                   </TableCell>
                 </TableRow>
               ) : (
@@ -239,6 +244,7 @@ export default async function PayablesPage({
               )}
             </TableBody>
           </Table>
+          {(invoices ?? []).length >= 300 && <CappedNote shown={300} />}
         </CardContent>
       </Card>
     </div>

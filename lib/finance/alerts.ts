@@ -74,7 +74,7 @@ export function evaluateAlerts(s: AlertSnapshot, now = new Date()): Alert[] {
         key: "no_diligence_upload",
         severity: "warning",
         title: "No Diligence claims upload in over 8 days",
-        body: `The last claims upload was about ${Math.floor(days)} days ago. Claim statuses, ageing and insurance exceptions are only as fresh as the last upload. Sharaf: Finance → Insurance upload.`,
+        body: `The last claims upload was about ${Math.floor(days)} days ago. Claim statuses, ageing and insurance exceptions are only as fresh as the last upload. Sharaf: Finance → Claims, Uploads.`,
       });
     }
   }

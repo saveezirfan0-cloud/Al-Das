@@ -18,7 +18,7 @@ export default async function ApiKeysPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="API keys" description="Let your own systems read and write contacts and send approved WhatsApp templates. Keys are shown once and stored hashed." />
+      <PageHeader title="API keys" description="Let your own systems read and write patient records and send approved WhatsApp templates. Keys are shown once and stored hashed." />
       <ApiKeysManager keys={data ?? []} baseUrl={`${serverEnv().APP_URL.replace(/\/$/, "")}/api/public/v1`} />
     </div>
   );

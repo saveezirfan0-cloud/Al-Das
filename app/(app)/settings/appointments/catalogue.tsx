@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 
+import { useConfirm } from "@/components/shell/confirm-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -131,6 +132,7 @@ function RowActions({
   pending: boolean;
   label: string;
 }) {
+  const [ask, askDialog] = useConfirm();
   return (
     <div className="flex shrink-0 gap-1">
       <Button variant="ghost" size="icon-sm" aria-label={`Edit ${label}`} onClick={onEdit}>
@@ -141,13 +143,14 @@ function RowActions({
         size="icon-sm"
         aria-label={`Delete ${label}`}
         disabled={pending}
-        onClick={() => {
-          if (confirm(`Delete "${label}"? Appointments keep their history but lose this link.`))
+        onClick={async () => {
+          if (await ask(`Delete "${label}"? Appointments keep their history but lose this link.`))
             onDelete();
         }}
       >
         <Trash2 />
       </Button>
+      {askDialog}
     </div>
   );
 }
@@ -416,7 +419,7 @@ export function Departments({ items }: { items: Department[] }) {
     <>
       <ListCard
         title="Departments"
-        description="Group services and specialists, and drive reports."
+        description="Group services and doctors, and drive reports."
         onAdd={() => setForm({ id: null, name: "", active: true })}
         addLabel="Add department"
         empty="No departments yet."
@@ -628,10 +631,10 @@ export function Services({ items, departments }: { items: Service[]; departments
               </Field>
             </div>
             <p className="text-muted-foreground -mt-1 text-xs">
-              Buffers keep the specialist free before and after this service (preparation,
-              cleaning); they apply between bookings and blocks, not at the edges of working hours.
-              Concurrent patients above 1 also needs the specialist&apos;s bookings per slot raised.
-              Unite bookings are never refused; ones that break these rules are flagged.
+              Buffers keep the doctor free before and after this service (preparation, cleaning);
+              they apply between bookings and blocks, not at the edges of working hours. Concurrent
+              patients above 1 also needs the doctor&apos;s bookings per slot raised. Unite bookings
+              are never refused; ones that break these rules are flagged.
             </p>
             <Field
               label="Visit type"

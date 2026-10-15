@@ -64,7 +64,7 @@ export const RULE_INFO: Record<string, RuleInfo> = {
   E10: {
     title: "Diligence file failed validation",
     meaning: "An uploaded claims file was rejected.",
-    action: "Open Insurance upload, read the reasons, fix the export and upload it again.",
+    action: "Open Uploads, read the reasons, fix the export and upload it again.",
   },
   E11: {
     title: "Billed, no visit record",

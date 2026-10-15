@@ -2,11 +2,11 @@
 -- Run the files in numeric order. A failed file rolls back as a whole, so it is safe to retry.
 -- Rooms and capacity (M3A): rooms per branch, the Unite doctor to Pulse doctor links, the open-hours setting
 -- and the rooms.manage permission.
--- Needs every earlier file first, up to and including 85_finance_contribution.sql.
+-- Needs every earlier file first, up to and including 88_finance_contribution.sql.
 -- Check the project name in the Supabase header first: this is for the Pulse project only.
 
 -- ======================================================================
--- 20261203000500_rooms_capacity.sql
+-- 20261208000500_rooms_capacity.sql
 -- ======================================================================
 -- M3 first slice: rooms and the capacity measures' inputs (docs/40_MANAGEMENT_PLATFORM_PLAN.md §4 M3,
 -- docs/23_PHASE_M3A_NOTES.md). Sorts after 20261202000100_organisation.sql, whose rota_shifts is Pulse's one rota (a

@@ -1,3 +1,4 @@
+import { CappedNote } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { can } from "@/lib/auth/can";
@@ -8,7 +9,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 import { FollowUpQueue, type FollowUpRow } from "./queue";
 
-export const metadata = { title: "Follow-Up Queue" };
+export const metadata = { title: "Clinical follow-ups" };
 
 export default async function FollowUpsPage() {
   const member = await requirePerm("portal.clinical_followups.read");
@@ -122,7 +123,7 @@ export default async function FollowUpsPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Follow-Up Queue"
+        title="Clinical follow-ups"
         description="Visits that tripped a clinical rule. Work the list from the top: High first, then oldest due date."
       />
       {!gateOn && (
@@ -151,6 +152,7 @@ export default async function FollowUpsPage() {
         canWrite={can(member, "portal.clinical_followups.write")}
         today={new Date().toISOString().slice(0, 10)}
       />
+      {items.length >= 500 && <CappedNote shown={500} />}
     </div>
   );
 }

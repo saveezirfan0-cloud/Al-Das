@@ -1,7 +1,7 @@
 # M3a: rooms and capacity measures (first slice of M3)
 
 Date: 14 Oct 2026. Plan: `docs/40_MANAGEMENT_PLATFORM_PLAN.md` §4 (M3) and `docs/34_CLINIC_OS_PLAN.md` Phase E
-(rooms). Migration: `supabase/migrations/20261203000500_rooms_capacity.sql`. It sorts after
+(rooms). Migration: `supabase/migrations/20261208000500_rooms_capacity.sql`. It sorts after
 `20261202000100_organisation.sql` (PR #72), whose `rota_shifts` is Pulse's one rota: this slice deliberately adds no
 second rota.
 
