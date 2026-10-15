@@ -1,8 +1,6 @@
 "use client";
 
-import { ActionForm, Field, selectClass } from "@/components/finance/forms";
-import { ConfirmDialog } from "@/components/shell/confirm-dialog";
-import { Button } from "@/components/ui/button";
+import { ActionForm, Field } from "@/components/finance/forms";
 import { Input } from "@/components/ui/input";
 
 import { saveRoomOpenHours } from "./actions";
