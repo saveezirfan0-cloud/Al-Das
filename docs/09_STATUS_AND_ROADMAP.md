@@ -24,7 +24,7 @@ Built on the uploaded Unite collection report (no Unite API call anywhere):
 - **23B Doctor performance** (`/finance/doctor-performance`, Excel download, target and bands under Finance, Targets and report lines, tiles on the Management dashboard): reproduces the corrected revenue comparison workbook (e.g. Dermatology 123,626.24 / 160 patients / 772.66). Notes: `docs/23_PHASE_23B_NOTES.md`.
 - **Contract Generator alignment** (`docs/finance/contract-rules-alignment.md`): how the HR contract terms feed doctor pay in M2; OQ-148 to OQ-157.
 - Database: production (`dljdxwgmstxfxyhbpntz`) has every migration up to `20261125000100_finance_access_window` (the `db-migrate` run of 14 Oct 18:35 UTC succeeded); Phase 23's three migrations apply when this merges to `main` (paste files `66_` to `68_` for a manual run).
-- **Data residency answered (15 Oct 2026):** the owner accepts hosting in the United States (OQ-49), so real Unite report uploads may start. The remaining business questions went to the owner as a decisions form with a recommendation for each (OQ-94 switch-on date, OQ-138 to 159); OQ-68 (patient documents) stays open as a technical item.
+- **Data residency answered (15 Oct 2026):** the owner accepts hosting in the United States (OQ-49), so real Unite report uploads may start. The remaining business questions went to the owner as a decisions form with a recommendation for each (finance and accounting policy: OQ-138 to 159 except OQ-147); OQ-68 (patient documents), OQ-94 (Unite switch-on date) and OQ-147 (who sees doctor pay) stay open as system decisions.
 
 ## 0d. Update, 14 Oct 2026: management platform plan
 
