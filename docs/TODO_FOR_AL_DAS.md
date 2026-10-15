@@ -46,7 +46,7 @@ _Updated 14 Oct 2026. Pulse's code for Phases 20 to 22 is merged into `main` (fi
 ## 7. Decisions (all open questions)
 
 <!-- generated:start -->
-_Generated 15 Oct 2026 by `scripts/compile-todo.py`: 144 open questions, 49 of them blocking a feature._
+_Generated 15 Oct 2026 by `scripts/compile-todo.py`: 143 open questions, 48 of them blocking a feature._
 
 ### Answer these first
 
@@ -168,7 +168,6 @@ _Generated 15 Oct 2026 by `scripts/compile-todo.py`: 144 open questions, 49 of t
 - [ ] **OQ-37** (Management): Unite Finance API: it is sync-once (each call permanently dequeues). Is it wanted at all in Phase 2, and who owns the reconciliation? _(today: never run in prod; proposed: feature-flagged, off)_
 - [ ] **OQ-42** (Operations): The Google Sheet "Appointment Reminders" is only written when the Sanoflow send **fails** (fallback list with wa.me links). Who works that list today? _(today: manual; proposed: Failed Messages log + task)_
 - [ ] **OQ-44** (Management / Saeed, blocking): Where is the "centralised reporting Data Requirements Matrix" that docs/02 §6 says the reports inventory must include? It is not in the repo or any base _(today: missing; proposed: management to supply)_
-- [ ] **OQ-49** (Management / legal, blocking): Supabase project region and data residency: health data of UAE patients. Does DHA / UAE PDPL require in-country or in-region hosting (Supabase has no UAE region; nearest is eu-central / ap-south)? Legal opinion needed before the first real patient row _(today: not created yet; proposed: obtain opinion; default eu-central-1)_
 - [ ] **OQ-53** (Management): Historical rows: import the Make-era logs (8,102 appointment messages, 56 chronic recall rows, birthday rows) into appointment_reminders / recall_sends for reporting continuity, or start the new KPIs from cut-over? _(today: in Airtable; proposed: import (IDs only, no free-text notes))_
 - [ ] **OQ-56** (Management): Confirm the Phase 10 working metric definitions: first response (first **staff** reply; bots and templates excluded), resolution time, returning contact, and SLA breach (patient wrote last, no reply within N minutes; default 15). What SLA does management actually hold the team to, and is it per team or per channel? _(today: none written down; proposed: as listed, SLA 15 min)_
 - [ ] **OQ-57** (Management / legal, blocking): AI processing of patient messages: may conversation text (phone numbers and emails masked; names and clinical content are not) be sent to Anthropic, and KB text **and the patient's latest messages (the Suggested Reply retrieval query)** to Voyage, under the clinic's consent notices and UAE data rules? Is a DPA with each in place, and is zero-retention available? Ties to OQ-49 _(today: not decided; proposed: org AI switch stays OFF until answered)_

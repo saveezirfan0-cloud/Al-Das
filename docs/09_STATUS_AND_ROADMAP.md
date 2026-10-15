@@ -24,7 +24,7 @@ Built on the uploaded Unite collection report (no Unite API call anywhere):
 - **23B Doctor performance** (`/finance/doctor-performance`, Excel download, target and bands under Finance, Targets and report lines, tiles on the Management dashboard): reproduces the corrected revenue comparison workbook (e.g. Dermatology 123,626.24 / 160 patients / 772.66). Notes: `docs/23_PHASE_23B_NOTES.md`.
 - **Contract Generator alignment** (`docs/finance/contract-rules-alignment.md`): how the HR contract terms feed doctor pay in M2; OQ-148 to OQ-157.
 - Database: production (`dljdxwgmstxfxyhbpntz`) has every migration up to `20261125000100_finance_access_window` (the `db-migrate` run of 14 Oct 18:35 UTC succeeded); Phase 23's three migrations apply when this merges to `main` (paste files `66_` to `68_` for a manual run).
-- **Before the first real Unite report upload:** the production project is in **us-east-1**, and OQ-49 (where UAE patient data may be hosted) is still open. A report upload stores patient PINs; answer OQ-49 first.
+- **Data residency answered (15 Oct 2026):** the owner accepts hosting in the United States (OQ-49), so real Unite report uploads may start. The remaining questions went to the owner as a decisions form with a recommendation for each (OQ-68, 94, 138 to 159).
 
 ## 0d. Update, 14 Oct 2026: management platform plan
 
@@ -275,7 +275,7 @@ Full register: `docs/audit/open-questions.md`. These are the ones that block som
 
 | Decision | Who | Blocks |
 |---|---|---|
-| **Where may patient data be hosted?** DHA / DoH / UAE PDPL opinion on EU-region hosting (OQ-49) | Management and legal | First real patient row |
+| ~~**Where may patient data be hosted?**~~ Answered 15 Oct 2026: US hosting is acceptable (OQ-49) | Owner | Done |
 | **Does Al Das own the WhatsApp Business Account?** (OQ-38) | Saeed | Moving numbers off Sanoflow |
 | **May patient messages be sent to Anthropic and Voyage?** DPA, zero retention (OQ-57) | Management and legal | AI assist |
 | **Clinical thresholds**: recall interval 30/85/90 days (OQ-01), day-3 offset (OQ-02), probiotic days (OQ-03), feedback red-flag score (OQ-04), day-3 HALT score (OQ-05), side-effect keywords (OQ-06), all vitals thresholds (OQ-36) | Abdul and Snezana | Any patient-facing clinical message |
