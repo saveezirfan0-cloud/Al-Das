@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
  * M3 capacity loader over a fake service-role client: branch scoping (Phase B) for hours, rooms and revenue, the
- * revenue link through fin_ref_doctor_keys, and the "no finance branch code" case. Synthetic data only.
+ * revenue link through the doctor's report key (specialists.report_doctor_key), and the "no finance branch code" case. Synthetic data only.
  */
 
 let cookie: string | undefined;
@@ -29,10 +29,15 @@ const TABLES: Record<string, Row[]> = {
   orgs: [{ id: "org", settings: { appointments: { working_weekdays: [1, 2, 3, 4, 5, 6] } } }],
   fin_ref_finance_settings: [{ org_id: "org", room_open_hours_per_day: 8 }],
   specialists: [
-    { id: ALPHA, org_id: "org", name: "Dr Alpha Demo", active: true },
-    { id: BETA, org_id: "org", name: "Dr Beta Demo", active: true },
+    {
+      id: ALPHA,
+      org_id: "org",
+      name: "Dr Alpha Demo",
+      active: true,
+      report_doctor_key: "alpha demo",
+    },
+    { id: BETA, org_id: "org", name: "Dr Beta Demo", active: true, report_doctor_key: null },
   ],
-  fin_ref_doctor_keys: [{ org_id: "org", doctor_key: "alpha demo", specialist_id: ALPHA }],
   working_hours: [
     // Alpha: Mondays 09:00-13:00 at North; Beta: Tuesdays 09:00-11:00 at South
     {

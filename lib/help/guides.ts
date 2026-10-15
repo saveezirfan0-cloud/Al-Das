@@ -38,7 +38,7 @@ export const GUIDES: readonly Guide[] = [
     pages: ["/inbox"],
     purpose: "Answer patients on WhatsApp together, without two people replying to the same chat.",
     steps: [
-      "Take a conversation with the Take button, or wait for it to be assigned to you. \"waiting 12 m\" on a row is how long the patient has waited for a reply (amber, then red). The tick-box button at the top selects several chats to assign or close together.",
+      'Take a conversation with the Take button, or wait for it to be assigned to you. "waiting 12 m" on a row is how long the patient has waited for a reply (amber, then red). The tick-box button at the top selects several chats to assign or close together.',
       "Type / in the message box to use a quick reply. Names and appointment details fill in for you.",
       "If the 24-hour window has closed, pick a template instead of typing a message.",
       "Use the Patient tab on the right to see the next appointment and any flags without leaving the chat. Task at the top makes a follow-up task linked to the patient and this chat; Snooze hides the chat until a time you pick (it comes back sooner if the patient writes).",
@@ -49,7 +49,7 @@ export const GUIDES: readonly Guide[] = [
       "Never copy patient details into another chat or email. Forwarding a patient's message to someone else shares it with them: forward only what that person should see.",
       "An internal note is not sent to the patient, but colleagues can read it.",
       "Forwards, contact cards and products only go out within 24 hours of the patient's last message.",
-      "\"Someone is replying\" above the message box means a colleague is typing in the same chat: check before you send. Message text under the search box finds words in chats you can open.",
+      '"Someone is replying" above the message box means a colleague is typing in the same chat: check before you send. Message text under the search box finds words in chats you can open.',
     ],
   },
   {
@@ -410,7 +410,7 @@ export const GUIDES: readonly Guide[] = [
     steps: [
       "Pick a month (the latest month with report data opens by default) and, if you work in more than one, a branch.",
       "Each clinic lists its departments and doctors, then the branch overheads, the clinic contribution (L5), the shared overhead allocated and the figure after allocation (L6).",
-      "If you maintain costs, link each report doctor to their DHA id under Link report doctors; their loaded pay and charges then count in every month.",
+      "Doctors not linked yet are listed at the bottom. Each doctor is linked once, on the Doctors page (Finance link: DHA id and Unite report name); their loaded pay and charges then count in every month.",
       "Download Excel gives the same figures as plain values, with a Definitions sheet.",
     ],
     watchOut: [
@@ -470,7 +470,7 @@ export const GUIDES: readonly Guide[] = [
     steps: [
       "Under Settings, Rooms add each branch's rooms: name, kind, and the monthly cost if known.",
       "On Finance, Capacity pick a month and, if you work in more than one, a branch.",
-      "Link each Unite doctor to the Pulse doctor under Unite doctors and Pulse doctors, so their revenue meets their hours.",
+      "Doctors whose Unite name is not linked yet are listed at the bottom; link each one once on the Doctors page (Finance link), so their revenue meets their hours.",
       "Available hours are working hours on open days minus weekly blocks and leave.",
     ],
     watchOut: [

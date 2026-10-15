@@ -1,6 +1,6 @@
 -- Paste this whole file into Supabase > SQL Editor > New query, then Run.
 -- Run the files in numeric order. A failed file rolls back as a whole, so it is safe to retry.
--- Contribution (M2A): the report-doctor to DHA id link table and the inputs function behind Finance, Contribution
+-- Contribution (M2A): the inputs function behind Finance, Contribution (doctors reach DHA ids through the Doctors page link)
 -- (service role only; amounts and codes, pay only through finance.costs.compensation in the app).
 -- Needs every earlier file first, up to and including 87_finance_management_alerts.sql.
 -- Check the project name in the Supabase header first: this is for the Pulse project only.
@@ -11,9 +11,9 @@
 -- Phase M2A: contribution by doctor, department and clinic (docs/40_MANAGEMENT_PLATFORM_PLAN.md §2, levels L3, L5 and L6;
 -- docs/23_PHASE_M2A_NOTES.md).
 --
---   * fin_report_doctor_map: links the Unite report's doctor (doctor_key, the normalised name) to the DHA licence id the
---     cost tables use (fin_ref_doctors.dha_id). Service role only (RLS on, no policies): the page reads it through
---     fin_contribution_inputs() and writes it through a server action after can('finance.costs.manage'), audited.
+--   * A report doctor (doctor_key, the normalised name) reaches the DHA licence id the cost tables use through the ONE
+--     doctor link, made on the Doctors page (20261205000100_doctor_identity.sql): specialists.report_doctor_key and
+--     specialists.dha_id. Contribution adds no link of its own.
 --   * fin_contribution_inputs(): for one calendar month, revenue per (branch, department, doctor) from the current Unite
 --     collection report rows (fin_report_visits, as 23B reads them), plus the ACTUAL costs Finance has loaded for the
 --     doctors and branches in view: doctor compensation (fin_cost_doctor_comp), doctor charges (fin_doctor_charges),
@@ -31,29 +31,7 @@
 --     finance.costs.compensation, lib/finance/contribution.ts).
 
 -- ---------------------------------------------------------------------------
--- 1. Doctor mapping (report doctor_key -> DHA id)
--- ---------------------------------------------------------------------------
-create table public.fin_report_doctor_map (
-  id uuid primary key default gen_random_uuid(),
-  org_id uuid not null references public.orgs (id) on delete cascade,
-  doctor_key text not null check (btrim(doctor_key) <> '' and char_length(doctor_key) <= 200),
-  dha_id text not null,
-  created_by uuid references public.profiles (id) on delete set null,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  unique (org_id, doctor_key),
-  -- the DHA id must be one of the org's own reference doctors; removing that doctor removes the link (fails closed)
-  foreign key (org_id, dha_id) references public.fin_ref_doctors (org_id, dha_id) on delete cascade
-);
-create index fin_report_doctor_map_dha_idx on public.fin_report_doctor_map (org_id, dha_id);
-create trigger fin_report_doctor_map_set_updated_at before update on public.fin_report_doctor_map
-  for each row execute function app.set_updated_at();
-
-alter table public.fin_report_doctor_map enable row level security;
--- No policies: service role only (server code after can()).
-
--- ---------------------------------------------------------------------------
--- 2. Report input
+-- Report input
 -- ---------------------------------------------------------------------------
 create or replace function public.fin_contribution_inputs(
   p_org_id uuid,
@@ -84,13 +62,13 @@ begin
            nullif(btrim(r.department), '') as department,
            r.doctor_key,
            r.doctor_name,
-           upper(btrim(m.dha_id)) as dha_id,
+           upper(btrim(sp.dha_id)) as dha_id,
            r.net
     from public.fin_report_visits r
     left join public.fin_ref_branches b
       on b.org_id = r.org_id and b.active and b.unite_clinic_long_name = r.clinic_name
-    left join public.fin_report_doctor_map m
-      on m.org_id = r.org_id and m.doctor_key = r.doctor_key
+    left join public.specialists sp
+      on sp.org_id = r.org_id and sp.report_doctor_key = r.doctor_key
     where r.org_id = p_org_id
       and r.is_current
       and r.report_date >= v_month and r.report_date < v_next

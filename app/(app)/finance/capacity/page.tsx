@@ -26,7 +26,7 @@ import { money } from "@/lib/finance/format";
 import { recordAccess } from "@/lib/security/access-log";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-import { LinkKeyForm, OpenHoursForm, UnlinkButton } from "./forms";
+import { OpenHoursForm } from "./forms";
 
 export const metadata = { title: "Capacity" };
 export const dynamic = "force-dynamic";
@@ -55,7 +55,8 @@ export default async function CapacityPage({ searchParams }: { searchParams: Pro
 
   // Billing and the Medical Director get no cost data (F8): room cost only with a cost or profit permission.
   const seeCost = canAny(member, ["finance.costs.view", "finance.profit.view"]);
-  const canLink = can(member, "finance.reference.manage");
+  // the one doctor link lives on the Doctors page (settings.manage AND finance.reference.manage)
+  const canLink = can(member, "settings.manage") && can(member, "finance.reference.manage");
   const title = monthTitle(month);
   const r = cap.report;
   const t = r.totals;
@@ -263,60 +264,37 @@ export default async function CapacityPage({ searchParams }: { searchParams: Pro
         </CardContent>
       </Card>
 
-      {scope.revenueAvailable && (cap.unlinked.length > 0 || cap.links.length > 0) && (
+      {scope.revenueAvailable && cap.unlinked.length > 0 && (
         <Card id="links">
           <CardHeader>
-            <CardTitle className="text-base">Unite doctors and Pulse doctors</CardTitle>
+            <CardTitle className="text-base">Unite doctors not linked yet</CardTitle>
             <CardDescription>
-              The Unite report names doctors its own way. Link each Unite doctor to the Pulse doctor
-              whose hours they match; a Pulse doctor may have several Unite spellings.
-              {!canLink && " Finance staff with reference data rights make the links."}
+              Their revenue is not set against any doctor&apos;s hours. Each doctor is linked once,
+              on the Doctors page (Finance link: their name in the Unite report).
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            {cap.unlinked.length > 0 && (
-              <section aria-label="Unite doctors not linked" className="flex flex-col gap-3">
-                <h3 className="text-sm font-medium">Not linked yet ({cap.unlinked.length})</h3>
-                <ul className="flex flex-col gap-3">
-                  {cap.unlinked.map((u) => (
-                    <li key={u.doctorKey} className="flex flex-col gap-1 rounded-md border p-3">
-                      <span className="text-sm">
-                        {u.doctorName}
-                        <span className="text-muted-foreground">
-                          {" "}
-                          · AED {money(u.revenue)} in {title}
-                        </span>
-                      </span>
-                      {canLink && (
-                        <LinkKeyForm
-                          doctorKey={u.doctorKey}
-                          doctorName={u.doctorName}
-                          specialists={cap.specialists}
-                        />
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
-            {cap.links.length > 0 && (
-              <section aria-label="Linked doctors" className="flex flex-col gap-2">
-                <h3 className="text-sm font-medium">Linked</h3>
-                <ul className="flex flex-col gap-1">
-                  {cap.links.map((l) => (
-                    <li
-                      key={l.doctorKey}
-                      className="flex flex-wrap items-center justify-between gap-2 text-sm"
-                    >
-                      <span>
-                        {l.doctorName} <span className="text-muted-foreground">→</span>{" "}
-                        {l.specialistName}
-                      </span>
-                      {canLink && <UnlinkButton doctorKey={l.doctorKey} label={l.doctorName} />}
-                    </li>
-                  ))}
-                </ul>
-              </section>
+            <ul className="flex flex-col divide-y">
+              {cap.unlinked.map((u) => (
+                <li
+                  key={u.doctorKey}
+                  className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm"
+                >
+                  <span>{u.doctorName}</span>
+                  <span className="text-muted-foreground text-xs">
+                    AED {money(u.revenue)} in {title}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            {canLink ? (
+              <Button asChild variant="outline" size="sm" className="self-start">
+                <Link href="/doctors">Link them on the Doctors page</Link>
+              </Button>
+            ) : (
+              <p className="text-muted-foreground text-sm">
+                Someone with Settings and Finance reference rights links them on the Doctors page.
+              </p>
             )}
           </CardContent>
         </Card>

@@ -69,7 +69,7 @@ describe("contribution levels (L3, L5, L6)", () => {
   it("splits a doctor's pay and charges over every row of that DHA id, so nothing is counted twice", () => {
     const r = build();
     const d01 = [...doctors(r).values()].filter((d) => d.dhaId === "D0001");
-    expect(d01).toHaveLength(3); // two branches and two report spellings
+    expect(d01).toHaveLength(2); // two branches (every spelling of the doctor shares one report key)
     expect(Math.round(d01.reduce((a, d) => a + (d.pay ?? 0), 0) * 1000) / 1000).toBe(6000);
     expect(Math.round(d01.reduce((a, d) => a + (d.charges ?? 0), 0) * 1000) / 1000).toBe(300);
   });
@@ -192,7 +192,9 @@ describe("compensation visibility", () => {
     // 0.6·pX + 0.25·pY and 0.4·pX + 0.75·pY for each doctor's pay
     const i = inputs();
     const r = build(i, false);
-    const shown = [...r.clinics, ...r.clinics.flatMap((c) => c.departments)].filter((l) => !l.withheld);
+    const shown = [...r.clinics, ...r.clinics.flatMap((c) => c.departments)].filter(
+      (l) => !l.withheld,
+    );
     expect(shown.filter((l) => l.contribution !== null)).toHaveLength(0);
     // the same holds under a branch filter: a filtered "total" is never the whole organisation
     const filtered = buildContribution(i, { canSeePay: false, wholeOrg: false });

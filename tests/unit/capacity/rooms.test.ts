@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { PERMISSION_KEYS, SYSTEM_ROLES } from "@/lib/auth/permissions";
 import { visibleSettingsPages } from "@/components/shell/settings-pages";
-import { financeNavFor } from "@/lib/finance/nav";
+import { financePagesFor } from "@/lib/finance/nav";
 import { roomSchema } from "@/lib/capacity/rooms";
 
 const member = (permissions: string[]) => ({
@@ -48,8 +48,8 @@ describe("rooms permission and pages", () => {
       visibleSettingsPages(member(p)).some((x) => x.href === "/settings/rooms");
     expect(rooms(["rooms.manage"])).toBe(true);
     expect(rooms(["appointments.manage"])).toBe(false);
-    const cap = (p: string[]) =>
-      financeNavFor(member(p)).some((x) => x.href === "/finance/capacity");
+    // Capacity is a tab of "Doctor and clinic performance" (Phase D tab groups)
+    const cap = (p: string[]) => financePagesFor(member(p)).includes("/finance/capacity");
     expect(cap(["finance.revenue.view"])).toBe(true);
     expect(cap(["finance.costs.view"])).toBe(false);
   });

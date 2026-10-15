@@ -134,9 +134,6 @@ const SERVICE_ONLY = new Set([
   "fin_report_visits",
   // M1 management alerts: which (rule, scope, period) was announced; only the daily job (fin_mgmt_alert_claim) touches it
   "fin_mgmt_alert_state",
-  // M2A: report doctor -> DHA id links; only server code (service role, after can('finance.costs.manage') or
-  // can('finance.profit.view')) and fin_contribution_inputs() touch them
-  "fin_report_doctor_map",
   // Finance F2 / Phase 19: provider credentials (config_enc, AES-256-GCM) and token cache; only server code after can('integrations.manage') reads or writes them
   "integration_accounts",
   // Phase 19: idempotency keys of inbound provider webhooks (provider event ids and a short outcome word); claimed by the webhook route, never read by a browser

@@ -46,7 +46,7 @@ _Updated 14 Oct 2026. Pulse's code for Phases 20 to 22 is merged into `main` (fi
 ## 7. Decisions (all open questions)
 
 <!-- generated:start -->
-_Generated 14 Oct 2026 by `scripts/compile-todo.py`: 145 open questions, 49 of them blocking a feature._
+_Generated 15 Oct 2026 by `scripts/compile-todo.py`: 144 open questions, 49 of them blocking a feature._
 
 ### Answer these first
 
@@ -149,7 +149,6 @@ _Generated 14 Oct 2026 by `scripts/compile-todo.py`: 145 open questions, 49 of t
 - [ ] **OQ-156** (Finance Manager / HR, blocking): **Doctor fixed cost and proration.** Payroll supplies salary and fixed cost (visa, DHA licence, insurance, malpractice, gratuity accrual) per doctor and month as separate components. For max(S, V) doctors, pay is the approved run payout with no salary row. How are S and T prorated for a mid-month start, end or salary change? _(today: one comp amount per doctor-month; proposed: component column; proration by calendar days)_
 - [ ] **OQ-157** (Finance Manager / HR, blocking): **Who earns the revenue.** Invoice doctor, ordering or performing (doctor_basis)? Radiology and lab are billed under the referring doctor. Does the referrer earn the investigations share? _(today: invoice doctor; proposed: per contract type, as Finance signs)_
 - [ ] **OQ-159** (Finance Manager): **Room cost per hour basis.** Once room hours come from the staff rota, is a room's cost spread over the hours it was used (rota hours) or the hours it was open? _(today: not calculated; proposed: per open hour (idle time shows as cost))_
-- [ ] **OQ-160** (Finance Manager / Operations): **One doctor key.** Capacity links Unite report doctor names to Pulse doctors (fin_ref_doctor_keys); contribution links them to DHA ids. Should both move to the DHA id once Pulse doctors carry it, so a doctor is linked once? _(today: two links; proposed: one link by DHA id)_
 
 ### Marketing, consent and legal
 
@@ -190,7 +189,7 @@ _Generated 14 Oct 2026 by `scripts/compile-todo.py`: 145 open questions, 49 of t
 - [ ] **OQ-83** (Management / data-protection owner, blocking): **Doctor calendar feeds.** May appointment times and the clinic location name (never a patient detail) appear in a doctor's personal Outlook, Google or Apple calendar, outside Pulse's access controls? Anyone holding the private link can read them; the link can be rotated or revoked but not restricted by IP or sign-in. Which roles get integrations.calendar (Manager only today)? How often should links be rotated (suggested: when a doctor leaves and every 12 months)? _(today: OFF; proposed: confirm with the data-protection owner; name who creates feeds)_
 - [ ] **OQ-84** (Management / legal / operations, blocking): **SMS fallback.** Which SMS gateway does the clinic use (the first adapter is Twilio-style REST), is a UAE alphanumeric sender ID registered for it, and who pays? Is an appointment reminder by SMS transactional (no marketing opt-in) under the clinic's consent policy and UAE rules? The text names a child by first name when it goes to a guardian: acceptable? There is **no staff screen yet to record "no SMS"** for a patient (opt-out is recorded only when the provider reports an unsubscribe); is a switch on the patient card needed before go-live? Should SMS also cover other WhatsApp failures (confirmations, waiting-list offers)? Defaults: 5 messages per second, 200 per day, price per part blank _(today: OFF; proposed: answer, then sandbox test with a number the clinic owns)_
 - [ ] **OQ-146** (Operations / HR / Finance Manager): **Owners of manual inputs.** Who keeps the rota and rooms, payroll and doctor fixed costs, budgets and contract terms up to date in Pulse, and by which working day each month? _(today: spreadsheets; proposed: named owner and due day per input, with a lateness alert)_
-- [ ] **OQ-158** (Operations): **Opening hours per branch.** What are each branch's real opening hours per weekday (including Friday and Ramadan hours)? Room capacity uses one org-wide figure (room_open_hours_per_day, default 12) until then _(today: 12 hours a day, every open day; proposed: hours per branch and weekday, kept in Pulse)_
+- [ ] **OQ-158** (Operations): **Opening hours per branch.** What are each branch's real opening hours per weekday (including Friday and Ramadan hours)? Room capacity uses one org-wide figure (room_open_hours_per_day, default 10) until then _(today: 10 hours a day, every open day; proposed: hours per branch and weekday, kept in Pulse)_
 
 ### Build team and vendors (Saveez, Unite)
 

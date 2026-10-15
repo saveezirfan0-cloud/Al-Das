@@ -12,7 +12,6 @@
   ],
   "map": [
     { "doctor_key": "demo-01", "dha_id": "D0001" },
-    { "doctor_key": "demo-1", "dha_id": "D0001" },
     { "doctor_key": "demo-02", "dha_id": "D0002" },
     { "doctor_key": "demo-03", "dha_id": "D0003" },
     { "doctor_key": "demo-05", "dha_id": "D0005" },
@@ -23,7 +22,7 @@
     { "report_date": "2026-09-03", "branch_code": "P", "department": "General Medicine", "doctor_name": "Dr Demo-01", "doctor_key": "demo-01", "patient_pin": "900000002", "net": 2000, "is_current": true },
     { "report_date": "2026-09-03", "branch_code": "P", "department": "General Medicine", "doctor_name": "Dr Demo-01", "doctor_key": "demo-01", "patient_pin": "900000002", "net": 9999, "is_current": false },
     { "report_date": "2026-09-04", "branch_code": "M", "department": "General Medicine", "doctor_name": "Dr Demo-01", "doctor_key": "demo-01", "patient_pin": "900000003", "net": 2000, "is_current": true },
-    { "report_date": "2026-09-05", "branch_code": "M", "department": "General Medicine", "doctor_name": "Dr. Demo-1", "doctor_key": "demo-1", "patient_pin": "900000004", "net": 1000, "is_current": true },
+    { "report_date": "2026-09-05", "branch_code": "M", "department": "General Medicine", "doctor_name": "Dr. Demo-01", "doctor_key": "demo-01", "patient_pin": "900000004", "net": 1000, "is_current": true },
     { "report_date": "2026-09-06", "branch_code": "P", "department": "General Medicine", "doctor_name": "Dr Demo-02", "doctor_key": "demo-02", "patient_pin": "900000005", "net": 5000, "is_current": true },
     { "report_date": "2026-10-01", "branch_code": "P", "department": "General Medicine", "doctor_name": "Dr Demo-02", "doctor_key": "demo-02", "patient_pin": "900000005", "net": 7777, "is_current": true },
     { "report_date": "2026-09-07", "branch_code": "P", "department": "Dermatology", "doctor_name": "Dr Demo-03", "doctor_key": "demo-03", "patient_pin": "900000006", "net": 1500, "is_current": true },
@@ -57,8 +56,7 @@
     "coverage": [{ "from": "2026-09-01", "to": "2026-09-30" }],
     "period_approved": false,
     "rows": [
-      { "branch_code": "M", "department": "General Medicine", "doctor_key": "demo-01", "doctor_name": "Dr Demo-01", "dha_id": "D0001", "revenue": 2000, "visits": 1 },
-      { "branch_code": "M", "department": "General Medicine", "doctor_key": "demo-1", "doctor_name": "Dr. Demo-1", "dha_id": "D0001", "revenue": 1000, "visits": 1 },
+      { "branch_code": "M", "department": "General Medicine", "doctor_key": "demo-01", "doctor_name": "Dr Demo-01", "dha_id": "D0001", "revenue": 3000, "visits": 2 },
       { "branch_code": "M", "department": "Physiotherapy", "doctor_key": "demo-05", "doctor_name": "Dr Demo-05", "dha_id": "D0005", "revenue": 800, "visits": 1 },
       { "branch_code": "P", "department": "Dermatology", "doctor_key": "demo-03", "doctor_name": "Dr Demo-03", "dha_id": "D0003", "revenue": 1500, "visits": 1 },
       { "branch_code": "P", "department": "Dermatology", "doctor_key": "demo-04", "doctor_name": "Dr Demo-04", "dha_id": null, "revenue": 1000, "visits": 1 },
@@ -67,7 +65,7 @@
       { "branch_code": null, "department": "Dermatology", "doctor_key": "demo-06", "doctor_name": "Dr Demo-06", "dha_id": "D0006", "revenue": 700, "visits": 1 }
     ],
     "doctor_weights": [
-      { "dha_id": "D0001", "revenue": 9000, "groups": 3 },
+      { "dha_id": "D0001", "revenue": 9000, "groups": 2 },
       { "dha_id": "D0002", "revenue": 5000, "groups": 1 },
       { "dha_id": "D0003", "revenue": 1500, "groups": 1 },
       { "dha_id": "D0005", "revenue": 800, "groups": 1 },
@@ -109,8 +107,7 @@
       "P|General Medicine|demo-02": { "status": "linked", "pay": 3000, "charges": 0, "contribution": 2000 },
       "P|Dermatology|demo-03": { "status": "not_loaded", "pay": null, "charges": 50, "contribution": null },
       "P|Dermatology|demo-04": { "status": "not_linked", "pay": null, "charges": null, "contribution": null },
-      "M|General Medicine|demo-01": { "status": "linked", "pay": 1333.333, "charges": 66.667, "contribution": 600 },
-      "M|General Medicine|demo-1": { "status": "linked", "pay": 666.667, "charges": 33.333, "contribution": 300 },
+      "M|General Medicine|demo-01": { "status": "linked", "pay": 2000, "charges": 100, "contribution": 900 },
       "M|Physiotherapy|demo-05": { "status": "not_loaded", "pay": null, "charges": 0, "contribution": null },
       "-|Dermatology|demo-06": { "status": "linked", "pay": 1000, "charges": 0, "contribution": -300 }
     }

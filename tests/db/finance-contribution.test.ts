@@ -72,10 +72,11 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance contribution (M2A)", () => {
           d.dha_id,
           d.name,
         ]);
+      // the one doctor link (Doctors page, 20261205000100_doctor_identity.sql): a diary doctor carries both ids
       for (const m of fixture.map)
         await q(
-          "insert into public.fin_report_doctor_map (org_id, doctor_key, dha_id) values ($1, $2, $3)",
-          [orgA, m.doctor_key, m.dha_id],
+          "insert into public.specialists (org_id, name, report_doctor_key, dha_id) values ($1, $2, $3, $4)",
+          [orgA, `Dr ${m.doctor_key}`, m.doctor_key, m.dha_id],
         );
       let rowNo = 0;
       for (const r of fixture.rows)
@@ -125,7 +126,7 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance contribution (M2A)", () => {
         [orgB],
       );
       await q(
-        "insert into public.fin_report_doctor_map (org_id, doctor_key, dha_id) values ($1, 'demo-01', 'D0001')",
+        "insert into public.specialists (org_id, name, report_doctor_key, dha_id) values ($1, 'Dr B', 'demo-01', 'D0001')",
         [orgB],
       );
       await q(
@@ -179,7 +180,7 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance contribution (M2A)", () => {
     expect(p.doctor_weights.find((w) => w.dha_id === "D0001")).toEqual({
       dha_id: "D0001",
       revenue: 9000,
-      groups: 3,
+      groups: 2,
     });
     expect(p.branch_weights).toEqual(fixture.expected.branch_weights);
     // only the doctors in view: no D0005 / D0006 pay
@@ -240,58 +241,32 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance contribution (M2A)", () => {
     expect(text).not.toMatch(/pin|patient/i);
   });
 
-  it("links only to the org's own reference doctors, once per report doctor", async () => {
-    await expect(
-      svc(() =>
+  it("reads the doctor link from the Doctors page: unlinking a doctor makes them 'pay not linked', never zero pay", async () => {
+    await svc(() =>
+      q(
+        "update public.specialists set report_doctor_key = null where org_id = $1 and dha_id = 'D0002'",
+        [orgA],
+      ),
+    );
+    try {
+      const j = await inputs(orgA, fixture.month);
+      expect(j.rows.find((r) => r.doctor_key === "demo-02")!.dha_id).toBeNull();
+      expect(j.comp.find((x) => x.dha_id === "D0002")).toBeUndefined();
+    } finally {
+      await svc(() =>
         q(
-          "insert into public.fin_report_doctor_map (org_id, doctor_key, dha_id) values ($1, 'demo-04', 'D9999')",
+          "update public.specialists set report_doctor_key = 'demo-02' where org_id = $1 and dha_id = 'D0002'",
           [orgA],
         ),
-      ),
-    ).rejects.toMatchObject({ code: "23503" });
-    await expect(
-      svc(() =>
-        q(
-          "insert into public.fin_report_doctor_map (org_id, doctor_key, dha_id) values ($1, 'demo-01', 'D0002')",
-          [orgA],
-        ),
-      ),
-    ).rejects.toMatchObject({ code: "23505" });
-    // removing a reference doctor removes the link: the doctor then shows "pay not linked", never zero pay
-    await svc(async () => {
-      await q(
-        "insert into public.fin_report_doctor_map (org_id, doctor_key, dha_id) values ($1, 'demo-04', 'D0007')",
-        [orgA],
       );
-      await q("delete from public.fin_ref_doctors where org_id = $1 and dha_id = 'D0007'", [orgA]);
-      const { rows } = await q(
-        "select count(*)::int as n from public.fin_report_doctor_map where org_id = $1 and doctor_key = 'demo-04'",
-        [orgA],
-      );
-      expect(rows[0].n).toBe(0);
-      await q(
-        "insert into public.fin_ref_doctors (org_id, dha_id, name) values ($1, 'D0007', 'Dr Demo-07')",
-        [orgA],
-      );
-    });
+    }
+    expect(await inputs(orgA, fixture.month)).toEqual(fixture.expected);
   });
 
-  it("is service role only: signed-in users cannot read or write the map or run the function", async () => {
+  it("is service role only: signed-in users cannot run the function", async () => {
     await expect(
       asUser(c, alice, () => q("select public.fin_contribution_inputs($1, '2026-09-01')", [orgA])),
     ).rejects.toThrow(/permission denied/);
-    const seen = await asUser(c, alice, () =>
-      q("select count(*)::int as n from public.fin_report_doctor_map"),
-    );
-    expect(seen.rows[0].n).toBe(0);
-    await expect(
-      asUser(c, alice, () =>
-        q(
-          "insert into public.fin_report_doctor_map (org_id, doctor_key, dha_id) values ($1, 'demo-04', 'D0004')",
-          [orgA],
-        ),
-      ),
-    ).rejects.toMatchObject({ code: "42501" });
     const { rows: priv } = await q(
       `select has_function_privilege('anon', p.oid, 'execute') as anon,
               has_function_privilege('authenticated', p.oid, 'execute') as auth,
@@ -303,9 +278,5 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance contribution (M2A)", () => {
     expect(priv).toEqual([
       { anon: false, auth: false, svc: true, definer: true, config: 'search_path=""' },
     ]);
-    const { rows: pol } = await q(
-      "select count(*)::int as n from pg_policies where schemaname = 'public' and tablename = 'fin_report_doctor_map'",
-    );
-    expect(pol[0].n).toBe(0);
   });
 });

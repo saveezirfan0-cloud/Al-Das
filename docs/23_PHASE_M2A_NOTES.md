@@ -9,9 +9,9 @@ calculated**: contract-rule pay waits for Finance's answers to OQ-148 to OQ-157 
 | Piece          | Where                                                                                                                                                                                                                                                                                   |
 | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Page           | `/finance/contribution` (`app/(app)/finance/contribution/page.tsx`), needs `finance.profit.view`; the doctor-pay column also needs `finance.costs.compensation`                                                                                                                         |
-| Doctor links   | On the same page, "Link report doctors to DHA ids" (`finance.costs.manage`, on a page that needs `finance.profit.view`; the actions check both): server actions `linkReportDoctor` / `unlinkReportDoctor` (`actions.ts`), audited as `finance.contribution.doctor_linked` / `_unlinked` |
+| Doctor links   | None of its own: the one doctor link on the Doctors page (`specialists.report_doctor_key` and `specialists.dha_id`, `20261205000100_doctor_identity.sql`). The page lists the doctors not linked yet and points there |
 | Excel download | `GET /api/finance/contribution?month=yyyy-mm&branch=CODE` (sheets Contribution, Definitions; values only; `recordAudit` `finance.contribution.exported` + `recordExport` `finance:contribution`)                                                                                        |
-| SQL            | Migration `20261208000400_finance_contribution.sql`: table `fin_report_doctor_map` and `public.fin_contribution_inputs(p_org_id uuid, p_month date, p_branch text default null, p_branches text[] default null) returns jsonb`                                                          |
+| SQL            | Migration `20261208000400_finance_contribution.sql`: `public.fin_contribution_inputs(p_org_id uuid, p_month date, p_branch text default null, p_branches text[] default null) returns jsonb`                                                          |
 | Pure rules     | `lib/finance/contribution.ts` (`buildContribution`, `parseContributionInputs`, `MIN_PAID_DOCTORS`); reuses `allocateOverheads` and `PROVISIONAL_LABEL` from `lib/finance/profitability.ts`                                                                                              |
 | Loader         | `lib/finance/contribution-server.ts` (service role after the caller's `can()`); branch scope and default month reuse 23B's `loadPerfScope` / `latestReportMonth`                                                                                                                        |
 | Workbook       | `lib/finance/contribution-xlsx.ts`                                                                                                                                                                                                                                                      |
@@ -37,11 +37,11 @@ For one calendar month, per (branch, department, doctor) as 23B groups the repor
 | L6 after allocation    | L5 − allocated                                                                                                                   |
 | Pay coverage           | share of revenue whose doctor is linked to a DHA id AND has pay loaded for the month                                             |
 
-- **Doctor identity.** The report has no DHA id. `fin_report_doctor_map (org_id, doctor_key → dha_id)` links them; the
-  DHA id must be one of the org's `fin_ref_doctors` (composite foreign key, `on delete cascade`, so removing a reference
-  doctor removes the link and the doctor falls back to "pay not linked"). Several report spellings may link to one DHA
-  id. Service role only (RLS on, no policies; in the security guard's service-only list): the page reads the links
-  through `fin_contribution_inputs()` and changes them only through the two audited actions.
+- **Doctor identity.** The report has no DHA id. A report doctor reaches one through the single doctor link made on the
+  Doctors page (`specialists.report_doctor_key` → `specialists.dha_id`, `20261205000100_doctor_identity.sql`, set only by
+  that page's audited server action). Contribution keeps no link of its own (it had one, `fin_report_doctor_map`,
+  before main's doctor identity landed; it was dropped before release, answering OQ-160). A DHA id with no loaded pay
+  shows "Pay not loaded".
 - **Never zero pay.** An unlinked doctor shows revenue with "Pay not linked"; a linked doctor with no pay row for the
   month, or a row of 0 (0 means unavailable, F8), shows "Pay not loaded". Neither is in any contribution; pay, charges
   and contribution of a department, clinic or the total add up only the doctors whose pay is loaded, and coverage shows
@@ -94,7 +94,7 @@ only: no PIN, no patient ref. The page logs a sampled list access, the download 
   signed-in users read nothing and cannot write).
 - Fixture: `tests/unit/finance/fixtures/m2a-contribution.synthetic.json` (doctors "Dr Demo-0n", DHA ids D000n, PINs
   9000000nn).
-- `tests/db/security-guard.test.ts` lists `fin_report_doctor_map` as service-only; `tests/unit/finance/nav.test.ts`
+- `tests/unit/finance/nav.test.ts`
   checks the CEO sees the page and Billing, Insurance and the Medical Director do not.
 
 ## What M2 still needs

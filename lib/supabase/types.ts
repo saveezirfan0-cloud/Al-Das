@@ -12248,53 +12248,6 @@ export type Database = {
           },
         ];
       };
-      fin_ref_doctor_keys: {
-        Row: {
-          created_at: string;
-          created_by: string | null;
-          doctor_key: string;
-          org_id: string;
-          specialist_id: string;
-        };
-        ComputedFields: never;
-        Insert: {
-          created_at?: string;
-          created_by?: string | null;
-          doctor_key: string;
-          org_id: string;
-          specialist_id: string;
-        };
-        Update: {
-          created_at?: string;
-          created_by?: string | null;
-          doctor_key?: string;
-          org_id?: string;
-          specialist_id?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "fin_ref_doctor_keys_created_by_fkey";
-            columns: ["created_by"];
-            isOneToOne: false;
-            referencedRelation: "profiles";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "fin_ref_doctor_keys_org_id_fkey";
-            columns: ["org_id"];
-            isOneToOne: false;
-            referencedRelation: "orgs";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "fin_ref_doctor_keys_specialist_id_fkey";
-            columns: ["specialist_id"];
-            isOneToOne: false;
-            referencedRelation: "specialists";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
       fin_ref_doctors: {
         Row: {
           active: boolean;
@@ -13137,59 +13090,6 @@ export type Database = {
             columns: ["updated_by"];
             isOneToOne: false;
             referencedRelation: "profiles";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      fin_report_doctor_map: {
-        Row: {
-          created_at: string;
-          created_by: string | null;
-          dha_id: string;
-          doctor_key: string;
-          id: string;
-          org_id: string;
-          updated_at: string;
-        };
-        ComputedFields: never;
-        Insert: {
-          created_at?: string;
-          created_by?: string | null;
-          dha_id: string;
-          doctor_key: string;
-          id?: string;
-          org_id: string;
-          updated_at?: string;
-        };
-        Update: {
-          created_at?: string;
-          created_by?: string | null;
-          dha_id?: string;
-          doctor_key?: string;
-          id?: string;
-          org_id?: string;
-          updated_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "fin_report_doctor_map_created_by_fkey";
-            columns: ["created_by"];
-            isOneToOne: false;
-            referencedRelation: "profiles";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "fin_report_doctor_map_org_id_dha_id_fkey";
-            columns: ["org_id", "dha_id"];
-            isOneToOne: false;
-            referencedRelation: "fin_ref_doctors";
-            referencedColumns: ["org_id", "dha_id"];
-          },
-          {
-            foreignKeyName: "fin_report_doctor_map_org_id_fkey";
-            columns: ["org_id"];
-            isOneToOne: false;
-            referencedRelation: "orgs";
             referencedColumns: ["id"];
           },
         ];

@@ -90,12 +90,6 @@ export async function loadCapacityScope(
 }
 
 export type UnlinkedKey = { doctorKey: string; doctorName: string; revenue: number };
-export type DoctorKeyLink = {
-  doctorKey: string;
-  doctorName: string;
-  specialistId: string;
-  specialistName: string;
-};
 
 export type Capacity = {
   month: string;
@@ -104,9 +98,8 @@ export type Capacity = {
   report: CapacityReport;
   coverage: Coverage;
   hasRevenueData: boolean;
+  /** report doctors with revenue and no doctor link (linked on the Doctors page) */
   unlinked: UnlinkedKey[];
-  links: DoctorKeyLink[];
-  specialists: { id: string; name: string }[];
 };
 
 const need = <T>(r: { data: T | null; error: unknown }, what: string): T => {
@@ -123,64 +116,66 @@ export async function loadCapacity(
   const range = monthRange(month);
   const ids = scope.scopeIds.length > 0 ? scope.scopeIds : ["00000000-0000-0000-0000-000000000000"];
 
-  const [org, settings, specialistsR, linksR, hoursR, weeklyR, blocksR, roomsR, perfR] =
-    await Promise.all([
-      admin.from("orgs").select("settings").eq("id", orgId).single(),
+  const [org, settings, specialistsR, hoursR, weeklyR, blocksR, roomsR, perfR] = await Promise.all([
+    admin.from("orgs").select("settings").eq("id", orgId).single(),
+    admin
+      .from("fin_ref_finance_settings")
+      .select("room_open_hours_per_day")
+      .eq("org_id", orgId)
+      .maybeSingle(),
+    // report_doctor_key is the one doctor link (Doctors page, 20261205000100_doctor_identity.sql)
+    admin
+      .from("specialists")
+      .select("id, name, report_doctor_key")
+      .eq("org_id", orgId)
+      .order("name"),
+    fetchAll((lo, hi) =>
       admin
-        .from("fin_ref_finance_settings")
-        .select("room_open_hours_per_day")
+        .from("working_hours")
+        .select("id, specialist_id, location_id, weekday, start_min, end_min")
         .eq("org_id", orgId)
-        .maybeSingle(),
-      admin.from("specialists").select("id, name, active").eq("org_id", orgId).order("name"),
-      admin.from("fin_ref_doctor_keys").select("doctor_key, specialist_id").eq("org_id", orgId),
-      fetchAll((lo, hi) =>
-        admin
-          .from("working_hours")
-          .select("id, specialist_id, location_id, weekday, start_min, end_min")
-          .eq("org_id", orgId)
-          .in("location_id", ids)
-          .order("id")
-          .range(lo, hi),
-      ),
-      fetchAll((lo, hi) =>
-        admin
-          .from("specialist_recurring_blocks")
-          .select("id, specialist_id, location_id, weekday, start_min, end_min")
-          .eq("org_id", orgId)
-          .order("id")
-          .range(lo, hi),
-      ),
-      fetchAll((lo, hi) =>
-        admin
-          .from("time_blocks")
-          .select("id, specialist_id, location_id, starts_at, ends_at")
-          .eq("org_id", orgId)
-          .lt("starts_at", range.to)
-          .gt("ends_at", range.from)
-          .order("id")
-          .range(lo, hi),
-      ),
-      admin
-        .from("rooms")
-        .select("id, name, kind, location_id, monthly_cost")
-        .eq("org_id", orgId)
-        .eq("active", true)
         .in("location_id", ids)
-        .order("name"),
-      scope.revenueAvailable
-        ? admin.rpc("fin_doctor_performance_inputs", {
-            p_org_id: orgId,
-            p_month: month,
-            p_branch: scope.revenueBranch ?? undefined,
-            p_branches: scope.allowedCodes ?? undefined,
-          })
-        : Promise.resolve({ data: null, error: null }),
-    ]);
+        .order("id")
+        .range(lo, hi),
+    ),
+    fetchAll((lo, hi) =>
+      admin
+        .from("specialist_recurring_blocks")
+        .select("id, specialist_id, location_id, weekday, start_min, end_min")
+        .eq("org_id", orgId)
+        .order("id")
+        .range(lo, hi),
+    ),
+    fetchAll((lo, hi) =>
+      admin
+        .from("time_blocks")
+        .select("id, specialist_id, location_id, starts_at, ends_at")
+        .eq("org_id", orgId)
+        .lt("starts_at", range.to)
+        .gt("ends_at", range.from)
+        .order("id")
+        .range(lo, hi),
+    ),
+    admin
+      .from("rooms")
+      .select("id, name, kind, location_id, monthly_cost")
+      .eq("org_id", orgId)
+      .eq("active", true)
+      .in("location_id", ids)
+      .order("name"),
+    scope.revenueAvailable
+      ? admin.rpc("fin_doctor_performance_inputs", {
+          p_org_id: orgId,
+          p_month: month,
+          p_branch: scope.revenueBranch ?? undefined,
+          p_branches: scope.allowedCodes ?? undefined,
+        })
+      : Promise.resolve({ data: null, error: null }),
+  ]);
   if (perfR.error) throw new Error("Could not load the revenue figures.");
 
   const rooms = need(roomsR, "the rooms");
   const specialists = need(specialistsR, "the doctors");
-  const keyRows = need(linksR, "the doctor links");
   const hours = need(hoursR, "the working hours");
   const weekly = need(weeklyR, "the weekly blocks");
   const blocks = need(blocksR, "the time blocks");
@@ -190,16 +185,18 @@ export async function loadCapacity(
   const openHoursPerDay = Number(settings.data?.room_open_hours_per_day ?? DEFAULT_ROOM_OPEN_HOURS);
   const tz = new Map(scope.locations.map((l) => [l.id, l.timezone]));
 
-  // Revenue per doctor from the current report rows (summed over departments and over every key linked to the doctor).
+  // Revenue per doctor from the current report rows (summed over departments), through the doctor's report link.
   const perf = perfR.data ? parseDoctorPerformanceInputs(perfR.data) : null;
-  const keyLinks = new Map(keyRows.map((k) => [k.doctor_key, k.specialist_id]));
+  const keyLinks = new Map(
+    specialists.flatMap((s) => (s.report_doctor_key ? [[s.report_doctor_key, s.id] as const] : [])),
+  );
   const reportRows = (perf?.current.doctors ?? []).map((d) => ({
     doctorKey: d.doctorKey,
     doctorName: d.doctorName,
     revenue: d.revenue,
   }));
   const revenue = revenueByDoctor(reportRows, keyLinks);
-  const linked = new Set(keyRows.map((k) => k.specialist_id));
+  const linked = new Set(keyLinks.values());
 
   // Doctors in scope: working hours in the branches shown, or linked revenue there.
   const inScope = new Set<string>([
@@ -250,8 +247,6 @@ export async function loadCapacity(
     })),
   });
 
-  const nameOfKey = new Map(reportRows.map((r) => [r.doctorKey, r.doctorName]));
-  const nameOfSpecialist = new Map(specialists.map((s) => [s.id, s.name]));
   return {
     month,
     openDays: open.length,
@@ -260,14 +255,5 @@ export async function loadCapacity(
     coverage: coverageOf(month, perf?.coverage ?? []),
     hasRevenueData: reportRows.length > 0,
     unlinked: revenue.unlinked,
-    links: keyRows
-      .map((k) => ({
-        doctorKey: k.doctor_key,
-        doctorName: nameOfKey.get(k.doctor_key) ?? k.doctor_key,
-        specialistId: k.specialist_id,
-        specialistName: nameOfSpecialist.get(k.specialist_id) ?? "Doctor",
-      }))
-      .sort((a, b) => a.specialistName.localeCompare(b.specialistName)),
-    specialists: specialists.filter((s) => s.active).map((s) => ({ id: s.id, name: s.name })),
   };
 }

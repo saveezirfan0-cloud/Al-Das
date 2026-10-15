@@ -28,7 +28,7 @@ import {
  *     loaded"; neither is ever treated as zero pay. Their revenue is left out of every contribution and coverage says
  *     how much revenue is in;
  *   - a doctor's pay and charges are split over all that doctor's rows in the month (every branch, every department and
- *     every report spelling linked to the same DHA id) by revenue, so nothing is counted twice;
+ *     every department) by revenue, so nothing is counted twice;
  *   - everything is Provisional until Finance approves the month AND every doctor with revenue has pay loaded (and the
  *     report covers the whole month);
  *   - without finance.costs.compensation no individual pay is shown: the pay column and every doctor's contribution are
@@ -160,10 +160,8 @@ export type ContributionReport = {
   total: Level & ClinicLevels;
   provisional: boolean;
   reasons: string[];
-  /** report doctors in view with no DHA link, by revenue (for the mapping screen) */
+  /** report doctors in view with no DHA link, by revenue (they are linked on the Doctors page) */
   unlinked: { doctorKey: string; name: string; revenue: number }[];
-  /** report doctors in view with a DHA link (for the mapping screen) */
-  linked: { doctorKey: string; name: string; dhaId: string }[];
 };
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -402,14 +400,11 @@ export function buildContribution(
     );
 
   const unlinked = new Map<string, { doctorKey: string; name: string; revenue: number }>();
-  const linked = new Map<string, { doctorKey: string; name: string; dhaId: string }>();
   for (const d of doctors) {
-    if (d.dhaId) linked.set(d.doctorKey, { doctorKey: d.doctorKey, name: d.name, dhaId: d.dhaId });
-    else {
-      const u = unlinked.get(d.doctorKey) ?? { doctorKey: d.doctorKey, name: d.name, revenue: 0 };
-      u.revenue = round3(u.revenue + d.revenue);
-      unlinked.set(d.doctorKey, u);
-    }
+    if (d.dhaId) continue;
+    const u = unlinked.get(d.doctorKey) ?? { doctorKey: d.doctorKey, name: d.name, revenue: 0 };
+    u.revenue = round3(u.revenue + d.revenue);
+    unlinked.set(d.doctorKey, u);
   }
 
   return {
@@ -424,6 +419,5 @@ export function buildContribution(
     provisional: reasons.length > 0,
     reasons,
     unlinked: [...unlinked.values()].sort(byRevenue),
-    linked: [...linked.values()].sort((a, b) => a.name.localeCompare(b.name)),
   };
 }

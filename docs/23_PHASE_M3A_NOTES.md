@@ -11,7 +11,7 @@ second rota.
 |---|---|---|
 | Rooms register (branch, name, kind, monthly cost, in use) | Settings, Rooms (`/settings/rooms`) | `rooms.manage` (new; Admin via `*`, Manager preset) |
 | Capacity measures for a month | Finance, Capacity (`/finance/capacity`) | `finance.revenue.view` |
-| Unite doctor ↔ Pulse doctor links | Finance, Capacity, "Unite doctors and Pulse doctors" | `finance.reference.manage` |
+| Unite doctor ↔ Pulse doctor link | Doctors page, Finance link (`specialists.report_doctor_key`, `20261205000100_doctor_identity.sql`); Capacity lists the doctors not linked yet | `settings.manage` and `finance.reference.manage` |
 | Room opening hours setting | Finance, Capacity, "Room opening hours" | `finance.targets.manage` |
 
 **Tables.**
@@ -21,15 +21,13 @@ second rota.
   - `kind`: consultation / procedure / dental / other;
   - `monthly_cost numeric(12,2)`: null means unknown, and 0 is refused;
   - `active`.
-- `fin_ref_doctor_keys` (`org_id`, `doctor_key` → `specialist_id`; several keys may point at one doctor).
 - `fin_ref_finance_settings.room_open_hours_per_day` (default 10, 0 < h ≤ 24).
 
 **RLS.**
 - Select policies only. Every write is a server action that uses the service role after `requirePerm` / `can`, and is
   audited with `recordAudit`.
 - `rooms`: `rooms.manage` and `app.location_visible_to()` on the room's branch.
-- `fin_ref_doctor_keys`: `finance.revenue.view` or `finance.reference.manage`.
-- Both tables are in the security-guard sweep (`M3_TABLES`, `seedM3Rows`).
+- `rooms` is in the security-guard sweep (`M3_TABLES`, `seedM3Rows`).
 
 Booking is untouched: `app.slot_conflict` and `slotFits` never read rooms.
 
@@ -92,8 +90,10 @@ Pulse sees only bookings made in Pulse until Unite appointments flow, so any boo
 
 ## Decisions taken here (for review)
 
-1. **Doctor link as a mapping table** (`fin_ref_doctor_keys`), not `specialists.report_doctor_key`. Unite spells one
-   doctor several ways over time, so several keys may point at one doctor. The `specialists` rows stay untouched.
+1. **One doctor link.** Revenue meets hours through `specialists.report_doctor_key`, the link made on the Doctors page
+   (main's doctor identity, docs/34 Phase C). This slice first had its own mapping table (`fin_ref_doctor_keys`); it was
+   dropped before release so a doctor is linked in one place (OQ-160). Spellings that differ only in case or
+   punctuation already share one report key (`normaliseDoctorKey`).
 2. **Room cost is entered on the rooms page** by whoever holds `rooms.manage` (Admin, Manager), who therefore sees it.
    On Finance, Capacity the cost column needs a cost or profit permission.
 3. **A room's branch is fixed after creation** in the rooms page (delete and re-add to move it), so later shift links
@@ -103,8 +103,7 @@ Pulse sees only bookings made in Pulse until Unite appointments flow, so any boo
 
 - Real opening hours per branch and weekday (would replace `room_open_hours_per_day`). Owner: Operations.
 - Cost per hour, once room hours exist: per rota hour (used) or per open hour? Owner: Finance Manager.
-- `fin_ref_doctor_keys` vs the planned `specialists` ↔ `fin_ref_doctors.dha_id` link (docs/40 §2). When the DHA link
-  lands, revenue could be keyed by DHA id instead of the report's doctor name.
+- One doctor key: answered by the Doctors page link (OQ-160).
 
 ## Not done in this slice
 

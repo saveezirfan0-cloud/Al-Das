@@ -1,5 +1,6 @@
 /**
- * M3 rooms and capacity (docs/23_PHASE_M3A_NOTES.md): rooms and fin_ref_doctor_keys.
+ * M3 rooms and capacity (docs/23_PHASE_M3A_NOTES.md): rooms. Doctors reach the Unite report through the one doctor link
+ * (specialists.report_doctor_key, tests/db/doctor-identity.test.ts).
  *   - RLS: org-scoped, permission-gated (rooms.manage / finance.revenue.view), branch-bound for rooms, no browser writes
  *   - rooms: name unique per branch, an unknown cost is null (0 refused), a branch of another org refused
  *   - doctor-key links: a doctor of another org refused
@@ -84,14 +85,6 @@ describe.skipIf(!TEST_DATABASE_URL)("rooms and capacity", () => {
       id.away = await one("insert into public.locations (org_id, name) values ($1, 'Away')", [
         otherOrg,
       ]);
-      id.alpha = await one(
-        "insert into public.specialists (org_id, name) values ($1, 'Dr Alpha Demo')",
-        [org],
-      );
-      id.foreignDoc = await one(
-        "insert into public.specialists (org_id, name) values ($1, 'Dr Foreign Demo')",
-        [otherOrg],
-      );
       id.r1 = await one(
         "insert into public.rooms (org_id, location_id, name, kind, monthly_cost) values ($1, $2, 'Room 1', 'consultation', 6000)",
         [org, id.north],
@@ -104,10 +97,6 @@ describe.skipIf(!TEST_DATABASE_URL)("rooms and capacity", () => {
         "insert into public.rooms (org_id, location_id, name) values ($1, $2, 'Away room')",
         [otherOrg, id.away],
       );
-      await c.query(
-        "insert into public.fin_ref_doctor_keys (org_id, doctor_key, specialist_id) values ($1, 'alpha demo', $2)",
-        [org, id.alpha],
-      );
     });
   });
 
@@ -119,7 +108,6 @@ describe.skipIf(!TEST_DATABASE_URL)("rooms and capacity", () => {
   const count = (user: string, sql: string, p: unknown[] = [org]) =>
     asUser(c, user, async () => Number((await c.query<{ n: string }>(sql, p)).rows[0].n));
   const ROOMS = "select count(*)::text as n from public.rooms where org_id = $1";
-  const KEYS = "select count(*)::text as n from public.fin_ref_doctor_keys where org_id = $1";
 
   describe("row level security", () => {
     it("rooms are read with rooms.manage only, never across orgs", async () => {
@@ -129,14 +117,6 @@ describe.skipIf(!TEST_DATABASE_URL)("rooms and capacity", () => {
       expect(await count(agent, ROOMS)).toBe(0);
       expect(await count(stranger, ROOMS)).toBe(0);
       expect(await count(stranger, ROOMS, [otherOrg])).toBe(1);
-    });
-
-    it("the doctor-key links are read with finance.revenue.view, not by others or other orgs", async () => {
-      expect(await count(financeUser, KEYS)).toBe(1);
-      expect(await count(owner, KEYS)).toBe(1);
-      expect(await count(roomsUser, KEYS)).toBe(0);
-      expect(await count(agent, KEYS)).toBe(0);
-      expect(await count(stranger, KEYS)).toBe(0);
     });
 
     it("a member limited to one branch sees only that branch's rooms", async () => {
@@ -171,11 +151,6 @@ describe.skipIf(!TEST_DATABASE_URL)("rooms and capacity", () => {
         ],
         ["update public.rooms set monthly_cost = 1 where org_id = $1", [org]],
         ["delete from public.rooms where org_id = $1", [org]],
-        [
-          "insert into public.fin_ref_doctor_keys (org_id, doctor_key, specialist_id) values ($1, 'x', $2)",
-          [org, id.alpha],
-        ],
-        ["delete from public.fin_ref_doctor_keys where org_id = $1", [org]],
       ] as [string, unknown[]][]) {
         const res = await asUser(c, owner, () => c.query(sql, params)).catch((e: Error) => e);
         if (res instanceof Error)
@@ -183,7 +158,6 @@ describe.skipIf(!TEST_DATABASE_URL)("rooms and capacity", () => {
         else expect(res.rowCount, sql).toBe(0);
       }
       expect(await count(owner, ROOMS)).toBe(2);
-      expect(await count(owner, KEYS)).toBe(1);
       const cost = await asServiceRole(c, () =>
         c.query<{ monthly_cost: string }>("select monthly_cost from public.rooms where id = $1", [
           id.r1,
@@ -230,19 +204,6 @@ describe.skipIf(!TEST_DATABASE_URL)("rooms and capacity", () => {
           c.query(
             "insert into public.rooms (org_id, location_id, name) values ($1, $2, 'Wrong org')",
             [org, id.away],
-          ),
-        ).rejects.toThrow(/does not belong/);
-      });
-    });
-  });
-
-  describe("doctor-key links", () => {
-    it("refuse a doctor of another org", async () => {
-      await asServiceRole(c, async () => {
-        await expect(
-          c.query(
-            "insert into public.fin_ref_doctor_keys (org_id, doctor_key, specialist_id) values ($1, 'foreign', $2)",
-            [org, id.foreignDoc],
           ),
         ).rejects.toThrow(/does not belong/);
       });

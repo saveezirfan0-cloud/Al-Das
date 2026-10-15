@@ -26,7 +26,7 @@ import {
   type DoctorLine,
   type Level,
 } from "@/lib/finance/contribution";
-import { loadContribution, loadRefDoctors } from "@/lib/finance/contribution-server";
+import { loadContribution } from "@/lib/finance/contribution-server";
 import { chosenBranch, monthParam } from "@/lib/finance/doctor-performance";
 import { latestReportMonth, loadPerfScope } from "@/lib/finance/doctor-performance-server";
 import { monthTitle } from "@/lib/finance/flash-xlsx";
@@ -34,8 +34,6 @@ import { money } from "@/lib/finance/format";
 import { recordAccess } from "@/lib/security/access-log";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { cn } from "@/lib/utils";
-
-import { LinkDoctor, UnlinkDoctor } from "./doctor-links";
 
 export const metadata = { title: "Contribution" };
 export const dynamic = "force-dynamic";
@@ -175,7 +173,8 @@ export default async function ContributionPage({
 }) {
   const member = await requirePerm("finance.profit.view");
   const canSeePay = can(member, "finance.costs.compensation");
-  const canLink = can(member, "finance.costs.manage");
+  // the one doctor link lives on the Doctors page (settings.manage AND finance.reference.manage, docs/34 Phase C)
+  const canLink = can(member, "settings.manage") && can(member, "finance.reference.manage");
   const sp = await searchParams;
   const thisMonth = `${todayIn(member.org.timezone).slice(0, 7)}-01`;
 
@@ -193,8 +192,6 @@ export default async function ContributionPage({
     canSeePay,
     branchNames: Object.fromEntries(scope.branches.map((b) => [b.code, b.name])),
   });
-  const refDoctors =
-    canLink && r.unlinked.length > 0 ? await loadRefDoctors(admin, member.orgId) : [];
   await recordAccess(admin, member, { entity: "finance_invoice", action: "list" });
 
   const title = monthTitle(month);
@@ -370,60 +367,39 @@ export default async function ContributionPage({
             </CardContent>
           </Card>
 
-          {canLink && (
+          {r.unlinked.length > 0 && (
             <Card id="doctor-links">
               <CardHeader>
-                <CardTitle className="text-base">Link report doctors to DHA ids</CardTitle>
+                <CardTitle className="text-base">Doctors not linked yet</CardTitle>
                 <CardDescription>
-                  The Unite report names doctors; pay and charges are loaded by DHA licence id. Link
-                  each report doctor once and their loaded pay and charges count from then on, for
-                  every month. Changes are recorded in the audit log.
+                  The Unite report names doctors; pay and charges are loaded by DHA licence id. Each
+                  doctor is linked once, on the Doctors page (Finance link), and their loaded pay
+                  and charges then count here for every month.
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-4">
-                {r.unlinked.length === 0 ? (
-                  <p className="text-sm">Every doctor in this view is linked.</p>
-                ) : refDoctors.length === 0 ? (
-                  <p className="text-sm">
-                    There are no doctors in the reference list yet, so nothing can be linked.
-                  </p>
+                <ul className="flex flex-col divide-y">
+                  {r.unlinked.map((u) => (
+                    <li
+                      key={u.doctorKey}
+                      className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm"
+                    >
+                      <span>{u.name}</span>
+                      <span className="text-muted-foreground text-xs">
+                        AED {money(u.revenue)} in {title}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                {canLink ? (
+                  <Button asChild variant="outline" size="sm" className="self-start">
+                    <Link href="/doctors">Link them on the Doctors page</Link>
+                  </Button>
                 ) : (
-                  <ul className="flex flex-col divide-y">
-                    {r.unlinked.map((u) => (
-                      <li
-                        key={u.doctorKey}
-                        className="flex flex-wrap items-center justify-between gap-2 py-2"
-                      >
-                        <span className="text-sm">
-                          {u.name}
-                          <span className="text-muted-foreground block text-xs">
-                            AED {money(u.revenue)} in {title}
-                          </span>
-                        </span>
-                        <LinkDoctor doctorKey={u.doctorKey} name={u.name} doctors={refDoctors} />
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                {r.linked.length > 0 && (
-                  <details>
-                    <summary className="cursor-pointer text-sm font-medium">
-                      Linked doctors ({r.linked.length})
-                    </summary>
-                    <ul className="mt-2 flex flex-col divide-y">
-                      {r.linked.map((l) => (
-                        <li
-                          key={l.doctorKey}
-                          className="flex flex-wrap items-center justify-between gap-2 py-1.5 text-sm"
-                        >
-                          <span>
-                            {l.name} <span className="text-muted-foreground">({l.dhaId})</span>
-                          </span>
-                          <UnlinkDoctor doctorKey={l.doctorKey} name={l.name} />
-                        </li>
-                      ))}
-                    </ul>
-                  </details>
+                  <p className="text-muted-foreground text-sm">
+                    Someone with Settings and Finance reference rights links them on the Doctors
+                    page.
+                  </p>
                 )}
               </CardContent>
             </Card>
