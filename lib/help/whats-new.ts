@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-12-08-management-reports",
+    date: "2026-10-14",
+    title: "Collections, insurance billing, contribution, capacity and recruitment",
+    body: "Five new Finance pages build on the uploaded Unite collection report. Collections and data quality shows how each month was paid and flags rows worth checking. Insurance billed vs claimed lists invoices billed to an insurer that Diligence shows were never submitted. Contribution shows what each doctor, department and clinic contributes after the pay and overheads Finance has loaded, marked Provisional until the month is approved. Capacity shows each doctor's available hours and revenue per hour, with rooms kept under Settings, Rooms. The Recruitment calculator tests whether a candidate doctor would pay for themselves against the clinic's own doctors. Finance is also told, once per alert, when the report is late, revenue is behind target, or doctors fall below the revenue-per-patient band.",
+  },
+  {
     id: "2026-12-06-menu-keyboard-names",
     date: "2026-10-14",
     title: "The menu works from the keyboard, and pages keep one name",

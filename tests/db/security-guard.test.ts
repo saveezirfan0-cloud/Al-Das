@@ -16,6 +16,8 @@ import {
   connect,
   createAuthUser,
   createOrg,
+  M4A_TABLES,
+  M3_TABLES,
   PHASE13_TABLES,
   PHASE14_TABLES,
   PHASE15_TABLES,
@@ -55,6 +57,7 @@ import {
   PHASE_F_TABLES,
   PHASE_G_TABLES,
   resetDb,
+  seedM3Rows,
   seedPhase13Rows,
   seedPhase14Rows,
   seedPhase16Rows,
@@ -80,6 +83,7 @@ import {
   seedSf20gRows,
   seedSf20iRows,
   seedPortalTagRows,
+  seedM4aRows,
   seedOrganisationRows,
   seedPhaseFRows,
   seedPhaseGRows,
@@ -128,6 +132,8 @@ const SERVICE_ONLY = new Set([
   // after can('finance.revenue.import') or can('finance.revenue.view')) and the fin_report_* functions touch them
   "fin_report_uploads",
   "fin_report_visits",
+  // M1 management alerts: which (rule, scope, period) was announced; only the daily job (fin_mgmt_alert_claim) touches it
+  "fin_mgmt_alert_state",
   // Finance F2 / Phase 19: provider credentials (config_enc, AES-256-GCM) and token cache; only server code after can('integrations.manage') reads or writes them
   "integration_accounts",
   // Phase 19: idempotency keys of inbound provider webhooks (provider event ids and a short outcome word); claimed by the webhook route, never read by a browser
@@ -154,7 +160,11 @@ const SERVICE_ONLY = new Set([
 
 /** SECURITY DEFINER functions in `public` that signed-in users may call directly (each uses auth.uid() inside). */
 // presence_heartbeat (Phase 20c): the browser shell's own heartbeat; it only touches the caller's own membership.
-const AUTHENTICATED_RPCS = new Set(["mark_all_notifications_read", "presence_heartbeat", "set_presence"]);
+const AUTHENTICATED_RPCS = new Set([
+  "mark_all_notifications_read",
+  "presence_heartbeat",
+  "set_presence",
+]);
 
 /**
  * Phase 15 SECURITY DEFINER functions that are service-role only (they act across a whole org after the
@@ -761,9 +771,21 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 22 service-role functions", () => {
                 has_function_privilege('service_role', p.oid, 'execute') as svc
          from pg_proc p join pg_namespace n on n.oid = p.pronamespace
          where n.nspname = 'public' and p.proname = any ($1)`,
-        [[...PHASE22_SERVICE_FUNCTIONS, ...PHASE22E_SERVICE_FUNCTIONS, ...PHASE22F_SERVICE_FUNCTIONS]],
+        [
+          [
+            ...PHASE22_SERVICE_FUNCTIONS,
+            ...PHASE22E_SERVICE_FUNCTIONS,
+            ...PHASE22F_SERVICE_FUNCTIONS,
+          ],
+        ],
       );
-      expect(rows.map((r) => r.name).sort()).toEqual([...PHASE22_SERVICE_FUNCTIONS, ...PHASE22E_SERVICE_FUNCTIONS, ...PHASE22F_SERVICE_FUNCTIONS].sort());
+      expect(rows.map((r) => r.name).sort()).toEqual(
+        [
+          ...PHASE22_SERVICE_FUNCTIONS,
+          ...PHASE22E_SERVICE_FUNCTIONS,
+          ...PHASE22F_SERVICE_FUNCTIONS,
+        ].sort(),
+      );
       for (const r of rows)
         expect({ name: r.name, anon: r.anon, auth: r.auth, svc: r.svc }).toEqual({
           name: r.name,
@@ -1071,6 +1093,10 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
     await seedPortalTagRows(c, orgA);
     // Soft delete (docs/35): one item in the bin, so the service-only read check is not vacuous.
     await seedSoftDeleteRows(c, orgA, alice);
+    // M4 (recruitment calculator): a saved scenario and the seeded calendar.
+    await seedM4aRows(c, orgA);
+    // M3 rooms and capacity likewise.
+    await seedM3Rows(c, orgA);
     // Phase C (organisation): a staff member, a duty and a shift.
     await seedOrganisationRows(c, orgA);
     // Phase F (tasks v2): a task with a checklist line, a comment and a file, and a daily checklist template.
@@ -1089,6 +1115,8 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
 
   it("sweeps every Phase 13 to 22 table (a new table must be added to PHASE13_TABLES ... PHASE22_TABLES and seeded)", () => {
     for (const t of [
+      ...M4A_TABLES,
+      ...M3_TABLES,
       ...SF20G_TABLES,
       ...SF20E_TABLES,
       ...SF20I_TABLES,
@@ -1125,6 +1153,8 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
   it("really holds org A rows in the Phase 13 to 21 tables, visible to org A's admin (control for the leak sweep)", async () => {
     await asUser(c, alice, async () => {
       for (const t of [
+        ...M4A_TABLES,
+        ...M3_TABLES,
         ...SF20G_TABLES,
         ...SF20E_TABLES,
         ...SF20I_TABLES,

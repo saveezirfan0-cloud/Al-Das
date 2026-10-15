@@ -19,7 +19,13 @@ import { FINANCE_NAV } from "@/lib/finance/nav";
  * publish them from its layout with `<PublishNavBadges>` (components/shell/nav-badges.tsx).
  */
 /** One page of a tab group: sibling pages shown as tabs under ONE menu entry (Phase D). */
-export type ModuleTab = { href: string; label: string; permissions: readonly string[] };
+export type ModuleTab = {
+  href: string;
+  label: string;
+  permissions: readonly string[];
+  /** When set, decides visibility instead of "any of `permissions`" (a page that needs two keys). */
+  allow?: (member: MemberLike) => boolean;
+};
 
 export type ModuleEntry = {
   href: string;

@@ -203,6 +203,36 @@ export const NOTIFICATION_EVENTS = [
     permission: "finance.vouchers.prepare",
   },
   {
+    key: "finance.report_late",
+    group: "Work",
+    label: "The Unite collection report has not been uploaded",
+    description:
+      "No committed Unite collection report covers any of the last few days (the number is set under Finance, Targets and report lines). Push and e-mail say only that the report is late.",
+    channels: ALL,
+    defaults: { in_app: true, email: false, push: false },
+    permission: "finance.revenue.import",
+  },
+  {
+    key: "finance.revenue_behind",
+    group: "Work",
+    label: "Month-to-date revenue is behind target",
+    description:
+      "Revenue for the total or a branch line has stayed below the set share of its target for several covered days. Push and e-mail say only that revenue is behind; open the flash report for the figures.",
+    channels: ALL,
+    defaults: { in_app: true, email: false, push: false },
+    permission: "finance.flash.view",
+  },
+  {
+    key: "finance.band_below",
+    group: "Work",
+    label: "Doctors were below the revenue-per-patient band last month",
+    description:
+      "Once last month is fully covered by the Unite report, how many doctors were in the Below Target band. Once a month; push and e-mail say only that the report is ready to look at.",
+    channels: ALL,
+    defaults: { in_app: true, email: false, push: false },
+    permission: "finance.revenue.view",
+  },
+  {
     key: "accounting.runs_prepared",
     group: "Work",
     label: "Month-end depreciation and schedule runs are ready",

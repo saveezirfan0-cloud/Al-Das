@@ -38,7 +38,7 @@ export const GUIDES: readonly Guide[] = [
     pages: ["/inbox"],
     purpose: "Answer patients on WhatsApp together, without two people replying to the same chat.",
     steps: [
-      "Take a conversation with the Take button, or wait for it to be assigned to you. \"waiting 12 m\" on a row is how long the patient has waited for a reply (amber, then red). The tick-box button at the top selects several chats to assign or close together.",
+      'Take a conversation with the Take button, or wait for it to be assigned to you. "waiting 12 m" on a row is how long the patient has waited for a reply (amber, then red). The tick-box button at the top selects several chats to assign or close together.',
       "Type / in the message box to use a quick reply. Names and appointment details fill in for you.",
       "If the 24-hour window has closed, pick a template instead of typing a message.",
       "Use the Patient tab on the right to see the next appointment and any flags without leaving the chat. Task at the top makes a follow-up task linked to the patient and this chat; Snooze hides the chat until a time you pick (it comes back sooner if the patient writes).",
@@ -49,7 +49,7 @@ export const GUIDES: readonly Guide[] = [
       "Never copy patient details into another chat or email. Forwarding a patient's message to someone else shares it with them: forward only what that person should see.",
       "An internal note is not sent to the patient, but colleagues can read it.",
       "Forwards, contact cards and products only go out within 24 hours of the patient's last message.",
-      "\"Someone is replying\" above the message box means a colleague is typing in the same chat: check before you send. Message text under the search box finds words in chats you can open.",
+      '"Someone is replying" above the message box means a colleague is typing in the same chat: check before you send. Message text under the search box finds words in chats you can open.',
     ],
   },
   {
@@ -380,6 +380,103 @@ export const GUIDES: readonly Guide[] = [
       "Change % is against the previous month. It is blank when that month had no revenue.",
       "Figures cover only the dates of committed uploads; a warning shows when a month is only partly covered.",
       "These are activity measures, not a judgement of clinical quality.",
+    ],
+  },
+  {
+    id: "finance-insurance-billing",
+    title: "Insurance billed vs claimed",
+    pages: ["/finance/insurance-billing"],
+    purpose:
+      "Compares what the Unite collection report billed to insurers with what Diligence shows was submitted, by invoice number, for one month, so claims that were never sent are found before they are lost.",
+    steps: [
+      "Pick a month (the latest month with Unite report data opens by default) and, if you work in more than one, a branch.",
+      "Billed, not submitted lists invoices billed to an insurer with no claim in Diligence once the grace days have passed, oldest first. Work this list first.",
+      "Billed and submitted amounts differ lists invoice numbers where the two amounts differ by more than the tolerance.",
+      "Submitted, not in this month's report and Ambiguous invoice numbers are for checking in Unite; nothing there is paired automatically.",
+      "Download Excel gives every row, including the matched invoices within the tolerance. Finance sets the tolerance and grace days under Targets and report lines.",
+    ],
+    watchOut: [
+      "It is only as current as the latest Unite report and Diligence uploads.",
+      "Diligence has no branch, so the submitted-but-not-in-the-report list shows only for every branch with no branch chosen.",
+      "These are review signals, not proof: check the invoice in Unite and the claim in Diligence before acting.",
+    ],
+  },
+  {
+    id: "finance-contribution",
+    title: "Contribution",
+    pages: ["/finance/contribution"],
+    purpose:
+      "What each doctor, department and clinic contributes in a month: Unite report revenue less the doctor pay and charges Finance has loaded, less the branch's own overheads, then less the shared overheads allocated to it.",
+    steps: [
+      "Pick a month (the latest month with report data opens by default) and, if you work in more than one, a branch.",
+      "Each clinic lists its departments and doctors, then the branch overheads, the clinic contribution (L5), the shared overhead allocated and the figure after allocation (L6).",
+      "Doctors not linked yet are listed at the bottom. Each doctor is linked once, on the Doctors page (Finance link: DHA id and Unite report name); their loaded pay and charges then count in every month.",
+      "Download Excel gives the same figures as plain values, with a Definitions sheet.",
+    ],
+    watchOut: [
+      "Pay is never calculated here: only the compensation Finance loaded under Costs counts. A doctor shown as Pay not linked or Pay not loaded is left out of contribution, never counted as zero pay; Pay coverage shows how much revenue is in.",
+      "Figures stay Provisional until Finance approves the month's costs and every doctor with revenue has pay loaded.",
+      "Without the doctor compensation permission you see no individual pay, and a total that would give one doctor's pay away is withheld.",
+      "Department costs and expected revenue after denials are not included yet.",
+    ],
+  },
+  {
+    id: "finance-recruitment",
+    title: "Recruitment calculator",
+    pages: ["/finance/recruitment"],
+    purpose:
+      "Checks whether a candidate doctor would pay for themselves: their claimed revenue, reduced by the conservative factor, run through consumables, gateway, their pay under the chosen contract type and the indirect costs, then compared with the clinic's own doctors. Everything on the page is a scenario.",
+    steps: [
+      "Choose the department and the contract type, then enter the salary and/or share the contract would give.",
+      "Enter the claimed monthly revenue and any revenue from the candidate's equipment or nurse. The conservative factor, consumables % and gateway % start from the clinic's defaults (Targets and report lines).",
+      "Enter the indirect costs with the months each covers (12 for a yearly licence); they are spread evenly.",
+      "Read the result: profit, viability, breakeven revenue, safety margin, the band against the department's median and 75th percentile, and the Ramadan, Eid and holiday dates in the first three months.",
+      "Save it with a role label as the title, open it again later, or download it as Excel.",
+    ],
+    watchOut: [
+      "Never type a candidate's name; use a role label.",
+      "A salary is a fixed cost, so breakeven is the revenue that covers the salary and the indirect costs. With salary-backed revenue sharing the doctor gets the higher of the salary and the share, never both.",
+      "When a department has too few doctor-months, or only one doctor, the clinic-wide figures are used and the page says so.",
+      "No seasonal factor is applied: the history is too short. Ramadan and Eid dates are approximate until announced; correct them in the calendar at the bottom of the page.",
+      "Needs the Profitability and Doctor compensation permissions; saving needs Maintain service costs.",
+    ],
+  },
+  {
+    id: "finance-collections",
+    title: "Collections and data quality",
+    pages: ["/finance/collections"],
+    purpose:
+      "How the month's billing was paid (cash, card, bank transfer, gateway, other), patient share against insurance claims, consumption and credit, by day, branch, doctor and invoice type, with data-quality signals, built from the Unite collection report.",
+    steps: [
+      "Pick a month (the latest month with report data opens by default) and, if you work in more than one, a branch.",
+      "Read the day, branch, invoice type and doctor tables; Total collected is the sum of the five payment columns.",
+      "Check the reconciliation line: net billing against collected, claims, shares, credit and consumption. The difference is shown for review.",
+      "Work through the data-quality signals: each gives a count, the net involved and what to do. Map unknown clinics under Finance, Reference data.",
+      "Download Excel gives the same figures as plain values, with a Definitions sheet.",
+    ],
+    watchOut: [
+      "Signals are prompts to check Unite, never proof of an error; a row can appear in more than one.",
+      "The late invoice days are set under Targets and report lines (Finance only).",
+      "Rows whose clinic is not mapped to a branch are shown only to people who see every branch.",
+      "Figures cover only the dates of committed uploads; a warning shows when the month is only partly covered.",
+    ],
+  },
+  {
+    id: "finance-capacity",
+    title: "Capacity and rooms",
+    pages: ["/finance/capacity", "/settings/rooms"],
+    purpose:
+      "How much clinic time each doctor had in a month and what it earned (available hours and revenue per available hour), and the rooms of each branch.",
+    steps: [
+      "Under Settings, Rooms add each branch's rooms: name, kind, and the monthly cost if known.",
+      "On Finance, Capacity pick a month and, if you work in more than one, a branch.",
+      "Doctors whose Unite name is not linked yet are listed at the bottom; link each one once on the Doctors page (Finance link), so their revenue meets their hours.",
+      "Available hours are working hours on open days minus weekly blocks and leave.",
+    ],
+    watchOut: [
+      "Booked against available time needs the Unite appointment feed; until then it shows Needs Unite appointments.",
+      "Room occupancy and revenue per room-hour need the staff rota linked to the rooms; until then they show Needs the staff rota.",
+      "An unknown room cost stays unknown (never 0), and only people who may see costs see it here.",
     ],
   },
   {

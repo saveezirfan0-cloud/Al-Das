@@ -186,7 +186,7 @@ export type HubContext = {
 };
 
 /** What a card takes from the picker (shown on the card, so nobody expects a filter a page does not have). */
-export type HubUse = "period" | "day" | "as_of" | "branch" | "compare";
+export type HubUse = "period" | "month" | "day" | "as_of" | "branch" | "compare";
 
 type Query = (c: HubContext) => Record<string, string | null | undefined>;
 
@@ -221,6 +221,26 @@ const PAYABLES = [
 ] as const;
 
 const months: Query = (c) => ({ from: c.range.fromMonth, to: c.range.toMonth });
+/** Unite collection report pages (Phase 23) show one month: the period's last. */
+const reportMonth: Query = (c) => ({ month: c.range.toMonth, branch: c.picker.branch });
+const reportCard = (
+  key: string,
+  group: HubGroup,
+  title: string,
+  description: string,
+  page: string,
+  permission: string,
+): ReportCard => ({
+  key,
+  group,
+  title,
+  description,
+  href: `/finance/${page}`,
+  permissions: [permission],
+  uses: ["month", "branch"],
+  query: reportMonth,
+  exports: [{ label: "Excel", href: `/api/finance/${page}`, query: reportMonth }],
+});
 /** The flash shows one day: the period's last day, never after yesterday (today is not finished). */
 const flashDay = (c: HubContext) => (c.to < c.yesterday ? c.to : c.yesterday);
 const dates: Query = (c) => ({ from: c.range.from, to: c.to });
@@ -347,6 +367,41 @@ export const REPORT_CARDS: readonly ReportCard[] = [
     uses: ["period"],
     query: months,
   },
+  reportCard(
+    "doctor-performance",
+    "Management",
+    "Doctor performance",
+    "Each doctor and department against the previous month: revenue, patients and revenue per patient against target.",
+    "doctor-performance",
+    "finance.revenue.view",
+  ),
+  reportCard(
+    "collections",
+    "Management",
+    "Collections and data quality",
+    "How the month was paid (cash, card, transfer, insurance), with data-quality signals to check in Unite.",
+    "collections",
+    "finance.revenue.view",
+  ),
+  reportCard(
+    "contribution",
+    "Management",
+    "Contribution",
+    "What each doctor, department and clinic contributes after loaded pay and overheads (provisional until approved).",
+    "contribution",
+    "finance.profit.view",
+  ),
+  {
+    key: "capacity",
+    group: "Management",
+    title: "Capacity",
+    description:
+      "Each doctor's available hours and revenue per available hour, and the rooms of each branch.",
+    href: "/finance/capacity",
+    permissions: ["finance.revenue.view"],
+    uses: ["month"],
+    query: (c) => ({ month: c.range.toMonth }),
+  },
   // Accounting
   {
     key: "trial-balance",
@@ -432,6 +487,14 @@ export const REPORT_CARDS: readonly ReportCard[] = [
     ],
   },
   // Receivables and RCM
+  reportCard(
+    "insurance-billing",
+    "Receivables and RCM",
+    "Insurance billed vs claimed",
+    "Invoices billed to insurers in the Unite report against what Diligence shows was submitted.",
+    "insurance-billing",
+    "finance.claims.view",
+  ),
   {
     key: "insurance-ageing",
     group: "Receivables and RCM",

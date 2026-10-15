@@ -207,11 +207,32 @@ describe("Finance navigation", () => {
     }
   });
 
+  it("the recruitment calculator needs BOTH profit and compensation: Finance yes; the CEO and Cost / Payroll no", () => {
+    for (const r of ["Finance", "Finance Manager"])
+      expect(hrefs(member(role(r))), r).toContain("/finance/recruitment");
+    for (const r of ["CEO", "Cost / Payroll", "Medical Director", "Billing"])
+      expect(hrefs(member(role(r))), r).not.toContain("/finance/recruitment");
+    expect(hrefs(member(["finance.profit.view"]))).not.toContain("/finance/recruitment");
+    expect(hrefs(member(["finance.costs.compensation"]))).not.toContain("/finance/recruitment");
+    expect(hrefs(member(["finance.profit.view", "finance.costs.compensation"]))).toContain(
+      "/finance/recruitment",
+    );
+  });
+
+  it("insurance billed vs claimed needs claim access: Insurance, Finance and the CEO, not Billing or the Medical Director", () => {
+    for (const r of ["Insurance", "Finance", "CEO"])
+      expect(hrefs(member(role(r))), r).toContain("/finance/insurance-billing");
+    for (const r of ["Billing", "Medical Director", "Cost / Payroll"])
+      expect(hrefs(member(role(r))), r).not.toContain("/finance/insurance-billing");
+  });
+
   it("the Medical Director sees revenue and scorecards only", () => {
     expect(hrefs(member(role("Medical Director"))).sort()).toEqual(
       [
         "/finance/analytics",
         "/finance/branches",
+        "/finance/capacity", // M3: follows finance.revenue.view; room costs stay hidden (no cost permission)
+        "/finance/collections", // Phase 23D: follows finance.revenue.view
         "/finance/doctor-performance", // Phase 23B: follows finance.revenue.view (docs/39 §4)
         "/finance/doctors",
         "/finance/flash",
@@ -315,12 +336,14 @@ describe("Finance navigation", () => {
     // CEO sees profitability but not the cost inputs
     const ceo = hrefs(member(role("CEO")));
     expect(ceo).toContain("/finance/profitability");
+    expect(ceo).toContain("/finance/contribution"); // M2A: follows finance.profit.view
     expect(ceo).not.toContain("/finance/costs");
     // Billing and the Medical Director never see cost or profit pages
     for (const name of ["Billing", "Medical Director", "Insurance"]) {
       const h = hrefs(member(role(name)));
       expect(h, name).not.toContain("/finance/costs");
       expect(h, name).not.toContain("/finance/profitability");
+      expect(h, name).not.toContain("/finance/contribution");
     }
     // Finance sees all of it
     const fin = hrefs(member(role("Finance")));
@@ -364,13 +387,20 @@ describe("Finance navigation", () => {
       "Month-end",
     ]);
     // nothing was dropped: the menu, the tabs and the setup pages still reach every page the old menu listed (45), plus
-    // Phase 23's Doctor performance and Phase G's Report e-mails (a setup page)
-    expect(financePagesFor(member(["*"]))).toHaveLength(47);
+    // Phase 23's Doctor performance and Phase G's Report e-mails (a setup page), and Phase 23 sprint 2's Collections,
+    // Contribution, Capacity, Recruitment calculator and Billed vs claimed (tabs)
+    expect(financePagesFor(member(["*"]))).toHaveLength(52);
     expect(FINANCE_SETUP_PAGES.map((p) => p.href)).toContain("/finance/report-emails");
     // the tab strip lists only the tabs a member may open, and only when there are two or more
     const md = financeTabGroupsFor(member(role("Medical Director")));
-    expect(md.map((g) => g.label)).toEqual(["Performance"]);
+    expect(md.map((g) => g.label)).toEqual(["Performance", "Doctor and clinic performance"]);
     expect(md[0].tabs.map((t) => t.href)).not.toContain("/finance/profitability");
+    // no profit or pay pages for the Medical Director in the Unite report group either
+    expect(md[1].tabs.map((t) => t.href)).toEqual([
+      "/finance/doctor-performance",
+      "/finance/collections",
+      "/finance/capacity",
+    ]);
     expect(financeTabGroupsFor(member(["finance.forecast.view"]))).toEqual([]);
     // a tab group's badge belongs to its first tab
     expect(badgesNeeded(member(["finance.close.tasks"]))).toEqual([]);

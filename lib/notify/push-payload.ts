@@ -87,6 +87,18 @@ const GENERIC: Record<string, { title: string; body: string }> = {
     title: "Voucher rejected",
     body: "A payment voucher you prepared was rejected. Open Pulse to read the remarks.",
   },
+  "finance.report_late": {
+    title: "Unite report late",
+    body: "The Unite collection report has not been uploaded for a few days. Open Pulse to add it.",
+  },
+  "finance.revenue_behind": {
+    title: "Revenue behind target",
+    body: "Month-to-date revenue is behind target. Open Pulse to see the flash report.",
+  },
+  "finance.band_below": {
+    title: "Revenue per patient",
+    body: "Some doctors were below the revenue-per-patient band last month. Open Pulse to see the report.",
+  },
   "accounting.runs_prepared": {
     title: "Runs ready to review",
     body: "Month-end depreciation and schedule runs are ready. Open Pulse to review them.",
@@ -161,6 +173,12 @@ export function pushUrl(event: string, ids: PushIds): string {
       return "/finance/vouchers?tab=approve";
     case "finance.voucher_rejected":
       return "/finance/vouchers?tab=rejected";
+    case "finance.report_late":
+      return "/finance/upload";
+    case "finance.revenue_behind":
+      return "/finance/flash";
+    case "finance.band_below":
+      return "/finance/doctor-performance";
     case "accounting.runs_prepared":
       return "/accounting/depreciation";
     case "test":

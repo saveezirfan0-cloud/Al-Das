@@ -6,8 +6,12 @@ import { ActionForm, Field, FormSheet, RunButton, selectClass } from "@/componen
 import {
   copyPreviousTargets,
   deleteReportLine,
+  saveDataQualitySettings,
+  saveInsuranceRecon,
   saveFlashDisplay,
+  saveMgmtAlertSettings,
   savePerfBands,
+  saveRecruitDefaults,
   saveReportLine,
   saveTargets,
 } from "./actions";
@@ -39,13 +43,23 @@ function LineFields({ line }: { line?: LineView }) {
   return (
     <>
       <Field label="Code" hint="Capital letters, digits or _ (for example PALM, CHIRO).">
-        <Input name="code" defaultValue={line?.code ?? ""} readOnly={!!line} maxLength={12} required />
+        <Input
+          name="code"
+          defaultValue={line?.code ?? ""}
+          readOnly={!!line}
+          maxLength={12}
+          required
+        />
       </Field>
       <Field label="Name on the report">
         <Input name="label" defaultValue={line?.label ?? ""} maxLength={60} required />
       </Field>
       <Field label="Match invoices by">
-        <select name="match_kind" defaultValue={line?.matchKind ?? "branch"} className={selectClass}>
+        <select
+          name="match_kind"
+          defaultValue={line?.matchKind ?? "branch"}
+          className={selectClass}
+        >
           <option value="branch">Branch code</option>
           <option value="department">Department (wins over branch)</option>
         </select>
@@ -160,8 +174,8 @@ export function TargetsForm({
         <Input name="total_arpp" inputMode="decimal" defaultValue={total?.arpp ?? ""} />
       </Field>
       <p className="text-muted-foreground text-xs">
-        Targets are daily rates. The month-to-date target is the daily target times the calendar days elapsed. Leave
-        a box blank for no target.
+        Targets are daily rates. The month-to-date target is the daily target times the calendar
+        days elapsed. Leave a box blank for no target.
       </p>
     </ActionForm>
   );
@@ -169,11 +183,19 @@ export function TargetsForm({
 
 export function CopyTargetsButton({ month }: { month: string }) {
   return (
-    <RunButton action={() => copyPreviousTargets({ month })}>Copy last month&apos;s targets</RunButton>
+    <RunButton action={() => copyPreviousTargets({ month })}>
+      Copy last month&apos;s targets
+    </RunButton>
   );
 }
 
-export function DisplayForm({ shareBasis, topDoctors }: { shareBasis: string; topDoctors: number }) {
+export function DisplayForm({
+  shareBasis,
+  topDoctors,
+}: {
+  shareBasis: string;
+  topDoctors: number;
+}) {
   return (
     <ActionForm action={saveFlashDisplay} submitLabel="Save">
       <div className="grid gap-3 sm:grid-cols-2">
@@ -192,7 +214,15 @@ export function DisplayForm({ shareBasis, topDoctors }: { shareBasis: string; to
 }
 
 /** Doctor performance (Phase 23B): the revenue-per-patient target and the lower edges of the two middle bands. */
-export function PerfBandsForm({ target, near, moderate }: { target: number; near: number; moderate: number }) {
+export function PerfBandsForm({
+  target,
+  near,
+  moderate,
+}: {
+  target: number;
+  near: number;
+  moderate: number;
+}) {
   return (
     <ActionForm action={savePerfBands} submitLabel="Save target and bands">
       <div className="grid gap-3 sm:grid-cols-3">
@@ -207,9 +237,164 @@ export function PerfBandsForm({ target, near, moderate }: { target: number; near
         </Field>
       </div>
       <p className="text-muted-foreground text-xs">
-        Revenue per patient at or above the target is Achieved; from Near Target up to the target is Near Target; from
-        Moderate up to Near Target is Moderate; below Moderate is Below Target. Each band starts exactly at its number,
-        so nothing falls between bands. Expected revenue is patients times the target.
+        Revenue per patient at or above the target is Achieved; from Near Target up to the target is
+        Near Target; from Moderate up to Near Target is Moderate; below Moderate is Below Target.
+        Each band starts exactly at its number, so nothing falls between bands. Expected revenue is
+        patients times the target.
+      </p>
+    </ActionForm>
+  );
+}
+
+/** Collections data quality (Phase 23D): the late invoice threshold in days. */
+export function DataQualityForm({ lateInvoiceDays }: { lateInvoiceDays: number }) {
+  return (
+    <ActionForm action={saveDataQualitySettings} submitLabel="Save late invoice days">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Field label="Late invoice: more than this many days after the visit">
+          <Input
+            name="dq_late_invoice_days"
+            inputMode="numeric"
+            defaultValue={lateInvoiceDays}
+            required
+          />
+        </Field>
+      </div>
+      <p className="text-muted-foreground text-xs">
+        Used by Collections and data quality: an invoice raised more than this many days after the
+        visit (0 to 60) is listed as a late invoice for review.
+      </p>
+    </ActionForm>
+  );
+}
+
+export function InsuranceReconForm({
+  tolerance,
+  graceDays,
+}: {
+  tolerance: number;
+  graceDays: number;
+}) {
+  return (
+    <ActionForm action={saveInsuranceRecon} submitLabel="Save tolerance and grace days">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label="Difference tolerance (AED)">
+          <Input name="ins_recon_tolerance" inputMode="decimal" defaultValue={tolerance} required />
+        </Field>
+        <Field label="Grace days before at risk">
+          <Input
+            name="ins_recon_grace_days"
+            inputMode="numeric"
+            defaultValue={graceDays}
+            required
+          />
+        </Field>
+      </div>
+      <p className="text-muted-foreground text-xs">
+        A billed invoice whose submitted amount differs by more than the tolerance, either way, is
+        flagged. A billed invoice with no claim in Diligence counts as at risk once more than the
+        grace days have passed since its report date.
+      </p>
+    </ActionForm>
+  );
+}
+
+export function MgmtAlertsForm(v: {
+  lateDays: number;
+  targetPct: number;
+  targetDays: number;
+  minPatients: number;
+}) {
+  return (
+    <ActionForm action={saveMgmtAlertSettings} submitLabel="Save alert settings">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label="Unite report late after (days with no covered day)">
+          <Input
+            name="alert_report_late_days"
+            inputMode="numeric"
+            defaultValue={v.lateDays}
+            required
+          />
+        </Field>
+        <Field label="Revenue behind below (% of target)">
+          <Input
+            name="alert_revenue_target_pct"
+            inputMode="decimal"
+            defaultValue={v.targetPct}
+            required
+          />
+        </Field>
+        <Field label="Revenue behind for (covered days in a row)">
+          <Input
+            name="alert_revenue_target_days"
+            inputMode="numeric"
+            defaultValue={v.targetDays}
+            required
+          />
+        </Field>
+        <Field label="Band alert: minimum patients per doctor">
+          <Input
+            name="alert_band_min_patients"
+            inputMode="numeric"
+            defaultValue={v.minPatients}
+            required
+          />
+        </Field>
+      </div>
+      <p className="text-muted-foreground text-xs">
+        Checked every morning. The report alert goes to the people who upload the Unite report when
+        no committed upload covers any of the last days set here. The revenue alert goes to flash
+        report readers when month-to-date revenue (the total, and each branch line with a target)
+        stays below this share of its target on each of the last covered days set here; the target
+        counts only the days the report covers, not calendar days. Once last month is fully covered,
+        one alert says how many doctors with at least the minimum patients were Below Target. Each
+        alert is sent once until it clears; notifications never name a doctor or an amount.
+      </p>
+    </ActionForm>
+  );
+}
+
+export function RecruitDefaultsForm(v: {
+  conservative: number;
+  consumables: number;
+  gateway: number;
+  minPeerMonths: number;
+}) {
+  return (
+    <ActionForm action={saveRecruitDefaults} submitLabel="Save recruitment defaults">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Field label="Conservative factor on claimed revenue (%)">
+          <Input
+            name="recruit_conservative_pct"
+            inputMode="decimal"
+            defaultValue={v.conservative}
+            required
+          />
+        </Field>
+        <Field label="Consumables (% of revenue)">
+          <Input
+            name="recruit_consumables_pct"
+            inputMode="decimal"
+            defaultValue={v.consumables}
+            required
+          />
+        </Field>
+        <Field label="Payment gateway (% of revenue)">
+          <Input name="recruit_gateway_pct" inputMode="decimal" defaultValue={v.gateway} required />
+        </Field>
+        <Field label="Doctor-months for a department benchmark">
+          <Input
+            name="recruit_min_peer_months"
+            inputMode="numeric"
+            defaultValue={v.minPeerMonths}
+            required
+          />
+        </Field>
+      </div>
+      <p className="text-muted-foreground text-xs">
+        The recruitment calculator starts every scenario with these (each scenario can change them).
+        A department is compared with its own doctors only when the Unite report holds at least this
+        many doctor-months from two or more doctors; otherwise the clinic-wide figures are used.
       </p>
     </ActionForm>
   );

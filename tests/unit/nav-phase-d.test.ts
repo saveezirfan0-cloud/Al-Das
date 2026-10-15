@@ -222,3 +222,18 @@ describe("active trail and tabs", () => {
     expect(activeTabGroup(groups, "/elsewhere")).toBeNull();
   });
 });
+
+describe("a tab that needs two keys (allow)", () => {
+  it("lists the recruitment calculator only to members holding profit AND compensation, in the tree as in Finance", () => {
+    const has = (perms: readonly string[]) =>
+      treeFor(perms)
+        .flatMap((n) => (n.sections ?? []).flatMap((s) => s.pages))
+        .some((p) =>
+          [p.href, ...(p.tabs ?? []).map((t) => t.href)].includes("/finance/recruitment"),
+        );
+    expect(has(["finance.profit.view", "finance.costs.compensation"])).toBe(true);
+    expect(has(["finance.profit.view"])).toBe(false);
+    expect(has(["finance.costs.compensation"])).toBe(false);
+    expect(has(role("Cost / Payroll"))).toBe(false);
+  });
+});

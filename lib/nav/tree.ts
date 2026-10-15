@@ -47,7 +47,9 @@ export function entryVisible(entry: ModuleEntry, member: MemberLike): boolean {
 /** The tabs of a tab-group entry this member may open, in order. */
 export function visibleTabs(entry: ModuleEntry, member: MemberLike): TreeTab[] {
   return (entry.tabs ?? [])
-    .filter((t) => t.permissions.length > 0 && canAny(member, t.permissions))
+    .filter((t) =>
+      t.allow ? t.allow(member) : t.permissions.length > 0 && canAny(member, t.permissions),
+    )
     .map((t) => ({ href: t.href, label: t.label }));
 }
 

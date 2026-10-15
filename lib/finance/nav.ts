@@ -1,4 +1,4 @@
-import { canAny, type MemberLike } from "@/lib/auth/can";
+import { canAll, canAny, type MemberLike } from "@/lib/auth/can";
 import { HUB_NAV_PERMISSIONS } from "@/lib/finance/reports-hub";
 
 /**
@@ -11,7 +11,13 @@ export type FinanceBadge =
   "exceptions" | "preauth" | "denials" | "notReady" | "remittance" | "close" | "inbox";
 
 /** A sibling page shown as a tab under one menu entry (see `tabs`). */
-export type FinanceTab = { href: string; label: string; permissions: readonly string[] };
+export type FinanceTab = {
+  href: string;
+  label: string;
+  permissions: readonly string[];
+  /** When set, decides visibility instead of "any of `permissions`" (a page that needs two keys). */
+  allow?: (member: MemberLike) => boolean;
+};
 
 export type FinanceNavEntry = {
   href: string;
@@ -91,22 +97,24 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
       permissions: ["finance.profit.view"],
     },
   ]),
-  {
-    // Phase 23: revenue per patient by doctor and month, judged against the target bands
-    href: "/finance/doctor-performance",
-    label: "Doctor performance",
-    section: "Reports",
-    permissions: ["finance.revenue.view"],
-    keywords: [
-      "arpp",
-      "revenue per patient",
-      "doctor comparison",
-      "month comparison",
-      "revenue comparison",
-      "target bands",
-      "unite report",
-    ],
-  },
+  // Phase 23: the pages built on the uploaded Unite collection report (docs/39, docs/40)
+  tabGroup("Doctor and clinic performance", "Reports", [
+    {
+      href: "/finance/doctor-performance",
+      label: "Doctor performance",
+      permissions: ["finance.revenue.view"],
+    },
+    { href: "/finance/collections", label: "Collections", permissions: ["finance.revenue.view"] },
+    { href: "/finance/contribution", label: "Contribution", permissions: ["finance.profit.view"] },
+    { href: "/finance/capacity", label: "Capacity", permissions: ["finance.revenue.view"] },
+    {
+      // M4A: a scenario for a candidate doctor; needs profit AND compensation
+      href: "/finance/recruitment",
+      label: "Recruitment calculator",
+      permissions: ["finance.profit.view", "finance.costs.compensation"],
+      allow: (m) => canAll(m, ["finance.profit.view", "finance.costs.compensation"]),
+    },
+  ]),
   tabGroup("Insurance and receivables", "Reports", [
     { href: "/finance/insurance", label: "Overview", permissions: ["finance.claims.view"] },
     {
@@ -140,6 +148,12 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
       permissions: ["finance.claims.import", "finance.revenue.import"],
     },
     { href: "/finance/followup", label: "Follow-up", permissions: ["finance.claims.view"] },
+    {
+      // 23D-2: Unite-billed insurance invoices against Diligence submissions
+      href: "/finance/insurance-billing",
+      label: "Billed vs claimed",
+      permissions: ["finance.claims.view"],
+    },
   ]),
   {
     href: "/finance/eligibility",
@@ -304,7 +318,12 @@ export const FINANCE_SETUP_PAGES: readonly SetupPage[] = [
     href: "/finance/report-emails",
     label: "Report e-mails",
     permissions: ["finance.report_emails.manage"],
-    keywords: ["scheduled reports", "daily flash e-mail", "monthly summary e-mail", "email reports"],
+    keywords: [
+      "scheduled reports",
+      "daily flash e-mail",
+      "monthly summary e-mail",
+      "email reports",
+    ],
   },
   {
     href: "/finance/vouchers/settings",
@@ -334,7 +353,7 @@ export const FINANCE_SETUP_PAGES: readonly SetupPage[] = [
 
 /** The entry's tabs this member may open, in order (empty for a plain entry). */
 export function visibleFinanceTabs(e: FinanceNavEntry, member: MemberLike): FinanceTab[] {
-  return (e.tabs ?? []).filter((t) => canAny(member, t.permissions));
+  return (e.tabs ?? []).filter((t) => (t.allow ? t.allow(member) : canAny(member, t.permissions)));
 }
 
 function entryVisible(e: FinanceNavEntry, member: MemberLike): boolean {

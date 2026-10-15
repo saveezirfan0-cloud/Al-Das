@@ -1,0 +1,115 @@
+{
+  "_note": "Synthetic only (M2A contribution). Doctors 'Dr Demo-0n', DHA ids D000n, PINs 9000000nn; every amount is made up. 'rows' are fin_report_visits rows for the DB test; 'expected' is what fin_contribution_inputs() must return for September 2026 with no branch restriction, worked out by hand.",
+  "month": "2026-09-01",
+  "doctors": [
+    { "dha_id": "D0001", "name": "Dr Demo-01" },
+    { "dha_id": "D0002", "name": "Dr Demo-02" },
+    { "dha_id": "D0003", "name": "Dr Demo-03" },
+    { "dha_id": "D0004", "name": "Dr Demo-04" },
+    { "dha_id": "D0005", "name": "Dr Demo-05" },
+    { "dha_id": "D0006", "name": "Dr Demo-06" },
+    { "dha_id": "D0007", "name": "Dr Demo-07" }
+  ],
+  "map": [
+    { "doctor_key": "demo-01", "dha_id": "D0001" },
+    { "doctor_key": "demo-02", "dha_id": "D0002" },
+    { "doctor_key": "demo-03", "dha_id": "D0003" },
+    { "doctor_key": "demo-05", "dha_id": "D0005" },
+    { "doctor_key": "demo-06", "dha_id": "D0006" }
+  ],
+  "rows": [
+    { "report_date": "2026-09-02", "branch_code": "P", "department": "General Medicine", "doctor_name": "Dr Demo-01", "doctor_key": "demo-01", "patient_pin": "900000001", "net": 4000, "is_current": true },
+    { "report_date": "2026-09-03", "branch_code": "P", "department": "General Medicine", "doctor_name": "Dr Demo-01", "doctor_key": "demo-01", "patient_pin": "900000002", "net": 2000, "is_current": true },
+    { "report_date": "2026-09-03", "branch_code": "P", "department": "General Medicine", "doctor_name": "Dr Demo-01", "doctor_key": "demo-01", "patient_pin": "900000002", "net": 9999, "is_current": false },
+    { "report_date": "2026-09-04", "branch_code": "M", "department": "General Medicine", "doctor_name": "Dr Demo-01", "doctor_key": "demo-01", "patient_pin": "900000003", "net": 2000, "is_current": true },
+    { "report_date": "2026-09-05", "branch_code": "M", "department": "General Medicine", "doctor_name": "Dr. Demo-01", "doctor_key": "demo-01", "patient_pin": "900000004", "net": 1000, "is_current": true },
+    { "report_date": "2026-09-06", "branch_code": "P", "department": "General Medicine", "doctor_name": "Dr Demo-02", "doctor_key": "demo-02", "patient_pin": "900000005", "net": 5000, "is_current": true },
+    { "report_date": "2026-10-01", "branch_code": "P", "department": "General Medicine", "doctor_name": "Dr Demo-02", "doctor_key": "demo-02", "patient_pin": "900000005", "net": 7777, "is_current": true },
+    { "report_date": "2026-09-07", "branch_code": "P", "department": "Dermatology", "doctor_name": "Dr Demo-03", "doctor_key": "demo-03", "patient_pin": "900000006", "net": 1500, "is_current": true },
+    { "report_date": "2026-09-08", "branch_code": "P", "department": "Dermatology", "doctor_name": "Dr Demo-04", "doctor_key": "demo-04", "patient_pin": "900000007", "net": 1000, "is_current": true },
+    { "report_date": "2026-09-09", "branch_code": "M", "department": "Physiotherapy", "doctor_name": "Dr Demo-05", "doctor_key": "demo-05", "patient_pin": "900000008", "net": 800, "is_current": true },
+    { "report_date": "2026-09-10", "branch_code": null, "department": "Dermatology", "doctor_name": "Dr Demo-06", "doctor_key": "demo-06", "patient_pin": "900000009", "net": 700, "is_current": true }
+  ],
+  "comp": [
+    { "doctor_dha_id": "D0001", "amount": 6000 },
+    { "doctor_dha_id": "D0002", "amount": 3000 },
+    { "doctor_dha_id": "D0005", "amount": 0 },
+    { "doctor_dha_id": "D0006", "amount": 1000 },
+    { "doctor_dha_id": "D0007", "amount": 4000 }
+  ],
+  "charges": [
+    { "doctor_dha_id": "D0001", "kind": "lab", "amount": 200 },
+    { "doctor_dha_id": "D0001", "kind": "referral", "amount": 100 },
+    { "doctor_dha_id": "D0003", "kind": "lab", "amount": 50 }
+  ],
+  "overheads": [
+    { "branch_code": "P", "pool": "Cleaning", "amount": 1000, "basis": "revenue" },
+    { "branch_code": "M", "pool": "Cleaning", "amount": 500, "basis": "revenue" },
+    { "branch_code": "G", "pool": "Cleaning", "amount": 200, "basis": "revenue" },
+    { "branch_code": null, "pool": "Rent", "amount": 9000, "basis": "revenue" },
+    { "branch_code": null, "pool": "Admin", "amount": 600, "basis": "equal" },
+    { "branch_code": null, "pool": "IT", "amount": 0, "basis": "revenue" }
+  ],
+  "expected": {
+    "month": "2026-09-01",
+    "branch": null,
+    "coverage": [{ "from": "2026-09-01", "to": "2026-09-30" }],
+    "period_approved": false,
+    "rows": [
+      { "branch_code": "M", "department": "General Medicine", "doctor_key": "demo-01", "doctor_name": "Dr Demo-01", "dha_id": "D0001", "revenue": 3000, "visits": 2 },
+      { "branch_code": "M", "department": "Physiotherapy", "doctor_key": "demo-05", "doctor_name": "Dr Demo-05", "dha_id": "D0005", "revenue": 800, "visits": 1 },
+      { "branch_code": "P", "department": "Dermatology", "doctor_key": "demo-03", "doctor_name": "Dr Demo-03", "dha_id": "D0003", "revenue": 1500, "visits": 1 },
+      { "branch_code": "P", "department": "Dermatology", "doctor_key": "demo-04", "doctor_name": "Dr Demo-04", "dha_id": null, "revenue": 1000, "visits": 1 },
+      { "branch_code": "P", "department": "General Medicine", "doctor_key": "demo-01", "doctor_name": "Dr Demo-01", "dha_id": "D0001", "revenue": 6000, "visits": 2 },
+      { "branch_code": "P", "department": "General Medicine", "doctor_key": "demo-02", "doctor_name": "Dr Demo-02", "dha_id": "D0002", "revenue": 5000, "visits": 1 },
+      { "branch_code": null, "department": "Dermatology", "doctor_key": "demo-06", "doctor_name": "Dr Demo-06", "dha_id": "D0006", "revenue": 700, "visits": 1 }
+    ],
+    "doctor_weights": [
+      { "dha_id": "D0001", "revenue": 9000, "groups": 2 },
+      { "dha_id": "D0002", "revenue": 5000, "groups": 1 },
+      { "dha_id": "D0003", "revenue": 1500, "groups": 1 },
+      { "dha_id": "D0005", "revenue": 800, "groups": 1 },
+      { "dha_id": "D0006", "revenue": 700, "groups": 1 }
+    ],
+    "comp": [
+      { "dha_id": "D0001", "amount": 6000 },
+      { "dha_id": "D0002", "amount": 3000 },
+      { "dha_id": "D0006", "amount": 1000 }
+    ],
+    "charges": [
+      { "dha_id": "D0001", "amount": 300 },
+      { "dha_id": "D0003", "amount": 50 }
+    ],
+    "branch_overheads": [
+      { "branch_code": "G", "amount": 200 },
+      { "branch_code": "M", "amount": 500 },
+      { "branch_code": "P", "amount": 1000 }
+    ],
+    "shared_overheads": [
+      { "pool": "Admin", "amount": 600, "basis": "equal" },
+      { "pool": "Rent", "amount": 9000, "basis": "revenue" }
+    ],
+    "branch_weights": [
+      { "branch_code": "M", "revenue": 3800, "visits": 3 },
+      { "branch_code": "P", "revenue": 13500, "visits": 5 },
+      { "branch_code": null, "revenue": 700, "visits": 1 }
+    ]
+  },
+  "result": {
+    "clinics": {
+      "P": { "revenue": 13500, "coveredRevenue": 11000, "pay": 7000, "charges": 200, "contribution": 3800, "branchOverhead": 1000, "l5": 2800, "allocated": 6950, "l6": -4150, "paidDoctors": 2 },
+      "M": { "revenue": 3800, "coveredRevenue": 3000, "pay": 2000, "charges": 100, "contribution": 900, "branchOverhead": 500, "l5": 400, "allocated": 2100, "l6": -1700, "paidDoctors": 1 },
+      "-": { "revenue": 700, "coveredRevenue": 700, "pay": 1000, "charges": 0, "contribution": -300, "branchOverhead": 0, "l5": -300, "allocated": 550, "l6": -850, "paidDoctors": 1 }
+    },
+    "total": { "revenue": 18000, "coveredRevenue": 14700, "pay": 10000, "charges": 300, "contribution": 4400, "branchOverhead": 1500, "l5": 2900, "allocated": 9600, "l6": -6700, "paidDoctors": 3 },
+    "doctors": {
+      "P|General Medicine|demo-01": { "status": "linked", "pay": 4000, "charges": 200, "contribution": 1800 },
+      "P|General Medicine|demo-02": { "status": "linked", "pay": 3000, "charges": 0, "contribution": 2000 },
+      "P|Dermatology|demo-03": { "status": "not_loaded", "pay": null, "charges": 50, "contribution": null },
+      "P|Dermatology|demo-04": { "status": "not_linked", "pay": null, "charges": null, "contribution": null },
+      "M|General Medicine|demo-01": { "status": "linked", "pay": 2000, "charges": 100, "contribution": 900 },
+      "M|Physiotherapy|demo-05": { "status": "not_loaded", "pay": null, "charges": 0, "contribution": null },
+      "-|Dermatology|demo-06": { "status": "linked", "pay": 1000, "charges": 0, "contribution": -300 }
+    }
+  }
+}

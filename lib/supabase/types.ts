@@ -10476,6 +10476,41 @@ export type Database = {
           },
         ];
       };
+      fin_mgmt_alert_state: {
+        Row: {
+          cleared_at: string | null;
+          org_id: string;
+          period: string;
+          raised_at: string;
+          rule: string;
+          scope: string;
+        };
+        Insert: {
+          cleared_at?: string | null;
+          org_id: string;
+          period: string;
+          raised_at?: string;
+          rule: string;
+          scope: string;
+        };
+        Update: {
+          cleared_at?: string | null;
+          org_id?: string;
+          period?: string;
+          raised_at?: string;
+          rule?: string;
+          scope?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_mgmt_alert_state_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       fin_payment_requests: {
         Row: {
           amount_minor: number;
@@ -11907,6 +11942,52 @@ export type Database = {
           },
         ];
       };
+      fin_recruitment_scenarios: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          inputs: Json;
+          org_id: string;
+          result: Json;
+          title: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          inputs: Json;
+          org_id: string;
+          result: Json;
+          title: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          inputs?: Json;
+          org_id?: string;
+          result?: Json;
+          title?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_recruitment_scenarios_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_recruitment_scenarios_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       fin_ref_account_map: {
         Row: {
           account_code: string;
@@ -12054,6 +12135,58 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "fin_ref_branches_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      fin_ref_calendar_events: {
+        Row: {
+          approximate: boolean;
+          created_at: string;
+          created_by: string | null;
+          ends_on: string;
+          id: string;
+          kind: string;
+          label: string;
+          org_id: string;
+          starts_on: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          approximate?: boolean;
+          created_at?: string;
+          created_by?: string | null;
+          ends_on: string;
+          id?: string;
+          kind: string;
+          label: string;
+          org_id: string;
+          starts_on: string;
+        };
+        Update: {
+          approximate?: boolean;
+          created_at?: string;
+          created_by?: string | null;
+          ends_on?: string;
+          id?: string;
+          kind?: string;
+          label?: string;
+          org_id?: string;
+          starts_on?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_ref_calendar_events_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_ref_calendar_events_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
@@ -12213,6 +12346,10 @@ export type Database = {
           acc_large_journal_amount: number;
           accepted_claim_statuses: string[];
           ageing_bucket_days: number[];
+          alert_band_min_patients: number;
+          alert_report_late_days: number;
+          alert_revenue_target_days: number;
+          alert_revenue_target_pct: number;
           approval_mode: string;
           bank_amount_tolerance: number;
           bank_amount_tolerance_pct: number;
@@ -12237,6 +12374,7 @@ export type Database = {
           denial_task_enabled: boolean;
           denial_warn_days: number;
           doctor_basis: string | null;
+          dq_late_invoice_days: number;
           escalation_days: number;
           escalation_role: string;
           evidence_grace_days: number;
@@ -12253,12 +12391,18 @@ export type Database = {
           forecast_horizon_weeks: number;
           forecast_min_history: number;
           forecast_tail_weeks: number;
+          ins_recon_grace_days: number;
+          ins_recon_tolerance: number;
           lab_date_window_days: number;
           lab_price_tolerance: number;
           org_id: string;
           perf_arpp_target: number;
           perf_band_moderate: number;
           perf_band_near: number;
+          recruit_conservative_pct: number;
+          recruit_consumables_pct: number;
+          recruit_gateway_pct: number;
+          recruit_min_peer_months: number;
           preauth_expiry_lead_days: number;
           preauth_task_enabled: boolean;
           ready_grace_days: number;
@@ -12274,6 +12418,7 @@ export type Database = {
           recovery_tone_approved_by: string | null;
           recovery_tone_approved_hash: string | null;
           recovery_variable_map: NonNullable<Json>;
+          room_open_hours_per_day: number;
           scorecard_days_to_pay_alert: number;
           scorecard_days_to_pay_warn: number;
           scorecard_denial_rate_alert: number;
@@ -12299,6 +12444,10 @@ export type Database = {
           acc_large_journal_amount?: number;
           accepted_claim_statuses?: string[];
           ageing_bucket_days?: number[];
+          alert_band_min_patients?: number;
+          alert_report_late_days?: number;
+          alert_revenue_target_days?: number;
+          alert_revenue_target_pct?: number;
           approval_mode?: string;
           bank_amount_tolerance?: number;
           bank_amount_tolerance_pct?: number;
@@ -12323,6 +12472,7 @@ export type Database = {
           denial_task_enabled?: boolean;
           denial_warn_days?: number;
           doctor_basis?: string | null;
+          dq_late_invoice_days?: number;
           escalation_days?: number;
           escalation_role?: string;
           evidence_grace_days?: number;
@@ -12339,12 +12489,18 @@ export type Database = {
           forecast_horizon_weeks?: number;
           forecast_min_history?: number;
           forecast_tail_weeks?: number;
+          ins_recon_grace_days?: number;
+          ins_recon_tolerance?: number;
           lab_date_window_days?: number;
           lab_price_tolerance?: number;
           org_id: string;
           perf_arpp_target?: number;
           perf_band_moderate?: number;
           perf_band_near?: number;
+          recruit_conservative_pct?: number;
+          recruit_consumables_pct?: number;
+          recruit_gateway_pct?: number;
+          recruit_min_peer_months?: number;
           preauth_expiry_lead_days?: number;
           preauth_task_enabled?: boolean;
           ready_grace_days?: number;
@@ -12360,6 +12516,7 @@ export type Database = {
           recovery_tone_approved_by?: string | null;
           recovery_tone_approved_hash?: string | null;
           recovery_variable_map?: NonNullable<Json>;
+          room_open_hours_per_day?: number;
           scorecard_days_to_pay_alert?: number;
           scorecard_days_to_pay_warn?: number;
           scorecard_denial_rate_alert?: number;
@@ -12384,6 +12541,10 @@ export type Database = {
           acc_large_journal_amount?: number;
           accepted_claim_statuses?: string[];
           ageing_bucket_days?: number[];
+          alert_band_min_patients?: number;
+          alert_report_late_days?: number;
+          alert_revenue_target_days?: number;
+          alert_revenue_target_pct?: number;
           approval_mode?: string;
           bank_amount_tolerance?: number;
           bank_amount_tolerance_pct?: number;
@@ -12408,6 +12569,7 @@ export type Database = {
           denial_task_enabled?: boolean;
           denial_warn_days?: number;
           doctor_basis?: string | null;
+          dq_late_invoice_days?: number;
           escalation_days?: number;
           escalation_role?: string;
           evidence_grace_days?: number;
@@ -12424,12 +12586,18 @@ export type Database = {
           forecast_horizon_weeks?: number;
           forecast_min_history?: number;
           forecast_tail_weeks?: number;
+          ins_recon_grace_days?: number;
+          ins_recon_tolerance?: number;
           lab_date_window_days?: number;
           lab_price_tolerance?: number;
           org_id?: string;
           perf_arpp_target?: number;
           perf_band_moderate?: number;
           perf_band_near?: number;
+          recruit_conservative_pct?: number;
+          recruit_consumables_pct?: number;
+          recruit_gateway_pct?: number;
+          recruit_min_peer_months?: number;
           preauth_expiry_lead_days?: number;
           preauth_task_enabled?: boolean;
           ready_grace_days?: number;
@@ -12445,6 +12613,7 @@ export type Database = {
           recovery_tone_approved_by?: string | null;
           recovery_tone_approved_hash?: string | null;
           recovery_variable_map?: NonNullable<Json>;
+          room_open_hours_per_day?: number;
           scorecard_days_to_pay_alert?: number;
           scorecard_days_to_pay_warn?: number;
           scorecard_denial_rate_alert?: number;
@@ -19391,6 +19560,58 @@ export type Database = {
           },
         ];
       };
+      rooms: {
+        Row: {
+          active: boolean;
+          created_at: string;
+          id: string;
+          kind: string;
+          location_id: string;
+          monthly_cost: number | null;
+          name: string;
+          org_id: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          active?: boolean;
+          created_at?: string;
+          id?: string;
+          kind?: string;
+          location_id: string;
+          monthly_cost?: number | null;
+          name: string;
+          org_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          active?: boolean;
+          created_at?: string;
+          id?: string;
+          kind?: string;
+          location_id?: string;
+          monthly_cost?: number | null;
+          name?: string;
+          org_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "rooms_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "rooms_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       rota_shifts: {
         Row: {
           created_at: string;
@@ -25402,6 +25623,14 @@ export type Database = {
         Returns: string;
       };
       fin_close_withdraw: { Args: { p_close_id: string; p_org_id: string }; Returns: undefined };
+      fin_collections_inputs: {
+        Args: { p_branch?: string; p_branches?: string[]; p_month: string; p_org_id: string };
+        Returns: Json;
+      };
+      fin_contribution_inputs: {
+        Args: { p_branch?: string; p_branches?: string[]; p_month: string; p_org_id: string };
+        Returns: Json;
+      };
       fin_cost_set_period: {
         Args: {
           p_month: string;
@@ -25481,6 +25710,10 @@ export type Database = {
       };
       fin_forecast_history: { Args: { p_mature_days?: number; p_org_id: string }; Returns: Json };
       fin_forecast_outstanding: { Args: { p_org_id: string }; Returns: Json };
+      fin_insurance_billing_recon_inputs: {
+        Args: { p_branch?: string; p_branches?: string[]; p_month: string; p_org_id: string };
+        Returns: Json;
+      };
       fin_insurance_overview: {
         Args: { p_from: string; p_org_id: string; p_to: string };
         Returns: Json;
@@ -25514,6 +25747,11 @@ export type Database = {
       };
       fin_link_preauth_claims: { Args: { p_org_id: string }; Returns: number };
       fin_maintenance_enqueue: { Args: Record<PropertyKey, never>; Returns: number };
+      fin_mgmt_alert_claim: {
+        Args: { p_org_id: string; p_period: string; p_rule: string; p_scope: string };
+        Returns: boolean;
+      };
+      fin_mgmt_alert_inputs: { Args: { p_month: string; p_org_id: string }; Returns: Json };
       fin_open_exception: {
         Args: {
           p_branch_code?: string;
@@ -25548,6 +25786,10 @@ export type Database = {
       };
       fin_receivables_by_payer_age: {
         Args: { p_branch?: string; p_org_id: string; p_today: string };
+        Returns: Json;
+      };
+      fin_recruitment_benchmarks: {
+        Args: { p_branches?: string[]; p_org_id: string };
         Returns: Json;
       };
       fin_rederive_branches: { Args: { p_org_id: string }; Returns: number };
@@ -25663,6 +25905,7 @@ export type Database = {
         }[];
       };
       fin_run_exception_rules: { Args: { p_org_id: string }; Returns: Json };
+      fin_seed_calendar_events: { Args: { p_org_id: string }; Returns: number };
       fin_seed_settlement_rules: { Args: { p_org_id: string }; Returns: undefined };
       fin_selfpay_balances: {
         Args: { p_limit?: number; p_min_balance?: number; p_min_days?: number; p_org_id: string };

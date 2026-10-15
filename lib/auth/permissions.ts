@@ -68,6 +68,13 @@ export const PERMISSIONS = [
   { key: "appointments.view", group: "Appointments", label: "View appointments" },
   { key: "appointments.manage", group: "Appointments", label: "Book and change appointments" },
   {
+    key: "rooms.manage",
+    group: "Appointments",
+    label: "Manage rooms",
+    description:
+      "Add and edit the rooms of a branch (kind and monthly cost). Never changes bookings.",
+  },
+  {
     key: "frontdesk.use",
     group: "Front desk",
     label: "Use the Front desk workspace",
@@ -369,7 +376,8 @@ export const PERMISSIONS = [
     key: "finance.revenue.import",
     group: "Finance",
     label: "Unite collection report upload",
-    description: "Upload and commit the Unite daily collection report (sanitised; the file is not kept)",
+    description:
+      "Upload and commit the Unite daily collection report (sanitised; the file is not kept)",
   },
   {
     key: "finance.export.run",
@@ -465,7 +473,8 @@ export const PERMISSIONS = [
     key: "finance.payables.manage",
     group: "Finance",
     label: "Manage suppliers and supplier invoices",
-    description: "Add and edit suppliers and supplier invoices, and upload their documents. Audited.",
+    description:
+      "Add and edit suppliers and supplier invoices, and upload their documents. Audited.",
   },
   {
     key: "finance.vouchers.prepare",
@@ -532,7 +541,8 @@ export const PERMISSIONS = [
     key: "finance.bank.signoff",
     group: "Finance",
     label: "Sign off bank reconciliation",
-    description: "Sign a reviewed bank reconciliation. The signer must be a different person from the preparer. Audited.",
+    description:
+      "Sign a reviewed bank reconciliation. The signer must be a different person from the preparer. Audited.",
   },
   {
     key: "finance.labs.view",
@@ -640,7 +650,8 @@ export const PERMISSIONS = [
     key: "accounting.sales.manage",
     group: "Accounting",
     label: "Sales invoices and credit notes",
-    description: "Raise sales invoices and credit notes to insurers, corporates and tenants (a later slice).",
+    description:
+      "Raise sales invoices and credit notes to insurers, corporates and tenants (a later slice).",
   },
   {
     key: "accounting.receipts.manage",
@@ -993,6 +1004,7 @@ export const SYSTEM_ROLES: readonly RolePreset[] = [
       "appointments.view",
       "appointments.manage",
       "frontdesk.use",
+      "rooms.manage",
       "hr.view",
       "campaigns.view",
       "campaigns.create",

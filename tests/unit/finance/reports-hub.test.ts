@@ -171,6 +171,11 @@ describe("cards", () => {
       scorecards: "finance.scorecards.view",
       forecast: "finance.forecast.view",
       denials: "finance.denials.manage",
+      "doctor-performance": "finance.revenue.view",
+      collections: "finance.revenue.view",
+      contribution: "finance.profit.view",
+      capacity: "finance.revenue.view",
+      "insurance-billing": "finance.claims.view",
     };
     for (const [key, perm] of Object.entries(pageKeys)) {
       expect(card(key).permissions, key).toContain(perm);
@@ -207,10 +212,14 @@ describe("cards", () => {
       "summary",
       "revenue",
       "branches",
+      "doctor-performance",
+      "collections",
+      "capacity",
       "scorecards",
     ]);
     expect(hubCardsFor(member(role("Cost / Payroll")))).toEqual([]);
     expect(hubCardsFor(member(role("Insurance"))).map((c) => c.key)).toEqual([
+      "insurance-billing",
       "insurance-ageing",
       "scorecards",
       "denials",
@@ -251,6 +260,21 @@ describe("cards", () => {
     expect(params(cardLinks(card("insurance-ageing"), c).view)).toEqual({ branch: "G" });
     expect(cardLinks(card("forecast"), c).view).toBe("/finance/forecast");
     expect(cardLinks(card("denials"), c).view).toBe("/finance/denials");
+    // Unite report pages show one month (the period's last) and take the finance branch; capacity has no branch filter
+    expect(params(cardLinks(card("collections"), c).view)).toEqual({
+      month: "2026-09",
+      branch: "G",
+    });
+    expect(params(cardLinks(card("contribution"), c).exports[0].href)).toEqual({
+      month: "2026-09",
+      branch: "G",
+    });
+    expect(params(cardLinks(card("capacity"), c).view)).toEqual({ month: "2026-09" });
+    expect(
+      params(
+        cardLinks(card("doctor-performance"), ctxFor({ kind: "quarter", key: "2026-Q3" })).view,
+      ),
+    ).toEqual({ month: "2026-09" });
     // without a branch or comparison those parameters are left out entirely
     expect(params(cardLinks(card("revenue"), ctxFor()).view)).toEqual({
       from: "2026-09-01",

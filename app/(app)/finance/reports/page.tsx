@@ -38,6 +38,7 @@ export const dynamic = "force-dynamic";
 
 const USE_LABEL: Record<HubUse, string> = {
   period: "Period",
+  month: "Last month of the period",
   day: "Last day of the period",
   as_of: "As at the period end",
   branch: "Branch",
