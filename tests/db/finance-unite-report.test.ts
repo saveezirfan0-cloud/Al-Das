@@ -363,6 +363,8 @@ describe.skipIf(!TEST_DATABASE_URL)("Unite collection report upload (Phase 23A)"
     expect(preset("Finance")).toContain("finance.revenue.import");
     expect(preset("Finance Manager")).toContain("finance.revenue.import");
     expect(preset("Billing")).not.toContain("finance.revenue.import");
+    expect(preset("Revenue & Collections")).toContain("finance.revenue.import");
+    expect(preset("Costs & Expenses")).not.toContain("finance.revenue.import");
 
     // replay the migration's grant block on system roles that predate the key
     await svc(() =>
@@ -378,7 +380,8 @@ describe.skipIf(!TEST_DATABASE_URL)("Unite collection report upload (Phase 23A)"
     const grant = /do \$\$[\s\S]*?end \$\$;/.exec(sql)![0];
     await q(grant);
     const holders = await q(
-      "select name from public.roles where org_id = $1 and permissions ? 'finance.revenue.import' order by name",
+      // only the roles the replayed block covers; Revenue & Collections (20261209000300) holds the key by design
+      "select name from public.roles where org_id = $1 and permissions ? 'finance.revenue.import' and name in ('Finance', 'Finance Manager', 'Billing') order by name",
       [orgA],
     );
     expect(holders.rows.map((r) => r.name)).toEqual(["Finance", "Finance Manager"]);

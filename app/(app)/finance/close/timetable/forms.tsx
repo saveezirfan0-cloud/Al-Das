@@ -202,6 +202,7 @@ export function CalendarForm({
   weekend,
   inputsWd,
   deadlineWd,
+  deadlineDay,
   itemMaxAgeDays,
   revshareWd,
   voucherUnpaidDays,
@@ -211,6 +212,7 @@ export function CalendarForm({
   weekend: number[];
   inputsWd: number;
   deadlineWd: number;
+  deadlineDay: number | null;
   itemMaxAgeDays: number;
   revshareWd: number;
   voucherUnpaidDays: number;
@@ -244,6 +246,12 @@ export function CalendarForm({
         </Field>
         <Field label="Final pack due by working day">
           <Input name="deadline_wd" inputMode="numeric" defaultValue={deadlineWd} />
+        </Field>
+        <Field
+          label="Or by this day of the month"
+          hint="1 to 28. When set, the close is due on this calendar day instead of the working day (agreed 16 Oct 2026: the 10th)."
+        >
+          <Input name="deadline_day" inputMode="numeric" defaultValue={deadlineDay ?? ""} />
         </Field>
         <Field label="Reconciling items: age limit (days)">
           <Input name="item_max_age_days" inputMode="numeric" defaultValue={itemMaxAgeDays} />

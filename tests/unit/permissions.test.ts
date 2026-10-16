@@ -59,6 +59,8 @@ describe("catalogue", () => {
       "HR",
       "Finance",
       "Finance Manager",
+      "Revenue & Collections",
+      "Costs & Expenses",
       "Billing",
       "Insurance",
       "CEO",

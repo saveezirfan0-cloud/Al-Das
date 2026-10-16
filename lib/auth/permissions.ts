@@ -833,6 +833,50 @@ export const FINANCE_ROLES: readonly RolePreset[] = [
       "accounting.journals.approve",
     ],
   },
+  // The finance controls confirmed by management on 16 Oct 2026 (docs/42_FINANCE_CONTROLS_2026_10.md): revenue and
+  // costs are prepared by different people inside their own scope; only the Finance Manager consolidates, signs and
+  // circulates the clinic-wide P&L. Neither role below holds a profit, compensation, close sign-off, close-pack,
+  // report-e-mail or accounting-export key, and neither signs a bank reconciliation.
+  {
+    name: "Revenue & Collections",
+    description:
+      "Revenue and collections: Unite uploads, daily takings and cash-ups, card and bank receipt matching, and the revenue reports. Submits to the Finance Manager; does not see, sign or circulate the clinic-wide P&L.",
+    permissions: [
+      "finance.view",
+      "finance.invoices.view",
+      "finance.claims.view",
+      "finance.revenue.view",
+      "finance.revenue.import",
+      "finance.flash.view",
+      "finance.cashup.manage",
+      "finance.recovery.manage",
+      "finance.changes.view",
+      "finance.bank.view",
+      "finance.bank.manage",
+      "finance.bank.ai",
+      "finance.close.view",
+      "finance.close.tasks",
+    ],
+  },
+  {
+    name: "Costs & Expenses",
+    description:
+      "Costs and expenses: supplier invoices and payment vouchers, lab and referral statements, branch cost coding and VAT inputs. Submits to the Finance Manager; does not see, sign or circulate the clinic-wide P&L.",
+    permissions: [
+      "finance.costs.view",
+      "finance.costs.manage",
+      "finance.payables.view",
+      "finance.payables.manage",
+      "finance.vouchers.prepare",
+      "finance.vouchers.pay",
+      "finance.labs.view",
+      "finance.labs.manage",
+      "finance.inbox.manage",
+      "finance.tally.export",
+      "finance.close.view",
+      "finance.close.tasks",
+    ],
+  },
   {
     name: "Billing",
     description:

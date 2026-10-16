@@ -30,6 +30,8 @@ export type CloseCalendar = WorkCalendar & {
   startMonth: string | null;
   inputsWd: number;
   deadlineWd: number;
+  /** Calendar day (1-28) of the following month the close is due by; null = the working-day deadline. */
+  deadlineDay: number | null;
   itemMaxAgeDays: number;
   /** Board pack thresholds (Phase 20G part 2) */
   revshareWd: number;
@@ -43,7 +45,7 @@ export async function loadCloseCalendar(admin: AdminClient, orgId: string): Prom
     admin
       .from("fin_ref_finance_settings")
       .select(
-        "close_timetable_start, close_weekend_days, close_inputs_wd, close_deadline_wd, close_item_max_age_days, close_revshare_wd, close_voucher_unpaid_days, close_receivables_over90_pct",
+        "close_timetable_start, close_weekend_days, close_inputs_wd, close_deadline_wd, close_deadline_day, close_item_max_age_days, close_revshare_wd, close_voucher_unpaid_days, close_receivables_over90_pct",
       )
       .eq("org_id", orgId)
       .maybeSingle(),
@@ -61,6 +63,7 @@ export async function loadCloseCalendar(admin: AdminClient, orgId: string): Prom
     holidays: holidayRows.map((r) => r.holidayOn),
     inputsWd: s?.close_inputs_wd ?? 5,
     deadlineWd: s?.close_deadline_wd ?? 10,
+    deadlineDay: s?.close_deadline_day ?? null,
     itemMaxAgeDays: s?.close_item_max_age_days ?? 60,
     revshareWd: s?.close_revshare_wd ?? 7,
     voucherUnpaidDays: s?.close_voucher_unpaid_days ?? 14,
@@ -226,6 +229,7 @@ export async function loadCloseKpis(
       cal,
       inputsWd: cal.inputsWd,
       deadlineWd: cal.deadlineWd,
+      deadlineDay: cal.deadlineDay,
       today,
     }),
     items: {

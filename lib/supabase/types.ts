@@ -12364,6 +12364,7 @@ export type Database = {
           change_bulk_approve_max: number;
           change_review_min_amount: number;
           change_review_start_date: string | null;
+          close_deadline_day: number | null;
           close_deadline_wd: number;
           close_inputs_wd: number;
           close_item_max_age_days: number;
@@ -12462,6 +12463,7 @@ export type Database = {
           change_bulk_approve_max?: number;
           change_review_min_amount?: number;
           change_review_start_date?: string | null;
+          close_deadline_day?: number | null;
           close_deadline_wd?: number;
           close_inputs_wd?: number;
           close_item_max_age_days?: number;
@@ -12559,6 +12561,7 @@ export type Database = {
           change_bulk_approve_max?: number;
           change_review_min_amount?: number;
           change_review_start_date?: string | null;
+          close_deadline_day?: number | null;
           close_deadline_wd?: number;
           close_inputs_wd?: number;
           close_item_max_age_days?: number;

@@ -7,8 +7,10 @@ import {
   addMonths,
   ageDays,
   backupCoverage,
+  closeDeadlineOn,
   closeDelivery,
   closeMonthFor,
+  deadlineLabel,
   dueOn,
   inputsOnTime,
   isoWeekday,
@@ -216,5 +218,63 @@ describe("close measures (synthetic fixture)", () => {
     expect(ageDays("2026-08-14", "2026-10-13")).toBe(60);
     expect(ageDays("2026-10-14", "2026-10-13")).toBe(0);
     expect(ageDays(null, "2026-10-13")).toBeNull();
+  });
+});
+
+describe("calendar-day deadline (management rule of 16 Oct 2026: by the 10th)", () => {
+  const cal = { weekend: [6, 7], holidays: [] as string[] };
+
+  it("is that calendar day of the month after the close month, whatever the weekday", () => {
+    expect(closeDeadlineOn("2026-10-01", 10, 10, cal)).toBe("2026-11-10");
+    expect(closeDeadlineOn("2026-12-01", 10, 10, cal)).toBe("2027-01-10");
+    // 10 January 2027 is a Sunday: the agreed date stands
+    expect(isoWeekday("2027-01-10")).toBe(7);
+    expect(closeDeadlineOn("2026-02-01", 10, 28, cal)).toBe("2026-03-28");
+  });
+
+  it("falls back to the working-day deadline when no calendar day is set", () => {
+    expect(closeDeadlineOn("2026-10-01", 10, null, cal)).toBe(dueOn("2026-10-01", 10, cal));
+  });
+
+  it("refuses a day outside 1-28 or a bad month", () => {
+    expect(closeDeadlineOn("2026-10-01", 10, 0, cal)).toBeNull();
+    expect(closeDeadlineOn("2026-10-01", 10, 29, cal)).toBeNull();
+    expect(closeDeadlineOn("2026-13-01", 10, 10, cal)).toBeNull();
+  });
+
+  it("labels the deadline the way the team says it", () => {
+    expect(deadlineLabel(10, 10)).toBe("the 10th");
+    expect(deadlineLabel(10, 1)).toBe("the 1st");
+    expect(deadlineLabel(10, 2)).toBe("the 2nd");
+    expect(deadlineLabel(10, 3)).toBe("the 3rd");
+    expect(deadlineLabel(10, 11)).toBe("the 11th");
+    expect(deadlineLabel(10, 22)).toBe("the 22nd");
+    expect(deadlineLabel(10, null)).toBe("WD10");
+  });
+
+  it("measures delivery against the calendar deadline", () => {
+    const k = monthKpis({
+      months: ["2026-10-01"],
+      tasks: [],
+      lockedOn: { "2026-10-01": "2026-11-10" },
+      cal,
+      inputsWd: 5,
+      deadlineWd: 10,
+      deadlineDay: 10,
+      today: "2026-11-20",
+    })[0];
+    expect(k.deadlineOn).toBe("2026-11-10");
+    expect(k.delivery).toBe("on_time");
+    const late = monthKpis({
+      months: ["2026-10-01"],
+      tasks: [],
+      lockedOn: { "2026-10-01": "2026-11-11" },
+      cal,
+      inputsWd: 5,
+      deadlineWd: 10,
+      deadlineDay: 10,
+      today: "2026-11-20",
+    })[0];
+    expect(late.delivery).toBe("late");
   });
 });

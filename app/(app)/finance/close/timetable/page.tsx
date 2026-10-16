@@ -22,7 +22,9 @@ import { lastClosedMonth, MONTH_RE } from "@/lib/finance/close-server";
 import {
   addMonths,
   backupCoverage,
+  closeDeadlineOn,
   closeMonthFor,
+  deadlineLabel,
   dueOn,
   lateness,
   WEEKDAY_LABELS,
@@ -183,7 +185,8 @@ export default async function CloseTimetablePage({
   const locked = close?.status === "locked";
   const workingMonth = addMonths(month, 1);
   const wdToday = today.slice(0, 7) === workingMonth.slice(0, 7) ? workingDayOf(today, cal) : null;
-  const deadline = dueOn(month, cal.deadlineWd, cal);
+  const deadline = closeDeadlineOn(month, cal.deadlineWd, cal.deadlineDay, cal);
+  const deadlineText = deadlineLabel(cal.deadlineWd, cal.deadlineDay);
   const backups = backupCoverage(steps);
   const thisMonthKpi = kpis?.months[0] ?? null;
 
@@ -293,6 +296,15 @@ export default async function CloseTimetablePage({
                           today
                         </Badge>
                       )}
+                      {t.status !== "done" && due && deadline && due > deadline && (
+                        <Badge
+                          variant="warning"
+                          className="ml-2"
+                          title={`Due after the close deadline (${deadlineText}); move it earlier in the template.`}
+                        >
+                          after deadline
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell className="text-sm">
                       {nameOf(s?.ownerUserId ?? null) ?? (
@@ -371,7 +383,8 @@ export default async function CloseTimetablePage({
                   </div>
                 </TableCell>
                 <TableCell className="text-xs whitespace-nowrap">
-                  WD{cal.deadlineWd}, {day(deadline)}
+                  {cal.deadlineDay === null ? `WD${cal.deadlineWd}, ` : ""}
+                  {day(deadline)}
                   {!locked && deadline && today > deadline && (
                     <Badge variant="destructive" className="ml-2">
                       overdue
@@ -410,9 +423,8 @@ export default async function CloseTimetablePage({
             <CardTitle className="text-base">Close measures</CardTitle>
             <CardDescription>
               Targets from the finance control plan: inputs by WD{cal.inputsWd} (100%), close
-              delivered by WD
-              {cal.deadlineWd}, no reconciling item older than {cal.itemMaxAgeDays} days, a trained
-              backup for every step.
+              delivered by {deadlineText}, no reconciling item older than {cal.itemMaxAgeDays} days,
+              a trained backup for every step.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
@@ -459,7 +471,7 @@ export default async function CloseTimetablePage({
                 <TableRow>
                   <TableHead>Close month</TableHead>
                   <TableHead>Inputs by WD{cal.inputsWd}</TableHead>
-                  <TableHead>Delivered by WD{cal.deadlineWd}</TableHead>
+                  <TableHead>Delivered by {deadlineText}</TableHead>
                   <TableHead>Deadline</TableHead>
                   <TableHead>Locked</TableHead>
                 </TableRow>
@@ -560,6 +572,7 @@ export default async function CloseTimetablePage({
               weekend={[...cal.weekend]}
               inputsWd={cal.inputsWd}
               deadlineWd={cal.deadlineWd}
+              deadlineDay={cal.deadlineDay}
               itemMaxAgeDays={cal.itemMaxAgeDays}
               revshareWd={cal.revshareWd}
               voucherUnpaidDays={cal.voucherUnpaidDays}
@@ -608,7 +621,12 @@ function Measure({
     <Card>
       <CardContent className="flex flex-col gap-1 pt-6">
         <div className="text-muted-foreground text-xs">{label}</div>
-        <div className={cn("text-2xl font-semibold tabular-nums", bad && "text-red-600 dark:text-red-400")}>
+        <div
+          className={cn(
+            "text-2xl font-semibold tabular-nums",
+            bad && "text-red-600 dark:text-red-400",
+          )}
+        >
           {value}
         </div>
         <div className="text-muted-foreground text-xs">{note}</div>
