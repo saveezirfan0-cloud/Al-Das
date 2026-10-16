@@ -471,6 +471,7 @@ Built: Unite invoice capture (off), Diligence claim upload and matching, excepti
 | **Revenue views** | By doctor, department, branch, service; estimate generator for patients |
 | **Accounting export** | One-way to Zoho/QuickBooks |
 | **Coding hints** | Draft suggestions for missing documentation (never auto-submitted) |
+| **Late and changed services** (planned, `docs/41_SERVICE_CHANGE_AUDIT_PLAN.md`) | Flags a service added, changed or cancelled on a past visit (from the claim file, the collection report, the lab file and, once on, the capture), tells the mapped team, gives it an owner and due date; waits on OQ-161 to OQ-166 |
 
 Rule that stays: Unite is the system of record, Pulse mirrors and flags. The deliver-once finance API is touched only by the guarded job.
 
