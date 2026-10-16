@@ -181,6 +181,12 @@ describe("parseProviderLines", () => {
     expect(bad("2026-10-05,85025,5,SYN-1,INV 1 Layla")).toBe(
       "Row 2: Invoice number is not an invoice number.",
     );
+    // the send-out lab's own shapes: composite codes and "Req:" voucher numbers (kept whole, never split)
+    expect(bad("2026-10-05,87177+87209,35.00,SYN-1,Req:19998")).toBe("ok");
+    expect(bad("2026-10-05,87070X3+87186,35.00,SYN-1,INV-1")).toBe("ok");
+    expect(bad("2026-10-05,87177 + 87209,35.00,SYN-1,INV-1")).toBe(
+      "Row 2: Test or service code (CPT or Unite item code) is missing or not a code.",
+    );
     expect(bad("2026-10-05,85025,5,ABC,INV-1")).toBe(
       "Row 2: Unite PIN does not look like a Unite PIN.",
     );

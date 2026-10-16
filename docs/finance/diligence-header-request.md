@@ -1,5 +1,16 @@
 # What to ask Sharaf for (safe to share: headers only)
 
+> **Answered 16 Oct 2026.** The clinic sent a real "ACTIVTY" export (sheet `DataSheet`, 70 columns, service months Jan–Sep 2026). It was analysed in the session scratchpad only; nothing from it is in the repo. What it showed and what changed:
+>
+> - Every required column is present and the file parses as it is.
+> - Diligence spells the last denial code header **`LastDenailCode`**. It is now an alias of `last_denial_code`; before this, no denial case would have been opened from the real file.
+> - `PrimaryDiagnosis` is an alias of `principal_diagnosis` (ICD code only). `Diagnosis` stays unread until the clinic decides whether diagnosis codes are stored (see open-questions).
+> - `PatientID`, `IDPayer`, the clinician name columns and the two free-text comment columns are on the dropped-sensitive list.
+> - `Payer_Name` fills a blank insurer name in the payer reference list at commit (never overwrites a name Finance typed).
+> - `SettledAmt` is an amount, not the yes/no `Settled` flag; it is not read (mapping it to `settled` would fail every row). `InitialDateSettlement`, `SettledAmt` and `ReceiptStatus` are candidates for a later cash-receipt view.
+> - `InvoiceNo` looks like `ADMC/nnnnn` (not `ADMC/C/nnnnn`); matching uses the normalised invoice key.
+> - The tests carry the real header row with synthetic values (`tests/unit/finance/parse-diligence.test.ts`).
+
 We need the exact column names of the Diligence "Claim Details with Activity" export so the importer can be checked against the real file. **Do not send the file itself**: it contains patient names, Emirates IDs and member IDs.
 
 ## What to send

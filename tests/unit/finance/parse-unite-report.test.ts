@@ -279,6 +279,49 @@ describe("parseUniteReport (synthetic workbook)", () => {
     expect([r.fromDate, r.toDate]).toEqual(["2026-09-01", "2026-09-30"]);
   });
 
+  it("reads a one-day export title ('Daily Collection for …') as from = to", async () => {
+    const day = DEFAULT_ROWS.find((r) => r.invoice)!.invoice as Date;
+    const rows = DEFAULT_ROWS.map((r) => ({
+      ...r,
+      visit: r.visit ? day : null,
+      invoice: r.invoice ? day : null,
+    }));
+    const iso = day.toISOString().slice(0, 10);
+    const [y, m, d] = iso.split("-");
+    const mon = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ][Number(m) - 1];
+    const r = await parseUniteReport(
+      await buildUniteReportWorkbook({
+        rows,
+        title: `Daily Collection for ${d}-${mon}-${y} | Generated On: 15-Oct-2026 09:00`,
+      }),
+    );
+    expect([r.fromDate, r.toDate]).toEqual([iso, iso]);
+    // rows from other days are still refused
+    await rejection(
+      parseUniteReport(
+        await buildUniteReportWorkbook({ title: `Daily Collection for ${d}-${mon}-${y}` }),
+      ),
+    );
+    await rejection(
+      parseUniteReport(
+        await buildUniteReportWorkbook({ title: "Daily Collection for 31-Sep-2026" }),
+      ),
+    );
+  });
+
   it("uses the synthetic default rows only", () => {
     expect(DEFAULT_ROWS.every((r) => r.pin === null || String(r.pin).startsWith("90000000"))).toBe(
       true,

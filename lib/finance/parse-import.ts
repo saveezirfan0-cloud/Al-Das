@@ -348,10 +348,11 @@ export type ProviderRow = {
   invoice_no: string | null;
 };
 
-const CODE_RE = /^[A-Z0-9][A-Z0-9._/-]{0,39}$/;
+/** A CPT or Unite item code; a lab may join components with "+" ("87177+87209"), kept as one code, never split. */
+const CODE_RE = /^[A-Z0-9][A-Z0-9._/+-]{0,59}$/;
 /** A Unite PIN or a DHA id: letters, digits, "/" and "-", at least one digit. A name never passes (spaces, no digit). */
 const ID_RE = /^[A-Z0-9][A-Z0-9/-]{0,39}$/;
-const INVOICE_RE = /^[A-Za-z0-9][A-Za-z0-9._/-]{0,39}$/;
+const INVOICE_RE = /^[A-Za-z0-9][A-Za-z0-9._/:-]{0,39}$/; // ":" for voucher numbers like "Req:19998"
 export const isPinLike = (v: string) => ID_RE.test(v) && /\d/.test(v);
 export const isTestCode = (v: string) => CODE_RE.test(v);
 

@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { requirePerm } from "@/lib/auth/session";
+import { formatClinicAliases } from "@/lib/finance/branch-aliases";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/server";
 
@@ -90,7 +91,9 @@ async function Branches({ supabase }: { supabase: Sb }) {
         <CardTitle>Branches</CardTitle>
         <CardDescription>
           Enter the clinic name exactly as Unite sends it (shown in invoices as “unknown clinic”
-          until mapped). After saving, press “Re-derive branches”.
+          until mapped). When Unite renames a clinic, put the new name in the long name and keep the
+          old one under other Unite names, so earlier months stay in the same branch. After saving,
+          press “Re-derive branches”.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
@@ -115,6 +118,13 @@ async function Branches({ supabase }: { supabase: Sb }) {
               defaultValue={b.unite_clinic_short_name ?? ""}
               placeholder="short name"
               className={cn(field, "w-32")}
+            />
+            <Input
+              name="unite_clinic_aliases"
+              defaultValue={formatClinicAliases(b.unite_clinic_aliases)}
+              placeholder="Other Unite names (separate with ;)"
+              aria-label="Other Unite clinic names, separated by semicolons"
+              className={cn(field, "w-72")}
             />
             <Label className="flex items-center gap-1 text-xs">
               <input type="checkbox" name="active" defaultChecked={b.active} /> active

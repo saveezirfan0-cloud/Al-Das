@@ -459,7 +459,12 @@ describe.skipIf(!withApi)("flow parity with the real adapters", () => {
         "insert into public.working_hours (org_id, specialist_id, location_id, weekday, start_min, end_min) values ($1,$2,$3,$4,540,720)",
         [org, spec, loc, wd],
       );
-    const day = localDate(new Date(Date.now() + 2 * 86_400_000), "Asia/Dubai");
+    // two or more days ahead, never a Sunday (the default working week is Monday to Saturday, OQ-07)
+    const isoWeekday = (d: string) => ((new Date(`${d}T12:00:00Z`).getUTCDay() + 6) % 7) + 1;
+    let ahead = 2;
+    while (isoWeekday(localDate(new Date(Date.now() + ahead * 86_400_000), "Asia/Dubai")) === 7)
+      ahead++;
+    const day = localDate(new Date(Date.now() + ahead * 86_400_000), "Asia/Dubai");
     const startsAt = localMinutesToInstant(day, 10 * 60, "Asia/Dubai").toISOString();
     const flow = await addFlow("Book", {
       nodes: [

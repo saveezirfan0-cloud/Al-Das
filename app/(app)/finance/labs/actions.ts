@@ -139,7 +139,7 @@ export async function importProviderFile(
       .maybeSingle(),
     admin
       .from("fin_ref_branches")
-      .select("code, name, unite_clinic_short_name, unite_clinic_long_name")
+      .select("code, name, unite_clinic_short_name, unite_clinic_long_name, unite_clinic_aliases")
       .eq("org_id", member.orgId),
   ]);
   if (!provider || !provider.active || !isProviderKind(provider.kind))
@@ -182,7 +182,13 @@ export async function importProviderFile(
     // a branch is stored only as a known branch code (never the text from the file)
     const branchCode = new Map<string, string>();
     for (const b of branches ?? [])
-      for (const name of [b.code, b.name, b.unite_clinic_short_name, b.unite_clinic_long_name])
+      for (const name of [
+        b.code,
+        b.name,
+        b.unite_clinic_short_name,
+        b.unite_clinic_long_name,
+        ...(b.unite_clinic_aliases ?? []),
+      ])
         if (name) branchCode.set(headerKey(name), b.code);
     const unknownRows: number[] = [];
     const rows = result.rows.map((r, i) => {

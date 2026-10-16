@@ -2,6 +2,7 @@ import { bool, date, int, num, str } from "@/lib/finance/scalars";
 import {
   DILIGENCE_FIELDS,
   DILIGENCE_FIELD_NAMES,
+  DILIGENCE_PAYER_NAME_HEADERS,
   DILIGENCE_SENSITIVE_HEADERS,
   type DiligenceFieldName,
 } from "@/lib/finance/diligence-mapping";
@@ -71,7 +72,11 @@ export type HeaderReport = {
   /** Headers matched to the sensitive list; their data is ignored. */
   droppedSensitive: string[];
   duplicateHeaders: string[];
+  /** Insurer display names per payer id (first non-blank seen), used only to fill blank names. */
+  payerNames?: PayerName[];
 };
+
+export type PayerName = { payer_id: string; payer_name: string };
 
 export type ParseStats = {
   rows: number;
@@ -91,6 +96,9 @@ const MAX_REPORTED_ERRORS = 200;
 
 const squash = (s: string) => s.toLowerCase().replace(/[\s_-]/g, "");
 const SENSITIVE = new Set(DILIGENCE_SENSITIVE_HEADERS.map(squash));
+const PAYER_NAME = new Set(DILIGENCE_PAYER_NAME_HEADERS.map(squash));
+const MAX_PAYER_NAMES = 500;
+const MAX_PAYER_NAME_LENGTH = 120;
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
 export function parseDiligenceTable(table: ReadonlyArray<ReadonlyArray<unknown>>): ParseResult {
@@ -107,10 +115,15 @@ export function parseDiligenceTable(table: ReadonlyArray<ReadonlyArray<unknown>>
   const unrecognised: string[] = [];
   const droppedSensitive: string[] = [];
   const duplicateHeaders: string[] = [];
+  let payerNameCol: number | null = null;
   headerRow.forEach((h, idx) => {
     if (!h) return;
     const k = squash(h);
     if (SENSITIVE.has(k)) return void droppedSensitive.push(h);
+    if (PAYER_NAME.has(k)) {
+      if (payerNameCol === null) payerNameCol = idx;
+      return;
+    }
     const field = byAlias.get(k);
     if (!field) return void unrecognised.push(h);
     if (columnOf.has(field)) return void duplicateHeaders.push(h);
@@ -150,6 +163,7 @@ export function parseDiligenceTable(table: ReadonlyArray<ReadonlyArray<unknown>>
 
   const rows: ClaimRow[] = [];
   const seen = new Map<string, number>();
+  const payerNames = new Map<string, string>();
   dataRows.forEach((raw, i) => {
     const rowNo = i + 2; // spreadsheet row number (header is row 1)
     const out: Record<string, string | number | boolean | null> = {};
@@ -200,6 +214,11 @@ export function parseDiligenceTable(table: ReadonlyArray<ReadonlyArray<unknown>>
       else seen.set(key, rowNo);
     }
     rows.push(out as unknown as ClaimRow);
+    const payerId = out.payer_id as string | null;
+    if (payerNameCol !== null && payerId && !payerNames.has(payerId)) {
+      const name = payerNameOf(raw[payerNameCol]);
+      if (name && payerNames.size < MAX_PAYER_NAMES) payerNames.set(payerId, name);
+    }
   });
 
   if (totalErrors > 0) return { ok: false, errors, totalErrors, header };
@@ -210,6 +229,10 @@ export function parseDiligenceTable(table: ReadonlyArray<ReadonlyArray<unknown>>
     .sort();
   const sum = (k: "net" | "remitted" | "rejected") =>
     round2(rows.reduce((a, r) => a + (r[k] ?? 0), 0));
+  if (payerNameCol !== null)
+    header.payerNames = [...payerNames]
+      .map(([payer_id, payer_name]) => ({ payer_id, payer_name }))
+      .sort((a, b) => a.payer_id.localeCompare(b.payer_id));
   return {
     ok: true,
     rows,
@@ -223,6 +246,17 @@ export function parseDiligenceTable(table: ReadonlyArray<ReadonlyArray<unknown>>
       sumRejected: sum("rejected"),
     },
   };
+}
+
+/** An insurer name cell -> a short single-line name, or null. */
+function payerNameOf(cell: unknown): string | null {
+  const v = str(cell);
+  if (typeof v !== "string") return null;
+  const clean = v
+    .replace(/[\u0000-\u001f\u007f]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return clean ? clean.slice(0, MAX_PAYER_NAME_LENGTH) : null;
 }
 
 // ---- spreadsheet reader ---------------------------------------------------

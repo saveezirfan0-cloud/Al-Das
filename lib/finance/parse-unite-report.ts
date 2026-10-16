@@ -26,6 +26,7 @@ import {
   SUMMARY_HEADER_MARKERS,
   SUMMARY_SHEET,
   SUMMARY_TOTAL_LABEL,
+  ONE_DAY_TITLE_PATTERN,
   TITLE_PATTERN,
   TITLE_SEARCH_ROWS,
   titleDate,
@@ -101,6 +102,12 @@ const toFils = (mils: number) => Math.round(mils / 10);
 function readTitle(summary: SheetTable): { fromDate: string; toDate: string } {
   for (const row of summary.slice(0, TITLE_SEARCH_ROWS)) {
     const text = cleanText(row[0]);
+    const one = text ? ONE_DAY_TITLE_PATTERN.exec(text) : null;
+    if (one) {
+      const day = titleDate(one[1], one[2], one[3]);
+      if (!day) fail("The report title has a date that is not valid.");
+      return { fromDate: day as string, toDate: day as string };
+    }
     const m = text ? TITLE_PATTERN.exec(text) : null;
     if (!m) continue;
     const fromDate = titleDate(m[1], m[2], m[3]);
@@ -109,7 +116,9 @@ function readTitle(summary: SheetTable): { fromDate: string; toDate: string } {
       fail("The report title has a date range that is not valid.");
     return { fromDate: fromDate as string, toDate: toDate as string };
   }
-  return fail("The Clinic Summary sheet has no 'Daily Collection from … to …' title.");
+  return fail(
+    "The Clinic Summary sheet has no 'Daily Collection from … to …' or 'Daily Collection for …' title.",
+  );
 }
 
 function readReportTotals(summary: SheetTable): ReportTotals {

@@ -3,10 +3,10 @@ import type { FieldSpec } from "@/lib/finance/unite-mapping";
 /**
  * The ONLY place that knows the Diligence "Claim Details with Activity" column names.
  *
- * No real export is in the repo (it contains patient names and Emirates IDs), so the primary alias
- * of every column is the name used in the project brief. When the real header row arrives (see
- * docs/finance/diligence-header-request.md) adjust the aliases here; the upload screen lists every
- * header it did not recognise, so a mismatch is quick to fix.
+ * No real export is in the repo (it contains patient names and Emirates IDs). The aliases cover the
+ * names in the project brief and the clinic's real "ACTIVTY" export header row (Oct 2026, 70 columns,
+ * see docs/finance/diligence-header-request.md); the upload screen lists every header it did not
+ * recognise, so a later change is quick to fix.
  *
  * Columns are matched ignoring case, spaces, underscores and dashes. A column that is not listed
  * here is NEVER read or stored, so unknown columns (which may hold patient data) are dropped.
@@ -51,9 +51,14 @@ export const DILIGENCE_FIELDS = {
   write_off: f("number", ["WriteOffAmt", "WriteOffAmount", "WriteOff"]),
   write_off_status: f("string", ["WriteOffStatus"]),
   settled: f("bool", ["Settled", "IsSettled"]),
-  principal_diagnosis: f("string", ["PrincipalDiagnosis", "PrincipalDiagnosisCode"]),
+  principal_diagnosis: f("string", [
+    "PrincipalDiagnosis",
+    "PrincipalDiagnosisCode",
+    "PrimaryDiagnosis",
+  ]),
   diagnosis_text: f("string", ["DiagnosisText", "DiagnosisDescription"]),
-  last_denial_code: f("string", ["LastDenialCode"]),
+  // Diligence spells this header "LastDenailCode"; without the alias no denial case is ever opened.
+  last_denial_code: f("string", ["LastDenialCode", "LastDenailCode"]),
   denial_category: f("string", ["DenialCategory"]),
   denial_type: f("string", ["DenialType"]),
   denial_comment: f("string", ["DenialComment"]),
@@ -92,6 +97,19 @@ export const DILIGENCE_SENSITIVE_HEADERS: readonly string[] = [
   "DOB",
   "PatientMobile",
   "PatientPhone",
+  // seen in the real export: patient and payer member ids, clinician names, free-text comments
+  "PatientID",
+  "IDPayer",
+  "OrderingClinician_Name",
+  "Clinician_Name",
+  "WriteOffComment",
+  "InitialDenialComment",
 ];
+
+/**
+ * The insurer's display name. Read only to fill a blank `fin_ref_payers.payer_name` for the payer id
+ * on the same row (an insurer's name is business data); never stored on the claim line.
+ */
+export const DILIGENCE_PAYER_NAME_HEADERS: readonly string[] = ["Payer_Name", "PayerName"];
 
 export const DILIGENCE_SHEET_NAMES = ["DataSheet"] as const;
