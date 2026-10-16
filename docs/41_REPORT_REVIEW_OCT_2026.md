@@ -1,6 +1,6 @@
 # Report review, October 2026: insurance, lab, daily revenue and operations files
 
-The clinic sent four sets of its own reports on 15 and 16 October 2026 for the finance decisions meeting. They were analysed in the session scratchpad only. **Nothing from them is in the repo**: this note holds counts, totals and column names, never a patient, member or staff value. The decisions they feed are in `docs/audit/open-questions.md` (evidence added to OQ-132 to OQ-158, new questions OQ-161 to OQ-180).
+The clinic sent four sets of its own reports on 15 and 16 October 2026 for the finance decisions meeting. They were analysed in the session scratchpad only. **Nothing from them is in the repo**: this note holds counts, totals and column names, never a patient, member or staff value. The decisions they feed are in `docs/audit/open-questions.md` (evidence added to OQ-132 to OQ-158, new questions OQ-161 to OQ-181).
 
 ## 1. Insurance (Diligence exports, facility DHA-F-0000419)
 

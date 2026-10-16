@@ -176,6 +176,7 @@ Everything that must be answered by the clinic (clinical lead, operations, manag
 | OQ-178 | **Appointment confirmation.** Who confirms appointments and by when? On 16 Oct, 25 of 50 same-day Shoreline appointments were still "awaiting confirmation". | docs/41 §4 | n/a | front desk confirms the day before | Abdul | No | reminders, capacity |
 | OQ-179 | **Cancellation reasons.** Cancellations are mostly booking corrections (wrong patient, wrong doctor) typed as free text. Use a fixed list that separates corrections from real patient cancellations? | docs/41 §4 | free text | fixed list | Abdul | No | utilisation |
 | OQ-180 | **"How did you hear about us".** The field has about 60 spellings. Use a fixed list so marketing sources can be counted? | docs/41 §4 | free text | fixed list | Abdul / marketing | No | marketing |
+| OQ-181 | **Daily collections tie.** Who reconciles each branch's Unite payment modes (cash, card, bank, gateway, insurance, advances, credit notes) to the reception cash-up each day, and what difference must be explained? The hand report already compares them; on 14 Oct the total equalled Unite net, but some tables add VAT. | docs/41 §2 | hand report | reception cash-up per branch daily, Finance reviews next working day, differences above AED 10 explained, net of VAT | Krishna | No | cash-up, collections |
 
 ## Already-decided items (recorded so they are not re-asked)
 - No patient-facing clinical message before `clinical_messaging_enabled` is signed off (Settings "Phase 2 internal validation", Follow-Up Queue description).

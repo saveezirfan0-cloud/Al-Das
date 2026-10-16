@@ -46,7 +46,7 @@ _Updated 14 Oct 2026. Pulse's code for Phases 20 to 22 is merged into `main` (fi
 ## 7. Decisions (all open questions)
 
 <!-- generated:start -->
-_Generated 16 Oct 2026 by `scripts/compile-todo.py`: 163 open questions, 52 of them blocking a feature._
+_Generated 16 Oct 2026 by `scripts/compile-todo.py`: 164 open questions, 52 of them blocking a feature._
 
 ### Answer these first
 
@@ -169,6 +169,7 @@ _Generated 16 Oct 2026 by `scripts/compile-todo.py`: 163 open questions, 52 of t
 - [ ] **OQ-171** (Althaf / Krishna, blocking): **Lab matching rules.** How far apart may the lab request date and the bill date be (same day misses about a third of matches), and who keeps the list linking lab codes to Unite codes, panels and clinic bundles? _(today: none; proposed: 3 days; Finance with the lab, starting from the September pairs)_
 - [ ] **OQ-173** (Althaf): **Agreed lab price list.** Which FML price list is agreed (the 2025 list or the March 2026 file)? 22 September lines were billed below it; HOMA appears at AED 0 under the lipid code. _(today: two lists; proposed: one signed list, dated)_
 - [ ] **OQ-174** (Althaf / Hardik): **Lab cost by branch.** Should lab cost follow the collection branch on the lab's invoice or the branch on the Unite bill? _(proposed: the lab invoice's collection branch)_
+- [ ] **OQ-181** (Krishna): **Daily collections tie.** Who reconciles each branch's Unite payment modes (cash, card, bank, gateway, insurance, advances, credit notes) to the reception cash-up each day, and what difference must be explained? The hand report already compares them; on 14 Oct the total equalled Unite net, but some tables add VAT. _(today: hand report; proposed: reception cash-up per branch daily, Finance reviews next working day, differences above AED 10 explained, net of VAT)_
 
 ### Marketing, consent and legal
 
