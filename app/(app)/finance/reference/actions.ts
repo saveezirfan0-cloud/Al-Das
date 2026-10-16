@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { recordAudit } from "@/lib/audit";
 import { requirePerm } from "@/lib/auth/session";
+import { parseClinicAliases } from "@/lib/finance/branch-aliases";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -50,13 +51,17 @@ const branchSchema = z.object({
   name: text.min(1),
   unite_clinic_long_name: nullable,
   unite_clinic_short_name: nullable,
+  unite_clinic_aliases: z.string().max(2500).optional().default(""),
   active: checkbox,
 });
 export async function saveBranch(formData: FormData): Promise<ActionResult> {
   await requirePerm(PERM);
   const p = branchSchema.safeParse(Object.fromEntries(formData));
   if (!p.success) return { ok: false, error: "Check the branch name and clinic names." };
-  const { id, ...patch } = p.data;
+  const { id, unite_clinic_aliases: aliasText, ...fields } = p.data;
+  const aliases = parseClinicAliases(aliasText, fields.unite_clinic_long_name);
+  if (!aliases.ok) return { ok: false, error: aliases.error };
+  const patch = { ...fields, unite_clinic_aliases: aliases.aliases };
   const { error } = await (
     await createClient()
   )

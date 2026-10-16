@@ -12105,6 +12105,7 @@ export type Database = {
           id: string;
           name: string;
           org_id: string;
+          unite_clinic_aliases: string[];
           unite_clinic_long_name: string | null;
           unite_clinic_short_name: string | null;
           updated_at: string;
@@ -12117,6 +12118,7 @@ export type Database = {
           id?: string;
           name: string;
           org_id: string;
+          unite_clinic_aliases?: string[];
           unite_clinic_long_name?: string | null;
           unite_clinic_short_name?: string | null;
           updated_at?: string;
@@ -12128,6 +12130,7 @@ export type Database = {
           id?: string;
           name?: string;
           org_id?: string;
+          unite_clinic_aliases?: string[];
           unite_clinic_long_name?: string | null;
           unite_clinic_short_name?: string | null;
           updated_at?: string;

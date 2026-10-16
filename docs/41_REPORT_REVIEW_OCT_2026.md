@@ -66,12 +66,13 @@ Evidence:
 | Insurer name fills a blank payer name at commit | Pages showed payer ids only; never overwrites a name Finance typed | `parse-diligence.ts`, `diligence-service.ts`, `diligence-db.ts` |
 | One-day Unite collection export accepted ("Daily Collection for …") | Daily uploads were refused | `lib/finance/unite-report-mapping.ts`, `parse-unite-report.ts` |
 | Lab files: composite codes ("87177+87209") and voucher numbers with ":" ("Req:19998") | The send-out lab's file was refused as a whole | `parse-import.ts`, migration `20261209000100` |
+| Unite clinic name aliases per branch (`fin_ref_branches.unite_clinic_aliases`, Reference data page "Other Unite names", `;` separated) | Unite's clinic rename after 10 Nov would have turned every earlier month into "unknown branch"; one name can never belong to two branches (trigger, 23505) | migration `20261209000200` (11 functions redefined from their last definition with only the clinic comparison widened), `lib/finance/branch-aliases.ts` |
 
 Tests: the real 70-column Diligence header row with synthetic values; a one-day title; lab code shapes.
 
 ## 6. Build backlog the evidence supports (not built yet)
 
-1. **Branch aliases** (OQ-162): several Unite clinic names per branch, so the rename after 10 Nov does not turn September and October into "unknown branch". Needed before the rename.
+1. ~~Branch aliases~~ (OQ-162): built (§5). On rename day, Finance puts the new name in the long name and the old one under other Unite names.
 2. **Branch per visit** (OQ-161): default from the doctor's rota, corrected by Finance.
 3. **Flash report on the uploaded report** while Unite capture stays off; per-line Unite vs cash-up tie and a patient-count grid; branch + department line rules (OQ-164).
 4. **Unite investigations upload** (the Period Wise Investigations RawData sheet) so lab reconciliation has a billed side while capture is off; a lab code crosswalk with panels; "in-house test sent out" and duplicate exceptions; a price list that allows more than one price per code; the fixed-fee line skipped as a fee.
