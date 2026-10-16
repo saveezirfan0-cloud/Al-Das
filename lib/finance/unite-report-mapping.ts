@@ -26,6 +26,8 @@ export const MAX_SUMMARY_ROWS = 2_000;
 /** "Daily Collection from 01-Sep-2026  to 30-Sep-2026 | Generated On: ..." (spacing is tolerated). */
 export const TITLE_PATTERN =
   /Daily\s+Collection\s+from\s+(\d{1,2})-([A-Za-z]{3})-(\d{4})\s+to\s+(\d{1,2})-([A-Za-z]{3})-(\d{4})/i;
+/** A one-day export: "Daily Collection for 14-Oct-2026 | Generated On: ..." (from = to). */
+export const ONE_DAY_TITLE_PATTERN = /Daily\s+Collection\s+for\s+(\d{1,2})-([A-Za-z]{3})-(\d{4})/i;
 /** The title is looked for in column A of the first rows of the Clinic Summary sheet. */
 export const TITLE_SEARCH_ROWS = 6;
 

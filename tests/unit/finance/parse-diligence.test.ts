@@ -184,3 +184,170 @@ describe("readXlsxTable (real .xlsx round trip)", () => {
     expect(JSON.stringify(res.rows)).not.toContain("Test Patient One");
   });
 });
+
+// The header row of the clinic's real "ACTIVTY" export (Oct 2026). Column names only; every value
+// below is synthetic.
+const REAL_HEADERS = [
+  "FacilityGroupID",
+  "HealthAuthority",
+  "FacilityID",
+  "Facility_Name",
+  "InvoiceNo",
+  "PatientID",
+  "TransactionDate",
+  "ActivityStartDate",
+  "EncounterType",
+  "EncounterStartDate",
+  "EncounterEndDate",
+  "ClaimActivityNumber",
+  "CPTCode",
+  "CPTCategory",
+  "CPTType",
+  "Quantity",
+  "OrderingClinician",
+  "OrderingClinician_Name",
+  "Clinician",
+  "Clinician_Name",
+  "ReceiverID",
+  "Receiver_Name",
+  "PayerID",
+  "Payer_Name",
+  "MemberID",
+  "EmiratesIDNumber",
+  "IDPayer",
+  "PaymentReference",
+  "PriorAuthorizationID",
+  "NetAmt",
+  "InitialNetAmt",
+  "Diagnosis",
+  "PrimaryDiagnosis",
+  "LastResubmissionDate",
+  "FirstRemittanceDate",
+  "LastRemittanceDate",
+  "RemittedAmt",
+  "LastRemittedAmount",
+  "InitialRejectedAmt",
+  "RejectedAmt",
+  "UnprocessedAmt",
+  "RejectionPercentage",
+  "WriteOffAmt",
+  "WriteOffStatus",
+  "WriteOffComment",
+  "LastDenailCode",
+  "DenialComment",
+  "DenialCategory",
+  "DenialType",
+  "InitialDenialCode",
+  "InitialDenialComment",
+  "InitialDenialCategory",
+  "InitialDenialType",
+  "ResubmissionCount",
+  "RemittanceCount",
+  "RemittanceComment",
+  "ResubmissionComment",
+  "ClaimYear",
+  "ClaimMonth",
+  "AllSubmissionFiles",
+  "SubmissionAllTransactionIds",
+  "LastSubmissionFile",
+  "LastSubmissionTransactionId",
+  "LastRemittanceFile",
+  "LastRemittanceTransactionId",
+  "SettledAmt",
+  "ReceiptStatus",
+  "InitialDateSettlement",
+  "ClaimStatus",
+  "PaymentStatus",
+];
+
+function realRow(over: Record<string, unknown> = {}): unknown[] {
+  const v: Record<string, unknown> = {
+    InvoiceNo: "ADMC/90001",
+    PatientID: "PIN-TEST-1",
+    TransactionDate: "02-03-2026",
+    ClaimActivityNumber: "CA-REAL-1",
+    CPTCode: "99213",
+    OrderingClinician_Name: "Dr Test Name",
+    Clinician_Name: "Dr Test Name",
+    PayerID: "PAYER-TEST",
+    Payer_Name: "Test Insurer LLC",
+    MemberID: "MEMBER-TEST",
+    EmiratesIDNumber: "000-0000-0000000-0",
+    IDPayer: "IDPAYER-TEST",
+    NetAmt: 100,
+    InitialNetAmt: 100,
+    PrimaryDiagnosis: "Z00.0",
+    RemittedAmt: 0,
+    RejectedAmt: 100,
+    WriteOffComment: "write-off note",
+    LastDenailCode: "MNEC-003",
+    InitialDenialComment: "initial note",
+    SettledAmt: 0,
+    ClaimStatus: "Rejected",
+    ...over,
+  };
+  return REAL_HEADERS.map((h) => (h in v ? v[h] : ""));
+}
+
+describe("the real ACTIVTY header row", () => {
+  it("parses, reads the misspelt denial code and keeps patient columns out", () => {
+    const res = parseDiligenceTable([REAL_HEADERS, realRow()]);
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.rows[0]).toMatchObject({
+      invoice_no: "ADMC/90001",
+      last_denial_code: "MNEC-003",
+      principal_diagnosis: "Z00.0",
+      settled: null, // SettledAmt is an amount, never read as the yes/no flag
+    });
+    expect(res.header.missingRequired).toEqual([]);
+    expect(res.header.droppedSensitive).toEqual(
+      expect.arrayContaining([
+        "PatientID",
+        "IDPayer",
+        "OrderingClinician_Name",
+        "Clinician_Name",
+        "MemberID",
+        "EmiratesIDNumber",
+        "WriteOffComment",
+        "InitialDenialComment",
+      ]),
+    );
+    expect(res.header.unrecognised).not.toContain("Payer_Name");
+    const json = JSON.stringify(res.rows);
+    for (const secret of [
+      "PIN-TEST-1",
+      "Dr Test Name",
+      "IDPAYER-TEST",
+      "write-off note",
+      "initial note",
+      "Test Insurer",
+    ])
+      expect(json).not.toContain(secret);
+  });
+
+  it("collects one insurer name per payer id for the reference list", () => {
+    const res = parseDiligenceTable([
+      REAL_HEADERS,
+      realRow(),
+      realRow({ ClaimActivityNumber: "CA-REAL-2", Payer_Name: "Another Name" }),
+      realRow({
+        ClaimActivityNumber: "CA-REAL-3",
+        PayerID: "PAYER-TWO",
+        Payer_Name: "  Second\tInsurer ",
+      }),
+      realRow({ ClaimActivityNumber: "CA-REAL-4", PayerID: "PAYER-BLANK", Payer_Name: "" }),
+    ]);
+    if (!res.ok) throw new Error("expected ok");
+    expect(res.header.payerNames).toEqual([
+      { payer_id: "PAYER-TEST", payer_name: "Test Insurer LLC" },
+      { payer_id: "PAYER-TWO", payer_name: "Second Insurer" },
+    ]);
+  });
+
+  it("has no payer-name list when the file has no name column", () => {
+    const res = parseDiligenceTable(table());
+    if (!res.ok) throw new Error("expected ok");
+    expect(res.header.payerNames).toBeUndefined();
+  });
+});

@@ -248,6 +248,24 @@ export function dbDiligenceStore(admin: AdminClient): DiligenceStore {
       return (res ?? {}) as Record<string, number>;
     },
 
+    async fillPayerNames(orgId, names) {
+      let filled = 0;
+      for (const n of names) {
+        const data = must(
+          await admin
+            .from("fin_ref_payers")
+            .update({ payer_name: n.payer_name })
+            .eq("org_id", orgId)
+            .eq("payer_id", n.payer_id)
+            .is("payer_name", null)
+            .select("payer_id"),
+          "fill payer names",
+        );
+        filled += data?.length ?? 0;
+      }
+      return filled;
+    },
+
     async discard(orgId, fileId, reason) {
       must(
         await admin.rpc("ins_discard_import", {

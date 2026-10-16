@@ -13,6 +13,7 @@ import {
   readXlsxTable,
   type ClaimRow,
   type HeaderReport,
+  type PayerName,
   type ParseStats,
   type ValidationError,
 } from "@/lib/finance/parse-diligence";
@@ -96,6 +97,8 @@ export type DiligenceStore = {
     raiseMissing: boolean;
   }): Promise<Record<string, number>>;
   discard(orgId: string, fileId: string, reason: string): Promise<void>;
+  /** Fills a blank `fin_ref_payers.payer_name`; never overwrites a name Finance set. Returns rows filled. */
+  fillPayerNames?(orgId: string, names: PayerName[]): Promise<number>;
   /** One page of claims to (re)match, ordered by id, strictly after `afterId` (keyset paging). */
   claimsForMatching(
     orgId: string,
@@ -326,6 +329,12 @@ export async function commitImport(
     missing: diff.missing,
     raiseMissing: input.raiseMissing,
   });
+
+  const payerNames = (file.headerCheck as HeaderReport | null)?.payerNames ?? [];
+  if (store.fillPayerNames && payerNames.length > 0) {
+    const filled = await store.fillPayerNames(input.orgId, payerNames);
+    if (filled > 0) summary.payer_names_filled = filled;
+  }
 
   const matched = await matchClaimsForOrg(store, input.orgId, {
     kind: "file",
