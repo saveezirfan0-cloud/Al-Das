@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-12-09-finance-controls",
+    date: "2026-10-16",
+    title: "Month-end by the 10th, and separate revenue and cost roles",
+    body: "The month-end close is now measured against the 10th of the following month, as agreed by management, and the close timetable flags any step due after it. Two new roles follow the agreed split: Revenue & Collections (Unite uploads, cash-ups, card and bank receipt matching, revenue reports) and Costs & Expenses (supplier invoices, vouchers, lab statements, costs). Both submit to the Finance Manager, who alone consolidates, signs and circulates the clinic-wide P&L before the CEO gives final approval. The timetable has three new steps for the hand-offs: revenue schedules and cost schedules sent to the Finance Manager, then the reviewed pack sent to the CEO.",
+  },
+  {
     id: "2026-12-08-management-reports",
     date: "2026-10-14",
     title: "Collections, insurance billing, contribution, capacity and recruitment",

@@ -123,8 +123,9 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance close timetable (Phase 20G)", () =>
         svc(async () =>
           Number((await q("select public.fin_close_seed_steps($1) as n", [org])).rows[0].n),
         );
-      expect(await seed(orgA)).toBe(10);
-      expect(await seed(orgB)).toBe(10);
+      // ten standard steps plus the three e-mail trail steps of the 16 Oct 2026 controls (20261209000300)
+      expect(await seed(orgA)).toBe(13);
+      expect(await seed(orgB)).toBe(13);
       await svc(() =>
         q(
           "update public.fin_close_steps set title = 'Bank reconciled (edited)', owner_user_id = $2, backup_user_id = $3 where org_id = $1 and code = 'BANK_CASH'",
@@ -142,13 +143,16 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance close timetable (Phase 20G)", () =>
         "INS_SUBMISSIONS",
         "DILIGENCE_REC",
         "REVENUE_UNITE",
+        "REVENUE_SUBMIT",
         "BANK_CASH",
         "SUPPLIER_INVOICES",
+        "COSTS_SUBMIT",
         "HR_INPUTS",
         "LAB_REFERRALS",
         "REVENUE_SHARES",
         "TALLY_CLOSE",
         "DRAFT_ACCOUNTS",
+        "PACK_TO_CEO",
       ]);
       expect(rows.find((r) => r.code === "BANK_CASH")!.title).toBe("Bank reconciled (edited)");
       expect(
@@ -167,7 +171,7 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance close timetable (Phase 20G)", () =>
           [orgA],
         ),
       );
-      expect(await generate(orgA, SEPT)).toBe(9);
+      expect(await generate(orgA, SEPT)).toBe(12);
       expect(await generate(orgA, SEPT)).toBe(0);
       // a step added (or re-activated) later joins the month; a changed due day does not rewrite existing tasks
       await svc(() =>
@@ -217,12 +221,12 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance close timetable (Phase 20G)", () =>
 
     it("Finance, the CEO and step owners (Billing, Insurance) read their own org's timetable only", async () => {
       for (const who of ["fin", "ceo", "billing", "owner", "alice"])
-        expect(await visible(who), who).toEqual({ steps: 10, tasks: 10, holidays: 1 });
+        expect(await visible(who), who).toEqual({ steps: 13, tasks: 13, holidays: 1 });
     });
 
     it("the Medical Director and another org's admin see nothing", async () => {
       expect(await visible("md")).toEqual({ steps: 0, tasks: 0, holidays: 0 });
-      expect(await visible("bob")).toEqual({ steps: 10, tasks: 0, holidays: 1 }); // org B's own seed only
+      expect(await visible("bob")).toEqual({ steps: 13, tasks: 0, holidays: 1 }); // org B's own seed only
       const leaked = await asRole("bob", async () =>
         Number(
           (
@@ -426,7 +430,7 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance close timetable (Phase 20G)", () =>
 
   describe("a locked month", () => {
     it("keeps its timetable: no new tasks, no status change, no reminder", async () => {
-      expect(await generate(orgA, AUG)).toBe(10);
+      expect(await generate(orgA, AUG)).toBe(13);
       const hr = await taskId(orgA, AUG, "HR_INPUTS");
       await svc(async () => {
         await q(

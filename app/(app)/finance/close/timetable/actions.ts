@@ -17,7 +17,7 @@ import {
   type ActionResult,
 } from "@/lib/finance/action-support";
 import { lastClosedMonth, MONTH_RE } from "@/lib/finance/close-server";
-import { MAX_DUE_WD, STEP_CODE_RE } from "@/lib/finance/close-timetable";
+import { MAX_DEADLINE_DAY, MAX_DUE_WD, STEP_CODE_RE } from "@/lib/finance/close-timetable";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
@@ -274,6 +274,14 @@ const calendarSchema = z
       .transform((x) => (x === "" ? null : `${x}-01`)),
     inputs_wd: wd("Inputs working day"),
     deadline_wd: wd("Delivery working day"),
+    deadline_day: z
+      .string()
+      .trim()
+      .refine(
+        (x) => x === "" || (/^\d{1,2}$/.test(x) && Number(x) >= 1 && Number(x) <= MAX_DEADLINE_DAY),
+        `Deadline day of the month: 1 to ${MAX_DEADLINE_DAY}, or blank to use the working day.`,
+      )
+      .transform((x) => (x === "" ? null : Number(x))),
     item_max_age_days: z.coerce
       .number({ message: "Age limit must be a number." })
       .int("Age limit must be a whole number.")
@@ -296,7 +304,7 @@ const calendarSchema = z
   });
 
 /**
- * Field names: start (YYYY-MM or blank = off), inputs_wd, deadline_wd, item_max_age_days, wk_1..wk_7 checkboxes, and the
+ * Field names: start (YYYY-MM or blank = off), inputs_wd, deadline_wd, deadline_day (1-28 or blank), item_max_age_days, wk_1..wk_7 checkboxes, and the
  * Board pack thresholds revshare_wd, voucher_unpaid_days and receivables_over90_pct.
  */
 export async function saveCloseCalendar(values: Record<string, string>): Promise<ActionResult> {
@@ -312,6 +320,7 @@ export async function saveCloseCalendar(values: Record<string, string>): Promise
     close_weekend_days: weekend,
     close_inputs_wd: p.data.inputs_wd,
     close_deadline_wd: p.data.deadline_wd,
+    close_deadline_day: p.data.deadline_day,
     close_item_max_age_days: p.data.item_max_age_days,
     close_revshare_wd: p.data.revshare_wd,
     close_voucher_unpaid_days: p.data.voucher_unpaid_days,

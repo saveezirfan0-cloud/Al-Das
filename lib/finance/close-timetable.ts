@@ -17,6 +17,8 @@ export type TaskStatus = "open" | "done" | "blocked";
 
 export const STEP_CODE_RE = /^[A-Z0-9_]{1,24}$/;
 export const MAX_DUE_WD = 23;
+/** A calendar deadline day is 1 to 28, so it exists in every month. */
+export const MAX_DEADLINE_DAY = 28;
 export const DEFAULT_WEEKEND: readonly number[] = [6, 7];
 export const WEEKDAY_LABELS: Record<number, string> = {
   1: "Monday",
@@ -247,6 +249,32 @@ export function ageDays(openedOn: string | null, today: string): number | null {
   return a === null || b === null ? null : Math.max(0, b - a);
 }
 
+/**
+ * The close deadline for a close month. When `deadlineDay` is set (management's rule of 16 Oct 2026: "the reporting and
+ * approval trail for the preceding month is complete by the 10th"), it is that calendar day of the month after the close
+ * month, whatever the weekday; otherwise it is working day `deadlineWd` of that month.
+ */
+export function closeDeadlineOn(
+  closeMonth: string,
+  deadlineWd: number,
+  deadlineDay: number | null,
+  cal: WorkCalendar,
+): string | null {
+  if (deadlineDay === null) return dueOn(closeMonth, deadlineWd, cal);
+  const first = monthStart(closeMonth);
+  if (!first || !Number.isInteger(deadlineDay) || deadlineDay < 1 || deadlineDay > MAX_DEADLINE_DAY)
+    return null;
+  return `${addMonths(first, 1).slice(0, 8)}${String(deadlineDay).padStart(2, "0")}`;
+}
+
+/** "the 10th" for a calendar deadline, "WD10" for a working-day one. */
+export function deadlineLabel(deadlineWd: number, deadlineDay: number | null): string {
+  if (deadlineDay === null) return `WD${deadlineWd}`;
+  const n = deadlineDay % 100;
+  const suffix = n >= 11 && n <= 13 ? "th" : (["th", "st", "nd", "rd"][n % 10] ?? "th");
+  return `the ${deadlineDay}${suffix}`;
+}
+
 export type MonthKpi = {
   month: string;
   inputs: InputsMeasure;
@@ -263,10 +291,17 @@ export function monthKpis(input: {
   cal: WorkCalendar;
   inputsWd: number;
   deadlineWd: number;
+  /** Calendar deadline day (1-28) of the following month; null = use deadlineWd. */
+  deadlineDay?: number | null;
   today: string;
 }): MonthKpi[] {
   return input.months.map((month) => {
-    const deadlineOn = dueOn(month, input.deadlineWd, input.cal);
+    const deadlineOn = closeDeadlineOn(
+      month,
+      input.deadlineWd,
+      input.deadlineDay ?? null,
+      input.cal,
+    );
     const lockedOn = input.lockedOn[month] ?? null;
     return {
       month,

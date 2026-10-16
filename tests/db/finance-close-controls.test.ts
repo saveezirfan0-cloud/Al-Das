@@ -407,13 +407,14 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance close controls (Phase 20G part 2)",
       over_90: { count: 1, amount: 2000 },
       over_90_pct: 66.7,
     });
+    // 13 steps since the 16 Oct 2026 controls: the revenue and cost submissions (WD4) count as inputs
     expect(r.timetable).toMatchObject({
-      tasks: 10,
+      tasks: 13,
       done: 2,
       blocked: 1,
       inputs_wd: 5,
       inputs_due_on: "2026-10-08",
-      inputs: { total: 6, on_time: 1, late: 5, pending: 0 },
+      inputs: { total: 8, on_time: 1, late: 7, pending: 0 },
     });
     expect(r.exceptions).toEqual({ open: 2, oldest_days: 74, over_limit: 1 });
   });
@@ -427,7 +428,8 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance close controls (Phase 20G part 2)",
 
   it("judges inputs not yet due as pending on an earlier day", async () => {
     const r = await controls(orgA, "2026-10-08");
-    expect(r.timetable!.inputs).toEqual({ total: 6, on_time: 1, late: 1, pending: 4 });
+    // the two WD4 submissions were due on 7 October, so they are late on the 8th
+    expect(r.timetable!.inputs).toEqual({ total: 8, on_time: 1, late: 3, pending: 4 });
   });
 
   it("reads the thresholds from the settings", async () => {

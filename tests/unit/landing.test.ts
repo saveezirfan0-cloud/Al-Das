@@ -25,6 +25,9 @@ describe("landingPathFor (Phase D role homes)", () => {
       // Phase G: the Reports hub is the finance landing for holders of a report key
       Finance: "/finance/reports",
       "Finance Manager": "/finance/reports",
+      // finance controls of 16 Oct 2026: revenue reports for Revenue & Collections, the finance inbox for Costs & Expenses
+      "Revenue & Collections": "/finance/reports",
+      "Costs & Expenses": "/finance/inbox",
       "Medical Director": "/finance/reports",
       Insurance: "/finance/reports",
       Billing: "/finance/invoices",

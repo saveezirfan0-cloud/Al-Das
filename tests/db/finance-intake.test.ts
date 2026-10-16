@@ -135,10 +135,20 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance intake (Phase 20B)", () => {
       const id = (
         await q("insert into public.orgs (name, slug) values ('Org C', 'org-c-20b') returning id")
       ).rows[0].id as string;
+      // roles that arrived after this migration (20261209000300) are created with their key, as that migration does
+      const later = new Set(["Revenue & Collections", "Costs & Expenses"]);
       for (const r of FINANCE_ROLES)
         await q(
           "insert into public.roles (org_id, name, description, permissions, is_system) values ($1, $2, '', $3::jsonb, true)",
-          [id, r.name, JSON.stringify(r.permissions.filter((p) => p !== "finance.inbox.manage"))],
+          [
+            id,
+            r.name,
+            JSON.stringify(
+              later.has(r.name)
+                ? r.permissions
+                : r.permissions.filter((p) => p !== "finance.inbox.manage"),
+            ),
+          ],
         );
       await q(
         "insert into public.roles (org_id, name, description, permissions, is_system) values ($1, 'Finance helper', '', '[\"finance.view\"]'::jsonb, false)",
@@ -158,7 +168,7 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance intake (Phase 20B)", () => {
       FINANCE_ROLES.filter((r) => r.permissions.includes("finance.inbox.manage"))
         .map((r) => r.name)
         .sort(),
-    ).toEqual(["Finance", "Finance Manager"]);
+    ).toEqual(["Costs & Expenses", "Finance", "Finance Manager"]);
     expect(roles["Finance helper"]).toEqual(["finance.view"]);
   });
 

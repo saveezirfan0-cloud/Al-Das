@@ -20,6 +20,8 @@ const FINANCE_ROLE_NAMES = new Set([
   "ceo",
   "finance",
   "finance manager",
+  "revenue & collections",
+  "costs & expenses",
   "billing",
   "insurance",
   "medical director",
