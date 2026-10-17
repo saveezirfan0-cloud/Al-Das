@@ -1,11 +1,16 @@
-import { shiftMonth } from "@/lib/finance/report-emails";
-
 /**
  * Parallel run (W4, pure): Pulse's figure for a month beside the manual figure Finance produces today, the difference,
  * and whether an area may be marked "switched". Amounts are AED with three decimals (the neighbours' numeric(14,3)); the
  * comparison is done in whole fils so 0.1 + 0.2 never decides anything. "Agrees" means the difference is within the
  * tolerance, which is a column of fin_ref_finance_settings (parallel_tolerance), never a constant here.
  */
+
+/** "2026-03" shifted by whole months. Local on purpose: the report-emails module is server-only (node:crypto) and this file reaches the browser. */
+function shiftMonth(month: string, by: number): string {
+  return new Date(Date.UTC(+month.slice(0, 4), +month.slice(5, 7) - 1 + by, 1))
+    .toISOString()
+    .slice(0, 7);
+}
 
 export const AREAS = ["revenue", "collections", "bank", "insurance", "labs"] as const;
 export type Area = (typeof AREAS)[number];
