@@ -40,14 +40,31 @@ export function normalizeText(s: string): string {
 
 const isDigit = (c: string) => c >= "0" && c <= "9";
 
+/** Normalised text plus, per character, whether a separator (or the start) came right before it in the original. */
+function withBreaks(text: string): { t: string; brk: boolean[] } {
+  let t = "";
+  const brk: boolean[] = [];
+  let sep = true;
+  for (const ch of text ?? "") {
+    if (/[A-Za-z0-9]/.test(ch)) {
+      t += ch.toUpperCase();
+      brk.push(sep);
+      sep = false;
+    } else sep = true;
+  }
+  brk.push(true); // the end of the text counts as a break
+  return { t, brk };
+}
+
 /**
  * Which of `keys` occur in the narrative. Both sides are normalised; a key shorter than `minLength` never matches.
  * An occurrence counts only at a boundary: the character before it (after skipping a run of zeros, so 0012345 matches
  * 12345) must not be of the same class (digit/letter) as the key's first character, and the character after must not
- * be of the same class as the key's last character. Distinct keys, in input order.
+ * be of the same class as the key's last character. A separator in the original text (space, slash, dash) right before
+ * or after the occurrence is a boundary on its own, so "PAYER-A RA-0004" finds RA0004. Distinct keys, in input order.
  */
 export function findKeys(text: string, keys: readonly string[], minLength: number): string[] {
-  const t = normalizeText(text);
+  const { t, brk } = withBreaks(text);
   const out: string[] = [];
   for (const raw of keys) {
     const key = normalizeText(raw);
@@ -59,12 +76,13 @@ export function findKeys(text: string, keys: readonly string[], minLength: numbe
       const at = t.indexOf(key, from);
       if (at < 0) break;
       from = at + 1;
+      // a real separator in the original (space, slash, dash) is a boundary whatever the characters are
       let b = at;
       while (b > 0 && t[b - 1] === "0") b--;
       const before = b > 0 ? t[b - 1] : null;
       const after = t[at + key.length] ?? null;
-      if (before !== null && isDigit(before) === firstDigit) continue;
-      if (after !== null && isDigit(after) === lastDigit) continue;
+      if (!brk[at] && before !== null && isDigit(before) === firstDigit) continue;
+      if (!brk[at + key.length] && after !== null && isDigit(after) === lastDigit) continue;
       out.push(raw);
       break;
     }

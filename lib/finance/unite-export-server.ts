@@ -56,10 +56,19 @@ const str = (v: unknown) => (typeof v === "string" && v.trim() !== "" ? v.slice(
 
 export async function storeAndProcessUniteExport(
   deps: ExportDeps,
-  input: { text: string; pulledOn: string; today: string; fileName: string | null; userId: string | null },
+  input: {
+    text: string;
+    pulledOn: string;
+    today: string;
+    fileName: string | null;
+    userId: string | null;
+  },
 ): Promise<ExportResult> {
   const pulledOn = validPulledOn(input.pulledOn, input.today);
-  if (!pulledOn) throw new UniteExportError("Enter the date this export was pulled from Unite (not in the future).");
+  if (!pulledOn)
+    throw new UniteExportError(
+      "Enter the date this export was pulled from Unite (not in the future).",
+    );
   const { chunks, totalRecords } = parseUniteExport(input.text);
   const requestedAt = `${pulledOn}T00:00:00Z`; // older than any later API data, so those win (staleness rule)
 

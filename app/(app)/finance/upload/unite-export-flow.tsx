@@ -30,7 +30,9 @@ export function UniteExportFlow() {
       if (!prep.ok) throw new Error(prep.error);
       const { error } = await createClient()
         .storage.from("finance-files")
-        .uploadToSignedUrl(prep.data.path, prep.data.token, file, { contentType: "application/json" });
+        .uploadToSignedUrl(prep.data.path, prep.data.token, file, {
+          contentType: "application/json",
+        });
       if (error) throw new Error("The upload did not finish. Try again.");
       setBusy("processing");
       const res = await processUniteExportUpload({
@@ -56,10 +58,10 @@ export function UniteExportFlow() {
         <CardHeader>
           <CardTitle>Saved Unite export</CardTitle>
           <CardDescription>
-            Upload the saved invoice pull from Unite (a .json file) once. Nothing is sent to Unite. The
-            records are stored first, then added to the invoices exactly like a normal capture. Newer
-            data from Unite always wins over this file, so enter the date the file was pulled. The file
-            is not kept after it is read; uploading the same file again changes nothing.
+            Upload the saved invoice pull from Unite (a .json file) once. Nothing is sent to Unite.
+            The records are stored first, then added to the invoices exactly like a normal capture.
+            Newer data from Unite always wins over this file, so enter the date the file was pulled.
+            The file is not kept after it is read; uploading the same file again changes nothing.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">

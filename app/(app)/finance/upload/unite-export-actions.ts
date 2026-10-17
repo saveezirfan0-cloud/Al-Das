@@ -80,7 +80,11 @@ export async function processUniteExportUpload(
     const text = Buffer.from(await blob.arrayBuffer()).toString("utf8");
     await admin.storage.from(FINANCE_BUCKET).remove([path]); // the file is not kept
 
-    const { data: org } = await admin.from("orgs").select("timezone").eq("id", member.orgId).maybeSingle();
+    const { data: org } = await admin
+      .from("orgs")
+      .select("timezone")
+      .eq("id", member.orgId)
+      .maybeSingle();
     const result = await storeAndProcessUniteExport(dbUniteExportDeps(admin, member.orgId), {
       text,
       pulledOn: parsed.data.pulledOn,

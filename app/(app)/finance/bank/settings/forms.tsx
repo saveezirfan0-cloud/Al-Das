@@ -9,6 +9,7 @@ import {
   DATE_FORMATS,
   fieldsFor,
   BANK_IMPORT_KINDS,
+  RECEIPT_IMPORT_KINDS,
   IMPORT_KINDS,
   type AmountStyle,
   type ImportKind,
@@ -227,11 +228,11 @@ function FormatFields({ format, kinds }: { format?: FormatView; kinds: readonly 
 
 /**
  * Add or edit a file layout. Shared with the labs settings page (20E), which passes its own kinds and its own action
- * (finance.labs.manage); the default is the bank kinds and the bank action (finance.bank.manage).
+ * (finance.labs.manage); the default is the bank kinds plus the insurer receipt register (matching v2) and the bank action (finance.bank.manage).
  */
 export function FormatButton({
   format,
-  kinds = BANK_IMPORT_KINDS,
+  kinds = [...BANK_IMPORT_KINDS, ...RECEIPT_IMPORT_KINDS],
   action = saveFormat,
   description = "Map each field to the header of its column. Set this up once per bank or processor when the first sample file arrives.",
 }: {

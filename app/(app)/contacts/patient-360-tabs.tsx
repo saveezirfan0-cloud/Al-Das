@@ -162,7 +162,9 @@ export function ContactInvoices({ contactId }: { contactId: string }) {
                   {r.number ?? "Invoice"}
                 </Link>
                 {r.noAppointment && (
-                  <span className="text-muted-foreground ml-2 text-xs">appointment not in Pulse</span>
+                  <span className="text-muted-foreground ml-2 text-xs">
+                    appointment not in Pulse
+                  </span>
                 )}
               </td>
               <td className="py-1.5 tabular-nums">{r.date ?? "–"}</td>

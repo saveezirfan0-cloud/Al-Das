@@ -130,18 +130,24 @@ export async function listContactInvoices(
     .eq("contact_id", contactId)
     .limit(500);
   if (linkError) return fail("Could not load the invoices.");
-  const linkRows = (links ?? []).filter((l): l is typeof l & { invoice_id: string } => !!l.invoice_id);
+  const linkRows = (links ?? []).filter(
+    (l): l is typeof l & { invoice_id: string } => !!l.invoice_id,
+  );
   if (!pin && linkRows.length === 0) return { ok: true, data: { rows: [], linked: false } };
-  const noAppt = new Set(linkRows.filter((l) => l.link_state === "no_appointment").map((l) => l.invoice_id));
-  const { data, error } = linkRows.length
-    ? await supabase
-        .from("v_fin_invoice_list")
-        .select("id, inv_display_number, transaction_date, net, paid, claimed, is_deleted")
-        .eq("org_id", member.orgId)
-        .in("id", linkRows.map((l) => l.invoice_id))
-        .order("transaction_date", { ascending: false })
-        .limit(50)
-    : { data: [], error: null };
+  const noAppt = new Set(
+    linkRows.filter((l) => l.link_state === "no_appointment").map((l) => l.invoice_id),
+  );
+  if (linkRows.length === 0) return { ok: true, data: { rows: [], linked: true } };
+  const { data, error } = await supabase
+    .from("v_fin_invoice_list")
+    .select("id, inv_display_number, transaction_date, net, paid, claimed, is_deleted")
+    .eq("org_id", member.orgId)
+    .in(
+      "id",
+      linkRows.map((l) => l.invoice_id),
+    )
+    .order("transaction_date", { ascending: false })
+    .limit(50);
   if (error) return fail("Could not load the invoices.");
   await recordAccess(createAdminClient(), member, {
     entity: "finance_invoice",

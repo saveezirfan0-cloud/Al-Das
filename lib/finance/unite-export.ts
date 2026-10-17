@@ -31,7 +31,8 @@ export const payloadSha256 = (payload: unknown) =>
   createHash("sha256").update(JSON.stringify(payload)).digest("hex");
 
 export function parseUniteExport(text: string): ParsedExport {
-  if (Buffer.byteLength(text) > MAX_EXPORT_BYTES) throw new UniteExportError("The file is larger than 25 MB.");
+  if (Buffer.byteLength(text) > MAX_EXPORT_BYTES)
+    throw new UniteExportError("The file is larger than 25 MB.");
   let json: unknown;
   try {
     json = JSON.parse(text);

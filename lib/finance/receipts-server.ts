@@ -22,8 +22,15 @@ export type ReceiptImportInput = {
   buffer: Buffer;
 };
 export type ReceiptImportResult =
-  | { ok: true; inserted: number; alreadyStored: number; rows: number; skipped: number }
+  | { ok: true; importId: string | null; inserted: number; alreadyStored: number; rows: number; skipped: number }
   | { ok: false; error: string; missing?: string[]; errors?: string[] };
+
+/** The function is newer than the generated types; the cast goes away when `pnpm db:migrate` regenerates them. */
+type LooseRpc = (
+  fn: string,
+  args: Record<string, unknown>,
+) => PromiseLike<{ data: unknown; error: { code?: string; message: string } | null }>;
+const rpc = (admin: AdminClient) => admin.rpc.bind(admin) as unknown as LooseRpc;
 
 const GENERIC = "Nothing was imported. Check the file and try again.";
 
@@ -66,7 +73,7 @@ export async function importReceiptRegister(
     };
   }
 
-  const { data, error } = await admin.rpc("fin_receipts_import", {
+  const { data, error } = await rpc(admin)("fin_receipts_import", {
     p_org_id: input.orgId,
     p_format_id: format.id,
     // the extension only: a file name can carry a person's name
@@ -86,9 +93,10 @@ export async function importReceiptRegister(
     });
     return { ok: false, error: GENERIC };
   }
-  const out = (data ?? {}) as { inserted?: number; already_stored?: number };
+  const out = (data ?? {}) as { import_id?: string; inserted?: number; already_stored?: number };
   return {
     ok: true,
+    importId: out.import_id ?? null,
     inserted: Number(out.inserted ?? 0),
     alreadyStored: Number(out.already_stored ?? 0),
     rows: parsed.stats.rows,

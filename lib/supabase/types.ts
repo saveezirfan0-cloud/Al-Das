@@ -10511,6 +10511,267 @@ export type Database = {
           },
         ];
       };
+      fin_item_closures: {
+        Row: {
+          amount: number;
+          decided_at: string;
+          decided_by: string | null;
+          id: string;
+          item_ref: string;
+          item_total: number;
+          kind: string;
+          note: string | null;
+          org_id: string;
+          reason_code: string;
+          undone_at: string | null;
+          undone_by: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          amount: number;
+          decided_at?: string;
+          decided_by?: string | null;
+          id?: string;
+          item_ref: string;
+          item_total: number;
+          kind: string;
+          note?: string | null;
+          org_id: string;
+          reason_code: string;
+          undone_at?: string | null;
+          undone_by?: string | null;
+        };
+        Update: {
+          amount?: number;
+          decided_at?: string;
+          decided_by?: string | null;
+          id?: string;
+          item_ref?: string;
+          item_total?: number;
+          kind?: string;
+          note?: string | null;
+          org_id?: string;
+          reason_code?: string;
+          undone_at?: string | null;
+          undone_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_item_closures_decided_by_fkey";
+            columns: ["decided_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_item_closures_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_item_closures_undone_by_fkey";
+            columns: ["undone_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      fin_match_decisions: {
+        Row: {
+          alias_id: string | null;
+          amount: number;
+          auto: boolean;
+          bank_line_id: string;
+          decided_at: string;
+          decided_by: string | null;
+          decision: string;
+          id: string;
+          item_ref: string;
+          item_total: number;
+          org_id: string;
+          reasons: NonNullable<Json>;
+          rule: string;
+          score: number;
+          undone_at: string | null;
+          undone_by: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          alias_id?: string | null;
+          amount: number;
+          auto?: boolean;
+          bank_line_id: string;
+          decided_at?: string;
+          decided_by?: string | null;
+          decision: string;
+          id?: string;
+          item_ref: string;
+          item_total: number;
+          org_id: string;
+          reasons?: NonNullable<Json>;
+          rule: string;
+          score?: number;
+          undone_at?: string | null;
+          undone_by?: string | null;
+        };
+        Update: {
+          alias_id?: string | null;
+          amount?: number;
+          auto?: boolean;
+          bank_line_id?: string;
+          decided_at?: string;
+          decided_by?: string | null;
+          decision?: string;
+          id?: string;
+          item_ref?: string;
+          item_total?: number;
+          org_id?: string;
+          reasons?: NonNullable<Json>;
+          rule?: string;
+          score?: number;
+          undone_at?: string | null;
+          undone_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_match_decisions_alias_id_fkey";
+            columns: ["alias_id"];
+            isOneToOne: false;
+            referencedRelation: "fin_payer_aliases";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_match_decisions_bank_line_id_fkey";
+            columns: ["bank_line_id"];
+            isOneToOne: false;
+            referencedRelation: "fin_bank_lines";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_match_decisions_decided_by_fkey";
+            columns: ["decided_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_match_decisions_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_match_decisions_undone_by_fkey";
+            columns: ["undone_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      fin_match_rule_status: {
+        Row: {
+          auto_enabled: boolean;
+          org_id: string;
+          rule: string;
+          set_at: string;
+          set_by: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          auto_enabled?: boolean;
+          org_id: string;
+          rule: string;
+          set_at?: string;
+          set_by?: string | null;
+        };
+        Update: {
+          auto_enabled?: boolean;
+          org_id?: string;
+          rule?: string;
+          set_at?: string;
+          set_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_match_rule_status_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_match_rule_status_set_by_fkey";
+            columns: ["set_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      fin_payer_aliases: {
+        Row: {
+          alias: string;
+          decided_at: string | null;
+          decided_by: string | null;
+          id: string;
+          org_id: string;
+          payer_key: string;
+          proposed_at: string;
+          proposed_by: string | null;
+          status: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          alias: string;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          id?: string;
+          org_id: string;
+          payer_key: string;
+          proposed_at?: string;
+          proposed_by?: string | null;
+          status?: string;
+        };
+        Update: {
+          alias?: string;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          id?: string;
+          org_id?: string;
+          payer_key?: string;
+          proposed_at?: string;
+          proposed_by?: string | null;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_payer_aliases_decided_by_fkey";
+            columns: ["decided_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_payer_aliases_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_payer_aliases_proposed_by_fkey";
+            columns: ["proposed_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       fin_payment_requests: {
         Row: {
           amount_minor: number;
@@ -11824,6 +12085,67 @@ export type Database = {
           },
         ];
       };
+      fin_receipts: {
+        Row: {
+          amount: number;
+          bank_name: string | null;
+          created_at: string;
+          id: string;
+          import_id: string;
+          org_id: string;
+          payer_key: string | null;
+          payment_ref: string;
+          receipt_date: string;
+          receipt_no: string | null;
+          ref_key: string;
+          row_no: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          amount: number;
+          bank_name?: string | null;
+          created_at?: string;
+          id?: string;
+          import_id: string;
+          org_id: string;
+          payer_key?: string | null;
+          payment_ref: string;
+          receipt_date: string;
+          receipt_no?: string | null;
+          ref_key: string;
+          row_no: number;
+        };
+        Update: {
+          amount?: number;
+          bank_name?: string | null;
+          created_at?: string;
+          id?: string;
+          import_id?: string;
+          org_id?: string;
+          payer_key?: string | null;
+          payment_ref?: string;
+          receipt_date?: string;
+          receipt_no?: string | null;
+          ref_key?: string;
+          row_no?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_receipts_import_id_fkey";
+            columns: ["import_id"];
+            isOneToOne: false;
+            referencedRelation: "fin_bank_imports";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_receipts_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       fin_recovery_reminders: {
         Row: {
           balance: number | null;
@@ -12408,6 +12730,12 @@ export type Database = {
           ins_recon_tolerance: number;
           lab_date_window_days: number;
           lab_price_tolerance: number;
+          match_auto_min_decisions: number;
+          match_auto_min_months: number;
+          match_auto_min_precision: number;
+          match_item_look_back_days: number;
+          match_ref_min_length: number;
+          match_set_max_items: number;
           org_id: string;
           perf_arpp_target: number;
           perf_band_moderate: number;
@@ -12507,6 +12835,12 @@ export type Database = {
           ins_recon_tolerance?: number;
           lab_date_window_days?: number;
           lab_price_tolerance?: number;
+          match_auto_min_decisions?: number;
+          match_auto_min_months?: number;
+          match_auto_min_precision?: number;
+          match_item_look_back_days?: number;
+          match_ref_min_length?: number;
+          match_set_max_items?: number;
           org_id: string;
           perf_arpp_target?: number;
           perf_band_moderate?: number;
@@ -12605,6 +12939,12 @@ export type Database = {
           ins_recon_tolerance?: number;
           lab_date_window_days?: number;
           lab_price_tolerance?: number;
+          match_auto_min_decisions?: number;
+          match_auto_min_months?: number;
+          match_auto_min_precision?: number;
+          match_item_look_back_days?: number;
+          match_ref_min_length?: number;
+          match_set_max_items?: number;
           org_id?: string;
           perf_arpp_target?: number;
           perf_band_moderate?: number;
@@ -25839,6 +26179,7 @@ export type Database = {
         Returns: Json;
       };
       fin_rederive_branches: { Args: { p_org_id: string }; Returns: number };
+      fin_ref_key: { Args: { p_ref: string }; Returns: string };
       fin_report_schedule_claim: {
         Args: { p_period_key: string; p_schedule_id: string };
         Returns: string;

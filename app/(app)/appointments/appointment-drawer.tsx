@@ -86,7 +86,13 @@ export function AppointmentDrawer({
   const [version, setVersion] = React.useState(0);
   const [confirm, confirmDialog] = useConfirm();
   const [invoices, setInvoices] = React.useState<
-    { id: string; number: string | null; date: string | null; net: number | null; paid: number | null }[]
+    {
+      id: string;
+      number: string | null;
+      date: string | null;
+      net: number | null;
+      paid: number | null;
+    }[]
   >([]);
 
   // Linked Unite invoices: loaded lazily; empty (and invisible) for anyone without finance.invoices.view.
