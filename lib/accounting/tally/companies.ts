@@ -1,6 +1,6 @@
 /**
  * Which Tally company belongs to which accounting entity (W7). Pure; the database (`app.acc_tally_company`, migration
- * 20261210000400) is the rule the bridge runs on, and tests/db/accounting-tally-companies.test.ts checks this file
+ * 20261222000300) is the rule the bridge runs on, and tests/db/accounting-tally-companies.test.ts checks this file
  * against it on the same scenarios.
  *
  *  - An entity's own `tally_company`, else (the DEFAULT entity only) the Tally bridge integration's company setting.

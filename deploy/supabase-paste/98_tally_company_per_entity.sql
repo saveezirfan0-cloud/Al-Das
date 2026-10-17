@@ -1,6 +1,6 @@
 -- Paste this whole file into Supabase > SQL Editor > New query, then Run.
 -- Run the files in numeric order. A failed file rolls back as a whole, so it is safe to retry.
--- Needs every earlier file first, up to and including 95_finance_parallel_run.sql.
+-- Needs every earlier file first, up to and including 97_finance_parallel_run.sql.
 
 -- W7 (clinic plan of 16 Oct 2026): the Tally bridge serves SEVERAL Tally companies, one per accounting entity.
 --

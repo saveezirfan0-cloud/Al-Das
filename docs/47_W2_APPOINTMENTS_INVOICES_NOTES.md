@@ -1,6 +1,6 @@
 # W2: appointments and invoices
 
-Date: 17 Oct 2026. Plan of 16 Oct 2026, section 3, row W2. Migration: `supabase/migrations/20261210000100_finance_appointment_billing.sql`.
+Date: 17 Oct 2026. Plan of 16 Oct 2026, section 3, row W2. Migration: `supabase/migrations/20261222000100_finance_appointment_billing.sql`.
 
 ## What it does
 

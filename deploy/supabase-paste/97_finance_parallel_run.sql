@@ -1,6 +1,6 @@
 -- Paste this whole file into Supabase > SQL Editor > New query, then Run.
 -- Run the files in numeric order. A failed file rolls back as a whole, so it is safe to retry.
--- Needs every earlier file first, up to and including 94_finance_appointment_billing.sql.
+-- Needs every earlier file first, up to and including 96_finance_appointment_billing.sql.
 
 -- W4 (clinic plan of 16 Oct 2026): parallel-run comparison. For each area (revenue, collections, bank, insurance
 -- receivable, labs) the manual figure Finance produces today is typed in for a month and set beside Pulse's figure; the

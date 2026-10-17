@@ -1,5 +1,5 @@
 /**
- * W7: the Tally bridge with SEVERAL Tally companies, one per accounting entity (migration 20261210000400).
+ * W7: the Tally bridge with SEVERAL Tally companies, one per accounting entity (migration 20261222000300).
  * The company rule agrees with lib/accounting/tally/companies.ts on the shared scenarios; every pushed voucher and every
  * export belongs to one entity and is handed to the connector with that entity's company; an entity without a company
  * is never sent anywhere; the ledger start, the AlterID cursors, the trial-balance check and the mirror journals are
