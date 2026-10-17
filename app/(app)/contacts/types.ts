@@ -33,4 +33,9 @@ export type ContactsBootstrap = {
   /** Phase B: every active branch (names for the column and filter) and the ones this member may pick as home branch. */
   branches: Array<{ id: string; name: string; allowed: boolean }>;
   gridPrefs: GridPrefs | null;
+  /** P4/P5: filter options and the Lifecycle column, present only for a member with clinical.view. */
+  clinical?: {
+    specialists: Array<{ id: string; name: string }>;
+    conditionGroups: Array<{ id: string; name: string }>;
+  };
 };

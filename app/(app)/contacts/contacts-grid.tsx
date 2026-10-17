@@ -1,8 +1,12 @@
 "use client";
 
+import { ExternalLink } from "lucide-react";
+import Link from "next/link";
+
 import type { DataGridColumn } from "@/components/data-grid/data-grid";
 import { formatCustomValue, type CustomFieldDef } from "@/lib/contacts/custom-values";
 import { displayName, formatDate, formatDateTime, tagClass, timeAgo } from "@/lib/contacts/format";
+import { LIFECYCLE_LABELS } from "@/lib/contacts/lifecycle";
 import type { ContactListRow } from "@/lib/contacts/query";
 import { formatPhone } from "@/lib/phone";
 
@@ -22,6 +26,8 @@ export function buildContactColumns(opts: {
   timezone: string;
   users: Array<{ id: string; label: string }>;
   branches?: Array<{ id: string; name: string }>;
+  /** P4: the Lifecycle column, for a member with clinical.view (the rows then carry lifecycle_stage). */
+  showLifecycle?: boolean;
 }): DataGridColumn<ContactListRow>[] {
   const branchName = (id: string | null) =>
     id ? (opts.branches?.find((b) => b.id === id)?.name ?? "Other branch") : "";
@@ -46,11 +52,25 @@ export function buildContactColumns(opts: {
   };
 
   const base: DataGridColumn<ContactListRow>[] = [
-    col("full_name", "Name", (r) => <span className="font-medium">{displayName(r)}</span>, {
-      sortKey: "full_name",
-      size: 220,
-      locked: true,
-    }),
+    col(
+      "full_name",
+      "Name",
+      (r) => (
+        <span className="flex items-center gap-1.5">
+          <span className="font-medium">{displayName(r)}</span>
+          <Link
+            href={`/contacts/${r.id}`}
+            aria-label={`Open full record of ${displayName(r)}`}
+            title="Open full record"
+            className="text-muted-foreground hover:text-foreground"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ExternalLink className="size-3.5" aria-hidden />
+          </Link>
+        </span>
+      ),
+      { sortKey: "full_name", size: 220, locked: true },
+    ),
     col(
       "phone",
       "Phone",
@@ -106,6 +126,23 @@ export function buildContactColumns(opts: {
       size: 120,
       defaultHidden: true,
     }),
+    ...(opts.showLifecycle
+      ? [
+          col(
+            "lifecycle_stage",
+            "Lifecycle",
+            (r) =>
+              r.lifecycle_stage ? (
+                <span className="bg-muted text-foreground rounded px-1.5 py-0.5 text-xs">
+                  {LIFECYCLE_LABELS[r.lifecycle_stage]}
+                </span>
+              ) : (
+                ""
+              ),
+            { size: 150, defaultHidden: true },
+          ),
+        ]
+      : []),
     col("owner", "Owner", (r) => userName(r.owner_id), { size: 150, defaultHidden: true }),
     col("assignee", "Assignee", (r) => userName(r.assignee_id), { size: 150, defaultHidden: true }),
     col("home_branch", "Home branch", (r) => branchName(r.location_id), {
