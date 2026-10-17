@@ -33,6 +33,35 @@ export const CATEGORY_LABELS: Record<DenialCategory, string> = {
 
 export type OwnerRole = "insurance" | "billing" | "finance" | "admin";
 
+/**
+ * Where a rejection came from and whether the clinic could have prevented it, by the code's category. PROPOSED mapping, to
+ * be confirmed by the insurance case sessions (docs/47). `avoidable` is null when the category cannot say, never a guess.
+ */
+export type RejectionOrigin = "front_desk" | "clinical" | "billing" | "payer" | "unknown";
+export const REJECTION_ORIGIN: Record<
+  DenialCategory,
+  { origin: RejectionOrigin; avoidable: boolean | null }
+> = {
+  authorization: { origin: "front_desk", avoidable: true },
+  eligibility: { origin: "front_desk", avoidable: true },
+  medical_necessity: { origin: "clinical", avoidable: false },
+  coding: { origin: "billing", avoidable: true },
+  documentation: { origin: "clinical", avoidable: true },
+  duplicate: { origin: "billing", avoidable: true },
+  timely_filing: { origin: "billing", avoidable: true },
+  pricing: { origin: "payer", avoidable: null },
+  other: { origin: "unknown", avoidable: null },
+};
+
+/** Origin and avoidable flag for a denial code, through the same taxonomy lookup the case uses. */
+export function rejectionOrigin(
+  code: string | null | undefined,
+  table: readonly DenialCodeRow[],
+): { origin: RejectionOrigin; avoidable: boolean | null } {
+  const row = lookupDenialCode(code, table);
+  return row ? REJECTION_ORIGIN[row.category] : { origin: "unknown", avoidable: null };
+}
+
 export type DenialCodeRow = {
   code: string;
   isFamily: boolean;

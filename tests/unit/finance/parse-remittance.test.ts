@@ -110,7 +110,7 @@ describe("parseRemittanceTable", () => {
       HEAD,
       ["RM-1", "99-99-9999", "P", "CA-1", "", "", "", "", "abc", "", ""],
       ["", "01-10-2026", "P", "CA-2", "", "", "", "", 5, "", ""],
-      ["RM-1", "01-10-2026", "P", "", "", "", "", "", -5, "", ""],
+      ["RM-1", "01-10-2026", "P", "", "", "", "", "", 5, -1, ""],
     ]);
     expect(res.ok).toBe(false);
     if (res.ok) return;
@@ -120,11 +120,20 @@ describe("parseRemittanceTable", () => {
         "2:invalid_date",
         "2:invalid_number",
         "3:blank_required",
-        "4:negative_amount",
+        "4:negative_amount", // a negative DENIED amount is an error
         "4:unidentifiable_line",
       ]),
     );
     expect(JSON.stringify(res.errors)).not.toContain("abc");
+  });
+
+  it("a negative paid amount is a payment taken back and is accepted", () => {
+    const res = parseRemittanceTable([
+      HEAD,
+      ["RM-1", "01-10-2026", "P", "CA-1", "", "", "", "", -40, "", ""],
+    ]);
+    expect(res.ok).toBe(true);
+    if (res.ok) expect(res.rows[0].paid_amount).toBe(-40);
   });
 
   it("a blank paid amount is an error, never 0", () => {

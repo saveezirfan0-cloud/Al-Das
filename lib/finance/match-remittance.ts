@@ -15,6 +15,9 @@ import type { RemitLine } from "@/lib/finance/parse-remittance";
  * A line is SHORT when the expectation exceeds paid + denied by more than BOTH tolerances (an amount and a share of the
  * expectation, from fin_ref_finance_settings): a denied amount is explained by its denial (handled in denial management),
  * a short payment is the part nobody explained. Overpayments are flagged the same way. Money is compared in whole cents.
+ * `paid_before` (optional, paid on earlier committed advice) is subtracted from the expectation, so a second payment that
+ * completes a part-paid claim is not called short. A NEGATIVE paid amount is a payment taken back (recoupment): flagged
+ * `taken_back`, never "short"; its claim goes back to open in lib/finance/claim-status.ts.
  */
 
 export type RemitClaim = {
@@ -27,6 +30,8 @@ export type RemitClaim = {
   net: number | null;
   transaction_date: string | null;
   activity_start_date: string | null;
+  /** Paid on earlier committed advice for this claim (a part payment, or a first payment before a resubmission). */
+  paid_before?: number | null;
 };
 
 export type PriceRow = {
@@ -51,7 +56,8 @@ export type RemitFlag =
   | "invoice_mismatch"
   | "billed_below_contract"
   | "billed_above_contract"
-  | "duplicate_in_file";
+  | "duplicate_in_file"
+  | "taken_back";
 
 export type ReconciledLine = RemitLine & {
   row_no: number;
@@ -204,11 +210,15 @@ export function reconcileRemittance(
       basis = "file";
     }
 
+    // what earlier advice already paid is not expected again (a second payment completes a part-paid claim)
+    if (expectedCents !== null && claim?.paid_before)
+      expectedCents = Math.max(0, expectedCents - cents(claim.paid_before));
     const paidC = cents(line.paid_amount);
     const deniedC = cents(line.denied_amount);
     if (deniedC > 0 || line.denial_code) flags.push("denied");
     let shortC = 0;
-    if (expectedCents !== null) {
+    if (paidC < 0) flags.push("taken_back");
+    else if (expectedCents !== null) {
       const tol = Math.max(
         cents(settings.toleranceAmount),
         Math.round(expectedCents * settings.tolerancePct),

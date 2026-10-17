@@ -34,6 +34,7 @@ const FLAG_LABEL: Record<string, string> = {
   billed_below_contract: "Billed below contract",
   billed_above_contract: "Billed above contract",
   duplicate_in_file: "Repeated line",
+  taken_back: "Taken back",
 };
 
 export default async function BatchPage({

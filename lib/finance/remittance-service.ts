@@ -19,6 +19,7 @@ import {
   type RemitStats,
 } from "@/lib/finance/parse-remittance";
 import type { ValidationError } from "@/lib/finance/parse-diligence";
+import { RemittanceFileError } from "@/lib/finance/parse-remittance-xml";
 import { loadFinanceSettings } from "@/lib/finance/settings-db";
 import type { AdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/types";
@@ -127,8 +128,9 @@ export async function stageRemittance(
   let table: unknown[][];
   try {
     table = await readRemittanceFile(input.buffer);
-  } catch {
-    return reject([{ row: null, code: "unreadable_file" }], 1, emptyHeader());
+  } catch (e) {
+    const code = e instanceof RemittanceFileError ? e.code : "unreadable_file";
+    return reject([{ row: null, code }], 1, emptyHeader());
   }
   const parsed = parseRemittanceTable(table);
   if (!parsed.ok) return reject(parsed.errors, parsed.totalErrors, parsed.header);

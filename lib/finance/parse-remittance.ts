@@ -7,6 +7,7 @@ import {
   type RemitFieldName,
 } from "@/lib/finance/remittance-mapping";
 import { readXlsxTable } from "@/lib/finance/parse-diligence";
+import { looksLikeRemittanceXml, remittanceXmlToTable } from "@/lib/finance/parse-remittance-xml";
 import type { ValidationError } from "@/lib/finance/parse-diligence";
 
 /**
@@ -135,8 +136,7 @@ export function parseRemittanceTable(
     if (!out.remittance_ref) fail({ row: rowNo, code: "blank_required", field: "remittance_ref" });
     if (out.paid_amount === null)
       fail({ row: rowNo, code: "blank_required", field: "paid_amount" });
-    else if ((out.paid_amount as number) < 0)
-      fail({ row: rowNo, code: "negative_amount", field: "paid_amount" });
+    // A negative paid amount is a payment taken back (recoupment); the matcher flags it `taken_back`.
     if (out.denied_amount !== null && (out.denied_amount as number) < 0)
       fail({ row: rowNo, code: "negative_amount", field: "denied_amount" });
     if (!out.claim_activity_number && !(out.invoice_no && out.cpt_code))
@@ -222,7 +222,7 @@ export function parseCsv(text: string): string[][] {
   return rows;
 }
 
-/** .xlsx starts with the zip signature "PK"; anything else is read as CSV text. */
+/** Decided by the bytes, never the file name: .xlsx starts with the zip signature "PK", XML with "<", anything else is CSV. */
 export function looksLikeXlsx(buffer: Uint8Array): boolean {
   return buffer.length > 3 && buffer[0] === 0x50 && buffer[1] === 0x4b;
 }
@@ -230,5 +230,6 @@ export function looksLikeXlsx(buffer: Uint8Array): boolean {
 export async function readRemittanceFile(buffer: Buffer): Promise<unknown[][]> {
   if (looksLikeXlsx(buffer))
     return readXlsxTable(buffer, ["Remittance", "RemittanceAdvice", "DataSheet"]);
+  if (looksLikeRemittanceXml(buffer)) return remittanceXmlToTable(buffer);
   return parseCsv(buffer.toString("utf8"));
 }

@@ -70,3 +70,42 @@ export const REMITTANCE_SENSITIVE_HEADERS: readonly string[] = [
 
 export const REMITTANCE_SHEET_NAMES = ["Remittance", "RemittanceAdvice", "DataSheet"] as const;
 export const MAX_REMITTANCE_ROWS = 30_000;
+
+// ---- XML remittance advice (Diligence / DHA e-claim portal "Remittance.Advice") ------------------------------------------
+//
+// Element names from the PUBLISHED DHA / Shafafiya remittance-advice schema, NOT verified against a real file (none is in
+// the repo: it carries patient and member data). When the first real file arrives, correct the names here and nowhere
+// else. Names are matched ignoring case. Anything not listed is never read; the ignored list is documentation and a test
+// seeds those elements with values and checks none comes out.
+export const REMITTANCE_XML = {
+  root: "Remittance.Advice",
+  claim: "Claim",
+  activity: "Activity",
+  /** Claim-level elements. The claim ID is the invoice number (the Unite invoice number = Diligence InvoiceNo). */
+  claimFields: {
+    invoice_no: "ID",
+    payer_id: "IDPayer",
+    remittance_ref: "PaymentReference",
+    paid_on: "DateSettlement",
+    denial_code: "DenialCode",
+  },
+  /** Activity-level elements. Activity/ID is deliberately not read: it is only a sequence within the claim. */
+  activityFields: {
+    cpt_code: "Code",
+    quantity: "Quantity",
+    claimed_amount: "Net",
+    paid_amount: "PaymentAmount",
+    denial_code: "DenialCode",
+  },
+  ignored: [
+    "MemberID",
+    "EmiratesIDNumber",
+    "PatientID",
+    "PatientName",
+    "MemberName",
+    "CardNumber",
+    "PolicyNumber",
+    "Clinician",
+  ],
+} as const;
+export const MAX_REMITTANCE_XML_BYTES = 25 * 1024 * 1024;

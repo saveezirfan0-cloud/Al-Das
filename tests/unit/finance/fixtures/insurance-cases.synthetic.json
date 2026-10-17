@@ -1,0 +1,295 @@
+{
+  "_header": {
+    "status": "PROPOSED BEHAVIOUR - NOT YET CONFIRMED. Every expectation below is what the rules do today or what we propose they should do. The case sessions with Mohammed, Vineetha and Hardik are still to be held; change an expectation only after the person named in its 'confirm' field agrees, then change the code or this file to match.",
+    "data": "Synthetic. Every id, invoice number, reference, code and amount is invented (AED). No real claim, payer payment or bank line.",
+    "settings_note": "remittance tolerance = fin_ref_finance_settings short-pay tolerance (amount, share); bank = the bank_* settings; deposit group limits are caller settings, not yet stored.",
+    "who": {
+      "Mohammed": "insurance claims: what the insurer does and what Diligence shows",
+      "Vineetha": "finance: what Finance expects in the bank and in the ledger",
+      "Hardik": "Diligence data: what the exports contain and how the figures are built"
+    }
+  },
+  "requiredKinds": [
+    "fully_paid_exact",
+    "short_paid",
+    "paid_and_denied_explained",
+    "partial_payment",
+    "resubmission_after_rejection",
+    "late_remittance",
+    "duplicate_amount",
+    "duplicate_payment",
+    "deposit_several_references",
+    "unmatched_deposit",
+    "taken_back",
+    "write_off"
+  ],
+  "settings": {
+    "remit": { "toleranceAmount": 1, "tolerancePct": 0.01 },
+    "bank": {
+      "weekendDays": [0, 6],
+      "windowDays": 3,
+      "toleranceAmount": 1,
+      "tolerancePct": 0,
+      "autoAcceptScore": 80,
+      "cutoffDay": 30
+    },
+    "deposit": { "maxParts": 4, "maxPool": 20 },
+    "period": { "start": "2026-10-01", "end": "2026-10-30" },
+    "today": "2026-11-03",
+    "statementEnd": "2026-10-31"
+  },
+  "cases": [
+    {
+      "id": "C01",
+      "kind": "fully_paid_exact",
+      "title": "The insurer pays the claim in full, exactly; later the money is seen in the bank",
+      "confirm": "Mohammed (that exact payment needs no action); Vineetha (closed only after the bank receipt)",
+      "steps": [
+        {
+          "remittance": {
+            "claims": [{ "id": "k1", "claim_activity_number": "CA-1", "invoice_no": "ADMC/C/80001", "cpt_code": "99213", "payer_id": "PAYER-A", "quantity": 1, "net": 200, "transaction_date": "2026-09-02", "activity_start_date": "2026-09-02" }],
+            "lines": [{ "remittance_ref": "RM-A1", "paid_on": "2026-10-05", "payer_id": "PAYER-A", "invoice_no": "ADMC/C/80001", "cpt_code": "99213", "quantity": 1, "claimed_amount": 200, "paid_amount": 200 }],
+            "expect": [{ "match_status": "matched", "flags": [], "expected_amount": 200, "short_amount": 0 }]
+          },
+          "claim": { "facts": { "net": 200, "remitted": 200, "lastRemittanceDate": "2026-10-05", "bankReceived": false }, "expect": { "status": "paid", "outstanding": 0, "overpaid": 0 } }
+        },
+        { "claim": { "facts": { "net": 200, "remitted": 200, "lastRemittanceDate": "2026-10-05", "bankReceived": true }, "expect": { "status": "closed", "outstanding": 0, "overpaid": 0 } } }
+      ]
+    },
+    {
+      "id": "C02",
+      "kind": "short_paid",
+      "title": "The insurer pays less than billed and gives no reason",
+      "confirm": "Mohammed (short pay with no denial code is a query to the insurer, not a rejection)",
+      "steps": [
+        {
+          "remittance": {
+            "claims": [{ "id": "k2", "claim_activity_number": "CA-2", "invoice_no": "ADMC/C/80002", "cpt_code": "99213", "payer_id": "PAYER-A", "quantity": 1, "net": 200, "transaction_date": "2026-09-02", "activity_start_date": "2026-09-02" }],
+            "lines": [{ "remittance_ref": "RM-A2", "paid_on": "2026-10-05", "payer_id": "PAYER-A", "invoice_no": "ADMC/C/80002", "cpt_code": "99213", "claimed_amount": 200, "paid_amount": 150 }],
+            "expect": [{ "match_status": "matched", "flags": ["short_paid"], "expected_amount": 200, "short_amount": 50 }]
+          },
+          "claim": { "facts": { "net": 200, "remitted": 150, "lastRemittanceDate": "2026-10-05" }, "expect": { "status": "partly_paid", "outstanding": 50, "overpaid": 0 } }
+        }
+      ]
+    },
+    {
+      "id": "C03",
+      "kind": "paid_and_denied_explained",
+      "title": "Part paid, the rest denied with a denial code: the gap is explained, not short",
+      "confirm": "Mohammed (a denied amount goes to denial management, not to short-pay review)",
+      "steps": [
+        {
+          "remittance": {
+            "claims": [{ "id": "k3", "claim_activity_number": "CA-3", "invoice_no": "ADMC/C/80003", "cpt_code": "99213", "payer_id": "PAYER-A", "quantity": 1, "net": 200, "transaction_date": "2026-09-02", "activity_start_date": "2026-09-02" }],
+            "lines": [{ "remittance_ref": "RM-A3", "paid_on": "2026-10-05", "payer_id": "PAYER-A", "invoice_no": "ADMC/C/80003", "cpt_code": "99213", "claimed_amount": 200, "paid_amount": 150, "denied_amount": 50, "denial_code": "MNEC-003" }],
+            "expect": [{ "match_status": "matched", "flags": ["denied"], "expected_amount": 200, "short_amount": 0 }]
+          },
+          "claim": { "facts": { "net": 200, "remitted": 150, "rejected": 50, "lastRemittanceDate": "2026-10-05" }, "expect": { "status": "partly_paid", "outstanding": 50, "overpaid": 0 } }
+        }
+      ]
+    },
+    {
+      "id": "C04",
+      "kind": "partial_payment",
+      "title": "A claim is paid in two parts on two advices; the second completes it and is not called short",
+      "confirm": "Hardik (is the first advice's remitted total in Diligence before the second arrives?); Mohammed",
+      "steps": [
+        {
+          "remittance": {
+            "claims": [{ "id": "k4", "claim_activity_number": "CA-4", "invoice_no": "ADMC/C/80004", "cpt_code": "99214", "payer_id": "PAYER-A", "quantity": 1, "net": 400, "transaction_date": "2026-09-02", "activity_start_date": "2026-09-02" }],
+            "lines": [{ "remittance_ref": "RM-A4", "paid_on": "2026-10-05", "payer_id": "PAYER-A", "invoice_no": "ADMC/C/80004", "cpt_code": "99214", "claimed_amount": 400, "paid_amount": 150 }],
+            "expect": [{ "match_status": "matched", "flags": ["short_paid"], "expected_amount": 400, "short_amount": 250 }]
+          },
+          "claim": { "facts": { "net": 400, "remitted": 150, "lastRemittanceDate": "2026-10-05" }, "expect": { "status": "partly_paid", "outstanding": 250, "overpaid": 0 } }
+        },
+        {
+          "remittance": {
+            "claims": [{ "id": "k4", "claim_activity_number": "CA-4", "invoice_no": "ADMC/C/80004", "cpt_code": "99214", "payer_id": "PAYER-A", "quantity": 1, "net": 400, "transaction_date": "2026-09-02", "activity_start_date": "2026-09-02", "paid_before": 150 }],
+            "lines": [{ "remittance_ref": "RM-A4B", "paid_on": "2026-11-02", "payer_id": "PAYER-A", "invoice_no": "ADMC/C/80004", "cpt_code": "99214", "claimed_amount": 400, "paid_amount": 250 }],
+            "expect": [{ "match_status": "matched", "flags": [], "expected_amount": 250, "short_amount": 0 }]
+          },
+          "claim": { "facts": { "net": 400, "remitted": 400, "lastRemittanceDate": "2026-11-02" }, "expect": { "status": "paid", "outstanding": 0, "overpaid": 0 } }
+        }
+      ]
+    },
+    {
+      "id": "C05",
+      "kind": "resubmission_after_rejection",
+      "title": "Rejected, resubmitted, then paid on the next advice",
+      "confirm": "Mohammed (resubmitted = waiting for the insurer's answer until a later advice arrives)",
+      "steps": [
+        {
+          "remittance": {
+            "claims": [{ "id": "k5", "claim_activity_number": "CA-5", "invoice_no": "ADMC/C/80005", "cpt_code": "99215", "payer_id": "PAYER-A", "quantity": 1, "net": 400, "transaction_date": "2026-09-02", "activity_start_date": "2026-09-02" }],
+            "lines": [{ "remittance_ref": "RM-A5", "paid_on": "2026-10-05", "payer_id": "PAYER-A", "invoice_no": "ADMC/C/80005", "cpt_code": "99215", "claimed_amount": 400, "paid_amount": 0, "denied_amount": 400, "denial_code": "AUTH-001" }],
+            "expect": [{ "match_status": "matched", "flags": ["denied"], "expected_amount": 400, "short_amount": 0 }]
+          },
+          "claim": { "facts": { "net": 400, "remitted": 0, "rejected": 400, "lastRemittanceDate": "2026-10-05" }, "expect": { "status": "rejected", "outstanding": 400, "overpaid": 0 } }
+        },
+        { "claim": { "facts": { "net": 400, "remitted": 0, "rejected": 400, "resubmissionCount": 1, "lastResubmissionDate": "2026-10-20", "lastRemittanceDate": "2026-10-05" }, "expect": { "status": "resubmitted", "outstanding": 400, "overpaid": 0 } } },
+        {
+          "remittance": {
+            "claims": [{ "id": "k5", "claim_activity_number": "CA-5", "invoice_no": "ADMC/C/80005", "cpt_code": "99215", "payer_id": "PAYER-A", "quantity": 1, "net": 400, "transaction_date": "2026-09-02", "activity_start_date": "2026-09-02", "paid_before": 0 }],
+            "lines": [{ "remittance_ref": "RM-A5B", "paid_on": "2026-11-18", "payer_id": "PAYER-A", "invoice_no": "ADMC/C/80005", "cpt_code": "99215", "claimed_amount": 400, "paid_amount": 400 }],
+            "expect": [{ "match_status": "matched", "flags": [], "expected_amount": 400, "short_amount": 0 }]
+          },
+          "claim": { "facts": { "net": 400, "remitted": 400, "resubmissionCount": 1, "lastResubmissionDate": "2026-10-20", "lastRemittanceDate": "2026-11-18" }, "expect": { "status": "paid", "outstanding": 0, "overpaid": 0 } }
+        }
+      ]
+    },
+    {
+      "id": "C06",
+      "kind": "late_remittance",
+      "title": "The advice arrives two months after the visit: it still matches and is not an error; the cash belongs to the later month",
+      "confirm": "Vineetha (the cash is counted in the month of the payment); Hardik (typical delay is 1 to 2 months)",
+      "steps": [
+        {
+          "remittance": {
+            "claims": [{ "id": "k6", "claim_activity_number": "CA-6", "invoice_no": "ADMC/C/80006", "cpt_code": "99213", "payer_id": "PAYER-A", "quantity": 1, "net": 200, "transaction_date": "2026-08-20", "activity_start_date": "2026-08-20" }],
+            "lines": [{ "remittance_ref": "RM-A6", "paid_on": "2026-10-12", "payer_id": "PAYER-A", "invoice_no": "ADMC/C/80006", "cpt_code": "99213", "claimed_amount": 200, "paid_amount": 200 }],
+            "expect": [{ "match_status": "matched", "flags": [], "expected_amount": 200, "short_amount": 0 }]
+          },
+          "monthOffset": { "serviceDate": "2026-08-20", "paidOn": "2026-10-12", "expect": 2 },
+          "claim": { "facts": { "net": 200, "remitted": 200, "lastRemittanceDate": "2026-10-12" }, "expect": { "status": "paid", "outstanding": 0, "overpaid": 0 } }
+        }
+      ]
+    },
+    {
+      "id": "C07",
+      "kind": "duplicate_amount",
+      "title": "Two claims look identical, and two insurer payments have the same amount: nothing is guessed",
+      "confirm": "Mohammed (an advice line that fits two claims goes to a person); Vineetha (a deposit that fits two payments goes to a person unless the bank text names one)",
+      "steps": [
+        {
+          "remittance": {
+            "claims": [
+              { "id": "k7a", "claim_activity_number": "CA-7A", "invoice_no": "ADMC/C/80007", "cpt_code": "36415", "payer_id": "PAYER-A", "quantity": 1, "net": 150, "transaction_date": "2026-09-05", "activity_start_date": "2026-09-05" },
+              { "id": "k7b", "claim_activity_number": "CA-7B", "invoice_no": "ADMC/C/80007", "cpt_code": "36415", "payer_id": "PAYER-A", "quantity": 1, "net": 150, "transaction_date": "2026-09-05", "activity_start_date": "2026-09-05" }
+            ],
+            "lines": [{ "remittance_ref": "RM-A7", "paid_on": "2026-10-05", "payer_id": "PAYER-A", "invoice_no": "ADMC/C/80007", "cpt_code": "36415", "quantity": 1, "claimed_amount": 150, "paid_amount": 150 }],
+            "expect": [{ "match_status": "ambiguous", "flags": ["ambiguous"], "expected_amount": 150, "short_amount": 0, "claim_activity_id": null }]
+          }
+        },
+        {
+          "bank": {
+            "batches": [
+              { "id": "b7a", "ref": null, "payerId": "PAYER-A", "date": "2026-10-14", "amount": 500 },
+              { "id": "b7b", "ref": null, "payerId": "PAYER-A", "date": "2026-10-14", "amount": 500 }
+            ],
+            "lines": [{ "id": "L7", "valueDate": "2026-10-14", "amount": 500, "reference": "TRANSFER", "description": null }],
+            "expect": { "autoReady": [], "proposals": [{ "item": "ins|b7a", "candidates": ["L7"], "ambiguous": true }, { "item": "ins|b7b", "candidates": ["L7"], "ambiguous": true }], "unmatchedItems": [], "bankUnmatched": [] }
+          }
+        },
+        {
+          "deposit": {
+            "payments": [
+              { "key": "P7A", "ref": "RM-D701", "payerId": "PAYER-A", "date": "2026-10-14", "amount": 500 },
+              { "key": "P7B", "ref": "RM-D702", "payerId": "PAYER-A", "date": "2026-10-14", "amount": 500 }
+            ],
+            "cases": [
+              { "line": { "id": "L7", "valueDate": "2026-10-14", "amount": 500, "reference": "TRANSFER", "description": null }, "expect": { "status": "ambiguous", "candidates": [["P7A"], ["P7B"]] } },
+              { "line": { "id": "L7", "valueDate": "2026-10-15", "amount": 500, "reference": "PAYMENT RM-D702", "description": null }, "expect": { "status": "matched", "candidates": [["P7B"]] } }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "C08",
+      "kind": "duplicate_payment",
+      "title": "A claim already paid in full is paid again on a later advice",
+      "confirm": "Mohammed (a second full payment is an overpayment to query or take back); Hardik",
+      "steps": [
+        {
+          "remittance": {
+            "claims": [{ "id": "k8", "claim_activity_number": "CA-8", "invoice_no": "ADMC/C/80008", "cpt_code": "99213", "payer_id": "PAYER-A", "quantity": 1, "net": 200, "transaction_date": "2026-09-02", "activity_start_date": "2026-09-02", "paid_before": 200 }],
+            "lines": [{ "remittance_ref": "RM-A8B", "paid_on": "2026-11-03", "payer_id": "PAYER-A", "invoice_no": "ADMC/C/80008", "cpt_code": "99213", "claimed_amount": 200, "paid_amount": 200 }],
+            "expect": [{ "match_status": "matched", "flags": ["overpaid"], "expected_amount": 0, "short_amount": 0 }]
+          },
+          "claim": { "facts": { "net": 200, "remitted": 400, "lastRemittanceDate": "2026-11-03" }, "expect": { "status": "paid", "outstanding": 0, "overpaid": 200 } }
+        }
+      ]
+    },
+    {
+      "id": "C09",
+      "kind": "deposit_several_references",
+      "title": "One bank deposit is the total of several payment references",
+      "confirm": "Vineetha (the group is only a proposal until a person accepts it); Mohammed (insurers pay several references in one transfer)",
+      "steps": [
+        {
+          "deposit": {
+            "payments": [
+              { "key": "P9A", "ref": "RM-D901", "payerId": "PAYER-A", "date": "2026-10-20", "amount": 300 },
+              { "key": "P9B", "ref": "RM-D902", "payerId": "PAYER-A", "date": "2026-10-20", "amount": 200 },
+              { "key": "P9C", "ref": "RM-D903", "payerId": "PAYER-A", "date": "2026-10-20", "amount": 125 },
+              { "key": "P9D", "ref": "RM-D905", "payerId": "PAYER-A", "date": "2026-10-20", "amount": 225 },
+              { "key": "P9X", "ref": "RM-D904", "payerId": "PAYER-B", "date": "2026-10-20", "amount": 200 }
+            ],
+            "cases": [
+              { "line": { "id": "L9", "valueDate": "2026-10-21", "amount": 500, "reference": "TRANSFER", "description": null }, "expect": { "status": "combination", "candidates": [["P9A", "P9B"]] } },
+              { "line": { "id": "L9", "valueDate": "2026-10-21", "amount": 500, "reference": "RM-D901 RM-D902", "description": null }, "expect": { "status": "matched", "candidates": [["P9A", "P9B"]] } },
+              { "line": { "id": "L9", "valueDate": "2026-10-21", "amount": 425, "reference": "TRANSFER", "description": null }, "expect": { "status": "ambiguous", "candidates": [["P9A", "P9C"], ["P9B", "P9D"]] } }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "C10",
+      "kind": "unmatched_deposit",
+      "title": "A bank credit that fits no insurer payment is listed for a reason, not forced onto one",
+      "confirm": "Vineetha (every unmatched credit needs a reason before the month is signed)",
+      "steps": [
+        {
+          "bank": {
+            "batches": [{ "id": "b10", "ref": "RM-D1001", "payerId": "PAYER-A", "date": "2026-10-10", "amount": 400 }],
+            "lines": [{ "id": "L10", "valueDate": "2026-10-14", "amount": 777, "reference": "TRANSFER", "description": "UNKNOWN SENDER" }],
+            "expect": { "autoReady": [], "proposals": [], "unmatchedItems": ["ins|b10"], "bankUnmatched": ["L10"], "problems": ["Give a reason for 1 item(s) past their expected date.", "Explain 1 unmatched bank credit(s)."] }
+          }
+        },
+        {
+          "deposit": {
+            "payments": [{ "key": "P10", "ref": "RM-D1001", "payerId": "PAYER-A", "date": "2026-10-10", "amount": 400 }],
+            "cases": [
+              { "line": { "id": "L10", "valueDate": "2026-10-14", "amount": 777, "reference": "TRANSFER", "description": "UNKNOWN SENDER" }, "expect": { "status": "unmatched", "candidates": [] } },
+              { "line": { "id": "L10", "valueDate": "2026-10-11", "amount": 380, "reference": "RM-D1001", "description": null }, "expect": { "status": "review", "candidates": [["P10"]] } }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "C11",
+      "kind": "taken_back",
+      "title": "The insurer takes a payment back (a negative line): the claim is open again",
+      "confirm": "Mohammed (a take-back reopens the claim and is not a short payment); Hardik (does Diligence 'remitted' already net the take-back?)",
+      "steps": [
+        {
+          "remittance": {
+            "claims": [{ "id": "k11", "claim_activity_number": "CA-11", "invoice_no": "ADMC/C/80011", "cpt_code": "99213", "payer_id": "PAYER-A", "quantity": 1, "net": 200, "transaction_date": "2026-09-02", "activity_start_date": "2026-09-02", "paid_before": 200 }],
+            "lines": [{ "remittance_ref": "RM-A11", "paid_on": "2026-11-02", "payer_id": "PAYER-A", "invoice_no": "ADMC/C/80011", "cpt_code": "99213", "claimed_amount": 200, "paid_amount": -200 }],
+            "expect": [{ "match_status": "matched", "flags": ["taken_back"], "expected_amount": 0, "short_amount": 0 }]
+          },
+          "claim": { "facts": { "net": 200, "remitted": 200, "takenBack": 200, "lastRemittanceDate": "2026-11-02" }, "expect": { "status": "taken_back", "outstanding": 200, "overpaid": 0 } }
+        }
+      ]
+    },
+    {
+      "id": "C12",
+      "kind": "write_off",
+      "title": "The unpaid balance is written off; the write-off counts only once it is approved",
+      "confirm": "Vineetha (approval is the Finance write-off approval); Mohammed",
+      "steps": [
+        {
+          "remittance": {
+            "claims": [{ "id": "k12", "claim_activity_number": "CA-12", "invoice_no": "ADMC/C/80012", "cpt_code": "99213", "payer_id": "PAYER-A", "quantity": 1, "net": 300, "transaction_date": "2026-09-02", "activity_start_date": "2026-09-02" }],
+            "lines": [{ "remittance_ref": "RM-A12", "paid_on": "2026-10-05", "payer_id": "PAYER-A", "invoice_no": "ADMC/C/80012", "cpt_code": "99213", "claimed_amount": 300, "paid_amount": 100, "denied_amount": 200, "denial_code": "BENX-001" }],
+            "expect": [{ "match_status": "matched", "flags": ["denied"], "expected_amount": 300, "short_amount": 0 }]
+          },
+          "claim": { "facts": { "net": 300, "remitted": 100, "rejected": 200, "writeOff": 200, "writeOffApproved": false }, "expect": { "status": "partly_paid", "outstanding": 200, "overpaid": 0 } }
+        },
+        { "claim": { "facts": { "net": 300, "remitted": 100, "rejected": 200, "writeOff": 200, "writeOffApproved": true }, "expect": { "status": "written_off", "outstanding": 0, "overpaid": 0 } } }
+      ]
+    }
+  ]
+}

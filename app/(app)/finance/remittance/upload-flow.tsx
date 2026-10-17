@@ -39,6 +39,7 @@ const FLAG_LABEL: Record<string, string> = {
   billed_below_contract: "Billed below contract",
   billed_above_contract: "Billed above contract",
   duplicate_in_file: "Repeated line",
+  taken_back: "Taken back",
 };
 
 export function RemittanceUpload() {
@@ -66,7 +67,9 @@ export function RemittanceUpload() {
         .uploadToSignedUrl(prep.data.path, prep.data.token, file, {
           contentType: /\.csv$/i.test(file.name)
             ? "text/csv"
-            : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            : /\.xml$/i.test(file.name)
+              ? "text/xml"
+              : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         });
       if (error) throw new Error(error.message);
       setBusy("processing");
@@ -87,16 +90,16 @@ export function RemittanceUpload() {
         <CardHeader>
           <CardTitle>Upload a payment advice</CardTitle>
           <CardDescription>
-            The payer&apos;s remittance as .xlsx or .csv. It is checked first and nothing is saved
-            until you confirm. The original file is deleted right after it is read; patient names
-            and member IDs are never stored.
+            The payer&apos;s remittance as .xlsx, .csv or the .xml advice downloaded from Diligence.
+            It is checked first and nothing is saved until you confirm. The original file is deleted
+            right after it is read; patient names and member IDs are never stored.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex items-center gap-3">
           <input
             ref={input}
             type="file"
-            accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            accept=".xlsx,.csv,.xml,text/xml,application/xml,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             className="hidden"
             onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])}
           />
