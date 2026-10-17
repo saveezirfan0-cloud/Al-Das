@@ -220,7 +220,7 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance parallel run (W4)", () => {
 
   it("the migration adds the key to an existing Finance Manager role once", async () => {
     const { readFileSync } = await import("node:fs");
-    const sql = readFileSync("supabase/migrations/20261210000300_finance_parallel_run.sql", "utf8");
+    const sql = readFileSync("supabase/migrations/20261222000200_finance_parallel_run.sql", "utf8");
     const block = /update public\.roles r[\s\S]*?;\n/.exec(sql)![0];
     await svc(async () => {
       await q(

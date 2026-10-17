@@ -8,7 +8,7 @@
 - `fin_parallel_decisions` (one row per org and area; `running` or `switched`, note, decided_by/at). No row = not started. A reversal writes `running` again.
 - `fin_ref_finance_settings.parallel_tolerance numeric(12,3)` default 1.000 AED (0 to 10,000). Edited on the page (Finance Manager). With no settings row the loader uses 0 (strictest).
 - Both tables: RLS with a SELECT policy only; the policy asks for the area's own report key. Every write is a server action (service role after `can()`, audited with area and month only, never the amount or the note).
-- Migration `20261210000300_finance_parallel_run.sql`. `lib/supabase/types.ts` was edited by hand (entries for the two tables and the settings column); regenerate it after the merge.
+- Migration `20261222000200_finance_parallel_run.sql`. `lib/supabase/types.ts` was edited by hand (entries for the two tables and the settings column); regenerate it after the merge.
 
 ## Which loader feeds each area
 

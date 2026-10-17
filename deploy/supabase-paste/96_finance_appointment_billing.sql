@@ -1,6 +1,6 @@
 -- Paste this whole file into Supabase > SQL Editor > New query, then Run.
 -- Run the files in numeric order. A failed file rolls back as a whole, so it is safe to retry.
--- Needs every earlier file first, up to and including 93_finance_controls.sql.
+-- Needs every earlier file first, up to and including 95_finance_matching_v2.sql.
 
 -- W2: Unite appointments <-> invoices (docs/47_W2_APPOINTMENTS_INVOICES_NOTES.md).
 --

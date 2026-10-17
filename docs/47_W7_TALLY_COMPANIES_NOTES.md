@@ -2,7 +2,7 @@
 
 Plan row W7: "After the partner call: enter the address and credentials (hosted Tally) or install the connector (Tally on a
 clinic PC); pilot on a **test company**; **support several Tally companies**; gate review end Jan 2027. Done when: pilot
-month pushes and pulls cleanly." Migration: `supabase/migrations/20261210000400_tally_company_per_entity.sql`. Builds on
+month pushes and pulls cleanly." Migration: `supabase/migrations/20261222000300_tally_company_per_entity.sql`. Builds on
 `docs/22_PHASE_22J_NOTES.md` (the bridge, read it first) and 22I (the file import).
 
 ## 1. What was found (before this change)
