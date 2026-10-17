@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-12-10-insurer-payments-matching",
+    date: "2026-10-17",
+    title: "Insurer payments: open items and smarter bank matching",
+    body: "A new Finance page, Insurer payments, keeps each payment an insurer sends on one list until the bank deposits that paid it are matched in full. One deposit can pay several payments and one payment can be paid in parts or months later. Pulse suggests matches from the payment reference on the bank line, or from the payer and amount, and shows its reasons; when several fit it asks you instead of guessing. Names it learns for each payer, and automatic matching for each rule, are used only after a Finance Manager approves them, and a rule can be switched on only after it has been right month after month. Import the receipt register on the same page.",
+  },
+  {
     id: "2026-12-10-unite-export-links",
     date: "2026-10-17",
     title: "Saved Unite export, and invoices linked to patients and appointments",

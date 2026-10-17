@@ -242,6 +242,13 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
     permissions: ["finance.bank.view"],
   },
   {
+    href: "/finance/matching",
+    label: "Insurer payments",
+    section: "Money",
+    permissions: ["finance.matching.view"],
+    keywords: ["receipt register", "insurer receipts", "open items", "allocation", "payer names", "automatic matching"],
+  },
+  {
     href: "/finance/labs",
     label: "Labs and referrals",
     section: "Money",
