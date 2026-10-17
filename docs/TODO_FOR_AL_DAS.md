@@ -1,6 +1,6 @@
 # To-do for Al Das: everything in one place
 
-_Updated 17 Oct 2026 (section 5b added: insurer payment matching and Unite records). Pulse's code for Phases 20 to 22 is merged into `main` (finance control, accounting, Tally bridge, digital signatures, ERP menu, chronic recall alignment). What is left is below: things to do, decisions to take and files to send. Sections 1 to 6 are kept by hand; sections 7 and 8 are generated from the question register (`docs/audit/open-questions.md`, the source of truth with evidence) by `python3 scripts/compile-todo.py`. Answer by question number; until a question is answered Pulse keeps the proposed value, or stays switched off where it says blocking._
+_Updated 17 Oct 2026 (section 5b: insurer payment matching and Unite records, live in production). Pulse's code for Phases 20 to 22 is merged into `main` (finance control, accounting, Tally bridge, digital signatures, ERP menu, chronic recall alignment). What is left is below: things to do, decisions to take and files to send. Sections 1 to 6 are kept by hand; sections 7 and 8 are generated from the question register (`docs/audit/open-questions.md`, the source of truth with evidence) by `python3 scripts/compile-todo.py`. Answer by question number; until a question is answered Pulse keeps the proposed value, or stays switched off where it says blocking._
 
 ## 1. Go live (this week)
 
@@ -38,9 +38,9 @@ _Updated 17 Oct 2026 (section 5b added: insurer payment matching and Unite recor
 
 ## 5b. Insurer payment matching and Unite records (Phase 46, docs/46_PHASE_46_NOTES.md)
 
-- [ ] **Apply the two new database files** to the live Supabase project: `deploy/supabase-paste/94_finance_unite_file_links.sql`, then `95_finance_matching_v2.sql` (after 93; they do not depend on 100 and 101). Until then the Insurer payments page and the saved-export card fail. _Saveez (or Claude on your go-ahead)_
+- [x] **Done 17 Oct 2026, 15:15 UTC:** the merge of PR #86 applied the two database files to the live project through the "Database migrations" workflow (`20261221000100`, `20261221000200`), and Vercel deployed commit `23713bd` to production. The paste files `deploy/supabase-paste/94_…` and `95_…` are only needed if you ever rebuild a project by hand. _Claude_
 - [ ] **Upload the saved Unite export** (Finance, Uploads, third card). Enter the date it was pulled, type UPLOAD. First check the file is the raw Finance API answer (JSON). If processing stops with a message naming a missing field, send the message to Claude: the field list in `lib/finance/unite-mapping.ts` is corrected and the file is re-processed with `pnpm finance:replay --failed` (nothing is lost; the raw copy is stored first). _Saveez with Finance_
-- [ ] Give the Finance Manager, Finance and Revenue & Collections roles their new keys: they are added automatically to the system roles; check under Settings, Roles that **Insurer payments** shows for them. _Hardik_
+- [ ] Check under Settings, Roles that the new keys arrived: Finance, Finance Manager and Revenue & Collections have **Insurer payments** (view, match), the Finance Manager also has **Approve matching rules**, the CEO has view. Then check the **Insurer payments** page opens for each of them. _Hardik_
 - [ ] Settings, Bank, Layouts: create a layout for the **insurer receipt register** (map the columns: payment reference, amount, bank receipt date; optional payer, receipt number, bank). Send one month of the receipt register (Mohammed's Remittance Receipt Report) so the layout can be checked against a real file. _Mohammed / Saveez_
 - [ ] Import the bank statements of the **insurance account** for every month still open, then Insurer payments, Run matching. _Hardik / Vineetha_
 - [ ] Payer names: the receipt register and the remittance advices must write each insurer's code the same way, or payer-and-amount matching cannot join them. Agree one code per insurer (Finance, Reference data, payers) and tell Claude if the two files differ. _Hardik / Sharaf_
@@ -51,6 +51,16 @@ _Updated 17 Oct 2026 (section 5b added: insurer payment matching and Unite recor
 - [ ] Decide on the **insurance control matrix** (Saeed): Diligence receivable against Finance receivable each month with preparer, reviewer and signer, and one status per claim. Not built yet. _Saeed_
 - [ ] Click through once on a dev or live stack (nothing here has been opened in a browser): Finance, Uploads (saved export card); Finance, Bank, Insurer payments (all five tabs); a patient's Invoices tab; an appointment's Invoices section. Report anything odd. _Saveez with Finance_
 - [ ] Optional clean-up: regenerate `lib/supabase/types.ts` with `pnpm db:migrate` (the Phase 46 types were added by hand). _Developer_
+
+Still to build (Claude, each waits on an input above; decisions in `docs/46_PHASE_46_NOTES.md`):
+
+- [ ] E-claim XML import (submission and remittance advice) — needs the sample files from Sharaf.
+- [ ] Load the September/October manual reconciliation as the answer key — needs the workbook (or enter it by hand, above).
+- [ ] Known bank-charge rules (level 4 of the matching spec) — needs the agreed charges.
+- [ ] Insurance control matrix and claim lines in the open-item register (spec 3.5) — needs Saeed's decision.
+- [ ] Decide whether the person who proposes a payer name may also approve it, and whether a large write-off needs a second approver (today a Finance Manager can do both alone). _Hardik / CEO_
+- [ ] Join insurer codes between the receipt register and remittance advices in the app (today they must be written identically), and allow the same payment reference from two different insurers (today such a file is refused with a clear message).
+- [ ] Sweep abandoned upload files from Storage (same gap exists for the Diligence and remittance uploads).
 
 ## 6. Still to receive from you
 
