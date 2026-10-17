@@ -281,6 +281,8 @@ export async function allocateManually(input: z.input<typeof manualSchema>): Pro
       auto: false,
       decided_by: member.userId,
     });
+    if (error?.code === "23505")
+      return fail("This credit is already allocated to that payment. Undo that allocation first, then allocate the new amount.");
     if (error) return fail(dbMessage(error, DB_CHANGED));
     await recordAudit(admin, {
       orgId: member.orgId,

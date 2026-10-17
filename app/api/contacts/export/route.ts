@@ -38,7 +38,9 @@ export async function POST(req: Request) {
   const admin = createAdminClient();
   const limited = await checkRateLimit(admin, "contacts-export", member.userId, RATE_RULES.contactsExportPerUser);
   if (!limited.allowed) return tooManyRequests(limited);
-  const ctx = await loadContactContext(admin, member.orgId);
+  const ctx = await loadContactContext(admin, member.orgId, {
+    clinical: can(member, "clinical.view"),
+  });
 
   let filter: Filter | null = null;
   let search: string | null = null;

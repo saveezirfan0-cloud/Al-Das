@@ -180,6 +180,28 @@ export const GUIDES: readonly Guide[] = [
     ],
   },
   {
+    id: "patient-record",
+    title: "Patient record",
+    // The path has a patient id in it, so guideForPath matches /contacts/<id> by shape (PATIENT_RECORD_PATH).
+    pages: [],
+    purpose:
+      "One patient on one page: who they are, their visits and medicines, follow-ups, messages, billing and household.",
+    steps: [
+      "The top shows name, age, Unite PIN, home branch, life stage (Lead, New patient, Active, Lapsed), consent chips and the next appointment.",
+      "Tabs load when you open them, and you only see the tabs your role allows. Overview is a summary; Appointments, Conversations, Enquiries and marketing, Billing, Documents, and Tasks and notes show what you already see elsewhere.",
+      "Visits and medical record lists each visit with branch, doctor, vitals, diagnoses and medicines. Open a visit to expand it.",
+      "Conditions and medicines shows long-term conditions and the latest prescriptions, and whether a course is still running.",
+      "Care and follow-ups shows the clinic's follow-up calls, recall messages and feedback, as status and dates only.",
+      "Household shows a guardian or dependants. Open one to go to their record.",
+    ],
+    watchOut: [
+      "Clinical tabs need the clinical access right (Doctors, the Medical Director and care coordinators have it). Receptionists, agents and marketing do not.",
+      "Every time you open a clinical tab it is recorded with your name. Open only what you need for this patient.",
+      "Allergies are not shown yet: Pulse has no allergy source. Ask the doctor or check Unite.",
+      "A lead with no Unite PIN has no visits here. If the PIN is missing, check for a duplicate record.",
+    ],
+  },
+  {
     id: "tasks",
     title: "Tasks",
     pages: ["/tasks"],
@@ -1576,6 +1598,22 @@ export const GUIDES: readonly Guide[] = [
     watchOut: ["A green row means the setting exists, not that it was tested with real traffic."],
   },
   {
+    id: "settings-migration",
+    title: "Migration status",
+    pages: ["/settings/migration"],
+    purpose:
+      "One list of every Airtable table and Make scenario, what replaces it in Pulse and how far along it is.",
+    steps: [
+      "Read the state of each row: Not started, Imported, Native, Parallel run or Retired.",
+      "Use the link in the In Pulse column to open the screen where that work happens.",
+      "The Last known column shows counts from the last import and the parallel-run records.",
+    ],
+    watchOut: [
+      "The page only reads. A state moves when the import runs or the parallel-run checklist is updated, not here.",
+      "Not started with a note means it is waiting or dropped on purpose, not forgotten.",
+    ],
+  },
+  {
     id: "settings-fields-tags",
     title: "Custom fields and tags",
     pages: ["/settings/custom-fields", "/settings/tags"],
@@ -1700,6 +1738,20 @@ export const GUIDES: readonly Guide[] = [
     watchOut: ["Deleting a pipeline or stage changes reports for past enquiries too."],
   },
   {
+    id: "settings-lifecycle",
+    title: "Patient lifecycle",
+    pages: ["/settings/lifecycle"],
+    purpose: "How long after a first visit a patient counts as new, and how long without a visit before they are lapsed.",
+    steps: [
+      "Set the number of days a patient stays new after their first visit.",
+      "Set the number of months after which a patient with no visit is lapsed.",
+      "Save. The stage on the Patients list and in segments follows at once; nothing is typed by hand.",
+    ],
+    watchOut: [
+      "Lifecycle comes from visit dates, so it is health information: only people who may see clinical records can see or filter by it.",
+    ],
+  },
+  {
     id: "settings-audit",
     title: "Activity log and access review",
     pages: ["/settings/activity", "/settings/access-review"],
@@ -1756,7 +1808,12 @@ export const FALLBACK_GUIDE: Guide = {
   watchOut: ["Patient information is health data. Only open what you need for your work."],
 };
 
+/** /contacts/<patient id>: the full record page (its path carries an id, so it is matched by shape). */
+const PATIENT_RECORD_PATH = /^\/contacts\/[^/]+\/?$/;
+
 export function guideForPath(pathname: string): Guide {
+  if (PATIENT_RECORD_PATH.test(pathname))
+    return GUIDES.find((g) => g.id === "patient-record") ?? FALLBACK_GUIDE;
   let best: { guide: Guide; len: number } | null = null;
   for (const guide of GUIDES) {
     for (const p of guide.pages) {

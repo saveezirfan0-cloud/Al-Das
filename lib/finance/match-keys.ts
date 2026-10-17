@@ -1,6 +1,6 @@
 /**
  * Matching engine v2: the key and text helpers (pure). `refKey` mirrors SQL `public.fin_ref_key`
- * (supabase/migrations/20261210000200_finance_matching_v2.sql); a database test compares the two on REF_KEY_FIXTURES.
+ * (supabase/migrations/20261221000200_finance_matching_v2.sql); a database test compares the two on REF_KEY_FIXTURES.
  */
 
 /** Payment reference -> key: upper-case, only A-Z and 0-9, leading zeros dropped, empty -> null. */

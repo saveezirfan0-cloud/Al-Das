@@ -39,8 +39,12 @@ export async function loadCustomFields(
   return (data ?? []).map(toCustomFieldDef);
 }
 
-export function registryFor(customFields: CustomFieldDef[]): FieldRegistry {
+export function registryFor(
+  customFields: CustomFieldDef[],
+  opts: { clinical?: boolean } = {},
+): FieldRegistry {
   return buildContactFieldRegistry({
+    clinicalAvailable: opts.clinical ?? true,
     customFields: customFields.map((f) => ({
       key: f.key,
       label: f.label,
@@ -54,6 +58,8 @@ export function registryFor(customFields: CustomFieldDef[]): FieldRegistry {
 export async function loadContactContext(
   admin: AdminClient,
   orgId: string,
+  /** clinical: false hides the clinical filter fields (a member without clinical.view). Default true. */
+  opts: { clinical?: boolean } = {},
 ): Promise<ContactContext> {
   const [customFields, { data: tags }, { data: segments }, { data: members }] = await Promise.all([
     loadCustomFields(admin, orgId),
@@ -85,7 +91,7 @@ export async function loadContactContext(
     .sort((a, b) => a.label.localeCompare(b.label));
   return {
     customFields,
-    registry: registryFor(customFields),
+    registry: registryFor(customFields, opts),
     tags: tags ?? [],
     segments: segments ?? [],
     users,

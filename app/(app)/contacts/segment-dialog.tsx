@@ -38,6 +38,8 @@ import {
   type Filter,
 } from "@/lib/filters/ast";
 
+import { clinicalFieldsIn } from "@/lib/campaigns/audience-purpose";
+
 import { saveSegment } from "./actions";
 
 export function SegmentDialog({
@@ -79,6 +81,19 @@ export function SegmentDialog({
     setExcluding(!!f.exclude && countConditions(f.exclude) > 0);
     setDripFlowId(segment?.drip_flow_id ?? null);
   }, [open, segment, initialFilter]);
+
+  // Care programmes only: a filter with a clinical field can never build a marketing audience (enforced on the server).
+  const clinicalUsed = React.useMemo(
+    () =>
+      kind === "dynamic" &&
+      clinicalFieldsIn(filter, {
+        get: (key) => {
+          const f = fields.find((x) => x.key === key);
+          return f ? { clinical: f.clinical === true } : undefined;
+        },
+      }).length > 0,
+    [kind, filter, fields],
+  );
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -168,6 +183,14 @@ export function SegmentDialog({
                   options={options}
                 />
               </div>
+              {clinicalUsed && (
+                <p
+                  role="note"
+                  className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200"
+                >
+                  Care programmes only (recall and follow-up), not marketing.
+                </p>
+              )}
               <label className="flex items-center justify-between text-sm font-medium">
                 Exclusion filters
                 <Switch checked={excluding} onCheckedChange={setExcluding} />

@@ -1,6 +1,6 @@
 # Phase 46: Unite records, patient links and matching engine v2
 
-Built from `docs/46_FINANCE_RECORDS_AND_MATCHING.md` (17 Oct 2026). Migrations `20261210000100` and `20261210000200`.
+Built from `docs/46_FINANCE_RECORDS_AND_MATCHING.md` (17 Oct 2026). Migrations `20261221000100` and `20261221000200`.
 
 ## What is built
 

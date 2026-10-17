@@ -4,6 +4,8 @@
  * key from the AST that is not registered here, which is what keeps the
  * dynamic SQL safe.
  */
+import { AGE_BAND_LABELS, AGE_BANDS } from "@/lib/contacts/age-band";
+import { LIFECYCLE_LABELS, LIFECYCLE_STAGES } from "@/lib/contacts/lifecycle";
 import { DAYS_OPERATORS, LIST_OPERATORS, UNARY_OPERATORS, type Operator } from "@/lib/filters/ast";
 
 export type FieldType =
@@ -31,7 +33,14 @@ export type RelationKey =
   | "appointments"
   | "campaign_recipients"
   | "tasks"
-  | "enquiry_tags";
+  | "enquiry_tags"
+  // Track P (docs/45 P4/P5): one-row-per-contact views and visit/diagnosis views. All are security_invoker views.
+  | "contact_lifecycle"
+  | "contact_age_band"
+  | "contact_visit_stats"
+  | "contact_visit_segments"
+  | "contact_chronic_groups"
+  | "contact_visit_groups";
 
 export type RelationDef = {
   key: RelationKey;
@@ -73,11 +82,18 @@ export type FieldDef = {
     | "services"
     | "departments"
     | "pipelines"
-    | "sources";
+    | "sources"
+    | "condition_groups";
   /** Hidden from the UI (and rejected by the compiler) until the relation exists. */
   available: boolean;
   /** Can be used in ORDER BY (column / custom / count only). */
   sortable: boolean;
+  /**
+   * Derived from visits, diagnoses, doctors, departments or visit dates (health data). A filter that uses a clinical
+   * field may build care audiences (recall, follow-up) but never a marketing audience: lib/campaigns/audience-purpose.ts.
+   * Custom fields are not clinical by default (an org-defined field cannot be classified here).
+   */
+  clinical: boolean;
 };
 
 export type FieldRegistry = {
@@ -295,6 +311,46 @@ export const CONTACT_RELATIONS: Record<RelationKey, RelationDef> = {
     columns: { due_at: "timestamptz", done: "boolean" },
     extraWhere: "r.done = false and r.deleted_at is null",
   },
+  // Track P views (migration 20261220000200). Lifecycle and age band have exactly one row per contact.
+  contact_lifecycle: {
+    key: "contact_lifecycle",
+    table: "public.v_contact_lifecycle",
+    contactColumn: "contact_id",
+    columns: { stage: "text" },
+  },
+  contact_age_band: {
+    key: "contact_age_band",
+    table: "public.v_contact_age_band",
+    contactColumn: "contact_id",
+    columns: { age_band: "text" },
+  },
+  // One row for a contact with any known visit date (Pulse visits or Unite's patient date); none otherwise.
+  contact_visit_stats: {
+    key: "contact_visit_stats",
+    table: "public.v_contact_visit_stats",
+    contactColumn: "contact_id",
+    columns: { last_visit_date: "date" },
+  },
+  contact_visit_segments: {
+    key: "contact_visit_segments",
+    table: "public.v_contact_visit_segments",
+    contactColumn: "contact_id",
+    columns: { specialist_id: "uuid", department: "text", visit_date: "date" },
+  },
+  contact_chronic_groups: {
+    key: "contact_chronic_groups",
+    table: "public.v_contact_diagnosis_groups",
+    contactColumn: "contact_id",
+    columns: { condition_group_id: "uuid" },
+    extraWhere: "r.source = 'chronic'",
+  },
+  contact_visit_groups: {
+    key: "contact_visit_groups",
+    table: "public.v_contact_diagnosis_groups",
+    contactColumn: "contact_id",
+    columns: { condition_group_id: "uuid" },
+    extraWhere: "r.source = 'visit'",
+  },
 };
 
 /** Relations whose tables exist today. Later phases extend this list. */
@@ -306,6 +362,12 @@ export const AVAILABLE_RELATIONS: readonly RelationKey[] = [
   "appointments",
   "enquiries",
   "tasks",
+  "contact_lifecycle",
+  "contact_age_band",
+  "contact_visit_stats",
+  "contact_visit_segments",
+  "contact_chronic_groups",
+  "contact_visit_groups",
 ];
 
 export type CustomFieldDefInput = {
@@ -327,7 +389,10 @@ const rel = (relation: RelationKey, column: string): FieldSource => ({
   column,
 });
 
-type Partial = Omit<FieldDef, "available" | "sortable"> & { sortable?: boolean };
+type Partial = Omit<FieldDef, "available" | "sortable" | "clinical"> & {
+  sortable?: boolean;
+  clinical?: boolean;
+};
 
 const CONTACT_BASE_FIELDS: Partial[] = [
   // Contact
@@ -792,6 +857,84 @@ const CONTACT_BASE_FIELDS: Partial[] = [
     source: { kind: "count", relation: "appointments" },
     sortable: true,
   },
+  // Segments v2 (docs/45 P5). Age band is non-clinical; everything below it comes from visits, diagnoses, doctors or
+  // visit dates and is clinical (care programmes only, never marketing). Lifecycle is derived from visit dates, so it
+  // is clinical too. Gender and home branch are the existing non-clinical fields above.
+  {
+    key: "age_band",
+    label: "Age band",
+    group: "Patient",
+    type: "select",
+    source: rel("contact_age_band", "age_band"),
+    options: AGE_BANDS.map((v) => ({ value: v, label: AGE_BAND_LABELS[v] })),
+  },
+  {
+    key: "lifecycle_stage",
+    label: "Lifecycle stage",
+    group: "Patient",
+    type: "select",
+    source: rel("contact_lifecycle", "stage"),
+    options: LIFECYCLE_STAGES.map((v) => ({ value: v, label: LIFECYCLE_LABELS[v] })),
+    clinical: true,
+  },
+  {
+    key: "last_visit",
+    label: "Last visit",
+    group: "Patient",
+    type: "date",
+    source: rel("contact_visit_stats", "last_visit_date"),
+    clinical: true,
+  },
+  {
+    key: "visit_count",
+    label: "Count of visits",
+    group: "Patient",
+    type: "count",
+    source: { kind: "count", relation: "contact_visit_segments" },
+    clinical: true,
+  },
+  {
+    key: "visit_doctor",
+    label: "Seen by doctor",
+    group: "Patient",
+    type: "select",
+    source: rel("contact_visit_segments", "specialist_id"),
+    optionsSource: "specialists",
+    clinical: true,
+  },
+  {
+    key: "visit_department",
+    label: "Visit department",
+    group: "Patient",
+    type: "select",
+    source: rel("contact_visit_segments", "department"),
+    options: [
+      { value: "paediatrics", label: "Paediatrics" },
+      { value: "gp", label: "General practice" },
+      { value: "gynaecology", label: "Gynaecology" },
+      { value: "dermatology", label: "Dermatology" },
+      { value: "other", label: "Other" },
+    ],
+    clinical: true,
+  },
+  {
+    key: "chronic_condition",
+    label: "Chronic condition group",
+    group: "Patient",
+    type: "set",
+    source: rel("contact_chronic_groups", "condition_group_id"),
+    optionsSource: "condition_groups",
+    clinical: true,
+  },
+  {
+    key: "diagnosis_group",
+    label: "Diagnosis group (any visit)",
+    group: "Patient",
+    type: "set",
+    source: rel("contact_visit_groups", "condition_group_id"),
+    optionsSource: "condition_groups",
+    clinical: true,
+  },
   // Campaigns
   {
     key: "campaign",
@@ -823,11 +966,17 @@ export type BuildRegistryOptions = {
   customFields?: CustomFieldDefInput[];
   /** Relations that exist in this deployment. Defaults to AVAILABLE_RELATIONS. */
   availableRelations?: readonly RelationKey[];
+  /**
+   * Whether clinical fields (visits, diagnoses, lifecycle ...) are offered. Default true; screens pass false for a
+   * member without `clinical.view` so the compiler rejects those fields (health data is never implied by contacts.*).
+   */
+  clinicalAvailable?: boolean;
 };
 
 /** Builds the contact field registry, including the org's custom fields as `custom.<key>`. */
 export function buildContactFieldRegistry(opts: BuildRegistryOptions = {}): FieldRegistry {
   const available = new Set<RelationKey>(opts.availableRelations ?? AVAILABLE_RELATIONS);
+  const clinicalAvailable = opts.clinicalAvailable ?? true;
   const fields = new Map<string, FieldDef>();
 
   for (const f of CONTACT_BASE_FIELDS) {
@@ -836,7 +985,10 @@ export function buildContactFieldRegistry(opts: BuildRegistryOptions = {}): Fiel
     fields.set(f.key, {
       ...f,
       sortable: f.sortable ?? false,
-      available: relation ? available.has(relation) : true,
+      clinical: f.clinical ?? false,
+      available:
+        (relation ? available.has(relation) : true) &&
+        (clinicalAvailable || !(f.clinical ?? false)),
     });
   }
 
@@ -852,6 +1004,7 @@ export function buildContactFieldRegistry(opts: BuildRegistryOptions = {}): Fiel
       options: cf.options ?? undefined,
       available: true,
       sortable: true,
+      clinical: false,
     });
   }
 

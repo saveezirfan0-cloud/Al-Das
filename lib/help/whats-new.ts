@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-12-20-patient-360",
+    date: "2026-10-17",
+    title: "Full patient record, migration status and lifecycle stages",
+    body: "Open any patient's full record from the Patients list: appointments, visits and medical record, conditions and medicines, follow-ups, conversations, enquiries, billing, documents, tasks and household on one page. The clinical tabs need the new View patient clinical records permission (Doctor, Medical Director and Care coordinator have it) and every open is logged. Patients now show a lifecycle stage (lead, new patient, active, lapsed) worked out from visit dates, with the thresholds under Settings, Patient lifecycle. Segments can filter on age band, last visit, visit count, doctor, department, chronic condition and diagnosis group, but only for care programmes, never marketing. Settings, Migration status shows where each Airtable table and Make scenario stands.",
+  },
+  {
     id: "2026-12-10-insurer-payments-matching",
     date: "2026-10-17",
     title: "Insurer payments: open items and smarter bank matching",
