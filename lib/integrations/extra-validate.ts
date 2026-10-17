@@ -1,3 +1,4 @@
+import { readTallyDirectConfig, tallyDirectConfigProblems } from "@/lib/accounting/tally/direct";
 import { allowListProblem } from "@/lib/finance/mailbox";
 import type { IntegrationKind } from "@/lib/integrations/catalog";
 import { parseAllowedDomains } from "@/lib/channels/web/policy";
@@ -25,5 +26,8 @@ export function extraValidation(
   // Phase 20h: the generic SMS gateway's address (public host, https, no query), body template and check address.
   if (kind === "sms" && provider === "http")
     return httpSmsConfigProblems(readHttpSmsConfig(config))[0] ?? null;
+  // docs/44: the hosted Tally's address (public https host) and sign-in.
+  if (kind === "tally_bridge" && provider === "https")
+    return tallyDirectConfigProblems(readTallyDirectConfig(config))[0] ?? null;
   return null;
 }

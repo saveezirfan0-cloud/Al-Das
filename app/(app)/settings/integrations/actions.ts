@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { buildTallyDirect, usesDirect } from "@/lib/accounting/tally/direct-server";
 import { recordAudit } from "@/lib/audit";
 import { requirePerm } from "@/lib/auth/session";
 import {
@@ -207,6 +208,11 @@ export async function testIntegration(kindInput: string): Promise<ActionResult> 
       ok: false,
       code: "incomplete",
     };
+  } else if (kind === "tally_bridge" && usesDirect(account)) {
+    // docs/44: a GET on the hosted Tally's address with the stored sign-in; reads and writes nothing in Tally.
+    const direct = buildTallyDirect(admin, account);
+    const state = direct ? await direct.state() : "incomplete";
+    result = { ok: state === "ok", code: state === "ok" ? undefined : state };
   } else return { ok: false, error: "Nothing to test for this integration." };
 
   await recordAudit(admin, {

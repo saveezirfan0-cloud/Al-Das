@@ -58,7 +58,7 @@ Merged to `main` through PR #45 (Phases 20 and 21 part 1), PR #46 (Phase 22A to 
 | 22G | Statements: P&L in Tally's layout, balance sheet, cash flow, budgets, VAT 201 working paper, ratios, exceptions, corporate tax bridge |
 | 22H | Fixed assets, depreciation runs, disposals, prepayment / accrual / deferred revenue schedules |
 | 22I | Tally import (masters, opening balances, voucher history) with dry run and reconciliation; year-end close |
-| 22J | Tally bridge: on-premise connector that keeps Tally and Pulse in step until cut-over |
+| 22J | Tally bridge: on-premise connector that keeps Tally and Pulse in step until cut-over; a hosted Tally can be reached directly over HTTPS with the partner's credentials (docs/44, off until they arrive) |
 | 22K | Integration pass: one journal per event (cheques), one meaning per account code, shared SQL functions reconciled |
 | 21B | Chronic recall selects patients the way Airtable did (chronic-flagged diagnoses only, Unite last-visit date, booked patients off the call list) |
 

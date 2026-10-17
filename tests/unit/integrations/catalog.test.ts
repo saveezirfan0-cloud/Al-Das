@@ -93,6 +93,8 @@ describe("catalogue", () => {
         "app_secret",
         "verify_token",
         "verify_token",
+        // docs/44: the hosted Tally's token, password or API key
+        "tally_secret",
         "client_secret",
         // Phase 20h: the generic HTTP SMS gateway's bearer token or Basic password
         "gateway_secret",

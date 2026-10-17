@@ -3484,6 +3484,7 @@ export type Database = {
           status: string;
           tally_state: string | null;
           token_sha256: string | null;
+          transport: string;
           updated_at: string;
           version: string | null;
         };
@@ -3503,6 +3504,7 @@ export type Database = {
           status?: string;
           tally_state?: string | null;
           token_sha256?: string | null;
+          transport?: string;
           updated_at?: string;
           version?: string | null;
         };
@@ -3521,6 +3523,7 @@ export type Database = {
           status?: string;
           tally_state?: string | null;
           token_sha256?: string | null;
+          transport?: string;
           updated_at?: string;
           version?: string | null;
         };
@@ -24989,6 +24992,10 @@ export type Database = {
       acc_tally_bridge_device: {
         Args: { p_tally_state: string; p_token_sha256: string; p_version: string };
         Returns: Json;
+      };
+      acc_tally_bridge_direct_device: {
+        Args: { p_org_id: string; p_tally_state: string };
+        Returns: string;
       };
       acc_tally_bridge_export_result: {
         Args: {

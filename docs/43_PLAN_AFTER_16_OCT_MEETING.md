@@ -57,20 +57,31 @@ If the gate passes, cut over at **1 July 2027** (fiscal year start, aligned with
 
 | # | Workstream | What is built | What to build | Needs from the clinic | Done when |
 |---|---|---|---|---|---|
-| W1 | **Unite data by upload** | Unite finance mapping (`lib/finance/unite-mapping.ts`, every field above incl. appointment ID), invoice model, capture (off), collection report upload | An **invoice-detail file upload** that feeds the same invoice model as the Unite feed (same mapping, same checks, deliver-once rules untouched), so cash-up, bank recon, labs and revenue work before the feed is switched on | One sample Unite invoice-detail export (the one Hardik reviewed) | A month of invoices loads and agrees to the collection report to the fils |
+| W1 | **Unite data by upload** | Unite finance mapping (`lib/finance/unite-mapping.ts`, every field above incl. appointment ID), invoice model, capture (off), collection report upload, `pnpm finance:replay` | **Update 17 Oct: the clinic already holds an export taken from the Unite Finance API.** That API is deliver-once, so those records will never reach Pulse's own capture: load the saved payload as a raw batch (`fin_raw_*`, stored first, then `fin_process_batch`, the same mapper and checks), never by calling Unite. Needs the file exactly as received (JSON, not re-typed into Excel), who pulled it and the date range | The saved export file; confirmation nobody else calls the API | A month of invoices loads and agrees to the collection report to the fils |
 | W2 | **Appointments ↔ invoices** | Pulse diary, check-in, capacity page, Unite appointment sync (waiting for credentials) | An **appointment export upload** and matching by Unite appointment ID (then by patient, doctor and day): seen-not-billed, billed-not-seen, room and doctor utilisation | Unite appointment export (sample received for one day) | Utilisation per doctor and room for a month; review list of unmatched |
 | W3 | **Insurance reconciliation** | Diligence import, claims, denials, remittance import, bank matching of remittances | (a) **e-claim XML import**: submission and remittance advice XML as Diligence downloads them (line level, standard schema); (b) one status per claim, treatment to closure; (c) partial, delayed, resubmitted and duplicate payments; a deposit that fits several claims shown, never guessed; (d) unmatched deposits as exceptions; (e) monthly Diligence receivable = Finance receivable with preparer, reviewer, signer; (f) rejection origin and avoidable flag | Sample submission and RA XML; the case sessions (W5) | Test period reconciled in Pulse matches the manual result, differences explained |
 | W4 | **Parallel-run comparison** | Close timetable, month lock | A **comparison view**: for each area (revenue, collections, bank, insurance receivable, labs) Pulse's figure next to the manual figure for the month, the difference and its explanation; the decision to rely on Pulse recorded per area | The manual figures per month (Hardik) | Two consecutive months agree in an area → that area can switch |
 | W5 | **Insurance case sessions** | Matching engine, denial cases | Each case documented as a **synthetic test case** (partial payment, resubmission, late RA, duplicate amount, unmatched deposit, taken back, write-off) that the rules must pass | Sessions with Mohammed, Vineetha, Hardik | Every case in the catalogue passes |
 | W6 | **Room and doctor model** | Rooms and capacity, contribution, recruitment calculator, revenue share engine (rules closed), doctor pay held until basis approved | Hardik's room-level revenue and cost formulas and the contract revenue-share rules entered as settings and rules (no formulas in code); one consolidated view per room, doctor and branch | Hardik's formulas; decisions D1–D6 | Pulse reproduces Hardik's model for one month |
-| W7 | **Tally path** | Bridge, ledger, Tally import | After the partner call: pilot the bridge on a **test company**; support several Tally companies (one setting per company today); gate review end Jan 2027 | Partner call; Tally export | Pilot month pushes and pulls cleanly |
+| W7 | **Tally path** | Bridge, ledger, Tally import; **17 Oct: the hosted-Tally connection over HTTPS is ready for the partner's credentials (docs/44)** | After the partner call: enter the address and credentials (hosted Tally) or install the connector (Tally on a clinic PC); pilot on a **test company**; support several Tally companies; gate review end Jan 2027 | Partner call; credentials or PC access | Pilot month pushes and pulls cleanly |
 | W8 | **E-invoicing readiness** | Placeholder only | Decide the route at the gate: Tally's own support, or a provider integration in Pulse | Revenue threshold confirmed (OQ-122) | Provider appointed by 31 Mar 2027 |
 
 **Order:** W1 and W5 first (they unblock everything and need only one sample file and the sessions), then W3 and W2, W4 alongside from the first full month, W6 with Hardik in parallel, W7 after the partner call, W8 at the gate.
 
 **Sandbox:** the parallel run uses the live Pulse workspace with nothing posted to the books (the ledger start is not set and the bridge stays off), because the comparison needs the real figures; experiments with made-up data use the training workspace.
 
-## 4. Status of earlier items
+## 4. Files received for insurance (17 Oct)
+
+Mohammed's three Diligence exports (15 Oct) are what the insurance analysis used: **ACTIVTY** (claim lines with
+activity, 70 columns, Jan to Sep 2026, 19,341 lines, 6,995 claims), **Claim Summary - Monthwise** (control totals) and
+**Remittance Receipt Report (New) format** (3 sample rows: one row per insurer payment with the bank receipt columns).
+**Not received yet:** a bank statement, the insurer payment-advice (remittance) XML, the e-claim submission XML, the
+manual bank reconciliation workbook and Mohammed's receipt register for a whole month. The matching chain these files
+prove is in docs/41 and the 17 Oct reply: Unite invoice number = Diligence `InvoiceNo` (claim) → `PaymentReference`
+(one insurer payment, many claims) → the receipt register's `PaymentAmount` (equals the sum of `RemittedAmt` of that
+reference's lines) → the bank deposit (amount, date, payer, reference text).
+
+## 5. Status of earlier items
 - Finance controls (Krishna revenue, Althaf costs, Hardik consolidates, Saeed approves, by the 10th): built and live (docs/42); roles still to be assigned in Settings, Users.
 - Insurance–Finance control matrix (Saeed's request): drafted for Hardik.
 - Unite feed switch-on: still the owner's decision; W1 removes the dependency for the parallel run.

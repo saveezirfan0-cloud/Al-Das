@@ -1,3 +1,4 @@
+import { readTallyDirectConfig, tallyDirectConfigProblems } from "@/lib/accounting/tally/direct";
 import { parseAllowedDomains } from "@/lib/channels/web/policy";
 import { httpSmsConfigProblems, readHttpSmsConfig } from "@/lib/integrations/sms/http-config";
 import type { Config } from "@/lib/integrations/types";
@@ -80,6 +81,10 @@ export function readinessProblems(input: ReadinessInput): string[] {
   ) {
     // Phase 20h: the same checks the save action applies (a stale or hand-edited row can never be switched on).
     problems.push(...httpSmsConfigProblems(readHttpSmsConfig(input.config as Config)));
+  }
+  if (input.kind === "tally_bridge" && input.provider === "https" && input.config.tally_url) {
+    // docs/44: the hosted Tally's address and sign-in, as the save action checks them.
+    problems.push(...tallyDirectConfigProblems(readTallyDirectConfig(input.config as Config)));
   }
   if (input.kind === "esign" && input.documentsEnabled !== true)
     problems.push("Switch on patient documents first (Settings, Patient documents).");

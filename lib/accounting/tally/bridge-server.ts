@@ -40,6 +40,7 @@ import {
   type PushKind,
   type ResultOutcome,
 } from "./bridge";
+import { runTallyDirect } from "./direct-server";
 import { loadPlanContext } from "./import-server";
 import { parseTallyXml, type TallyParseResult } from "./parse";
 import { mergeParsed, planTallyImport, type TallyPlan } from "./plan";
@@ -146,6 +147,7 @@ export type BridgeTotals = {
   reversed: number;
   unchanged: number;
   pulls_resumed: number;
+  direct_jobs: number;
   errors: number;
 };
 
@@ -161,6 +163,7 @@ export async function runTallyBridge(
     reversed: 0,
     unchanged: 0,
     pulls_resumed: 0,
+    direct_jobs: 0,
     errors: 0,
   };
   const now = opts.now ?? new Date();
@@ -186,6 +189,9 @@ export async function runTallyBridge(
         totals.reversed += c.reversed ?? 0;
         totals.unchanged += c.unchanged ?? 0;
       }
+      // docs/44: a hosted Tally reached over HTTPS with the partner's credentials; Pulse runs the jobs itself
+      const direct = await runTallyDirect(admin, orgId, log, { deadline: started + budget });
+      if (direct) totals.direct_jobs += direct.ran;
       totals.orgs++;
     } catch (err) {
       totals.errors++;

@@ -81,8 +81,8 @@ export const CALL_PROVIDERS: Record<IntegrationKind, readonly string[]> = {
   finance_mailbox: [],
   // Signing is local (the stored certificate, node:crypto); there is no provider and no call to record.
   document_seal: [],
-  // Inbound only: the connector on the Tally PC calls Pulse; its calls are recorded under this name.
-  tally_bridge: ["tally_bridge"],
+  // The connector on the Tally PC calls Pulse (recorded as "tally_bridge"); with a hosted Tally Pulse calls it ("tally_direct").
+  tally_bridge: ["tally_bridge", "tally_direct"],
   // Phase 20h: MM Lite sends go through the WhatsApp client with the channel token (messages carry their own status), not
   // through the integration client, so there is nothing in integration_calls to count.
   wa_mm_lite: [],

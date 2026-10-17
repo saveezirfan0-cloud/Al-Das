@@ -1001,8 +1001,9 @@ export const INTEGRATIONS: readonly IntegrationDef[] = [
   },
   {
     kind: "tally_bridge",
-    // The connector on the Tally PC calls Pulse (outbound HTTPS from the clinic); Pulse never calls out. Its calls to
-    // Pulse are recorded in integration_calls under "tally_bridge".
+    // With the connector, the connector on the Tally PC calls Pulse (outbound HTTPS from the clinic) and its calls are
+    // recorded under "tally_bridge". With the hosted-Tally provider (docs/44) Pulse calls the partner's address; those
+    // calls are recorded under "tally_direct" and Test connection checks the address and the sign-in.
     outbound: false,
     title: "Tally bridge (accounting)",
     description:
@@ -1013,7 +1014,62 @@ export const INTEGRATIONS: readonly IntegrationDef[] = [
     writesBooks: true,
     confirmWord: "CONNECT TALLY",
     viewPermission: "integrations.manage",
-    providers: [{ id: "connector", label: "Pulse Tally connector (on the Tally PC)", fields: [] }],
+    providers: [
+      { id: "connector", label: "Pulse Tally connector (on the Tally PC)", fields: [] },
+      {
+        // docs/44: a hosted Tally (partner cloud server or TallyPrime Server behind a gateway) that the partner publishes
+        // on an https address with credentials; Pulse sends the same jobs itself. Nothing verified against a live host.
+        id: "https",
+        label: "Hosted Tally over HTTPS (address and credentials from the Tally partner)",
+        fields: [
+          {
+            key: "tally_url",
+            label: "Tally address",
+            type: "url",
+            required: true,
+            max: 300,
+            placeholder: "https://tally.partner-example.com:9443/",
+            help: "The https address the Tally partner gives for this company's Tally server. Only this host is ever called. Plain http is refused: Tally's own port has no password.",
+          },
+          {
+            key: "tally_auth",
+            label: "Sign-in",
+            type: "select",
+            required: true,
+            default: "bearer",
+            options: [
+              { value: "bearer", label: "Token (Authorization: Bearer ...)" },
+              { value: "basic", label: "User name and password (HTTP Basic)" },
+              { value: "header", label: "API key in a header" },
+            ],
+          },
+          {
+            key: "tally_username",
+            label: "User name (Basic sign-in only)",
+            type: "text",
+            max: 100,
+          },
+          {
+            key: "tally_header",
+            label: "Key header (API key only)",
+            type: "text",
+            max: 40,
+            default: "X-API-Key",
+            pattern: "^[A-Za-z][A-Za-z0-9-]{0,39}$",
+            patternHint: "A plain header name such as X-API-Key.",
+          },
+          {
+            key: "tally_secret",
+            label: "Token, password or API key",
+            type: "password",
+            secret: true,
+            required: true,
+            max: 400,
+            help: "Stored encrypted; never shown again.",
+          },
+        ],
+      },
+    ],
     commonFields: [
       {
         key: "company",

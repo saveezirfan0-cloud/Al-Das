@@ -87,6 +87,8 @@ export type HttpResult = {
   status: number;
   ok: boolean;
   text: string;
+  /** The body's bytes as received (for answers that are not UTF-8, such as TallyPrime's UTF-16). */
+  bytes: Uint8Array;
   headers: Headers;
   /** Parsed JSON body, or null when it is not JSON. */
   json: unknown;
@@ -226,8 +228,8 @@ export function createIntegrationClient(deps: ClientDeps) {
             false,
             true,
           );
-        const text = await res.text();
-        if (text.length > maxBytes)
+        const bytes = new Uint8Array(await res.arrayBuffer());
+        if (bytes.length > maxBytes)
           throw new IntegrationError(
             deps.provider,
             o.operation,
@@ -236,6 +238,7 @@ export function createIntegrationClient(deps: ClientDeps) {
             false,
             true,
           );
+        const text = new TextDecoder().decode(bytes);
         const durationMs = now() - started;
         const outcome = outcomeForStatus(res.status);
         await log({ ...base, outcome, httpStatus: res.status, durationMs, attempt });
@@ -256,7 +259,7 @@ export function createIntegrationClient(deps: ClientDeps) {
           } catch {
             json = null;
           }
-          result = { status: res.status, ok: res.ok, text, headers: res.headers, json };
+          result = { status: res.status, ok: res.ok, text, bytes, headers: res.headers, json };
           break;
         }
       } catch (err) {

@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-12-09-tally-direct",
+    date: "2026-10-17",
+    title: "Tally bridge: ready for a hosted Tally",
+    body: "The Tally bridge can now reach a Tally that the Tally partner hosts, using the https address and credentials the partner provides (Settings, Integrations, Tally bridge, Hosted Tally over HTTPS), instead of installing the connector on a Tally PC. Test connection checks the address and the sign-in without reading or changing anything in Tally. Everything else works as before: the same vouchers, the same checks, nothing ever deleted in Tally. It stays off until the credentials are entered and an administrator switches it on.",
+  },
+  {
     id: "2026-12-09-finance-controls",
     date: "2026-10-16",
     title: "Month-end by the 10th, and separate revenue and cost roles",
