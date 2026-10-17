@@ -88,6 +88,16 @@ export const GLOSSARY = {
     term: "Provisional",
     meaning: "A figure that can still change, because its month is not closed or approved yet.",
   },
+  "open-item": {
+    term: "Open item",
+    meaning:
+      "A payment still waiting to be received in full. It stays on the list, with what is left, until it is fully matched, written off with a reason or cancelled.",
+  },
+  allocation: {
+    term: "Allocation",
+    meaning:
+      "The part of one bank deposit that pays one insurer payment. A deposit can pay several payments, and a payment can be paid by several deposits.",
+  },
 } as const satisfies Record<string, GlossaryEntry>;
 
 export type GlossaryKey = keyof typeof GLOSSARY;

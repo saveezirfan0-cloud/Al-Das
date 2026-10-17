@@ -49,10 +49,23 @@ describe.skipIf(!TEST_DATABASE_URL)("Receipt register import (matching v2)", () 
       ]),
     );
   const stored = async (org: string) =>
-    Number((await svc(() => q("select count(*)::int n from public.fin_receipts where org_id = $1", [org]))).rows[0].n);
+    Number(
+      (
+        await svc(() =>
+          q("select count(*)::int n from public.fin_receipts where org_id = $1", [org]),
+        )
+      ).rows[0].n,
+    );
   const imports = async (org: string) =>
     Number(
-      (await svc(() => q("select count(*)::int n from public.fin_bank_imports where org_id = $1 and kind = 'receipt_register'", [org]))).rows[0].n,
+      (
+        await svc(() =>
+          q(
+            "select count(*)::int n from public.fin_bank_imports where org_id = $1 and kind = 'receipt_register'",
+            [org],
+          ),
+        )
+      ).rows[0].n,
     );
 
   beforeAll(async () => {
@@ -68,7 +81,11 @@ describe.skipIf(!TEST_DATABASE_URL)("Receipt register import (matching v2)", () 
           "insert into public.roles (org_id, name, description, permissions, is_system) values ($1, $2, $2, $3::jsonb, false) returning id",
           [org, name, JSON.stringify(perms)],
         );
-        await q("insert into public.memberships (org_id, user_id, role_id) values ($1, $2, $3)", [org, user, role.rows[0].id]);
+        await q("insert into public.memberships (org_id, user_id, role_id) values ($1, $2, $3)", [
+          org,
+          user,
+          role.rows[0].id,
+        ]);
       };
       await grant(orgA, users.viewer, "Matching viewer", ["finance.matching.view"]);
       await grant(orgA, users.plain, "Plain", ["contacts.view"]);
@@ -81,13 +98,20 @@ describe.skipIf(!TEST_DATABASE_URL)("Receipt register import (matching v2)", () 
 
   it("stores rows and normalises the reference key", async () => {
     const res = await run(orgA, "f1", [
-      row("INS/2026/0045", 100.5, "2026-10-05", { payer: " syn insurer ", receipt_no: "RC1", bank_name: "Synth Bank" }),
+      row("INS/2026/0045", 100.5, "2026-10-05", {
+        payer: " syn insurer ",
+        receipt_no: "RC1",
+        bank_name: "Synth Bank",
+      }),
       row("000123", 250),
       row("ra-0001", 75),
     ]);
     expect(res.rows[0].r).toMatchObject({ inserted: 3, already_stored: 0 });
     const { rows } = await svc(() =>
-      q("select payment_ref, ref_key, payer_key, amount::text, receipt_no from public.fin_receipts where org_id = $1 order by ref_key", [orgA]),
+      q(
+        "select payment_ref, ref_key, payer_key, amount::text, receipt_no from public.fin_receipts where org_id = $1 order by ref_key",
+        [orgA],
+      ),
     );
     expect(rows.map((r) => r.ref_key)).toEqual(["123", "INS20260045", "RA0001"]);
     expect(rows.find((r) => r.ref_key === "INS20260045")).toMatchObject({
@@ -105,7 +129,11 @@ describe.skipIf(!TEST_DATABASE_URL)("Receipt register import (matching v2)", () 
   });
 
   it("skips overlapping rows with identical figures and reports them", async () => {
-    const res = await run(orgA, "f2", [row("ins 2026 0045", 100.5), row("0123", 250), row("NEW-2", 40, "2026-10-06")]);
+    const res = await run(orgA, "f2", [
+      row("ins 2026 0045", 100.5),
+      row("0123", 250),
+      row("NEW-2", 40, "2026-10-06"),
+    ]);
     expect(res.rows[0].r).toMatchObject({ inserted: 1, already_stored: 2 });
     expect(await stored(orgA)).toBe(4);
   });
@@ -153,18 +181,37 @@ describe.skipIf(!TEST_DATABASE_URL)("Receipt register import (matching v2)", () 
     expect(new Set(a.rows.map((r) => r.org_id))).toEqual(new Set([orgA]));
     const b = await asUser(c, users.viewerB, () => q("select org_id from public.fin_receipts"));
     expect(new Set(b.rows.map((r) => r.org_id))).toEqual(new Set([orgB]));
-    expect((await asUser(c, users.plain, () => q("select 1 from public.fin_receipts"))).rows).toHaveLength(0);
-    expect((await asUser(c, users.alice, () => q("select 1 from public.fin_receipts where org_id = $1", [orgB]))).rows).toHaveLength(0);
+    expect(
+      (await asUser(c, users.plain, () => q("select 1 from public.fin_receipts"))).rows,
+    ).toHaveLength(0);
+    expect(
+      (
+        await asUser(c, users.alice, () =>
+          q("select 1 from public.fin_receipts where org_id = $1", [orgB]),
+        )
+      ).rows,
+    ).toHaveLength(0);
 
-    const imp = await asUser(c, users.viewer, () => q("select id from public.fin_bank_imports where kind = 'receipt_register'"));
+    const imp = await asUser(c, users.viewer, () =>
+      q("select id from public.fin_bank_imports where kind = 'receipt_register'"),
+    );
     expect(imp.rows.length).toBeGreaterThan(0);
 
     const ins = await asUser(c, users.viewer, () =>
-      err(q("insert into public.fin_receipts (org_id, import_id, row_no, payment_ref, ref_key, amount, receipt_date) select org_id, id, 99, 'X', 'X', 1, now()::date from public.fin_bank_imports limit 1")),
+      err(
+        q(
+          "insert into public.fin_receipts (org_id, import_id, row_no, payment_ref, ref_key, amount, receipt_date) select org_id, id, 99, 'X', 'X', 1, now()::date from public.fin_bank_imports limit 1",
+        ),
+      ),
     );
     expect(ins).not.toBeNull();
     const rpc = await asUser(c, users.viewer, () =>
-      err(q("select public.fin_receipts_import($1, null, 'x.csv', 'h', '[]'::jsonb, $2)", [orgA, users.viewer])),
+      err(
+        q("select public.fin_receipts_import($1, null, 'x.csv', 'h', '[]'::jsonb, $2)", [
+          orgA,
+          users.viewer,
+        ]),
+      ),
     );
     expect(rpc?.code).toBe("42501");
   });

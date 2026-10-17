@@ -32,8 +32,8 @@ export function ReceiptRegisterImport({
     <div className="flex flex-col gap-3">
       <p className="text-sm text-muted-foreground">
         One row per insurer payment: payment reference, amount, bank receipt date and, if you have
-        them, the insurer, receipt number and bank. A payment reference already stored with the
-        same figures is skipped, so month files may overlap. A reference that comes again with a
+        them, the insurer, receipt number and bank. A payment reference already stored with the same
+        figures is skipped, so month files may overlap. A reference that comes again with a
         different amount refuses the whole file. The file itself is not kept.
       </p>
       {formats.length === 0 ? (

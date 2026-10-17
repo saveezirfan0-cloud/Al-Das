@@ -12,6 +12,7 @@ import {
   type SettlementLine,
   type SettlementRule,
 } from "@/lib/finance/bank-recon";
+import { refKey } from "@/lib/finance/match-keys";
 import type { AdminClient } from "@/lib/supabase/admin";
 
 /**
@@ -36,6 +37,42 @@ async function all<T>(
     out.push(...(data ?? []));
     if ((data?.length ?? 0) < PAGE) return out;
   }
+}
+
+/**
+ * What the open-item matching (insurer payments, matching v2) already settled, so the monthly run never settles it twice:
+ * bank lines with an active accepted allocation, and item refs (`ins|<ref key>` / `ins|batch:<id>`) that carry one or are
+ * closed.
+ */
+async function loadV2Footprint(
+  admin: AdminClient,
+  orgId: string,
+): Promise<{ lineIds: Set<string>; itemRefs: Set<string> }> {
+  const [decisions, closures] = await Promise.all([
+    all((a, b) =>
+      admin
+        .from("fin_match_decisions")
+        .select("bank_line_id, item_ref")
+        .eq("org_id", orgId)
+        .eq("decision", "accepted")
+        .is("undone_at", null)
+        .order("id")
+        .range(a, b),
+    ),
+    all((a, b) =>
+      admin
+        .from("fin_item_closures")
+        .select("item_ref")
+        .eq("org_id", orgId)
+        .is("undone_at", null)
+        .order("id")
+        .range(a, b),
+    ),
+  ]);
+  return {
+    lineIds: new Set(decisions.map((d) => d.bank_line_id)),
+    itemRefs: new Set([...decisions.map((d) => d.item_ref), ...closures.map((c) => c.item_ref)]),
+  };
 }
 
 /** The bank thresholds. A missing settings row is created with the table's own defaults (never defaults from code). */
@@ -164,7 +201,7 @@ export async function loadRun(
     .filter((r) => r.source === "settlement" && r.accountId === account.id)
     .map((r) => r.mode);
 
-  const [collections, settlements, remittances, lines, decisions, notes, lastLine] =
+  const [collections, settlements, remittanceBatches, lines, decisions, notes, lastLine, v2] =
     await Promise.all([
       admin
         .rpc("fin_bank_collections", { p_org_id: orgId, p_from: period.start, p_to: period.end })
@@ -266,7 +303,12 @@ export async function loadRun(
         .order("value_date", { ascending: false })
         .limit(1)
         .maybeSingle(),
+      loadV2Footprint(admin, orgId),
     ]);
+  // an insurer payment the open-item matching has allocated or closed is not expected again by the monthly run
+  const remittances = remittanceBatches.filter(
+    (r) => !v2.itemRefs.has(`ins|${refKey(r.ref) ?? `batch:${r.id}`}`),
+  );
 
   const mine = new Set(decisions.filter((d) => d.status === "matched").map((d) => d.bank_line_id));
   // lines matched in this run but outside the loaded window
@@ -282,7 +324,9 @@ export async function loadRun(
     : [];
   const allLines = [...lines, ...extra];
   const matchedElsewhere = new Set(
-    allLines.filter((l) => l.match_status === "matched" && !mine.has(l.id)).map((l) => l.id),
+    allLines
+      .filter((l) => !mine.has(l.id) && (l.match_status === "matched" || v2.lineIds.has(l.id)))
+      .map((l) => l.id),
   );
 
   const bankLines = allLines.map(toLine);

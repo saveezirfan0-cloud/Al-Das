@@ -49,7 +49,10 @@ describe("receipt register kind", () => {
       receipt_date: "Date",
       patient_name: "Patient Name",
     });
-    expect(m).toEqual({ ok: true, mapping: { payment_ref: "Ref", amount: "Amt", receipt_date: "Date" } });
+    expect(m).toEqual({
+      ok: true,
+      mapping: { payment_ref: "Ref", amount: "Amt", receipt_date: "Date" },
+    });
   });
 });
 
@@ -57,7 +60,7 @@ describe("parseReceiptRegister", () => {
   it("reads only mapped columns, normalises text, and ignores the patient columns", () => {
     const r = parseReceiptRegister(
       table(
-        "PAY-0001,Layla Demo-07,\"1,250.50\",05/10/2026,  syn insurer ,RC-77,Synthetic Bank,SYN-MEMBER-1",
+        'PAY-0001,Layla Demo-07,"1,250.50",05/10/2026,  syn insurer ,RC-77,Synthetic Bank,SYN-MEMBER-1',
         "PAY-0002,Omar Demo-08,300,06/10/2026,,,,",
         ",,,,,,,",
       ),
@@ -89,7 +92,9 @@ describe("parseReceiptRegister", () => {
 
   it("truncates to the database limits", () => {
     const r = parseReceiptRegister(
-      table(`R${"A".repeat(100)},x,10,01/10/2026,${"i".repeat(90)},${"n".repeat(90)},${"b".repeat(90)},`),
+      table(
+        `R${"A".repeat(100)},x,10,01/10/2026,${"i".repeat(90)},${"n".repeat(90)},${"b".repeat(90)},`,
+      ),
       FORMAT,
     );
     expect(r.ok).toBe(true);
@@ -104,12 +109,17 @@ describe("parseReceiptRegister", () => {
     const r = parseReceiptRegister(table("4111111111111111,x,10,01/10/2026,,,,"), FORMAT);
     expect(r.ok).toBe(false);
     if (r.ok) return;
-    expect(r.errors.join(" ")).toContain("Row 2: payment reference looks like a card or account number");
+    expect(r.errors.join(" ")).toContain(
+      "Row 2: payment reference looks like a card or account number",
+    );
     expect(r.errors.join(" ")).not.toContain("4111");
   });
 
   it("drops a formula prefix and keeps the reference usable", () => {
-    const r = parseReceiptRegister(table("=PAY9,x,10,01/10/2026,,,,", "@PAY8,x,10,01/10/2026,,,,"), FORMAT);
+    const r = parseReceiptRegister(
+      table("=PAY9,x,10,01/10/2026,,,,", "@PAY8,x,10,01/10/2026,,,,"),
+      FORMAT,
+    );
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.rows.map((x) => x.payment_ref)).toEqual(["PAY9", "PAY8"]);
@@ -147,7 +157,9 @@ describe("parseReceiptRegister", () => {
     );
     expect(r.ok).toBe(false);
     if (r.ok) return;
-    expect(r.errors[0]).toBe("Rows 2 and 3: the same payment reference with a different amount or date.");
+    expect(r.errors[0]).toBe(
+      "Rows 2 and 3: the same payment reference with a different amount or date.",
+    );
   });
 
   it("refuses bad rows with row numbers and field names, never values", () => {
@@ -175,13 +187,25 @@ describe("parseReceiptRegister", () => {
     expect(r.ok).toBe(false);
     if (r.ok) return;
     expect(r.missing.length).toBeGreaterThan(0);
-    const w = parseReceiptRegister(table("A1,x,5,01/10/2026,,,,"), { ...FORMAT, kind: "settlement" });
+    const w = parseReceiptRegister(table("A1,x,5,01/10/2026,,,,"), {
+      ...FORMAT,
+      kind: "settlement",
+    });
     expect(w.ok).toBe(false);
   });
 
   it("refuses a file with no data rows and one over the row limit", () => {
     expect(parseReceiptRegister(table(), FORMAT).ok).toBe(false);
-    const rows = Array.from({ length: MAX_IMPORT_ROWS + 1 }, (_, i) => [`R${i}`, "x", "1", "01/10/2026", "", "", "", ""]);
+    const rows = Array.from({ length: MAX_IMPORT_ROWS + 1 }, (_, i) => [
+      `R${i}`,
+      "x",
+      "1",
+      "01/10/2026",
+      "",
+      "",
+      "",
+      "",
+    ]);
     const big = parseReceiptRegister([HEAD.split(","), ...rows], FORMAT);
     expect(big.ok).toBe(false);
   });

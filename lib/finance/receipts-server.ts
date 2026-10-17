@@ -22,7 +22,14 @@ export type ReceiptImportInput = {
   buffer: Buffer;
 };
 export type ReceiptImportResult =
-  | { ok: true; importId: string | null; inserted: number; alreadyStored: number; rows: number; skipped: number }
+  | {
+      ok: true;
+      importId: string | null;
+      inserted: number;
+      alreadyStored: number;
+      rows: number;
+      skipped: number;
+    }
   | { ok: false; error: string; missing?: string[]; errors?: string[] };
 
 /** The function is newer than the generated types; the cast goes away when `pnpm db:migrate` regenerates them. */
@@ -55,7 +62,10 @@ export async function importReceiptRegister(
   try {
     table = await readImportFile(input.buffer);
   } catch {
-    return { ok: false, error: "The file could not be read. Save it as .csv or .xlsx and try again." };
+    return {
+      ok: false,
+      error: "The file could not be read. Save it as .csv or .xlsx and try again.",
+    };
   }
   const parsed = parseReceiptRegister(table, {
     kind: "receipt_register",
