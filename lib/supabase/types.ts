@@ -4283,6 +4283,20 @@ export type Database = {
             referencedColumns: ["contact_id"];
           },
           {
+            foreignKeyName: "ad_attributions_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_age_band";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "ad_attributions_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_lifecycle";
+            referencedColumns: ["contact_id"];
+          },
+          {
             foreignKeyName: "ad_attributions_conversation_id_fkey";
             columns: ["conversation_id"];
             isOneToOne: false;
@@ -5053,6 +5067,20 @@ export type Database = {
             referencedColumns: ["contact_id"];
           },
           {
+            foreignKeyName: "appointments_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_age_band";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "appointments_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_lifecycle";
+            referencedColumns: ["contact_id"];
+          },
+          {
             foreignKeyName: "appointments_created_by_fkey";
             columns: ["created_by"];
             isOneToOne: false;
@@ -5449,6 +5477,20 @@ export type Database = {
             referencedColumns: ["contact_id"];
           },
           {
+            foreignKeyName: "campaign_archive_recipients_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_age_band";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "campaign_archive_recipients_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_lifecycle";
+            referencedColumns: ["contact_id"];
+          },
+          {
             foreignKeyName: "campaign_archive_recipients_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
@@ -5598,6 +5640,20 @@ export type Database = {
             columns: ["contact_id"];
             isOneToOne: false;
             referencedRelation: "v_chronic_recall_eligibility";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "campaign_recipients_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_age_band";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "campaign_recipients_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_lifecycle";
             referencedColumns: ["contact_id"];
           },
           {
@@ -6335,6 +6391,20 @@ export type Database = {
             referencedColumns: ["contact_id"];
           },
           {
+            foreignKeyName: "clinical_feedback_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_age_band";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "clinical_feedback_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_lifecycle";
+            referencedColumns: ["contact_id"];
+          },
+          {
             foreignKeyName: "clinical_feedback_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
@@ -6501,6 +6571,20 @@ export type Database = {
             referencedColumns: ["contact_id"];
           },
           {
+            foreignKeyName: "clinical_followups_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_age_band";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "clinical_followups_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_lifecycle";
+            referencedColumns: ["contact_id"];
+          },
+          {
             foreignKeyName: "clinical_followups_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
@@ -6646,6 +6730,20 @@ export type Database = {
             columns: ["contact_id"];
             isOneToOne: false;
             referencedRelation: "v_chronic_recall_eligibility";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "clinical_message_log_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_age_band";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "clinical_message_log_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_lifecycle";
             referencedColumns: ["contact_id"];
           },
           {
@@ -6892,6 +6990,20 @@ export type Database = {
             referencedColumns: ["contact_id"];
           },
           {
+            foreignKeyName: "contact_channel_identities_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_age_band";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "contact_channel_identities_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_lifecycle";
+            referencedColumns: ["contact_id"];
+          },
+          {
             foreignKeyName: "contact_channel_identities_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
@@ -6961,6 +7073,20 @@ export type Database = {
             referencedColumns: ["contact_id"];
           },
           {
+            foreignKeyName: "contact_chronic_conditions_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_age_band";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "contact_chronic_conditions_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_lifecycle";
+            referencedColumns: ["contact_id"];
+          },
+          {
             foreignKeyName: "contact_chronic_conditions_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
@@ -7025,6 +7151,20 @@ export type Database = {
             referencedColumns: ["contact_id"];
           },
           {
+            foreignKeyName: "contact_phones_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_age_band";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "contact_phones_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_lifecycle";
+            referencedColumns: ["contact_id"];
+          },
+          {
             foreignKeyName: "contact_phones_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
@@ -7083,6 +7223,20 @@ export type Database = {
             columns: ["contact_id"];
             isOneToOne: false;
             referencedRelation: "v_chronic_recall_eligibility";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "contact_tags_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_age_band";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "contact_tags_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_lifecycle";
             referencedColumns: ["contact_id"];
           },
           {
@@ -7261,6 +7415,20 @@ export type Database = {
             columns: ["merged_into_id"];
             isOneToOne: false;
             referencedRelation: "v_chronic_recall_eligibility";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "contacts_merged_into_id_fkey";
+            columns: ["merged_into_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_age_band";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "contacts_merged_into_id_fkey";
+            columns: ["merged_into_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_lifecycle";
             referencedColumns: ["contact_id"];
           },
           {
@@ -7622,6 +7790,20 @@ export type Database = {
             columns: ["contact_id"];
             isOneToOne: false;
             referencedRelation: "v_chronic_recall_eligibility";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "conversations_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_age_band";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "conversations_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_lifecycle";
             referencedColumns: ["contact_id"];
           },
           {
@@ -8002,6 +8184,20 @@ export type Database = {
             referencedColumns: ["contact_id"];
           },
           {
+            foreignKeyName: "enquiries_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_age_band";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "enquiries_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_lifecycle";
+            referencedColumns: ["contact_id"];
+          },
+          {
             foreignKeyName: "enquiries_created_by_fkey";
             columns: ["created_by"];
             isOneToOne: false;
@@ -8345,6 +8541,20 @@ export type Database = {
             columns: ["contact_id"];
             isOneToOne: false;
             referencedRelation: "v_chronic_recall_eligibility";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "esign_requests_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_age_band";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "esign_requests_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_lifecycle";
             referencedColumns: ["contact_id"];
           },
           {
@@ -10130,6 +10340,20 @@ export type Database = {
             referencedColumns: ["contact_id"];
           },
           {
+            foreignKeyName: "fin_eligibility_checks_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_age_band";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "fin_eligibility_checks_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_lifecycle";
+            referencedColumns: ["contact_id"];
+          },
+          {
             foreignKeyName: "fin_eligibility_checks_created_by_fkey";
             columns: ["created_by"];
             isOneToOne: false;
@@ -10858,6 +11082,20 @@ export type Database = {
             referencedColumns: ["contact_id"];
           },
           {
+            foreignKeyName: "fin_payment_requests_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_age_band";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "fin_payment_requests_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_lifecycle";
+            referencedColumns: ["contact_id"];
+          },
+          {
             foreignKeyName: "fin_payment_requests_created_by_fkey";
             columns: ["created_by"];
             isOneToOne: false;
@@ -11444,6 +11682,20 @@ export type Database = {
             columns: ["contact_id"];
             isOneToOne: false;
             referencedRelation: "v_chronic_recall_eligibility";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "fin_pre_authorisations_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_age_band";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "fin_pre_authorisations_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_lifecycle";
             referencedColumns: ["contact_id"];
           },
           {
@@ -12126,6 +12378,20 @@ export type Database = {
             columns: ["contact_id"];
             isOneToOne: false;
             referencedRelation: "v_chronic_recall_eligibility";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "fin_recovery_reminders_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_age_band";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "fin_recovery_reminders_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_lifecycle";
             referencedColumns: ["contact_id"];
           },
           {
@@ -14758,6 +15024,20 @@ export type Database = {
             referencedColumns: ["contact_id"];
           },
           {
+            foreignKeyName: "flow_runs_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_age_band";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "flow_runs_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_lifecycle";
+            referencedColumns: ["contact_id"];
+          },
+          {
             foreignKeyName: "flow_runs_conversation_id_fkey";
             columns: ["conversation_id"];
             isOneToOne: false;
@@ -15405,6 +15685,20 @@ export type Database = {
             referencedColumns: ["contact_id"];
           },
           {
+            foreignKeyName: "household_links_dependant_contact_id_fkey";
+            columns: ["dependant_contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_age_band";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "household_links_dependant_contact_id_fkey";
+            columns: ["dependant_contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_lifecycle";
+            referencedColumns: ["contact_id"];
+          },
+          {
             foreignKeyName: "household_links_guardian_contact_id_fkey";
             columns: ["guardian_contact_id"];
             isOneToOne: false;
@@ -15423,6 +15717,20 @@ export type Database = {
             columns: ["guardian_contact_id"];
             isOneToOne: false;
             referencedRelation: "v_chronic_recall_eligibility";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "household_links_guardian_contact_id_fkey";
+            columns: ["guardian_contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_age_band";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "household_links_guardian_contact_id_fkey";
+            columns: ["guardian_contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_lifecycle";
             referencedColumns: ["contact_id"];
           },
           {
@@ -17361,6 +17669,20 @@ export type Database = {
             referencedColumns: ["contact_id"];
           },
           {
+            foreignKeyName: "mentions_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_age_band";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "mentions_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_lifecycle";
+            referencedColumns: ["contact_id"];
+          },
+          {
             foreignKeyName: "mentions_conversation_id_fkey";
             columns: ["conversation_id"];
             isOneToOne: false;
@@ -18115,6 +18437,20 @@ export type Database = {
             referencedColumns: ["contact_id"];
           },
           {
+            foreignKeyName: "patient_documents_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_age_band";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "patient_documents_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_lifecycle";
+            referencedColumns: ["contact_id"];
+          },
+          {
             foreignKeyName: "patient_documents_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
@@ -18611,6 +18947,20 @@ export type Database = {
             referencedColumns: ["contact_id"];
           },
           {
+            foreignKeyName: "prescriptions_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_age_band";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "prescriptions_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_lifecycle";
+            referencedColumns: ["contact_id"];
+          },
+          {
             foreignKeyName: "prescriptions_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
@@ -18700,6 +19050,20 @@ export type Database = {
             columns: ["contact_id"];
             isOneToOne: false;
             referencedRelation: "v_chronic_recall_eligibility";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "privacy_requests_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_age_band";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "privacy_requests_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_lifecycle";
             referencedColumns: ["contact_id"];
           },
           {
@@ -19148,6 +19512,20 @@ export type Database = {
             columns: ["contact_id"];
             isOneToOne: false;
             referencedRelation: "v_chronic_recall_eligibility";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "recall_sends_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_age_band";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "recall_sends_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_lifecycle";
             referencedColumns: ["contact_id"];
           },
           {
@@ -19718,6 +20096,20 @@ export type Database = {
             referencedColumns: ["contact_id"];
           },
           {
+            foreignKeyName: "review_requests_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_age_band";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "review_requests_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_lifecycle";
+            referencedColumns: ["contact_id"];
+          },
+          {
             foreignKeyName: "review_requests_location_id_fkey";
             columns: ["location_id"];
             isOneToOne: false;
@@ -19764,6 +20156,20 @@ export type Database = {
             columns: ["recipient_contact_id"];
             isOneToOne: false;
             referencedRelation: "v_chronic_recall_eligibility";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "review_requests_recipient_contact_id_fkey";
+            columns: ["recipient_contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_age_band";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "review_requests_recipient_contact_id_fkey";
+            columns: ["recipient_contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_lifecycle";
             referencedColumns: ["contact_id"];
           },
         ];
@@ -20162,6 +20568,20 @@ export type Database = {
             referencedColumns: ["contact_id"];
           },
           {
+            foreignKeyName: "segment_members_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_age_band";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "segment_members_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_lifecycle";
+            referencedColumns: ["contact_id"];
+          },
+          {
             foreignKeyName: "segment_members_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
@@ -20545,6 +20965,20 @@ export type Database = {
             columns: ["contact_id"];
             isOneToOne: false;
             referencedRelation: "v_chronic_recall_eligibility";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "sms_messages_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_age_band";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "sms_messages_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_lifecycle";
             referencedColumns: ["contact_id"];
           },
           {
@@ -21192,6 +21626,20 @@ export type Database = {
             referencedRelation: "v_chronic_recall_eligibility";
             referencedColumns: ["contact_id"];
           },
+          {
+            foreignKeyName: "sync_reviews_resolved_contact_id_fkey";
+            columns: ["resolved_contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_age_band";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "sync_reviews_resolved_contact_id_fkey";
+            columns: ["resolved_contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_lifecycle";
+            referencedColumns: ["contact_id"];
+          },
         ];
       };
       tags: {
@@ -21640,6 +22088,20 @@ export type Database = {
             referencedColumns: ["contact_id"];
           },
           {
+            foreignKeyName: "tasks_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_age_band";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "tasks_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_lifecycle";
+            referencedColumns: ["contact_id"];
+          },
+          {
             foreignKeyName: "tasks_conversation_id_fkey";
             columns: ["conversation_id"];
             isOneToOne: false;
@@ -22056,6 +22518,20 @@ export type Database = {
             referencedColumns: ["contact_id"];
           },
           {
+            foreignKeyName: "timeline_events_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_age_band";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "timeline_events_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_lifecycle";
+            referencedColumns: ["contact_id"];
+          },
+          {
             foreignKeyName: "timeline_events_enquiry_fk";
             columns: ["enquiry_id"];
             isOneToOne: false;
@@ -22309,6 +22785,20 @@ export type Database = {
             columns: ["contact_id"];
             isOneToOne: false;
             referencedRelation: "v_chronic_recall_eligibility";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "visit_diagnoses_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_age_band";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "visit_diagnoses_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_lifecycle";
             referencedColumns: ["contact_id"];
           },
           {
@@ -22584,6 +23074,20 @@ export type Database = {
             referencedColumns: ["contact_id"];
           },
           {
+            foreignKeyName: "visits_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_age_band";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "visits_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_lifecycle";
+            referencedColumns: ["contact_id"];
+          },
+          {
             foreignKeyName: "visits_location_id_fkey";
             columns: ["location_id"];
             isOneToOne: false;
@@ -22851,6 +23355,20 @@ export type Database = {
             referencedColumns: ["contact_id"];
           },
           {
+            foreignKeyName: "waitlist_entries_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_age_band";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "waitlist_entries_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_lifecycle";
+            referencedColumns: ["contact_id"];
+          },
+          {
             foreignKeyName: "waitlist_entries_created_by_fkey";
             columns: ["created_by"];
             isOneToOne: false;
@@ -22946,6 +23464,20 @@ export type Database = {
             columns: ["contact_id"];
             isOneToOne: false;
             referencedRelation: "v_chronic_recall_eligibility";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "web_chat_sessions_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_age_band";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "web_chat_sessions_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_lifecycle";
             referencedColumns: ["contact_id"];
           },
           {
@@ -23386,6 +23918,20 @@ export type Database = {
             referencedColumns: ["contact_id"];
           },
           {
+            foreignKeyName: "conversations_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_age_band";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "conversations_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_lifecycle";
+            referencedColumns: ["contact_id"];
+          },
+          {
             foreignKeyName: "conversations_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
@@ -23714,6 +24260,125 @@ export type Database = {
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      v_contact_age_band: {
+        Row: {
+          age_band: string | null;
+          contact_id: string | null;
+          org_id: string | null;
+        };
+        ComputedFields: never;
+        Relationships: [
+          {
+            foreignKeyName: "contacts_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      v_contact_diagnosis_groups: {
+        Row: {
+          condition_group_id: string | null;
+          contact_id: string | null;
+          org_id: string | null;
+          source: string | null;
+        };
+        ComputedFields: never;
+        Relationships: [];
+      };
+      v_contact_lifecycle: {
+        Row: {
+          contact_id: string | null;
+          org_id: string | null;
+          stage: string | null;
+        };
+        ComputedFields: never;
+        Relationships: [
+          {
+            foreignKeyName: "contacts_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      v_contact_visit_segments: {
+        Row: {
+          contact_id: string | null;
+          department: string | null;
+          org_id: string | null;
+          specialist_id: string | null;
+          visit_date: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          contact_id?: string | null;
+          department?: never;
+          org_id?: string | null;
+          specialist_id?: string | null;
+          visit_date?: string | null;
+        };
+        Update: {
+          contact_id?: string | null;
+          department?: never;
+          org_id?: string | null;
+          specialist_id?: string | null;
+          visit_date?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "visits_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "visits_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_birthday_today";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "visits_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_chronic_recall_eligibility";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "visits_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_age_band";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "visits_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_lifecycle";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "visits_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "visits_specialist_id_fkey";
+            columns: ["specialist_id"];
+            isOneToOne: false;
+            referencedRelation: "specialists";
             referencedColumns: ["id"];
           },
         ];
@@ -24243,6 +24908,20 @@ export type Database = {
             referencedColumns: ["contact_id"];
           },
           {
+            foreignKeyName: "clinical_followups_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_age_band";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "clinical_followups_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_lifecycle";
+            referencedColumns: ["contact_id"];
+          },
+          {
             foreignKeyName: "clinical_followups_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
@@ -24512,6 +25191,20 @@ export type Database = {
             columns: ["contact_id"];
             isOneToOne: false;
             referencedRelation: "v_chronic_recall_eligibility";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "recall_sends_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_age_band";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "recall_sends_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_lifecycle";
             referencedColumns: ["contact_id"];
           },
           {
@@ -24790,6 +25483,20 @@ export type Database = {
             columns: ["contact_id"];
             isOneToOne: false;
             referencedRelation: "v_chronic_recall_eligibility";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "visits_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_age_band";
+            referencedColumns: ["contact_id"];
+          },
+          {
+            foreignKeyName: "visits_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "v_contact_lifecycle";
             referencedColumns: ["contact_id"];
           },
           {
