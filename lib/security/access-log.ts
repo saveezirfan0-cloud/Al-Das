@@ -49,7 +49,7 @@ export async function recordAccess(
     if (!shouldLogAccess(input.action, settings.list_sample_rate, random)) return;
     if (input.action === "view" && input.entityId) {
       const since = new Date(Date.now() - VIEW_DEDUPE_MINUTES * 60_000).toISOString();
-      const { data: recent } = await admin
+      let recentQuery = admin
         .from("record_access_log")
         .select("id")
         .eq("org_id", who.orgId)
@@ -57,8 +57,12 @@ export async function recordAccess(
         .eq("entity", input.entity)
         .eq("entity_id", input.entityId)
         .eq("action", "view")
-        .gte("at", since)
-        .limit(1);
+        .gte("at", since);
+      // Patient 360 opens one tab at a time: opening another tab is a new row, a refresh of the same tab is not.
+      if (typeof input.detail?.tab === "string") {
+        recentQuery = recentQuery.contains("detail", { tab: input.detail.tab });
+      }
+      const { data: recent } = await recentQuery.limit(1);
       if (recent?.length) return; // the same open, seen again (a refresh, a re-render)
     }
     const { error } = await admin.from("record_access_log").insert({

@@ -1,0 +1,260 @@
+{
+  "_note": "Synthetic. Shared by tests/unit/contacts/lifecycle-parity.test.ts (TypeScript rule) and tests/db/lifecycle-segments.test.ts (SQL view). Change lib/contacts/lifecycle.ts and app.contact_lifecycle_stage together.",
+  "lifecycle": [
+    {
+      "name": "lead: no pin, no visit",
+      "today": "2026-10-17",
+      "pin": null,
+      "first": null,
+      "last": null,
+      "expected": "lead"
+    },
+    {
+      "name": "lead: blank pin",
+      "today": "2026-10-17",
+      "pin": "   ",
+      "first": null,
+      "last": null,
+      "expected": "lead"
+    },
+    {
+      "name": "unknown: pin but no visit date",
+      "today": "2026-10-17",
+      "pin": "P-1",
+      "first": null,
+      "last": null,
+      "expected": "unknown"
+    },
+    {
+      "name": "new patient",
+      "today": "2026-10-17",
+      "pin": "P-2",
+      "first": "2026-09-01",
+      "last": "2026-09-01",
+      "expected": "new_patient"
+    },
+    {
+      "name": "new patient boundary (90 days)",
+      "today": "2026-10-17",
+      "pin": "P-3",
+      "first": "2026-07-19",
+      "last": "2026-07-19",
+      "expected": "new_patient"
+    },
+    {
+      "name": "one day past the new window",
+      "today": "2026-10-17",
+      "pin": "P-4",
+      "first": "2026-07-18",
+      "last": "2026-07-18",
+      "expected": "active"
+    },
+    {
+      "name": "active",
+      "today": "2026-10-17",
+      "pin": "P-5",
+      "first": "2020-01-01",
+      "last": "2026-01-01",
+      "expected": "active"
+    },
+    {
+      "name": "active boundary (18 months)",
+      "today": "2026-10-17",
+      "pin": "P-6",
+      "first": "2020-01-01",
+      "last": "2025-04-17",
+      "expected": "active"
+    },
+    {
+      "name": "lapsed boundary",
+      "today": "2026-10-17",
+      "pin": "P-7",
+      "first": "2020-01-01",
+      "last": "2025-04-16",
+      "expected": "lapsed"
+    },
+    {
+      "name": "only a Unite last visit, recent",
+      "today": "2026-10-17",
+      "pin": "P-8",
+      "first": null,
+      "last": "2026-10-01",
+      "expected": "active"
+    },
+    {
+      "name": "only a Unite last visit, old",
+      "today": "2026-10-17",
+      "pin": "P-9",
+      "first": null,
+      "last": "2023-02-02",
+      "expected": "lapsed"
+    },
+    {
+      "name": "only a first visit, recent",
+      "today": "2026-10-17",
+      "pin": "P-10",
+      "first": "2026-05-01",
+      "last": null,
+      "expected": "active"
+    },
+    {
+      "name": "only a first visit, old",
+      "today": "2026-10-17",
+      "pin": "P-11",
+      "first": "2020-05-01",
+      "last": null,
+      "expected": "lapsed"
+    },
+    {
+      "name": "first visit only, inside the new window",
+      "today": "2026-10-17",
+      "pin": null,
+      "first": "2026-10-01",
+      "last": null,
+      "expected": "new_patient"
+    },
+    {
+      "name": "last visit in the future is unknown",
+      "today": "2026-10-17",
+      "pin": "P-12",
+      "first": "2026-01-01",
+      "last": "2026-10-18",
+      "expected": "unknown"
+    },
+    {
+      "name": "first visit in the future is unknown",
+      "today": "2026-10-17",
+      "pin": "P-13",
+      "first": "2026-10-18",
+      "last": null,
+      "expected": "unknown"
+    },
+    {
+      "name": "recent first visit but old last visit is lapsed",
+      "today": "2026-10-17",
+      "pin": "P-14",
+      "first": "2026-08-01",
+      "last": "2024-01-01",
+      "expected": "lapsed"
+    },
+    {
+      "name": "custom thresholds: outside 30 days",
+      "today": "2026-10-17",
+      "pin": "P-15",
+      "first": "2026-09-10",
+      "last": "2026-09-10",
+      "newPatientDays": 30,
+      "activeMonths": 6,
+      "expected": "active"
+    },
+    {
+      "name": "custom thresholds: inside 30 days",
+      "today": "2026-10-17",
+      "pin": "P-16",
+      "first": "2026-09-20",
+      "last": "2026-09-20",
+      "newPatientDays": 30,
+      "activeMonths": 6,
+      "expected": "new_patient"
+    },
+    {
+      "name": "month-end clamp, on the cutoff",
+      "today": "2026-03-31",
+      "pin": "P-17",
+      "first": "2020-01-01",
+      "last": "2026-02-28",
+      "newPatientDays": 90,
+      "activeMonths": 1,
+      "expected": "active"
+    },
+    {
+      "name": "month-end clamp, a day before",
+      "today": "2026-03-31",
+      "pin": "P-18",
+      "first": "2020-01-01",
+      "last": "2026-02-27",
+      "newPatientDays": 90,
+      "activeMonths": 1,
+      "expected": "lapsed"
+    },
+    {
+      "name": "leap day, on the cutoff",
+      "today": "2024-02-29",
+      "pin": "P-19",
+      "first": "2020-01-01",
+      "last": "2023-02-28",
+      "newPatientDays": 90,
+      "activeMonths": 12,
+      "expected": "active"
+    },
+    {
+      "name": "leap day, a day before",
+      "today": "2024-02-29",
+      "pin": "P-20",
+      "first": "2020-01-01",
+      "last": "2023-02-27",
+      "newPatientDays": 90,
+      "activeMonths": 12,
+      "expected": "lapsed"
+    }
+  ],
+  "ageBand": [
+    { "today": "2026-10-17", "dob": null, "expected": "unknown" },
+    { "today": "2026-10-17", "dob": "2027-01-01", "expected": "unknown" },
+    { "today": "2026-10-17", "dob": "2026-10-17", "expected": "0_11" },
+    { "today": "2026-10-17", "dob": "2015-10-18", "expected": "0_11" },
+    { "today": "2026-10-17", "dob": "2014-10-17", "expected": "12_17" },
+    { "today": "2026-10-17", "dob": "2008-10-18", "expected": "12_17" },
+    { "today": "2026-10-17", "dob": "2008-10-17", "expected": "18_34" },
+    { "today": "2026-10-17", "dob": "1992-10-18", "expected": "18_34" },
+    { "today": "2026-10-17", "dob": "1991-10-17", "expected": "35_49" },
+    { "today": "2026-10-17", "dob": "1977-10-18", "expected": "35_49" },
+    { "today": "2026-10-17", "dob": "1976-10-17", "expected": "50_64" },
+    { "today": "2026-10-17", "dob": "1962-10-18", "expected": "50_64" },
+    { "today": "2026-10-17", "dob": "1961-10-17", "expected": "65_plus" },
+    { "today": "2026-02-28", "dob": "2008-02-29", "expected": "12_17" }
+  ],
+  "settings": [
+    { "name": "empty", "settings": {}, "expected": { "newPatientDays": 90, "activeMonths": 18 } },
+    {
+      "name": "both set",
+      "settings": { "lifecycle": { "newPatientDays": 60, "activeMonths": 12 } },
+      "expected": { "newPatientDays": 60, "activeMonths": 12 }
+    },
+    {
+      "name": "one set",
+      "settings": { "lifecycle": { "activeMonths": 24 } },
+      "expected": { "newPatientDays": 90, "activeMonths": 24 }
+    },
+    {
+      "name": "one invalid: both defaults",
+      "settings": { "lifecycle": { "newPatientDays": 0, "activeMonths": 12 } },
+      "expected": { "newPatientDays": 90, "activeMonths": 18 }
+    },
+    {
+      "name": "non-integer: both defaults",
+      "settings": { "lifecycle": { "newPatientDays": 30.5, "activeMonths": 12 } },
+      "expected": { "newPatientDays": 90, "activeMonths": 18 }
+    },
+    {
+      "name": "string: both defaults",
+      "settings": { "lifecycle": { "newPatientDays": "30" } },
+      "expected": { "newPatientDays": 90, "activeMonths": 18 }
+    },
+    {
+      "name": "too big: both defaults",
+      "settings": { "lifecycle": { "newPatientDays": 366, "activeMonths": 12 } },
+      "expected": { "newPatientDays": 90, "activeMonths": 18 }
+    },
+    {
+      "name": "not an object",
+      "settings": { "lifecycle": "x" },
+      "expected": { "newPatientDays": 90, "activeMonths": 18 }
+    },
+    {
+      "name": "null",
+      "settings": { "lifecycle": null },
+      "expected": { "newPatientDays": 90, "activeMonths": 18 }
+    }
+  ]
+}

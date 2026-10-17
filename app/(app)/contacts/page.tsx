@@ -14,30 +14,42 @@ export default async function ContactsPage() {
   const member = await requirePerm("contacts.view");
   const admin = createAdminClient();
   const canDrip = can(member, "contacts.manage") && can(member, "flows.manage");
-  const [ctx, { data: prefs }, { data: dripFlows }, { data: locations }] = await Promise.all([
-    loadContactContext(admin, member.orgId),
-    admin
-      .from("user_grid_prefs")
-      .select("prefs")
-      .eq("org_id", member.orgId)
-      .eq("user_id", member.userId)
-      .eq("grid_key", "contacts")
-      .maybeSingle(),
-    canDrip
-      ? admin
-          .from("flows")
-          .select("id, name, status")
-          .eq("org_id", member.orgId)
-          .eq("trigger_type", "segment_joined")
-          .order("name")
-      : Promise.resolve({ data: [] as Array<{ id: string; name: string; status: string }> }),
-    admin
-      .from("locations")
-      .select("id, name")
-      .eq("org_id", member.orgId)
-      .eq("active", true)
-      .order("name"),
-  ]);
+  const clinical = can(member, "clinical.view");
+  const [ctx, { data: prefs }, { data: dripFlows }, { data: locations }, clinicalLists] =
+    await Promise.all([
+      loadContactContext(admin, member.orgId, { clinical }),
+      admin
+        .from("user_grid_prefs")
+        .select("prefs")
+        .eq("org_id", member.orgId)
+        .eq("user_id", member.userId)
+        .eq("grid_key", "contacts")
+        .maybeSingle(),
+      canDrip
+        ? admin
+            .from("flows")
+            .select("id, name, status")
+            .eq("org_id", member.orgId)
+            .eq("trigger_type", "segment_joined")
+            .order("name")
+        : Promise.resolve({ data: [] as Array<{ id: string; name: string; status: string }> }),
+      admin
+        .from("locations")
+        .select("id, name")
+        .eq("org_id", member.orgId)
+        .eq("active", true)
+        .order("name"),
+      clinical
+        ? Promise.all([
+            admin.from("specialists").select("id, name").eq("org_id", member.orgId).order("name"),
+            admin
+              .from("ref_condition_groups")
+              .select("id, name")
+              .eq("org_id", member.orgId)
+              .order("name"),
+          ])
+        : Promise.resolve(null),
+    ]);
   const access = readBranchAccess(member);
 
   const bootstrap: ContactsBootstrap = {
@@ -62,7 +74,7 @@ export default async function ContactsPage() {
     fields: ctx.registry
       .list()
       .filter((f) => f.available)
-      .map(({ key, label, group, type, options, optionsSource, sortable }) => ({
+      .map(({ key, label, group, type, options, optionsSource, sortable, clinical }) => ({
         key,
         label,
         group,
@@ -70,6 +82,7 @@ export default async function ContactsPage() {
         options,
         optionsSource,
         sortable,
+        clinical,
       })),
     tags: ctx.tags,
     segments: ctx.segments,
@@ -80,6 +93,14 @@ export default async function ContactsPage() {
       allowed: canSeeLocation(access, l.id),
     })),
     gridPrefs: (prefs?.prefs as GridPrefs | null) ?? null,
+    ...(clinicalLists
+      ? {
+          clinical: {
+            specialists: clinicalLists[0].data ?? [],
+            conditionGroups: clinicalLists[1].data ?? [],
+          },
+        }
+      : {}),
   };
 
   return <ContactsWorkspace bootstrap={bootstrap} />;

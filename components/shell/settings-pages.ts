@@ -84,6 +84,13 @@ export const SETTINGS_PAGES: readonly SettingsPage[] = [
     allow: admin,
   },
   {
+    href: "/settings/migration",
+    label: "Migration status",
+    section: "Workspace",
+    keywords: ["airtable", "make", "sanoflow", "import", "parallel run", "cut-over", "cutover", "retire", "migration"],
+    allow: admin,
+  },
+  {
     href: "/settings/users",
     label: "Users",
     section: "Workspace",
@@ -264,6 +271,13 @@ export const SETTINGS_PAGES: readonly SettingsPage[] = [
     label: "Enquiry pipelines",
     section: "Clinic operations",
     keywords: ["stages", "sla"],
+    allow: admin,
+  },
+  {
+    href: "/settings/lifecycle",
+    label: "Patient lifecycle",
+    section: "Clinic operations",
+    keywords: ["new patient", "active", "lapsed", "stage"],
     allow: admin,
   },
 
