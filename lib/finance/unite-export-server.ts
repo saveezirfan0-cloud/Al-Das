@@ -60,6 +60,7 @@ export async function storeAndProcessUniteExport(
     text: string;
     pulledOn: string;
     today: string;
+    nowIso: string;
     fileName: string | null;
     userId: string | null;
   },
@@ -70,7 +71,10 @@ export async function storeAndProcessUniteExport(
       "Enter the date this export was pulled from Unite (not in the future).",
     );
   const { chunks, totalRecords } = parseUniteExport(input.text);
-  const requestedAt = `${pulledOn}T00:00:00Z`; // older than any later API data, so those win (staleness rule)
+  // older than any later API data, so those win (staleness rule); never in the future (the org's today can be
+  // tomorrow in UTC)
+  const startOfDay = `${pulledOn}T00:00:00Z`;
+  const requestedAt = startOfDay < input.nowIso ? startOfDay : input.nowIso;
 
   // identical chunks inside one file would clash on the unique hash: keep the first
   const seen = new Set<string>();

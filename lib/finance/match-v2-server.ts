@@ -376,7 +376,8 @@ export async function loadMatching(
       months: verdict.months,
     };
   });
-  const autoRules = new Set<AutoRule>(gates.filter((g) => g.on).map((g) => g.rule));
+  // a rule is automatic only while it is switched on AND its record still passes the gate
+  const autoRules = new Set<AutoRule>(gates.filter((g) => g.on && g.ok).map((g) => g.rule));
 
   const rejected = new Set(
     active.filter((d) => d.decision === "rejected").map((d) => `${d.item_ref}|${d.bank_line_id}`),

@@ -145,14 +145,17 @@ begin
     raise exception 'every row needs a payment reference, a positive amount and a date' using errcode = 'check_violation';
   end if;
   -- the same reference twice in one file with different figures
-  if exists (select 1 from pg_temp.fin_receipts_in group by ref_key having count(distinct (amount, receipt_date)) > 1) then
+  if exists (select 1 from pg_temp.fin_receipts_in group by ref_key
+             having count(distinct (amount, receipt_date)) > 1 or count(distinct payer_key) > 1) then
     raise exception 'a payment reference appears twice in the file with different figures' using errcode = 'check_violation';
   end if;
   select count(*) into v_conflicts
-  from (select distinct ref_key, amount from pg_temp.fin_receipts_in) i
-  join public.fin_receipts r on r.org_id = p_org_id and r.ref_key = i.ref_key and r.amount <> i.amount;
+  from (select distinct ref_key, amount, receipt_date, payer_key from pg_temp.fin_receipts_in) i
+  join public.fin_receipts r on r.org_id = p_org_id and r.ref_key = i.ref_key
+   and (r.amount <> i.amount or r.receipt_date <> i.receipt_date
+        or (r.payer_key is not null and i.payer_key is not null and r.payer_key <> i.payer_key));
   if v_conflicts > 0 then
-    raise exception '% payment reference(s) are already stored with a different amount', v_conflicts using errcode = 'check_violation';
+    raise exception '% payment reference(s) are already stored with a different amount, date or payer', v_conflicts using errcode = 'check_violation';
   end if;
 
   insert into public.fin_bank_imports (org_id, kind, format_id, file_name, file_sha256, row_count, sum_credits, first_date, last_date, imported_by)
@@ -199,7 +202,7 @@ create index fin_payer_aliases_org_idx on public.fin_payer_aliases (org_id, stat
 create table public.fin_match_decisions (
   id uuid primary key default gen_random_uuid(),
   org_id uuid not null references public.orgs (id) on delete cascade,
-  bank_line_id uuid not null references public.fin_bank_lines (id) on delete restrict,
+  bank_line_id uuid not null references public.fin_bank_lines (id),   -- NO ACTION: checked at the end of the statement, so deleting an org still cascades
   item_ref text not null check (item_ref ~ '^ins\|[A-Za-z0-9:_-]{1,90}$'),
   item_total numeric(14, 2) not null check (item_total > 0),   -- the item's total when decided (a receipt does not change)
   amount numeric(14, 2) not null check (amount >= 0),          -- part of the bank credit allocated to the item
@@ -285,7 +288,10 @@ begin
     if old.undone_at is not null and new.undone_at is distinct from old.undone_at then
       raise exception 'this decision is already undone' using errcode = 'check_violation';
     end if;
-    -- undoing an allocation would change the remainder a write-off was made for
+    -- undoing an allocation would change the remainder a write-off was made for (same lock as the closure guard)
+    if old.undone_at is null and new.undone_at is not null and old.decision = 'accepted' then
+      perform pg_advisory_xact_lock(hashtextextended(old.org_id::text || '|' || old.item_ref, 0));
+    end if;
     if old.undone_at is null and new.undone_at is not null and old.decision = 'accepted'
        and exists (select 1 from public.fin_item_closures c
                    where c.org_id = old.org_id and c.item_ref = old.item_ref and c.undone_at is null) then
@@ -305,6 +311,9 @@ begin
     end if;
     if v_line_amount <= 0 then
       raise exception 'only a credit can be allocated' using errcode = 'check_violation';
+    end if;
+    if exists (select 1 from public.fin_bank_matches m where m.bank_line_id = new.bank_line_id and m.status = 'matched') then
+      raise exception 'this bank credit is already matched in a monthly reconciliation' using errcode = 'check_violation';
     end if;
     perform pg_advisory_xact_lock(hashtextextended(new.org_id::text || '|' || new.item_ref, 0));
     select coalesce(sum(d.amount), 0) into v_used_line
@@ -327,6 +336,26 @@ $$;
 revoke all on function app.fin_match_decision_guard() from public, anon, authenticated;
 create trigger fin_match_decisions_guard before insert or update or delete on public.fin_match_decisions
   for each row execute function app.fin_match_decision_guard();
+
+-- The monthly run and this register never both explain the same bank credit: the mirror of the check above.
+create or replace function app.fin_bank_match_v2_guard()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if new.status = 'matched' and exists (
+    select 1 from public.fin_match_decisions d
+    where d.bank_line_id = new.bank_line_id and d.decision = 'accepted' and d.undone_at is null) then
+    raise exception 'this bank credit is already allocated to insurer payments; undo that first' using errcode = 'check_violation';
+  end if;
+  return new;
+end;
+$$;
+revoke all on function app.fin_bank_match_v2_guard() from public, anon, authenticated;
+create trigger fin_bank_matches_v2_guard before insert or update of status, bank_line_id on public.fin_bank_matches
+  for each row execute function app.fin_bank_match_v2_guard();
 
 create or replace function app.fin_item_closure_guard()
 returns trigger

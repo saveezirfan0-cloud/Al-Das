@@ -215,3 +215,41 @@ describe("matchV2 properties", () => {
     expect(JSON.stringify({ lines, its })).toBe(before);
   });
 });
+
+describe("payer_sum search bounds (review fixes)", () => {
+  const payerItems = (n: number): InsurerItem[] =>
+    buildInsurerItems({
+      ...base,
+      receipts: Array.from({ length: n }, (_, i) => receipt(`RA-${String(1000 + i)}`, 100 + i * 7, "2026-09-05")),
+      batches: [],
+    });
+  const input = (items: InsurerItem[], amount: number, extra: Partial<MatchInput> = {}): MatchInput => ({
+    lines: [line("L1", amount, "PAYER-A TRANSFER")],
+    items,
+    aliases: [],
+    rejected: new Set(),
+    autoRules: new Set(["payer_sum"]),
+    settings: { ...settings, setMaxItems: 8 },
+    ...extra,
+  });
+
+  it("answers fast when 30 items are open and no set reaches the amount", () => {
+    const t = Date.now();
+    const out = matchV2(input(payerItems(30), 99_999.13));
+    expect(out.filter((s) => s.rule === "payer_sum")).toEqual([]);
+    expect(Date.now() - t).toBeLessThan(1500);
+  });
+  it("never auto-matches when the payer has more open items than were searched", () => {
+    const items = payerItems(35);
+    const target = items[0].open; // exactly one item has this amount; the rest of the search space was truncated
+    const sug = matchV2(input(items, target)).find((s) => s.rule === "payer_sum");
+    expect(sug).toBeDefined();
+    expect(sug!.auto).toBe(false);
+  });
+  it("still auto-matches a unique set when everything was searched", () => {
+    const items = payerItems(5);
+    const sug = matchV2(input(items, items[2].open)).find((s) => s.rule === "payer_sum");
+    expect(sug?.options).toHaveLength(1);
+    expect(sug?.auto).toBe(true);
+  });
+});

@@ -43,6 +43,7 @@ export async function loadAlertSnapshot(admin: AdminClient, orgId: string): Prom
         .from("fin_raw_unite_batches")
         .select("record_count, balance_in_range")
         .eq("org_id", orgId)
+        .eq("source", "api") // a saved file is not a capture run
         .order("requested_at", { ascending: false })
         .limit(6),
       admin

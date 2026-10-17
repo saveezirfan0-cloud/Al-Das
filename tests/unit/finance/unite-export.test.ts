@@ -82,6 +82,7 @@ const input = (body: string) => ({
   text: body,
   pulledOn: "2026-10-01",
   today: "2026-10-17",
+  nowIso: "2026-10-17T10:00:00Z",
   fileName: "export.json",
   userId: "u1",
 });
@@ -106,6 +107,16 @@ describe("storeAndProcessUniteExport", () => {
       expect(r.source).toBe("file");
       expect(r.count_requested).toBe(r.record_count);
     }
+  });
+  it("never dates a chunk in the future (the org's today can be tomorrow in UTC)", async () => {
+    const { deps, rows } = fakeDeps();
+    await storeAndProcessUniteExport(deps, {
+      ...input(text(invoices(1))),
+      pulledOn: "2026-10-17",
+      today: "2026-10-17",
+      nowIso: "2026-10-16T21:00:00Z",
+    });
+    expect(rows[0].requested_at).toBe("2026-10-16T21:00:00Z");
   });
   it("stops at the first failed chunk and leaves the rest for replay", async () => {
     const { deps, log } = fakeDeps(2);

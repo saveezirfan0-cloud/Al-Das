@@ -63,3 +63,27 @@ where i.org_id in (select o.org_id from app.user_org_ids() as o(org_id) where ap
 
 revoke all on public.v_fin_invoice_links from anon;
 grant select on public.v_fin_invoice_links to authenticated, service_role;
+
+-- A saved file is not a capture run: "has the backlog been drained" looks at API batches only (it would otherwise read
+-- the file's empty balance as "not drained"). Same function as 20261009000990 with one added condition.
+create or replace function public.fin_rules_context(p_org_id uuid)
+returns table (claims_fresh boolean, capture_drained boolean, appointments_from date)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select
+    exists (
+      select 1 from public.fin_raw_diligence_files f
+      where f.org_id = p_org_id and f.status = 'committed' and f.committed_at > now() - interval '14 days'
+    ),
+    coalesce((
+      select b.balance_in_range is not null and b.balance_in_range <= 0 and b.process_status = 'processed'
+      from public.fin_raw_unite_batches b
+      where b.org_id = p_org_id and b.source = 'api'
+      order by b.requested_at desc
+      limit 1
+    ), false),
+    (select min(a.starts_at)::date from public.appointments a where a.org_id = p_org_id and a.source = 'unite');
+$$;

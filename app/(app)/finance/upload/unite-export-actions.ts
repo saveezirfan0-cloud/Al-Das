@@ -89,6 +89,7 @@ export async function processUniteExportUpload(
       text,
       pulledOn: parsed.data.pulledOn,
       today: formatInTimeZone(new Date(), org?.timezone ?? "Asia/Dubai", "yyyy-MM-dd"),
+      nowIso: new Date().toISOString(),
       fileName: parsed.data.filename ?? null,
       userId: member.userId,
     });

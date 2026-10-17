@@ -230,7 +230,7 @@ export function RulesPanel({
             {canApprove ? (
               <RuleSwitch rule={r.rule} on={r.on} ok={r.ok} label={r.label} />
             ) : (
-              <Badge variant={r.on ? "success" : "outline"}>{r.on ? "Automatic" : "Off"}</Badge>
+              <Badge variant={r.on && r.ok ? "success" : r.on ? "warning" : "outline"}>{r.on && r.ok ? "Automatic" : r.on ? "Paused: record too weak" : "Off"}</Badge>
             )}
           </div>
           {r.months.length === 0 ? (

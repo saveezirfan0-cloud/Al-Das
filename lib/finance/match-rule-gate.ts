@@ -14,8 +14,8 @@ export type DecisionRow = {
 };
 
 /**
- * Right = accepted and not undone (by the rule on its own or after a person's yes).
- * Wrong = a person rejected it, or it was accepted and later undone. Manual matches say nothing about a rule.
+ * Right = a person accepted it and it was not undone. Wrong = a person rejected it, or it was accepted (by a person or by
+ * the rule itself) and later undone. An automatic match nobody undid counts for nothing: nobody checked it. Manual matches say nothing about a rule.
  */
 export function ruleHistory(rows: readonly DecisionRow[]): RuleMonth[] {
   const by = new Map<string, RuleMonth>();
@@ -24,8 +24,9 @@ export function ruleHistory(rows: readonly DecisionRow[]): RuleMonth[] {
     const month = r.decidedAt.slice(0, 7);
     const key = `${r.rule}|${month}`;
     const m = by.get(key) ?? { rule: r.rule, month, right: 0, wrong: 0 };
-    if (r.decision === "accepted" && !r.undone) m.right += 1;
-    else m.wrong += 1;
+    if (r.decision === "accepted" && !r.undone) {
+      if (!r.auto) m.right += 1; // an automatic match nobody undid has not been checked by anyone: no evidence either way
+    } else m.wrong += 1;
     by.set(key, m);
   }
   return [...by.values()].sort((a, b) => a.rule.localeCompare(b.rule) || a.month.localeCompare(b.month));

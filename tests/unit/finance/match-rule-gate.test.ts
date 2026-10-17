@@ -28,8 +28,12 @@ describe("ruleHistory", () => {
     expect(ruleHistory(rows)).toEqual([
       { rule: "payer_sum", month: "2026-10", right: 1, wrong: 0 },
       { rule: "reference", month: "2026-08", right: 1, wrong: 0 },
-      { rule: "reference", month: "2026-09", right: 2, wrong: 2 },
+      { rule: "reference", month: "2026-09", right: 1, wrong: 2 },
     ]);
+  });
+  it("counts an automatic match nobody undid for nothing, and one that was undone as wrong", () => {
+    const rows = [row({ auto: true }), row({ auto: true }), row({ auto: true, undone: true })];
+    expect(ruleHistory(rows)).toEqual([{ rule: "reference", month: "2026-09", right: 0, wrong: 1 }]);
   });
   it("is empty without rows", () => {
     expect(ruleHistory([])).toEqual([]);

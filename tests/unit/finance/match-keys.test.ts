@@ -94,3 +94,15 @@ describe("proposeAlias", () => {
     expect(proposeAlias("acme health", 5)).toBe(proposeAlias("ACME HEALTH", 5));
   });
 });
+
+describe("a number inside an amount is not a reference (review fix)", () => {
+  it("does not find 12345 in AED 12,345 or 12345.67", () => {
+    expect(findKeys("TT AED 12,345 FROM PAYER", ["12345"], 5)).toEqual([]);
+    expect(findKeys("TT AED 12345.67 FROM PAYER", ["12345"], 5)).toEqual([]);
+    expect(findKeys("TT AED 1,12345 FROM PAYER", ["12345"], 5)).toEqual([]);
+  });
+  it("still finds the same number as a reference", () => {
+    expect(findKeys("PAYMENT REF 12345 PAYER", ["12345"], 5)).toEqual(["12345"]);
+    expect(findKeys("REF.12345 PAYER", ["12345"], 5)).toEqual(["12345"]);
+  });
+});

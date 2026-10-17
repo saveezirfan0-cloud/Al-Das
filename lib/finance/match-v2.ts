@@ -24,6 +24,7 @@ import type {
 // Compute bound for the subset search, not a business threshold.
 const MAX_SET_CANDIDATES = 30;
 const MAX_SET_COMBINATIONS = 6;
+const MAX_SET_NODES = 200_000; // compute bound for the set search, not a business threshold
 const MAX_AMOUNT_DATE_OPTIONS = 5;
 
 const toCents = (n: number) => Math.round(n * 100);
@@ -237,25 +238,44 @@ function recognisePayer(line: OpenLine, input: MatchInput, items: CItem[]): { pa
   return { payer, aliasId };
 }
 
-function subsets(cands: CItem[], target: number, tol: number, maxSize: number): CItem[][] {
-  const out: CItem[][] = [];
-  const walk = (size: number, start: number, chosen: CItem[], sum: number) => {
-    if (out.length >= MAX_SET_COMBINATIONS) return;
-    if (chosen.length === size) {
-      if (Math.abs(sum - target) <= tol) out.push([...chosen]);
-      return;
+/**
+ * Every set of 1..maxSize candidates whose open amounts add up to the target within the tolerance (at most
+ * MAX_SET_COMBINATIONS). One depth-first pass: a branch is dropped when it overshoots or when even all the remaining
+ * candidates could not reach the target. `complete` is false when a cap stopped the search, so the caller must not
+ * treat a single result as "the only set".
+ */
+function subsets(cands: CItem[], target: number, tol: number, maxSize: number): { sets: CItem[][]; complete: boolean } {
+  const sets: CItem[][] = [];
+  const suffix = new Array<number>(cands.length + 1).fill(0);
+  for (let i = cands.length - 1; i >= 0; i--) suffix[i] = suffix[i + 1] + cands[i].open;
+  let nodes = 0;
+  let complete = true;
+  const walk = (start: number, chosen: CItem[], sum: number) => {
+    if (!complete) return;
+    if (chosen.length > 0 && Math.abs(sum - target) <= tol) {
+      if (sets.length >= MAX_SET_COMBINATIONS) {
+        complete = false;
+        return;
+      }
+      sets.push([...chosen]);
     }
+    if (chosen.length >= maxSize) return;
     for (let i = start; i < cands.length; i++) {
+      if (sum + suffix[i] + tol < target) break; // even everything left cannot reach the target
+      if (++nodes > MAX_SET_NODES) {
+        complete = false;
+        return;
+      }
       const next = sum + cands[i].open;
-      if (next - target > tol) continue; // amounts are positive: this and any bigger pick overshoots
+      if (next - target > tol) continue; // amounts are positive: this pick overshoots
       chosen.push(cands[i]);
-      walk(size, i + 1, chosen, next);
+      walk(i + 1, chosen, next);
       chosen.pop();
-      if (out.length >= MAX_SET_COMBINATIONS) return;
+      if (!complete) return;
     }
   };
-  for (let size = 1; size <= maxSize && out.length < MAX_SET_COMBINATIONS; size++) walk(size, 0, [], 0);
-  return out;
+  walk(0, [], 0);
+  return { sets, complete };
 }
 
 function inWindow(c: CItem, lineDay: number, s: MatchSettings): boolean {
@@ -268,13 +288,15 @@ function payerSumRule(line: OpenLine, lineOpen: number, lineDay: number, items: 
   const s = input.settings;
   const who = recognisePayer(line, input, items);
   if (!who) return null;
-  const cands = items
+  const all = items
     .filter((c) => c.item.payerKey === who.payer && inWindow(c, lineDay, s) && !input.rejected.has(`${c.item.ref}|${line.id}`))
-    .sort((a, b) => Math.abs(a.day! - lineDay) - Math.abs(b.day! - lineDay) || byDateRef(a, b))
-    .slice(0, MAX_SET_CANDIDATES)
-    .sort(byDateRef);
-  const combos = subsets(cands, lineOpen, tolerance(s, lineOpen), Math.max(1, s.setMaxItems));
+    .sort((a, b) => Math.abs(a.day! - lineDay) - Math.abs(b.day! - lineDay) || byDateRef(a, b));
+  const cands = all.slice(0, MAX_SET_CANDIDATES).sort(byDateRef);
+  const found = subsets(cands, lineOpen, tolerance(s, lineOpen), Math.max(1, s.setMaxItems));
+  const combos = found.sets;
   if (combos.length === 0) return null;
+  // "the only set" is claimed only when the search saw every candidate and ran to the end
+  const sawEverything = found.complete && all.length <= MAX_SET_CANDIDATES;
   const sumOf = (c: CItem[]) => c.reduce((t, x) => t + x.open, 0);
   combos.sort(
     (a, b) =>
@@ -283,7 +305,7 @@ function payerSumRule(line: OpenLine, lineOpen: number, lineDay: number, items: 
       a.map((x) => x.item.date).join(",").localeCompare(b.map((x) => x.item.date).join(",")) ||
       a.map((x) => x.item.ref).join(",").localeCompare(b.map((x) => x.item.ref).join(",")),
   );
-  const unique = combos.length === 1;
+  const unique = combos.length === 1 && sawEverything;
   const options = combos.map((combo) => {
     const why = [
       who.aliasId ? `Payer ${who.payer} recognised from an approved name on the bank line` : `Payer ${who.payer} named on the bank line`,
@@ -291,10 +313,15 @@ function payerSumRule(line: OpenLine, lineOpen: number, lineDay: number, items: 
         ? `One open item of ${fmt(sumOf(combo))} matches the bank amount`
         : `${combo.length} open items add up to ${fmt(sumOf(combo))}, matching the bank amount`,
     ];
-    if (!unique) why.push(`${combos.length} different sets fit: a person must choose`);
+    if (!unique)
+      why.push(
+        combos.length > 1
+          ? `${combos.length} different sets fit: a person must choose`
+          : "Only part of the payer's open items could be searched: a person must check",
+      );
     return makeOption(line, lineOpen, combo, unique ? (combo.length === 1 ? 90 : 85) : 60, why, who.aliasId);
   });
-  return { lineId: line.id, rule: "payer_sum", options, autoOk: true };
+  return { lineId: line.id, rule: "payer_sum", options, autoOk: unique };
 }
 
 function amountDateRule(line: OpenLine, lineOpen: number, lineDay: number, items: CItem[], input: MatchInput): Draft | null {

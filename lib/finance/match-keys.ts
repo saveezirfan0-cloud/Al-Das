@@ -41,19 +41,36 @@ export function normalizeText(s: string): string {
 const isDigit = (c: string) => c >= "0" && c <= "9";
 
 /** Normalised text plus, per character, whether a separator (or the start) came right before it in the original. */
-function withBreaks(text: string): { t: string; brk: boolean[] } {
+function withBreaks(text: string): { t: string; brk: boolean[]; sepBefore: string[] } {
   let t = "";
   const brk: boolean[] = [];
-  let sep = true;
+  const sepBefore: string[] = []; // the separator text between the previous letter/digit and this one
+  let sep = "";
+  let started = false;
   for (const ch of text ?? "") {
     if (/[A-Za-z0-9]/.test(ch)) {
       t += ch.toUpperCase();
-      brk.push(sep);
-      sep = false;
-    } else sep = true;
+      brk.push(!started || sep !== "");
+      sepBefore.push(sep);
+      sep = "";
+      started = true;
+    } else sep += ch;
   }
   brk.push(true); // the end of the text counts as a break
-  return { t, brk };
+  sepBefore.push(sep);
+  return { t, brk, sepBefore };
+}
+
+/**
+ * A number next to a decimal point or thousands comma is part of an amount ("AED 12,345", "12345.67"), not a
+ * reference, so an all-digit key found that way is not a reference match.
+ */
+function insideAmount(t: string, sepBefore: readonly string[], at: number, len: number): boolean {
+  const amountSep = (sep: string) => sep === "," || sep === ".";
+  const digitBefore = at > 0 && /[0-9]/.test(t[at - 1]);
+  const digitAfter = at + len < t.length && /[0-9]/.test(t[at + len]);
+  for (let i = at + 1; i < at + len; i++) if (amountSep(sepBefore[i])) return true; // "12,345" spans a separator
+  return (digitBefore && amountSep(sepBefore[at])) || (digitAfter && amountSep(sepBefore[at + len]));
 }
 
 /**
@@ -64,7 +81,7 @@ function withBreaks(text: string): { t: string; brk: boolean[] } {
  * or after the occurrence is a boundary on its own, so "PAYER-A RA-0004" finds RA0004. Distinct keys, in input order.
  */
 export function findKeys(text: string, keys: readonly string[], minLength: number): string[] {
-  const { t, brk } = withBreaks(text);
+  const { t, brk, sepBefore } = withBreaks(text);
   const out: string[] = [];
   for (const raw of keys) {
     const key = normalizeText(raw);
@@ -83,6 +100,7 @@ export function findKeys(text: string, keys: readonly string[], minLength: numbe
       const after = t[at + key.length] ?? null;
       if (!brk[at] && before !== null && isDigit(before) === firstDigit) continue;
       if (!brk[at + key.length] && after !== null && isDigit(after) === lastDigit) continue;
+      if (firstDigit && lastDigit && insideAmount(t, sepBefore, at, key.length)) continue;
       out.push(raw);
       break;
     }
