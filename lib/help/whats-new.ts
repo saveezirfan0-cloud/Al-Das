@@ -9,6 +9,18 @@ export const WHATS_NEW: readonly WhatsNewEntry[] = [
     body: "Open any patient's full record from the Patients list: appointments, visits and medical record, conditions and medicines, follow-ups, conversations, enquiries, billing, documents, tasks and household on one page. The clinical tabs need the new View patient clinical records permission (Doctor, Medical Director and Care coordinator have it) and every open is logged. Patients now show a lifecycle stage (lead, new patient, active, lapsed) worked out from visit dates, with the thresholds under Settings, Patient lifecycle. Segments can filter on age band, last visit, visit count, doctor, department, chronic condition and diagnosis group, but only for care programmes, never marketing. Settings, Migration status shows where each Airtable table and Make scenario stands.",
   },
   {
+    id: "2026-12-10-insurer-payments-matching",
+    date: "2026-10-17",
+    title: "Insurer payments: open items and smarter bank matching",
+    body: "A new Finance page, Insurer payments, keeps each payment an insurer sends on one list until the bank deposits that paid it are matched in full. One deposit can pay several payments and one payment can be paid in parts or months later. Pulse suggests matches from the payment reference on the bank line, or from the payer and amount, and shows its reasons; when several fit it asks you instead of guessing. Names it learns for each payer, and automatic matching for each rule, are used only after a Finance Manager approves them, and a rule can be switched on only after it has been right month after month. Import the receipt register on the same page.",
+  },
+  {
+    id: "2026-12-10-unite-export-links",
+    date: "2026-10-17",
+    title: "Saved Unite export, and invoices linked to patients and appointments",
+    body: "The saved Unite invoice pull can now be uploaded once under Finance, Uploads: enter the date it was pulled and type UPLOAD. Nothing is sent to Unite, the file is not kept, and newer data from Unite always wins over it. Invoices are now linked to the patient (by Unite PIN, following a merged record to the patient it was merged into) and to the Unite appointment: the patient's Invoices tab includes invoices of a merged record, and an appointment shows its invoices to people who can see invoices.",
+  },
+  {
     id: "2026-12-09-finance-controls",
     date: "2026-10-16",
     title: "Month-end by the 10th, and separate revenue and cost roles",

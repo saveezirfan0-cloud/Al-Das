@@ -45,7 +45,9 @@ jobs:
           printf '%s\n' 'db-uri = "postgresql://postgres:postgres@127.0.0.1:5432/pulse_test"' 'db-schemas = "public"' 'db-anon-role = "anon"' 'jwt-secret = "pulse-test-jwt-secret-pulse-test-jwt-secret"' 'server-port = 3999' > pgrst.conf
           nohup ./postgrest pgrst.conf > pgrst.log 2>&1 &
           nohup node supabase/test/rest-proxy.mjs 3998 http://127.0.0.1:3999 > proxy.log 2>&1 &
-          sleep 3
+          # wait until PostgREST has loaded its schema cache (a fixed sleep raced it once the schema grew)
+          for i in $(seq 1 60); do curl -fs -o /dev/null http://127.0.0.1:3999/ && break; sleep 1; done
+          curl -fs -o /dev/null http://127.0.0.1:3999/
       - name: Database tests
         run: |
           export TEST_SERVICE_JWT=$(node -e 'const c=require("crypto"),b=(o)=>Buffer.from(JSON.stringify(o)).toString("base64url"),h=b({alg:"HS256",typ:"JWT"}),p=b({role:"service_role",exp:4102444800});console.log(h+"."+p+"."+c.createHmac("sha256","pulse-test-jwt-secret-pulse-test-jwt-secret").update(h+"."+p).digest("base64url"))')

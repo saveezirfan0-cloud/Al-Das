@@ -23,10 +23,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { localDate } from "@/lib/appointments/slots";
 import { canTransition, STATUS_LABELS, type AppointmentStatus } from "@/lib/appointments/status";
 import { effectiveVisitMode, isVisitMode } from "@/lib/integrations/telehealth/policy";
+import { money } from "@/lib/finance/format";
 import { cn } from "@/lib/utils";
 
 import {
   getAppointmentDetail,
+  getAppointmentInvoices,
   getFreeSlots,
   getVideoJoinLink,
   moveAppointment,
@@ -83,6 +85,28 @@ export function AppointmentDrawer({
   const [moveNotify, setMoveNotify] = React.useState(true);
   const [version, setVersion] = React.useState(0);
   const [confirm, confirmDialog] = useConfirm();
+  const [invoices, setInvoices] = React.useState<
+    {
+      id: string;
+      number: string | null;
+      date: string | null;
+      net: number | null;
+      paid: number | null;
+    }[]
+  >([]);
+
+  // Linked Unite invoices: loaded lazily; empty (and invisible) for anyone without finance.invoices.view.
+  React.useEffect(() => {
+    setInvoices([]);
+    if (!id) return;
+    let cancelled = false;
+    void getAppointmentInvoices(id).then((res) => {
+      if (!cancelled && res.ok && res.data) setInvoices(res.data);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, version]);
 
   React.useEffect(() => {
     if (!id) {
@@ -438,6 +462,24 @@ export function AppointmentDrawer({
                   )}
                 </section>
               )}
+
+            {invoices.length > 0 && (
+              <section className="flex flex-col gap-2">
+                <Label>Invoices</Label>
+                <ul className="divide-y text-sm">
+                  {invoices.map((inv) => (
+                    <li key={inv.id} className="flex items-center justify-between gap-2 py-1.5">
+                      <Link href={`/finance/invoices/${inv.id}`} className="hover:underline">
+                        {inv.number ?? "Invoice"}
+                      </Link>
+                      <span className="text-muted-foreground text-xs tabular-nums">
+                        {inv.date ?? "–"} · Net {money(inv.net)} · Paid {money(inv.paid)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
 
             <section className="flex flex-col gap-2">
               <Label htmlFor="appt-notes">Notes</Label>

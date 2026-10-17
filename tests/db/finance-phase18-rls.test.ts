@@ -344,6 +344,8 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 18: finance upgrades, access", () => 
       p.startsWith("finance.labs.") ||
       p.startsWith("finance.costs.") ||
       p.startsWith("finance.profit.") ||
+      // the matching keys arrived with the insurer payments pass (20261221000200, tested in finance-matching-v2.test.ts)
+      p.startsWith("finance.matching.") ||
       // finance.revenue.import arrived with Phase 23A (20261126000100, tested in finance-unite-report.test.ts)
       p === "finance.revenue.import" ||
       // clinical.view arrived with Track P (20261220000100, tested in clinical-view.test.ts)

@@ -102,6 +102,8 @@ export type ContactInvoice = {
   paid: number | null;
   claimed: number | null;
   void: boolean;
+  /** Set only when it adds information: the invoice names an appointment Pulse does not have. */
+  noAppointment: boolean;
 };
 
 export async function listContactInvoices(
@@ -120,12 +122,30 @@ export async function listContactInvoices(
     .maybeSingle();
   if (!contact) return fail("Contact not found.");
   const pin = contact.external_id?.trim();
-  if (!pin) return { ok: true, data: { rows: [], linked: false } };
+  // Invoices come through the link view by contact, so those of a PIN whose contact was merged into this one show too.
+  const { data: links, error: linkError } = await supabase
+    .from("v_fin_invoice_links")
+    .select("invoice_id, link_state")
+    .eq("org_id", member.orgId)
+    .eq("contact_id", contactId)
+    .limit(500);
+  if (linkError) return fail("Could not load the invoices.");
+  const linkRows = (links ?? []).filter(
+    (l): l is typeof l & { invoice_id: string } => !!l.invoice_id,
+  );
+  if (!pin && linkRows.length === 0) return { ok: true, data: { rows: [], linked: false } };
+  const noAppt = new Set(
+    linkRows.filter((l) => l.link_state === "no_appointment").map((l) => l.invoice_id),
+  );
+  if (linkRows.length === 0) return { ok: true, data: { rows: [], linked: true } };
   const { data, error } = await supabase
     .from("v_fin_invoice_list")
     .select("id, inv_display_number, transaction_date, net, paid, claimed, is_deleted")
     .eq("org_id", member.orgId)
-    .eq("patient_pin", pin)
+    .in(
+      "id",
+      linkRows.map((l) => l.invoice_id),
+    )
     .order("transaction_date", { ascending: false })
     .limit(50);
   if (error) return fail("Could not load the invoices.");
@@ -148,6 +168,7 @@ export async function listContactInvoices(
           paid: r.paid === null ? null : Number(r.paid),
           claimed: r.claimed === null ? null : Number(r.claimed),
           void: !!r.is_deleted,
+          noAppointment: noAppt.has(r.id),
         })),
     },
   };

@@ -430,3 +430,79 @@ export function parseProviderLines(
     (r) => r.amount ?? 0,
   );
 }
+
+/** An insurer payment seen in the bank (receipt register): reference, amount, date, payer, receipt number, bank. */
+export type ReceiptRow = {
+  payment_ref: string;
+  amount: number;
+  receipt_date: string;
+  payer: string | null;
+  receipt_no: string | null;
+  bank_name: string | null;
+};
+
+const alnum = (s: string) => s.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+
+/**
+ * Insurer receipt register rows. ONLY the mapped columns are read and the kind has no name or ID-number field. The
+ * payment reference is the match key, so it must survive redaction untouched: a reference that redactStatementText would
+ * change (it looks like a card, account or phone number) refuses the file. A leading = + - @ (spreadsheet formula) is
+ * dropped. A row with no date and no amount (a total line) and a row with a zero or negative amount are skipped. The same
+ * reference twice with the same figures is collapsed (counted as skipped); with different figures it refuses the file,
+ * naming the row numbers. Errors carry row numbers and field names, never cell values.
+ */
+export function parseReceiptRegister(
+  table: ReadonlyArray<ReadonlyArray<unknown>>,
+  format: ImportFormat,
+): ImportResult<ReceiptRow> {
+  if (format.kind !== "receipt_register")
+    return { ok: false, missing: [], errors: ["This layout is not for receipt registers."] };
+  const seen = new Map<string, { rowNo: number; amount: number; date: string }>();
+  return parseWith<ReceiptRow>(
+    table,
+    format,
+    (cells, rowNo, fail) => {
+      const date = readDate(cells.receipt_date, format.dateFormat);
+      const amount = readAmount(cells.amount);
+      const rawRef = str(cells.payment_ref);
+      if (date === null && amount === null && rawRef === null) return "skip";
+      if (amount === "invalid") return bad(fail, `Row ${rowNo}: ${label(format, "amount")} is not a number.`);
+      if (date === "invalid")
+        return bad(fail, `Row ${rowNo}: ${label(format, "receipt_date")} is not a date in ${format.dateFormat}.`);
+      if (rawRef === null) return bad(fail, `Row ${rowNo}: ${label(format, "payment_ref")} is missing.`);
+      const cleaned = rawRef.replace(/^[=+\-@\t\r\s]+/, "").slice(0, 80);
+      const ref = redactStatementText(cleaned, 80);
+      if (ref === null || alnum(cleaned) === "")
+        return bad(fail, `Row ${rowNo}: ${label(format, "payment_ref")} is missing.`);
+      if (alnum(ref) !== alnum(cleaned))
+        return bad(fail, `Row ${rowNo}: payment reference looks like a card or account number`);
+      if (/^0*$/.test(alnum(ref)))
+        return bad(fail, `Row ${rowNo}: ${label(format, "payment_ref")} is not usable as a reference.`);
+      if (amount === null) return bad(fail, `Row ${rowNo}: ${label(format, "amount")} is missing.`);
+      if (date === null) return bad(fail, `Row ${rowNo}: ${label(format, "receipt_date")} is missing.`);
+      if (amount <= 0) return "skip";
+      const key = alnum(ref).replace(/^0+/, "");
+      const prior = seen.get(key);
+      if (prior) {
+        if (prior.amount !== amount || prior.date !== date)
+          return bad(
+            fail,
+            `Rows ${prior.rowNo} and ${rowNo}: the same payment reference with a different amount or date.`,
+          );
+        return "skip";
+      }
+      seen.set(key, { rowNo, amount, date });
+      const payer = redactStatementText(str(cells.payer), 60)?.toUpperCase() ?? null;
+      return {
+        payment_ref: ref,
+        amount,
+        receipt_date: date,
+        payer,
+        receipt_no: redactStatementText(str(cells.receipt_no), 60),
+        bank_name: redactStatementText(str(cells.bank_name), 60),
+      };
+    },
+    (r) => r.receipt_date,
+    (r) => r.amount,
+  );
+}

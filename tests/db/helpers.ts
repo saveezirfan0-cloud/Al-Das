@@ -2,7 +2,7 @@
  * Helpers for tests that run against a real Postgres prepared by scripts/test-db.sh.
  * Skipped entirely when TEST_DATABASE_URL is not set.
  */
-import { createHmac } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 
 import { Client } from "pg";
 
@@ -1821,3 +1821,69 @@ export async function seedPhaseGRows(c: Client, orgId: string, userId: string) {
 
 /** Phase G tables with a browser (select) policy (finance.report_emails.manage). */
 export const PHASE_G_TABLES = ["fin_report_schedule_runs", "fin_report_schedules"] as const;
+
+/** Matching engine v2 (docs/46): tables with a browser (select) policy (finance.matching.*); writes are server actions (service role). */
+export const MATCHING_TABLES = [
+  "fin_receipts",
+  "fin_payer_aliases",
+  "fin_match_decisions",
+  "fin_item_closures",
+  "fin_match_rule_status",
+] as const;
+
+/**
+ * One synthetic receipt, one bank credit, a payer name, an allocation, a closure and a rule status for an org, so the
+ * cross-org sweeps are not vacuous. References, amounts and made-up payer codes only. Needs the org's bank tables.
+ */
+export async function seedMatchingRows(c: Client, orgId: string, userId: string) {
+  await asServiceRole(c, async () => {
+    await c.query(
+      "select public.fin_receipts_import($1, null, 'r.csv', $2, $3::jsonb, $4)",
+      [
+        orgId,
+        createHash("sha256").update(`seed-matching-${orgId}`).digest("hex"),
+        JSON.stringify([
+          { payment_ref: "SEED/0001", amount: 500, receipt_date: "2026-10-01", payer: "PAYER-SEED" },
+          { payment_ref: "SEED/0002", amount: 300, receipt_date: "2026-10-02", payer: "PAYER-SEED" },
+        ]),
+        userId,
+      ],
+    );
+    const acc = (
+      await c.query<{ id: string }>(
+        "insert into public.fin_bank_accounts (org_id, name, bank_name, last4, receives_insurance) values ($1, 'Seed insurance', 'Synthetic Bank', '0000', true) returning id",
+        [orgId],
+      )
+    ).rows[0].id;
+    const imp = (
+      await c.query<{ id: string }>(
+        "select public.fin_bank_import($1, 'bank_statement', $2, null, null, 'seed.csv', $3, $4::jsonb, $5) as id",
+        [
+          orgId,
+          acc,
+          createHash("sha256").update(`seed-matching-bank-${orgId}`).digest("hex"),
+          JSON.stringify([{ value_date: "2026-10-03", amount: 800, reference: "SEED0001", description: "SYNTHETIC" }]),
+          userId,
+        ],
+      )
+    ).rows[0].id;
+    const line = (
+      await c.query<{ id: string }>("select id from public.fin_bank_lines where import_id = $1", [imp])
+    ).rows[0].id;
+    const alias = (
+      await c.query<{ id: string }>(
+        "insert into public.fin_payer_aliases (org_id, payer_key, alias) values ($1, 'PAYER-SEED', 'SEED PAYER LTD') returning id",
+        [orgId],
+      )
+    ).rows[0].id;
+    await c.query(
+      "insert into public.fin_match_decisions (org_id, bank_line_id, item_ref, item_total, amount, rule, decision, alias_id, decided_by) values ($1, $2, 'ins|SEED1', 500, 500, 'reference', 'accepted', $3, $4)",
+      [orgId, line, alias, userId],
+    );
+    await c.query(
+      "insert into public.fin_item_closures (org_id, item_ref, item_total, kind, amount, reason_code, decided_by) values ($1, 'ins|SEED2', 300, 'write_off', 300, 'insurer_short_paid', $2)",
+      [orgId, userId],
+    );
+    await c.query("insert into public.fin_match_rule_status (org_id, rule, auto_enabled, set_by) values ($1, 'reference', false, $2)", [orgId, userId]);
+  });
+}

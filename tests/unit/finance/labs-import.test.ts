@@ -12,6 +12,7 @@ import {
   IMPORT_KIND_KEYS,
   IMPORT_KINDS,
   LAB_IMPORT_KINDS,
+  RECEIPT_IMPORT_KINDS,
   validateMapping,
   type ImportFormat,
 } from "@/lib/finance/import-kinds";
@@ -55,7 +56,11 @@ const FILE = [
 
 describe("lab and provider field lists", () => {
   it("exist next to the bank kinds and have no name or ID-number field", () => {
-    expect([...IMPORT_KIND_KEYS]).toEqual([...BANK_IMPORT_KINDS, ...LAB_IMPORT_KINDS]);
+    expect([...IMPORT_KIND_KEYS]).toEqual([
+      ...BANK_IMPORT_KINDS,
+      ...LAB_IMPORT_KINDS,
+      ...RECEIPT_IMPORT_KINDS,
+    ]);
     const forbidden =
       /name|birth|dob|emirates|passport|national|member|insur|phone|e-?mail|address/i;
     for (const kind of LAB_IMPORT_KINDS)

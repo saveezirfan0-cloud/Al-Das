@@ -161,6 +161,11 @@ export function ContactInvoices({ contactId }: { contactId: string }) {
                 <Link href={`/finance/invoices/${r.id}`} className="hover:underline">
                   {r.number ?? "Invoice"}
                 </Link>
+                {r.noAppointment && (
+                  <span className="text-muted-foreground ml-2 text-xs">
+                    appointment not in Pulse
+                  </span>
+                )}
               </td>
               <td className="py-1.5 tabular-nums">{r.date ?? "–"}</td>
               <td className="py-1.5 text-right tabular-nums">{money(r.net)}</td>

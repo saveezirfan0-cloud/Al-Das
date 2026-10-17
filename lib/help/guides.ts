@@ -642,6 +642,27 @@ export const GUIDES: readonly Guide[] = [
     ],
   },
   {
+    id: "finance-matching",
+    title: "Insurer payments",
+    pages: ["/finance/matching"],
+    purpose:
+      "Keeps every payment an insurer sends on one list until the bank deposits that paid it are matched in full. A deposit can pay several payments, a payment can be paid in parts, and money can arrive months later.",
+    steps: [
+      "Overview, Import the receipt register: choose the layout, drop the .csv or .xlsx file, check the preview and press Import. The same payment reference is stored once; a remittance advice for the same reference joins the same line.",
+      "Import the bank statement of the account insurers pay into (Bank reconciliation). Then press Run matching on the Overview page.",
+      "Proposals: each one says which payment(s) a deposit seems to pay and why, in plain words. Press Accept or Reject. When several fit, Pulse shows them all and never chooses: press Choose this one on the right one.",
+      "Bank deposits and Open payments: allocate by hand when you know better. A payment part-paid stays open with what is left. Undo takes an allocation back; nothing is ever deleted.",
+      "A Finance Manager can close a payment that will never be paid in full: write off exactly the remainder, or cancel it if nothing was allocated, always with a reason.",
+      "Rules and names: when you accept a match, the words on the bank line are proposed as a name for the payer. A Finance Manager approves the name before any rule uses it. Each automatic rule is off until the Finance Manager switches it on, which is allowed only after the rule has been right month after month.",
+    ],
+    watchOut: [
+      "Pulse never guesses between two possible matches. Amount and date alone only ever make a proposal, never an automatic match.",
+      "A payment already matched in the monthly bank run shows as such and takes no allocations here; a payment matched or closed here is left out of the monthly run.",
+      "The thresholds for automatic matching (accuracy, months, decisions) are settings, not fixed in the program.",
+      "Only references, amounts, dates and payer codes are kept here. No patient names or ID numbers.",
+    ],
+  },
+  {
     id: "finance-labs",
     title: "Labs and referrals",
     pages: ["/finance/labs", "/finance/labs/settings"],
@@ -1514,6 +1535,7 @@ export const GUIDES: readonly Guide[] = [
       "Upload the Diligence claims report weekly and at month end.",
       "Check the preview: unknown columns are ignored, never guessed.",
       "Confirm to commit; the previous uploads list shows what came in.",
+      "The saved Unite export (.json) is uploaded once: enter the date it was pulled, type UPLOAD and choose the file. Nothing is sent to Unite and the file is not kept.",
     ],
     watchOut: [
       "The file holds names and Emirates IDs: Pulse keeps only sanitised rows and deletes the original at once. Never e-mail the file around.",

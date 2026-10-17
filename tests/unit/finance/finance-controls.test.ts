@@ -83,7 +83,10 @@ describe("the migration seeds the same roles as the code", () => {
       const at = sql.indexOf(`'${role}'`);
       expect(at, role).toBeGreaterThan(0);
       const json = /'(\[[^']*\])'::jsonb/.exec(sql.slice(at))?.[1];
-      expect(JSON.parse(json ?? "null"), role).toEqual(perms(role));
+      // the matching keys were added to these roles later (20261221000200, tested in finance-matching-v2.test.ts)
+      expect(JSON.parse(json ?? "null"), role).toEqual(
+        perms(role).filter((p) => !p.startsWith("finance.matching.")),
+      );
     }
   });
 });
