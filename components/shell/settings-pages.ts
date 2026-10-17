@@ -84,6 +84,13 @@ export const SETTINGS_PAGES: readonly SettingsPage[] = [
     allow: admin,
   },
   {
+    href: "/settings/migration",
+    label: "Migration status",
+    section: "Workspace",
+    keywords: ["airtable", "make", "sanoflow", "import", "parallel run", "cut-over", "cutover", "retire", "migration"],
+    allow: admin,
+  },
+  {
     href: "/settings/users",
     label: "Users",
     section: "Workspace",
