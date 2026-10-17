@@ -14,6 +14,7 @@ import { can } from "@/lib/auth/can";
 import { requireMember, requirePerm } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+import { UniteExportFlow } from "./unite-export-flow";
 import { UniteReportFlow, type RecentReportUpload } from "./unite-report-flow";
 import { UploadFlow } from "./upload-flow";
 
@@ -57,6 +58,7 @@ export default async function UploadPage() {
       />
       {claims && <DiligenceSection files={files ?? []} />}
       {revenue && <UniteReportFlow recent={recent} />}
+      {revenue && <UniteExportFlow />}
     </div>
   );
 }

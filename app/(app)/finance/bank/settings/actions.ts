@@ -21,6 +21,8 @@ import {
   DATE_FORMATS,
   IMPORT_KINDS,
   isBankImportKind,
+  isReceiptImportKind,
+  RECEIPT_IMPORT_KINDS,
   validateMapping,
   type AmountStyle,
 } from "@/lib/finance/import-kinds";
@@ -146,7 +148,10 @@ export async function saveAccount(values: Record<string, string>): Promise<Actio
 
 const formatSchema = z.object({
   id: optionalId,
-  kind: z.string().refine(isBankImportKind, "Choose the kind of file."),
+  kind: z.string().refine(
+    (k) => isBankImportKind(k) || isReceiptImportKind(k),
+    "Choose the kind of file.",
+  ),
   name: z.string().trim().min(1, "Give the layout a name.").max(60),
   date_format: z.enum(DATE_FORMATS, { message: "Choose the date format." }),
   amount_style: z.enum(AMOUNT_STYLES).default("signed"),
@@ -184,7 +189,7 @@ export async function saveFormat(values: Record<string, string>): Promise<Action
         .update(row)
         .eq("org_id", member.orgId)
         .eq("id", v.id)
-        .in("kind", [...BANK_IMPORT_KINDS]) // lab layouts belong to finance.labs.manage
+        .in("kind", [...BANK_IMPORT_KINDS, ...RECEIPT_IMPORT_KINDS]) // lab layouts belong to finance.labs.manage
         .select("id")
     : await admin
         .from("fin_import_formats")

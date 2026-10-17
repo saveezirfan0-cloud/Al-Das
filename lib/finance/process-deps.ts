@@ -4,7 +4,7 @@ import type { Json } from "@/lib/supabase/types";
 
 /**
  * Supabase-backed dependencies of `processBatch`. Kept apart from lib/finance/db.ts (which is server-only) so the
- * command-line scripts (`finance:replay`, `finance:load-export`) process a stored raw batch exactly as the app does.
+ * command-line scripts (`finance:replay`) process a stored raw batch exactly as the app does.
  */
 
 function must<T>(res: { data: T; error: { message: string } | null }, what: string): T {

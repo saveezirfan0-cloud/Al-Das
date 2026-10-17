@@ -56,6 +56,7 @@ import {
   ORGANISATION_TABLES,
   PHASE_F_TABLES,
   PHASE_G_TABLES,
+  MATCHING_TABLES,
   resetDb,
   seedM3Rows,
   seedPhase13Rows,
@@ -87,6 +88,7 @@ import {
   seedOrganisationRows,
   seedPhaseFRows,
   seedPhaseGRows,
+  seedMatchingRows,
   seedSecurityRows,
   seedSoftDeleteRows,
   SOFT_DELETE_SERVICE_ONLY_TABLES,
@@ -1107,6 +1109,8 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
     await seedPhaseFRows(c, orgA, alice);
     // Phase G (scheduled report e-mails): a schedule and one run.
     await seedPhaseGRows(c, orgA, alice);
+    // Matching engine v2 (insurer payments): a receipt, a deposit, a name, an allocation, a closure and a rule status.
+    await seedMatchingRows(c, orgA, alice);
   });
   afterAll(async () => {
     await resetDb(c);
@@ -1128,6 +1132,7 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
       ...ORGANISATION_TABLES,
       ...PHASE_F_TABLES,
       ...PHASE_G_TABLES,
+      ...MATCHING_TABLES,
       ...SF20D_TABLES,
       ...SF20C_BOOKING_TABLES,
       ...SF20C_TABLES,
@@ -1166,6 +1171,7 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
         ...ORGANISATION_TABLES,
         ...PHASE_F_TABLES,
         ...PHASE_G_TABLES,
+        ...MATCHING_TABLES,
         ...SF20D_TABLES,
         ...SF20C_BOOKING_TABLES,
         ...SF20C_TABLES,

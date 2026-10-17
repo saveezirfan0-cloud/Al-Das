@@ -552,6 +552,27 @@ export const PERMISSIONS = [
       "Sign a reviewed bank reconciliation. The signer must be a different person from the preparer. Audited.",
   },
   {
+    key: "finance.matching.view",
+    group: "Finance",
+    label: "Insurer payment matching",
+    description:
+      "See insurer payments (receipt register and remittances), the open items, the bank credits still to explain and how each matching rule has performed.",
+  },
+  {
+    key: "finance.matching.manage",
+    group: "Finance",
+    label: "Match insurer payments",
+    description:
+      "Import the receipt register, run matching, accept or reject proposals, undo a match and propose payer names. Audited.",
+  },
+  {
+    key: "finance.matching.approve",
+    group: "Finance",
+    label: "Approve matching rules (Finance Manager)",
+    description:
+      "Approve payer names, switch a rule to automatic matching once its record is good enough, and write off or cancel an open item. Audited.",
+  },
+  {
     key: "finance.labs.view",
     group: "Finance",
     label: "Lab and referral reconciliation",
@@ -810,6 +831,8 @@ const FINANCE_PRESET: readonly string[] = [
   "finance.bank.manage",
   "finance.bank.signoff",
   "finance.bank.ai",
+  "finance.matching.view",
+  "finance.matching.manage",
   "finance.labs.view",
   "finance.labs.manage",
   "finance.payables.view",
@@ -840,6 +863,7 @@ export const FINANCE_ROLES: readonly RolePreset[] = [
       ...FINANCE_PRESET,
       "finance.vouchers.check",
       "finance.vouchers.settings",
+      "finance.matching.approve",
       "finance.revshare.verify",
       "finance.parallel_run.manage",
       "accounting.view",
@@ -869,6 +893,8 @@ export const FINANCE_ROLES: readonly RolePreset[] = [
       "finance.bank.view",
       "finance.bank.manage",
       "finance.bank.ai",
+      "finance.matching.view",
+      "finance.matching.manage",
       "finance.close.view",
       "finance.close.tasks",
     ],
@@ -942,6 +968,7 @@ export const FINANCE_ROLES: readonly RolePreset[] = [
       "finance.payables.view",
       "finance.vouchers.approve_ceo",
       "finance.bank.view",
+      "finance.matching.view",
       "finance.labs.view",
       "finance.changes.view",
       "finance.revshare.view",

@@ -389,9 +389,9 @@ describe("Finance navigation", () => {
     ]);
     // nothing was dropped: the menu, the tabs and the setup pages still reach every page the old menu listed (45), plus
     // Phase 23's Doctor performance and Phase G's Report e-mails (a setup page), and Phase 23 sprint 2's Collections,
-    // Contribution, Capacity, Recruitment calculator and Billed vs claimed (tabs), W2's Appointments and invoices (tab)
-    // and W4's Parallel run (a Month-end close tab)
-    expect(financePagesFor(member(["*"]))).toHaveLength(54);
+    // Contribution, Capacity, Recruitment calculator and Billed vs claimed (tabs), W2's Appointments and invoices (tab),
+    // W4's Parallel run (a Month-end close tab) and Insurer payments (a tab beside Bank)
+    expect(financePagesFor(member(["*"]))).toHaveLength(55);
     expect(FINANCE_SETUP_PAGES.map((p) => p.href)).toContain("/finance/report-emails");
     // the tab strip lists only the tabs a member may open, and only when there are two or more
     const md = financeTabGroupsFor(member(role("Medical Director")));

@@ -35,6 +35,7 @@ import {
 import { formatPhone } from "@/lib/phone";
 import { recordAccess, recordExport } from "@/lib/security/access-log";
 import { createAdminClient, type AdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { fetchAll } from "@/lib/supabase/fetch-all";
 import type { Tables } from "@/lib/supabase/types";
 
@@ -469,6 +470,65 @@ export async function getFreeSlots(input: {
         ...(s.taken ? { taken: s.taken } : {}),
       })),
     },
+  };
+}
+
+export type ApptInvoice = {
+  id: string;
+  number: string | null;
+  date: string | null;
+  net: number | null;
+  paid: number | null;
+};
+
+/**
+ * Unite invoices linked to this appointment (amounts and dates only). Empty, with no hint, for a member without
+ * finance.invoices.view. Read with the member's own client, so RLS (finance key, branch rule) decides.
+ */
+export async function getAppointmentInvoices(id: string): Promise<ActionResult<ApptInvoice[]>> {
+  const member = await requirePerm("appointments.view");
+  if (!uuid.safeParse(id).success) return fail("Invalid appointment.");
+  if (!can(member, "finance.invoices.view")) return { ok: true, data: [] };
+  const supabase = await createClient();
+  const { data: appt } = await supabase
+    .from("appointments")
+    .select("id")
+    .eq("org_id", member.orgId)
+    .eq("id", id)
+    .maybeSingle();
+  if (!appt) return { ok: true, data: [] };
+  const { data: links, error } = await supabase
+    .from("v_fin_invoice_links")
+    .select("invoice_id")
+    .eq("org_id", member.orgId)
+    .eq("appointment_row_id", id)
+    .limit(20);
+  if (error) return fail("Could not load the invoices.");
+  const ids = (links ?? []).map((l) => l.invoice_id).filter((x): x is string => !!x);
+  if (ids.length === 0) return { ok: true, data: [] };
+  const { data, error: listError } = await supabase
+    .from("v_fin_invoice_list")
+    .select("id, inv_display_number, transaction_date, net, paid")
+    .eq("org_id", member.orgId)
+    .in("id", ids)
+    .order("transaction_date", { ascending: false });
+  if (listError) return fail("Could not load the invoices.");
+  await recordAccess(createAdminClient(), member, {
+    entity: "finance_invoice",
+    action: "list",
+    detail: { rows: (data ?? []).length, source: "appointment" },
+  });
+  return {
+    ok: true,
+    data: (data ?? [])
+      .filter((r): r is typeof r & { id: string } => !!r.id)
+      .map((r) => ({
+        id: r.id,
+        number: r.inv_display_number,
+        date: r.transaction_date,
+        net: r.net === null ? null : Number(r.net),
+        paid: r.paid === null ? null : Number(r.paid),
+      })),
   };
 }
 

@@ -5,6 +5,8 @@
  *
  * The lab and provider kinds (20E) deliberately have NO field for a patient's name, date of birth, Emirates ID or
  * insurance member id: those columns can never be mapped, so they are never read. The PIN is the Unite PIN only.
+ * The insurer receipt register kind (matching v2) is the same: one row per insurer payment (reference, amount, bank
+ * receipt date, payer, receipt number, bank) with NO field for a patient name, ID number or member id.
  */
 
 export const IMPORT_KIND_KEYS = [
@@ -12,6 +14,7 @@ export const IMPORT_KIND_KEYS = [
   "settlement",
   "lab_activity",
   "provider_invoice",
+  "receipt_register",
 ] as const;
 export type ImportKind = (typeof IMPORT_KIND_KEYS)[number];
 
@@ -25,6 +28,9 @@ export const LAB_IMPORT_KINDS = [
   "provider_invoice",
 ] as const satisfies readonly ImportKind[];
 export type LabImportKind = (typeof LAB_IMPORT_KINDS)[number];
+/** The kind the matching page imports (insurer payments seen in the bank). */
+export const RECEIPT_IMPORT_KINDS = ["receipt_register"] as const satisfies readonly ImportKind[];
+export type ReceiptImportKind = (typeof RECEIPT_IMPORT_KINDS)[number];
 
 export const DATE_FORMATS = ["DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD"] as const;
 export type DateFormat = (typeof DATE_FORMATS)[number];
@@ -140,6 +146,18 @@ export const IMPORT_KINDS = {
       invoice_number: { label: "Invoice number", type: "text", requirement: "optional" },
     },
   },
+  receipt_register: {
+    label: "Insurer receipt register",
+    usesAmountStyle: false,
+    fields: {
+      payment_ref: { label: "Payment reference", type: "text", requirement: "always" },
+      amount: { label: "Amount received", type: "amount", requirement: "always" },
+      receipt_date: { label: "Bank receipt date", type: "date", requirement: "always" },
+      payer: { label: "Insurer or payer", type: "text", requirement: "optional" },
+      receipt_no: { label: "Bank receipt number", type: "text", requirement: "optional" },
+      bank_name: { label: "Bank", type: "text", requirement: "optional" },
+    },
+  },
 } as const satisfies Record<
   ImportKind,
   { label: string; usesAmountStyle: boolean; fields: Record<string, FieldSpec> }
@@ -158,6 +176,8 @@ export const isBankImportKind = (v: unknown): v is (typeof BANK_IMPORT_KINDS)[nu
   typeof v === "string" && (BANK_IMPORT_KINDS as readonly string[]).includes(v);
 export const isLabImportKind = (v: unknown): v is LabImportKind =>
   typeof v === "string" && (LAB_IMPORT_KINDS as readonly string[]).includes(v);
+export const isReceiptImportKind = (v: unknown): v is ReceiptImportKind =>
+  typeof v === "string" && (RECEIPT_IMPORT_KINDS as readonly string[]).includes(v);
 
 /** The fields a layout of this kind uses with this amount style, and whether each must be mapped. */
 export function fieldsFor(
