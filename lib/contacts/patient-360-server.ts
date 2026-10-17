@@ -2,6 +2,7 @@ import "server-only";
 
 import { can } from "@/lib/auth/can";
 import type { CurrentMember } from "@/lib/auth/session";
+import { readLifecycleSettings } from "@/lib/contacts/lifecycle-settings";
 import {
   ageLabel,
   consentChips,
@@ -185,6 +186,7 @@ export async function loadPatientHeader(
         lastVisitDate: stats.data?.last_visit_date ?? null,
       },
       today,
+      readLifecycleSettings(member.org.settings),
     ),
     chronic: clinical
       ? (chronic.data ?? [])

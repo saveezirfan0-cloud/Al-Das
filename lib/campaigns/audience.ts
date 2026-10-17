@@ -1,5 +1,10 @@
 import "server-only";
 
+import {
+  audiencePurposeProblem,
+  DEFAULT_AUDIENCE_PURPOSE,
+  type AudiencePurpose,
+} from "@/lib/campaigns/audience-purpose";
 import { MAX_RECIPIENTS } from "@/lib/campaigns/constants";
 import {
   classifyRecipient,
@@ -17,6 +22,8 @@ import { loadCustomFields, registryFor } from "@/lib/contacts/server";
 import { filterSchema, type Filter } from "@/lib/filters/ast";
 import type { AdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/types";
+
+export { audiencePurposeProblem, type AudiencePurpose } from "@/lib/campaigns/audience-purpose";
 
 export type AudienceSample = VariableContact & { csv?: Record<string, string> };
 
@@ -71,6 +78,7 @@ async function segmentPredicate(
   orgId: string,
   segmentId: string,
   timezone: string,
+  purpose: AudiencePurpose,
 ) {
   const { data: seg } = await admin
     .from("segments")
@@ -94,6 +102,10 @@ async function segmentPredicate(
     if (!parsed.success) throw new Error("The segment's filter is invalid.");
     filter = parsed.data;
   }
+  // The consent rule (docs/45 P5): a filter with clinical fields never builds a marketing audience. Checked here,
+  // before anything is counted or written, for previews, snapshots and recurring runs alike.
+  const problem = audiencePurposeProblem(filter, purpose, registry);
+  if (problem) throw new Error(problem);
   return { registry, filter, ...compileContactPredicate(registry, filter, null, timezone) };
 }
 
@@ -103,6 +115,8 @@ export async function segmentAudience(
     orgId: string;
     segmentId: string;
     marketing: boolean;
+    /** What the audience is for. Default "marketing" (fail closed): clinical filters are refused unless "care". */
+    purpose?: AudiencePurpose;
     timezone: string;
     /** Writes recipients for this campaign; omit for a dry-run preview. */
     campaignId?: string;
@@ -113,6 +127,7 @@ export async function segmentAudience(
     args.orgId,
     args.segmentId,
     args.timezone,
+    args.purpose ?? DEFAULT_AUDIENCE_PURPOSE,
   );
   // Always count first: an oversize audience is refused before anything is written.
   const dry = await admin.rpc("campaign_snapshot_segment", {

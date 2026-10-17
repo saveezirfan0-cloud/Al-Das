@@ -49,7 +49,9 @@ function monthsBefore(d: Date, months: number): Date {
   const y = d.getUTCFullYear();
   const m = d.getUTCMonth() - months;
   const target = new Date(Date.UTC(y, m, 1));
-  const last = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate();
+  const last = new Date(
+    Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0),
+  ).getUTCDate();
   target.setUTCDate(Math.min(d.getUTCDate(), last));
   return target;
 }

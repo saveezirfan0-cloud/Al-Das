@@ -273,6 +273,13 @@ export const SETTINGS_PAGES: readonly SettingsPage[] = [
     keywords: ["stages", "sla"],
     allow: admin,
   },
+  {
+    href: "/settings/lifecycle",
+    label: "Patient lifecycle",
+    section: "Clinic operations",
+    keywords: ["new patient", "active", "lapsed", "stage"],
+    allow: admin,
+  },
 
   // Finance and Accounting setup (Phase D): same URLs, each gated by its own key (can() keeps the finance access window)
   ...FINANCE_SETUP_PAGES.map((p): SettingsPage => ({

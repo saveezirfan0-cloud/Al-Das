@@ -30,7 +30,7 @@ import { cn } from "@/lib/utils";
 export type ClientField = Pick<
   FieldDef,
   "key" | "label" | "group" | "type" | "options" | "optionsSource" | "sortable"
->;
+> & { /** Care programmes only: shown with a note in the segment builder. */ clinical?: boolean };
 
 export type OptionSources = Partial<
   Record<NonNullable<FieldDef["optionsSource"]>, MultiSelectOption[]>
