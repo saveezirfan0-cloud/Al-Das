@@ -57,6 +57,7 @@ export function buildPortalFieldRegistry(
             : undefined,
       available: true,
       sortable: true,
+      clinical: false, // portal tables are not contact segment fields
     });
   }
   // Long-text and multi-select columns are sortable-excluded and not filterable; they are still

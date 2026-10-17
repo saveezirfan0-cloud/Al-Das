@@ -348,6 +348,8 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 18: finance upgrades, access", () => 
       p.startsWith("finance.profit.") ||
       // finance.revenue.import arrived with Phase 23A (20261126000100, tested in finance-unite-report.test.ts)
       p === "finance.revenue.import" ||
+      // clinical.view arrived with Track P (20261220000100, tested in clinical-view.test.ts)
+      p === "clinical.view" ||
       // the Finance Manager's and CEO's accounting keys arrived with Phase 22A (20261108000100, tested in
       // accounting-core.test.ts)
       p.startsWith("accounting.");

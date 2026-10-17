@@ -117,7 +117,9 @@ export async function listContacts(
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid query");
   const admin = createAdminClient();
   try {
-    const ctx = await loadContactContext(admin, member.orgId);
+    const ctx = await loadContactContext(admin, member.orgId, {
+      clinical: can(member, "clinical.view"),
+    });
     const filter = await effectiveFilter(admin, member.orgId, member.userId, parsed.data);
     const page = await queryContacts(admin, {
       orgId: member.orgId,
@@ -128,6 +130,7 @@ export async function listContacts(
       page: parsed.data.page,
       pageSize: parsed.data.pageSize,
       timezone: member.org.timezone,
+      withLifecycle: can(member, "clinical.view"),
     });
     await recordAccess(admin, member, {
       entity: "contact",
@@ -149,7 +152,9 @@ export async function listMatchingIds(
   if (!parsed.success) return fail("Invalid query");
   const admin = createAdminClient();
   try {
-    const ctx = await loadContactContext(admin, member.orgId);
+    const ctx = await loadContactContext(admin, member.orgId, {
+      clinical: can(member, "clinical.view"),
+    });
     const filter = await effectiveFilter(admin, member.orgId, member.userId, parsed.data);
     const ids = await matchingContactIds(
       admin,
@@ -944,7 +949,9 @@ export async function saveSegment(
   const admin = createAdminClient();
   try {
     if (parsed.data.kind === "dynamic") {
-      const ctx = await loadContactContext(admin, member.orgId);
+      const ctx = await loadContactContext(admin, member.orgId, {
+        clinical: can(member, "clinical.view"),
+      });
       await countContacts(
         admin,
         member.orgId,
@@ -1087,7 +1094,9 @@ export async function previewFilterCount(
   if (!parsed.success) return fail("Invalid filter");
   const admin = createAdminClient();
   try {
-    const ctx = await loadContactContext(admin, member.orgId);
+    const ctx = await loadContactContext(admin, member.orgId, {
+      clinical: can(member, "clinical.view"),
+    });
     const count = await countContacts(
       admin,
       member.orgId,

@@ -7,6 +7,8 @@ import {
   compileOrderBy,
   type SortSpec,
 } from "@/lib/filters/to-sql";
+import type { LifecycleStage } from "@/lib/contacts/lifecycle";
+import { loadLifecycleStages } from "@/lib/contacts/lifecycle-load";
 import type { Filter } from "@/lib/filters/ast";
 import type { FieldRegistry } from "@/lib/filters/field-registry";
 import type { AdminClient } from "@/lib/supabase/admin";
@@ -17,6 +19,8 @@ export type ContactTag = { id: string; name: string; color: string };
 export type ContactListRow = Omit<Tables<"contacts">, "custom"> & {
   custom: Record<string, unknown>;
   tags: ContactTag[];
+  /** Derived lifecycle stage (docs/45 P4). Only set by queryContacts({ withLifecycle }), i.e. for clinical.view. */
+  lifecycle_stage?: LifecycleStage;
 };
 
 export type ContactQuery = {
@@ -28,6 +32,8 @@ export type ContactQuery = {
   page?: number;
   pageSize?: number;
   timezone?: string;
+  /** Add the derived lifecycle stage to each row. Only for a member who may see clinical information. */
+  withLifecycle?: boolean;
 };
 
 export type ContactPage = {
@@ -126,6 +132,10 @@ export async function queryContacts(admin: AdminClient, q: ContactQuery): Promis
   const ids = (data ?? []).map((r) => r.id);
   const total = data && data.length > 0 ? Number(data[0].total) : 0;
   const rows = await fetchContactsByIds(admin, q.orgId, ids);
+  if (q.withLifecycle && rows.length > 0) {
+    const stages = await loadLifecycleStages(admin, q.orgId, ids);
+    for (const r of rows) r.lifecycle_stage = stages.get(r.id) ?? "unknown";
+  }
   return { rows, total, page, pageSize };
 }
 

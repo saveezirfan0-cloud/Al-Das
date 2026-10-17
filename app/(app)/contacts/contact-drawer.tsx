@@ -12,7 +12,17 @@ const ContactDocuments = dynamic(
   () => import("./documents/documents-tab").then((m) => m.ContactDocuments),
   { ssr: false, loading: () => <Loader2 className="text-muted-foreground size-4 animate-spin" /> },
 );
-import { Loader2, MessageSquare, Phone, Plus, Save, Star, Trash2, GitMerge } from "lucide-react";
+import {
+  ExternalLink,
+  Loader2,
+  MessageSquare,
+  Phone,
+  Plus,
+  Save,
+  Star,
+  Trash2,
+  GitMerge,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { useConfirm } from "@/components/shell/confirm-dialog";
@@ -203,6 +213,13 @@ export function ContactDrawer({
                       </span>
                     </span>
                   </p>
+                </div>
+                <div className="flex gap-1">
+                  <Button variant="outline" size="sm" asChild>
+                    <a href={`/contacts/${contact.id}`}>
+                      <ExternalLink aria-hidden /> Open full record
+                    </a>
+                  </Button>
                 </div>
                 {canManage && (
                   <div className="flex gap-1">

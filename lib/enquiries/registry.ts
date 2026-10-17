@@ -39,7 +39,7 @@ const ENQUIRY_RELATIONS: Record<RelationKey, RelationDef> = {
 
 const col = (column: string, sqlType: SqlType): FieldSource => ({ kind: "column", column, sqlType });
 
-type Def = Omit<FieldDef, "available" | "sortable"> & { sortable?: boolean };
+type Def = Omit<FieldDef, "available" | "sortable" | "clinical"> & { sortable?: boolean };
 
 const BASE: Def[] = [
   { key: "number", label: "Enquiry ID", group: "Enquiry", type: "number", source: col("number", "integer"), sortable: true },
@@ -104,7 +104,7 @@ export function buildEnquiryFieldRegistry(
   opts: { customFields?: CustomFieldDefInput[] } = {},
 ): FieldRegistry {
   const fields = new Map<string, FieldDef>();
-  for (const f of BASE) fields.set(f.key, { ...f, sortable: f.sortable ?? false, available: true });
+  for (const f of BASE) fields.set(f.key, { ...f, sortable: f.sortable ?? false, available: true, clinical: false });
   for (const cf of opts.customFields ?? []) {
     if (!/^[a-z][a-z0-9_]{0,63}$/.test(cf.key)) continue;
     const key = `custom.${cf.key}`;
@@ -117,6 +117,7 @@ export function buildEnquiryFieldRegistry(
       options: cf.options ?? undefined,
       available: true,
       sortable: true,
+      clinical: false,
     });
   }
   return {
