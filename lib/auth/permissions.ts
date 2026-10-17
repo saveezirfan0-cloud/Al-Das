@@ -133,6 +133,13 @@ export const PERMISSIONS = [
     description:
       "Add, edit, expire and delete a patient's documents, and see who has opened them. Give this to the front desk and care team only.",
   },
+  {
+    key: "clinical.view",
+    group: "Clinical",
+    label: "View patient clinical records",
+    description:
+      "Open a patient's visits, vitals, diagnoses, medicines and conditions on the Patient 360 page. Patient health data: never implied by View patients or any portal key. Every open is logged.",
+  },
   { key: "flows.manage", group: "Flows", label: "Build and publish flows" },
   {
     key: "flows.ai",
@@ -940,6 +947,7 @@ export const FINANCE_ROLES: readonly RolePreset[] = [
     description: "Read-only finance reports (doctor and department revenue, denials, scorecards).",
     permissions: [
       "reports.view",
+      "clinical.view",
       "finance.view",
       "finance.scorecards.view",
       "finance.revenue.view",
@@ -1122,6 +1130,7 @@ export const SYSTEM_ROLES: readonly RolePreset[] = [
       "media.view",
       "documents.view",
       "documents.manage",
+      "clinical.view",
       "portal.*",
     ],
   },
@@ -1153,6 +1162,7 @@ export const SYSTEM_ROLES: readonly RolePreset[] = [
       "contacts.view",
       "tasks.view",
       "tasks.manage",
+      "clinical.view",
       "portal.clinical_followups.read",
       "portal.clinical_visits.read",
     ],
