@@ -17,6 +17,7 @@ export type EntityFormView = {
   active: boolean;
   is_default: boolean;
   hasYears: boolean;
+  tally_company: string | null;
 };
 
 export function EntityButton({ entity }: { entity?: EntityFormView }) {
@@ -78,6 +79,20 @@ export function EntityButton({ entity }: { entity?: EntityFormView }) {
                 </option>
               ))}
             </select>
+          </Field>
+          <Field
+            label="Tally company"
+            hint={
+              entity?.is_default
+                ? "Exactly as TallyPrime names it. Leave empty to use the company set under Settings, Integrations, Tally bridge. Cannot be changed once the bridge has exchanged data with it."
+                : "Exactly as TallyPrime names it. Without one this entity is not sent to Tally. Cannot be changed once the bridge has exchanged data with it."
+            }
+          >
+            <Input
+              name="tally_company"
+              defaultValue={entity?.tally_company ?? ""}
+              maxLength={120}
+            />
           </Field>
           {entity && !entity.is_default && (
             <label className="flex min-h-11 items-center gap-2 text-sm">

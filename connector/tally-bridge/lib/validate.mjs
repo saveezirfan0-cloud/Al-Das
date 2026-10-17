@@ -39,10 +39,28 @@ export function checkJob(job) {
       if (typeof job.remote_id !== "string" || !REMOTE_ID_RE.test(job.remote_id))
         return "not_pulse_voucher";
       if (!DAY.test(job.voucher_date ?? "")) return "bad_dates";
-      return checkImportXml(job.xml, job.remote_id);
+      return checkImportXml(job.xml, job.remote_id) ?? checkImportCompany(job.xml, job.company);
     default:
       return "unknown_type";
   }
+}
+
+// One connector can serve several Tally companies, so a voucher must name the very company the job is for.
+const unescapeXml = (t) =>
+  t
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, "&");
+const squash = (t) => t.replace(/\s+/g, " ").trim();
+
+/** null when the import's SVCURRENTCOMPANY is the job's company, else "wrong_company". */
+export function checkImportCompany(xml, company) {
+  const named = [...xml.matchAll(/<SVCURRENTCOMPANY>([\s\S]*?)<\/SVCURRENTCOMPANY>/g)];
+  return named.length === 1 && squash(unescapeXml(named[0][1])) === squash(company)
+    ? null
+    : "wrong_company";
 }
 
 // Objects other than one VOUCHER must never be in an import from Pulse (masters, companies, TDL code, ...).

@@ -62,8 +62,10 @@ export async function createRemittanceUpload(
     ? "xlsx"
     : /\.csv$/i.test(parsed.data.filename)
       ? "csv"
-      : null;
-  if (!ext) return fail("Upload the payment advice as an .xlsx or .csv file.");
+      : /\.xml$/i.test(parsed.data.filename)
+        ? "xml"
+        : null;
+  if (!ext) return fail("Upload the payment advice as an .xlsx, .csv or .xml file.");
   const path = `${member.orgId}/remittance/${randomUUID()}.${ext}`;
   const { data, error } = await createAdminClient()
     .storage.from(BUCKET)

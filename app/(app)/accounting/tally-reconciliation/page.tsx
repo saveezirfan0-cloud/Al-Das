@@ -35,11 +35,11 @@ export default async function TallyReconciliationPage() {
   if (!can(member, "accounting.import")) throw new ForbiddenError("accounting.import");
   const lock = can(member, "accounting.periods.manage");
   const admin = createAdminClient(); // service role AFTER the permission check
-  const [{ data: imports }, { data: recs }] = await Promise.all([
+  const [{ data: imports }, { data: recs }, { data: entities }] = await Promise.all([
     admin
       .from("acc_tally_imports")
       .select(
-        "id, committed_at, first_date, last_date, opening_date, reconciled_at, periods_locked_at",
+        "id, entity_id, committed_at, first_date, last_date, opening_date, reconciled_at, periods_locked_at",
       )
       .eq("org_id", member.orgId)
       .eq("status", "committed")
@@ -54,15 +54,24 @@ export default async function TallyReconciliationPage() {
       .eq("source", "file") // the Tally bridge's daily checks are on its own page
       .order("created_at", { ascending: false })
       .limit(10),
+    admin
+      .from("acc_entities")
+      .select("id, name")
+      .eq("org_id", member.orgId)
+      .eq("active", true)
+      .order("is_default", { ascending: false })
+      .order("name"),
   ]);
+  const entityName = new Map((entities ?? []).map((e) => [e.id, e.name]));
   const latest = recs?.[0];
   const diffs = (latest?.rows as unknown as DiffRow[] | undefined) ?? [];
   const label = (i: {
+    entity_id: string;
     committed_at: string | null;
     first_date: string | null;
     last_date: string | null;
   }) =>
-    `Committed ${i.committed_at?.slice(0, 10) ?? ""}${i.first_date ? ` (${i.first_date} to ${i.last_date})` : ""}`;
+    `${(entities ?? []).length > 1 ? `${entityName.get(i.entity_id) ?? "?"}: ` : ""}Committed ${i.committed_at?.slice(0, 10) ?? ""}${i.first_date ? ` (${i.first_date} to ${i.last_date})` : ""}`;
 
   return (
     <div className="flex flex-col gap-4">
@@ -87,6 +96,7 @@ export default async function TallyReconciliationPage() {
               last_date: i.last_date,
             }))}
             today={todayIn(member.org.timezone)}
+            entities={entities ?? []}
           />
         </CardContent>
       </Card>

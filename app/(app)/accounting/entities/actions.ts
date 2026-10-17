@@ -42,6 +42,9 @@ const entitySchema = z.object({
     .transform((v) => v.toUpperCase() || "AED")
     .refine((v) => /^[A-Z]{3}$/.test(v), "Currency is a three-letter code."),
   fiscal_year_start_month: z.coerce.number().int().min(1).max(12),
+  // The entity's Tally company, exactly as TallyPrime names it (W7). Empty: the default entity uses the Tally bridge
+  // integration's company; any other entity is not bridged.
+  tally_company: optionalText(120),
   active: z.string().optional(),
 });
 
@@ -57,6 +60,7 @@ export async function saveEntity(values: Record<string, string>): Promise<Action
     trn: v.trn,
     base_currency: v.base_currency,
     fiscal_year_start_month: v.fiscal_year_start_month,
+    tally_company: v.tally_company,
   };
   const { data, error } = v.id
     ? await admin
@@ -78,7 +82,12 @@ export async function saveEntity(values: Record<string, string>): Promise<Action
     action: v.id ? "accounting.entity.updated" : "accounting.entity.created",
     entity: "acc_entities",
     entityId: data.id,
-    diff: { fy_start: v.fiscal_year_start_month, has_trn: !!v.trn, currency: v.base_currency },
+    diff: {
+      fy_start: v.fiscal_year_start_month,
+      has_trn: !!v.trn,
+      currency: v.base_currency,
+      has_tally_company: !!v.tally_company,
+    },
   });
   revalidatePath("/accounting/entities");
   return { ok: true, message: "Entity saved." };

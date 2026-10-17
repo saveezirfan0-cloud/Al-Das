@@ -24,6 +24,7 @@ const CONSOLIDATE_OR_CIRCULATE = [
   "finance.close.signoff.finance",
   "finance.close.signoff.ceo",
   "finance.report_emails.manage",
+  "finance.parallel_run.manage",
   "finance.export.run",
   "finance.bank.signoff",
   "accounting.reports.view",

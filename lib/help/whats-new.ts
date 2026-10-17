@@ -21,6 +21,24 @@ export const WHATS_NEW: readonly WhatsNewEntry[] = [
     body: "The saved Unite invoice pull can now be uploaded once under Finance, Uploads: enter the date it was pulled and type UPLOAD. Nothing is sent to Unite, the file is not kept, and newer data from Unite always wins over it. Invoices are now linked to the patient (by Unite PIN, following a merged record to the patient it was merged into) and to the Unite appointment: the patient's Invoices tab includes invoices of a merged record, and an appointment shows its invoices to people who can see invoices.",
   },
   {
+    id: "2026-12-10-remittance-xml",
+    date: "2026-10-17",
+    title: "Remittance advice as XML",
+    body: "Finance, Remittances now accepts the XML remittance advice downloaded from Diligence or the e-claim portal, as well as .xlsx and .csv. Patient and member details in the file are never read, and the file is deleted straight after it is checked. A payment taken back (a negative amount) is now accepted and shown as Taken back instead of rejecting the file.",
+  },
+  {
+    id: "2026-12-10-appointments-invoices",
+    date: "2026-10-17",
+    title: "Appointments against invoices",
+    body: "Finance, Appointments and invoices takes the Unite appointment export for a month and sets it against the Unite invoices. It lists appointments that were seen but not billed, invoices on appointments that were not seen, and anything that cannot be matched with certainty, and shows how much of each doctor's and room's time was booked. A cancelled appointment with no invoice is not counted as unbilled. Upload the file on the page (it is not kept) and download the figures as Excel.",
+  },
+  {
+    id: "2026-12-10-parallel-run",
+    date: "2026-10-17",
+    title: "Parallel run: Pulse beside the manual figures",
+    body: "Finance, Parallel run sets Pulse's figure for each finished month beside the manual figure Finance produces today, for revenue, collections, bank, insurance receivable and labs. The Finance Manager types the manual figure and an explanation of any difference; when an area's two latest months, back to back, both agree, that area can be marked as switched to Pulse, with the name and time recorded. Nothing is posted to the books, and the manual process stays until Finance decides.",
+  },
+  {
     id: "2026-12-09-finance-controls",
     date: "2026-10-16",
     title: "Month-end by the 10th, and separate revenue and cost roles",

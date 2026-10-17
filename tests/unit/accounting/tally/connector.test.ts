@@ -258,6 +258,114 @@ describe("the connector against a fake Tally and a fake Pulse", () => {
     expect(results[0]).toEqual({ job_id: uuid(21), outcome: "absent" });
   });
 
+  it("serves several Tally companies in one run: every request names the company of its own job (W7)", async () => {
+    const REMOTE_B = "pulse-0f3c2b1a111142228333444455556666-pv-99999999222243338444555566667777-1";
+    const xmlB = buildBridgeVoucherXml({
+      company: "Demo Pharmacy FZ-LLC",
+      costCategory: "Primary Cost Category",
+      remoteId: REMOTE_B,
+      number: "PB-0000000002",
+      date: "2026-07-16",
+      tallyType: "Pulse Payment",
+      narration: "Pulse: Payment voucher PV-DEMO-2",
+      entries: [
+        { ledger: "Supplier Demo B", side: "debit", cents: 1_000 },
+        { ledger: "Bank - Demo Main", side: "credit", cents: 1_000 },
+      ],
+    });
+    jobs = [
+      {
+        id: uuid(60),
+        type: "export_masters_since",
+        company: "Demo Clinic LLC",
+        since_alter_id: 40,
+      },
+      {
+        id: uuid(61),
+        type: "export_masters_since",
+        company: "Demo Pharmacy FZ-LLC",
+        since_alter_id: 7,
+      },
+      {
+        id: uuid(62),
+        type: "import_voucher",
+        company: "Demo Pharmacy FZ-LLC",
+        remote_id: REMOTE_B,
+        voucher_date: "2026-07-16",
+        check_first: false,
+        lookup_only: false,
+        xml: xmlB,
+      },
+    ];
+    await bridge().runOnce();
+    const posts = tallyPosts();
+    // each company is asked from its own AlterID, and the import goes to the company its job names
+    expect(posts.slice(0, 3)).toEqual(mastersSinceRequests("Demo Clinic LLC", 40));
+    expect(posts.slice(3, 6)).toEqual(mastersSinceRequests("Demo Pharmacy FZ-LLC", 7));
+    expect(posts[6]).toBe(xmlB);
+    expect(posts[6]).toContain("<SVCURRENTCOMPANY>Demo Pharmacy FZ-LLC</SVCURRENTCOMPANY>");
+    for (const p of posts.slice(0, 3)) expect(p).not.toContain("Pharmacy");
+    for (const p of posts.slice(3, 6)) expect(p).not.toContain("Demo Clinic");
+    expect(results.map((r) => [r.job_id, r.outcome])).toEqual([
+      [uuid(60), "ok"],
+      [uuid(61), "ok"],
+      [uuid(62), "ok"],
+    ]);
+  });
+
+  it("never lets a voucher reach a company other than its job's: the XML must name the job's company (W7)", async () => {
+    const forClinic = voucherXml(); // built for "Demo Clinic LLC"
+    jobs = [
+      {
+        id: uuid(63),
+        type: "import_voucher",
+        company: "Demo Pharmacy FZ-LLC", // the job says another company
+        remote_id: REMOTE,
+        voucher_date: "2026-07-15",
+        check_first: false,
+        lookup_only: false,
+        xml: forClinic,
+      },
+    ];
+    await bridge().runOnce();
+    expect(tallyPosts()).toEqual([]);
+    expect(results.map((r) => [r.job_id, r.outcome, r.code])).toEqual([
+      [uuid(63), "error", "refused_job"],
+    ]);
+    expect(
+      checkJob({
+        id: uuid(63),
+        type: "import_voucher",
+        company: "Demo Pharmacy FZ-LLC",
+        remote_id: REMOTE,
+        voucher_date: "2026-07-15",
+        xml: forClinic,
+      }),
+    ).toBe("wrong_company");
+    expect(
+      checkJob({
+        id: uuid(64),
+        type: "import_voucher",
+        company: "Demo Clinic LLC",
+        remote_id: REMOTE,
+        voucher_date: "2026-07-15",
+        xml: forClinic,
+      }),
+    ).toBeNull();
+    // a name with characters XML escapes still matches itself
+    const amp = voucherXml().replace("Demo Clinic LLC", "Demo &amp; Sons &lt;1&gt;");
+    expect(
+      checkJob({
+        id: uuid(65),
+        type: "import_voucher",
+        company: "Demo & Sons <1>",
+        remote_id: REMOTE,
+        voucher_date: "2026-07-15",
+        xml: amp,
+      }),
+    ).toBeNull();
+  });
+
   it("refuses anything else: an unknown job, a delete, someone else's voucher, masters inside an import", async () => {
     const xml = voucherXml();
     const del = xml.replace('ACTION="Create"', 'ACTION="Delete"');

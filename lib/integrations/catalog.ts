@@ -1022,7 +1022,7 @@ export const INTEGRATIONS: readonly IntegrationDef[] = [
         required: true,
         max: 120,
         placeholder: "Demo Clinic LLC",
-        help: "Exactly as the company is named in TallyPrime (it must be open in Tally for the bridge to work).",
+        help: "Exactly as the company is named in TallyPrime (it must be open in Tally for the bridge to work). It is the company of the default entity; give other entities (or the default one) their own under Accounting, Entities and fiscal years.",
       },
     ],
     consequence:

@@ -113,6 +113,12 @@ export async function stageTallyImport(
       force: p.data.force,
     });
     if (out.kind === "duplicate") return { ok: true, data: out };
+    if (out.kind === "refused")
+      return fail(
+        out.reason === "mixed_companies"
+          ? "These files are from different Tally companies. Import one company at a time."
+          : `This file is from the Tally company "${out.company ?? "?"}", which no entity is linked to. Set the Tally company on its entity under Entities and fiscal years first.`,
+      );
     await recordAudit(admin, {
       orgId: member.orgId,
       userId: member.userId,

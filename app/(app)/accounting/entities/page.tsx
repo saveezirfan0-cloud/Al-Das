@@ -12,6 +12,8 @@ import {
 import { loadEntities } from "@/lib/accounting/accounting-server";
 import { EMIRATES } from "@/lib/accounting/accounts";
 import { MONTH_NAMES } from "@/lib/accounting/numbering";
+import { resolveCompanies } from "@/lib/accounting/tally/companies";
+import { loadCompanyEntities } from "@/lib/accounting/tally/import-server";
 import { can, canAny, ForbiddenError } from "@/lib/auth/can";
 import { requireMember } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -27,22 +29,35 @@ export default async function EntitiesPage() {
     throw new ForbiddenError("accounting.view");
   const manage = can(member, "accounting.settings.manage");
   const admin = createAdminClient(); // service role AFTER the permission check
-  const [entities, { data: years }, { data: branches }, { data: mapped }, { data: starts }] =
-    await Promise.all([
-      loadEntities(admin, member.orgId),
-      admin
-        .from("acc_fiscal_years")
-        .select("id, entity_id, label, start_date, end_date, status")
-        .eq("org_id", member.orgId)
-        .order("start_date", { ascending: false }),
-      admin.from("fin_ref_branches").select("code, name").eq("org_id", member.orgId).order("code"),
-      admin
-        .from("acc_entity_branches")
-        .select("branch_code, entity_id, emirate")
-        .eq("org_id", member.orgId),
-      admin.from("acc_entities").select("id, ledger_start_date").eq("org_id", member.orgId),
-    ]);
+  const [
+    entities,
+    { data: years },
+    { data: branches },
+    { data: mapped },
+    { data: starts },
+    companyView,
+  ] = await Promise.all([
+    loadEntities(admin, member.orgId),
+    admin
+      .from("acc_fiscal_years")
+      .select("id, entity_id, label, start_date, end_date, status")
+      .eq("org_id", member.orgId)
+      .order("start_date", { ascending: false }),
+    admin.from("fin_ref_branches").select("code, name").eq("org_id", member.orgId).order("code"),
+    admin
+      .from("acc_entity_branches")
+      .select("branch_code, entity_id, emirate")
+      .eq("org_id", member.orgId),
+    admin
+      .from("acc_entities")
+      .select("id, ledger_start_date, tally_company")
+      .eq("org_id", member.orgId),
+    loadCompanyEntities(admin, member.orgId),
+  ]);
   const ledgerStart = new Map((starts ?? []).map((e) => [e.id, e.ledger_start_date]));
+  const ownCompany = new Map((starts ?? []).map((e) => [e.id, e.tally_company]));
+  // what each entity is bridged to: its own Tally company, else (default entity) the Tally bridge setting
+  const company = resolveCompanies(companyView.entities, companyView.fallback);
   const mapping = new Map((mapped ?? []).map((m) => [m.branch_code, m]));
   const withYears = new Set((years ?? []).map((y) => y.entity_id));
   const name = new Map(entities.map((e) => [e.id, e.name]));
@@ -69,6 +84,7 @@ export default async function EntitiesPage() {
                 <TableHead>Currency</TableHead>
                 <TableHead>Fiscal year starts</TableHead>
                 <TableHead>Ledger start</TableHead>
+                <TableHead>Tally company</TableHead>
                 <TableHead />
               </TableRow>
             </TableHeader>
@@ -93,11 +109,37 @@ export default async function EntitiesPage() {
                       </span>
                     )}
                   </TableCell>
+                  <TableCell>
+                    {company.get(e.id) ? (
+                      <>
+                        {company.get(e.id)}
+                        {!ownCompany.get(e.id) && (
+                          <span className="text-muted-foreground ml-1 text-xs">
+                            (the Tally bridge setting)
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground">
+                        {ownCompany.get(e.id)
+                          ? "shared with another entity: not bridged"
+                          : "none: not bridged"}
+                      </span>
+                    )}
+                  </TableCell>
                   <TableCell className="text-right whitespace-nowrap">
                     {manage && (
                       <LedgerStartButton entityId={e.id} current={ledgerStart.get(e.id) ?? null} />
                     )}
-                    {manage && <EntityButton entity={{ ...e, hasYears: withYears.has(e.id) }} />}
+                    {manage && (
+                      <EntityButton
+                        entity={{
+                          ...e,
+                          hasYears: withYears.has(e.id),
+                          tally_company: ownCompany.get(e.id) ?? null,
+                        }}
+                      />
+                    )}
                   </TableCell>
                 </TableRow>
               ))}

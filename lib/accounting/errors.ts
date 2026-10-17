@@ -111,7 +111,8 @@ export const ACCOUNTING_ERRORS: Record<string, string> = {
   push_from_needed: "Choose the first date to send to Tally before switching pushing on.",
   push_off: "Pushing to Tally is switched off.",
   push_stopped: "Pushing to Tally is stopped; Tally does not hold this voucher.",
-  ledger_started: "The ledger has started: Pulse is the book of record and nothing more is sent to Tally.",
+  ledger_started:
+    "The ledger has started: Pulse is the book of record and nothing more is sent to Tally.",
   training: "A training workspace never sends anything to Tally.",
   switched_off: "The Tally bridge is switched off (Settings, Integrations).",
   not_paired: "No connector is paired.",
@@ -121,12 +122,19 @@ export const ACCOUNTING_ERRORS: Record<string, string> = {
   voucher_type: "This kind of journal has no Pulse voucher type in Tally.",
   not_buildable: "Pulse cannot build this item's journal right now (see Waiting to post).",
   capture_failed: "Pulse could not read this item's journal. It will be tried again.",
-  tally_error: "Tally refused the voucher (its message is shown). Fix it in Tally, then send it again.",
+  tally_error:
+    "Tally refused the voucher (its message is shown). Fix it in Tally, then send it again.",
   connector_refused: "The connector refused this voucher. Tell your administrator.",
   bad_content: "The voucher could not be written for Tally.",
-  no_answer: "Tally's answer never came. Check in Tally whether the voucher is there, then send it again.",
+  no_answer:
+    "Tally's answer never came. Check in Tally whether the voucher is there, then send it again.",
   withdrawn: "The item was withdrawn in Pulse before it reached Tally.",
   invalid_code: "Unknown or expired pairing code.",
+  // W7: one Tally company per entity
+  no_tally_company:
+    "This entity has no Tally company. Set it under Entities and fiscal years; until then nothing is sent for it.",
+  tally_company_in_use:
+    "The bridge has already exchanged data for this entity with its Tally company, so that company cannot be changed.",
 };
 
 export function accountingErrorMessage(code: string | null | undefined, fallback: string): string {

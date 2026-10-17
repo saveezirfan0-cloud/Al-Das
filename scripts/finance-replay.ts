@@ -8,8 +8,8 @@ import "dotenv/config";
 
 import { createClient } from "@supabase/supabase-js";
 
-import { processBatch, type ProcessDeps } from "../lib/finance/process-batch";
-import type { Json } from "../lib/supabase/types";
+import { processBatch } from "../lib/finance/process-batch";
+import { dbProcessDeps } from "../lib/finance/process-deps";
 
 async function main() {
   const args = process.argv.slice(2);
@@ -21,32 +21,7 @@ async function main() {
   }
   const admin = createClient(url, key, { auth: { persistSession: false } });
 
-  const deps: ProcessDeps = {
-    loadBatch: async (id) => {
-      const { data, error } = await admin
-        .from("fin_raw_unite_batches")
-        .select("id, org_id, payload, record_count")
-        .eq("id", id)
-        .maybeSingle();
-      if (error) throw new Error(error.message);
-      return data
-        ? { id: data.id, orgId: data.org_id, payload: data.payload, recordCount: data.record_count }
-        : null;
-    },
-    apply: async (orgId, batchId, invoices, duplicates) => {
-      const { data, error } = await admin.rpc("fin_apply_invoices", {
-        p_org_id: orgId,
-        p_batch_id: batchId,
-        p_invoices: invoices as unknown as Json,
-        p_duplicates: duplicates,
-      });
-      if (error) throw new Error(error.message);
-      return (data ?? {}) as Record<string, number>;
-    },
-    markFailed: async (batchId, error) => {
-      await admin.rpc("fin_batch_mark_failed", { p_batch_id: batchId, p_error: error });
-    },
-  };
+  const deps = dbProcessDeps(admin);
 
   let ids: string[];
   if (args.includes("--failed")) {

@@ -2,10 +2,12 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 
+import { loadAccount, readConfig } from "@/lib/integrations/accounts";
 import type { AdminClient } from "@/lib/supabase/admin";
 import { fetchAll } from "@/lib/supabase/fetch-all";
 import type { Json } from "@/lib/supabase/types";
 
+import { pickImportEntity, sameCompany, type CompanyEntity } from "./companies";
 import { parseTallyXml, type TallyParseResult } from "./parse";
 import { mergeParsed, planTallyImport, type PlanContext, type TallyPlanReport } from "./plan";
 import { chunk, stagedRows } from "./stage";
@@ -67,7 +69,21 @@ async function loadTallyJournals(admin: AdminClient, orgId: string) {
 
 export type StagedImport =
   | { kind: "duplicate"; committedAt: string | null }
+  | { kind: "refused"; reason: "company_not_linked" | "mixed_companies"; company: string | null }
   | { kind: "staged"; importId: string; report: TallyPlanReport };
+
+/** The org's entities as the company rule sees them, and the Tally bridge integration's company (the default entity's fallback). */
+export async function loadCompanyEntities(
+  admin: AdminClient,
+  orgId: string,
+): Promise<{ entities: CompanyEntity[]; fallback: string | null }> {
+  const [{ data }, account] = await Promise.all([
+    admin.from("acc_entities").select("id, is_default, active, tally_company").eq("org_id", orgId),
+    loadAccount(admin, orgId, "tally_bridge"),
+  ]);
+  const fb = String(readConfig(account).company ?? "").trim();
+  return { entities: data ?? [], fallback: fb || null };
+}
 
 /** Parses the files, plans the import against the current chart and stores the dry run with its staged rows. */
 export async function stageTallyFiles(
@@ -93,21 +109,24 @@ export async function stageTallyFiles(
     if (dup) return { kind: "duplicate", committedAt: dup.committed_at };
   }
   const parsed: TallyParseResult[] = input.files.map((f) => parseTallyXml(f.bytes));
+  // The file's own company decides the entity (W7): a file from another Tally company never lands in the default entity
+  const companies = parsed.map((f) => f.company).filter((c): c is string => !!c);
+  if (companies.some((c) => !sameCompany(c, companies[0])))
+    return { kind: "refused", reason: "mixed_companies", company: null };
+  const { entities, fallback } = await loadCompanyEntities(admin, input.orgId);
+  const chosen = pickImportEntity(companies[0] ?? null, entities, fallback);
+  if (!chosen.ok) {
+    if (chosen.code === "no_default_entity") throw new Error("no default entity");
+    return { kind: "refused", reason: chosen.code, company: companies[0]?.slice(0, 120) ?? null };
+  }
   const ctx = await loadPlanContext(admin, input.orgId);
   const plan = planTallyImport(mergeParsed(parsed), ctx, { openingDate: input.openingDate });
 
-  const { data: entity } = await admin
-    .from("acc_entities")
-    .select("id")
-    .eq("org_id", input.orgId)
-    .eq("is_default", true)
-    .maybeSingle();
-  if (!entity) throw new Error("no default entity");
   const { data: imp, error } = await admin
     .from("acc_tally_imports")
     .insert({
       org_id: input.orgId,
-      entity_id: entity.id,
+      entity_id: chosen.entityId,
       file_sha256: shas,
       file_bytes: input.files.reduce((a, f) => a + f.bytes.length, 0),
       forced: input.force,

@@ -63,7 +63,11 @@ Menu names move a little between releases (OQ-127); these are TallyPrime 2.x to 
 1. Install Node.js 20 LTS (or newer) from nodejs.org, for all users.
 2. Copy this folder to `C:\PulseTallyBridge` (any folder only administrators and the service account can write to).
 3. In Pulse, an administrator switches on **Settings > Integrations > Tally bridge** (type `CONNECT TALLY`) and enters
-   the Tally company name exactly as Tally shows it.
+   the Tally company name exactly as Tally shows it. That is the default entity's company; each other Pulse entity
+   gets its own under **Accounting > Setup > Entities and fiscal years**. One connector serves every company loaded in
+   this Tally: Pulse names the company in each job and the connector refuses an import whose voucher names another one.
+   Every company the bridge serves must be **open** in Tally (that several can be loaded at once is not yet checked
+   against a real TallyPrime: ask the Tally partner).
 4. In Pulse, **Accounting > Setup > Tally bridge > Create a pairing code** (it is shown once and works for 30 minutes).
    On the Tally PC, in a command prompt:
 

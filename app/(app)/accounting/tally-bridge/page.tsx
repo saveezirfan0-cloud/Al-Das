@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/table";
 import { accountingErrorMessage } from "@/lib/accounting/errors";
 import { DEFAULT_PUSH_SOURCES, voucherNumberFor } from "@/lib/accounting/tally/bridge";
+import { resolveCompanies } from "@/lib/accounting/tally/companies";
 import { can, ForbiddenError } from "@/lib/auth/can";
 import { requireMember } from "@/lib/auth/session";
 import { loadView } from "@/lib/integrations/accounts";
@@ -117,10 +118,10 @@ export default async function TallyBridgePage() {
       .limit(5),
     admin
       .from("acc_entities")
-      .select("ledger_start_date")
+      .select("id, name, is_default, active, ledger_start_date, tally_company")
       .eq("org_id", org)
-      .eq("is_default", true)
-      .maybeSingle(),
+      .order("is_default", { ascending: false })
+      .order("name"),
     // One exact count per status (PostgREST returns at most 1,000 rows, so counting fetched rows reads low).
     Promise.all(
       PUSH_STATUSES.map(async (status) => {
@@ -165,7 +166,10 @@ export default async function TallyBridgePage() {
       .eq("org_id", org)
       .order("at", { ascending: false })
       .limit(30),
-    admin.from("acc_tally_cursors").select("cursor, alter_id, updated_at").eq("org_id", org),
+    admin
+      .from("acc_tally_cursors")
+      .select("entity_id, cursor, alter_id, updated_at")
+      .eq("org_id", org),
     admin
       .from("acc_tally_reconciliations")
       .select("as_at, compared, differences, total_difference, reconciled, rows, created_at")
@@ -196,11 +200,13 @@ export default async function TallyBridgePage() {
     cost_category: "Primary Cost Category",
   };
   const counts = new Map<string, number>(statusRows);
-  const start =
-    (entity.data as { ledger_start_date?: string | null } | null)?.ledger_start_date ?? null;
   const company = String(view.config.company ?? "");
+  // one Tally company per entity (W7); the default entity falls back to the integration's company
+  const entities = (entity.data ?? []).filter((e) => e.active);
+  const companyOf = resolveCompanies(entity.data ?? [], company || null);
+  const cursorOf = (entityId: string, name: "masters" | "vouchers") =>
+    (cursors.data ?? []).find((c) => c.entity_id === entityId && c.cursor === name);
   const active = (devices.data ?? []).find((d) => d.status === "active");
-  const cursor = (name: string) => (cursors.data ?? []).find((c) => c.cursor === name);
   const tbRows =
     (tb.data?.rows as Array<{
       name: string;
@@ -229,18 +235,14 @@ export default async function TallyBridgePage() {
             ) : (
               <Badge variant="secondary">Off</Badge>
             )}{" "}
-            {company ? `Tally company "${company}". ` : "No Tally company name yet. "}
+            {company
+              ? `Default Tally company "${company}" (used by the default entity unless it has its own). `
+              : "No default Tally company name yet. "}
             {can(member, "integrations.manage") && (
               <Link href="/settings/integrations/tally_bridge" className="underline">
                 Settings, Integrations
               </Link>
             )}
-          </div>
-          <div>
-            Ledger start:{" "}
-            {start
-              ? `${start}. From that day nothing more is sent to Tally (Pulse is the book of record); pulling continues until you switch it off.`
-              : "not set. Tally is the book of record and Pulse mirrors it."}
           </div>
           <div>
             Connector:{" "}
@@ -266,10 +268,50 @@ export default async function TallyBridgePage() {
             Vouchers: {counts.get("done") ?? 0} in Tally, {counts.get("ready") ?? 0} queued,{" "}
             {counts.get("sent") ?? 0} sent, {counts.get("held") ?? 0} waiting,{" "}
             {counts.get("failed") ?? 0} refused, {counts.get("unknown") ?? 0} without an answer.
-            Last pulls: masters to AlterID {cursor("masters")?.alter_id ?? "-"} (
-            {when(cursor("masters")?.updated_at)}), vouchers to AlterID{" "}
-            {cursor("vouchers")?.alter_id ?? "-"} ({when(cursor("vouchers")?.updated_at)}).
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Tally companies</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-2 overflow-x-auto text-sm">
+          <p className="text-muted-foreground">
+            One Tally company per entity, set under Accounting, Setup, Entities and fiscal years. An
+            entity without one is not bridged: nothing is sent for it and nothing is pulled. Pushing
+            stops for each entity on its own ledger start.
+          </p>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Entity</TableHead>
+                <TableHead>Tally company</TableHead>
+                <TableHead>Ledger start</TableHead>
+                <TableHead>Masters pulled to</TableHead>
+                <TableHead>Vouchers pulled to</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {entities.map((e) => (
+                <TableRow key={e.id}>
+                  <TableCell>{e.name}</TableCell>
+                  <TableCell>
+                    {companyOf.get(e.id) ?? (
+                      <span className="text-muted-foreground">none: not bridged</span>
+                    )}
+                  </TableCell>
+                  <TableCell>{e.ledger_start_date ?? "not set"}</TableCell>
+                  {(["masters", "vouchers"] as const).map((name) => (
+                    <TableCell key={name}>
+                      AlterID {cursorOf(e.id, name)?.alter_id ?? "-"} (
+                      {when(cursorOf(e.id, name)?.updated_at)})
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
 

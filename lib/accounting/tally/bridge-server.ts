@@ -12,7 +12,7 @@ import {
   type PostingSource,
 } from "@/lib/accounting/posting/types";
 import { buildBridgeVoucherXml } from "@/lib/finance/tally-xml";
-import { isEnabled, loadAccount, readConfig } from "@/lib/integrations/accounts";
+import { isEnabled } from "@/lib/integrations/accounts";
 import type { JobLogger } from "@/lib/jobs/types";
 import { redactText } from "@/lib/redact";
 import type { AdminClient } from "@/lib/supabase/admin";
@@ -243,14 +243,18 @@ function itemFor(
   journal: PulseJournal | null,
   ctx: MappingContext,
   fallback?: { reason: string; detail: string; date: string | null },
+  entityId?: string | null,
 ): PushItem {
   const remote_base = remoteIdBase(orgId, kind, id);
+  // the entity the journal belongs to; none means the default entity (the 22D builders' journals always are)
+  const entity = entityId ? { entity_id: entityId } : {};
   if (!journal) {
-    if (!fallback) return { kind, id, remote_base, action: "withdraw" };
+    if (!fallback) return { kind, id, remote_base, ...entity, action: "withdraw" };
     return {
       kind,
       id,
       remote_base,
+      ...entity,
       action: "hold",
       date: fallback.date,
       voucher_type: "journal",
@@ -263,11 +267,12 @@ function itemFor(
     };
   }
   const r = resolveVoucher(journal, ctx);
-  if (r.action === "nothing") return { kind, id, remote_base, action: "withdraw" };
+  if (r.action === "nothing") return { kind, id, remote_base, ...entity, action: "withdraw" };
   const common = {
     kind,
     id,
     remote_base,
+    ...entity,
     date: journal.date,
     voucher_type: r.voucherType,
     amount: r.amount,
@@ -410,6 +415,8 @@ export async function pushSources(
         ? String((raw as Record<string, unknown>).error)
         : null;
     const journal = error ? null : capturedJournal(raw);
+    const rawEntity = (raw ?? {}) as Record<string, unknown>;
+    const entityId = typeof rawEntity.entity_id === "string" ? rawEntity.entity_id : null;
     items.push(
       itemFor(
         orgId,
@@ -420,6 +427,7 @@ export async function pushSources(
         error
           ? { reason: "capture_failed", detail: `Could not read it (${error}).`, date: null }
           : undefined,
+        entityId,
       ),
     );
     if (kind === "fixed_asset") {
@@ -439,6 +447,8 @@ export async function pushSources(
               )
             : null,
           ctx,
+          undefined,
+          entityId,
         ),
       );
     }
@@ -610,6 +620,8 @@ type ClaimRow = {
   params: Record<string, unknown>;
   check_first: boolean;
   lookup_only: boolean;
+  /** The Tally company of the job's entity, worked out by the database when the job was handed out. */
+  company: string | null;
   push: {
     id: string;
     remote_id: string;
@@ -629,9 +641,6 @@ export async function claimJobs(
   auth: DeviceAuth,
   now: Date = new Date(),
 ): Promise<ConnectorJob[]> {
-  const company = String(
-    readConfig(await loadAccount(admin, auth.orgId, "tally_bridge")).company ?? "",
-  ).trim();
   const today = await orgToday(admin, auth.orgId, now);
   const res = await rpc<{ jobs: ClaimRow[]; cost_category: string }>(
     admin,
@@ -646,6 +655,30 @@ export async function claimJobs(
   const out: ConnectorJob[] = [];
   for (const j of res?.jobs ?? []) {
     const p = j.params ?? {};
+    // one connector serves every company: each job names its own (the database never hands out a job without one)
+    const company = (j.company ?? "").trim();
+    if (!company) {
+      if (j.kind === "import_voucher")
+        await rpc(admin, "acc_tally_bridge_import_result", {
+          p_org_id: auth.orgId,
+          p_device_id: auth.deviceId,
+          p_job_id: j.id,
+          p_outcome: "failed",
+          p_master_id: null,
+          p_code: "no_tally_company",
+          p_message: "The entity has no Tally company.",
+        });
+      else
+        await rpc(admin, "acc_tally_bridge_export_result", {
+          p_org_id: auth.orgId,
+          p_device_id: auth.deviceId,
+          p_job_id: j.id,
+          p_ok: false,
+          p_code: "no_tally_company",
+          p_counts: null,
+        });
+      continue;
+    }
     if (j.kind === "export_masters_since")
       out.push({ id: j.id, type: j.kind, company, since_alter_id: num(p.since_alter_id) });
     else if (j.kind === "export_vouchers_since" && day(p.from) && day(p.to))
@@ -758,6 +791,7 @@ type JobRow = {
   check_first: boolean;
   remote_id: string | null;
   attempts: number;
+  entity_id: string;
 };
 
 /** Applies one connector answer. Returns what happened, in a word (for the route's response; no data). */
@@ -881,11 +915,11 @@ export async function applyResult(
       });
     }
     if (job.kind === "export_masters_since") {
-      const counts = await applyMastersPull(admin, auth.orgId, job.id, parsed, src);
+      const counts = await applyMastersPull(admin, auth.orgId, job.entity_id, job.id, parsed, src);
       return finish(true, null, counts);
     }
     if (job.kind === "export_vouchers_since") {
-      const counts = await applyVouchersPull(admin, auth.orgId, job.id, parsed, src);
+      const counts = await applyVouchersPull(admin, auth.orgId, job.entity_id, job.id, parsed, src);
       return finish(true, null, counts);
     }
     return finish(false, "bad_job", null);
@@ -918,22 +952,16 @@ type BridgeReport = {
 async function stageBridgeImport(
   admin: AdminClient,
   orgId: string,
+  entityId: string,
   plan: TallyPlan,
   src: PullSource,
   report: BridgeReport,
 ): Promise<string> {
-  const { data: entity } = await admin
-    .from("acc_entities")
-    .select("id")
-    .eq("org_id", orgId)
-    .eq("is_default", true)
-    .maybeSingle();
-  if (!entity) throw new Error("no default entity");
   const { data: imp, error } = await admin
     .from("acc_tally_imports")
     .insert({
       org_id: orgId,
-      entity_id: entity.id,
+      entity_id: entityId,
       file_sha256: [src.sha256],
       file_bytes: src.bytes,
       source: "bridge",
@@ -1038,6 +1066,7 @@ const maxAlter = (rows: ReadonlyArray<{ alterId: number | null }>): number | nul
 async function applyMastersPull(
   admin: AdminClient,
   orgId: string,
+  entityId: string,
   jobId: string,
   parsed: TallyParseResult[],
   src: PullSource,
@@ -1084,7 +1113,7 @@ async function applyMastersPull(
   const report: BridgeReport = {
     bridge: { cursor: "masters", alter_id: alterId, job_id: jobId, refusals, names },
   };
-  const importId = await stageBridgeImport(admin, orgId, plan, src, report);
+  const importId = await stageBridgeImport(admin, orgId, entityId, plan, src, report);
   const done = await commitBridgeImport(admin, orgId, importId, "staged", report);
   return {
     masters: plan.masters.length,
@@ -1098,6 +1127,7 @@ async function applyMastersPull(
 async function applyVouchersPull(
   admin: AdminClient,
   orgId: string,
+  entityId: string,
   jobId: string,
   parsed: TallyParseResult[],
   src: PullSource,
@@ -1105,11 +1135,12 @@ async function applyVouchersPull(
   // the voucher types come with the vouchers (the plan resolves custom types through their parent); Pulse's own are always known
   const merged = withPulseVoucherTypes(mergeParsed(parsed));
   const alterId = maxAlter(merged.vouchers);
+  // each entity has its own ledger start (and its own Tally company)
   const { data: entity } = await admin
     .from("acc_entities")
     .select("ledger_start_date")
     .eq("org_id", orgId)
-    .eq("is_default", true)
+    .eq("id", entityId)
     .maybeSingle();
   const start = (entity as { ledger_start_date?: string | null } | null)?.ledger_start_date ?? null;
   // cancelled, optional or deleted in Tally since it was mirrored: the mirror journal is reversed
@@ -1172,7 +1203,7 @@ async function applyVouchersPull(
   const report: BridgeReport = {
     bridge: { cursor: "vouchers", alter_id: cursor, job_id: jobId, refusals, names: [] },
   };
-  const importId = await stageBridgeImport(admin, orgId, plan, src, report);
+  const importId = await stageBridgeImport(admin, orgId, entityId, plan, src, report);
   const done = await commitBridgeImport(admin, orgId, importId, "staged", report);
   return {
     vouchers: plan.vouchers.length,

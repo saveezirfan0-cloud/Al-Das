@@ -1,0 +1,159 @@
+{
+  "note": "Synthetic. Shared by tests/unit/accounting/tally/companies.test.ts and tests/db/accounting-tally-companies.test.ts: lib/accounting/tally/companies.ts and app.acc_tally_company must agree on every scenario.",
+  "resolve": [
+    {
+      "name": "one entity, no company of its own: the integration's company",
+      "fallback": "Demo Clinic LLC",
+      "entities": [{ "key": "main", "is_default": true, "active": true, "tally_company": null }],
+      "expect": { "main": "Demo Clinic LLC" }
+    },
+    {
+      "name": "the default entity's own company wins over the integration's",
+      "fallback": "Demo Clinic LLC",
+      "entities": [
+        { "key": "main", "is_default": true, "active": true, "tally_company": "Demo Group Co" }
+      ],
+      "expect": { "main": "Demo Group Co" }
+    },
+    {
+      "name": "a second entity with its own company; the default keeps the integration's",
+      "fallback": "Demo Clinic LLC",
+      "entities": [
+        { "key": "main", "is_default": true, "active": true, "tally_company": null },
+        {
+          "key": "second",
+          "is_default": false,
+          "active": true,
+          "tally_company": "Demo Pharmacy FZ-LLC"
+        }
+      ],
+      "expect": { "main": "Demo Clinic LLC", "second": "Demo Pharmacy FZ-LLC" }
+    },
+    {
+      "name": "a second entity without a company is not bridged (it never falls back)",
+      "fallback": "Demo Clinic LLC",
+      "entities": [
+        { "key": "main", "is_default": true, "active": true, "tally_company": null },
+        { "key": "second", "is_default": false, "active": true, "tally_company": null }
+      ],
+      "expect": { "main": "Demo Clinic LLC", "second": null }
+    },
+    {
+      "name": "a second entity naming the default's company (any case): neither is bridged",
+      "fallback": "Demo Clinic LLC",
+      "entities": [
+        { "key": "main", "is_default": true, "active": true, "tally_company": null },
+        { "key": "second", "is_default": false, "active": true, "tally_company": "demo clinic llc" }
+      ],
+      "expect": { "main": null, "second": null }
+    },
+    {
+      "name": "an inactive entity has no company; the others are unaffected",
+      "fallback": "Demo Clinic LLC",
+      "entities": [
+        { "key": "main", "is_default": true, "active": true, "tally_company": null },
+        { "key": "old", "is_default": false, "active": false, "tally_company": "Demo Closed Co" }
+      ],
+      "expect": { "main": "Demo Clinic LLC", "old": null }
+    },
+    {
+      "name": "an inactive entity has no company and does not count",
+      "fallback": null,
+      "entities": [
+        { "key": "main", "is_default": true, "active": true, "tally_company": "Demo Shared Name" },
+        {
+          "key": "old",
+          "is_default": false,
+          "active": false,
+          "tally_company": "Demo Shared Name 2"
+        }
+      ],
+      "expect": { "main": "Demo Shared Name", "old": null }
+    },
+    {
+      "name": "no integration company and no own company: nothing is bridged",
+      "fallback": null,
+      "entities": [{ "key": "main", "is_default": true, "active": true, "tally_company": null }],
+      "expect": { "main": null }
+    }
+  ],
+  "importPick": [
+    {
+      "name": "a file from the second entity's company goes to the second entity",
+      "fallback": "Demo Clinic LLC",
+      "entities": [
+        { "key": "main", "is_default": true, "active": true, "tally_company": null },
+        {
+          "key": "second",
+          "is_default": false,
+          "active": true,
+          "tally_company": "Demo Pharmacy FZ-LLC"
+        }
+      ],
+      "fileCompany": "demo pharmacy fz-llc",
+      "expect": { "ok": true, "key": "second" }
+    },
+    {
+      "name": "a file from the default entity's company goes to the default entity",
+      "fallback": "Demo Clinic LLC",
+      "entities": [
+        { "key": "main", "is_default": true, "active": true, "tally_company": null },
+        {
+          "key": "second",
+          "is_default": false,
+          "active": true,
+          "tally_company": "Demo Pharmacy FZ-LLC"
+        }
+      ],
+      "fileCompany": "Demo Clinic LLC",
+      "expect": { "ok": true, "key": "main" }
+    },
+    {
+      "name": "a file from a company nobody is linked to is refused once entities have their own companies",
+      "fallback": "Demo Clinic LLC",
+      "entities": [
+        { "key": "main", "is_default": true, "active": true, "tally_company": null },
+        {
+          "key": "second",
+          "is_default": false,
+          "active": true,
+          "tally_company": "Demo Pharmacy FZ-LLC"
+        }
+      ],
+      "fileCompany": "Someone Else Trading",
+      "expect": { "ok": false, "code": "company_not_linked" }
+    },
+    {
+      "name": "single-company installation (no entity has its own company): any file goes to the default entity, as before",
+      "fallback": "Demo Clinic LLC",
+      "entities": [{ "key": "main", "is_default": true, "active": true, "tally_company": null }],
+      "fileCompany": "Whatever The Export Says",
+      "expect": { "ok": true, "key": "main" }
+    },
+    {
+      "name": "a file that names no company goes to the default entity, as before",
+      "fallback": "Demo Clinic LLC",
+      "entities": [
+        { "key": "main", "is_default": true, "active": true, "tally_company": null },
+        {
+          "key": "second",
+          "is_default": false,
+          "active": true,
+          "tally_company": "Demo Pharmacy FZ-LLC"
+        }
+      ],
+      "fileCompany": null,
+      "expect": { "ok": true, "key": "main" }
+    },
+    {
+      "name": "a file from a company two entities would share is refused, not guessed",
+      "fallback": "Demo Clinic LLC",
+      "entities": [
+        { "key": "main", "is_default": true, "active": true, "tally_company": null },
+        { "key": "second", "is_default": false, "active": true, "tally_company": "DEMO CLINIC LLC" }
+      ],
+      "fileCompany": "Demo Clinic LLC",
+      "expect": { "ok": false, "code": "company_not_linked" }
+    }
+  ]
+}

@@ -636,6 +636,13 @@ export const PERMISSIONS = [
       "Choose when the daily flash and the monthly summary are e-mailed and to which members (Settings, Finance setup, Report e-mails). Each person still needs that report's own permission to receive it. Audited.",
   },
   {
+    key: "finance.parallel_run.manage",
+    group: "Finance",
+    label: "Run the parallel comparison",
+    description:
+      "Type in the manual figures Finance produces today, set the tolerance and record, per area, the decision to rely on Pulse (Finance, Parallel run). Opens the page; each area is shown only with its own report permission. Audited.",
+  },
+  {
     key: "accounting.view",
     group: "Accounting",
     label: "Open Accounting",
@@ -858,6 +865,7 @@ export const FINANCE_ROLES: readonly RolePreset[] = [
       "finance.vouchers.settings",
       "finance.matching.approve",
       "finance.revshare.verify",
+      "finance.parallel_run.manage",
       "accounting.view",
       "accounting.ledger.view",
       "accounting.reports.view",

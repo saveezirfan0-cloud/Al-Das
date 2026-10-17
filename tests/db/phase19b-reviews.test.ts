@@ -34,6 +34,9 @@ import {
 const POSTGREST_URL = process.env.TEST_POSTGREST_URL;
 const SERVICE_JWT = process.env.TEST_SERVICE_JWT;
 // 2026-10-19 08:00Z = 12:00 in Dubai: inside the default 09:00 to 20:00 window.
+// distinct numbers per synthetic patient: random ones collided now and then (contacts_org_phone_uidx)
+let phoneSeq = 0;
+
 const NOW = new Date("2026-10-19T08:00:00Z");
 const BODY = "Hello {{1}}, thank you for visiting {{2}}. Tell others about your visit: {{3}}";
 const LINK = "https://g.page/r/CsyntheticReviewLink/review";
@@ -61,9 +64,7 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)(
           [
             org,
             over.first ?? "Sara",
-            over.phone === undefined
-              ? `+9715011${Math.floor(10000 + Math.random() * 89999)}`
-              : over.phone,
+            over.phone === undefined ? `+9715011${10000 + phoneSeq++}` : over.phone,
             over.optIn ?? true,
             over.stop ?? false,
           ],

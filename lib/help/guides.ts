@@ -443,6 +443,25 @@ export const GUIDES: readonly Guide[] = [
     ],
   },
   {
+    id: "finance-parallel-run",
+    title: "Parallel run",
+    pages: ["/finance/parallel-run"],
+    purpose:
+      "Sets Pulse's figure for each finished month beside the manual figure Finance produces today, for revenue, collections, bank, insurance receivable and labs, and records per area the decision to rely on Pulse. Nothing is posted to the books and the manual process is not switched off by Pulse.",
+    steps: [
+      "Pick up the month's manual figure from the sheet Finance uses today and press Enter on that area's row. Type the amount in AED, on the basis written under the area's name, and add a short explanation of any difference.",
+      "Read the Result column: Agrees means the difference is within the tolerance; Differs means find out why and write it in the explanation.",
+      "When an area's two latest finished months, back to back, both agree, the Mark as switched to Pulse button appears. Pressing it records your name and the time.",
+      "If a switched area later stops agreeing, a warning shows at the top of the area. Fix the cause, or press Back to running in parallel.",
+    ],
+    watchOut: [
+      "A month with no manual figure shows No manual figure yet, never zero. A figure Pulse does not have yet shows Not available yet (bank and labs need every active account or provider reviewed for the month).",
+      "Pulse figures are Provisional until the CEO sign-off locks the month.",
+      "Never type a patient's name or number in an explanation.",
+      "The page needs the Parallel run permission, held by the Finance Manager. An area is listed only if you can also open its own report (revenue, bank, claims, labs).",
+    ],
+  },
+  {
     id: "finance-recruitment",
     title: "Recruitment calculator",
     pages: ["/finance/recruitment"],
@@ -499,6 +518,28 @@ export const GUIDES: readonly Guide[] = [
       "Booked against available time needs the Unite appointment feed; until then it shows Needs Unite appointments.",
       "Room occupancy and revenue per room-hour need the staff rota linked to the rooms; until then they show Needs the staff rota.",
       "An unknown room cost stays unknown (never 0), and only people who may see costs see it here.",
+    ],
+  },
+  {
+    id: "finance-appointment-billing",
+    title: "Appointments and invoices",
+    pages: ["/finance/appointment-billing"],
+    purpose:
+      "Sets the Unite appointment export for a month against the Unite invoices: appointments that were seen but not billed, invoices on appointments that were not seen, and how much of each doctor's and room's time was booked.",
+    steps: [
+      "Export the month's appointments from Unite (.xlsx or .csv) and drop the file in the upload box (Revenue upload permission). Check the preview, then Import. The file is not kept.",
+      "Pick a month and, if you work in more than one, a branch.",
+      "Work the Seen, not billed list: honoured appointments with no invoice. Look the appointment id up in Unite.",
+      "Check the Billed, not seen list, then the Needs review list (ids that appear twice, appointments that share a PIN, doctor and day, and invoices naming an appointment the files do not hold).",
+      "Read the doctor and room tables: booked and seen hours against available hours. Download Excel gives the same figures with a Definitions sheet.",
+    ],
+    watchOut: [
+      "A cancelled appointment with no invoice is never listed as seen, not billed. A confirmed or awaiting appointment with no invoice is simply still open.",
+      "An invoice with no appointment id (a direct invoice) is valid and is never listed as billed, not seen.",
+      "Matching is by appointment id first, then by PIN, doctor and day for a direct invoice; it is never guessed, so an unclear match is listed for review.",
+      "Days the Unite invoices in Pulse do not cover are not judged. Nothing is listed as not billed while Pulse holds no invoices for the month.",
+      "Hours need the appointment length in the file; percentages need the doctor linked to a Pulse doctor (Doctors page) and a room listed under Settings, Rooms.",
+      "These are review prompts, never proof of an error.",
     ],
   },
   {
@@ -739,7 +780,7 @@ export const GUIDES: readonly Guide[] = [
     steps: [
       "Eligibility lists what is not ready to bill and why. Fix it before the invoice goes out.",
       "Denials: assign each case, write the appeal and send it yourself. Pulse only drafts the letter.",
-      "Remittance: upload the payer's file, check the proposed matches, then commit. The original file is deleted.",
+      "Remittance: upload the payer's file (.xlsx, .csv, or the .xml advice downloaded from Diligence), check the proposed matches, then commit. The original file is deleted. A negative payment is shown as Taken back.",
       "Month-end close: build the pack, finance signs, then the CEO signs the same version. The month is then locked. E-mail close pack sends the same PDF as the download to the people who signed it, after you confirm the recipients.",
       "Denials: Excel downloads every case that matches the filters.",
       "Cash-up: count each branch at the end of the day, submit, and note any difference.",
@@ -1405,7 +1446,7 @@ export const GUIDES: readonly Guide[] = [
       "Keep TallyPrime in step with Pulse until the ledger start: Pulse's items go to Tally as vouchers and what is entered in Tally comes back into Pulse.",
     steps: [
       "Once: install the connector on the Tally PC as a Windows service, switch on Tally's XML server for this PC only, and create the Pulse voucher types in Tally (Pulse Journal, Pulse Payment, Pulse Receipt, Pulse Contra, Pulse Sales, Pulse Purchase, Pulse Credit Note, Pulse Debit Note) with manual numbering and Prevent duplicates. The Phase 22J notes have every step.",
-      "An administrator switches the integration on under Settings, Integrations, Tally bridge (type CONNECT TALLY) and enters the Tally company name.",
+      "An administrator switches the integration on under Settings, Integrations, Tally bridge (type CONNECT TALLY) and enters the Tally company name. That company belongs to the default entity; another entity (or the default one) gets its own under Entities and fiscal years, and an entity without a Tally company is never sent to Tally.",
       "Here, create a pairing code and type it into the connector on the Tally PC within 30 minutes.",
       "Choose the first date to send, what is sent (only what nobody enters in Tally by hand any more) and switch on push and pull. Start with pull only and check the trial balance card.",
       "Watch the Waiting list: an account without a Tally ledger, or a voucher Tally refused, waits with its reason. Fix it (in Posting rules or in Tally) and press Send again where offered.",
@@ -1413,7 +1454,7 @@ export const GUIDES: readonly Guide[] = [
     ],
     watchOut: [
       "Every voucher carries a Pulse id: sending it again never makes a second one, and a changed item is reversed in Tally and sent again, never edited or deleted.",
-      "Items dated before the push-from date are never sent. A Tally voucher dated on or after the ledger start is never copied into Pulse.",
+      "Items dated before the push-from date are never sent. A Tally voucher dated on or after the ledger start is never copied into Pulse. Each entity has its own ledger start and its own AlterID cursors, and its Tally company cannot be changed once data has been exchanged.",
       "Nothing in Tally is ever deleted by the bridge. A voucher deleted in Tally by hand is not noticed by the pull; it shows as drift in the trial balance check.",
     ],
   },

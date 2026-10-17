@@ -1563,9 +1563,9 @@ export async function seedPhase22JRows(c: Client, orgId: string) {
       [orgId],
     );
     ids.push = await one(
-      `insert into public.acc_tally_push (org_id, source_kind, source_id, version, remote_id, voucher_date, voucher_type, amount,
+      `insert into public.acc_tally_push (org_id, entity_id, source_kind, source_id, version, remote_id, voucher_date, voucher_type, amount,
                                           journal_sha256, content, status)
-       values ($1, 'voucher', gen_random_uuid()::text, 1, 'pulse-' || replace(gen_random_uuid()::text, '-', '') || '-pv-sweep-1',
+       values ($1, (select e.id from public.acc_entities e where e.org_id = $1 and e.is_default), 'voucher', gen_random_uuid()::text, 1, 'pulse-' || replace(gen_random_uuid()::text, '-', '') || '-pv-sweep-1',
                '2026-07-31', 'payment', 10, $2,
                '{"narration":"Pulse: sweep","entries":[{"ledger":"Bank - Demo Main","side":"credit","cents":1000},{"ledger":"Supplier Demo B","side":"debit","cents":1000}]}'::jsonb,
                'ready')
@@ -1573,7 +1573,7 @@ export async function seedPhase22JRows(c: Client, orgId: string) {
       [orgId, "2".repeat(64)],
     );
     ids.job = await one(
-      "insert into public.acc_tally_jobs (org_id, kind, push_id) values ($1, 'import_voucher', $2) returning id::text as id",
+      "insert into public.acc_tally_jobs (org_id, entity_id, kind, push_id) values ($1, (select e.id from public.acc_entities e where e.org_id = $1 and e.is_default), 'import_voucher', $2) returning id::text as id",
       [orgId, ids.push],
     );
     await c.query(
@@ -1581,7 +1581,7 @@ export async function seedPhase22JRows(c: Client, orgId: string) {
       [orgId],
     );
     await c.query(
-      "insert into public.acc_tally_cursors (org_id, cursor, alter_id) values ($1, 'masters', 1) on conflict do nothing",
+      "insert into public.acc_tally_cursors (org_id, entity_id, cursor, alter_id) values ($1, (select e.id from public.acc_entities e where e.org_id = $1 and e.is_default), 'masters', 1) on conflict do nothing",
       [orgId],
     );
   });
@@ -1608,10 +1608,19 @@ export const PHASE23_SERVICE_ONLY_TABLES = [
   "fin_report_uploads",
   "fin_report_visits",
   "fin_mgmt_alert_state",
+  // W2 (Unite appointment export upload): sanitised appointment rows, service role only (no policies)
+  "fin_appt_uploads",
+  "fin_appt_rows",
 ] as const;
 
 /** M4 recruitment calculator: tables with a browser (select) policy; writes are server actions (service role). */
-export const M4A_TABLES = ["fin_recruitment_scenarios", "fin_ref_calendar_events"] as const;
+export const M4A_TABLES = [
+  "fin_recruitment_scenarios",
+  "fin_ref_calendar_events",
+  // W4 parallel run: manual figures and per-area decisions (select policy on the area's report key)
+  "fin_parallel_figures",
+  "fin_parallel_decisions",
+] as const;
 
 /**
  * M4: one synthetic scenario per org (the calendar is seeded for every new org by trigger), so the cross-org sweeps are
@@ -1624,6 +1633,14 @@ export async function seedM4aRows(c: Client, orgId: string) {
       [orgId],
     );
     await c.query("select public.fin_seed_calendar_events($1)", [orgId]);
+    await c.query(
+      "insert into public.fin_parallel_figures (org_id, area, month, manual_amount) values ($1, 'revenue', '2026-09-01', 1000) on conflict do nothing",
+      [orgId],
+    );
+    await c.query(
+      "insert into public.fin_parallel_decisions (org_id, area, status) values ($1, 'revenue', 'running') on conflict do nothing",
+      [orgId],
+    );
   });
 }
 
