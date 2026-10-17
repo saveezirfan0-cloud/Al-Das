@@ -2,7 +2,7 @@
  * Helpers for tests that run against a real Postgres prepared by scripts/test-db.sh.
  * Skipped entirely when TEST_DATABASE_URL is not set.
  */
-import { createHmac } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 
 import { Client } from "pg";
 
@@ -1841,7 +1841,7 @@ export async function seedMatchingRows(c: Client, orgId: string, userId: string)
       "select public.fin_receipts_import($1, null, 'r.csv', $2, $3::jsonb, $4)",
       [
         orgId,
-        `seed-matching-${orgId}`,
+        createHash("sha256").update(`seed-matching-${orgId}`).digest("hex"),
         JSON.stringify([
           { payment_ref: "SEED/0001", amount: 500, receipt_date: "2026-10-01", payer: "PAYER-SEED" },
           { payment_ref: "SEED/0002", amount: 300, receipt_date: "2026-10-02", payer: "PAYER-SEED" },
@@ -1861,7 +1861,7 @@ export async function seedMatchingRows(c: Client, orgId: string, userId: string)
         [
           orgId,
           acc,
-          `seed-matching-bank-${orgId}`,
+          createHash("sha256").update(`seed-matching-bank-${orgId}`).digest("hex"),
           JSON.stringify([{ value_date: "2026-10-03", amount: 800, reference: "SEED0001", description: "SYNTHETIC" }]),
           userId,
         ],

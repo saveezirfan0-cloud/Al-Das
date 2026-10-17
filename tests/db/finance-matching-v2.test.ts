@@ -7,6 +7,8 @@
  * and undo, the Finance Manager's gate, and the monthly bank run leaving settled items alone. Synthetic data only.
  * Needs TEST_DATABASE_URL.
  */
+import { createHash } from "node:crypto";
+
 import type { Client } from "pg";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
@@ -52,6 +54,7 @@ vi.mock("@/lib/supabase/admin", async () => {
   return { createAdminClient: () => make(state.client as Client) };
 });
 
+const sha = (s: string) => createHash("sha256").update(s).digest("hex");
 const err = (p: Promise<unknown>) =>
   p.then(
     () => null,
@@ -61,7 +64,6 @@ const err = (p: Promise<unknown>) =>
 describe.skipIf(!TEST_DATABASE_URL)("Insurer payment matching (matching engine v2)", () => {
   let c: Client;
   let orgA: string;
-  let orgB: string;
   let orgC: string;
   const users: Record<string, string> = {};
   const q = (sql: string, p: unknown[] = []) => c.query(sql, p);
@@ -81,7 +83,7 @@ describe.skipIf(!TEST_DATABASE_URL)("Insurer payment matching (matching engine v
     await q("select public.fin_bank_import($1, 'bank_statement', $2, null, null, 's.csv', $3, $4::jsonb, $5)", [
       org,
       acc,
-      `stmt-${tag}-${org}`,
+      sha(`stmt-${tag}-${org}`),
       JSON.stringify([
         { value_date: "2026-10-05", amount: 1000, reference: "RA-0001", description: "PAYERX SETTLEMENT" },
         { value_date: "2026-10-10", amount: 1000, reference: "TRF9", description: "PAYERX BULK" },
@@ -97,7 +99,7 @@ describe.skipIf(!TEST_DATABASE_URL)("Insurer payment matching (matching engine v
       ).rows[0].id;
     await q("select public.fin_receipts_import($1, null, 'r.csv', $2, $3::jsonb, $4)", [
       org,
-      `rcpt-${tag}-${org}`,
+      sha(`rcpt-${tag}-${org}`),
       JSON.stringify([
         { payment_ref: "RA-0001", amount: 1000, receipt_date: "2026-10-01", payer: "payerx" },
         { payment_ref: "RA-0002", amount: 600, receipt_date: "2026-10-02", payer: "PAYERX" },
@@ -128,7 +130,7 @@ describe.skipIf(!TEST_DATABASE_URL)("Insurer payment matching (matching engine v
     for (const n of ["alice", "bob", "fin", "fm", "billing"])
       users[n] = await createAuthUser(c, `${n}-match@example.test`);
     orgA = await createOrg(c, "Org A", "org-a", users.alice);
-    orgB = await createOrg(c, "Org B", "org-b", users.bob);
+    await createOrg(c, "Org B", "org-b", users.bob);
     orgC = await createOrg(c, "Org C", "org-c", users.alice);
     state.orgId = orgA;
     state.users = users;
@@ -159,7 +161,7 @@ describe.skipIf(!TEST_DATABASE_URL)("Insurer payment matching (matching engine v
     await q("select public.fin_bank_import($1, 'bank_statement', $2, null, null, 'g.csv', $3, $4::jsonb, $5)", [
       orgA,
       ids.guardAccount,
-      `guards-${orgA}`,
+      sha(`guards-${orgA}`),
       JSON.stringify([
         { value_date: "2026-09-01", amount: 100, reference: "G1", description: "SYNTHETIC" },
         { value_date: "2026-09-02", amount: 50, reference: "G2", description: "SYNTHETIC" },
@@ -250,6 +252,15 @@ describe.skipIf(!TEST_DATABASE_URL)("Insurer payment matching (matching engine v
       ).toMatch(/already undone/);
     });
 
+    it("an allocation cannot be undone while its item is written off", async () => {
+      const id = (
+        await q("select id from public.fin_match_decisions where item_ref = 'ins|G5X' and undone_at is null and decision = 'accepted'")
+      ).rows[0].id;
+      expect((await err(q("update public.fin_match_decisions set undone_at = now(), undone_by = $2 where id = $1", [id, users.fin])))?.message).toMatch(
+        /reopen it before undoing/,
+      );
+    });
+
     it("a closure cannot be edited or deleted either", async () => {
       const id = (await q("select id from public.fin_item_closures where item_ref = 'ins|G3X'")).rows[0].id;
       expect((await err(q("update public.fin_item_closures set amount = 1 where id = $1", [id])))?.message).toMatch(/cannot be edited/);
@@ -262,10 +273,10 @@ describe.skipIf(!TEST_DATABASE_URL)("Insurer payment matching (matching engine v
         "insert into public.fin_payer_aliases (org_id, payer_key, alias) values ($1, 'X', 'ABC DEF')",
         "insert into public.fin_match_rule_status (org_id, rule, auto_enabled) values ($1, 'reference', true)",
         "insert into public.fin_item_closures (org_id, item_ref, item_total, kind, amount, reason_code) values ($1, 'ins|NOPE', 10, 'cancelled', 0, 'duplicate_entry')",
-        "insert into public.fin_receipts (org_id, import_id, row_no, payment_ref, ref_key, amount, receipt_date) values ($1, gen_random_uuid(), 1, 'A', 'A', 1, now())",
+        "insert into public.fin_receipts (org_id, import_id, row_no, payment_ref, ref_key, amount, receipt_date) select $1, id, 1, 'A', 'A', 1, now() from public.fin_bank_imports where org_id = $1 limit 1",
       ])
         for (const who of ["fin", "fm", "alice"]) {
-          const e = await asUser(c, users[who], () => err(q(sql, [orgA, ids.G1])));
+          const e = await asUser(c, users[who], () => err(q(sql, sql.includes("$2") ? [orgA, ids.G1] : [orgA])));
           expect(e?.code, `${who}: ${sql.slice(0, 40)}`).toBe("42501");
         }
       const e = await asUser(c, users.fin, () =>
@@ -431,6 +442,170 @@ describe.skipIf(!TEST_DATABASE_URL)("Insurer payment matching (matching engine v
       expect(s.options).toHaveLength(1);
       expect(s.options[0].allocations.map((x) => x.itemRef).sort()).toEqual(["ins|RA0002", "ins|RA0003"]);
       expect(s.options[0].aliasId).toBeNull(); // recognised by the payer code itself: "PAYERX BULK" is only proposed
+    });
+
+    it("allocates by hand within what the deposit and the payment still hold, and undoes it once", async () => {
+      const a = await actions();
+      state.actor = "fin";
+      const bad = async (input: Parameters<typeof a.allocateManually>[0]) => (await a.allocateManually(input)).ok;
+      expect(await bad({ lineId: ids.L2, itemRef: "ins|RA0002", amount: 2000 })).toBe(false); // more than the deposit
+      expect(await bad({ lineId: ids.L2, itemRef: "ins|RA0002", amount: 700 })).toBe(false); // more than the payment
+      expect(await bad({ lineId: ids.L2, itemRef: "ins|RA0002", amount: 1.005 })).toBe(false); // sub-cent
+      expect(await bad({ lineId: ids.L2, itemRef: "ins|RA0001", amount: 10 })).toBe(false); // already paid
+      expect(await bad({ lineId: ids.L1, itemRef: "ins|RA0002", amount: 10 })).toBe(false); // deposit fully explained
+      expect(await bad({ lineId: ids.L2, itemRef: "not-an-item", amount: 10 })).toBe(false);
+      expect((await a.allocateManually({ lineId: ids.L2, itemRef: "ins|RA0002", amount: 100 })).ok).toBe(true);
+      let v = await load();
+      expect(itemByLabel(v, "RA-0002")).toMatchObject({ status: "part", allocated: 100, open: 500 });
+      expect(v.lines.find((l) => l.id === ids.L2)).toMatchObject({ allocated: 100, open: 900 });
+      const id = (await q("select id from public.fin_match_decisions where bank_line_id = $1 and undone_at is null", [ids.L2])).rows[0].id;
+      expect((await a.undoDecision({ id })).ok).toBe(true);
+      expect((await a.undoDecision({ id })).ok).toBe(false);
+      v = await load();
+      expect(itemByLabel(v, "RA-0002")).toMatchObject({ status: "open", open: 600 });
+    });
+
+    it("a rejected pair is not proposed again until the rejection is undone", async () => {
+      const a = await actions();
+      state.actor = "fin";
+      const ref = `ins|batch:${ids.batch5}`;
+      expect(suggestionFor(await load(), "L5")?.options[0].allocations[0].itemRef).toBe(ref);
+      expect((await a.rejectSuggestion({ lineId: ids.L5, itemRefs: ["ins|RA0002"] })).ok).toBe(false); // not on offer
+      expect((await a.rejectSuggestion({ lineId: ids.L5, itemRefs: [ref] })).ok).toBe(true);
+      expect(suggestionFor(await load(), "L5")).toBeUndefined();
+      expect(itemByLabel(await load(), "RA-0002").status).toBe("open"); // a rejection moves no money
+      const id = (await q("select id from public.fin_match_decisions where bank_line_id = $1 and decision = 'rejected' and undone_at is null", [ids.L5])).rows[0].id;
+      expect((await a.undoDecision({ id })).ok).toBe(true);
+      expect(suggestionFor(await load(), "L5")).toBeDefined();
+    });
+
+    it("the Finance Manager writes off exactly the remainder; a closed item takes nothing and its allocations stay", async () => {
+      const a = await actions();
+      state.actor = "fm";
+      const reasonless = await a.closeItem({ itemRef: "ins|RA0003", kind: "write_off", reasonCode: "other" });
+      expect(reasonless.ok).toBe(false); // Other needs a note
+      expect((await a.closeItem({ itemRef: "ins|RA0003", kind: "write_off", reasonCode: "insurer_short_paid" })).ok).toBe(true);
+      const closure = (await q("select id, amount::float8 as amount, kind from public.fin_item_closures where item_ref = 'ins|RA0003' and undone_at is null")).rows[0];
+      expect(closure).toMatchObject({ amount: 400, kind: "write_off" });
+      let v = await load();
+      expect(itemByLabel(v, "RA-0003").status).toBe("closed");
+      expect(v.closures.map((x) => x.label)).toContain("RA-0003");
+      expect(suggestionFor(v, "L2")?.options.flatMap((o) => o.allocations.map((x) => x.itemRef)) ?? []).not.toContain("ins|RA0003");
+      expect((await a.allocateManually({ lineId: ids.L2, itemRef: "ins|RA0003", amount: 10 })).ok).toBe(false);
+
+      // part paid, then cancel is refused and write-off takes the remainder
+      state.actor = "fin";
+      expect((await a.allocateManually({ lineId: ids.L2, itemRef: "ins|RA0002", amount: 100 })).ok).toBe(true);
+      state.actor = "fm";
+      expect((await a.closeItem({ itemRef: "ins|RA0002", kind: "cancelled", reasonCode: "entered_in_error" })).ok).toBe(false);
+      expect((await a.closeItem({ itemRef: "ins|RA0002", kind: "write_off", reasonCode: "other", note: "Insurer confirmed final" })).ok).toBe(true);
+      expect((await q("select amount::float8 as a from public.fin_item_closures where item_ref = 'ins|RA0002' and undone_at is null")).rows[0].a).toBe(500);
+      // the allocation cannot be undone while the item is closed (the write-off was sized on it)
+      state.actor = "fin";
+      const alloc = (await q("select id from public.fin_match_decisions where item_ref = 'ins|RA0002' and undone_at is null")).rows[0].id;
+      const refused = await a.undoDecision({ id: alloc });
+      expect(refused).toMatchObject({ ok: false });
+      expect((refused as { error: string }).error).toMatch(/closed/);
+      // reopened (by the Finance Manager), it can
+      state.actor = "fm";
+      const cid = (await q("select id from public.fin_item_closures where item_ref = 'ins|RA0002' and undone_at is null")).rows[0].id;
+      expect((await a.reopenItem({ id: cid })).ok).toBe(true);
+      expect((await a.reopenItem({ id: cid })).ok).toBe(false);
+      state.actor = "fin";
+      expect((await a.undoDecision({ id: alloc })).ok).toBe(true);
+      v = await load();
+      expect(itemByLabel(v, "RA-0002")).toMatchObject({ status: "open", open: 600 });
+      expect(v.decisionRows.length).toBeGreaterThan(0);
+    });
+
+    it("the Finance Manager can switch an automatic rule off, and every change is audited with ids and counts only", async () => {
+      const a = await actions();
+      state.actor = "fm";
+      expect((await a.setRuleAuto({ rule: "reference", enabled: false })).ok).toBe(true);
+      expect((await load()).gates.find((g) => g.rule === "reference")?.on).toBe(false);
+      const audits = (await q("select action, diff::text as diff from public.audit_log where org_id = $1 and action like 'finance.matching.%'", [orgA])).rows;
+      const actionsSeen = new Set(audits.map((x) => x.action));
+      for (const want of [
+        "finance.matching.accepted",
+        "finance.matching.run",
+        "finance.matching.rule_set",
+        "finance.matching.item_closed",
+        "finance.matching.item_reopened",
+        "finance.matching.undone",
+        "finance.matching.alias_approved",
+        "finance.matching.allocated",
+        "finance.matching.rejected",
+      ])
+        expect(actionsSeen.has(want), want).toBe(true);
+      // no narrative, payment reference or payer name leaks into an audit row
+      for (const row of audits) expect(row.diff ?? "").not.toMatch(/RA-?000|PAYER|SETTLEMENT/i);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  describe("the monthly bank run leaves settled insurer money alone", () => {
+    let rec: string;
+    const run = async () => {
+      const { loadRun } = await import("@/lib/finance/bank-server");
+      return (await loadRun(fake() as never, orgC, rec, "2026-10-17"))!.result;
+    };
+    const unmatchedLines = (r: Awaited<ReturnType<typeof run>>) => r.bankUnmatched.map((x) => x.line.id);
+    const expectedKeys = (r: Awaited<ReturnType<typeof run>>) => r.items.map((i) => i.key);
+
+    it("sees the bank credits and the remittance advices before any v2 decision", async () => {
+      rec = (
+        await q(
+          "insert into public.fin_bank_recs (org_id, account_id, month, period_start, period_end, created_by) values ($1, $2, '2026-10-01', '2026-10-01', '2026-10-30', $3) returning id",
+          [orgC, idsC.account, users.fin],
+        )
+      ).rows[0].id;
+      const r = await run();
+      expect(unmatchedLines(r)).toEqual(expect.arrayContaining([idsC.L1, idsC.L3]));
+      expect(expectedKeys(r)).toEqual(expect.arrayContaining([`ins|${idsC.batch4}`, `ins|${idsC.batch5}`]));
+    });
+
+    it("(a) a bank line with an accepted allocation is not matched again by the monthly run", async () => {
+      await q(
+        "insert into public.fin_match_decisions (org_id, bank_line_id, item_ref, item_total, amount, rule, decision, decided_by) values ($1, $2, 'ins|RA0001', 1000, 1000, 'reference', 'accepted', $3)",
+        [orgC, idsC.L1, users.fin],
+      );
+      const r = await run();
+      expect(unmatchedLines(r)).not.toContain(idsC.L1);
+      expect(unmatchedLines(r)).toContain(idsC.L3);
+    });
+
+    it("(b) a remittance whose reference was allocated, or that was closed, is not expected again", async () => {
+      await q(
+        "insert into public.fin_match_decisions (org_id, bank_line_id, item_ref, item_total, amount, rule, decision, decided_by) values ($1, $2, 'ins|RA0004', 250, 250, 'reference', 'accepted', $3)",
+        [orgC, idsC.L3, users.fin],
+      ); // batch 4 carries the reference "RA 0004": same key as ins|RA0004
+      await q(
+        "insert into public.fin_item_closures (org_id, item_ref, item_total, kind, amount, reason_code, decided_by) values ($1, $2, 75.5, 'write_off', 75.5, 'insurer_short_paid', $3)",
+        [orgC, `ins|batch:${idsC.batch5}`, users.fin],
+      ); // the batch without a reference
+      const r = await run();
+      expect(expectedKeys(r)).not.toContain(`ins|${idsC.batch4}`);
+      expect(expectedKeys(r)).not.toContain(`ins|${idsC.batch5}`);
+    });
+
+    it("an undone allocation puts the bank line back in the monthly run", async () => {
+      await q("update public.fin_match_decisions set undone_at = now() where org_id = $1 and bank_line_id = $2", [orgC, idsC.L1]);
+      await q("update public.fin_item_closures set undone_at = now() where org_id = $1", [orgC]);
+      const r = await run();
+      expect(unmatchedLines(r)).toContain(idsC.L1);
+      expect(expectedKeys(r)).toContain(`ins|${idsC.batch5}`);
+    });
+
+    it("a payment matched in the monthly run takes no allocation and is no open item here", async () => {
+      await q(
+        "insert into public.fin_bank_matches (org_id, rec_id, bank_line_id, expected_key, expected_kind, expected_date, expected_amount, bank_amount, score, status) values ($1, $2, $3, $4, 'insurance', '2026-10-06', 75.50, 75.50, 100, 'matched')",
+        [orgC, rec, idsC.L5, `ins|${idsC.batch5}`],
+      );
+      const { loadMatching } = await import("@/lib/finance/match-v2-server");
+      const v = await loadMatching(fake() as never, orgC, "2026-10-17");
+      const item = v.items.find((i) => i.ref === `ins|batch:${idsC.batch5}`)!;
+      expect(item).toMatchObject({ matchedByMonthlyRun: true, status: "paid", open: 0 });
+      expect(v.lines.some((l) => l.id === idsC.L5)).toBe(false); // the line the monthly run matched is not ours either
     });
   });
 });

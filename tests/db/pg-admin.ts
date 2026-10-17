@@ -15,6 +15,14 @@ type Filter = { col: string; op: string; val: unknown };
 type Err = { code?: string; message: string };
 type Res = { data: unknown; error: Err | null };
 
+/** One statement at a time per connection (the loader asks for several tables at once; pg would warn about queueing). */
+const tails = new WeakMap<Client, Promise<unknown>>();
+function serial<T>(c: Client, fn: () => Promise<T>): Promise<T> {
+  const run = (tails.get(c) ?? Promise.resolve()).then(fn, fn);
+  tails.set(c, run.catch(() => undefined));
+  return run;
+}
+
 const ident = (s: string) => {
   if (!/^[a-z_][a-z0-9_]*$/.test(s)) throw new Error(`bad identifier ${s}`);
   return s;
@@ -158,7 +166,7 @@ class Query implements PromiseLike<Res> {
     }
     let rows: Array<Record<string, unknown>>;
     try {
-      const r = await this.c.query<{ j: Record<string, unknown> }>(sql, params);
+      const r = await serial(this.c, () => this.c.query<{ j: Record<string, unknown> }>(sql, params));
       rows = r.rows.map((x) => x.j);
     } catch (e) {
       const err = e as { code?: string; message: string };
@@ -168,9 +176,11 @@ class Query implements PromiseLike<Res> {
       const ids = [...new Set(rows.map((r) => r.bank_line_id as string))];
       const lines = ids.length
         ? (
-            await this.c.query<{ id: string; value_date: string; amount: number }>(
-              "select id, to_char(value_date, 'YYYY-MM-DD') as value_date, amount::float8 as amount from public.fin_bank_lines where id = any($1)",
-              [ids],
+            await serial(this.c, () =>
+              this.c.query<{ id: string; value_date: string; amount: number }>(
+                "select id, to_char(value_date, 'YYYY-MM-DD') as value_date, amount::float8 as amount from public.fin_bank_lines where id = any($1)",
+                [ids],
+              ),
             )
           ).rows
         : [];
@@ -200,9 +210,11 @@ export function createPgAdmin(c: Client) {
     rpc: async (fn: string, args: Record<string, unknown>) => {
       const keys = Object.keys(args).map(ident);
       try {
-        const r = await c.query<{ j: unknown }>(
-          `select public.${ident(fn)}(${keys.map((k, i) => `${k} => $${i + 1}`).join(", ")}) as j`,
-          keys.map((k) => args[k]),
+        const r = await serial(c, () =>
+          c.query<{ j: unknown }>(
+            `select public.${ident(fn)}(${keys.map((k, i) => `${k} => $${i + 1}`).join(", ")}) as j`,
+            keys.map((k) => args[k]),
+          ),
         );
         return { data: r.rows[0]?.j ?? null, error: null };
       } catch (e) {

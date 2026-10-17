@@ -285,6 +285,12 @@ begin
     if old.undone_at is not null and new.undone_at is distinct from old.undone_at then
       raise exception 'this decision is already undone' using errcode = 'check_violation';
     end if;
+    -- undoing an allocation would change the remainder a write-off was made for
+    if old.undone_at is null and new.undone_at is not null and old.decision = 'accepted'
+       and exists (select 1 from public.fin_item_closures c
+                   where c.org_id = old.org_id and c.item_ref = old.item_ref and c.undone_at is null) then
+      raise exception 'the item is closed; reopen it before undoing an allocation' using errcode = 'check_violation';
+    end if;
     return new;
   end if;
 

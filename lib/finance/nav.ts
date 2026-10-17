@@ -235,19 +235,11 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
       permissions: ["finance.payables.view", "finance.payables.manage"],
     },
   ]),
-  {
-    href: "/finance/bank",
-    label: "Bank reconciliation",
-    section: "Money",
-    permissions: ["finance.bank.view"],
-  },
-  {
-    href: "/finance/matching",
-    label: "Insurer payments",
-    section: "Money",
-    permissions: ["finance.matching.view"],
-    keywords: ["receipt register", "insurer receipts", "open items", "allocation", "payer names", "automatic matching"],
-  },
+  tabGroup("Bank and insurer payments", "Money", [
+    { href: "/finance/bank", label: "Bank reconciliation", permissions: ["finance.bank.view"] },
+    // matching engine v2: insurer money as open items, matched against the same bank statement
+    { href: "/finance/matching", label: "Insurer payments", permissions: ["finance.matching.view"] },
+  ]),
   {
     href: "/finance/labs",
     label: "Labs and referrals",

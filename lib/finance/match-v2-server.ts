@@ -29,7 +29,6 @@ import type { Database } from "@/lib/supabase/types";
  */
 
 const PAGE = 1000;
-const IN_CHUNK = 200;
 
 async function all<T>(
   fetch: (
