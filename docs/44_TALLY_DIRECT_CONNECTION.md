@@ -19,6 +19,18 @@ So "API credentials" from a partner can only mean one of two set-ups, and Pulse 
 | **Tally on a clinic PC** (the usual case) | Nothing to authenticate: Tally's port stays on that PC | The 22J **connector** (provider "Pulse Tally connector"): installed on the PC, pairs with a one-time code, calls Pulse outbound only |
 | **Hosted Tally** (partner cloud server, Tally on a remote desktop host, TallyPrime Server behind a gateway) | An **https address** in front of Tally's port and a **token, user name and password, or API key** that the gateway checks | **Hosted Tally over HTTPS** (provider `https`): Pulse sends the same jobs itself, every 15 minutes |
 
+**"Online" Tally.** If the team opens Tally in a browser or over the internet, it is one of these, and each connects
+differently (from Tally's help pages and partner guides, found by search on 17 Oct; Tally's own help site could not be
+opened from this environment, so confirm on the partner call):
+
+| What the team uses | Integration | Pulse connection |
+|---|---|---|
+| **Browser Access** (reports in a browser through Tally.NET) | None: view reports and download PDFs only | Not a data connection; Tally still runs on a PC that needs one of the rows below |
+| **TallyPrime on AWS** (Tally's virtual computer) | "Sync TallyPrime with local applications": the owner allows it in the Self Service Portal, one user runs the **Virtual Computer Connection client** (1.2 or newer) on a Windows PC, and local applications reach Tally through it (HTTP or ODBC, port shown under Settings, Sync Connectivity Information; one user per company in the current release) | The **22J connector on that same Windows PC**, pointed at the port the client shows (`--port`); nothing exposed to the internet |
+| **TallyPrime Cloud Access** | Integration with local applications is **not available** today (Tally's help) | None until Tally adds it; ask the partner |
+| **A partner's cloud server** (Tally on a remote desktop host) | Tally's own HTTP server on that host | The connector installed on that host (best), or the partner's https gateway with credentials (this document) |
+| **TallyPrime on a clinic PC or TallyPrime Server** | Tally's HTTP server on that machine | The 22J connector |
+
 A partner's gateway that publishes Tally's port on plain `http://`, or on an IP address, is refused: the books would be
 open to anyone on the network path. Ask for TLS and a host name.
 

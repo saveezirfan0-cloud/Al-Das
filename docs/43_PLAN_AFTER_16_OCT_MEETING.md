@@ -81,7 +81,24 @@ prove is in docs/41 and the 17 Oct reply: Unite invoice number = Diligence `Invo
 (one insurer payment, many claims) → the receipt register's `PaymentAmount` (equals the sum of `RemittedAmt` of that
 reference's lines) → the bank deposit (amount, date, payer, reference text).
 
-## 5. Status of earlier items
+## 5. What we need from the team (updated 17 Oct)
+
+| # | Item | Why | From | By |
+|---|---|---|---|---|
+| 1 | **The saved Unite Finance API export**, exactly as received (JSON), its date range, who pulled it, and confirmation that nobody else calls the API | Records are delivered once: the file is the only copy; loads as a raw batch (docs/46 §1) | Hardik / whoever pulled it | 23 Oct |
+| 2 | **Which Tally the clinic uses** (TallyPrime on a PC, TallyPrime on AWS, TallyPrime Cloud Access, a partner's cloud server, or Browser Access only), the release, and a screenshot of how people open it | Decides the connection (docs/44 table); Browser Access is read-only and Cloud Access has no integration today | Althaf / Hardik | Before the partner call |
+| 3 | Tally partner call; for a hosted Tally: the https address, the sign-in method and secret; for TallyPrime on AWS: the Self Service Portal owner to allow "synchronising with local applications" | Credentials go straight into Settings, Integrations, Tally bridge | Hardik / Saeed | This week |
+| 4 | **Bank statements** of every account (Excel or CSV export) from 1 Sep, the insurance receipts account first | The open-item register starts from all unreconciled items (docs/46 §3) | Krishna / Althaf | 23 Oct |
+| 5 | **Remittance Receipt Report** for a full month (Sep), and the open receipts still Pending | Links each insurer payment reference to its bank receipt | Mohammed | 23 Oct |
+| 6 | A current **Diligence ACTIVTY** export of everything still open (not remitted, rejected open, resubmitted) | The claims side of the open-item register | Mohammed | 23 Oct |
+| 7 | Sample **e-claim submission XML** and **remittance advice XML** (a few files) | e-claim import (W3) | Mohammed | 23 Oct |
+| 8 | The **manual reconciliation of September and October** (bank, card, insurance) as done today | The answer key the matching rules are measured against before any automatic matching (docs/46 §3.3) | Hardik, Vineetha | With the October close |
+| 9 | Card terminal and Tabby settlement reports for September | Card and instalment settlement matching | Krishna | 23 Oct |
+| 10 | Unite appointment export for one month | Appointment ↔ invoice links (W2) | Abdul | 30 Oct |
+| 11 | Insurance case sessions (one hour each) | The case catalogue (W5) | Mohammed, Vineetha | From next week |
+| 12 | Room formulas and contract revenue-share rules | W6 | Hardik | November workshop |
+
+## 6. Status of earlier items
 - Finance controls (Krishna revenue, Althaf costs, Hardik consolidates, Saeed approves, by the 10th): built and live (docs/42); roles still to be assigned in Settings, Users.
 - Insurance–Finance control matrix (Saeed's request): drafted for Hardik.
 - Unite feed switch-on: still the owner's decision; W1 removes the dependency for the parallel run.
