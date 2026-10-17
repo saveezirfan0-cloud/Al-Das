@@ -1492,6 +1492,7 @@ export const GUIDES: readonly Guide[] = [
       "Upload the Diligence claims report weekly and at month end.",
       "Check the preview: unknown columns are ignored, never guessed.",
       "Confirm to commit; the previous uploads list shows what came in.",
+      "The saved Unite export (.json) is uploaded once: enter the date it was pulled, type UPLOAD and choose the file. Nothing is sent to Unite and the file is not kept.",
     ],
     watchOut: [
       "The file holds names and Emirates IDs: Pulse keeps only sanitised rows and deletes the original at once. Never e-mail the file around.",

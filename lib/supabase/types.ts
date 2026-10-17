@@ -11745,6 +11745,7 @@ export type Database = {
           created_at: string;
           detail_message: string | null;
           error: string | null;
+          file_name: string | null;
           from_date: string;
           http_status: number | null;
           id: string;
@@ -11758,7 +11759,9 @@ export type Database = {
           processed_at: string | null;
           record_count: number | null;
           requested_at: string;
+          source: string;
           to_date: string;
+          uploaded_by: string | null;
         };
         ComputedFields: never;
         Insert: {
@@ -11768,6 +11771,7 @@ export type Database = {
           created_at?: string;
           detail_message?: string | null;
           error?: string | null;
+          file_name?: string | null;
           from_date: string;
           http_status?: number | null;
           id?: string;
@@ -11781,7 +11785,9 @@ export type Database = {
           processed_at?: string | null;
           record_count?: number | null;
           requested_at?: string;
+          source?: string;
           to_date: string;
+          uploaded_by?: string | null;
         };
         Update: {
           balance_in_range?: number | null;
@@ -11790,6 +11796,7 @@ export type Database = {
           created_at?: string;
           detail_message?: string | null;
           error?: string | null;
+          file_name?: string | null;
           from_date?: string;
           http_status?: number | null;
           id?: string;
@@ -11803,7 +11810,9 @@ export type Database = {
           processed_at?: string | null;
           record_count?: number | null;
           requested_at?: string;
+          source?: string;
           to_date?: string;
+          uploaded_by?: string | null;
         };
         Relationships: [
           {
@@ -23815,6 +23824,37 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      v_fin_invoice_links: {
+        Row: {
+          appointment_row_id: string | null;
+          contact_id: string | null;
+          inv_display_number: string | null;
+          invoice_id: string | null;
+          link_state: string | null;
+          org_id: string | null;
+          patient_pin: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          appointment_row_id?: string | null;
+          contact_id?: string | null;
+          inv_display_number?: string | null;
+          invoice_id?: string | null;
+          link_state?: string | null;
+          org_id?: string | null;
+          patient_pin?: string | null;
+        };
+        Update: {
+          appointment_row_id?: string | null;
+          contact_id?: string | null;
+          inv_display_number?: string | null;
+          invoice_id?: string | null;
+          link_state?: string | null;
+          org_id?: string | null;
+          patient_pin?: string | null;
+        };
+        Relationships: [];
       };
       v_fin_monthly_measures: {
         Row: {

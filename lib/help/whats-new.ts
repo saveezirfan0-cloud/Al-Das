@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-12-10-unite-export-links",
+    date: "2026-10-17",
+    title: "Saved Unite export, and invoices linked to patients and appointments",
+    body: "The saved Unite invoice pull can now be uploaded once under Finance, Uploads: enter the date it was pulled and type UPLOAD. Nothing is sent to Unite, the file is not kept, and newer data from Unite always wins over it. Invoices are now linked to the patient (by Unite PIN, following a merged record to the patient it was merged into) and to the Unite appointment: the patient's Invoices tab includes invoices of a merged record, and an appointment shows its invoices to people who can see invoices.",
+  },
+  {
     id: "2026-12-09-finance-controls",
     date: "2026-10-16",
     title: "Month-end by the 10th, and separate revenue and cost roles",
