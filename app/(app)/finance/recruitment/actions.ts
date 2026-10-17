@@ -75,8 +75,8 @@ export async function saveScenario(payload: {
       .insert({
         org_id: member.orgId,
         title: title.data,
-        inputs: inputs.data as unknown as Json,
-        result: report as unknown as Json,
+        inputs: inputs.data as unknown as NonNullable<Json>,
+        result: report as unknown as NonNullable<Json>,
         created_by: member.userId,
       })
       .select("id")

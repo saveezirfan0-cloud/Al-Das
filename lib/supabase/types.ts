@@ -1570,6 +1570,7 @@ export type Database = {
           ledger_start_date: string | null;
           name: string;
           org_id: string;
+          tally_company: string | null;
           trn: string | null;
           updated_at: string;
           vat_period_anchor_month: number;
@@ -1588,6 +1589,7 @@ export type Database = {
           ledger_start_date?: string | null;
           name: string;
           org_id: string;
+          tally_company?: string | null;
           trn?: string | null;
           updated_at?: string;
           vat_period_anchor_month?: number;
@@ -1605,6 +1607,7 @@ export type Database = {
           ledger_start_date?: string | null;
           name?: string;
           org_id?: string;
+          tally_company?: string | null;
           trn?: string | null;
           updated_at?: string;
           vat_period_anchor_month?: number;
@@ -3436,6 +3439,8 @@ export type Database = {
         Row: {
           alter_id: number | null;
           cursor: string;
+          entity_id: string | null;
+          id: string;
           org_id: string;
           stamp: string | null;
           stamp_key: string | null;
@@ -3445,6 +3450,8 @@ export type Database = {
         Insert: {
           alter_id?: number | null;
           cursor: string;
+          entity_id?: string | null;
+          id?: string;
           org_id: string;
           stamp?: string | null;
           stamp_key?: string | null;
@@ -3453,12 +3460,21 @@ export type Database = {
         Update: {
           alter_id?: number | null;
           cursor?: string;
+          entity_id?: string | null;
+          id?: string;
           org_id?: string;
           stamp?: string | null;
           stamp_key?: string | null;
           updated_at?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "acc_tally_cursors_entity_id_fkey";
+            columns: ["entity_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_entities";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "acc_tally_cursors_org_id_fkey";
             columns: ["org_id"];
@@ -3667,6 +3683,7 @@ export type Database = {
           created_at: string;
           device_id: string | null;
           done_at: string | null;
+          entity_id: string;
           error_code: string | null;
           id: string;
           kind: string;
@@ -3686,6 +3703,7 @@ export type Database = {
           created_at?: string;
           device_id?: string | null;
           done_at?: string | null;
+          entity_id: string;
           error_code?: string | null;
           id?: string;
           kind: string;
@@ -3704,6 +3722,7 @@ export type Database = {
           created_at?: string;
           device_id?: string | null;
           done_at?: string | null;
+          entity_id?: string;
           error_code?: string | null;
           id?: string;
           kind?: string;
@@ -3722,6 +3741,13 @@ export type Database = {
             columns: ["device_id"];
             isOneToOne: false;
             referencedRelation: "acc_tally_devices";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "acc_tally_jobs_entity_id_fkey";
+            columns: ["entity_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_entities";
             referencedColumns: ["id"];
           },
           {
@@ -3748,6 +3774,7 @@ export type Database = {
           created_at: string;
           detail: string | null;
           done_at: string | null;
+          entity_id: string;
           id: string;
           journal_sha256: string;
           mirror_journal_id: string | null;
@@ -3774,6 +3801,7 @@ export type Database = {
           created_at?: string;
           detail?: string | null;
           done_at?: string | null;
+          entity_id: string;
           id?: string;
           journal_sha256: string;
           mirror_journal_id?: string | null;
@@ -3799,6 +3827,7 @@ export type Database = {
           created_at?: string;
           detail?: string | null;
           done_at?: string | null;
+          entity_id?: string;
           id?: string;
           journal_sha256?: string;
           mirror_journal_id?: string | null;
@@ -3818,6 +3847,13 @@ export type Database = {
           voucher_type?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "acc_tally_push_entity_id_fkey";
+            columns: ["entity_id"];
+            isOneToOne: false;
+            referencedRelation: "acc_entities";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "acc_tally_push_mirror_journal_id_fkey";
             columns: ["mirror_journal_id"];
@@ -8582,6 +8618,121 @@ export type Database = {
           },
         ];
       };
+      fin_appt_rows: {
+        Row: {
+          appointment_id: string;
+          appt_date: string;
+          clinic_name: string | null;
+          created_at: string;
+          doctor_key: string;
+          doctor_name: string;
+          duration_min: number | null;
+          id: string;
+          is_current: boolean;
+          org_id: string;
+          patient_pin: string | null;
+          room: string | null;
+          row_no: number;
+          start_min: number | null;
+          status: string;
+          upload_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          appointment_id: string;
+          appt_date: string;
+          clinic_name?: string | null;
+          created_at?: string;
+          doctor_key: string;
+          doctor_name: string;
+          duration_min?: number | null;
+          id?: string;
+          is_current?: boolean;
+          org_id: string;
+          patient_pin?: string | null;
+          room?: string | null;
+          row_no: number;
+          start_min?: number | null;
+          status: string;
+          upload_id: string;
+        };
+        Update: {
+          appointment_id?: string;
+          appt_date?: string;
+          clinic_name?: string | null;
+          created_at?: string;
+          doctor_key?: string;
+          doctor_name?: string;
+          duration_min?: number | null;
+          id?: string;
+          is_current?: boolean;
+          org_id?: string;
+          patient_pin?: string | null;
+          room?: string | null;
+          row_no?: number;
+          start_min?: number | null;
+          status?: string;
+          upload_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_appt_rows_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_appt_rows_upload_id_fkey";
+            columns: ["upload_id"];
+            isOneToOne: false;
+            referencedRelation: "fin_appt_uploads";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      fin_appt_uploads: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          file_sha256: string;
+          from_date: string;
+          id: string;
+          org_id: string;
+          row_count: number;
+          to_date: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          file_sha256: string;
+          from_date: string;
+          id?: string;
+          org_id: string;
+          row_count: number;
+          to_date: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          file_sha256?: string;
+          from_date?: string;
+          id?: string;
+          org_id?: string;
+          row_count?: number;
+          to_date?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_appt_uploads_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       fin_bank_accounts: {
         Row: {
           active: boolean;
@@ -10485,6 +10636,7 @@ export type Database = {
           rule: string;
           scope: string;
         };
+        ComputedFields: never;
         Insert: {
           cleared_at?: string | null;
           org_id: string;
@@ -10504,6 +10656,98 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "fin_mgmt_alert_state_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      fin_parallel_decisions: {
+        Row: {
+          area: string;
+          decided_at: string;
+          decided_by: string | null;
+          note: string | null;
+          org_id: string;
+          status: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          area: string;
+          decided_at?: string;
+          decided_by?: string | null;
+          note?: string | null;
+          org_id: string;
+          status: string;
+        };
+        Update: {
+          area?: string;
+          decided_at?: string;
+          decided_by?: string | null;
+          note?: string | null;
+          org_id?: string;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_parallel_decisions_decided_by_fkey";
+            columns: ["decided_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_parallel_decisions_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      fin_parallel_figures: {
+        Row: {
+          area: string;
+          entered_at: string;
+          entered_by: string | null;
+          id: string;
+          manual_amount: number;
+          month: string;
+          note: string | null;
+          org_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          area: string;
+          entered_at?: string;
+          entered_by?: string | null;
+          id?: string;
+          manual_amount: number;
+          month: string;
+          note?: string | null;
+          org_id: string;
+        };
+        Update: {
+          area?: string;
+          entered_at?: string;
+          entered_by?: string | null;
+          id?: string;
+          manual_amount?: number;
+          month?: string;
+          note?: string | null;
+          org_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fin_parallel_figures_entered_by_fkey";
+            columns: ["entered_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fin_parallel_figures_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
@@ -11947,9 +12191,9 @@ export type Database = {
           created_at: string;
           created_by: string | null;
           id: string;
-          inputs: Json;
+          inputs: NonNullable<Json>;
           org_id: string;
-          result: Json;
+          result: NonNullable<Json>;
           title: string;
         };
         ComputedFields: never;
@@ -11957,18 +12201,18 @@ export type Database = {
           created_at?: string;
           created_by?: string | null;
           id?: string;
-          inputs: Json;
+          inputs: NonNullable<Json>;
           org_id: string;
-          result: Json;
+          result: NonNullable<Json>;
           title: string;
         };
         Update: {
           created_at?: string;
           created_by?: string | null;
           id?: string;
-          inputs?: Json;
+          inputs?: NonNullable<Json>;
           org_id?: string;
-          result?: Json;
+          result?: NonNullable<Json>;
           title?: string;
         };
         Relationships: [
@@ -12400,13 +12644,10 @@ export type Database = {
           lab_date_window_days: number;
           lab_price_tolerance: number;
           org_id: string;
+          parallel_tolerance: number;
           perf_arpp_target: number;
           perf_band_moderate: number;
           perf_band_near: number;
-          recruit_conservative_pct: number;
-          recruit_consumables_pct: number;
-          recruit_gateway_pct: number;
-          recruit_min_peer_months: number;
           preauth_expiry_lead_days: number;
           preauth_task_enabled: boolean;
           ready_grace_days: number;
@@ -12422,6 +12663,10 @@ export type Database = {
           recovery_tone_approved_by: string | null;
           recovery_tone_approved_hash: string | null;
           recovery_variable_map: NonNullable<Json>;
+          recruit_conservative_pct: number;
+          recruit_consumables_pct: number;
+          recruit_gateway_pct: number;
+          recruit_min_peer_months: number;
           room_open_hours_per_day: number;
           scorecard_days_to_pay_alert: number;
           scorecard_days_to_pay_warn: number;
@@ -12499,13 +12744,10 @@ export type Database = {
           lab_date_window_days?: number;
           lab_price_tolerance?: number;
           org_id: string;
+          parallel_tolerance?: number;
           perf_arpp_target?: number;
           perf_band_moderate?: number;
           perf_band_near?: number;
-          recruit_conservative_pct?: number;
-          recruit_consumables_pct?: number;
-          recruit_gateway_pct?: number;
-          recruit_min_peer_months?: number;
           preauth_expiry_lead_days?: number;
           preauth_task_enabled?: boolean;
           ready_grace_days?: number;
@@ -12521,6 +12763,10 @@ export type Database = {
           recovery_tone_approved_by?: string | null;
           recovery_tone_approved_hash?: string | null;
           recovery_variable_map?: NonNullable<Json>;
+          recruit_conservative_pct?: number;
+          recruit_consumables_pct?: number;
+          recruit_gateway_pct?: number;
+          recruit_min_peer_months?: number;
           room_open_hours_per_day?: number;
           scorecard_days_to_pay_alert?: number;
           scorecard_days_to_pay_warn?: number;
@@ -12597,13 +12843,10 @@ export type Database = {
           lab_date_window_days?: number;
           lab_price_tolerance?: number;
           org_id?: string;
+          parallel_tolerance?: number;
           perf_arpp_target?: number;
           perf_band_moderate?: number;
           perf_band_near?: number;
-          recruit_conservative_pct?: number;
-          recruit_consumables_pct?: number;
-          recruit_gateway_pct?: number;
-          recruit_min_peer_months?: number;
           preauth_expiry_lead_days?: number;
           preauth_task_enabled?: boolean;
           ready_grace_days?: number;
@@ -12619,6 +12862,10 @@ export type Database = {
           recovery_tone_approved_by?: string | null;
           recovery_tone_approved_hash?: string | null;
           recovery_variable_map?: NonNullable<Json>;
+          recruit_conservative_pct?: number;
+          recruit_consumables_pct?: number;
+          recruit_gateway_pct?: number;
+          recruit_min_peer_months?: number;
           room_open_hours_per_day?: number;
           scorecard_days_to_pay_alert?: number;
           scorecard_days_to_pay_warn?: number;
@@ -25520,6 +25767,10 @@ export type Database = {
           with_id: number;
         }[];
       };
+      fin_appt_import: {
+        Args: { p_meta: Json; p_org_id: string; p_rows: Json; p_user_id: string };
+        Returns: Json;
+      };
       fin_auto_close_exceptions: {
         Args: { p_entity_key: string; p_org_id: string; p_rule_code: string };
         Returns: number;
@@ -25799,36 +26050,25 @@ export type Database = {
         Returns: Json;
       };
       fin_rederive_branches: { Args: { p_org_id: string }; Returns: number };
-      fin_report_schedule_claim: {
-        Args: { p_period_key: string; p_schedule_id: string };
-        Returns: string;
-      };
       fin_report_commit: {
         Args: { p_org_id: string; p_upload_id: string; p_user_id: string };
         Returns: Json;
       };
-      fin_report_discard: {
-        Args: { p_org_id: string; p_upload_id: string };
-        Returns: Json;
-      };
+      fin_report_discard: { Args: { p_org_id: string; p_upload_id: string }; Returns: Json };
       fin_report_doctor_keys: { Args: { p_org_id: string }; Returns: Json };
       fin_report_latest_month: {
         Args: { p_branches?: string[]; p_org_id: string };
         Returns: string;
       };
+      fin_report_schedule_claim: {
+        Args: { p_period_key: string; p_schedule_id: string };
+        Returns: string;
+      };
       fin_report_stage: {
-        Args: {
-          p_meta: Json;
-          p_org_id: string;
-          p_rows: Json;
-          p_user_id: string;
-        };
+        Args: { p_meta: Json; p_org_id: string; p_rows: Json; p_user_id: string };
         Returns: Json;
       };
-      fin_report_upload_summary: {
-        Args: { p_org_id: string; p_upload_id: string };
-        Returns: Json;
-      };
+      fin_report_upload_summary: { Args: { p_org_id: string; p_upload_id: string }; Returns: Json };
       fin_revenue_breakdown: {
         Args: {
           p_branch?: string;
@@ -26827,11 +27067,20 @@ export type Database = {
       department_mapped: "paediatrics" | "gp" | "gynaecology" | "dermatology" | "other";
       escalation_status: "none" | "open" | "escalated" | "resolved";
       feedback_stage:
-        "day3_antibiotics" | "after_antibiotics" | "after_probiotics" | "post_procedure";
+        | "day3_antibiotics"
+        | "after_antibiotics"
+        | "after_probiotics"
+        | "post_procedure";
       followup_outcome: "improving" | "same" | "worse";
       followup_priority: "high" | "medium";
       medication_class:
-        "antibiotic" | "steroid" | "probiotic" | "supplement" | "enzyme" | "other" | "unclassified";
+        | "antibiotic"
+        | "steroid"
+        | "probiotic"
+        | "supplement"
+        | "enzyme"
+        | "other"
+        | "unclassified";
       pap_result: "positive" | "negative" | "pending" | "not_available";
       recall_follow_up_status: "called" | "no_response" | "booked";
       recall_kind: "chronic" | "birthday" | "screening" | "dormant" | "post_visit" | "no_show";
@@ -26904,7 +27153,8 @@ export type Tables<
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-    keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals;
   }
@@ -26926,7 +27176,8 @@ export type TablesInsert<
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-    keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals;
   }
@@ -26948,7 +27199,8 @@ export type TablesUpdate<
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    keyof DefaultSchema["Enums"] | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals;
   }
@@ -26962,7 +27214,8 @@ export type Enums<
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    keyof DefaultSchema["CompositeTypes"] | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals;
   }

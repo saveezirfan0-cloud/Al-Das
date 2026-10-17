@@ -14,9 +14,12 @@ import { lockImportedPeriods, reconcileWithTally } from "./actions";
 export function ReconcileForm({
   imports,
   today,
+  entities = [],
 }: {
   imports: Array<{ id: string; label: string; last_date: string | null }>;
   today: string;
+  /** Shown when there is more than one: which entity's books to compare when no import is chosen. */
+  entities?: Array<{ id: string; name: string }>;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -56,6 +59,17 @@ export function ReconcileForm({
           <option value="">No import (compare the books only)</option>
         </select>
       </Field>
+      {entities.length > 1 && !importId && (
+        <Field label="Entity">
+          <select name="entity_id" className={selectClass} defaultValue={entities[0].id}>
+            {entities.map((e) => (
+              <option key={e.id} value={e.id}>
+                {e.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+      )}
       <Field label="As at">
         <Input
           type="date"

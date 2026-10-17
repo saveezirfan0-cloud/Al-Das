@@ -42,6 +42,8 @@ const TB_ERRORS: Record<string, string> = {
 const reconcileSchema = z.object({
   as_at: isoDate,
   import_id: z.union([uuid, z.literal("")]).default(""),
+  // Which entity's books to compare when no import is chosen (an import carries its own entity). Empty: the default one.
+  entity_id: z.union([uuid, z.literal("")]).default(""),
 });
 
 export type ReconcileOutcome = {
@@ -59,6 +61,7 @@ export async function reconcileWithTally(fd: FormData): Promise<ActionResult<Rec
   const p = reconcileSchema.safeParse({
     as_at: fd.get("as_at"),
     import_id: fd.get("import_id") ?? "",
+    entity_id: fd.get("entity_id") ?? "",
   });
   if (!p.success) return fail(firstIssue(p.error));
   const file = fd.get("file");
@@ -73,7 +76,7 @@ export async function reconcileWithTally(fd: FormData): Promise<ActionResult<Rec
     if (!tb.ok) return fail(`${TB_ERRORS[tb.error]}${tb.detail ? ` (${tb.detail})` : ""}.`);
     const { data, error } = await admin.rpc("acc_tally_reconcile", {
       p_org_id: member.orgId,
-      p_entity_id: null as unknown as string,
+      p_entity_id: (p.data.import_id ? null : p.data.entity_id || null) as unknown as string,
       p_import_id: (p.data.import_id || null) as unknown as string,
       p_user_id: member.userId,
       p_as_at: p.data.as_at,
@@ -90,6 +93,7 @@ export async function reconcileWithTally(fd: FormData): Promise<ActionResult<Rec
       entityId: r.id,
       diff: {
         import_id: p.data.import_id || null,
+        entity_id: p.data.import_id ? null : p.data.entity_id || null,
         as_at: p.data.as_at,
         compared: r.compared,
         differences: r.differences,

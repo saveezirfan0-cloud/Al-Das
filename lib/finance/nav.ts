@@ -108,6 +108,12 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
     { href: "/finance/contribution", label: "Contribution", permissions: ["finance.profit.view"] },
     { href: "/finance/capacity", label: "Capacity", permissions: ["finance.revenue.view"] },
     {
+      // W2: the Unite appointment export against Unite invoices; follows finance.revenue.view (upload: revenue.import)
+      href: "/finance/appointment-billing",
+      label: "Appointments and invoices",
+      permissions: ["finance.revenue.view"],
+    },
+    {
       // M4A: a scenario for a candidate doctor; needs profit AND compensation
       href: "/finance/recruitment",
       label: "Recruitment calculator",
@@ -273,6 +279,12 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
         href: "/finance/close/timetable",
         label: "Timetable",
         permissions: ["finance.close.view", "finance.close.manage", "finance.close.tasks"],
+      },
+      {
+        // W4: Pulse's figures beside the manual ones (the Finance Manager); an area shows only with its own report key
+        href: "/finance/parallel-run",
+        label: "Parallel run",
+        permissions: ["finance.parallel_run.manage"],
       },
     ],
     "close",
