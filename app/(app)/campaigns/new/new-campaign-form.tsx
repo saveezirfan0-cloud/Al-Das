@@ -65,7 +65,14 @@ export type FormTemplate = {
   components: MetaTemplateComponent[];
   variableMap: Record<string, string>;
 };
-export type FormSegment = { id: string; name: string; kind: string; count: number };
+export type FormSegment = {
+  id: string;
+  name: string;
+  kind: string;
+  count: number;
+  /** Care programmes only: cannot be used for a campaign. */
+  careOnly?: boolean;
+};
 
 const TEXT = "__text__";
 const NONE = "__none__";
@@ -755,8 +762,9 @@ export function NewCampaignForm({
                   </SelectTrigger>
                   <SelectContent>
                     {segments.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>
+                      <SelectItem key={s.id} value={s.id} disabled={s.careOnly}>
                         {s.name} · {s.kind} · ~{s.count.toLocaleString()}
+                        {s.careOnly ? " · care programmes only" : ""}
                       </SelectItem>
                     ))}
                   </SelectContent>

@@ -9,7 +9,7 @@ import type { Tables } from "@/lib/supabase/types";
 export type OrgUserOption = { id: string; label: string };
 export type SegmentSummary = Pick<
   Tables<"segments">,
-  "id" | "name" | "kind" | "member_count" | "count_refreshed_at" | "drip_flow_id"
+  "id" | "name" | "kind" | "member_count" | "count_refreshed_at" | "drip_flow_id" | "care_only"
 > & {
   filter: unknown;
 };
@@ -41,10 +41,11 @@ export async function loadCustomFields(
 
 export function registryFor(
   customFields: CustomFieldDef[],
-  opts: { clinical?: boolean } = {},
+  opts: { clinical?: boolean; claims?: boolean } = {},
 ): FieldRegistry {
   return buildContactFieldRegistry({
     clinicalAvailable: opts.clinical ?? true,
+    claimsAvailable: opts.claims ?? true,
     customFields: customFields.map((f) => ({
       key: f.key,
       label: f.label,
@@ -59,7 +60,7 @@ export async function loadContactContext(
   admin: AdminClient,
   orgId: string,
   /** clinical: false hides the clinical filter fields (a member without clinical.view). Default true. */
-  opts: { clinical?: boolean } = {},
+  opts: { clinical?: boolean; claims?: boolean } = {},
 ): Promise<ContactContext> {
   const [customFields, { data: tags }, { data: segments }, { data: members }] = await Promise.all([
     loadCustomFields(admin, orgId),
@@ -71,7 +72,7 @@ export async function loadContactContext(
       .order("name"),
     admin
       .from("segments")
-      .select("id, name, kind, filter, member_count, count_refreshed_at, drip_flow_id")
+      .select("id, name, kind, filter, member_count, count_refreshed_at, drip_flow_id, care_only")
       .eq("org_id", orgId)
       .order("name"),
     admin

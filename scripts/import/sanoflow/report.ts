@@ -25,8 +25,18 @@ export function toSummaries(
   runs: EntityRun[],
   opts: { dryRun: boolean; at: string },
 ): ImportSummary[] {
+  return runSummaries(runs, opts).filter((s) =>
+    (RECONCILED_ENTITIES as readonly string[]).includes(s.entity),
+  );
+}
+
+/** Every finished step (settings, lists and segments too), for the migration status page's "last import". */
+export function runSummaries(
+  runs: EntityRun[],
+  opts: { dryRun: boolean; at: string },
+): ImportSummary[] {
   return runs
-    .filter((r) => !r.fatal && (RECONCILED_ENTITIES as readonly string[]).includes(r.entity))
+    .filter((r) => !r.fatal)
     .map((r) => ({
       source: "sanoflow",
       entity: r.entity,

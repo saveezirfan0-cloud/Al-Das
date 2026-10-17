@@ -19,6 +19,13 @@ import {
   queryContacts,
   type ContactListRow,
 } from "@/lib/contacts/query";
+import {
+  fillNeedsCareOnly,
+  markSegmentCareOnly,
+  releaseSegmentCareOnly,
+  type SegmentFillSource,
+} from "@/lib/contacts/segment-care";
+import { findLeadPatientPairs } from "@/lib/contacts/lead-match-server";
 import { loadContactContext } from "@/lib/contacts/server";
 import { addTimelineEvent, diffFields } from "@/lib/contacts/timeline";
 import { combineFilters, isContactViewKey, viewFilter } from "@/lib/contacts/views";
@@ -119,6 +126,7 @@ export async function listContacts(
   try {
     const ctx = await loadContactContext(admin, member.orgId, {
       clinical: can(member, "clinical.view"),
+      claims: can(member, "finance.claims.view"),
     });
     const filter = await effectiveFilter(admin, member.orgId, member.userId, parsed.data);
     const page = await queryContacts(admin, {
@@ -154,6 +162,7 @@ export async function listMatchingIds(
   try {
     const ctx = await loadContactContext(admin, member.orgId, {
       clinical: can(member, "clinical.view"),
+      claims: can(member, "finance.claims.view"),
     });
     const filter = await effectiveFilter(admin, member.orgId, member.userId, parsed.data);
     const ids = await matchingContactIds(
@@ -789,6 +798,8 @@ export async function bulkSegment(
   ids: string[],
   segmentId: string,
   mode: "add" | "remove",
+  /** What the person was looking at (the grid's filter, the segment viewed). Health information marks the list care only. */
+  source?: SegmentFillSource,
 ): Promise<ActionResult> {
   const member = await requirePerm("contacts.manage");
   const parsed = uuids.safeParse(ids);
@@ -804,6 +815,7 @@ export async function bulkSegment(
   if (!seg) return fail("Segment not found");
   if (seg.kind !== "static") return fail("Only static segments can be edited by hand.");
   const owned = await ownedIds(admin, member.orgId, parsed.data);
+  let careNote = "";
   if (mode === "add") {
     const { error } = await admin.from("segment_members").upsert(
       owned.map((contact_id) => ({
@@ -815,6 +827,27 @@ export async function bulkSegment(
       { onConflict: "segment_id,contact_id", ignoreDuplicates: true },
     );
     if (error) return fail("Could not add to the segment.");
+    // A list filled from a clinical filter is health information: care programmes only (docs/45 P5).
+    const ctx = await loadContactContext(admin, member.orgId);
+    if (await fillNeedsCareOnly(admin, member.orgId, ctx.registry, source)) {
+      const marked = await markSegmentCareOnly(admin, {
+        orgId: member.orgId,
+        segmentId,
+        userId: member.userId,
+        reason: "filled_from_clinical_filter",
+      });
+      if (marked) {
+        await recordAudit(admin, {
+          orgId: member.orgId,
+          userId: member.userId,
+          action: "segment.care_only_marked",
+          entity: "segment",
+          entityId: segmentId,
+          diff: { reason: "filled_from_clinical_filter" },
+        });
+        careNote = " The segment is now for care programmes only (not marketing).";
+      }
+    }
   } else {
     await admin
       .from("segment_members")
@@ -834,7 +867,7 @@ export async function bulkSegment(
   revalidatePath("/contacts");
   return {
     ok: true,
-    message: `${owned.length} contacts ${mode === "add" ? "added to" : "removed from"} the segment.`,
+    message: `${owned.length} contacts ${mode === "add" ? "added to" : "removed from"} the segment.${careNote}`,
   };
 }
 
@@ -902,6 +935,11 @@ const segmentSchema = z.object({
   filter: filterSchema.nullable().optional(),
   /** Phase 20b: the flow started for each contact added to a static segment. Absent = leave as it is. Needs flows.manage. */
   drip_flow_id: uuid.nullable().optional(),
+  /**
+   * Static segments only: mark (true) or release (false) "care programmes only". Marking needs contacts.manage like
+   * any segment change; releasing needs settings.manage (an administrator). Dynamic segments follow their filter.
+   */
+  care_only: z.boolean().optional(),
 });
 export type SegmentInput = z.input<typeof segmentSchema>;
 
@@ -951,6 +989,7 @@ export async function saveSegment(
     if (parsed.data.kind === "dynamic") {
       const ctx = await loadContactContext(admin, member.orgId, {
         clinical: can(member, "clinical.view"),
+        claims: can(member, "finance.claims.view"),
       });
       await countContacts(
         admin,
@@ -1000,6 +1039,26 @@ export async function saveSegment(
       row.drip_flow_id = wantDrip;
     }
   }
+  // Care-only mark (static segments): marking is open to anyone who manages segments, releasing is not.
+  const wantCareOnly = parsed.data.kind === "static" ? parsed.data.care_only : undefined;
+  let careOnlyChange: "mark" | "release" | null = null;
+  if (wantCareOnly !== undefined) {
+    const { data: cur } = id
+      ? await admin
+          .from("segments")
+          .select("care_only")
+          .eq("id", id)
+          .eq("org_id", member.orgId)
+          .maybeSingle()
+      : { data: null };
+    const currently = cur?.care_only ?? false;
+    if (wantCareOnly && !currently) careOnlyChange = "mark";
+    if (!wantCareOnly && currently) {
+      if (!can(member, "settings.manage"))
+        return fail("Only an administrator can release a care-only segment for marketing.");
+      careOnlyChange = "release";
+    }
+  }
   let segmentId = id;
   if (id) {
     const { error } = await admin
@@ -1025,6 +1084,29 @@ export async function saveSegment(
       );
     segmentId = data.id;
   }
+  if (careOnlyChange === "mark") {
+    await markSegmentCareOnly(admin, {
+      orgId: member.orgId,
+      segmentId: segmentId!,
+      userId: member.userId,
+      reason: "manual",
+    });
+  } else if (careOnlyChange === "release") {
+    await releaseSegmentCareOnly(admin, {
+      orgId: member.orgId,
+      segmentId: segmentId!,
+      userId: member.userId,
+    });
+  }
+  if (careOnlyChange)
+    await recordAudit(admin, {
+      orgId: member.orgId,
+      userId: member.userId,
+      action: careOnlyChange === "mark" ? "segment.care_only_marked" : "segment.care_only_released",
+      entity: "segment",
+      entityId: segmentId,
+      diff: { reason: careOnlyChange === "mark" ? "manual" : "released" },
+    });
   await refreshSegmentCountInternal(admin, member.orgId, segmentId!, member.org.timezone);
   await recordAudit(admin, {
     orgId: member.orgId,
@@ -1096,6 +1178,7 @@ export async function previewFilterCount(
   try {
     const ctx = await loadContactContext(admin, member.orgId, {
       clinical: can(member, "clinical.view"),
+      claims: can(member, "finance.claims.view"),
     });
     const count = await countContacts(
       admin,
@@ -1265,7 +1348,14 @@ export async function importContactsChunk(input: {
 // Duplicates & merge
 // ---------------------------------------------------------------------------
 
-export type DuplicatePair = { a: ContactListRow; b: ContactListRow; reason: string };
+export type DuplicatePair = {
+  a: ContactListRow;
+  b: ContactListRow;
+  reason: string;
+  /** Lead-to-patient pairs only: how sure the match is, and whether the lead fits several patients. */
+  confidence?: "high" | "medium" | "low";
+  ambiguous?: boolean;
+};
 
 export async function listDuplicates(): Promise<ActionResult<{ pairs: DuplicatePair[] }>> {
   const member = await requirePerm("contacts.view");
@@ -1275,12 +1365,36 @@ export async function listDuplicates(): Promise<ActionResult<{ pairs: DuplicateP
     p_limit: 100,
   });
   if (error) return fail("Could not load duplicates.");
-  const ids = [...new Set((data ?? []).flatMap((p) => [p.a_id, p.b_id]))];
+
+  // A Sanoflow lead (no Unite number) that looks like a registered patient. The patient is listed first, so Merge keeps
+  // the Unite number by default. A failure here never hides the other duplicates.
+  let leadPairs: Awaited<ReturnType<typeof findLeadPatientPairs>> = [];
+  try {
+    leadPairs = await findLeadPatientPairs(admin, member.orgId, 100);
+  } catch {
+    leadPairs = [];
+  }
+  const known = new Set((data ?? []).map((p) => [p.a_id, p.b_id].sort().join("|")));
+  leadPairs = leadPairs.filter((p) => !known.has([p.leadId, p.patientId].sort().join("|")));
+
+  const ids = [
+    ...new Set([
+      ...(data ?? []).flatMap((p) => [p.a_id, p.b_id]),
+      ...leadPairs.flatMap((p) => [p.leadId, p.patientId]),
+    ]),
+  ];
   const rows = await fetchContactsByIds(admin, member.orgId, ids);
   const byId = new Map(rows.map((r) => [r.id, r]));
-  const pairs = (data ?? [])
-    .map((p) => ({ a: byId.get(p.a_id), b: byId.get(p.b_id), reason: p.reason }))
-    .filter((p): p is DuplicatePair => !!p.a && !!p.b);
+  const pairs: DuplicatePair[] = [
+    ...(data ?? []).map((p) => ({ a: byId.get(p.a_id), b: byId.get(p.b_id), reason: p.reason })),
+    ...leadPairs.map((p) => ({
+      a: byId.get(p.patientId),
+      b: byId.get(p.leadId),
+      reason: "lead_patient",
+      confidence: p.confidence,
+      ambiguous: p.ambiguous,
+    })),
+  ].filter((p): p is DuplicatePair => !!p.a && !!p.b);
   return { ok: true, data: { pairs } };
 }
 

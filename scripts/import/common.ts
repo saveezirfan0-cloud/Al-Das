@@ -7,6 +7,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
 
+import { importRunRows } from "@/lib/migration/import-runs";
 import type { ImportSummary } from "@/lib/migration/reconcile";
 import type { AdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/lib/supabase/types";
@@ -100,6 +101,25 @@ export function counters(): Counters {
  * Machine-readable twin of the markdown report (counts only), read by `pnpm reconcile`.
  * One file per run: docs/audit/import-summary-<source>-<timestamp>.json
  */
+/**
+ * Records the run in public.import_runs (counts only) so the migration status page can show "last import". A failure to
+ * record never fails the import: the files remain the source for `pnpm reconcile`.
+ */
+export async function recordImportRuns(
+  admin: AdminClient,
+  orgId: string,
+  summaries: ImportSummary[],
+): Promise<string> {
+  const rows = importRunRows(orgId, summaries);
+  if (rows.length === 0) return "no runs to record";
+  const { error } = await admin
+    .from("import_runs")
+    .upsert(rows, { onConflict: "org_id,source,entity,run_at,dry_run", ignoreDuplicates: true });
+  return error
+    ? `could not record the runs on the status page (${error.code ?? "error"}); the summary file is unaffected`
+    : `recorded ${rows.length} runs on the status page`;
+}
+
 export function writeSummary(source: string, summaries: ImportSummary[]): string {
   const dir = path.join(process.cwd(), "docs/audit");
   fs.mkdirSync(dir, { recursive: true });

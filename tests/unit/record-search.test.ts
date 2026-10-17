@@ -54,8 +54,9 @@ describe("parseRecordQuery", () => {
 });
 
 describe("results", () => {
-  it("open each record's drawer through its list page's deep link", () => {
-    expect(recordHref("contact", "c-1")).toBe("/contacts?contact=c-1");
+  it("open a patient's full record, and the other kinds' drawers through their list page's deep link", () => {
+    expect(recordHref("contact", "c-1")).toBe("/contacts/c-1");
+    expect(recordHref("contact", "a&b")).toBe("/contacts/a%26b");
     expect(recordHref("enquiry", "e-1")).toBe("/enquiries?enquiry=e-1");
     expect(recordHref("task", "t-1")).toBe("/tasks?task=t-1");
     expect(recordHref("task", "a&b")).toBe("/tasks?task=a%26b");

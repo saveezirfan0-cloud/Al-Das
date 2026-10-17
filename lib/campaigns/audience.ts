@@ -102,9 +102,19 @@ async function segmentPredicate(
     if (!parsed.success) throw new Error("The segment's filter is invalid.");
     filter = parsed.data;
   }
-  // The consent rule (docs/45 P5): a filter with clinical fields never builds a marketing audience. Checked here,
-  // before anything is counted or written, for previews, snapshots and recurring runs alike.
-  const problem = audiencePurposeProblem(filter, purpose, registry);
+  // The consent rule (docs/45 P5): a filter with clinical fields, or a segment marked care only, never builds a
+  // marketing audience. Checked here, before anything is counted or written, for previews, snapshots and recurring
+  // runs alike. The database repeats the check inside campaign_snapshot_segment (same rule, one SQL function).
+  let careOnly = false;
+  if (purpose !== "care") {
+    const { data, error } = await admin.rpc("segment_is_care_only", {
+      p_org: orgId,
+      p_segment: seg.id,
+    });
+    if (error) throw new Error("The segment could not be checked for health information.");
+    careOnly = data !== false; // fail closed
+  }
+  const problem = audiencePurposeProblem(filter, purpose, registry, { careOnly });
   if (problem) throw new Error(problem);
   return { registry, filter, ...compileContactPredicate(registry, filter, null, timezone) };
 }
@@ -122,12 +132,13 @@ export async function segmentAudience(
     campaignId?: string;
   },
 ): Promise<{ counts: AudienceCounts; sample: AudienceSample | null }> {
+  const purpose = args.purpose ?? DEFAULT_AUDIENCE_PURPOSE;
   const { sql, params, registry, filter } = await segmentPredicate(
     admin,
     args.orgId,
     args.segmentId,
     args.timezone,
-    args.purpose ?? DEFAULT_AUDIENCE_PURPOSE,
+    purpose,
   );
   // Always count first: an oversize audience is refused before anything is written.
   const dry = await admin.rpc("campaign_snapshot_segment", {
@@ -138,6 +149,8 @@ export async function segmentAudience(
     p_marketing: args.marketing,
     p_limit: MAX_RECIPIENTS + 1,
     p_dry: true,
+    p_segment_id: args.segmentId,
+    p_purpose: purpose,
   });
   if (dry.error) throw new Error(`audience count failed: ${dry.error.message}`);
   let result = counts(dry.data, false);
@@ -152,6 +165,8 @@ export async function segmentAudience(
       p_marketing: args.marketing,
       p_limit: MAX_RECIPIENTS,
       p_dry: false,
+      p_segment_id: args.segmentId,
+      p_purpose: purpose,
     });
     if (real.error) throw new Error(`audience snapshot failed: ${real.error.message}`);
     result = { ...counts(real.data, false) };

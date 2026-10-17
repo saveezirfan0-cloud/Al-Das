@@ -36,7 +36,7 @@ export default async function MigrationStatusPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Migration status"
-        description="Every Airtable table and Make scenario, what replaces it in Pulse, and how far along it is. Read only: the state comes from what has actually been imported or recorded, never from this page."
+        description="Every Airtable table, Sanoflow export and Make scenario, what replaces it in Pulse, and how far along it is. Read only: the state comes from what has actually been imported or recorded, never from this page."
       />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
@@ -60,10 +60,18 @@ export default async function MigrationStatusPage() {
               <table className="w-full min-w-[40rem] text-sm">
                 <thead className="bg-muted/50 text-left text-xs text-muted-foreground">
                   <tr>
-                    <th scope="col" className="px-3 py-2 font-medium">Today</th>
-                    <th scope="col" className="px-3 py-2 font-medium">In Pulse</th>
-                    <th scope="col" className="px-3 py-2 font-medium">State</th>
-                    <th scope="col" className="px-3 py-2 font-medium">Last known</th>
+                    <th scope="col" className="px-3 py-2 font-medium">
+                      Today
+                    </th>
+                    <th scope="col" className="px-3 py-2 font-medium">
+                      In Pulse
+                    </th>
+                    <th scope="col" className="px-3 py-2 font-medium">
+                      State
+                    </th>
+                    <th scope="col" className="px-3 py-2 font-medium">
+                      Last known
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -72,18 +80,25 @@ export default async function MigrationStatusPage() {
                       <td className="px-3 py-2">{r.name}</td>
                       <td className="px-3 py-2">
                         {r.href ? (
-                          <Link href={r.href} className="text-primary underline-offset-2 hover:underline">
+                          <Link
+                            href={r.href}
+                            className="text-primary underline-offset-2 hover:underline"
+                          >
                             {r.pulse}
                           </Link>
                         ) : (
                           r.pulse
                         )}
-                        {r.note ? <p className="mt-0.5 text-xs text-muted-foreground">{r.note}</p> : null}
+                        {r.note ? (
+                          <p className="mt-0.5 text-xs text-muted-foreground">{r.note}</p>
+                        ) : null}
                       </td>
                       <td className="px-3 py-2">
                         <Badge variant={VARIANT[r.state]}>{STATE_LABEL[r.state]}</Badge>
                       </td>
-                      <td className="px-3 py-2 text-muted-foreground">{r.detail ?? "Nothing recorded"}</td>
+                      <td className="px-3 py-2 text-muted-foreground">
+                        {r.detail ?? "Nothing recorded"}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

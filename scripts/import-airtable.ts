@@ -23,7 +23,14 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { AirtableClient } from "./import/airtable-client";
-import { adminFromEnv, parseArgs, resolveOrg, writeReport, writeSummary } from "./import/common";
+import {
+  adminFromEnv,
+  parseArgs,
+  recordImportRuns,
+  resolveOrg,
+  writeReport,
+  writeSummary,
+} from "./import/common";
 import { runImport } from "./import/orchestrator";
 import { runPatientTable } from "./import/patients";
 import { REGISTRY } from "./import/registry";
@@ -140,30 +147,29 @@ async function main() {
   // found unchanged or adopted on their natural key count as "updated". Only tables this run
   // actually imported or validated are included.
   const runAt = new Date().toISOString();
-  const summaryFile = writeSummary(
-    "airtable",
-    run.results
-      .filter((r) => r.outcome === "imported" || r.outcome === "validated")
-      .map((r) => ({
-        source: "airtable",
-        entity: r.entity,
-        label: r.name,
-        runAt,
-        dryRun: dryRun || r.outcome === "validated",
-        since: opts.since ?? null,
-        includeTestRecords: flags.has("include-test-records"),
-        counters: {
-          read: r.counters.read,
-          created: r.counters.created,
-          updated: r.counters.updated + r.counters.unchanged + r.counters.adopted,
-          skipped: r.counters.skipped,
-          invalid: r.counters.invalid,
-          duplicates: r.counters.duplicates,
-          review: r.counters.review,
-          failed: r.counters.failed,
-        },
-      })),
-  );
+  const summaries = run.results
+    .filter((r) => r.outcome === "imported" || r.outcome === "validated")
+    .map((r) => ({
+      source: "airtable",
+      entity: r.entity,
+      label: r.name,
+      runAt,
+      dryRun: dryRun || r.outcome === "validated",
+      since: opts.since ?? null,
+      includeTestRecords: flags.has("include-test-records"),
+      counters: {
+        read: r.counters.read,
+        created: r.counters.created,
+        updated: r.counters.updated + r.counters.unchanged + r.counters.adopted,
+        skipped: r.counters.skipped,
+        invalid: r.counters.invalid,
+        duplicates: r.counters.duplicates,
+        review: r.counters.review,
+        failed: r.counters.failed,
+      },
+    }));
+  const summaryFile = writeSummary("airtable", summaries);
+  console.log(await recordImportRuns(admin, org.id, summaries));
   console.log(md);
   console.log(`report → ${file}`);
   console.log(`summary → ${summaryFile}`);

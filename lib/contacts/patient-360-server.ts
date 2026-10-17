@@ -10,6 +10,8 @@ import {
   type ConsentChip,
 } from "@/lib/contacts/patient-360";
 import type { LifecycleStage } from "@/lib/contacts/lifecycle";
+import { loadPatientBilling } from "@/lib/contacts/patient-billing-server";
+import { recordAccess } from "@/lib/security/access-log";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -47,6 +49,12 @@ export type PatientHeader = {
     doctor: string | null;
   } | null;
   openTasks: number | null;
+  /**
+   * What the patient still owes (AED), from the Unite invoices matched by PIN. Only for members with
+   * finance.invoices.view; null otherwise or when the patient has no PIN. `partial` = some insurance invoices were left
+   * out because the member lacks finance.claims.view.
+   */
+  balance: { due: number; credit: number; insurerOutstanding: number; partial: boolean } | null;
 };
 
 function orgToday(tz: string): string {
@@ -171,6 +179,13 @@ export async function loadPatientHeader(
   );
 
   const guardianId = guardLink.data?.guardian_contact_id;
+  const billing = await loadPatientBilling(member, contactId);
+  if (billing?.linked)
+    await recordAccess(admin, member, {
+      entity: "finance_invoice",
+      action: "list",
+      detail: { rows: billing.rows.length, source: "patient_360_header" },
+    });
   return {
     id: c.id,
     name: `${c.first_name} ${c.last_name}`.trim() || "Patient",
@@ -220,5 +235,14 @@ export async function loadPatientHeader(
         }
       : null,
     openTasks: tasks.count ?? null,
+    balance:
+      billing && billing.linked
+        ? {
+            due: billing.summary.patientDue,
+            credit: billing.summary.patientCredit,
+            insurerOutstanding: billing.summary.insurerOutstanding,
+            partial: billing.summary.skipped > 0,
+          }
+        : null,
   };
 }

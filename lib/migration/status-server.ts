@@ -1,6 +1,12 @@
 import "server-only";
 
-import { NO_FACTS, type MigrationFacts, type ScenarioFact } from "@/lib/migration/status";
+import {
+  NO_FACTS,
+  type MigrationFacts,
+  toRunFact,
+  type RunFacts,
+  type ScenarioFact,
+} from "@/lib/migration/status";
 import type { createAdminClient } from "@/lib/supabase/admin";
 
 type Admin = ReturnType<typeof createAdminClient>;
@@ -21,7 +27,7 @@ const SCENARIO_KEYS = [
  * of the facts empty, which `deriveState` treats as "not started" (fail closed).
  */
 export async function loadMigrationFacts(admin: Admin, orgId: string): Promise<MigrationFacts> {
-  const [snapshot, scenarios, programmes, diffCounts] = await Promise.all([
+  const [snapshot, scenarios, programmes, diffCounts, runRows] = await Promise.all([
     admin.rpc("reconcile_snapshot", { p_org_id: orgId }),
     admin
       .from("parallel_run_scenarios")
@@ -39,6 +45,14 @@ export async function loadMigrationFacts(admin: Admin, orgId: string): Promise<M
         return [key, r.error ? null : (r.count ?? 0)] as const;
       }),
     ),
+    // Counts of each importer run (public.import_runs). The newest rows are enough: only the latest real and dry run of
+    // each entity are shown.
+    admin
+      .from("import_runs")
+      .select("source, entity, dry_run, run_at, counters")
+      .eq("org_id", orgId)
+      .order("run_at", { ascending: false })
+      .limit(1000),
   ]);
 
   const refsRaw = (snapshot.data as { refs?: Record<string, unknown> } | null)?.refs ?? {};
@@ -67,5 +81,23 @@ export async function loadMigrationFacts(admin: Admin, orgId: string): Promise<M
     unexplainedDiffs[key] = n ?? 1;
   }
 
-  return { ...NO_FACTS, refs, scenarios: scenarioFacts, programmes: programmeFacts, unexplainedDiffs };
+  const runs: Record<string, RunFacts> = {};
+  for (const r of runRows.data ?? []) {
+    const fact = toRunFact(r.run_at, r.dry_run, r.counters);
+    if (!fact) continue;
+    const key = `${r.source}/${r.entity}`;
+    const slot = (runs[key] ??= { real: null, dry: null });
+    // Newest first: the first row of each kind wins.
+    if (r.dry_run) slot.dry ??= fact;
+    else slot.real ??= fact;
+  }
+
+  return {
+    ...NO_FACTS,
+    refs,
+    runs,
+    scenarios: scenarioFacts,
+    programmes: programmeFacts,
+    unexplainedDiffs,
+  };
 }

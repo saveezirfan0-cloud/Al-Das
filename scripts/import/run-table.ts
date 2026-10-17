@@ -106,7 +106,10 @@ async function resolveLinks(
       }
     } else {
       const text = mapped.lookups[link.fieldId];
-      if (!text) continue;
+      if (!text) {
+        if (link.required) mapped.invalid ??= `missing value: ${link.label}`;
+        continue;
+      }
       const hit = await ctx.store.findOne(link.table, { [link.matchColumn]: text });
       if (hit) {
         mapped.values[link.column] = hit.id;
@@ -114,6 +117,7 @@ async function resolveLinks(
         result.linksResolved++;
       } else {
         addUnmatched(result.unmatched, `${mapper.key} · ${link.label}`, mapped.recordId);
+        if (link.required) mapped.invalid ??= `unresolved lookup: ${link.label}`;
       }
     }
   }
@@ -332,7 +336,18 @@ export async function runTable(mapper: TableMapper, ctx: RunContext): Promise<Ta
           resolved: mapped.resolved,
           store: ctx.store,
           warn: (code) => addWarning(result.warnings, code),
+          skip: (reason) => {
+            mapped.skipReason ??= reason;
+          },
+          invalid: (reason) => {
+            mapped.invalid ??= reason;
+          },
         });
+      }
+      if (mapped.skipReason) {
+        c.skipped++;
+        addWarning(result.warnings, mapped.skipReason);
+        continue;
       }
       if (mapped.invalid) {
         addWarning(result.warnings, mapped.invalid.replace(/:.*$/, ""));

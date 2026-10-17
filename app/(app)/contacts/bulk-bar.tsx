@@ -32,6 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { CustomFieldDef } from "@/lib/contacts/custom-values";
+import type { SegmentFillSource } from "@/lib/contacts/segment-care";
 import type { SegmentSummary } from "@/lib/contacts/server";
 
 import {
@@ -58,6 +59,7 @@ export function BulkBar({
   customFields,
   onTagCreated,
   onDone,
+  fillSource,
 }: {
   ids: string[];
   pageCount: number;
@@ -71,6 +73,8 @@ export function BulkBar({
   customFields: CustomFieldDef[];
   onTagCreated: (t: TagOption) => void;
   onDone: () => void;
+  /** What the grid shows right now; a clinical filter makes a static segment care only. */
+  fillSource?: SegmentFillSource;
 }) {
   const [pending, startTransition] = React.useTransition();
   const [confirm, confirmDialog] = useConfirm();
@@ -150,7 +154,7 @@ export function BulkBar({
           {segments.map((s) => (
             <DropdownMenuItem
               key={`add-${s.id}`}
-              onClick={() => run(() => bulkSegment(ids, s.id, "add"))}
+              onClick={() => run(() => bulkSegment(ids, s.id, "add", fillSource))}
             >
               {s.name}
             </DropdownMenuItem>

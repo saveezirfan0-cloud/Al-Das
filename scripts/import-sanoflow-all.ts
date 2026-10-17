@@ -20,6 +20,7 @@ import {
   parseArgs,
   resolveOrg,
   writeReport,
+  recordImportRuns,
   writeSummary,
 } from "./import/common";
 import { runAll } from "./import/sanoflow/all";
@@ -27,6 +28,7 @@ import {
   RECONCILED_ENTITIES,
   assertNoPii,
   renderReport,
+  runSummaries,
   toSummaries,
 } from "./import/sanoflow/report";
 
@@ -81,6 +83,7 @@ async function main() {
   assertNoPii(md);
   const report = writeReport("sanoflow-all", md);
   const summary = writeSummary("sanoflow-all", toSummaries(res.runs, { dryRun, at }));
+  console.log(await recordImportRuns(admin, org.id, runSummaries(res.runs, { dryRun, at })));
 
   const counts = Object.fromEntries(
     RECONCILED_ENTITIES.map((e) => [

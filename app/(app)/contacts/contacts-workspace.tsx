@@ -216,8 +216,9 @@ export function ContactsWorkspace({ bootstrap }: { bootstrap: ContactsBootstrap 
         value: g.id,
         label: g.name,
       })),
+      payers: (bootstrap.payers ?? []).map((p) => ({ value: p.id, label: p.name })),
     }),
-    [bootstrap.users, tags, segments, bootstrap.branches, bootstrap.clinical],
+    [bootstrap.users, tags, segments, bootstrap.branches, bootstrap.clinical, bootstrap.payers],
   );
 
   async function selectAllMatching() {
@@ -373,6 +374,7 @@ export function ContactsWorkspace({ bootstrap }: { bootstrap: ContactsBootstrap 
                   }}
                   tags={tags}
                   segments={segments.filter((s) => s.kind === "static")}
+                  fillSource={{ filter, segmentId }}
                   users={bootstrap.users}
                   customFields={bootstrap.customFields}
                   onTagCreated={(t) =>

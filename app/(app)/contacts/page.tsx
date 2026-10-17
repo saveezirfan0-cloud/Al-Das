@@ -15,9 +15,10 @@ export default async function ContactsPage() {
   const admin = createAdminClient();
   const canDrip = can(member, "contacts.manage") && can(member, "flows.manage");
   const clinical = can(member, "clinical.view");
-  const [ctx, { data: prefs }, { data: dripFlows }, { data: locations }, clinicalLists] =
+  const claims = can(member, "finance.claims.view");
+  const [ctx, { data: prefs }, { data: dripFlows }, { data: locations }, clinicalLists, payers] =
     await Promise.all([
-      loadContactContext(admin, member.orgId, { clinical }),
+      loadContactContext(admin, member.orgId, { clinical, claims }),
       admin
         .from("user_grid_prefs")
         .select("prefs")
@@ -49,6 +50,15 @@ export default async function ContactsPage() {
               .order("name"),
           ])
         : Promise.resolve(null),
+      // Insurers for the "Insurer" filter (only for a member who may read claims; the field is hidden otherwise).
+      claims
+        ? admin
+            .from("fin_ref_payers")
+            .select("payer_id, payer_name")
+            .eq("org_id", member.orgId)
+            .order("payer_name")
+            .limit(500)
+        : Promise.resolve({ data: [] as Array<{ payer_id: string; payer_name: string | null }> }),
     ]);
   const access = readBranchAccess(member);
 
@@ -74,7 +84,7 @@ export default async function ContactsPage() {
     fields: ctx.registry
       .list()
       .filter((f) => f.available)
-      .map(({ key, label, group, type, options, optionsSource, sortable, clinical }) => ({
+      .map(({ key, label, group, type, options, optionsSource, sortable, clinical, careOnly }) => ({
         key,
         label,
         group,
@@ -83,6 +93,7 @@ export default async function ContactsPage() {
         optionsSource,
         sortable,
         clinical,
+        careOnly,
       })),
     tags: ctx.tags,
     segments: ctx.segments,
@@ -101,6 +112,7 @@ export default async function ContactsPage() {
           },
         }
       : {}),
+    payers: (payers.data ?? []).map((p) => ({ id: p.payer_id, name: p.payer_name || p.payer_id })),
   };
 
   return <ContactsWorkspace bootstrap={bootstrap} />;

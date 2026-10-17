@@ -19,7 +19,7 @@ import { ContactConversations } from "../contact-conversations";
 import { ContactEnquiries } from "../contact-enquiries";
 import { ContactHistory, ContactInvoices, ContactTasks } from "../patient-360-tabs";
 import { CareTab, ClinicalOverviewCard, ConditionsTab, VisitsTab } from "./clinical-tabs";
-import { listContactCampaigns, type CampaignRow } from "./overview-actions";
+import { countRecentCampaigns, listContactCampaigns, type CampaignRow } from "./overview-actions";
 
 const ContactDocuments = dynamic(
   () => import("../documents/documents-tab").then((m) => m.ContactDocuments),
@@ -142,7 +142,12 @@ export function PatientRecord({
           ))}
         </div>
 
-        <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+        <div
+          className={cn(
+            "grid grid-cols-1 gap-3 text-sm sm:grid-cols-2",
+            header.balance && "lg:grid-cols-3",
+          )}
+        >
           <div>
             <p className="text-muted-foreground text-xs">Next appointment</p>
             {header.nextAppointment ? (
@@ -164,6 +169,28 @@ export function PatientRecord({
               </p>
             )}
           </div>
+          {header.balance && (
+            <div>
+              <p className="text-muted-foreground text-xs">Open balance</p>
+              <p className="tabular-nums">
+                {header.balance.due > 0 ? (
+                  <span className="font-medium">{aed(header.balance.due)}</span>
+                ) : (
+                  "Nothing owed"
+                )}
+                {header.balance.partial && (
+                  <span className="text-muted-foreground block text-xs">
+                    Insurance invoices are not included (needs claims access).
+                  </span>
+                )}
+                {header.balance.insurerOutstanding > 0 && !header.balance.partial && (
+                  <span className="text-muted-foreground block text-xs">
+                    Insurers still owe {aed(header.balance.insurerOutstanding)}
+                  </span>
+                )}
+              </p>
+            </div>
+          )}
           <div>
             <p className="text-muted-foreground text-xs">Household</p>
             <p>
@@ -221,6 +248,22 @@ export function PatientRecord({
                 <dt className="text-muted-foreground text-xs">Life stage</dt>
                 <dd>{LIFECYCLE_LABELS[header.lifecycle]}</dd>
               </div>
+              {header.balance && (
+                <div>
+                  <dt className="text-muted-foreground text-xs">Open balance</dt>
+                  <dd className="tabular-nums">
+                    {header.balance.due > 0 ? aed(header.balance.due) : "Nothing owed"}
+                  </dd>
+                </div>
+              )}
+              {access.campaigns && (
+                <div>
+                  <dt className="text-muted-foreground text-xs">Campaigns in the last 90 days</dt>
+                  <dd>
+                    <RecentCampaigns contactId={id} />
+                  </dd>
+                </div>
+              )}
             </dl>
           </section>
           {access.clinical && (
@@ -322,6 +365,26 @@ export function PatientRecord({
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+const aed = (n: number) =>
+  `AED ${n.toLocaleString("en-AE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+function RecentCampaigns({ contactId }: { contactId: string }) {
+  const [text, setText] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    void countRecentCampaigns(contactId).then((r) => {
+      if (!alive) return;
+      setText(r.ok ? (r.data.count === 0 ? "None" : String(r.data.count)) : "Not shown");
+    });
+    return () => {
+      alive = false;
+    };
+  }, [contactId]);
+  return (
+    text ?? <Loader2 className="text-muted-foreground size-4 animate-spin" aria-label="Loading" />
   );
 }
 

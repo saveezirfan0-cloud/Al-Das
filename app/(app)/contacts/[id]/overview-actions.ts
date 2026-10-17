@@ -46,3 +46,27 @@ export async function listContactCampaigns(
     })),
   };
 }
+
+/** The Overview card "Campaigns in the last 90 days": messages actually sent, a count only. Own client (RLS), campaigns.view. */
+const RECENT_CAMPAIGN_DAYS = 90;
+
+export async function countRecentCampaigns(
+  contactId: string,
+): Promise<{ ok: true; data: { count: number; days: number } } | { ok: false; error: string }> {
+  const member = await requirePerm("contacts.view");
+  if (!can(member, "campaigns.view"))
+    return { ok: false, error: "You don't have access to campaigns." };
+  if (!z.string().uuid().safeParse(contactId).success)
+    return { ok: false, error: "Invalid contact." };
+  const since = new Date(Date.now() - RECENT_CAMPAIGN_DAYS * 86_400_000).toISOString();
+  const supabase = await createClient();
+  const { count, error } = await supabase
+    .from("campaign_recipients")
+    .select("id", { count: "exact", head: true })
+    .eq("org_id", member.orgId)
+    .eq("contact_id", contactId)
+    .not("sent_at", "is", null)
+    .gte("sent_at", since);
+  if (error) return { ok: false, error: "Could not count the campaigns." };
+  return { ok: true, data: { count: count ?? 0, days: RECENT_CAMPAIGN_DAYS } };
+}

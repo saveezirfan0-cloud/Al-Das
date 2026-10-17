@@ -34,6 +34,8 @@ export type LinkSpec =
       column: string;
       table: string;
       matchColumn: string;
+      /** The record is unusable (counted as invalid) when the value is blank or finds no row. */
+      required?: boolean;
     };
 
 export type TableMapper = {
@@ -84,6 +86,13 @@ export type TableMapper = {
    * visit, medication class from the reference table). Never writes.
    */
   enrich?: (ctx: EnrichContext) => Promise<void>;
+  /** Columns `enrich` sets (so the natural-key check knows they exist although `mapRecord` alone does not). */
+  enrichedColumns?: string[];
+  /**
+   * Fields read only to find or derive other values (a PIN, a condition name, free text that is never stored). They are
+   * mapped under these names and removed by `enrich` before the write, so the schema drift guard skips them.
+   */
+  helperColumns?: readonly string[];
   /** Replaces the generic writer (clinical_settings has sign-off rules). */
   writer?: "clinical_settings";
   /**
@@ -121,6 +130,10 @@ export type EnrichContext = {
   resolved: Record<string, string[]>;
   store: import("../store").ImportStore;
   warn: (code: string) => void;
+  /** The record is deliberately not imported (counted as skipped, reason code reported), e.g. its patient is not in Pulse. */
+  skip: (reason: string) => void;
+  /** The record cannot be imported (counted as invalid, reason code reported). */
+  invalid: (reason: string) => void;
 };
 
 export type MappedRow = {

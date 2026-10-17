@@ -140,8 +140,8 @@ describe.skipIf(!TEST_DATABASE_URL)("Phase 20d (db)", () => {
         async () =>
           (
             await q<{ r: { total: number; eligible: number; skipped: Record<string, number> } }>(
-              "select public.campaign_snapshot_segment($1, $2, 'c.last_name = ($1->>0)', '[\"Drift20d\"]'::jsonb, true, 1000, false) as r",
-              [orgA, campaign],
+              "select public.campaign_snapshot_segment($1, $2, 'c.last_name = ($1->>0)', '[\"Drift20d\"]'::jsonb, true, 1000, false, $3, 'marketing') as r",
+              [orgA, campaign, seeded.segment],
             )
           )[0]!.r,
       );

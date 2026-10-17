@@ -32,6 +32,7 @@
 - Help: the guide `patient-record` is matched by path shape in `guideForPath` (the path carries an id).
 
 ## Not built
+_Follow-up 17 Oct 2026: all of this is closed except allergies, see `docs/45_PHASE_P_FOLLOWUP_NOTES.md`._
 - Allergies: no source table exists; the tab says so.
 - Insurance claim status per patient (the Billing tab shows invoices only).
 - Balance in the header (finance roles only) and "campaigns in the last 90 days" on the Overview.

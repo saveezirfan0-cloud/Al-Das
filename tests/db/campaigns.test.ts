@@ -370,6 +370,7 @@ describe.skipIf(!TEST_DATABASE_URL)("campaigns SQL", () => {
   });
   describe("audience snapshots", () => {
     let snapCampaign: string;
+    let snapSegment: string;
     const flags = [
       { name: "ok", phone: "+971511000001", bsuid: null, opt: true, stop: false },
       { name: "no-opt", phone: "+971511000002", bsuid: null, opt: false, stop: false },
@@ -385,9 +386,13 @@ describe.skipIf(!TEST_DATABASE_URL)("campaigns SQL", () => {
             "insert into public.contacts (org_id, first_name, phone_e164, wa_bsuid, promotions_opt_in, stop_marketing, source) values ($1, $2, $3, $4, $5, $6, 'snap')",
             [orgA, f.name, f.phone, f.bsuid, f.opt, f.stop],
           );
+        snapSegment = await insert(
+          "insert into public.segments (org_id, name, kind) values ($1, 'Snap segment', 'static')",
+          [orgA],
+        );
         snapCampaign = await insert(
-          "insert into public.campaigns (org_id, name, channel_id, template_id, audience_type) values ($1, 'Snap', $2, $3, 'segment')",
-          [orgA, channelA, templateA],
+          "insert into public.campaigns (org_id, name, channel_id, template_id, audience_type, segment_id) values ($1, 'Snap', $2, $3, 'segment', $4)",
+          [orgA, channelA, templateA, snapSegment],
         );
       });
     });
@@ -396,13 +401,10 @@ describe.skipIf(!TEST_DATABASE_URL)("campaigns SQL", () => {
       return asServiceRole(c, async () => {
         const { rows } = await c.query<{
           r: { total: number; eligible: number; skipped: Record<string, number> };
-        }>("select public.campaign_snapshot_segment($1, $2, $3, '[]'::jsonb, $4, 1000, $5) as r", [
-          orgA,
-          snapCampaign,
-          "c.source = 'snap'",
-          marketing,
-          dry,
-        ]);
+        }>(
+          "select public.campaign_snapshot_segment($1, $2, $3, '[]'::jsonb, $4, 1000, $5, $6, 'marketing') as r",
+          [orgA, snapCampaign, "c.source = 'snap'", marketing, dry, snapSegment],
+        );
         return rows[0].r;
       });
     }

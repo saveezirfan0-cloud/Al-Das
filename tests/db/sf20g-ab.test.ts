@@ -189,10 +189,19 @@ describe.skipIf(!TEST_DATABASE_URL)("Phase 20g campaign A/B (db)", () => {
     it("assigns through the real segment snapshot function too", async () => {
       const snap = await campaign("Snapshot");
       await addVariant(snap, 50);
+      // The snapshot must name the campaign's own (marketing-safe) segment.
+      const seg = await id(
+        "insert into public.segments (org_id, name, kind) values ($1, 'Snapshot 20g', 'static')",
+        [orgA],
+      );
+      await q(
+        "update public.campaigns set audience_type = 'segment', segment_id = $2 where id = $1",
+        [snap, seg],
+      );
       await asServiceRole(c, () =>
         c.query(
-          "select public.campaign_snapshot_segment($1, $2, 'true', '[]'::jsonb, false, 1000, false)",
-          [orgA, snap],
+          "select public.campaign_snapshot_segment($1, $2, 'true', '[]'::jsonb, false, 1000, false, $3, 'marketing')",
+          [orgA, snap, seg],
         ),
       );
       const rows = await variants(snap);

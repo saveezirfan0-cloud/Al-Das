@@ -16,6 +16,13 @@ const REASONS: Record<string, string> = {
   email: "Same email",
   name_dob: "Same name and date of birth",
   phone: "Shared phone number",
+  lead_patient: "Lead and registered patient",
+};
+
+const CONFIDENCE: Record<NonNullable<DuplicatePair["confidence"]>, string> = {
+  high: "Very likely the same person",
+  medium: "Possibly the same person",
+  low: "Weak match",
 };
 
 export function DuplicatesPanel({
@@ -71,7 +78,9 @@ export function DuplicatesPanel({
         <div>
           <h3 className="font-medium">Possible duplicates</h3>
           <p className="text-muted-foreground text-sm">
-            Pairs that share an email, a name and date of birth, or a phone number.
+            Pairs that share an email, a name and date of birth, or a phone number. A WhatsApp or
+            Sanoflow lead that looks like a registered patient is listed with the patient first, so
+            merging keeps the Unite number.
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={load} disabled={loading}>
@@ -91,9 +100,17 @@ export function DuplicatesPanel({
               key={`${p.a.id}-${p.b.id}`}
               className="flex flex-wrap items-center gap-2 rounded-lg border p-2"
             >
-              <Badge variant="secondary" className="w-44 justify-center">
-                {REASONS[p.reason] ?? p.reason}
-              </Badge>
+              <div className="flex w-44 flex-col items-center gap-1">
+                <Badge variant="secondary" className="w-full justify-center">
+                  {REASONS[p.reason] ?? p.reason}
+                </Badge>
+                {p.confidence && (
+                  <span className="text-muted-foreground text-center text-xs">
+                    {CONFIDENCE[p.confidence]}
+                    {p.ambiguous && " · fits several patients, choose carefully"}
+                  </span>
+                )}
+              </div>
               {card(p.a)}
               {card(p.b)}
               {canManage && (

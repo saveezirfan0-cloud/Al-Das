@@ -170,6 +170,14 @@ export function ViewsRail({
                     className={cn("size-4 shrink-0", s.kind === "dynamic" && "text-primary")}
                   />
                   <span className="truncate">{s.name}</span>
+                  {s.care_only && (
+                    <span
+                      title="Care programmes only: cannot be used for marketing"
+                      className="rounded bg-amber-100 px-1 text-[10px] font-medium text-amber-900 dark:bg-amber-500/15 dark:text-amber-300"
+                    >
+                      Care only
+                    </span>
+                  )}
                   <span className="text-muted-foreground ml-auto text-xs tabular-nums">
                     {s.member_count.toLocaleString("en-GB")}
                   </span>

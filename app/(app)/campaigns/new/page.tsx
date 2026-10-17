@@ -49,7 +49,7 @@ export default async function NewCampaignPage({
         .order("name"),
       supabase
         .from("segments")
-        .select("id, name, kind, member_count")
+        .select("id, name, kind, member_count, care_only")
         .eq("org_id", member.orgId)
         .order("name"),
       loadCustomFields(admin, member.orgId),
@@ -85,6 +85,7 @@ export default async function NewCampaignPage({
     name: s.name,
     kind: s.kind,
     count: s.member_count,
+    careOnly: s.care_only,
   }));
 
   return (

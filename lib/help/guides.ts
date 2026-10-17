@@ -1730,6 +1730,21 @@ export const GUIDES: readonly Guide[] = [
     ],
   },
   {
+    id: "settings-health-data-rule",
+    title: "Health data in campaigns",
+    pages: ["/settings/health-data-rule"],
+    purpose: "The rule that keeps health information out of marketing, and the record that the clinical lead and management accepted its wording.",
+    steps: [
+      "Read the rule. Recall and follow-up may use health information; marketing campaigns may not.",
+      "The clinical lead signs in their own account, then management signs in theirs. Two different people must sign.",
+      "A hand-picked list filled from a health filter shows a Care only badge and cannot be chosen for a campaign.",
+    ],
+    watchOut: [
+      "The system enforces the rule whether or not it is signed. If the wording changes, earlier signatures stop counting and both people sign again.",
+      "Only an administrator can release a Care only list for marketing, and each release is recorded.",
+    ],
+  },
+  {
     id: "settings-audit",
     title: "Activity log and access review",
     pages: ["/settings/activity", "/settings/access-review"],

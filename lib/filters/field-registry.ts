@@ -32,6 +32,7 @@ export type RelationKey =
   | "enquiries"
   | "appointments"
   | "campaign_recipients"
+  | "contact_insurers"
   | "tasks"
   | "enquiry_tags"
   // Track P (docs/45 P4/P5): one-row-per-contact views and visit/diagnosis views. All are security_invoker views.
@@ -83,7 +84,8 @@ export type FieldDef = {
     | "departments"
     | "pipelines"
     | "sources"
-    | "condition_groups";
+    | "condition_groups"
+    | "payers";
   /** Hidden from the UI (and rejected by the compiler) until the relation exists. */
   available: boolean;
   /** Can be used in ORDER BY (column / custom / count only). */
@@ -94,6 +96,18 @@ export type FieldDef = {
    * Custom fields are not clinical by default (an org-defined field cannot be classified here).
    */
   clinical: boolean;
+  /**
+   * Health information that existing members may still filter by, but that never builds a marketing audience:
+   * the doctor, department, service, notes and AI tags of appointments and enquiries (they say what a patient is
+   * being seen for). Unlike `clinical` it does not hide the field from members without `clinical.view`, so saved
+   * views and the front desk keep working; only campaign audiences refuse it (lib/campaigns/audience-purpose.ts).
+   */
+  careOnly: boolean;
+  /**
+   * Derived from insurance claims (finance data). Offered only to members who may read claims (`finance.claims.view`);
+   * system paths such as campaign audiences build the registry with every field.
+   */
+  requiresClaims?: boolean;
 };
 
 export type FieldRegistry = {
@@ -351,6 +365,13 @@ export const CONTACT_RELATIONS: Record<RelationKey, RelationDef> = {
     columns: { condition_group_id: "uuid" },
     extraWhere: "r.source = 'visit'",
   },
+  // Insurers the patient has a matched claim with (migration 20261220000500). Service role only; one row per payer.
+  contact_insurers: {
+    key: "contact_insurers",
+    table: "public.v_contact_insurers",
+    contactColumn: "contact_id",
+    columns: { payer_id: "text" },
+  },
 };
 
 /** Relations whose tables exist today. Later phases extend this list. */
@@ -368,6 +389,7 @@ export const AVAILABLE_RELATIONS: readonly RelationKey[] = [
   "contact_visit_segments",
   "contact_chronic_groups",
   "contact_visit_groups",
+  "contact_insurers",
 ];
 
 export type CustomFieldDefInput = {
@@ -389,9 +411,10 @@ const rel = (relation: RelationKey, column: string): FieldSource => ({
   column,
 });
 
-type Partial = Omit<FieldDef, "available" | "sortable" | "clinical"> & {
+type Partial = Omit<FieldDef, "available" | "sortable" | "clinical" | "careOnly"> & {
   sortable?: boolean;
   clinical?: boolean;
+  careOnly?: boolean;
 };
 
 const CONTACT_BASE_FIELDS: Partial[] = [
@@ -660,6 +683,7 @@ const CONTACT_BASE_FIELDS: Partial[] = [
     group: "Inbox",
     type: "text",
     source: rel("conversations", "ai_tags"),
+    careOnly: true,
   },
   // Enquiries
   {
@@ -742,6 +766,7 @@ const CONTACT_BASE_FIELDS: Partial[] = [
     type: "select",
     source: rel("enquiries", "specialist_id"),
     optionsSource: "specialists",
+    careOnly: true,
   },
   {
     key: "enquiry_service",
@@ -803,6 +828,7 @@ const CONTACT_BASE_FIELDS: Partial[] = [
     type: "select",
     source: rel("appointments", "specialist_id"),
     optionsSource: "specialists",
+    careOnly: true,
   },
   {
     key: "appointment_service",
@@ -811,6 +837,7 @@ const CONTACT_BASE_FIELDS: Partial[] = [
     type: "select",
     source: rel("appointments", "service_id"),
     optionsSource: "services",
+    careOnly: true,
   },
   {
     key: "appointment_department",
@@ -819,6 +846,7 @@ const CONTACT_BASE_FIELDS: Partial[] = [
     type: "select",
     source: rel("appointments", "department_id"),
     optionsSource: "departments",
+    careOnly: true,
   },
   {
     key: "appointment_created_at",
@@ -848,6 +876,7 @@ const CONTACT_BASE_FIELDS: Partial[] = [
     group: "Appointments",
     type: "text",
     source: rel("appointments", "notes"),
+    careOnly: true,
   },
   {
     key: "appointment_count",
@@ -935,6 +964,18 @@ const CONTACT_BASE_FIELDS: Partial[] = [
     optionsSource: "condition_groups",
     clinical: true,
   },
+  // Insurer, from the patient's matched insurance claims (finance data, so it needs finance.claims.view). A claim means
+  // the patient received care, so it is care-only like the other health-derived fields.
+  {
+    key: "insurer",
+    label: "Insurer (from claims)",
+    group: "Patient",
+    type: "set",
+    source: rel("contact_insurers", "payer_id"),
+    optionsSource: "payers",
+    careOnly: true,
+    requiresClaims: true,
+  },
   // Campaigns
   {
     key: "campaign",
@@ -971,12 +1012,15 @@ export type BuildRegistryOptions = {
    * member without `clinical.view` so the compiler rejects those fields (health data is never implied by contacts.*).
    */
   clinicalAvailable?: boolean;
+  /** Whether claim-derived fields (insurer) are offered. Default true; screens pass false without `finance.claims.view`. */
+  claimsAvailable?: boolean;
 };
 
 /** Builds the contact field registry, including the org's custom fields as `custom.<key>`. */
 export function buildContactFieldRegistry(opts: BuildRegistryOptions = {}): FieldRegistry {
   const available = new Set<RelationKey>(opts.availableRelations ?? AVAILABLE_RELATIONS);
   const clinicalAvailable = opts.clinicalAvailable ?? true;
+  const claimsAvailable = opts.claimsAvailable ?? true;
   const fields = new Map<string, FieldDef>();
 
   for (const f of CONTACT_BASE_FIELDS) {
@@ -986,9 +1030,11 @@ export function buildContactFieldRegistry(opts: BuildRegistryOptions = {}): Fiel
       ...f,
       sortable: f.sortable ?? false,
       clinical: f.clinical ?? false,
+      careOnly: f.careOnly ?? false,
       available:
         (relation ? available.has(relation) : true) &&
-        (clinicalAvailable || !(f.clinical ?? false)),
+        (clinicalAvailable || !(f.clinical ?? false)) &&
+        (claimsAvailable || !f.requiresClaims),
     });
   }
 
@@ -1005,6 +1051,7 @@ export function buildContactFieldRegistry(opts: BuildRegistryOptions = {}): Fiel
       available: true,
       sortable: true,
       clinical: false,
+      careOnly: false,
     });
   }
 

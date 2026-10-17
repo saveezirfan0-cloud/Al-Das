@@ -20,10 +20,11 @@ import {
   medicalRecordsMapper,
 } from "../../scripts/import/tables/clinical";
 import {
+  appointmentLogBirthdayMapper,
   appointmentMessagesMapper,
   birthdayMapper,
   chronicRecallMapper,
-} from "../../scripts/import/tables/pending-logs";
+} from "../../scripts/import/tables/message-logs";
 import {
   cptMasterMapper,
   diagnosisMapper,
@@ -89,7 +90,8 @@ describe("registry integrity", () => {
         continue;
       }
       const out = mapRecord(m, rec({}));
-      for (const k of m.naturalKey) expect(k in out.values, `${m.key}.${k}`).toBe(true);
+      for (const k of m.naturalKey)
+        expect(k in out.values || !!m.enrichedColumns?.includes(k), `${m.key}.${k}`).toBe(true);
     }
   });
 
@@ -530,7 +532,7 @@ describe("clinical mappers (real Phase 6 columns)", () => {
   });
 });
 
-describe("pending mappers (validated by --dry-run only)", () => {
+describe("message log mappers (recall_sends, appointment_reminders)", () => {
   it("every pending mapper says why it is not written", () => {
     for (const e of REGISTRY) {
       if (e.type !== "table" || e.mapper.status !== "pending") continue;
@@ -538,22 +540,41 @@ describe("pending mappers (validated by --dry-run only)", () => {
     }
   });
 
-  it("Birthday: day-first legacy dates, cycle key is the year", () => {
+  it("the three message logs are written by a real run, create-only", () => {
+    for (const m of [
+      chronicRecallMapper,
+      birthdayMapper,
+      appointmentMessagesMapper,
+      appointmentLogBirthdayMapper,
+    ]) {
+      expect(m.status, m.key).toBe("ready");
+      expect(m.createOnly, m.key).toBe(true);
+    }
+  });
+
+  it("Birthday: day-first legacy dates, cycle key is the year, always a sent live message", () => {
     const b = mapRecord(
       birthdayMapper,
       rec({ fldUYm1BW2qck0zTm: "PIN1", fldJA8wk04TfEVCAm: "25/12/2025" }),
     );
     expect(b.values).toMatchObject({
-      patient_pin: "PIN1",
-      sent_on: "2025-12-25",
+      _pin: "PIN1",
+      _sent_on: "2025-12-25",
       cycle_key: "2025",
-      programme_key: "birthday",
+      status: "sent",
+      send_mode: "live",
+      sent_at: "2025-12-25T08:00:00.000Z",
+      source: "airtable_import",
     });
     expect(
       warnings((w) =>
         mapRecord(birthdayMapper, rec({ fldJA8wk04TfEVCAm: "someday" })).warnings.forEach(w),
       ),
     ).toContain("unparseable_sent_date");
+    // no usable send date: the cycle cannot be known, so the row is invalid, not "year ''"
+    expect(mapRecord(birthdayMapper, rec({ fldUYm1BW2qck0zTm: "PIN1" })).invalid).toBe(
+      "missing _sent_on",
+    );
   });
 
   it("Chronic recall: booked without a booking date never survives; the PHI note is dropped", () => {
@@ -561,6 +582,7 @@ describe("pending mappers (validated by --dry-run only)", () => {
       chronicRecallMapper,
       rec({
         fldmqIT40DYyGAe8q: "PIN1",
+        fldWUAkSRmbstj93Q: "Sent",
         fld01KXt1biCwWS55: "2026-09-02T06:00:00.000Z",
         fldqgbYSfHGYq8LVV: "Booked",
         fldoG6VR5IIm5I2b5: "Sent to: +971500000000",
@@ -578,6 +600,7 @@ describe("pending mappers (validated by --dry-run only)", () => {
       chronicRecallMapper,
       rec({
         fldmqIT40DYyGAe8q: "PIN1",
+        fldWUAkSRmbstj93Q: "Sent",
         fld6a8W0nUzktk9o5: "2026-05-20",
         fld01KXt1biCwWS55: "2026-09-02T06:00:00.000Z",
       }),
@@ -587,19 +610,86 @@ describe("pending mappers (validated by --dry-run only)", () => {
     expect(r.values.last_visit_date_at_send).toBe("2026-05-20");
     expect(r.warnings).not.toContain("cycle_key_from_sent_date");
     expect(
-      mapRecord(chronicRecallMapper, rec({ fldmqIT40DYyGAe8q: "PIN1" })).values.cycle_key,
+      mapRecord(chronicRecallMapper, rec({ fldmqIT40DYyGAe8q: "PIN1", fldWUAkSRmbstj93Q: "Sent" }))
+        .values.cycle_key,
     ).toBe("undated");
   });
 
-  it("Appointment messages: date-only send time becomes noon Dubai", () => {
+  it("Chronic recall: only Sent and Failed are trusted; anything else would read as eligible, so it is invalid", () => {
+    expect(
+      mapRecord(chronicRecallMapper, rec({ fldmqIT40DYyGAe8q: "PIN1", fldWUAkSRmbstj93Q: "Sent" }))
+        .values.status,
+    ).toBe("sent");
+    expect(
+      mapRecord(
+        chronicRecallMapper,
+        rec({ fldmqIT40DYyGAe8q: "PIN1", fldWUAkSRmbstj93Q: "Failed" }),
+      ).values.status,
+    ).toBe("failed");
+    const odd = mapRecord(
+      chronicRecallMapper,
+      rec({ fldmqIT40DYyGAe8q: "PIN1", fldWUAkSRmbstj93Q: "Queued" }),
+    );
+    expect(odd.invalid).toBe("missing status");
+    expect(odd.warnings).toContain("unknown_send_status");
+    expect(mapRecord(chronicRecallMapper, rec({ fldmqIT40DYyGAe8q: "PIN1" })).invalid).toBe(
+      "missing status",
+    );
+  });
+
+  it("Appointment messages: date-only send time becomes noon Dubai; birthday rows go to the other mapper", () => {
     const a = mapRecord(
       appointmentMessagesMapper,
       rec({
         fldjRghFRS8xkpkWa: "A1",
         fld5m4VQXx6JQYAIk: "2026-09-03",
+        fldlE1a7BlurxGn1c: "Appointment",
+      }),
+    );
+    expect(a.values).toMatchObject({
+      sent_at: "2026-09-03T08:00:00.000Z",
+      due_at: "2026-09-03T08:00:00.000Z",
+      idx: 1,
+      status: "sent",
+    });
+    expect(a.skipReason).toBeUndefined();
+    const b = mapRecord(
+      appointmentMessagesMapper,
+      rec({
+        fldjRghFRS8xkpkWa: "A2",
+        fld5m4VQXx6JQYAIk: "2026-09-03",
         fldlE1a7BlurxGn1c: "Birthday",
       }),
     );
-    expect(a.values.sent_at).toBe("2026-09-03T08:00:00.000Z");
+    expect(b.skipReason).toBe("birthday_row_handled_by_birthday_log_mapper");
+    expect(
+      mapRecord(
+        appointmentMessagesMapper,
+        rec({ fldjRghFRS8xkpkWa: "A3", fldlE1a7BlurxGn1c: "Appointment" }),
+      ).skipReason,
+    ).toBe("reminder_not_sent");
+  });
+
+  it("Appointment messages, early birthday sends: only Birthday rows with a send date", () => {
+    const row = (kind: string, sent: string | null) =>
+      mapRecord(
+        appointmentLogBirthdayMapper,
+        rec({
+          fldkmbCGn5ovZIxHF: "PIN1",
+          fldlE1a7BlurxGn1c: kind,
+          ...(sent ? { fld5m4VQXx6JQYAIk: sent } : {}),
+        }),
+      );
+    expect(row("Birthday", "2025-04-02").skipReason).toBeUndefined();
+    expect(row("Birthday", "2025-04-02").values).toMatchObject({
+      cycle_key: "2025",
+      status: "sent",
+    });
+    expect(row("Appointment", "2025-04-02").skipReason).toBe("not_a_birthday_row");
+    expect(row("Birthday", null).skipReason).toBe("birthday_without_send_date");
+  });
+
+  it("the two Appointment Messages mappers keep separate import links", () => {
+    expect(entityOf(appointmentMessagesMapper)).not.toBe(entityOf(appointmentLogBirthdayMapper));
   });
 });

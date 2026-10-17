@@ -7,6 +7,8 @@ import { overallVerdict, renderReport } from "../../scripts/import/report";
 import { REGISTRY, type PatientEntry } from "../../scripts/import/registry";
 import { emptyResult, type AirtableSource, type TableResult } from "../../scripts/import/results";
 import { MemoryStore } from "../../scripts/import/store";
+import { birthdayMapper } from "../../scripts/import/tables/message-logs";
+import type { TableMapper } from "../../scripts/import/tables/types";
 
 const E = {
   diagnosis: "app7QJ2pvhADHQeBP.tblZqf4Zcw5Kweadh",
@@ -18,6 +20,13 @@ const E = {
   unitePatients: "app7QJ2pvhADHQeBP.tbl9856qJP9S7OEqB",
   appt: "appkOnjPr1SMD83CP.tblhoSfiSjO4zh9cf",
 };
+
+const table = (mapper: TableMapper) => ({
+  type: "table" as const,
+  key: mapper.key,
+  mapper,
+  dependsOn: mapper.dependsOn ?? [],
+});
 
 const rec = (id: string, fields: Record<string, unknown>): AirtableRecord => ({
   id,
@@ -254,10 +263,11 @@ describe("importer orchestration", () => {
       1,
     ]);
 
-    // appointment messages are still pending: read and validated, never written
+    // appointment messages are a ready table now: read, and skipped because Pulse has no such appointment yet
     const am = run.results.find((r) => r.key === "campaigns.appointment_messages")!;
-    expect(am.outcome).toBe("validated");
-    expect(am.counters.read).toBe(1);
+    expect(am.outcome).toBe("imported");
+    expect(am.counters).toMatchObject({ read: 1, created: 0, skipped: 1, failed: 0 });
+    expect(am.warnings.appointment_not_in_pulse).toBe(1);
     expect(readTables).toContain(E.mrd);
     expect(readTables).toContain(E.appt);
   });
@@ -265,16 +275,30 @@ describe("importer orchestration", () => {
   it("a real run skips pending tables without reading them and says why", async () => {
     const store = await seededStore();
     const { source, readTables } = fakeSource(DATA);
+    // No table is pending any more; the rule still holds for the next one that is.
+    const pending: TableMapper = {
+      ...birthdayMapper,
+      key: "campaigns.synthetic_pending",
+      status: "pending",
+      pendingReason: "waits for the recall_sends writer (synthetic)",
+      dependsOn: [],
+    };
     const run = await runImport(
-      { store, source, runPatients: fakePatients as never },
-      { ...baseOpts, only: ["campaigns.appointment_messages", "campaigns.birthday"] },
+      { store, source, runPatients: fakePatients as never, registry: [table(pending)] },
+      { ...baseOpts, only: ["campaigns.synthetic_pending"] },
     );
     expect(readTables).toEqual([]);
     expect(
       run.results.every((r) => r.outcome === "skipped_pending" && r.verdict === "PENDING"),
     ).toBe(true);
-    expect(run.results.map((r) => r.note).join(" ")).toMatch(/appointments|recall_sends/);
+    expect(run.results.map((r) => r.note).join(" ")).toMatch(/recall_sends/);
     expect(overallVerdict(run.results)).toBe("PASS");
+  });
+
+  it("no registered table is pending: the message logs are written by a real run", () => {
+    expect(
+      REGISTRY.flatMap((e) => (e.type === "table" && e.mapper.status === "pending" ? [e.key] : [])),
+    ).toEqual([]);
   });
 
   it("skips test records unless asked, and counts failed writes as FAIL", async () => {

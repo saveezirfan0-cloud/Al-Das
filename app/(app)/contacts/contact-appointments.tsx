@@ -5,9 +5,11 @@ import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 
 import { listContactAppointments } from "@/app/(app)/appointments/actions";
+import { listAppointmentStatusHistory } from "@/app/(app)/contacts/patient-360-actions";
 import type { ApptRow } from "@/app/(app)/appointments/types";
 import { STATUS_STYLES } from "@/app/(app)/appointments/format";
 import { STATUS_LABELS } from "@/lib/appointments/status";
+import { describeChange, type StatusChange } from "@/lib/appointments/status-history";
 import { cn } from "@/lib/utils";
 
 /** Contact drawer → Appointments tab: portal and Unite appointments with links into the diary. */
@@ -16,15 +18,21 @@ export function ContactAppointments({ contactId }: { contactId: string }) {
     null,
   );
   const [error, setError] = useState<string | null>(null);
+  const [changes, setChanges] = useState<StatusChange[]>([]);
 
   useEffect(() => {
     let alive = true;
     setData(null);
     setError(null);
+    setChanges([]);
     void listContactAppointments(contactId).then((r) => {
       if (!alive) return;
       if (r.ok && r.data) setData(r.data);
       else if (!r.ok) setError(r.error);
+    });
+    // The history is a nicety: a failure leaves the appointments themselves showing.
+    void listAppointmentStatusHistory(contactId).then((r) => {
+      if (alive && r.ok) setChanges(r.data.changes);
     });
     return () => {
       alive = false;
@@ -59,19 +67,36 @@ export function ContactAppointments({ contactId }: { contactId: string }) {
       ) : (
         <ul className="divide-y text-sm">
           {data.rows.map((a) => (
-            <li key={a.id} className="flex items-center justify-between gap-3 py-2">
-              <span>
-                <span className="font-medium">#{a.number}</span> · {fmt(a.starts_at)}
-                <span className="text-muted-foreground block text-xs capitalize">{a.source}</span>
-              </span>
-              <span
-                className={cn(
-                  "rounded border px-1.5 py-0.5 text-xs",
-                  STATUS_STYLES[a.status].replace("line-through", ""),
-                )}
-              >
-                {STATUS_LABELS[a.status]}
-              </span>
+            <li key={a.id} className="py-2">
+              <div className="flex items-center justify-between gap-3">
+                <span>
+                  <span className="font-medium">#{a.number}</span> · {fmt(a.starts_at)}
+                  <span className="text-muted-foreground block text-xs capitalize">{a.source}</span>
+                </span>
+                <span
+                  className={cn(
+                    "rounded border px-1.5 py-0.5 text-xs",
+                    STATUS_STYLES[a.status].replace("line-through", ""),
+                  )}
+                >
+                  {STATUS_LABELS[a.status]}
+                </span>
+              </div>
+              {changes.some((c) => c.appointmentId === a.id) && (
+                <details className="text-muted-foreground mt-1 text-xs">
+                  <summary className="cursor-pointer select-none">Status history</summary>
+                  <ul className="mt-1 flex flex-col gap-0.5 pl-3">
+                    {changes
+                      .filter((c) => c.appointmentId === a.id)
+                      .map((c) => (
+                        <li key={c.id}>
+                          <span className="tabular-nums">{fmt(c.at)}</span> · {describeChange(c)} ·{" "}
+                          {c.byStaff ? "by staff" : "automatic"}
+                        </li>
+                      ))}
+                  </ul>
+                </details>
+              )}
             </li>
           ))}
         </ul>

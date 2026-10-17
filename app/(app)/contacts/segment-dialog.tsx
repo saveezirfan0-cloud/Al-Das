@@ -67,6 +67,7 @@ export function SegmentDialog({
   const [filter, setFilter] = React.useState<Filter>(emptyFilter());
   const [excluding, setExcluding] = React.useState(false);
   const [dripFlowId, setDripFlowId] = React.useState<string | null>(null);
+  const [careOnly, setCareOnly] = React.useState(false);
   const [pending, startTransition] = React.useTransition();
 
   React.useEffect(() => {
@@ -80,6 +81,7 @@ export function SegmentDialog({
     setFilter(f);
     setExcluding(!!f.exclude && countConditions(f.exclude) > 0);
     setDripFlowId(segment?.drip_flow_id ?? null);
+    setCareOnly(segment?.care_only ?? false);
   }, [open, segment, initialFilter]);
 
   // Care programmes only: a filter with a clinical field can never build a marketing audience (enforced on the server).
@@ -89,7 +91,7 @@ export function SegmentDialog({
       clinicalFieldsIn(filter, {
         get: (key) => {
           const f = fields.find((x) => x.key === key);
-          return f ? { clinical: f.clinical === true } : undefined;
+          return f ? { clinical: f.clinical === true, careOnly: f.careOnly === true } : undefined;
         },
       }).length > 0,
     [kind, filter, fields],
@@ -112,6 +114,7 @@ export function SegmentDialog({
         filter: kind === "dynamic" ? effective : null,
         // Only sent when the person may choose it; the server re-checks flows.manage.
         ...(dripFlows ? { drip_flow_id: kind === "static" ? dripFlowId : null } : {}),
+        ...(kind === "static" ? { care_only: careOnly } : {}),
       });
       if (!res.ok) {
         toast.error(res.error);
@@ -125,6 +128,7 @@ export function SegmentDialog({
         filter: kind === "dynamic" ? effective : null,
         member_count: segment?.member_count ?? 0,
         count_refreshed_at: new Date().toISOString(),
+        care_only: kind === "static" ? careOnly : clinicalUsed || (segment?.care_only ?? false),
         drip_flow_id: dripFlows
           ? kind === "static"
             ? dripFlowId
@@ -209,6 +213,23 @@ export function SegmentDialog({
             <p className="text-muted-foreground text-sm">
               Add contacts from the grid with the bulk action &ldquo;Add to segment&rdquo;.
             </p>
+          )}
+          {kind === "static" && (
+            <label className="flex items-start justify-between gap-4 text-sm">
+              <span className="grid gap-0.5">
+                <span className="font-medium">Care programmes only</span>
+                <span className="text-muted-foreground text-xs">
+                  Use this list for recall and follow-up, never for a marketing campaign. Switched
+                  on automatically when the list is filled from a filter that uses health
+                  information. Only an administrator can switch it off again.
+                </span>
+              </span>
+              <Switch
+                checked={careOnly}
+                onCheckedChange={setCareOnly}
+                aria-label="Care programmes only"
+              />
+            </label>
           )}
           {kind === "static" && dripFlows && (
             <div className="grid gap-2">

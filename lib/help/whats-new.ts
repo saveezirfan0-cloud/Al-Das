@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-12-21-care-only-and-record",
+    date: "2026-10-17",
+    title: "Care-only lists, insurer filter and a fuller patient record",
+    body: "A list built from health information is now marked Care only and cannot be chosen for a marketing campaign; appointment doctor, department, service, notes and AI tags count as health information too. Settings, Health data in campaigns records the clinical lead's and management's sign-off on the rule. Patients can be filtered by insurer (from insurance claims, for people who may see claims), and a WhatsApp lead that looks like a registered patient is listed with the patient first in Possible duplicates. The patient record shows the open balance and insurance claim status for finance roles, campaigns sent in the last 90 days, and every appointment status change; Ctrl+K opens the full record. Settings, Migration status now covers Sanoflow and shows the last import of each table.",
+  },
+  {
     id: "2026-12-20-patient-360",
     date: "2026-10-17",
     title: "Full patient record, migration status and lifecycle stages",

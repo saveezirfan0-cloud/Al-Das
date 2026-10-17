@@ -95,6 +95,8 @@ import {
 
 /** Tables with no API policy on purpose: only the service role (server code after can()) touches them. */
 const SERVICE_ONLY = new Set([
+  // Track P0: counts of each importer run (no ids, no values); written by the import scripts, read by the migration page
+  "import_runs",
   // Phase 10: API key hashes and idempotent-response cache; only the public API (server code) touches them
   "api_idempotency",
   "api_keys",
@@ -1243,6 +1245,7 @@ describe.skipIf(!TEST_DATABASE_URL)("cross-org sweep over every org-scoped table
         "channel_secrets",
         "channel_send_slots",
         "scheduled_jobs",
+        "import_runs",
         ...PHASE18_SERVICE_ONLY_TABLES,
         ...PHASE19_SERVICE_ONLY_TABLES,
         ...SF20E_SERVICE_ONLY_TABLES,

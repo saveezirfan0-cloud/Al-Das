@@ -20,10 +20,11 @@ import {
   visitDiagnosesMapper,
 } from "./tables/clinical";
 import {
+  appointmentLogBirthdayMapper,
   appointmentMessagesMapper,
   birthdayMapper,
   chronicRecallMapper,
-} from "./tables/pending-logs";
+} from "./tables/message-logs";
 import {
   cptMasterMapper,
   diagnosisMapper,
@@ -89,9 +90,11 @@ export const REGISTRY: readonly RegistryEntry[] = [
   table(acuteFollowupMapper),
   table(acuteFeedbackMapper),
   table(acuteMessageLogMapper),
-  table(appointmentMessagesMapper),
-  table(birthdayMapper),
   table(chronicRecallMapper),
+  table(birthdayMapper),
+  // After the Birthday table, so an early send logged in both places is adopted, not doubled.
+  table(appointmentLogBirthdayMapper),
+  table(appointmentMessagesMapper),
   // 6. config
   table(websiteMapper),
   table(callScriptsMapper),

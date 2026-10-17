@@ -519,6 +519,12 @@ export async function createRecurringCampaign(
     .eq("id", v.segment_id)
     .maybeSingle();
   if (!segment) return fail("Choose a segment.");
+  const { data: careOnly } = await admin.rpc("segment_is_care_only", {
+    p_org: member.orgId,
+    p_segment: segment.id,
+  });
+  if (careOnly !== false)
+    return fail("That segment is for care programmes only (recall and follow-up), not marketing.");
 
   const timezone = member.org.timezone || "Asia/Dubai";
   const now = new Date();

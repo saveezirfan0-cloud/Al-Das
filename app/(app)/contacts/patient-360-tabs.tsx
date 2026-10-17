@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatDateTime } from "@/lib/contacts/format";
 import type { HistoryItem, HistoryKind } from "@/lib/contacts/history";
+import { CLAIM_STATE_LABEL, type ClaimState } from "@/lib/contacts/patient-billing";
 import { cn } from "@/lib/utils";
 
 import {
@@ -139,8 +140,39 @@ export function ContactInvoices({ contactId }: { contactId: string }) {
         description="Invoices captured from Unite appear here."
       />
     );
+  const s = data.summary;
   return (
     <div className="overflow-x-auto">
+      <dl className="mb-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+        <div>
+          <dt className="text-muted-foreground text-xs">Patient owes</dt>
+          <dd className="font-medium tabular-nums">{money(s.patientDue)}</dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground text-xs">Insurers owe</dt>
+          <dd className="tabular-nums">{money(s.insurerOutstanding)}</dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground text-xs">Open invoices</dt>
+          <dd className="tabular-nums">{s.openInvoices}</dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground text-xs">Insurance claims</dt>
+          <dd>
+            {Object.keys(s.claims).length === 0
+              ? "None"
+              : (Object.entries(s.claims) as Array<[ClaimState, number]>)
+                  .map(([k, n]) => `${n} ${CLAIM_STATE_LABEL[k].toLowerCase()}`)
+                  .join(", ")}
+          </dd>
+        </div>
+      </dl>
+      {s.skipped > 0 && (
+        <p className="text-muted-foreground mb-2 text-xs">
+          {s.skipped} insurance {s.skipped === 1 ? "invoice is" : "invoices are"} not counted:
+          seeing who owes what on them needs claims access.
+        </p>
+      )}
       <table className="w-full text-sm">
         <caption className="text-muted-foreground pb-2 text-left text-xs">
           Amounts in AED. Open an invoice for the payer and balance.
@@ -152,6 +184,8 @@ export function ContactInvoices({ contactId }: { contactId: string }) {
             <th className="py-1.5 text-right font-medium">Net</th>
             <th className="py-1.5 text-right font-medium">Claimed</th>
             <th className="py-1.5 text-right font-medium">Paid</th>
+            <th className="py-1.5 text-right font-medium">Patient owes</th>
+            <th className="py-1.5 font-medium">Insurance claim</th>
           </tr>
         </thead>
         <tbody className="divide-y">
@@ -166,11 +200,19 @@ export function ContactInvoices({ contactId }: { contactId: string }) {
               <td className="py-1.5 text-right tabular-nums">{money(r.net)}</td>
               <td className="py-1.5 text-right tabular-nums">{money(r.claimed)}</td>
               <td className="py-1.5 text-right tabular-nums">{money(r.paid)}</td>
+              <td className="py-1.5 text-right tabular-nums">
+                {r.void || r.balanceDue === null ? "–" : money(Math.max(r.balanceDue, 0))}
+              </td>
+              <td className="py-1.5">
+                {r.claimState && r.claimState !== "not_applicable"
+                  ? CLAIM_STATE_LABEL[r.claimState]
+                  : "–"}
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
-      {data.rows.length >= 50 && (
+      {data.capped && (
         <p className="text-muted-foreground py-2 text-xs">
           Showing the latest 50. Finance, Invoices has the rest.
         </p>

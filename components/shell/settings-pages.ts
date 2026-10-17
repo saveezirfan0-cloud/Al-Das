@@ -280,6 +280,13 @@ export const SETTINGS_PAGES: readonly SettingsPage[] = [
     keywords: ["new patient", "active", "lapsed", "stage"],
     allow: admin,
   },
+  {
+    href: "/settings/health-data-rule",
+    label: "Health data in campaigns",
+    section: "Clinic operations",
+    keywords: ["consent", "marketing", "care only", "segments", "sign off", "clinical lead"],
+    allow: admin,
+  },
 
   // Finance and Accounting setup (Phase D): same URLs, each gated by its own key (can() keeps the finance access window)
   ...FINANCE_SETUP_PAGES.map((p): SettingsPage => ({

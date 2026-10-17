@@ -38,4 +38,6 @@ export type ContactsBootstrap = {
     specialists: Array<{ id: string; name: string }>;
     conditionGroups: Array<{ id: string; name: string }>;
   };
+  /** Insurers for the Insurer filter; empty without finance.claims.view. */
+  payers?: Array<{ id: string; name: string }>;
 };

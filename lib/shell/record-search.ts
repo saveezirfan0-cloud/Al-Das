@@ -59,10 +59,13 @@ export function parseRecordQuery(raw: string, country = DEFAULT_COUNTRY): Record
   return { text, like, digits, e164, enquiryNumber };
 }
 
-/** Where a result opens: the record's drawer through its list page's deep link. */
+/**
+ * Where a result opens: a patient opens the full record page (Patient 360, which needs contacts.view like the search);
+ * enquiries and tasks open their drawer through the list page's deep link.
+ */
 export function recordHref(kind: RecordKind, id: string): string {
   const q = encodeURIComponent(id);
-  if (kind === "contact") return `/contacts?contact=${q}`;
+  if (kind === "contact") return `/contacts/${q}`;
   if (kind === "enquiry") return `/enquiries?enquiry=${q}`;
   return `/tasks?task=${q}`;
 }

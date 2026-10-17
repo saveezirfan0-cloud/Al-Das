@@ -129,8 +129,10 @@ describe.skipIf(!TEST_DATABASE_URL)("clinical Airtable importers against the rea
         );
         const cols = new Set(rows.map((r) => r.column_name));
         expect(cols.size, `${m.key}: target table ${m.target} exists`).toBeGreaterThan(0);
+        // Helper fields are read to find other values and removed before the write (message-logs.ts).
+        const helpers = new Set(m.helperColumns ?? []);
         const wanted = [
-          ...m.fields.map((f) => f.column),
+          ...m.fields.map((f) => f.column).filter((col) => !helpers.has(col)),
           ...(m.links ?? []).flatMap((l) => (l.column ? [l.column] : [])),
           ...m.naturalKey,
         ];

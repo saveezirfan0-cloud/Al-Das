@@ -23,6 +23,7 @@ import {
   parseArgs,
   resolveOrg,
   writeReport,
+  recordImportRuns,
   writeSummary,
 } from "./import/common";
 import { loadCustomFieldsForScript } from "./import/custom-fields";
@@ -98,7 +99,7 @@ async function main() {
   ].join("\n");
 
   const file = writeReport("sanoflow", report);
-  const summaryFile = writeSummary("sanoflow", [
+  const summaries = [
     {
       source: "sanoflow",
       entity: "contact",
@@ -118,7 +119,9 @@ async function main() {
         failed: c.failed,
       },
     },
-  ]);
+  ];
+  const summaryFile = writeSummary("sanoflow", summaries);
+  console.log(await recordImportRuns(admin, org.id, summaries));
   console.log(report);
   console.log(`report → ${file}`);
   console.log(`summary → ${summaryFile}`);

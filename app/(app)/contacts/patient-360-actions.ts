@@ -11,6 +11,9 @@ import {
   type HistoryItem,
 } from "@/lib/contacts/history";
 import { STATUS_LABELS } from "@/lib/appointments/status";
+import { statusChangesFrom, type StatusChange } from "@/lib/appointments/status-history";
+import type { BillingRow, BillingSummary } from "@/lib/contacts/patient-billing";
+import { loadPatientBilling } from "@/lib/contacts/patient-billing-server";
 import { recordAccess } from "@/lib/security/access-log";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -91,64 +94,70 @@ export async function listContactTasks(
 }
 
 // ---------------------------------------------------------------------------
+// Appointments tab: every status change (appointments.view; from record_history, own client so RLS applies)
+// ---------------------------------------------------------------------------
+
+export async function listAppointmentStatusHistory(
+  contactId: string,
+): Promise<P360Result<{ changes: StatusChange[] }>> {
+  const member = await requirePerm("contacts.view");
+  if (!can(member, "appointments.view")) return fail("You don't have access to appointments.");
+  if (!uuid.safeParse(contactId).success) return fail("Invalid contact.");
+  const supabase = await createClient();
+  // The contact's appointments through the branch rule, then their recorded changes.
+  const { data: appts, error } = await supabase
+    .from("appointments")
+    .select("id")
+    .eq("org_id", member.orgId)
+    .eq("contact_id", contactId)
+    .order("starts_at", { ascending: false })
+    .limit(100);
+  if (error) return fail("Could not load the appointments.");
+  const ids = (appts ?? []).map((a) => a.id);
+  if (ids.length === 0) return { ok: true, data: { changes: [] } };
+  const { data: rows, error: hErr } = await supabase
+    .from("record_history")
+    .select("id, record_id, at, actor_id, changes")
+    .eq("org_id", member.orgId)
+    .eq("table_name", "appointments")
+    .eq("op", "update")
+    .in("record_id", ids)
+    .order("at", { ascending: false })
+    .limit(400);
+  if (hErr) return fail("Could not load the status history.");
+  return { ok: true, data: { changes: statusChangesFrom(rows ?? []) } };
+}
+
+// ---------------------------------------------------------------------------
 // Invoices tab (finance.invoices.view; amounts and dates only, linked by the Unite PIN)
 // ---------------------------------------------------------------------------
 
-export type ContactInvoice = {
-  id: string;
-  number: string | null;
-  date: string | null;
-  net: number | null;
-  paid: number | null;
-  claimed: number | null;
-  void: boolean;
-};
+export type ContactInvoice = BillingRow;
 
 export async function listContactInvoices(
   contactId: string,
-): Promise<P360Result<{ rows: ContactInvoice[]; linked: boolean }>> {
+): Promise<
+  P360Result<{ rows: ContactInvoice[]; linked: boolean; summary: BillingSummary; capped: boolean }>
+> {
   const member = await requirePerm("contacts.view");
   // can() also applies the finance access window (docs/36).
   if (!can(member, "finance.invoices.view")) return fail("You don't have access to invoices.");
   if (!uuid.safeParse(contactId).success) return fail("Invalid contact.");
-  const supabase = await createClient();
-  const { data: contact } = await supabase
-    .from("contacts")
-    .select("id, external_id")
-    .eq("org_id", member.orgId)
-    .eq("id", contactId)
-    .maybeSingle();
-  if (!contact) return fail("Contact not found.");
-  const pin = contact.external_id?.trim();
-  if (!pin) return { ok: true, data: { rows: [], linked: false } };
-  const { data, error } = await supabase
-    .from("v_fin_invoice_list")
-    .select("id, inv_display_number, transaction_date, net, paid, claimed, is_deleted")
-    .eq("org_id", member.orgId)
-    .eq("patient_pin", pin)
-    .order("transaction_date", { ascending: false })
-    .limit(50);
-  if (error) return fail("Could not load the invoices.");
-  await recordAccess(createAdminClient(), member, {
-    entity: "finance_invoice",
-    action: "list",
-    detail: { rows: (data ?? []).length, source: "patient_360" },
-  });
+  const billing = await loadPatientBilling(member, contactId);
+  if (!billing) return fail("Could not load the invoices.");
+  if (billing.linked)
+    await recordAccess(createAdminClient(), member, {
+      entity: "finance_invoice",
+      action: "list",
+      detail: { rows: billing.rows.length, source: "patient_360" },
+    });
   return {
     ok: true,
     data: {
-      linked: true,
-      rows: (data ?? [])
-        .filter((r): r is typeof r & { id: string } => !!r.id)
-        .map((r) => ({
-          id: r.id,
-          number: r.inv_display_number,
-          date: r.transaction_date,
-          net: r.net === null ? null : Number(r.net),
-          paid: r.paid === null ? null : Number(r.paid),
-          claimed: r.claimed === null ? null : Number(r.claimed),
-          void: !!r.is_deleted,
-        })),
+      linked: billing.linked,
+      rows: billing.rows,
+      summary: billing.summary,
+      capped: billing.capped,
     },
   };
 }

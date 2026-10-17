@@ -40,6 +40,7 @@ export async function POST(req: Request) {
   if (!limited.allowed) return tooManyRequests(limited);
   const ctx = await loadContactContext(admin, member.orgId, {
     clinical: can(member, "clinical.view"),
+    claims: can(member, "finance.claims.view"),
   });
 
   let filter: Filter | null = null;

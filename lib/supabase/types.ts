@@ -15320,6 +15320,51 @@ export type Database = {
           },
         ];
       };
+      import_runs: {
+        Row: {
+          counters: Json;
+          created_at: string;
+          dry_run: boolean;
+          entity: string;
+          id: string;
+          label: string;
+          org_id: string;
+          run_at: string;
+          source: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          counters: Json;
+          created_at?: string;
+          dry_run: boolean;
+          entity: string;
+          id?: string;
+          label: string;
+          org_id: string;
+          run_at: string;
+          source: string;
+        };
+        Update: {
+          counters?: Json;
+          created_at?: string;
+          dry_run?: boolean;
+          entity?: string;
+          id?: string;
+          label?: string;
+          org_id?: string;
+          run_at?: string;
+          source?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "import_runs_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       ins_claim_activities: {
         Row: {
           activity_start_date: string | null;
@@ -19932,6 +19977,10 @@ export type Database = {
       };
       segments: {
         Row: {
+          care_only: boolean;
+          care_only_reason: string | null;
+          care_only_set_at: string | null;
+          care_only_set_by: string | null;
           count_refreshed_at: string | null;
           created_at: string;
           created_by: string | null;
@@ -19946,6 +19995,10 @@ export type Database = {
         };
         ComputedFields: never;
         Insert: {
+          care_only?: boolean;
+          care_only_reason?: string | null;
+          care_only_set_at?: string | null;
+          care_only_set_by?: string | null;
           count_refreshed_at?: string | null;
           created_at?: string;
           created_by?: string | null;
@@ -19959,6 +20012,10 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          care_only?: boolean;
+          care_only_reason?: string | null;
+          care_only_set_at?: string | null;
+          care_only_set_by?: string | null;
           count_refreshed_at?: string | null;
           created_at?: string;
           created_by?: string | null;
@@ -25327,9 +25384,29 @@ export type Database = {
           p_marketing: boolean;
           p_org_id: string;
           p_params: Json;
+          p_purpose?: string;
+          p_segment_id?: string;
           p_where: string;
         };
         Returns: Json;
+      };
+      lead_patient_blocks: {
+        Args: { p_limit?: number; p_org_id: string };
+        Returns: Array<{ lead_id: string; patient_id: string; via: string }>;
+      };
+      segment_is_care_only: {
+        Args: { p_org: string; p_segment: string };
+        Returns: boolean;
+      };
+      segment_set_care_only: {
+        Args: {
+          p_org: string;
+          p_reason?: string;
+          p_segment: string;
+          p_user: string;
+          p_value: boolean;
+        };
+        Returns: boolean;
       };
       channel_receive_social: {
         Args: {

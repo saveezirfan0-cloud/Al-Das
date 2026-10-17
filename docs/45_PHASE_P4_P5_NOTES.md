@@ -36,6 +36,7 @@ _17 Oct 2026. Synthetic data only. Read with `docs/45_PATIENT_JOURNEY_AND_ECOSYS
 **Recommendation (needs signing by the clinical lead and management before it is relied on):** clinical data is used for care programmes only, never for marketing, unless the patient has given explicit consent that covers it. The code implements the strict version; a consent-based exception would need a per-patient consent record and a new purpose, which does not exist.
 
 ## Deliberately not done / known limits
+_Follow-up 17 Oct 2026: static segments, the SQL purpose check, existing fields, lead matching and the insurer filter are closed, see `docs/45_PHASE_P_FOLLOWUP_NOTES.md`._
 - **Static segments** are hand-picked lists (the grid's "Add to segment" works from whatever filter the person had on screen). The rule cannot see how a static segment was filled, so a static segment filled from a clinical filter could be used in a campaign. Closing this needs a `care_only` mark on the segment (a column) and a decision on who may set it; not built.
 - **Existing fields** such as appointment doctor, department and service, enquiry doctor, AI tags and appointment notes are NOT marked clinical (changing that would block segments that exist today). The lead should decide whether to mark them. Custom fields are non-clinical by default.
 - The `campaign_snapshot_segment` SQL function takes a compiled predicate and does not know the purpose; the check is in TypeScript only.
