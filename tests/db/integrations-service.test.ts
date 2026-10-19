@@ -1004,7 +1004,9 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)(
     describe("payment links", () => {
       let accountId: string;
       let invoice: string;
-      const NOW = new Date("2026-10-18T08:00:00Z");
+      // Links are created at NOW, but the webhook judges "paid after expiry" by the real clock, so NOW must be the real
+      // hour: a fixed date turns the 24 h link into a late payment one day later.
+      const NOW = new Date(Math.floor(Date.now() / 3_600_000) * 3_600_000);
       const payRows = async () =>
         (
           await svc(() =>

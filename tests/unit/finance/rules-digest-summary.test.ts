@@ -39,6 +39,7 @@ describe("rules helpers", () => {
       "E12",
       "E13",
       "E14",
+      "E15",
     ]);
     for (const c of RULE_CODES) {
       expect(RULE_INFO[c].title.length).toBeGreaterThan(3);

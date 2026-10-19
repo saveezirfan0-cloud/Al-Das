@@ -352,6 +352,16 @@ const settingsSchema = z.object({
     .int()
     .min(1, "Cut-off: day 1 to 31.")
     .max(31, "Cut-off: day 1 to 31."),
+  bank_deposit_max_parts: z.coerce
+    .number()
+    .int()
+    .min(1, "Payments in one credit: 1 to 10.")
+    .max(10, "Payments in one credit: 1 to 10."),
+  bank_deposit_max_pool: z.coerce
+    .number()
+    .int()
+    .min(2, "Payments searched: 2 to 60.")
+    .max(60, "Payments searched: 2 to 60."),
 });
 
 /** Matching thresholds and the calendar. Weekend days come as `wd_0` ... `wd_6` checkboxes. */

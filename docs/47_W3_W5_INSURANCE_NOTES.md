@@ -63,7 +63,9 @@ Candidates are single payments and groups (2 to `maxParts`) of one payer within 
 | C11 | taken_back (negative line) | Mohammed, Hardik |
 | C12 | write_off (counts only once approved) | Vineetha, Mohammed |
 
-## Follow-ups (not done)
+## Follow-ups
+**Done 19 Oct 2026** (docs/48): 1 and 2 (`48_FOLLOWUPS_DEPOSITS_NOTES.md`), 3 and the origin/avoidable part of 4 (`48_FOLLOWUPS_CLAIM_STATUS_NOTES.md`), unmatched-deposit exceptions (`48_FOLLOWUPS_DEPOSITS_NOTES.md`) and the receivable comparison, against Tally (`48_INSURANCE_RECEIVABLE_CONTROL_NOTES.md`). The list below is kept as written.
+
 1. Bank reconciliation expects one item per remittance FILE (`ins|<batchId>`). A deposit is one payment REFERENCE. Group `ins_remittance_lines` by `remittance_ref` in the bank loader and call `matchDeposit` for deposits no single item fits; `maxParts` / `maxPool` need two columns in `fin_ref_finance_settings`.
 2. Supply `paid_before` from earlier committed `ins_remittance_lines` (excluding the file being previewed) in `claimsFor`/`ins_claims_for_remittance`.
 3. Show `claimStatus` on the claims page (needs `takenBack` summed from negative advice lines, and to know whether Diligence `remitted` already nets take-backs: Hardik).

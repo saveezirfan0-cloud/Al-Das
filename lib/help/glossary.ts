@@ -39,6 +39,26 @@ export const GLOSSARY = {
     term: "Receivable",
     meaning: "Money others owe the clinic, such as an insurer or a company, for work already done.",
   },
+  "claim-status": {
+    term: "Claim status",
+    meaning:
+      "One status per claim, worked out by Pulse from the Diligence figures, the payment advices and the denial case, such as partly paid or rejected.",
+  },
+  "taken-back": {
+    term: "Payment taken back",
+    meaning:
+      "Money an insurer paid on a claim and later recovered, shown as a negative line on its payment advice. The claim is open again until it is paid.",
+  },
+  "rejection-origin": {
+    term: "Rejection origin",
+    meaning:
+      "Where a rejected claim went wrong: the front desk (approval, cover), clinical, billing or the payer. Finance sets it per denial code.",
+  },
+  avoidable: {
+    term: "Avoidable",
+    meaning:
+      "A rejection the clinic could have prevented. A code nobody has classified yet is shown as Not classified, never as not avoidable.",
+  },
   payable: {
     term: "Payable",
     meaning: "Money the clinic owes suppliers for goods or services it has already received.",

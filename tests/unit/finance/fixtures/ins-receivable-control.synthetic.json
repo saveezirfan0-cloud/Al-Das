@@ -1,0 +1,357 @@
+{
+  "about": "Synthetic cases for the insurance receivable control (docs/48). Shared by the pure rule (lib/finance/insurance-receivable-control.ts) and its SQL twin app.fin_ins_receivable_compare (tests/db/finance-ins-receivable-control.test.ts). Payer ids are made up; no real data.",
+  "cases": [
+    {
+      "name": "total basis, difference within the tolerance",
+      "input": {
+        "tolerance": 1,
+        "tally_state": "mirrored",
+        "diligence": [{ "payer_id": null, "amount": 1000.0 }],
+        "tally": [{ "payer_id": null, "amount": 1000.6 }]
+      },
+      "expected": {
+        "status": "agrees",
+        "basis": "total",
+        "diligence_total": 1000,
+        "tally_total": 1000.6,
+        "difference": 0.6,
+        "payers": []
+      }
+    },
+    {
+      "name": "total basis, difference beyond the tolerance",
+      "input": {
+        "tolerance": 1,
+        "tally_state": "mirrored",
+        "diligence": [{ "payer_id": null, "amount": 1000.0 }],
+        "tally": [{ "payer_id": null, "amount": 1001.5 }]
+      },
+      "expected": {
+        "status": "differs",
+        "basis": "total",
+        "diligence_total": 1000,
+        "tally_total": 1001.5,
+        "difference": 1.5,
+        "payers": []
+      }
+    },
+    {
+      "name": "a difference exactly at the tolerance agrees",
+      "input": {
+        "tolerance": 1,
+        "tally_state": "mirrored",
+        "diligence": [{ "payer_id": null, "amount": 250.25 }],
+        "tally": [{ "payer_id": null, "amount": 249.25 }]
+      },
+      "expected": {
+        "status": "agrees",
+        "basis": "total",
+        "diligence_total": 250.25,
+        "tally_total": 249.25,
+        "difference": -1,
+        "payers": []
+      }
+    },
+    {
+      "name": "per payer, every payer within the tolerance",
+      "input": {
+        "tolerance": 1,
+        "tally_state": "mirrored",
+        "diligence": [
+          { "payer_id": "INS-A", "amount": 500.0, "claims": 4 },
+          { "payer_id": "INS-B", "amount": 300.0, "claims": 2 }
+        ],
+        "tally": [
+          { "payer_id": "INS-A", "amount": 500.4 },
+          { "payer_id": "INS-B", "amount": 299.8 }
+        ]
+      },
+      "expected": {
+        "status": "agrees",
+        "basis": "per_payer",
+        "diligence_total": 800,
+        "tally_total": 800.2,
+        "difference": 0.2,
+        "payers": [
+          {
+            "payer_id": "INS-A",
+            "diligence": 500,
+            "tally": 500.4,
+            "difference": 0.4,
+            "agrees": true
+          },
+          {
+            "payer_id": "INS-B",
+            "diligence": 300,
+            "tally": 299.8,
+            "difference": -0.2,
+            "agrees": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "per payer, totals agree but one payer differs",
+      "input": {
+        "tolerance": 1,
+        "tally_state": "mirrored",
+        "diligence": [
+          { "payer_id": "INS-A", "amount": 500.0 },
+          { "payer_id": "INS-B", "amount": 300.0 }
+        ],
+        "tally": [
+          { "payer_id": "INS-A", "amount": 505.0 },
+          { "payer_id": "INS-B", "amount": 295.5 }
+        ]
+      },
+      "expected": {
+        "status": "differs",
+        "basis": "per_payer",
+        "diligence_total": 800,
+        "tally_total": 800.5,
+        "difference": 0.5,
+        "payers": [
+          { "payer_id": "INS-A", "diligence": 500, "tally": 505, "difference": 5, "agrees": false },
+          {
+            "payer_id": "INS-B",
+            "diligence": 300,
+            "tally": 295.5,
+            "difference": -4.5,
+            "agrees": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "per payer, a payer on one side only",
+      "input": {
+        "tolerance": 1,
+        "tally_state": "mirrored",
+        "diligence": [{ "payer_id": "INS-A", "amount": 120.0 }],
+        "tally": [
+          { "payer_id": "INS-A", "amount": 120.0 },
+          { "payer_id": "INS-C", "amount": 75.0 }
+        ]
+      },
+      "expected": {
+        "status": "differs",
+        "basis": "per_payer",
+        "diligence_total": 120,
+        "tally_total": 195,
+        "difference": 75,
+        "payers": [
+          { "payer_id": "INS-A", "diligence": 120, "tally": 120, "difference": 0, "agrees": true },
+          { "payer_id": "INS-C", "diligence": 0, "tally": 75, "difference": 75, "agrees": false }
+        ]
+      }
+    },
+    {
+      "name": "Tally ledger not tied to one payer: compared in total",
+      "input": {
+        "tolerance": 1,
+        "tally_state": "mirrored",
+        "diligence": [
+          { "payer_id": "INS-A", "amount": 500.0 },
+          { "payer_id": "INS-B", "amount": 300.0 }
+        ],
+        "tally": [{ "payer_id": null, "amount": 800.0 }]
+      },
+      "expected": {
+        "status": "agrees",
+        "basis": "total",
+        "diligence_total": 800,
+        "tally_total": 800,
+        "difference": 0,
+        "payers": []
+      }
+    },
+    {
+      "name": "Diligence claims without a payer id: compared in total",
+      "input": {
+        "tolerance": 1,
+        "tally_state": "mirrored",
+        "diligence": [
+          { "payer_id": "INS-A", "amount": 500.0 },
+          { "payer_id": null, "amount": 100.0 }
+        ],
+        "tally": [{ "payer_id": "INS-A", "amount": 600.0 }]
+      },
+      "expected": {
+        "status": "agrees",
+        "basis": "total",
+        "diligence_total": 600,
+        "tally_total": 600,
+        "difference": 0,
+        "payers": []
+      }
+    },
+    {
+      "name": "no insurer receivable ledger mapped",
+      "input": {
+        "tolerance": 1,
+        "tally_state": "no_account",
+        "diligence": [{ "payer_id": "INS-A", "amount": 100.0 }],
+        "tally": null
+      },
+      "expected": {
+        "status": "no_tally_data",
+        "basis": "none",
+        "diligence_total": 100,
+        "tally_total": null,
+        "difference": null,
+        "payers": []
+      }
+    },
+    {
+      "name": "nothing mirrored from Tally up to the month end",
+      "input": {
+        "tolerance": 1,
+        "tally_state": "no_data",
+        "diligence": [{ "payer_id": "INS-A", "amount": 100.0 }],
+        "tally": null
+      },
+      "expected": {
+        "status": "no_tally_data",
+        "basis": "none",
+        "diligence_total": 100,
+        "tally_total": null,
+        "difference": null,
+        "payers": []
+      }
+    },
+    {
+      "name": "no Diligence claims up to the month end",
+      "input": {
+        "tolerance": 1,
+        "tally_state": "mirrored",
+        "diligence": null,
+        "tally": [{ "payer_id": null, "amount": 50.0 }]
+      },
+      "expected": {
+        "status": "no_diligence_data",
+        "basis": "none",
+        "diligence_total": null,
+        "tally_total": 50,
+        "difference": null,
+        "payers": []
+      }
+    },
+    {
+      "name": "both sides missing: no Tally data first",
+      "input": { "tolerance": 1, "tally_state": "no_data", "diligence": null, "tally": null },
+      "expected": {
+        "status": "no_tally_data",
+        "basis": "none",
+        "diligence_total": null,
+        "tally_total": null,
+        "difference": null,
+        "payers": []
+      }
+    },
+    {
+      "name": "an unknown Tally state fails closed",
+      "input": {
+        "tolerance": 1,
+        "tally_state": "started",
+        "diligence": [{ "payer_id": null, "amount": 1.0 }],
+        "tally": [{ "payer_id": null, "amount": 1.0 }]
+      },
+      "expected": {
+        "status": "differs",
+        "basis": "none",
+        "diligence_total": null,
+        "tally_total": null,
+        "difference": null,
+        "payers": []
+      }
+    },
+    {
+      "name": "an amount that is not a number fails closed",
+      "input": {
+        "tolerance": 1,
+        "tally_state": "mirrored",
+        "diligence": [{ "payer_id": null, "amount": "5" }],
+        "tally": [{ "payer_id": null, "amount": 5.0 }]
+      },
+      "expected": {
+        "status": "differs",
+        "basis": "none",
+        "diligence_total": null,
+        "tally_total": null,
+        "difference": null,
+        "payers": []
+      }
+    },
+    {
+      "name": "a negative tolerance counts as zero",
+      "input": {
+        "tolerance": -5,
+        "tally_state": "mirrored",
+        "diligence": [{ "payer_id": null, "amount": 10.0 }],
+        "tally": [{ "payer_id": null, "amount": 10.01 }]
+      },
+      "expected": {
+        "status": "differs",
+        "basis": "total",
+        "diligence_total": 10,
+        "tally_total": 10.01,
+        "difference": 0.01,
+        "payers": []
+      }
+    },
+    {
+      "name": "both sides empty agree at zero",
+      "input": { "tolerance": 1, "tally_state": "mirrored", "diligence": [], "tally": [] },
+      "expected": {
+        "status": "agrees",
+        "basis": "total",
+        "diligence_total": 0,
+        "tally_total": 0,
+        "difference": 0,
+        "payers": []
+      }
+    },
+    {
+      "name": "rows of one payer are summed and payer ids trimmed",
+      "input": {
+        "tolerance": 0,
+        "tally_state": "mirrored",
+        "diligence": [{ "payer_id": " INS-A ", "amount": 150.0 }],
+        "tally": [
+          { "payer_id": "INS-A", "amount": 100.0 },
+          { "payer_id": "INS-A", "amount": 50.0 }
+        ]
+      },
+      "expected": {
+        "status": "agrees",
+        "basis": "per_payer",
+        "diligence_total": 150,
+        "tally_total": 150,
+        "difference": 0,
+        "payers": [
+          { "payer_id": "INS-A", "diligence": 150, "tally": 150, "difference": 0, "agrees": true }
+        ]
+      }
+    },
+    {
+      "name": "cents do not drift (0.1 + 0.2)",
+      "input": {
+        "tolerance": 0,
+        "tally_state": "mirrored",
+        "diligence": [
+          { "payer_id": null, "amount": 0.1 },
+          { "payer_id": null, "amount": 0.2 }
+        ],
+        "tally": [{ "payer_id": null, "amount": 0.3 }]
+      },
+      "expected": {
+        "status": "agrees",
+        "basis": "total",
+        "diligence_total": 0.3,
+        "tally_total": 0.3,
+        "difference": 0,
+        "payers": []
+      }
+    }
+  ]
+}

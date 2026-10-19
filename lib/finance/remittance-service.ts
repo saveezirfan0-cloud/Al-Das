@@ -193,10 +193,16 @@ async function loadStaged(admin: AdminClient, orgId: string, fileId: string): Pr
   return out;
 }
 
+/**
+ * The candidate claims, each with `paid_before`: what earlier COMMITTED advice already paid on it (negative take-back
+ * lines netted, never below 0), leaving out the file being previewed or committed, so a completing payment is not short
+ * and a second full payment is overpaid (ins_claims_for_remittance, 20261223000100).
+ */
 async function claimsFor(
   admin: AdminClient,
   orgId: string,
   lines: readonly RemitLine[],
+  excludeFileId: string,
 ): Promise<RemitClaim[]> {
   const numbers = [
     ...new Set(lines.map((l) => l.claim_activity_number).filter((x): x is string => !!x)),
@@ -218,6 +224,7 @@ async function claimsFor(
       p_org_id: orgId,
       p_numbers: n,
       p_invoice_keys: k,
+      p_exclude_file_id: excludeFileId,
     });
     if (error) throw new Error(`claims: ${error.code ?? "unknown"}`);
     for (const c of (data ?? []) as unknown as RemitClaim[])
@@ -225,6 +232,7 @@ async function claimsFor(
         ...c,
         quantity: c.quantity == null ? null : Number(c.quantity),
         net: c.net == null ? null : Number(c.net),
+        paid_before: c.paid_before == null ? null : Number(c.paid_before),
       });
   }
   return [...byId.values()];
@@ -301,7 +309,7 @@ async function reconcileFile(admin: AdminClient, orgId: string, fileId: string) 
   if (!file) return null;
   const lines = await loadStaged(admin, orgId, fileId);
   const settings = await loadFinanceSettings(admin, orgId);
-  const claims = await claimsFor(admin, orgId, lines);
+  const claims = await claimsFor(admin, orgId, lines, fileId);
   const prices = await pricesFor(admin, orgId, lines, claims);
   const rows = reconcileRemittance(lines, claims, prices, {
     toleranceAmount: settings.shortPayToleranceAmount,

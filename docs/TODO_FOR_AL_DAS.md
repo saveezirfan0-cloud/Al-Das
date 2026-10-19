@@ -11,6 +11,8 @@ _Updated 17 Oct 2026 (section 5b added: insurer payment matching and Unite recor
 
 ## 2. Accounting setup (before Pulse posts anything)
 
+> **On hold (owner decision, 19 Oct 2026):** Tally stays the book of record and Pulse integrates with it through the Tally connector; Pulse's own ledger and the cut-over are on hold, so this section and the cut-over date (OQ-117) wait. The Tally connector (section 3) is handled by Hardik.
+
 - [ ] Decide the VAT treatment per service (OQ-120) and enter the VAT codes under Accounting, Setup, Posting rules. Until then every Unite invoice waits in "Waiting to post" (no wrong VAT is ever guessed). _Hardik / tax adviser_
 - [ ] Review the default chart of accounts and posting rules with the accountant (Accounting, Setup). _Accountant_
 - [ ] Link each bank account to its ledger (Accounting, Banking, Bank accounts). _Accountant_

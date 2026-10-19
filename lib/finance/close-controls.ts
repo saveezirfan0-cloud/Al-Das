@@ -1,3 +1,12 @@
+import {
+  readInsReceivable,
+  recompute,
+  snapshotStatus,
+  STATUS_LABEL,
+  TALLY_STATE_TEXT,
+  type InsReceivableBlock,
+} from "@/lib/finance/insurance-receivable-control";
+
 /**
  * Phase 20G part 2: the Board pack control summary (pure). `fin_close_controls` (SQL) returns the summary when the pack
  * is built; it is frozen into the pack snapshot together with the "matters needing attention" derived here, so both are
@@ -69,6 +78,11 @@ export type CloseControls = {
     inputs: { total: number; on_time: number; late: number; pending: number };
   } | null;
   exceptions: { open: number; oldest_days: number | null; over_limit: number };
+  /**
+   * docs/48: Diligence insurance receivable beside Tally's insurer receivable at the month end. Absent in packs built
+   * before it (rendered "not captured"); read it with readInsReceivable().
+   */
+  ins_receivable?: InsReceivableBlock | null;
 };
 
 export type Matter = { key: string; text: string };
@@ -156,6 +170,17 @@ export function deriveMatters(c: CloseControls): Matter[] {
     });
   if (tt && tt.blocked > 0)
     out.push({ key: "steps_blocked", text: `${plural(tt.blocked, "close step")} blocked.` });
+  // the same status the database re-checks at the finance sign-off (app.fin_close_ins_status)
+  const ir = readInsReceivable(c.ins_receivable);
+  const irResult = ir ? recompute(ir) : null;
+  if (snapshotStatus(c) === "differs")
+    out.push({
+      key: "ins_receivable_differs",
+      text:
+        !ir || !irResult || irResult.difference === null
+          ? "The insurance receivable control could not be read; it counts as a difference and needs an explanation before Finance signs."
+          : `Insurance receivable: Tally (AED ${amountText(irResult.tally_total ?? 0)}) differs from Diligence (AED ${amountText(irResult.diligence_total ?? 0)}) by AED ${amountText(irResult.difference)}${irResult.basis === "per_payer" ? ` (${plural(irResult.payers.filter((p) => !p.agrees).length, "payer")} outside the tolerance)` : ""}; the tolerance is AED ${amountText(typeof ir.tolerance === "number" ? ir.tolerance : 0)}. Finance signs only after the preparer explains it.`,
+    });
   if (c.exceptions.over_limit > 0)
     out.push({
       key: "exceptions_old",
@@ -176,7 +201,77 @@ export const NOT_CAPTURED =
 
 export const NOT_SET_UP = "Not set up";
 
-export type ControlSection = { title: string; rows: Array<[string, string]> };
+export type ControlSection = { key?: string; title: string; rows: Array<[string, string]> };
+
+export const INS_RECEIVABLE_TITLE = "Insurance receivable control (Diligence and Tally)";
+
+/** The insurance receivable control as label / value rows (page, Excel and PDF), from the frozen block only. */
+export function insReceivableSection(c: CloseControls): ControlSection {
+  const key = "ins_receivable";
+  if (c.ins_receivable === undefined)
+    return {
+      key,
+      title: INS_RECEIVABLE_TITLE,
+      rows: [["Control", "Not captured in this pack: it was built before this control existed."]],
+    };
+  const b = readInsReceivable(c.ins_receivable);
+  if (!b)
+    return {
+      key,
+      title: INS_RECEIVABLE_TITLE,
+      rows: [["Status", "Differs (the stored control could not be read)"]],
+    };
+  const r = recompute(b);
+  const amt = (n: number | null) => (n === null ? "none" : `AED ${amountText(n)}`);
+  const name = (id: string) => (b.payer_names?.[id] ? `${b.payer_names[id]} (${id})` : id);
+  const rows: Array<[string, string]> = [
+    ["Status", STATUS_LABEL[r.status]],
+    [
+      `Diligence receivable at ${b.month_end}`,
+      r.diligence_total === null && r.status !== "differs"
+        ? "no Diligence claims up to the month end"
+        : amt(r.diligence_total),
+    ],
+    [
+      `Tally insurer receivable at ${b.month_end}`,
+      b.tally_state === "mirrored"
+        ? amt(r.tally_total)
+        : (TALLY_STATE_TEXT[b.tally_state] ?? String(b.tally_state)),
+    ],
+  ];
+  if (r.difference !== null) rows.push(["Difference (Tally minus Diligence)", amt(r.difference)]);
+  rows.push(["Tolerance", amt(typeof b.tolerance === "number" ? b.tolerance : 0)]);
+  if (r.basis === "per_payer") rows.push(["Compared", "per payer"]);
+  if (r.basis === "total")
+    rows.push([
+      "Compared",
+      `in total (without a payer: Diligence ${amt(r.unassigned_diligence)}, Tally ${amt(r.unassigned_tally)})`,
+    ]);
+  for (const p of r.payers)
+    rows.push([
+      `  ${name(p.payer_id)}`,
+      `Diligence ${amt(p.diligence)}, Tally ${amt(p.tally)}, difference ${amt(p.difference)}${p.agrees ? "" : " (differs)"}`,
+    ]);
+  const ledgers = (b.accounts ?? []).map((a) => `${a.code} ${a.name}`).join("; ");
+  rows.push(["Tally ledger(s)", ledgers || "none mapped"]);
+  rows.push([
+    "Tally figures as fresh as",
+    b.tally_last_mirrored_at
+      ? `last Tally voucher mirrored ${b.tally_last_mirrored_at.slice(0, 16).replace("T", " ")} (latest voucher date ${b.tally_last_voucher_date ?? "unknown"})`
+      : "nothing mirrored from Tally yet",
+  ]);
+  if (b.remitted_after && b.remitted_after.claims > 0)
+    rows.push([
+      "Remitted after the month end, added back",
+      `${plural(b.remitted_after.claims, "claim")}, AED ${amountText(b.remitted_after.amount)}`,
+    ]);
+  if (b.remitted_straddling > 0)
+    rows.push([
+      "Remitted before and after the month end (all deducted)",
+      plural(b.remitted_straddling, "claim"),
+    ]);
+  return { key, title: INS_RECEIVABLE_TITLE, rows };
+}
 
 const ca = (x: CountAmount) => `${x.count}, AED ${amountText(x.amount)}`;
 const days = (n: number | null) => (n === null ? "none" : `${n} days`);
@@ -271,6 +366,7 @@ export function controlSections(c: CloseControls): ControlSection[] {
         ]
       : [["Close timetable", NOT_SET_UP]],
   });
+  sections.push(insReceivableSection(c));
   sections.push({
     title: "Finance exceptions",
     rows: [

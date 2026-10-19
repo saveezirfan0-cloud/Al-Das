@@ -82,7 +82,8 @@ To finish the room measures:
 ## Waits on the Unite appointment feed
 
 Shown as "Needs Unite appointments", never as a number:
-- Appointment utilisation: booked minutes ÷ available minutes, per doctor and overall.
+- ~~Appointment utilisation: booked minutes ÷ available minutes, per doctor and overall.~~ Filled from the Unite
+  appointment upload (W2) when it covers the month and the doctor's branches: docs/48_CAPACITY_APPOINTMENTS_NOTES.md.
 - No-shows, late cancels and retention (the rest of M3 in docs/40).
 - Alerts: under-booked doctor, under-used room, no-show spike.
 

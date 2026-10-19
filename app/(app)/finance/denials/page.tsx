@@ -1,9 +1,11 @@
 import Link from "next/link";
 
+import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
+import { Term } from "@/components/shell/term";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -17,15 +19,22 @@ import { requirePerm } from "@/lib/auth/session";
 import { todayIn } from "@/lib/finance/action-support";
 import {
   ACTIVE_STATUSES,
+  avoidableLabel,
   CASE_STATUSES,
   CATEGORY_LABELS,
   deadlineCountdown,
+  NOT_CLASSIFIED,
+  ORIGIN_LABELS,
+  originBreakdown,
+  rejectionOrigin,
   STATUS_LABELS,
   type CaseStatus,
   type DenialCategory,
 } from "@/lib/finance/denials";
+import { loadDenialTaxonomy } from "@/lib/finance/denial-taxonomy";
 import { money } from "@/lib/finance/format";
 import { loadFinanceSettings } from "@/lib/finance/settings-db";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 import { createClient } from "@/lib/supabase/server";
 
 import { SyncButton } from "./denial-controls";
@@ -36,6 +45,8 @@ export const metadata = { title: "Denials" };
 export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 50;
+/** The origin breakdown reads at most this many cases matching the filters (reason code and amount only). */
+const BREAKDOWN_CAP = 20_000;
 type Search = {
   q?: string;
   status?: string;
@@ -58,36 +69,57 @@ export default async function DenialsPage({ searchParams }: { searchParams: Prom
   const settings = await loadFinanceSettings(supabase, member.orgId);
   const today = todayIn(member.org.timezone);
 
-  let query = supabase
-    .from("ins_denial_cases")
-    .select(
-      "id, claim_number, invoice_no, cpt_code, payer_id, reason_code, category, rejected_amount, status, denied_on, deadline_on, owner_user_id",
-      { count: "exact" },
-    )
-    .order("deadline_on", { ascending: true })
-    .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
-  if ((CASE_STATUSES as readonly string[]).includes(sp.status ?? ""))
-    query = query.eq("status", sp.status as string);
-  else if (sp.status !== "all") query = query.in("status", ACTIVE_STATUSES as unknown as string[]);
-  if (safe(sp.payer)) query = query.eq("payer_id", safe(sp.payer));
-  if (safe(sp.q))
-    query = query.or(
-      `claim_number.ilike.%${safe(sp.q)}%,invoice_no.ilike.%${safe(sp.q)}%,reason_code.ilike.%${safe(sp.q)}%`,
-    );
-  if (sp.mine === "1") query = query.eq("owner_user_id", member.userId);
-  if (sp.due === "1")
-    query = query
-      .lte(
-        "deadline_on",
-        new Date(Date.parse(`${today}T00:00:00Z`) + settings.denialWarnDays * 86_400_000)
-          .toISOString()
-          .slice(0, 10),
+  const warnBy = new Date(Date.parse(`${today}T00:00:00Z`) + settings.denialWarnDays * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the same filters on two query shapes
+  const filtered = <Q extends { eq: any; in: any; or: any; lte: any }>(query: Q): Q => {
+    let q = query;
+    if ((CASE_STATUSES as readonly string[]).includes(sp.status ?? ""))
+      q = q.eq("status", sp.status as string);
+    else if (sp.status !== "all") q = q.in("status", ACTIVE_STATUSES as unknown as string[]);
+    if (safe(sp.payer)) q = q.eq("payer_id", safe(sp.payer));
+    if (safe(sp.q))
+      q = q.or(
+        `claim_number.ilike.%${safe(sp.q)}%,invoice_no.ilike.%${safe(sp.q)}%,reason_code.ilike.%${safe(sp.q)}%`,
+      );
+    if (sp.mine === "1") q = q.eq("owner_user_id", member.userId);
+    if (sp.due === "1") q = q.lte("deadline_on", warnBy).in("status", ["open", "in_progress"]);
+    return q;
+  };
+  const query = filtered(
+    supabase
+      .from("ins_denial_cases")
+      .select(
+        "id, claim_number, invoice_no, cpt_code, payer_id, reason_code, category, rejected_amount, status, denied_on, deadline_on, owner_user_id",
+        { count: "exact" },
       )
-      .in("status", ["open", "in_progress"]);
-  const [{ data, count }, { data: people }] = await Promise.all([
+      .order("deadline_on", { ascending: true })
+      .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1),
+  );
+  const [{ data, count }, { data: people }, taxonomy, forBreakdown] = await Promise.all([
     query,
     supabase.from("profiles").select("id, first_name, last_name"),
+    loadDenialTaxonomy(supabase, member.orgId),
+    fetchAll(
+      (from, to) =>
+        filtered(
+          supabase
+            .from("ins_denial_cases")
+            .select("id, reason_code, rejected_amount")
+            .order("id")
+            .range(from, to),
+        ),
+      { max: BREAKDOWN_CAP },
+    ),
   ]);
+  const breakdown = originBreakdown(
+    (forBreakdown.data ?? []).map((r) => ({
+      reasonCode: r.reason_code,
+      amount: r.rejected_amount,
+    })),
+    taxonomy,
+  );
   const names = new Map(
     (people ?? []).map((p) => [p.id, `${p.first_name} ${p.last_name}`.trim() || "—"]),
   );
@@ -153,10 +185,84 @@ export default async function DenialsPage({ searchParams }: { searchParams: Prom
           Filter
         </Button>
       </form>
+      {breakdown.total.count > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Where these rejections came from</CardTitle>
+            <CardDescription>
+              The cases matching the filters, by <Term k="rejection-origin">origin</Term> and
+              whether they were <Term k="avoidable">avoidable</Term>. Both come from the denial code
+              (Finance, Workflow settings); a code nobody has classified is counted as Not
+              classified.
+              {forBreakdown.truncated &&
+                ` Only the first ${BREAKDOWN_CAP.toLocaleString()} cases are counted: narrow the filters for the rest.`}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-6 md:grid-cols-2">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Origin</TableHead>
+                  <TableHead className="text-right">Cases</TableHead>
+                  <TableHead className="text-right">Denied</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {breakdown.byOrigin.map((b) => (
+                  <TableRow key={b.origin ?? "none"}>
+                    <TableCell className="text-xs">
+                      {b.origin ? ORIGIN_LABELS[b.origin] : NOT_CLASSIFIED}
+                    </TableCell>
+                    <TableCell className="text-right text-xs tabular-nums">
+                      {b.count.toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-right text-xs tabular-nums">
+                      {money(b.amount)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Avoidable</TableHead>
+                  <TableHead className="text-right">Cases</TableHead>
+                  <TableHead className="text-right">Denied</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(
+                  [
+                    [avoidableLabel(true), breakdown.avoidable],
+                    [avoidableLabel(false), breakdown.notAvoidable],
+                    [avoidableLabel(null), breakdown.notClassified],
+                    ["Total", breakdown.total],
+                  ] as const
+                ).map(([label, cell]) => (
+                  <TableRow key={label}>
+                    <TableCell className="text-xs">{label}</TableCell>
+                    <TableCell className="text-right text-xs tabular-nums">
+                      {cell.count.toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-right text-xs tabular-nums">
+                      {money(cell.amount)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
       <Card>
         <CardContent className="pt-6">
           {(data ?? []).length === 0 ? (
-            <p className="text-muted-foreground text-sm">No denial cases to show.</p>
+            <EmptyState
+              title="No denial cases to show"
+              description="Each denied claim becomes a case once denial cases are switched on. Clear the filters, or choose Every status to see closed cases."
+              className="border-0 p-6"
+            />
           ) : (
             <Table>
               <TableHeader>
@@ -165,6 +271,7 @@ export default async function DenialsPage({ searchParams }: { searchParams: Prom
                   <TableHead>Claim</TableHead>
                   <TableHead>Payer</TableHead>
                   <TableHead>Reason</TableHead>
+                  <TableHead>Origin</TableHead>
                   <TableHead className="text-right">Denied</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Owner</TableHead>
@@ -174,6 +281,7 @@ export default async function DenialsPage({ searchParams }: { searchParams: Prom
                 {(data ?? []).map((c) => {
                   const active = c.status === "open" || c.status === "in_progress";
                   const cd = deadlineCountdown(c.deadline_on, today, settings.denialWarnDays);
+                  const o = rejectionOrigin(c.reason_code, taxonomy);
                   return (
                     <TableRow key={c.id}>
                       <TableCell className="text-xs">
@@ -201,6 +309,18 @@ export default async function DenialsPage({ searchParams }: { searchParams: Prom
                         <span className="text-muted-foreground">
                           {CATEGORY_LABELS[c.category as DenialCategory]}
                         </span>
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        {o.origin ? (
+                          ORIGIN_LABELS[o.origin]
+                        ) : (
+                          <span className="text-muted-foreground">{NOT_CLASSIFIED}</span>
+                        )}
+                        {o.avoidable !== null && (
+                          <Badge variant={o.avoidable ? "warning" : "secondary"} className="ml-2">
+                            {avoidableLabel(o.avoidable)}
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell className="text-right text-xs tabular-nums">
                         {money(c.rejected_amount)}

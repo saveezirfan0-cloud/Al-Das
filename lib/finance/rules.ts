@@ -93,6 +93,13 @@ export const RULE_INFO: Record<string, RuleInfo> = {
     action:
       "Billing: check the service code on the claim against the invoice lines, then correct the claim in Diligence or the invoice in Unite.",
   },
+  E15: {
+    title: "Insurer deposit not matched",
+    meaning:
+      "Money arrived on the account that receives insurers' payments and, after the threshold, no remittance, payment reference or group of references has been matched to it, and no reason was given in the bank reconciliation.",
+    action:
+      "Finance: open the month's bank reconciliation, upload any missing remittance advice, accept a proposed match or group, or give the credit a reason.",
+  },
 };
 
 export const RULE_CODES = Object.keys(RULE_INFO);

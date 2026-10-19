@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-12-23-insurance-followups",
+    date: "2026-10-19",
+    title: "Insurance: claim status, rejection causes, deposits and the receivable check",
+    body: "Claims now show one status each (paid, short paid, denied, taken back and so on) with a filter and an Excel column. Denial codes say where a rejection came from (front desk, clinical, billing, payer) and whether it was avoidable, and the Denials page totals them. In Bank reconciliation, one bank deposit can be matched to several insurer payments: Pulse proposes the group and a person accepts it. A payment that completes an earlier partial one is recognised, and an insurer deposit left unmatched for 10 days becomes an exception. The month-end close compares what Diligence says insurers owe with Tally's insurer receivable; a difference needs a written reason before Finance signs. The Capacity page now shows booked hours against available hours from the Unite appointment upload.",
+  },
+  {
     id: "2026-12-20-patient-360",
     date: "2026-10-17",
     title: "Full patient record, migration status and lifecycle stages",

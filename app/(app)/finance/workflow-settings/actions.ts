@@ -14,7 +14,7 @@ import {
   type ActionResult,
 } from "@/lib/finance/action-support";
 import { OWNER_ROLES, parseStatusList } from "@/lib/finance/blueprint-settings";
-import { DENIAL_CATEGORIES } from "@/lib/finance/denials";
+import { DENIAL_CATEGORIES, REJECTION_ORIGINS } from "@/lib/finance/denials";
 import { parseDaySteps } from "@/lib/finance/followup";
 import { parsePriceText } from "@/lib/finance/payer-prices";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -256,6 +256,39 @@ export async function saveChangeReviewSettings(raw: Record<string, string>): Pro
   return { ok: true, message: "Settings saved." };
 }
 
+const claimStatusSchema = z.object({
+  diligence_remitted_nets_takebacks: z.enum(["", "yes", "no"]),
+});
+
+/**
+ * One status per claim (docs/48): does Diligence's Remitted already deduct payments taken back? Blank = not confirmed
+ * (the claims page then uses the proposed treatment and says so). Service role after the permission check.
+ */
+export async function saveClaimStatusSettings(raw: Record<string, string>): Promise<ActionResult> {
+  const member = await requirePerm(PERM);
+  const p = claimStatusSchema.safeParse(raw);
+  if (!p.success) return fail(firstIssue(p.error, "Choose one of the answers."));
+  const v = p.data.diligence_remitted_nets_takebacks;
+  const value = v === "" ? null : v === "yes";
+  const admin = createAdminClient(member.userId); // service role AFTER the permission check
+  const { error } = await admin
+    .from("fin_ref_finance_settings")
+    .update({ diligence_remitted_nets_takebacks: value })
+    .eq("org_id", member.orgId);
+  if (error) return fail(dbMessage(error, "Could not save the setting."));
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "finance.workflow.claim_status_saved",
+    entity: "fin_ref_finance_settings",
+    entityId: member.orgId,
+    diff: { remitted_nets_takebacks: value },
+  });
+  refresh();
+  revalidatePath("/finance/claims");
+  return { ok: true, message: "Setting saved." };
+}
+
 const codeSchema = z.object({
   code: z
     .string()
@@ -277,6 +310,15 @@ const codeSchema = z.object({
     ),
   appealable: checkbox,
   active: checkbox,
+  // Rejection origin and avoidable (docs/48): blank = not classified, never "not avoidable".
+  origin: z
+    .union([z.literal(""), z.enum(REJECTION_ORIGINS)])
+    .optional()
+    .transform((v) => (v ? v : null)),
+  avoidable: z
+    .enum(["", "yes", "no"])
+    .optional()
+    .transform((v) => (v === "yes" ? true : v === "no" ? false : null)),
 });
 
 export async function saveDenialCode(raw: Record<string, string>): Promise<ActionResult> {
@@ -299,6 +341,7 @@ export async function saveDenialCode(raw: Record<string, string>): Promise<Actio
     action: "finance.workflow.denial_code_saved",
     entity: "fin_ref_denial_codes",
     entityId: code,
+    diff: { category: p.data.category, origin: p.data.origin, avoidable: p.data.avoidable },
   });
   refresh();
   return { ok: true, message: "Code saved." };

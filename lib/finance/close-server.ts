@@ -12,6 +12,12 @@ import {
   type ReasonLine,
 } from "@/lib/finance/close-pack";
 import { readControls } from "@/lib/finance/close-controls";
+import {
+  explanationState,
+  readInsReceivable,
+  recompute,
+  snapshotStatus,
+} from "@/lib/finance/insurance-receivable-control";
 import type { SignOff } from "@/lib/finance/close-xlsx";
 import { parseRevenue } from "@/lib/finance/revenue";
 import type { AdminClient } from "@/lib/supabase/admin";
@@ -85,6 +91,10 @@ export async function buildAndStorePack(
   if (controls.error) throw new Error(`close controls: ${controls.error.code ?? "unknown"}`);
   const summary = readControls(controls.data);
   if (!summary) throw new Error("close controls: unreadable summary");
+  // docs/48: the SQL rule and the TS twin must agree on the frozen control before it is signed.
+  const ins = readInsReceivable(summary.ins_receivable);
+  if (!ins || recompute(ins).status !== ins.result.status)
+    throw new Error("close controls: insurance receivable control disagrees");
   const pack = buildClosePack({
     orgName: input.orgName,
     month: `${input.month}-01`,
@@ -127,6 +137,10 @@ export type CloseRecord = {
   hash: string | null;
   financeById: string | null;
   ceoById: string | null;
+  /** docs/48: who wrote the insurance receivable explanation (the finance signer must be someone else). */
+  insNoteById: string | null;
+  /** The stored explanation, also when it was written for an earlier build (the form starts from it). */
+  insNoteText: string | null;
   sign: SignOff;
 };
 
@@ -142,7 +156,9 @@ export async function loadCloseByMonth(
     .eq("month", `${month}-01`)
     .maybeSingle();
   if (!c) return null;
-  const ids = [c.finance_signed_by, c.ceo_signed_by].filter((x): x is string => !!x);
+  const ids = [c.finance_signed_by, c.ceo_signed_by, c.ins_control_note_by].filter(
+    (x): x is string => !!x,
+  );
   const { data: people } = ids.length
     ? await admin.from("profiles").select("id, first_name, last_name").in("id", ids)
     : { data: [] };
@@ -159,6 +175,8 @@ export async function loadCloseByMonth(
     hash: c.snapshot_hash,
     financeById: c.finance_signed_by,
     ceoById: c.ceo_signed_by,
+    insNoteById: c.ins_control_note_by,
+    insNoteText: c.ins_control_note,
     sign: {
       financeBy: name(c.finance_signed_by),
       financeAt: c.finance_signed_at,
@@ -168,6 +186,34 @@ export async function loadCloseByMonth(
       ceoNote: c.ceo_note,
       lockedAt: c.locked_at,
       hash: c.snapshot_hash,
+      insNote: insNoteView(c, name),
     },
+  };
+}
+
+/** docs/48: the insurance receivable explanation as the page and the pack files show it. */
+function insNoteView(
+  c: {
+    snapshot: unknown;
+    snapshot_hash: string | null;
+    ins_control_note: string | null;
+    ins_control_note_hash: string | null;
+    ins_control_note_at: string | null;
+    ins_control_note_by: string | null;
+  },
+  name: (id: string | null) => string | null,
+): SignOff["insNote"] {
+  const status = snapshotStatus((c.snapshot as { controls?: unknown } | null)?.controls);
+  const state = explanationState(
+    status,
+    c.ins_control_note ? { hash: c.ins_control_note_hash } : null,
+    c.snapshot_hash,
+  );
+  if (state === "not_needed") return null;
+  return {
+    state,
+    text: state === "given" ? c.ins_control_note : null,
+    at: state === "given" ? c.ins_control_note_at : null,
+    by: state === "given" ? name(c.ins_control_note_by) : null,
   };
 }

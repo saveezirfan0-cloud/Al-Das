@@ -21,6 +21,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   BlueprintSettingsForm,
   ChangeReviewSettingsForm,
+  ClaimStatusSettingsForm,
   CodeForm,
   FollowupSettingsForm,
   PriceImport,
@@ -62,14 +63,16 @@ export default async function WorkflowSettingsPage({
       supabase
         .from("fin_ref_denial_codes")
         .select(
-          "code, is_family, description, category, default_owner_role, resubmit_days, appealable, active, is_placeholder",
+          "code, is_family, description, category, default_owner_role, resubmit_days, appealable, active, is_placeholder, origin, avoidable",
         )
         .order("code"),
       priceQuery,
       supabase.from("roles").select("name").eq("org_id", member.orgId).order("name"),
       supabase
         .from("fin_ref_finance_settings")
-        .select("change_review_start_date, change_review_min_amount, change_bulk_approve_max")
+        .select(
+          "change_review_start_date, change_review_min_amount, change_bulk_approve_max, diligence_remitted_nets_takebacks",
+        )
         .eq("org_id", member.orgId)
         .maybeSingle(),
     ]);
@@ -121,6 +124,19 @@ export default async function WorkflowSettingsPage({
       </Card>
       <Card>
         <CardHeader>
+          <CardTitle className="text-base">Claim status</CardTitle>
+          <CardDescription>
+            The claims list shows one status per claim. It needs to know whether the Remitted figure
+            in the Diligence report already has payments taken back by the insurer deducted. Until
+            someone confirms it, the list says the answer is unconfirmed.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ClaimStatusSettingsForm value={changeRow?.diligence_remitted_nets_takebacks ?? null} />
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
           <CardTitle className="text-base">Invoice-change review</CardTitle>
           <CardDescription>
             Who may discount, cancel, refund or credit a Unite invoice, and up to what amount, is
@@ -144,7 +160,8 @@ export default async function WorkflowSettingsPage({
           <CardDescription>
             An exact code is used first, then a family (the letters before the first dash or digit).
             Rows marked as starter placeholders are examples only: load your payers&apos; real code
-            lists here. The days set the resubmission deadline.
+            lists here. The days set the resubmission deadline. Origin and avoidable feed the
+            breakdown on Denials; leave them Not classified until Finance has agreed them.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">

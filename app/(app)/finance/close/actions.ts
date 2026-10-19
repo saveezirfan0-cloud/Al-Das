@@ -20,6 +20,7 @@ import {
   loadCloseByMonth,
   MONTH_RE,
 } from "@/lib/finance/close-server";
+import { EXPLANATION_MAX, EXPLANATION_MIN } from "@/lib/finance/insurance-receivable-control";
 import { closePackPdfFile } from "@/lib/finance/signed-pdfs-server";
 import { checkRateLimit, RATE_RULES, waitText } from "@/lib/rate-limit";
 import { redactText } from "@/lib/redact";
@@ -232,6 +233,55 @@ export async function signOffCeo(raw: SignInput): Promise<ActionResult> {
   return {
     ok: true,
     message: `Signed${r.signed ? " with your certificate" : ""}. The month is now locked for good.${sealed ? " The close pack was sealed." : ""}`,
+  };
+}
+
+const explainSchema = z.object({
+  id: uuid,
+  month: z.string().regex(MONTH_RE),
+  hash: z.string().regex(/^[0-9a-f]{64}$/),
+  note: z
+    .string()
+    .trim()
+    .min(EXPLANATION_MIN, `Write at least ${EXPLANATION_MIN} characters.`)
+    .max(EXPLANATION_MAX, `At most ${EXPLANATION_MAX} characters.`),
+});
+
+/**
+ * docs/48: the preparer explains why the insurance receivable in this pack differs from Tally. Required (in SQL) before
+ * the finance sign-off, which a different person gives. The text is stored on the close, never in the audit row.
+ */
+export async function explainInsReceivable(raw: {
+  id: string;
+  month: string;
+  hash: string;
+  note: string;
+}): Promise<ActionResult> {
+  const member = await gate("finance.close.manage");
+  if (!member) return fail(DENIED);
+  const p = explainSchema.safeParse(raw);
+  if (!p.success) return fail(firstIssue(p.error));
+  const admin = createAdminClient(member.userId);
+  const { error } = await admin.rpc("fin_close_explain_ins_receivable", {
+    p_org_id: member.orgId,
+    p_close_id: p.data.id,
+    p_user_id: member.userId,
+    p_hash: p.data.hash,
+    p_note: p.data.note,
+  });
+  if (error) return fail(rpcMessage(error, "The explanation could not be saved."));
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "finance.close.ins_receivable_explained",
+    entity: "fin_period_closes",
+    entityId: p.data.id,
+    diff: { month: p.data.month, field: "ins_control_note", length: p.data.note.length },
+  });
+  revalidatePath(`/finance/close/${p.data.month}`);
+  return {
+    ok: true,
+    message: "Explanation saved. Someone else reviews it when they sign for Finance.",
   };
 }
 

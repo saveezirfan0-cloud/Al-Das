@@ -11915,6 +11915,10 @@ export type Database = {
           finance_signed_at: string | null;
           finance_signed_by: string | null;
           id: string;
+          ins_control_note: string | null;
+          ins_control_note_at: string | null;
+          ins_control_note_by: string | null;
+          ins_control_note_hash: string | null;
           locked_at: string | null;
           month: string;
           org_id: string;
@@ -11935,6 +11939,10 @@ export type Database = {
           finance_signed_at?: string | null;
           finance_signed_by?: string | null;
           id?: string;
+          ins_control_note?: string | null;
+          ins_control_note_at?: string | null;
+          ins_control_note_by?: string | null;
+          ins_control_note_hash?: string | null;
           locked_at?: string | null;
           month: string;
           org_id: string;
@@ -11954,6 +11962,10 @@ export type Database = {
           finance_signed_at?: string | null;
           finance_signed_by?: string | null;
           id?: string;
+          ins_control_note?: string | null;
+          ins_control_note_at?: string | null;
+          ins_control_note_by?: string | null;
+          ins_control_note_hash?: string | null;
           locked_at?: string | null;
           month?: string;
           org_id?: string;
@@ -13245,6 +13257,7 @@ export type Database = {
         Row: {
           active: boolean;
           appealable: boolean;
+          avoidable: boolean | null;
           category: string;
           code: string;
           created_at: string;
@@ -13253,6 +13266,7 @@ export type Database = {
           is_family: boolean;
           is_placeholder: boolean;
           org_id: string;
+          origin: string | null;
           resubmit_days: number | null;
           updated_at: string;
         };
@@ -13260,6 +13274,7 @@ export type Database = {
         Insert: {
           active?: boolean;
           appealable?: boolean;
+          avoidable?: boolean | null;
           category?: string;
           code: string;
           created_at?: string;
@@ -13268,12 +13283,14 @@ export type Database = {
           is_family?: boolean;
           is_placeholder?: boolean;
           org_id: string;
+          origin?: string | null;
           resubmit_days?: number | null;
           updated_at?: string;
         };
         Update: {
           active?: boolean;
           appealable?: boolean;
+          avoidable?: boolean | null;
           category?: string;
           code?: string;
           created_at?: string;
@@ -13282,6 +13299,7 @@ export type Database = {
           is_family?: boolean;
           is_placeholder?: boolean;
           org_id?: string;
+          origin?: string | null;
           resubmit_days?: number | null;
           updated_at?: string;
         };
@@ -13403,6 +13421,8 @@ export type Database = {
           bank_auto_accept_score: number;
           bank_cutoff_day: number;
           bank_date_window_days: number;
+          bank_deposit_max_parts: number;
+          bank_deposit_max_pool: number;
           bank_weekend_days: number[];
           cashup_variance_tolerance: number;
           change_bulk_approve_max: number;
@@ -13421,6 +13441,7 @@ export type Database = {
           denial_default_resubmit_days: number;
           denial_task_enabled: boolean;
           denial_warn_days: number;
+          diligence_remitted_nets_takebacks: boolean | null;
           doctor_basis: string | null;
           dq_late_invoice_days: number;
           escalation_days: number;
@@ -13440,6 +13461,7 @@ export type Database = {
           forecast_min_history: number;
           forecast_tail_weeks: number;
           ins_recon_grace_days: number;
+          ins_receivable_tolerance: number;
           ins_recon_tolerance: number;
           lab_date_window_days: number;
           lab_price_tolerance: number;
@@ -13509,6 +13531,8 @@ export type Database = {
           bank_auto_accept_score?: number;
           bank_cutoff_day?: number;
           bank_date_window_days?: number;
+          bank_deposit_max_parts?: number;
+          bank_deposit_max_pool?: number;
           bank_weekend_days?: number[];
           cashup_variance_tolerance?: number;
           change_bulk_approve_max?: number;
@@ -13527,6 +13551,7 @@ export type Database = {
           denial_default_resubmit_days?: number;
           denial_task_enabled?: boolean;
           denial_warn_days?: number;
+          diligence_remitted_nets_takebacks?: boolean | null;
           doctor_basis?: string | null;
           dq_late_invoice_days?: number;
           escalation_days?: number;
@@ -13546,6 +13571,7 @@ export type Database = {
           forecast_min_history?: number;
           forecast_tail_weeks?: number;
           ins_recon_grace_days?: number;
+          ins_receivable_tolerance?: number;
           ins_recon_tolerance?: number;
           lab_date_window_days?: number;
           lab_price_tolerance?: number;
@@ -13614,6 +13640,8 @@ export type Database = {
           bank_auto_accept_score?: number;
           bank_cutoff_day?: number;
           bank_date_window_days?: number;
+          bank_deposit_max_parts?: number;
+          bank_deposit_max_pool?: number;
           bank_weekend_days?: number[];
           cashup_variance_tolerance?: number;
           change_bulk_approve_max?: number;
@@ -13632,6 +13660,7 @@ export type Database = {
           denial_default_resubmit_days?: number;
           denial_task_enabled?: boolean;
           denial_warn_days?: number;
+          diligence_remitted_nets_takebacks?: boolean | null;
           doctor_basis?: string | null;
           dq_late_invoice_days?: number;
           escalation_days?: number;
@@ -13651,6 +13680,7 @@ export type Database = {
           forecast_min_history?: number;
           forecast_tail_weeks?: number;
           ins_recon_grace_days?: number;
+          ins_receivable_tolerance?: number;
           ins_recon_tolerance?: number;
           lab_date_window_days?: number;
           lab_price_tolerance?: number;
@@ -27305,6 +27335,10 @@ export type Database = {
         Args: { p_from: string; p_org_id: string; p_to: string };
         Returns: Json;
       };
+      fin_bank_insurance_payments: {
+        Args: { p_org_id: string; p_since: string };
+        Returns: Json;
+      };
       fin_bank_import: {
         Args: {
           p_account_id: string;
@@ -27352,6 +27386,16 @@ export type Database = {
       fin_close_controls: {
         Args: { p_month: string; p_org_id: string; p_today?: string };
         Returns: Json;
+      };
+      fin_close_explain_ins_receivable: {
+        Args: {
+          p_close_id: string;
+          p_hash: string;
+          p_note: string;
+          p_org_id: string;
+          p_user_id: string;
+        };
+        Returns: undefined;
       };
       fin_close_generate_tasks: { Args: { p_month: string; p_org_id: string }; Returns: number };
       fin_close_month_figures: { Args: { p_month: string; p_org_id: string }; Returns: Json };
@@ -27758,7 +27802,12 @@ export type Database = {
       gen_salt: { Args: { "": string }; Returns: string };
       ins_apply_matches: { Args: { p_matches: Json; p_org_id: string }; Returns: number };
       ins_claims_for_remittance: {
-        Args: { p_invoice_keys: string[]; p_numbers: string[]; p_org_id: string };
+        Args: {
+          p_exclude_file_id?: string;
+          p_invoice_keys: string[];
+          p_numbers: string[];
+          p_org_id: string;
+        };
         Returns: Json;
       };
       ins_commit_import: {

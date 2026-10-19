@@ -77,7 +77,7 @@ export function matchDeposit(
   const build = (group: readonly InsurancePayment[]): DepositCandidate => {
     const total = group.reduce((a, p) => a + cents(p.amount), 0);
     return {
-      keys: group.map((p) => p.key),
+      keys: group.map((p) => p.key).sort((a, b) => a.localeCompare(b)),
       amount: total / 100,
       amountDiff: (cents(deposit.amount) - total) / 100,
       dayDiff: Math.max(...group.map((p) => Math.abs(daysBetween(p.date, deposit.valueDate)))),
@@ -101,15 +101,30 @@ export function matchDeposit(
         poolTooLarge = true;
         continue;
       }
-      const walk = (start: number, chosen: InsurancePayment[]) => {
-        if (chosen.length >= 2) {
+      // Walked smallest first so a branch stops once its total passes the deposit plus the tolerance (every amount is
+      // positive, so adding more can only overshoot further). Same groups as a full walk; keys are sorted in build().
+      const byAmount = [...pool].sort(
+        (a, b) => cents(a.amount) - cents(b.amount) || a.key.localeCompare(b.key),
+      );
+      const amountsC = byAmount.map((p) => cents(p.amount));
+      const depositC = cents(deposit.amount);
+      const ceiling = depositC + tol;
+      const chosen: InsurancePayment[] = [];
+      const walk = (start: number, totalC: number) => {
+        if (chosen.length >= 2 && Math.abs(depositC - totalC) <= tol) {
           const c = build(chosen);
           if (fits(c)) combos.push(c);
         }
         if (chosen.length === s.maxParts) return;
-        for (let i = start; i < pool.length; i++) walk(i + 1, [...chosen, pool[i]]);
+        for (let i = start; i < byAmount.length; i++) {
+          const next = totalC + amountsC[i];
+          if (next > ceiling) break;
+          chosen.push(byAmount[i]);
+          walk(i + 1, next);
+          chosen.pop();
+        }
       };
-      walk(0, []);
+      walk(0, 0);
     }
   }
 

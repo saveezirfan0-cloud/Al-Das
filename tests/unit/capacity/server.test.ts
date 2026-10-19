@@ -184,6 +184,8 @@ describe("capacity loader", () => {
     expect(rpc.mock.calls[0][1]).toMatchObject({ p_branch: undefined, p_branches: ["SO"] });
     expect(cap.report.rooms.map((r) => r.id)).toEqual(["r-south"]);
     expect(cap.report.doctors.map((d) => d.specialistId)).toEqual([BETA]);
+    // the doctor link and working branches in scope, for booked against available (docs/48)
+    expect(cap.doctorScope).toEqual({ [BETA]: { doctorKey: null, locationIds: [SOUTH] } });
   });
 
   it("a branch with no finance code shows hours but no revenue, and never asks for it", async () => {

@@ -126,7 +126,7 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance row level security", () => {
         ).toBe(3);
         expect(
           await count(c, "select 1 from public.fin_ref_exception_rules where org_id = $1", [org]),
-        ).toBe(14);
+        ).toBe(15); // E15 (unmatched insurer deposit) since 20261223000150
         const { rows } = await q(
           "select enabled from public.fin_capture_settings where org_id = $1",
           [org],

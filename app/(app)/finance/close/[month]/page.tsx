@@ -37,6 +37,7 @@ import { closeSigners } from "@/lib/finance/document-email-server";
 import { BuildButton, SignForm, WithdrawButton } from "../close-controls";
 import { emailClosePack } from "../email-actions";
 import { ControlsSummary } from "./controls-summary";
+import { InsReceivableControl } from "./ins-receivable-control";
 
 export const metadata = { title: "Month-end close" };
 export const dynamic = "force-dynamic";
@@ -141,8 +142,9 @@ export default async function CloseMonthPage({ params }: { params: Promise<{ mon
                 <>
                   <p>
                     Build the pack from the invoices, claims, payments, cash-ups and the control
-                    summary (bank, payables, revenue share, invoice changes, timetable) Pulse holds
-                    now. You can rebuild it until Finance signs.
+                    summary (bank, payables, revenue share, invoice changes, timetable, and the
+                    Diligence insurance receivable against Tally) Pulse holds now. You can rebuild
+                    it until Finance signs.
                   </p>
                   <div>
                     <BuildButton month={month} rebuild={false} />
@@ -234,7 +236,28 @@ export default async function CloseMonthPage({ params }: { params: Promise<{ mon
               )}
               {close.status === "built" &&
                 can(member, "finance.close.signoff.finance") &&
-                close.hash && (
+                close.sign.insNote &&
+                close.sign.insNote.state !== "given" && (
+                  <p className="text-muted-foreground">
+                    The insurance receivable differs from Tally. Finance can sign once the preparer
+                    has explained it (Insurance receivable control, below).
+                  </p>
+                )}
+              {close.status === "built" &&
+                can(member, "finance.close.signoff.finance") &&
+                close.sign.insNote?.state === "given" &&
+                close.insNoteById === member.userId && (
+                  <p className="text-muted-foreground">
+                    You wrote the insurance receivable explanation, so a different person must sign
+                    for Finance.
+                  </p>
+                )}
+              {close.status === "built" &&
+                can(member, "finance.close.signoff.finance") &&
+                close.hash &&
+                (!close.sign.insNote ||
+                  (close.sign.insNote.state === "given" &&
+                    close.insNoteById !== member.userId)) && (
                   <SignForm
                     who="finance"
                     id={close.id}
@@ -294,6 +317,14 @@ export default async function CloseMonthPage({ params }: { params: Promise<{ mon
               </AlertDescription>
             </Alert>
           )}
+
+          <InsReceivableControl
+            pack={pack}
+            close={close}
+            month={month}
+            canExplain={canManage && close.status === "built"}
+            noteText={close.insNoteText}
+          />
 
           <ControlsSummary pack={pack} />
 
