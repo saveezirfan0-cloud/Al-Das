@@ -100,6 +100,11 @@ export type Capacity = {
   hasRevenueData: boolean;
   /** report doctors with revenue and no doctor link (linked on the Doctors page) */
   unlinked: UnlinkedKey[];
+  /**
+   * Per doctor shown: the one doctor link (report key, null = not linked) and the branches of their working hours in
+   * scope. Used to set the Unite appointment upload against the hours (lib/finance/capacity-appointments.ts).
+   */
+  doctorScope: Record<string, { doctorKey: string | null; locationIds: string[] }>;
 };
 
 const need = <T>(r: { data: T | null; error: unknown }, what: string): T => {
@@ -232,6 +237,16 @@ export async function loadCapacity(
       };
     });
 
+  const doctorScope: Capacity["doctorScope"] = {};
+  for (const s of specialists)
+    if (inScope.has(s.id))
+      doctorScope[s.id] = {
+        doctorKey: s.report_doctor_key ?? null,
+        locationIds: [
+          ...new Set(hours.filter((h) => h.specialist_id === s.id).map((h) => h.location_id)),
+        ],
+      };
+
   const locationName = new Map(scope.locations.map((l) => [l.id, l.name]));
   const report = buildCapacityReport({
     openDays: open.length,
@@ -255,5 +270,6 @@ export async function loadCapacity(
     coverage: coverageOf(month, perf?.coverage ?? []),
     hasRevenueData: reportRows.length > 0,
     unlinked: revenue.unlinked,
+    doctorScope,
   };
 }
