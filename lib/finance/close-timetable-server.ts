@@ -37,6 +37,8 @@ export type CloseCalendar = WorkCalendar & {
   revshareWd: number;
   voucherUnpaidDays: number;
   receivablesOver90Pct: number;
+  /** docs/48: Diligence and Tally insurance receivable agree within this many dirhams. */
+  insReceivableTolerance: number;
   holidayRows: { id: string; holidayOn: string; name: string }[];
 };
 
@@ -45,7 +47,7 @@ export async function loadCloseCalendar(admin: AdminClient, orgId: string): Prom
     admin
       .from("fin_ref_finance_settings")
       .select(
-        "close_timetable_start, close_weekend_days, close_inputs_wd, close_deadline_wd, close_deadline_day, close_item_max_age_days, close_revshare_wd, close_voucher_unpaid_days, close_receivables_over90_pct",
+        "close_timetable_start, close_weekend_days, close_inputs_wd, close_deadline_wd, close_deadline_day, close_item_max_age_days, close_revshare_wd, close_voucher_unpaid_days, close_receivables_over90_pct, ins_receivable_tolerance",
       )
       .eq("org_id", orgId)
       .maybeSingle(),
@@ -68,6 +70,7 @@ export async function loadCloseCalendar(admin: AdminClient, orgId: string): Prom
     revshareWd: s?.close_revshare_wd ?? 7,
     voucherUnpaidDays: s?.close_voucher_unpaid_days ?? 14,
     receivablesOver90Pct: Number(s?.close_receivables_over90_pct ?? 25),
+    insReceivableTolerance: Number(s?.ins_receivable_tolerance ?? 1),
     holidayRows,
   };
 }

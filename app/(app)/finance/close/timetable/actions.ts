@@ -298,6 +298,17 @@ const calendarSchema = z
       .min(0, "Receivables share: 0 to 100.")
       .max(100, "Receivables share: 0 to 100.")
       .transform((x) => Math.round(x * 100) / 100),
+    // docs/48: the insurance receivable control agrees within this many dirhams (Diligence beside Tally)
+    // (left out of the form = unchanged)
+    ins_receivable_tolerance: z.preprocess(
+      (v) => (v === undefined || v === "" ? undefined : v),
+      z.coerce
+        .number({ message: "Insurance receivable tolerance must be a number." })
+        .min(0, "Insurance receivable tolerance: 0 to 100,000 dirhams.")
+        .max(100000, "Insurance receivable tolerance: 0 to 100,000 dirhams.")
+        .transform((x) => Math.round(x * 100) / 100)
+        .optional(),
+    ),
   })
   .refine((x) => x.inputs_wd <= x.deadline_wd, {
     message: "Inputs are due on or before the delivery working day.",
@@ -325,6 +336,9 @@ export async function saveCloseCalendar(values: Record<string, string>): Promise
     close_revshare_wd: p.data.revshare_wd,
     close_voucher_unpaid_days: p.data.voucher_unpaid_days,
     close_receivables_over90_pct: p.data.receivables_over90_pct,
+    ...(p.data.ins_receivable_tolerance === undefined
+      ? {}
+      : { ins_receivable_tolerance: p.data.ins_receivable_tolerance }),
   };
   const { error } = await admin
     .from("fin_ref_finance_settings")

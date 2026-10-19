@@ -1,10 +1,13 @@
 "use client";
 
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { ActionForm, Field, RunButton } from "@/components/finance/forms";
+import { EXPLANATION_MAX, EXPLANATION_MIN } from "@/lib/finance/insurance-receivable-control";
 
 import {
   buildClosePackAction,
+  explainInsReceivable,
   signOffCeo,
   signOffFinance,
   withdrawFinanceSignoff,
@@ -74,6 +77,40 @@ export function SignForm({
           />
         </Field>
       )}
+    </ActionForm>
+  );
+}
+
+/** docs/48: the preparer's explanation of an insurance receivable difference (needed before the finance sign-off). */
+export function ExplainInsReceivableForm({
+  id,
+  month,
+  hash,
+  current,
+}: {
+  id: string;
+  month: string;
+  hash: string;
+  current: string | null;
+}) {
+  return (
+    <ActionForm
+      submitLabel={current ? "Update the explanation" : "Save the explanation"}
+      variant="outline"
+      action={async (v) => explainInsReceivable({ id, month, hash, note: v.note ?? "" })}
+    >
+      <Field
+        label="Why does the Diligence receivable differ from Tally?"
+        hint={`${EXPLANATION_MIN} to ${EXPLANATION_MAX} characters. Amounts, payer ids and reasons only; no patient details. A different person reviews it when they sign for Finance.`}
+      >
+        <Textarea
+          name="note"
+          rows={3}
+          minLength={EXPLANATION_MIN}
+          maxLength={EXPLANATION_MAX}
+          defaultValue={current ?? ""}
+        />
+      </Field>
     </ActionForm>
   );
 }

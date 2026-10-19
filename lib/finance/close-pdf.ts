@@ -5,7 +5,7 @@ import {
   readControls,
 } from "@/lib/finance/close-controls";
 import { monthLabel, type ClosePack } from "@/lib/finance/close-pack";
-import type { SignOff } from "@/lib/finance/close-xlsx";
+import { insNoteText, type SignOff } from "@/lib/finance/close-xlsx";
 import { signingLines, type SigningSection } from "@/lib/signing/pdf-text";
 
 /**
@@ -283,6 +283,8 @@ export async function closePackPdf(
   para(
     `Finance: ${sign.financeAt ? `${sign.financeBy ?? "unknown"} on ${sign.financeAt}` : "pending"}${sign.financeNote ? `. Note: ${sign.financeNote}` : ""}`,
   );
+  const insLine = insNoteText(sign.insNote);
+  if (insLine) para(`Insurance receivable differs from Tally. Preparer's explanation: ${insLine}`);
   para(
     `CEO: ${sign.ceoAt ? `${sign.ceoBy ?? "unknown"} on ${sign.ceoAt}` : "pending"}${sign.ceoNote ? `. Note: ${sign.ceoNote}` : ""}`,
   );
