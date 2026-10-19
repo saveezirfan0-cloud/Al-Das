@@ -352,7 +352,8 @@ export async function createRun(
 }
 
 const recOnly = z.object({ rec_id: uuid });
-const pairSchema = z.object({ rec_id: uuid, key: z.string().min(1).max(160), line_id: uuid });
+// a group of insurer payments has a longer key (deposit-groups.ts; the column allows 1000 since 20261223000100)
+const pairSchema = z.object({ rec_id: uuid, key: z.string().min(1).max(1000), line_id: uuid });
 
 /** Saves every automatic match the rules allow right now (score above the threshold and the only candidate both ways). */
 export async function runMatching(values: Record<string, string>): Promise<ActionResult> {

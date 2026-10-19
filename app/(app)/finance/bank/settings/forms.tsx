@@ -59,6 +59,8 @@ export type BankSettingsView = {
   tolerancePct: number;
   autoAcceptScore: number;
   cutoffDay: number;
+  maxParts: number;
+  maxPool: number;
 };
 
 const Check = ({ name, label, checked }: { name: string; label: string; checked: boolean }) => (
@@ -389,6 +391,18 @@ export function BankSettingsForm({ s }: { s: BankSettingsView }) {
             inputMode="numeric"
             defaultValue={s.autoAcceptScore}
           />
+        </Field>
+        <Field
+          label="Insurer deposit: most payments in one credit (1 to 10)"
+          hint="A credit may be the total of up to this many payment references of one payer. Always a proposal; 1 switches groups off."
+        >
+          <Input name="bank_deposit_max_parts" inputMode="numeric" defaultValue={s.maxParts} />
+        </Field>
+        <Field
+          label="Insurer deposit: most payments searched (2 to 60)"
+          hint="Above this many payments of one payer in the date window, no groups are tried."
+        >
+          <Input name="bank_deposit_max_pool" inputMode="numeric" defaultValue={s.maxPool} />
         </Field>
       </div>
       <fieldset className="flex flex-wrap gap-3">

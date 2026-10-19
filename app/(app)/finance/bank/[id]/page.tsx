@@ -27,6 +27,7 @@ import {
 import {
   AGE_BUCKETS,
   bankItemKey,
+  depositGroupMembers,
   RECON_REASONS,
   type AgeBucket,
   type ExpectedItem,
@@ -79,10 +80,11 @@ const BANK_REASONS = Object.entries(RECON_REASONS).filter(([k]) =>
 );
 
 function ItemCell({ item }: { item: ExpectedItem }) {
+  const group = depositGroupMembers(item.key);
   return (
     <div className="flex flex-col">
       <span>
-        {KIND[item.kind]}
+        {group ? `Group of ${group.length} insurer payments` : KIND[item.kind]}
         {item.mode ? `: ${item.mode}` : ""}
       </span>
       <span className="text-muted-foreground text-xs">
@@ -456,7 +458,8 @@ export default async function BankRunPage({ params }: { params: Promise<{ id: st
           <CardTitle className="text-base">Proposed matches ({r.proposals.length})</CardTitle>
           <CardDescription>
             A person decides. &quot;Several fit&quot; means more than one pairing is possible: Pulse
-            never picks one.
+            never picks one. A group of insurer payments is a credit that matches the total of
+            several payment references; it is only ever proposed.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -591,7 +594,14 @@ export default async function BankRunPage({ params }: { params: Promise<{ id: st
               <TableBody>
                 {r.bankUnmatched.map(({ line, note }) => (
                   <TableRow key={line.id}>
-                    <TableCell className="text-xs">{lineText(line.id)}</TableCell>
+                    <TableCell className="text-xs">
+                      {lineText(line.id)}
+                      {r.groupSearchSkipped.includes(line.id) && (
+                        <div className="text-muted-foreground">
+                          Too many insurer payments in range to try combinations (Settings).
+                        </div>
+                      )}
+                    </TableCell>
                     <TableCell className="text-right tabular-nums">{money(line.amount)}</TableCell>
                     <TableCell>
                       {editable ? (

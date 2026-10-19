@@ -8,6 +8,7 @@ import {
 } from "@/lib/ai/prompts/bank-review";
 import {
   bankItemKey,
+  depositGroupMembers,
   modeKey,
   type BankLine,
   type BankSettings,
@@ -166,7 +167,10 @@ export function buildReviewInput(args: {
 
   type Entry = { item: ExpectedItem; candidates: readonly Candidate[]; age: string | null };
   const entries: Entry[] = [
-    ...r.proposals.map((p) => ({ item: p.item, candidates: p.candidates, age: null })),
+    // a group of insurer payments (deposit-groups.ts) is decided by a person only; the reviewer never sees it
+    ...r.proposals
+      .filter((p) => !depositGroupMembers(p.item.key))
+      .map((p) => ({ item: p.item, candidates: p.candidates, age: null })),
     ...r.unmatched.map((u) => ({ item: u.item, candidates: [] as Candidate[], age: u.bucket })),
   ].sort(
     (a, b) =>

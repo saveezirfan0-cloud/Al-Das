@@ -13403,6 +13403,8 @@ export type Database = {
           bank_auto_accept_score: number;
           bank_cutoff_day: number;
           bank_date_window_days: number;
+          bank_deposit_max_parts: number;
+          bank_deposit_max_pool: number;
           bank_weekend_days: number[];
           cashup_variance_tolerance: number;
           change_bulk_approve_max: number;
@@ -13509,6 +13511,8 @@ export type Database = {
           bank_auto_accept_score?: number;
           bank_cutoff_day?: number;
           bank_date_window_days?: number;
+          bank_deposit_max_parts?: number;
+          bank_deposit_max_pool?: number;
           bank_weekend_days?: number[];
           cashup_variance_tolerance?: number;
           change_bulk_approve_max?: number;
@@ -13614,6 +13618,8 @@ export type Database = {
           bank_auto_accept_score?: number;
           bank_cutoff_day?: number;
           bank_date_window_days?: number;
+          bank_deposit_max_parts?: number;
+          bank_deposit_max_pool?: number;
           bank_weekend_days?: number[];
           cashup_variance_tolerance?: number;
           change_bulk_approve_max?: number;
@@ -27305,6 +27311,10 @@ export type Database = {
         Args: { p_from: string; p_org_id: string; p_to: string };
         Returns: Json;
       };
+      fin_bank_insurance_payments: {
+        Args: { p_org_id: string; p_since: string };
+        Returns: Json;
+      };
       fin_bank_import: {
         Args: {
           p_account_id: string;
@@ -27758,7 +27768,12 @@ export type Database = {
       gen_salt: { Args: { "": string }; Returns: string };
       ins_apply_matches: { Args: { p_matches: Json; p_org_id: string }; Returns: number };
       ins_claims_for_remittance: {
-        Args: { p_invoice_keys: string[]; p_numbers: string[]; p_org_id: string };
+        Args: {
+          p_exclude_file_id?: string;
+          p_invoice_keys: string[];
+          p_numbers: string[];
+          p_org_id: string;
+        };
         Returns: Json;
       };
       ins_commit_import: {

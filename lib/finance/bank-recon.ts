@@ -12,7 +12,9 @@ import { dayNumber } from "@/lib/documents/expiry";
  *        insurance    each remittance batch (sum paid) when the account receives insurance payments
  *   2. Candidates: bank credits on the account within the date window and the amount tolerance, scored 0-100 with reasons.
  *   3. A pair is matched automatically only when its score reaches the threshold AND it is the ONLY candidate on both
- *      sides. Everything else is a proposal for a person; ties are never guessed.
+ *      sides. Everything else is a proposal for a person; ties are never guessed. A credit that no single item fits
+ *      may be offered a GROUP of insurer payments (one deposit = several payment references; deposit-groups.ts):
+ *      always a proposal, never automatic, and several fitting groups are all marked "Several fit".
  *   4. Unmatched items are aged from their expected date; past the date window they need a reason. Unmatched bank
  *      credits in the period need a reason too.
  */
@@ -345,6 +347,41 @@ export function buildExpected(input: ExpectedInput): {
   };
 }
 
+// ---- deposit groups (one bank credit = several insurer payments) -------------------
+
+/**
+ * A group of insurer payments one bank credit may be the total of has its own expected key: the prefix and the member
+ * keys, sorted, joined by "+" (member keys never contain "+"). The key alone says which items a saved group covers, so a
+ * group match is ONE fin_bank_matches row (a bank line is matched once) and the run reads its members back from the key.
+ * Groups are only ever proposed (lib/finance/deposit-groups.ts); a person accepts them.
+ */
+export const DEPOSIT_GROUP_PREFIX = "insg|";
+export const depositGroupKey = (memberKeys: readonly string[]) =>
+  `${DEPOSIT_GROUP_PREFIX}${[...memberKeys].sort((a, b) => a.localeCompare(b)).join("+")}`;
+export function depositGroupMembers(key: string): string[] | null {
+  if (!key.startsWith(DEPOSIT_GROUP_PREFIX)) return null;
+  const members = key.slice(DEPOSIT_GROUP_PREFIX.length).split("+");
+  return members.length >= 2 && members.every((m) => m.startsWith("ins|")) ? members : null;
+}
+
+/** The expected item of a group: the members' total, the latest member date, their references, the payer if shared. */
+export function groupExpectedItem(members: readonly ExpectedItem[]): ExpectedItem {
+  const latest = (pick: (i: ExpectedItem) => string) =>
+    members.map(pick).sort((a, b) => b.localeCompare(a))[0];
+  const payers = new Set(members.map((m) => m.mode ?? ""));
+  return {
+    key: depositGroupKey(members.map((m) => m.key)),
+    kind: "insurance",
+    mode: payers.size === 1 ? members[0].mode : null,
+    sourceDate: latest((m) => m.sourceDate),
+    expectedDate: latest((m) => m.expectedDate),
+    gross: sum(members.map((m) => m.gross)),
+    fee: 0,
+    amount: sum(members.map((m) => m.amount)),
+    references: [...new Set(members.flatMap((m) => m.references))],
+  };
+}
+
 // ---- scoring ---------------------------------------------------------------------
 
 /**
@@ -412,6 +449,23 @@ export type RunInput = ExpectedInput & {
   notes: readonly Note[];
   today: string;
   statementEnd: string | null; // last value date imported for the account
+  /**
+   * Proposes groups of insurer payments for bank credits no single expected item fits (deposit-groups.ts). Optional:
+   * without it the run behaves exactly as before. Its proposals are never automatic.
+   */
+  proposeGroups?: (args: DepositGroupArgs) => DepositGroupResult;
+};
+
+/** What the run hands the group search: credits with no candidate, insurer items with no candidate, rejected pairs. */
+export type DepositGroupArgs = {
+  lines: readonly BankLine[];
+  items: readonly ExpectedItem[];
+  rejected: ReadonlySet<string>; // `${expectedKey}|${lineId}`
+};
+export type DepositGroupResult = {
+  proposals: Proposal[];
+  /** Credits for which groups were not searched (too many payments of one payer in range). */
+  skippedLineIds: string[];
 };
 
 export type MatchedPair = {
@@ -461,6 +515,8 @@ export type RunResult = {
   asOf: string | null;
   summary: RunSummary;
   problems: string[];
+  /** Unmatched credits for which payment groups were not searched (too many payments in range); display only. */
+  groupSearchSkipped: string[];
 };
 
 export const bankItemKey = (lineId: string) => `bank|${lineId}`;
@@ -473,16 +529,29 @@ export function reconcileRun(input: RunInput): RunResult {
   const notes = new Map(input.notes.map((n) => [n.itemKey, n]));
 
   const matchedRows = input.decisions.filter((d) => d.status === "matched");
-  const matchedKeys = new Set(matchedRows.map((d) => d.expectedKey));
+  // a saved group covers each of its members; an item covered by two saved matches is a problem to undo
+  const covered = (key: string) => depositGroupMembers(key) ?? [key];
+  const coverCount = new Map<string, number>();
+  for (const d of matchedRows)
+    for (const k of covered(d.expectedKey)) coverCount.set(k, (coverCount.get(k) ?? 0) + 1);
+  const matchedKeys = new Set(coverCount.keys());
   const matchedLines = new Set(matchedRows.map((d) => d.lineId));
   const rejected = new Set(
     input.decisions
       .filter((d) => d.status === "rejected")
       .map((d) => `${d.expectedKey}|${d.lineId}`),
   );
+  const itemOf = (key: string): ExpectedItem | null => {
+    const members = depositGroupMembers(key);
+    if (!members) return itemByKey.get(key) ?? null;
+    const found = members.map((k) => itemByKey.get(k));
+    return found.every((i): i is ExpectedItem => !!i && i.kind === "insurance")
+      ? groupExpectedItem(found)
+      : null; // a member no longer exists: the saved group is an orphan to undo
+  };
 
   const matched: MatchedPair[] = matchedRows.map((d) => {
-    const item = itemByKey.get(d.expectedKey) ?? null;
+    const item = itemOf(d.expectedKey);
     const line = lineById.get(d.lineId) ?? null;
     const changed =
       !!item &&
@@ -561,6 +630,31 @@ export function reconcileRun(input: RunInput): RunResult {
     }
     for (const c of list) candidateLines.add(c.lineId);
   }
+  // Credits no single item fits may be the total of several insurer payments that also found no single credit. These
+  // groups are proposals only (never autoReady), decided by a person through the same path as any other proposal.
+  let groupSearchSkipped: string[] = [];
+  if (input.receivesInsurance && input.proposeGroups) {
+    const lonelyItems = unmatched.map((u) => u.item).filter((i) => i.kind === "insurance");
+    const lonelyLines = available.filter((l) => !candidateLines.has(l.id));
+    if (lonelyItems.length >= 2 && lonelyLines.length > 0) {
+      const g = input.proposeGroups({ lines: lonelyLines, items: lonelyItems, rejected });
+      const lineIds = new Set(lonelyLines.map((l) => l.id));
+      const itemKeys = new Set(lonelyItems.map((i) => i.key));
+      for (const p of g.proposals) {
+        const members = depositGroupMembers(p.item.key);
+        // only what the run offered may come back: known lonely items, known lonely lines, nothing rejected
+        if (!members || !members.every((k) => itemKeys.has(k))) continue;
+        const candidates = p.candidates.filter(
+          (c) => lineIds.has(c.lineId) && !rejected.has(`${p.item.key}|${c.lineId}`),
+        );
+        if (candidates.length === 0) continue;
+        proposals.push({ item: p.item, candidates });
+        for (const c of candidates) candidateLines.add(c.lineId);
+      }
+      groupSearchSkipped = g.skippedLineIds.filter((id) => !candidateLines.has(id)).sort();
+    }
+  }
+
   for (const gap of items.filter((i) => i.kind === "gap")) unmatched.push(age(gap));
   unmatched.sort(
     (a, b) =>
@@ -617,6 +711,11 @@ export function reconcileRun(input: RunInput): RunResult {
     problems.push(
       `Undo or re-check ${changed} match(es) whose expected amount changed since they were made.`,
     );
+  const twice = [...coverCount.values()].filter((n) => n > 1).length;
+  if (twice)
+    problems.push(
+      `Undo a match for ${twice} item(s) matched twice (on their own and in a group of payments).`,
+    );
   if (autoReady.length)
     problems.push(`Run matching to save ${autoReady.length} automatic match(es).`);
   if (proposals.length) problems.push(`Accept or reject ${proposals.length} proposed match(es).`);
@@ -636,6 +735,7 @@ export function reconcileRun(input: RunInput): RunResult {
     asOf,
     summary,
     problems,
+    groupSearchSkipped,
   };
 }
 
