@@ -577,6 +577,7 @@ export default async function CloseTimetablePage({
               revshareWd={cal.revshareWd}
               voucherUnpaidDays={cal.voucherUnpaidDays}
               receivablesOver90Pct={cal.receivablesOver90Pct}
+              insReceivableTolerance={cal.insReceivableTolerance}
             />
             <div className="flex flex-col gap-3">
               <div className="text-sm font-medium">Public holidays</div>

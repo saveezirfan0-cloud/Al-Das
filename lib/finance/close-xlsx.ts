@@ -21,7 +21,27 @@ export type SignOff = {
   ceoNote: string | null;
   lockedAt: string | null;
   hash: string | null;
+  /**
+   * docs/48: the preparer's explanation of an insurance receivable difference (null when the control does not differ).
+   * "stale" = written for an earlier build of the pack; only a "given" explanation lets Finance sign.
+   */
+  insNote?: {
+    state: "missing" | "stale" | "given";
+    text: string | null;
+    at: string | null;
+    by: string | null;
+  } | null;
 };
+
+/** The explanation line for the Excel and PDF sign-off sections (null when nothing needs explaining). */
+export function insNoteText(note: SignOff["insNote"]): string | null {
+  if (!note) return null;
+  if (note.state === "given")
+    return `${note.text ?? ""} (${note.by ?? "unknown"}${note.at ? `, ${note.at}` : ""})`;
+  return note.state === "stale"
+    ? "Not yet explained for this build of the pack (an earlier explanation no longer applies)."
+    : "Not yet explained.";
+}
 
 export async function closePackXlsx(pack: ClosePack, sign: SignOff): Promise<Buffer> {
   const ExcelJS = (await import("exceljs")).default;
@@ -92,6 +112,8 @@ export async function closePackXlsx(pack: ClosePack, sign: SignOff): Promise<Buf
   summary.addRow(["Sign-off"]).font = { bold: true };
   kv("Finance", sign.financeAt ? `${sign.financeBy ?? "unknown"} on ${sign.financeAt}` : "pending");
   if (sign.financeNote) kv("Finance note", sign.financeNote);
+  const insLine = insNoteText(sign.insNote);
+  if (insLine) kv("Insurance receivable vs Tally: explanation", insLine);
   kv("CEO", sign.ceoAt ? `${sign.ceoBy ?? "unknown"} on ${sign.ceoAt}` : "pending");
   if (sign.ceoNote) kv("CEO note", sign.ceoNote);
   summary.addRow([]);

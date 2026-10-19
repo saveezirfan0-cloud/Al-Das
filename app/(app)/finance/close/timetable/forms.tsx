@@ -207,6 +207,7 @@ export function CalendarForm({
   revshareWd,
   voucherUnpaidDays,
   receivablesOver90Pct,
+  insReceivableTolerance,
 }: {
   start: string | null;
   weekend: number[];
@@ -217,6 +218,7 @@ export function CalendarForm({
   revshareWd: number;
   voucherUnpaidDays: number;
   receivablesOver90Pct: number;
+  insReceivableTolerance: number;
 }) {
   return (
     <ActionForm action={saveCloseCalendar} submitLabel="Save">
@@ -270,6 +272,16 @@ export function CalendarForm({
             name="receivables_over90_pct"
             inputMode="decimal"
             defaultValue={receivablesOver90Pct}
+          />
+        </Field>
+        <Field
+          label="Insurance receivable, Diligence against Tally: tolerance (AED)"
+          hint="A difference up to this amount counts as agreeing. Beyond it the preparer explains the month before Finance signs."
+        >
+          <Input
+            name="ins_receivable_tolerance"
+            inputMode="decimal"
+            defaultValue={insReceivableTolerance}
           />
         </Field>
       </div>

@@ -39,25 +39,28 @@ export function ControlsSummary({ pack }: { pack: ClosePack }) {
       </Card>
       {controls && (
         <div className="grid gap-4 lg:grid-cols-2">
-          {controlSections(controls).map((sec) => (
-            <Card key={sec.title}>
-              <CardHeader>
-                <CardTitle className="text-base">{sec.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableBody>
-                    {sec.rows.map(([k, v], i) => (
-                      <TableRow key={`${i}-${k}`}>
-                        <TableCell className="text-xs whitespace-pre-wrap">{k}</TableCell>
-                        <TableCell className="text-right text-xs tabular-nums">{v}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          ))}
+          {/* the insurance receivable control has its own card above (InsReceivableControl) */}
+          {controlSections(controls)
+            .filter((sec) => sec.key !== "ins_receivable")
+            .map((sec) => (
+              <Card key={sec.title}>
+                <CardHeader>
+                  <CardTitle className="text-base">{sec.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableBody>
+                      {sec.rows.map(([k, v], i) => (
+                        <TableRow key={`${i}-${k}`}>
+                          <TableCell className="text-xs whitespace-pre-wrap">{k}</TableCell>
+                          <TableCell className="text-right text-xs tabular-nums">{v}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            ))}
         </div>
       )}
       <ul className="text-muted-foreground list-disc space-y-1 pl-5 text-xs">
