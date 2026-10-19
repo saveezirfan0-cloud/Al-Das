@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { can } from "@/lib/auth/can";
 import { requirePerm } from "@/lib/auth/session";
 import { holds, isOverdue, RULE_INFO, STATUS_LABEL } from "@/lib/finance/rules";
 import { createClient } from "@/lib/supabase/server";
@@ -60,6 +61,8 @@ export default async function ExceptionDetail({ params }: { params: Promise<{ id
       .eq("claim_activity_number", ex.entity_key)
       .maybeSingle();
     if (data) entityHref = `/finance/claims/${data.id}`;
+  } else if (ex.entity_type === "deposit" && can(member, "finance.bank.view")) {
+    entityHref = "/finance/bank"; // E15: the credit is listed in its account's reconciliation (key = bank line id)
   }
 
   const active = ex.status === "open" || ex.status === "in_progress";
