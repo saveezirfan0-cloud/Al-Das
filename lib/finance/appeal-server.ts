@@ -6,7 +6,8 @@ import { AiNotConfiguredError, type AiStatus } from "@/lib/ai/types";
 import { checkRateLimit, recordUsage } from "@/lib/ai/usage";
 import { fail, type ActionResult } from "@/lib/finance/action-support";
 import { draftAppeal, type AppealFacts } from "@/lib/finance/appeal";
-import { lookupDenialCode, type DenialCategory, type DenialCodeRow } from "@/lib/finance/denials";
+import { lookupDenialCode, type DenialCategory } from "@/lib/finance/denials";
+import { loadDenialTaxonomy } from "@/lib/finance/denial-taxonomy";
 import { redactText } from "@/lib/redact";
 import type { AdminClient } from "@/lib/supabase/admin";
 
@@ -30,25 +31,6 @@ export type AppealRequest = {
   llmFactory?: () => Llm;
 };
 
-async function loadTaxonomy(admin: AdminClient, orgId: string): Promise<DenialCodeRow[]> {
-  const { data } = await admin
-    .from("fin_ref_denial_codes")
-    .select(
-      "code, is_family, description, category, default_owner_role, resubmit_days, appealable, active",
-    )
-    .eq("org_id", orgId);
-  return (data ?? []).map((r) => ({
-    code: r.code,
-    isFamily: r.is_family,
-    description: r.description,
-    category: r.category as DenialCategory,
-    defaultOwnerRole: r.default_owner_role as DenialCodeRow["defaultOwnerRole"],
-    resubmitDays: r.resubmit_days,
-    appealable: r.appealable,
-    active: r.active,
-  }));
-}
-
 export async function generateAppealDraft(
   admin: AdminClient,
   req: AppealRequest,
@@ -65,7 +47,7 @@ export async function generateAppealDraft(
     .maybeSingle();
   if (!c) return fail("That denial case was not found.");
 
-  const taxonomy = await loadTaxonomy(admin, req.orgId);
+  const taxonomy = await loadDenialTaxonomy(admin, req.orgId);
   const code = lookupDenialCode(c.reason_code, taxonomy);
   const { data: claim } = await admin
     .from("ins_claim_activities")

@@ -6,11 +6,16 @@ import { getCurrentMember } from "@/lib/auth/session";
 import { tableWorkbook, xlsxResponseInit } from "@/lib/export/table-xlsx";
 import { todayIn } from "@/lib/finance/action-support";
 import {
+  avoidableLabel,
   CATEGORY_LABELS,
+  NOT_CLASSIFIED,
+  ORIGIN_LABELS,
+  rejectionOrigin,
   STATUS_LABELS,
   type CaseStatus,
   type DenialCategory,
 } from "@/lib/finance/denials";
+import { loadDenialTaxonomy } from "@/lib/finance/denial-taxonomy";
 import {
   ACTIVE_DENIAL_STATUSES,
   EXPORT_MAX_ROWS,
@@ -26,7 +31,8 @@ import { createClient } from "@/lib/supabase/server";
 /**
  * GET /api/finance/denials/export?<the list's filters> -> the denial cases as Excel, every matching case (paged). Needs
  * finance.denials.manage (the list's own key); read with the member's own client (RLS). Claim and invoice numbers, codes,
- * payers, amounts, deadlines and the owner's name: no patient identity. Audited and logged.
+ * payers, amounts, deadlines and the owner's name: no patient identity. Audited and logged. Origin and avoidable come
+ * from the denial code (docs/48); a code nobody classified is "Not classified".
  */
 export async function GET(req: Request) {
   const member = await getCurrentMember();
@@ -66,6 +72,7 @@ export async function GET(req: Request) {
   );
   if (res.error) return NextResponse.json({ error: "query failed" }, { status: 500 });
   const rows = res.data;
+  const taxonomy = await loadDenialTaxonomy(supabase, member.orgId);
   const owners = [...new Set(rows.map((r) => r.owner_user_id).filter((x): x is string => !!x))];
   const names = new Map<string, string>();
   for (let i = 0; i < owners.length; i += 200) {
@@ -99,25 +106,32 @@ export async function GET(req: Request) {
       { header: "Payer", width: 12 },
       { header: "Reason code", width: 12 },
       { header: "Category", width: 18 },
+      { header: "Origin", width: 16 },
+      { header: "Avoidable", width: 16 },
       { header: "Rejected", kind: "money" },
       { header: "Status", width: 14 },
       { header: "Denied on", kind: "date" },
       { header: "Deadline", kind: "date" },
       { header: "Owner", width: 22 },
     ],
-    rows: rows.map((r) => [
-      r.claim_number,
-      r.invoice_no,
-      r.cpt_code,
-      r.payer_id,
-      r.reason_code,
-      CATEGORY_LABELS[r.category as DenialCategory] ?? r.category,
-      r.rejected_amount,
-      STATUS_LABELS[r.status as CaseStatus] ?? r.status,
-      r.denied_on,
-      r.deadline_on,
-      r.owner_user_id ? (names.get(r.owner_user_id) ?? "-") : "",
-    ]),
+    rows: rows.map((r) => {
+      const o = rejectionOrigin(r.reason_code, taxonomy);
+      return [
+        r.claim_number,
+        r.invoice_no,
+        r.cpt_code,
+        r.payer_id,
+        r.reason_code,
+        CATEGORY_LABELS[r.category as DenialCategory] ?? r.category,
+        o.origin ? ORIGIN_LABELS[o.origin] : NOT_CLASSIFIED,
+        avoidableLabel(o.avoidable),
+        r.rejected_amount,
+        STATUS_LABELS[r.status as CaseStatus] ?? r.status,
+        r.denied_on,
+        r.deadline_on,
+        r.owner_user_id ? (names.get(r.owner_user_id) ?? "-") : "",
+      ];
+    }),
   });
   const admin = createAdminClient(); // audit and export log only
   await recordAudit(admin, {

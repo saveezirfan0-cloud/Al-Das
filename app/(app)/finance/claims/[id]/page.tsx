@@ -7,6 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requirePerm } from "@/lib/auth/session";
 import { recordAccess } from "@/lib/security/access-log";
+import { Term } from "@/components/shell/term";
+import {
+  CLAIM_STATUS_LABELS,
+  CLAIM_STATUS_VARIANT,
+  type ClaimStatus,
+} from "@/lib/finance/claim-status";
+import { claimStatusesFor, loadClaimStatusSettings } from "@/lib/finance/claim-status-server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -103,6 +110,12 @@ export default async function ClaimDetail({ params }: { params: Promise<{ id: st
     .eq("claim_activity_id", id)
     .order("observed_at", { ascending: false });
   const record = claim as unknown as Record<string, unknown>;
+  // One status per claim: the take-backs and the denial case come from tables with their own keys, read with the
+  // service role after finance.claims.view (amounts and statuses only).
+  const admin = createAdminClient();
+  const statusSettings = await loadClaimStatusSettings(admin, member);
+  const st = (await claimStatusesFor(admin, member, [claim], statusSettings)).get(claim.id);
+  const status: ClaimStatus = st?.status ?? "unknown";
 
   return (
     <div className="flex flex-col gap-6">
@@ -134,6 +147,48 @@ export default async function ClaimDetail({ params }: { params: Promise<{ id: st
           <Badge variant="warning">clinician differs from invoice</Badge>
         )}
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">
+            <Term k="claim-status">Status</Term>
+          </CardTitle>
+          <CardDescription>
+            Worked out from the Diligence figures, payments taken back on payment advices and the
+            denial case. Diligence stays the source of truth; nothing here changes the claim.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3 text-sm">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant={CLAIM_STATUS_VARIANT[status]}>{CLAIM_STATUS_LABELS[status]}</Badge>
+            {st && st.overpaid > 0 && <Badge variant="warning">Overpaid</Badge>}
+          </div>
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4">
+            <dt className="text-muted-foreground">Still owed</dt>
+            <dd className="tabular-nums">{fmt(st?.outstanding ?? null)}</dd>
+            <dt className="text-muted-foreground">
+              <Term k="taken-back">Taken back</Term>
+            </dt>
+            <dd className="tabular-nums">{fmt(st?.takenBack ?? 0)}</dd>
+            <dt className="text-muted-foreground">Overpaid</dt>
+            <dd className="tabular-nums">{fmt(st?.overpaid ?? 0)}</dd>
+          </dl>
+          {statusSettings.remittedNetsTakebacks === null && (
+            <p role="note" className="text-muted-foreground text-xs">
+              <Badge variant="warning" className="mr-1">
+                Unconfirmed
+              </Badge>
+              Whether Diligence&apos;s Remitted already deducts payments taken back is not confirmed
+              yet; Pulse assumes it does not and deducts them itself.
+            </p>
+          )}
+          {status === "paid" && (
+            <p className="text-muted-foreground text-xs">
+              Closed needs the bank receipt, which is not yet linked to single claims.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 md:grid-cols-2">
         {GROUPS.map(([title, fields]) => (

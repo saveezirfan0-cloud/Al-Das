@@ -378,10 +378,12 @@ export const GUIDES: readonly Guide[] = [
       "Ledger shows whether the invoice is posted, with a link to its journal, or why it is waiting (accounting readers only).",
       "Print prints the page without the menus. Internal PDF downloads a copy marked Internal copy - not a tax invoice.",
       "Claims: filter and press Excel for every matching claim activity.",
+      "Claims: Status is one status per claim (submitted, under review, partly paid, rejected, resubmitted, payment taken back, paid, closed, written off), worked out from the Diligence figures, the payment advices and the denial case. Filter by it with the Status list; Diligence's own wording stays in Diligence status.",
     ],
     watchOut: [
       "The internal copy is for finance files only. The patient's invoice is the one Unite issued; never send the internal copy as a tax invoice.",
       "Until a Diligence claim is matched, the whole insurance invoice waits on the insurer and the patient's copay is not known yet.",
+      "A claim paid in full shows Paid, not Closed: the bank receipt is not linked to single claims yet. An Unconfirmed note means nobody has yet confirmed whether Diligence's Remitted already deducts payments taken back (Finance, Workflow settings, Claim status).",
       "Downloads are logged with your name.",
     ],
   },
@@ -782,7 +784,7 @@ export const GUIDES: readonly Guide[] = [
       "Denials: assign each case, write the appeal and send it yourself. Pulse only drafts the letter.",
       "Remittance: upload the payer's file (.xlsx, .csv, or the .xml advice downloaded from Diligence), check the proposed matches, then commit. The original file is deleted. A negative payment is shown as Taken back.",
       "Month-end close: build the pack, finance signs, then the CEO signs the same version. The month is then locked. E-mail close pack sends the same PDF as the download to the people who signed it, after you confirm the recipients.",
-      "Denials: Excel downloads every case that matches the filters.",
+      "Denials: each case shows where the rejection came from (front desk, clinical, billing, payer) and whether it was avoidable, from its denial code. The breakdown above the list counts the cases and amounts matching the filters; Excel downloads every matching case.",
       "Cash-up: count each branch at the end of the day, submit, and note any difference.",
     ],
     watchOut: [
@@ -1604,6 +1606,7 @@ export const GUIDES: readonly Guide[] = [
     steps: [
       "Finance reference data maps Unite and Diligence values to branches, departments and service categories.",
       "Finance workflow settings holds the numbers behind pre-authorisations, denials, remittance, scorecards, the forecast and the cash-up.",
+      "Workflow settings, Denial reason codes: set each code's origin and whether it is avoidable; leave Not classified until agreed. Claim status: answer whether Diligence's Remitted already deducts payments taken back.",
       "Finance data health shows Unite capture, the Diligence import and reference-data gaps.",
       "All three are under Settings, Finance setup.",
     ],
@@ -1782,7 +1785,8 @@ export const GUIDES: readonly Guide[] = [
     id: "settings-lifecycle",
     title: "Patient lifecycle",
     pages: ["/settings/lifecycle"],
-    purpose: "How long after a first visit a patient counts as new, and how long without a visit before they are lapsed.",
+    purpose:
+      "How long after a first visit a patient counts as new, and how long without a visit before they are lapsed.",
     steps: [
       "Set the number of days a patient stays new after their first visit.",
       "Set the number of months after which a patient with no visit is lapsed.",

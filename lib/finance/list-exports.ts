@@ -1,4 +1,5 @@
 import { safe } from "@/lib/finance/invoice-list";
+import { isClaimStatus, type ClaimStatus } from "@/lib/finance/claim-status";
 import { ACTIVE_STATUSES, CASE_STATUSES } from "@/lib/finance/denials";
 
 /**
@@ -18,6 +19,8 @@ export type ClaimFilters = {
   payer: string;
   denial: string;
   match: "matched" | "ambiguous" | "unmatched" | null;
+  /** Pulse's one status per claim (claimStatus), worked out after the query; null = any. */
+  cstatus: ClaimStatus | null;
 };
 
 export function parseClaimFilters(sp: Search): ClaimFilters {
@@ -28,6 +31,7 @@ export function parseClaimFilters(sp: Search): ClaimFilters {
     payer: safe(one(sp.payer)),
     denial: safe(one(sp.denial)),
     match: match === "matched" || match === "ambiguous" || match === "unmatched" ? match : null,
+    cstatus: isClaimStatus(one(sp.cstatus)) ? (one(sp.cstatus) as ClaimStatus) : null,
   };
 }
 

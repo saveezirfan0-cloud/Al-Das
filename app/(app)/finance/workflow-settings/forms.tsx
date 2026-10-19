@@ -3,7 +3,13 @@
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ActionForm, Field, RunButton, selectClass } from "@/components/finance/forms";
-import { CATEGORY_LABELS, DENIAL_CATEGORIES } from "@/lib/finance/denials";
+import {
+  CATEGORY_LABELS,
+  DENIAL_CATEGORIES,
+  NOT_CLASSIFIED,
+  ORIGIN_LABELS,
+  REJECTION_ORIGINS,
+} from "@/lib/finance/denials";
 import type { BlueprintSettings } from "@/lib/finance/blueprint-settings";
 import { ageingBuckets } from "@/lib/finance/followup";
 import type { FollowupSettings } from "@/lib/finance/followup-settings";
@@ -14,6 +20,7 @@ import {
   deletePayerPrice,
   importPayerPrices,
   saveBlueprintSettings,
+  saveClaimStatusSettings,
   saveDenialCode,
   saveChangeReviewSettings,
   saveFollowupSettings,
@@ -209,6 +216,8 @@ export type CodeRow = {
   appealable: boolean;
   active: boolean;
   is_placeholder: boolean;
+  origin: string | null;
+  avoidable: boolean | null;
 };
 
 export function CodeForm({ row }: { row?: CodeRow }) {
@@ -265,6 +274,29 @@ export function CodeForm({ row }: { row?: CodeRow }) {
             defaultValue={row?.resubmit_days ?? ""}
             placeholder="default"
           />
+        </Field>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-6">
+        <Field label="Rejection origin" hint="Where the rejection came from.">
+          <select name="origin" className={selectClass} defaultValue={row?.origin ?? ""}>
+            <option value="">{NOT_CLASSIFIED}</option>
+            {REJECTION_ORIGINS.map((o) => (
+              <option key={o} value={o}>
+                {ORIGIN_LABELS[o]}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Avoidable" hint="Could the clinic have prevented it?">
+          <select
+            name="avoidable"
+            className={selectClass}
+            defaultValue={row?.avoidable === true ? "yes" : row?.avoidable === false ? "no" : ""}
+          >
+            <option value="">{NOT_CLASSIFIED}</option>
+            <option value="yes">Avoidable</option>
+            <option value="no">Not avoidable</option>
+          </select>
         </Field>
       </div>
       <div className="flex flex-wrap items-center gap-4">
@@ -433,6 +465,29 @@ export function FollowupSettingsForm({
           <Check name="followup_task_enabled" label="Create tasks" checked={s.taskEnabled} />
         </div>
       </fieldset>
+    </ActionForm>
+  );
+}
+
+export function ClaimStatusSettingsForm({ value }: { value: boolean | null }) {
+  return (
+    <ActionForm action={saveClaimStatusSettings} submitLabel="Save setting">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field
+          label="Does Diligence's Remitted already deduct payments taken back?"
+          hint="Not confirmed = Pulse assumes it does not and deducts the negative payment advice lines itself; the claims page says the answer is unconfirmed."
+        >
+          <select
+            name="diligence_remitted_nets_takebacks"
+            className={selectClass}
+            defaultValue={value === true ? "yes" : value === false ? "no" : ""}
+          >
+            <option value="">Not confirmed yet</option>
+            <option value="yes">Yes, Remitted is after take-backs</option>
+            <option value="no">No, Remitted is before take-backs</option>
+          </select>
+        </Field>
+      </div>
     </ActionForm>
   );
 }

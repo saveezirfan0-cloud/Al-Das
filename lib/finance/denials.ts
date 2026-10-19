@@ -34,32 +34,95 @@ export const CATEGORY_LABELS: Record<DenialCategory, string> = {
 export type OwnerRole = "insurance" | "billing" | "finance" | "admin";
 
 /**
- * Where a rejection came from and whether the clinic could have prevented it, by the code's category. PROPOSED mapping, to
- * be confirmed by the insurance case sessions (docs/47). `avoidable` is null when the category cannot say, never a guess.
+ * Where a rejection came from and whether the clinic could have prevented it. Both are DATA: columns `origin` and
+ * `avoidable` of fin_ref_denial_codes, edited by Finance in Workflow settings (seeded once from a proposed table by
+ * category, docs/48). Null means not classified: shown as "Not classified", never read as "not avoidable".
  */
-export type RejectionOrigin = "front_desk" | "clinical" | "billing" | "payer" | "unknown";
-export const REJECTION_ORIGIN: Record<
-  DenialCategory,
-  { origin: RejectionOrigin; avoidable: boolean | null }
-> = {
-  authorization: { origin: "front_desk", avoidable: true },
-  eligibility: { origin: "front_desk", avoidable: true },
-  medical_necessity: { origin: "clinical", avoidable: false },
-  coding: { origin: "billing", avoidable: true },
-  documentation: { origin: "clinical", avoidable: true },
-  duplicate: { origin: "billing", avoidable: true },
-  timely_filing: { origin: "billing", avoidable: true },
-  pricing: { origin: "payer", avoidable: null },
-  other: { origin: "unknown", avoidable: null },
-};
+export const REJECTION_ORIGINS = ["front_desk", "clinical", "billing", "payer"] as const;
+export type RejectionOrigin = (typeof REJECTION_ORIGINS)[number];
 
-/** Origin and avoidable flag for a denial code, through the same taxonomy lookup the case uses. */
+export const ORIGIN_LABELS: Record<RejectionOrigin, string> = {
+  front_desk: "Front desk",
+  clinical: "Clinical",
+  billing: "Billing",
+  payer: "Payer",
+};
+export const NOT_CLASSIFIED = "Not classified";
+
+/** A database value as an origin; anything else (blank, unknown word) is not classified. */
+export function asRejectionOrigin(v: unknown): RejectionOrigin | null {
+  return typeof v === "string" && (REJECTION_ORIGINS as readonly string[]).includes(v)
+    ? (v as RejectionOrigin)
+    : null;
+}
+
+export type OriginResult = { origin: RejectionOrigin | null; avoidable: boolean | null };
+
+/** Origin and avoidable flag for a denial code, through the same taxonomy lookup the case uses (exact, then family). */
 export function rejectionOrigin(
   code: string | null | undefined,
   table: readonly DenialCodeRow[],
-): { origin: RejectionOrigin; avoidable: boolean | null } {
+): OriginResult {
   const row = lookupDenialCode(code, table);
-  return row ? REJECTION_ORIGIN[row.category] : { origin: "unknown", avoidable: null };
+  if (!row) return { origin: null, avoidable: null };
+  return {
+    origin: asRejectionOrigin(row.origin),
+    avoidable: typeof row.avoidable === "boolean" ? row.avoidable : null,
+  };
+}
+
+export const avoidableLabel = (a: boolean | null) =>
+  a === true ? "Avoidable" : a === false ? "Not avoidable" : NOT_CLASSIFIED;
+
+export type BreakdownCell = { count: number; amount: number };
+export type OriginBreakdown = {
+  /** One row per origin in REJECTION_ORIGINS order, then "not classified" (origin null). */
+  byOrigin: Array<{ origin: RejectionOrigin | null } & BreakdownCell>;
+  avoidable: BreakdownCell;
+  notAvoidable: BreakdownCell;
+  notClassified: BreakdownCell;
+  total: BreakdownCell;
+};
+
+/**
+ * Counts and denied amounts by origin and by avoidable / not avoidable / not classified (pure). Amounts are summed in
+ * fils so the parts always add up to the total; a blank or non-numeric amount counts the case with 0.
+ */
+export function originBreakdown(
+  cases: ReadonlyArray<{ reasonCode: string | null; amount: number | string | null }>,
+  table: readonly DenialCodeRow[],
+): OriginBreakdown {
+  const keys = [...REJECTION_ORIGINS, null] as const;
+  const origin = new Map<RejectionOrigin | null, { count: number; fils: number }>(
+    keys.map((k) => [k, { count: 0, fils: 0 }]),
+  );
+  const av = { yes: { count: 0, fils: 0 }, no: { count: 0, fils: 0 }, none: { count: 0, fils: 0 } };
+  const total = { count: 0, fils: 0 };
+  for (const c of cases) {
+    const n = Number(c.amount);
+    const fils =
+      c.amount !== null && c.amount !== "" && Number.isFinite(n) ? Math.round(n * 100) : 0;
+    const r = rejectionOrigin(c.reasonCode, table);
+    const o = origin.get(r.origin)!;
+    o.count += 1;
+    o.fils += fils;
+    const a = r.avoidable === true ? av.yes : r.avoidable === false ? av.no : av.none;
+    a.count += 1;
+    a.fils += fils;
+    total.count += 1;
+    total.fils += fils;
+  }
+  const cell = (x: { count: number; fils: number }): BreakdownCell => ({
+    count: x.count,
+    amount: x.fils / 100,
+  });
+  return {
+    byOrigin: keys.map((k) => ({ origin: k, ...cell(origin.get(k)!) })),
+    avoidable: cell(av.yes),
+    notAvoidable: cell(av.no),
+    notClassified: cell(av.none),
+    total: cell(total),
+  };
 }
 
 export type DenialCodeRow = {
@@ -71,6 +134,10 @@ export type DenialCodeRow = {
   resubmitDays: number | null;
   appealable: boolean;
   active: boolean;
+  /** Where the rejection came from (data); missing or null = not classified. */
+  origin?: RejectionOrigin | null;
+  /** Could the clinic have prevented it (data); missing or null = not classified. */
+  avoidable?: boolean | null;
 };
 
 /** The leading letters of a code ("MNEC-003" -> "MNEC"), upper-case; null when it does not start with letters. */

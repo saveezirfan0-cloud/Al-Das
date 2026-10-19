@@ -5,18 +5,23 @@ import { PageHeader } from "@/components/shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { RecordHistorySection } from "@/components/history/record-history";
+import { Term } from "@/components/shell/term";
 import { readAiSettings } from "@/lib/ai/settings";
 import { requirePerm } from "@/lib/auth/session";
 import { todayIn } from "@/lib/finance/action-support";
 import {
+  avoidableLabel,
   CATEGORY_LABELS,
   deadlineCountdown,
   lookupDenialCode,
+  NOT_CLASSIFIED,
+  ORIGIN_LABELS,
+  rejectionOrigin,
   STATUS_LABELS,
   type CaseStatus,
   type DenialCategory,
-  type DenialCodeRow,
 } from "@/lib/finance/denials";
+import { loadDenialTaxonomy } from "@/lib/finance/denial-taxonomy";
 import { money } from "@/lib/finance/format";
 import { holds } from "@/lib/finance/rules";
 import { loadFinanceSettings } from "@/lib/finance/settings-db";
@@ -51,7 +56,7 @@ export default async function DenialCasePage({ params }: { params: Promise<{ id:
     { data: drafts },
     { data: people },
     { data: assignable },
-    { data: codes },
+    taxonomy,
     settings,
   ] = await Promise.all([
     supabase
@@ -67,11 +72,7 @@ export default async function DenialCasePage({ params }: { params: Promise<{ id:
       .limit(20),
     supabase.from("profiles").select("id, first_name, last_name"),
     supabase.from("memberships").select("user_id, roles(permissions)").eq("status", "active"),
-    supabase
-      .from("fin_ref_denial_codes")
-      .select(
-        "code, is_family, description, category, default_owner_role, resubmit_days, appealable, active",
-      ),
+    loadDenialTaxonomy(supabase, member.orgId),
     loadFinanceSettings(supabase, member.orgId),
   ]);
   const names = new Map(
@@ -87,17 +88,8 @@ export default async function DenialCasePage({ params }: { params: Promise<{ id:
       ),
     )
     .map((m) => ({ id: m.user_id, name: names.get(m.user_id) ?? "—" }));
-  const taxonomy: DenialCodeRow[] = (codes ?? []).map((r) => ({
-    code: r.code,
-    isFamily: r.is_family,
-    description: r.description,
-    category: r.category as DenialCategory,
-    defaultOwnerRole: r.default_owner_role as DenialCodeRow["defaultOwnerRole"],
-    resubmitDays: r.resubmit_days,
-    appealable: r.appealable,
-    active: r.active,
-  }));
   const meaning = lookupDenialCode(c.reason_code, taxonomy);
+  const origin = rejectionOrigin(c.reason_code, taxonomy);
   const today = todayIn(member.org.timezone);
   const active =
     c.status === "open" ||
@@ -154,6 +146,14 @@ export default async function DenialCasePage({ params }: { params: Promise<{ id:
               </dd>
               <dt className="text-muted-foreground">Category</dt>
               <dd>{CATEGORY_LABELS[c.category as DenialCategory]}</dd>
+              <dt className="text-muted-foreground">
+                <Term k="rejection-origin">Origin</Term>
+              </dt>
+              <dd>{origin.origin ? ORIGIN_LABELS[origin.origin] : NOT_CLASSIFIED}</dd>
+              <dt className="text-muted-foreground">
+                <Term k="avoidable" />
+              </dt>
+              <dd>{avoidableLabel(origin.avoidable)}</dd>
               <dt className="text-muted-foreground">Denied amount</dt>
               <dd className="tabular-nums">{money(c.rejected_amount)}</dd>
               <dt className="text-muted-foreground">Claimed</dt>
