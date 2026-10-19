@@ -1,0 +1,14 @@
+{
+  "comment": "PROPOSED rejection origin and avoidable flag per denial category (docs/47 W3f, docs/48). Seeded once into fin_ref_denial_codes by migration 20261223000200 (app.fin_denial_origin_proposal); after that the data is Finance's, edited in Workflow settings. To confirm: Mohammed (insurance) and Vineetha (finance). null = not classified.",
+  "byCategory": {
+    "authorization": { "origin": "front_desk", "avoidable": true },
+    "eligibility": { "origin": "front_desk", "avoidable": true },
+    "medical_necessity": { "origin": "clinical", "avoidable": false },
+    "coding": { "origin": "billing", "avoidable": true },
+    "documentation": { "origin": "clinical", "avoidable": true },
+    "duplicate": { "origin": "billing", "avoidable": true },
+    "timely_filing": { "origin": "billing", "avoidable": true },
+    "pricing": { "origin": "payer", "avoidable": null },
+    "other": { "origin": null, "avoidable": null }
+  }
+}

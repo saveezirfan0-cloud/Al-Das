@@ -13257,6 +13257,7 @@ export type Database = {
         Row: {
           active: boolean;
           appealable: boolean;
+          avoidable: boolean | null;
           category: string;
           code: string;
           created_at: string;
@@ -13265,6 +13266,7 @@ export type Database = {
           is_family: boolean;
           is_placeholder: boolean;
           org_id: string;
+          origin: string | null;
           resubmit_days: number | null;
           updated_at: string;
         };
@@ -13272,6 +13274,7 @@ export type Database = {
         Insert: {
           active?: boolean;
           appealable?: boolean;
+          avoidable?: boolean | null;
           category?: string;
           code: string;
           created_at?: string;
@@ -13280,12 +13283,14 @@ export type Database = {
           is_family?: boolean;
           is_placeholder?: boolean;
           org_id: string;
+          origin?: string | null;
           resubmit_days?: number | null;
           updated_at?: string;
         };
         Update: {
           active?: boolean;
           appealable?: boolean;
+          avoidable?: boolean | null;
           category?: string;
           code?: string;
           created_at?: string;
@@ -13294,6 +13299,7 @@ export type Database = {
           is_family?: boolean;
           is_placeholder?: boolean;
           org_id?: string;
+          origin?: string | null;
           resubmit_days?: number | null;
           updated_at?: string;
         };
@@ -13435,6 +13441,7 @@ export type Database = {
           denial_default_resubmit_days: number;
           denial_task_enabled: boolean;
           denial_warn_days: number;
+          diligence_remitted_nets_takebacks: boolean | null;
           doctor_basis: string | null;
           dq_late_invoice_days: number;
           escalation_days: number;
@@ -13544,6 +13551,7 @@ export type Database = {
           denial_default_resubmit_days?: number;
           denial_task_enabled?: boolean;
           denial_warn_days?: number;
+          diligence_remitted_nets_takebacks?: boolean | null;
           doctor_basis?: string | null;
           dq_late_invoice_days?: number;
           escalation_days?: number;
@@ -13652,6 +13660,7 @@ export type Database = {
           denial_default_resubmit_days?: number;
           denial_task_enabled?: boolean;
           denial_warn_days?: number;
+          diligence_remitted_nets_takebacks?: boolean | null;
           doctor_basis?: string | null;
           dq_late_invoice_days?: number;
           escalation_days?: number;

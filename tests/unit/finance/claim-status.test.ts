@@ -1,13 +1,28 @@
 import { describe, expect, it } from "vitest";
 
-import { claimStatus, settlementMonthOffset, type ClaimFacts } from "@/lib/finance/claim-status";
+import {
+  CLAIM_STATUS_LABELS,
+  CLAIM_STATUS_VARIANT,
+  claimFactsFromRow,
+  claimStatus,
+  denialOutcomeOf,
+  isClaimStatus,
+  settlementMonthOffset,
+  takenBackByClaim,
+  type ClaimActivityRow,
+  type ClaimFacts,
+  type ClaimStatusContext,
+} from "@/lib/finance/claim-status";
 import { matchDeposit, type DepositSettings } from "@/lib/finance/deposit-match";
 import {
-  REJECTION_ORIGIN,
-  rejectionOrigin,
+  avoidableLabel,
   CATEGORY_LABELS,
+  originBreakdown,
+  rejectionOrigin,
   type DenialCodeRow,
 } from "@/lib/finance/denials";
+
+import proposal from "./fixtures/rejection-origin-proposal.synthetic.json";
 import { reconcileRemittance, type RemitClaim } from "@/lib/finance/match-remittance";
 
 const F: ClaimFacts = {
@@ -136,32 +151,215 @@ describe("matchDeposit", () => {
   });
 });
 
-describe("rejectionOrigin", () => {
+describe("rejectionOrigin (data on fin_ref_denial_codes)", () => {
   const row = (
     code: string,
-    category: DenialCodeRow["category"],
+    over: Partial<DenialCodeRow> = {},
     isFamily = false,
   ): DenialCodeRow => ({
     code,
     isFamily,
     description: "synthetic",
-    category,
+    category: "other",
     defaultOwnerRole: "insurance",
     resubmitDays: 30,
     appealable: true,
     active: true,
+    ...over,
   });
-  const table = [row("AUTH-001", "authorization"), row("MNEC", "medical_necessity", true)];
-  it("uses the taxonomy lookup (exact code, then family)", () => {
+  const table = [
+    row("AUTH-001", { category: "authorization", origin: "front_desk", avoidable: true }),
+    row("MNEC", { category: "medical_necessity", origin: "clinical", avoidable: false }, true),
+    row("PRCE", { category: "pricing", origin: "payer", avoidable: null }, true),
+    row("NEW-1", { category: "authorization" }), // added by Finance, not classified yet
+    row("ODD-1", { origin: "somewhere" as never, avoidable: "yes" as never }),
+    row("OFF-1", { origin: "billing", avoidable: true, active: false }),
+  ];
+  it("reads the code's row through the taxonomy lookup (exact code, then family)", () => {
     expect(rejectionOrigin("AUTH-001", table)).toEqual({ origin: "front_desk", avoidable: true });
-    expect(rejectionOrigin("MNEC-003", table)).toEqual({ origin: "clinical", avoidable: false });
+    expect(rejectionOrigin("mnec-003", table)).toEqual({ origin: "clinical", avoidable: false });
+    expect(rejectionOrigin("PRCE-9", table)).toEqual({ origin: "payer", avoidable: null });
   });
-  it("an unknown or blank code is unknown, never avoidable", () => {
-    expect(rejectionOrigin("ZZZ-1", table)).toEqual({ origin: "unknown", avoidable: null });
-    expect(rejectionOrigin(null, table)).toEqual({ origin: "unknown", avoidable: null });
+  it("is the data, not the category: an unclassified row stays not classified", () => {
+    expect(rejectionOrigin("NEW-1", table)).toEqual({ origin: null, avoidable: null });
   });
-  it("covers every category", () => {
-    expect(Object.keys(REJECTION_ORIGIN).sort()).toEqual(Object.keys(CATEGORY_LABELS).sort());
+  it("an unknown, blank, inactive or malformed code is not classified, never 'not avoidable'", () => {
+    for (const code of ["ZZZ-1", null, "", "OFF-1", "ODD-1"])
+      expect(rejectionOrigin(code, table)).toEqual({ origin: null, avoidable: null });
+    expect(avoidableLabel(null)).toBe("Not classified");
+    expect(avoidableLabel(false)).toBe("Not avoidable");
+  });
+  it("the seeded proposal covers every category (the migration's table, docs/48)", () => {
+    expect(Object.keys(proposal.byCategory).sort()).toEqual(Object.keys(CATEGORY_LABELS).sort());
+    expect(proposal.byCategory.other).toEqual({ origin: null, avoidable: null });
+  });
+});
+
+describe("originBreakdown", () => {
+  const table: DenialCodeRow[] = [
+    {
+      code: "AUTH",
+      isFamily: true,
+      description: "x",
+      category: "authorization",
+      defaultOwnerRole: "insurance",
+      resubmitDays: 30,
+      appealable: true,
+      active: true,
+      origin: "front_desk",
+      avoidable: true,
+    },
+    {
+      code: "MNEC",
+      isFamily: true,
+      description: "x",
+      category: "medical_necessity",
+      defaultOwnerRole: "insurance",
+      resubmitDays: 30,
+      appealable: true,
+      active: true,
+      origin: "clinical",
+      avoidable: false,
+    },
+  ];
+  it("counts and sums by origin and by avoidable, with not classified kept apart", () => {
+    const b = originBreakdown(
+      [
+        { reasonCode: "AUTH-1", amount: 10.1 },
+        { reasonCode: "AUTH-2", amount: "20.2" },
+        { reasonCode: "MNEC-1", amount: 5 },
+        { reasonCode: "ZZZ", amount: 1 },
+        { reasonCode: null, amount: null },
+      ],
+      table,
+    );
+    expect(b.byOrigin.map((r) => [r.origin, r.count, r.amount])).toEqual([
+      ["front_desk", 2, 30.3],
+      ["clinical", 1, 5],
+      ["billing", 0, 0],
+      ["payer", 0, 0],
+      [null, 2, 1],
+    ]);
+    expect(b.avoidable).toEqual({ count: 2, amount: 30.3 });
+    expect(b.notAvoidable).toEqual({ count: 1, amount: 5 });
+    expect(b.notClassified).toEqual({ count: 2, amount: 1 });
+    expect(b.total).toEqual({ count: 5, amount: 36.3 });
+  });
+  it("the parts always add up to the total, to the fils", () => {
+    const cases = Array.from({ length: 30 }, (_, i) => ({
+      reasonCode: ["AUTH-1", "MNEC-2", "X"][i % 3],
+      amount: 0.1 * (i + 1),
+    }));
+    const b = originBreakdown(cases, table);
+    const fils = (n: number) => Math.round(n * 100);
+    expect(b.byOrigin.reduce((s, r) => s + fils(r.amount), 0)).toBe(fils(b.total.amount));
+    expect(
+      fils(b.avoidable.amount) + fils(b.notAvoidable.amount) + fils(b.notClassified.amount),
+    ).toBe(fils(b.total.amount));
+  });
+  it("is empty for no cases", () => {
+    expect(originBreakdown([], table).total).toEqual({ count: 0, amount: 0 });
+  });
+});
+
+describe("claim status from a Diligence row", () => {
+  const ROW: ClaimActivityRow = {
+    net: 100,
+    remitted: 0,
+    rejected: 0,
+    write_off: null,
+    write_off_status: null,
+    claim_status: null,
+    resubmission_count: 0,
+    last_resubmission_date: null,
+    last_remittance_date: null,
+  };
+  const CTX: ClaimStatusContext = {
+    takenBack: 0,
+    denialOutcome: "none",
+    bankReceived: false,
+    acceptedStatuses: ["Accepted"],
+    remittedNetsTakebacks: null,
+  };
+  const status = (row: Partial<ClaimActivityRow>, ctx: Partial<ClaimStatusContext> = {}) =>
+    claimStatus(claimFactsFromRow({ ...ROW, ...row }, { ...CTX, ...ctx }), 1).status;
+
+  it("unconfirmed or 'no': Remitted is gross and Pulse deducts the take-back", () => {
+    expect(status({ remitted: 100 }, { takenBack: 100 })).toBe("taken_back");
+    expect(status({ remitted: 100 }, { takenBack: 100, remittedNetsTakebacks: false })).toBe(
+      "taken_back",
+    );
+  });
+  it("'yes': Remitted already nets the take-back, so it is added back first", () => {
+    // paid 100, 100 taken back: Diligence shows 0 remitted
+    expect(status({ remitted: 0 }, { takenBack: 100, remittedNetsTakebacks: true })).toBe(
+      "taken_back",
+    );
+    // paid 100, 100 taken back, paid 100 again: Diligence shows 100
+    expect(status({ remitted: 100 }, { takenBack: 100, remittedNetsTakebacks: true })).toBe("paid");
+    // the same figures read as gross would wrongly say taken back
+    expect(status({ remitted: 100 }, { takenBack: 100, remittedNetsTakebacks: null })).toBe(
+      "taken_back",
+    );
+  });
+  it("reads numeric strings, the approved write-off and the accepted statuses (case and spaces ignored)", () => {
+    expect(status({ remitted: "100.00", net: "100.00" })).toBe("paid");
+    expect(status({ claim_status: "  accepted " })).toBe("under_review");
+    expect(status({ claim_status: "Pending" })).toBe("submitted");
+    expect(status({ remitted: 60, write_off: 40, write_off_status: "Approved" })).toBe(
+      "written_off",
+    );
+    expect(status({ remitted: 60, write_off: 40, write_off_status: "Requested" })).toBe(
+      "partly_paid",
+    );
+  });
+  it("fails closed: an unreadable figure is unknown", () => {
+    expect(status({ net: null })).toBe("unknown");
+    expect(status({ remitted: "abc" })).toBe("unknown");
+  });
+  it("a lost denial case closes the claim", () => {
+    expect(status({ rejected: 100 }, { denialOutcome: "lost" })).toBe("closed");
+  });
+});
+
+describe("takenBackByClaim and denialOutcomeOf", () => {
+  it("sums only negative lines with a claim, as positive amounts in fils", () => {
+    const m = takenBackByClaim([
+      { claim_activity_id: "a", paid_amount: -10.1 },
+      { claim_activity_id: "a", paid_amount: "-0.2" },
+      { claim_activity_id: "a", paid_amount: 50 },
+      { claim_activity_id: null, paid_amount: -5 },
+      { claim_activity_id: "b", paid_amount: null },
+      { claim_activity_id: "c", paid_amount: "x" },
+    ]);
+    expect([...m]).toEqual([["a", 10.3]]);
+  });
+  it("a case being worked is open; otherwise the latest case decides", () => {
+    expect(denialOutcomeOf([])).toBe("none");
+    expect(
+      denialOutcomeOf([
+        { status: "lost", denied_on: "2026-01-01" },
+        { status: "appealed", denied_on: "2025-12-01" },
+      ]),
+    ).toBe("open");
+    expect(
+      denialOutcomeOf([
+        { status: "won", denied_on: "2026-01-01" },
+        { status: "lost", denied_on: "2026-03-01" },
+      ]),
+    ).toBe("lost");
+    expect(denialOutcomeOf([{ status: "written_off", denied_on: "2026-01-01" }])).toBe(
+      "written_off",
+    );
+    expect(denialOutcomeOf([{ status: "recovered", denied_on: "2026-01-01" }])).toBe("none");
+  });
+  it("labels and chip colours cover every status; the filter accepts only real statuses", () => {
+    for (const s of Object.keys(CLAIM_STATUS_LABELS)) {
+      expect(isClaimStatus(s)).toBe(true);
+      expect(CLAIM_STATUS_VARIANT[s as keyof typeof CLAIM_STATUS_VARIANT]).toBeTruthy();
+    }
+    expect(isClaimStatus("approved")).toBe(false);
+    expect(isClaimStatus(null)).toBe(false);
   });
 });
 

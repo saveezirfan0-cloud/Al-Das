@@ -23,8 +23,11 @@ describe("list filters", () => {
       payer: "",
       denial: "",
       match: "ambiguous",
+      cstatus: null,
     });
     expect(parseClaimFilters({ match: "everything" }).match).toBeNull();
+    expect(parseClaimFilters({ cstatus: "taken_back" }).cstatus).toBe("taken_back");
+    expect(parseClaimFilters({ cstatus: "approved" }).cstatus).toBeNull();
   });
 
   it("reads the denials filters: active cases by default, every status on request", () => {
