@@ -1,6 +1,6 @@
 # W3 follow-ups: deposits of several references, paid_before, unmatched deposits
 
-Follow-ups 1, 2 and the unmatched-deposit part of 4 from `docs/47_W3_W5_INSURANCE_NOTES.md`. Migrations `20261223000100_finance_deposit_groups.sql` and `20261223000200_finance_unmatched_deposit_rule.sql` (paste copies `deploy/supabase-paste/102_*` and `103_*`). No new table, no new permission.
+Follow-ups 1, 2 and the unmatched-deposit part of 4 from `docs/47_W3_W5_INSURANCE_NOTES.md`. Migrations `20261223000100_finance_deposit_groups.sql` and `20261223000150_finance_unmatched_deposit_rule.sql` (paste copies `deploy/supabase-paste/102_*` and `103_*`). No new table, no new permission.
 
 ## 1. One deposit = several payment references (monthly bank run, 20C)
 
