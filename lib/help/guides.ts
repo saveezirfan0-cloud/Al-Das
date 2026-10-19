@@ -513,9 +513,11 @@ export const GUIDES: readonly Guide[] = [
       "On Finance, Capacity pick a month and, if you work in more than one, a branch.",
       "Doctors whose Unite name is not linked yet are listed at the bottom; link each one once on the Doctors page (Finance link), so their revenue meets their hours.",
       "Available hours are working hours on open days minus weekly blocks and leave.",
+      "Booked against available comes from the Unite appointment export uploaded on Finance, Appointments and invoices: each linked doctor's booked hours (appointments not cancelled) against their available hours, with the booked and seen counts.",
     ],
     watchOut: [
-      "Booked against available time needs the Unite appointment feed; until then it shows Needs Unite appointments.",
+      "Booked against available is shown only when the appointment file covers the whole month and every branch the doctor works at here; otherwise the column says Needs Unite appointments and why (no file, part of the month, a branch missing from the file or without a finance code, appointments with an unmapped clinic, doctor not linked).",
+      "Bookings made in Pulse are not counted; a booked appointment without a length in the file leaves the hours blank (never 0).",
       "Room occupancy and revenue per room-hour need the staff rota linked to the rooms; until then they show Needs the staff rota.",
       "An unknown room cost stays unknown (never 0), and only people who may see costs see it here.",
     ],
@@ -540,6 +542,7 @@ export const GUIDES: readonly Guide[] = [
       "Days the Unite invoices in Pulse do not cover are not judged. Nothing is listed as not billed while Pulse holds no invoices for the month.",
       "Hours need the appointment length in the file; percentages need the doctor linked to a Pulse doctor (Doctors page) and a room listed under Settings, Rooms.",
       "These are review prompts, never proof of an error.",
+      "The same upload fills Booked against available on Finance, Capacity once it covers the whole month.",
     ],
   },
   {

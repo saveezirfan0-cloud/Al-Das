@@ -62,6 +62,6 @@ A refused file says which required fields it could not find and lists the file's
 
 ## Not done
 
-- The Capacity page still shows "Needs Unite appointments" for its booked-against-available column; this page fills that gap. Linking the two is a follow-up.
+- ~~The Capacity page still shows "Needs Unite appointments" for its booked-against-available column.~~ Done: the Capacity page now reads this upload (docs/48_CAPACITY_APPOINTMENTS_NOTES.md).
 - Room occupancy from the staff rota is unchanged (M3A follow-up).
 - Nothing writes to Unite or `fin_invoices`.

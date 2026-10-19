@@ -19,6 +19,8 @@ import { requirePerm } from "@/lib/auth/session";
 import { ROOM_KIND_LABEL, type RoomKind } from "@/lib/capacity/rooms";
 import { loadCapacity, loadCapacityScope } from "@/lib/capacity/server";
 import { todayIn } from "@/lib/finance/action-support";
+import { NO_BOOKING_LABEL, type BookedCell } from "@/lib/finance/capacity-appointments";
+import { loadCapacityBookings } from "@/lib/finance/capacity-appointments-server";
 import { monthParam } from "@/lib/finance/doctor-performance";
 import { latestReportMonth } from "@/lib/finance/doctor-performance-server";
 import { monthTitle } from "@/lib/finance/flash-xlsx";
@@ -36,6 +38,36 @@ type Search = { month?: string; location?: string };
 const num = "text-right tabular-nums whitespace-nowrap";
 const hrs = (v: number) => v.toLocaleString("en-GB", { maximumFractionDigits: 1 });
 const NEEDS_UNITE = "Needs Unite appointments";
+const pctText = (v: number) => `${v.toLocaleString("en-GB", { maximumFractionDigits: 1 })}%`;
+
+/** Booked against available for one doctor: from the Unite appointment upload, or the reason it is not shown. */
+function BookedCellView({ cell }: { cell: BookedCell | undefined }) {
+  if (!cell || cell.kind === "none")
+    return (
+      <span className="text-muted-foreground text-xs">
+        {NEEDS_UNITE}
+        {cell && <span className="block">{NO_BOOKING_LABEL[cell.reason]}</span>}
+      </span>
+    );
+  const detail =
+    cell.bookedHours === null
+      ? `${cell.noDuration} without a length in the file`
+      : cell.availableHours > 0
+        ? `${hrs(cell.bookedHours)} of ${hrs(cell.availableHours)} h`
+        : `${hrs(cell.bookedHours)} h, no available hours`;
+  return (
+    <span className="text-xs whitespace-nowrap">
+      {cell.bookedPct !== null && (
+        <span className="text-foreground text-sm font-medium tabular-nums">
+          {pctText(cell.bookedPct)}
+        </span>
+      )}
+      <span className="text-muted-foreground block tabular-nums">
+        {cell.booked} booked, {cell.seen} seen; {detail}
+      </span>
+    </span>
+  );
+}
 // Room hours come from the staff rota (rota_shifts) once its room is linked to a room here.
 const NEEDS_ROTA = "Needs the staff rota";
 
@@ -51,6 +83,7 @@ export default async function CapacityPage({ searchParams }: { searchParams: Pro
     (await latestReportMonth(admin, member.orgId, scope.allowedCodes)) ??
     thisMonth;
   const cap = await loadCapacity(admin, member.orgId, scope, month);
+  const booked = await loadCapacityBookings(admin, member.orgId, scope, cap);
   await recordAccess(admin, member, { entity: "finance_invoice", action: "list" });
 
   // Billing and the Medical Director get no cost data (F8): room cost only with a cost or profit permission.
@@ -120,6 +153,27 @@ export default async function CapacityPage({ searchParams }: { searchParams: Pro
           </AlertDescription>
         </Alert>
       )}
+      {booked.hasRows && !booked.coverage.full && (
+        <Alert>
+          <AlertTitle>The appointment file covers part of {title}</AlertTitle>
+          <AlertDescription>
+            Booked against available is shown only for a whole month. Uploaded so far:{" "}
+            {booked.coverage.label}. Upload the rest on{" "}
+            <Link className="text-primary underline" href="/finance/appointment-billing">
+              Appointments and invoices
+            </Link>
+            .
+          </AlertDescription>
+        </Alert>
+      )}
+      {booked.truncated && (
+        <Alert>
+          <AlertTitle>Too many appointments to read for {title}</AlertTitle>
+          <AlertDescription>
+            Booked against available is not shown, so it cannot understate.
+          </AlertDescription>
+        </Alert>
+      )}
       {scope.revenueAvailable && cap.hasRevenueData && !cap.coverage.full && (
         <Alert>
           <AlertTitle>Part of the month is missing</AlertTitle>
@@ -142,7 +196,15 @@ export default async function CapacityPage({ searchParams }: { searchParams: Pro
           hint="Linked doctors with working hours"
         />
         <KpiTile label="Room occupancy (%)" value={null} hint={NEEDS_ROTA} />
-        <KpiTile label="Appointment utilisation" value={null} hint={NEEDS_UNITE} />
+        <KpiTile
+          label="Appointment utilisation (%)"
+          value={booked.totals.bookedPct}
+          hint={
+            booked.totals.bookedPct === null
+              ? NEEDS_UNITE
+              : `Booked hours of ${booked.totals.doctors} doctor(s) with appointment data`
+          }
+        />
       </section>
 
       <Card>
@@ -188,7 +250,9 @@ export default async function CapacityPage({ searchParams }: { searchParams: Pro
                       )}
                     </TableCell>
                     <TableCell className={num}>{money(d.revenuePerAvailableHour)}</TableCell>
-                    <TableCell className="text-muted-foreground text-xs">{NEEDS_UNITE}</TableCell>
+                    <TableCell>
+                      <BookedCellView cell={booked.bySpecialist.get(d.specialistId)} />
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -317,8 +381,13 @@ export default async function CapacityPage({ searchParams }: { searchParams: Pro
 
       <footer className="text-muted-foreground flex flex-col gap-1 text-xs">
         <span>
-          Appointment utilisation (booked against available minutes) waits for the Unite appointment
-          feed: until appointments flow from Unite, Pulse sees only the bookings made in Pulse.
+          Booked against available comes from the Unite appointment export uploaded on{" "}
+          <Link className="underline" href="/finance/appointment-billing">
+            Appointments and invoices
+          </Link>
+          : booked hours (appointments not cancelled) against the doctor&apos;s available hours. It
+          is shown only when the file covers the whole month and every branch the doctor works at
+          here; otherwise the column says why. Bookings made in Pulse are not counted.
         </span>
         {t.revenue !== null && (
           <span>
