@@ -4,7 +4,6 @@ import {
   addDays,
   reconcileRun,
   type BankLine,
-  type BankSettings,
   type Collection,
   type Decision,
   type RemittanceBatch,
@@ -12,6 +11,12 @@ import {
   type SettlementLine,
   type SettlementRule,
 } from "@/lib/finance/bank-recon";
+import {
+  depositGroupSearch,
+  splitRemittanceByReference,
+  type RemittanceRefPart,
+} from "@/lib/finance/deposit-groups";
+import type { DepositSettings } from "@/lib/finance/deposit-match";
 import { refKey } from "@/lib/finance/match-keys";
 import type { AdminClient } from "@/lib/supabase/admin";
 
@@ -75,13 +80,19 @@ async function loadV2Footprint(
   };
 }
 
+/** The bank thresholds plus the deposit-group bounds (fin_ref_finance_settings.bank_deposit_max_*). */
+export type BankRunSettings = DepositSettings;
+
 /** The bank thresholds. A missing settings row is created with the table's own defaults (never defaults from code). */
-export async function loadBankSettings(admin: AdminClient, orgId: string): Promise<BankSettings> {
+export async function loadBankSettings(
+  admin: AdminClient,
+  orgId: string,
+): Promise<BankRunSettings> {
   const read = () =>
     admin
       .from("fin_ref_finance_settings")
       .select(
-        "bank_weekend_days, bank_date_window_days, bank_amount_tolerance, bank_amount_tolerance_pct, bank_auto_accept_score, bank_cutoff_day",
+        "bank_weekend_days, bank_date_window_days, bank_amount_tolerance, bank_amount_tolerance_pct, bank_auto_accept_score, bank_cutoff_day, bank_deposit_max_parts, bank_deposit_max_pool",
       )
       .eq("org_id", orgId)
       .maybeSingle();
@@ -100,6 +111,8 @@ export async function loadBankSettings(admin: AdminClient, orgId: string): Promi
     tolerancePct: Number(data.bank_amount_tolerance_pct),
     autoAcceptScore: Number(data.bank_auto_accept_score),
     cutoffDay: Number(data.bank_cutoff_day),
+    maxParts: Number(data.bank_deposit_max_parts),
+    maxPool: Number(data.bank_deposit_max_pool),
   };
 }
 
@@ -121,6 +134,36 @@ export async function loadSettlementRules(
     accountId: r.account_id,
     settlesToBank: r.settles_to_bank,
     source: r.source === "settlement" ? "settlement" : "collections",
+  }));
+}
+
+/** Committed remittance lines per batch, payment reference and payer (fin_bank_insurance_payments, service role). */
+async function loadRefParts(
+  admin: AdminClient,
+  orgId: string,
+  since: string,
+): Promise<RemittanceRefPart[]> {
+  const { data, error } = await admin.rpc("fin_bank_insurance_payments", {
+    p_org_id: orgId,
+    p_since: since,
+  });
+  if (error) throw new Error(`insurance payments: ${error.code ?? "unknown"}`);
+  return (
+    (data ?? []) as unknown as Array<{
+      batch_id: string;
+      ref: string | null;
+      payer_id: string | null;
+      paid_on: string | null;
+      amount: number | string;
+      lines: number;
+    }>
+  ).map((p) => ({
+    batchId: p.batch_id,
+    ref: p.ref,
+    payerId: p.payer_id,
+    paidOn: p.paid_on,
+    amount: Number(p.amount),
+    lines: Number(p.lines),
   }));
 }
 
@@ -148,7 +191,7 @@ export type LoadedRun = {
     currency: string;
     receives_insurance: boolean;
   };
-  settings: BankSettings;
+  settings: BankRunSettings;
   result: RunResult;
   lines: Map<string, BankLine>; // the bank lines the run looked at, by id (for display)
 };
@@ -201,6 +244,10 @@ export async function loadRun(
     .filter((r) => r.source === "settlement" && r.accountId === account.id)
     .map((r) => r.mode);
 
+  // the committed advice lines of recent batches summed per payment reference and payer (sums and counts only)
+  const refPartsLoad = account.receives_insurance
+    ? loadRefParts(admin, orgId, `${addDays(period.start, -120)}T00:00:00Z`)
+    : Promise.resolve([] as RemittanceRefPart[]);
   const [collections, settlements, remittanceBatches, lines, decisions, notes, lastLine, v2] =
     await Promise.all([
       admin
@@ -305,9 +352,12 @@ export async function loadRun(
         .maybeSingle(),
       loadV2Footprint(admin, orgId),
     ]);
-  // an insurer payment the open-item matching has allocated or closed is not expected again by the monthly run
-  const remittances = remittanceBatches.filter(
-    (r) => !v2.itemRefs.has(`ins|${refKey(r.ref) ?? `batch:${r.id}`}`),
+  // One item per payment reference (a file holding several is split; one reference keeps `ins|<batch id>`). An insurer
+  // payment the open-item matching has allocated or closed is not expected again by the monthly run.
+  const remittances = splitRemittanceByReference(remittanceBatches, await refPartsLoad).filter(
+    (r) =>
+      !v2.itemRefs.has(`ins|batch:${r.batchId}`) &&
+      !v2.itemRefs.has(`ins|${refKey(r.ref) ?? `batch:${r.batchId}`}`),
   );
 
   const mine = new Set(decisions.filter((d) => d.status === "matched").map((d) => d.bank_line_id));
@@ -351,6 +401,7 @@ export async function loadRun(
     notes: notes.map((n) => ({ itemKey: n.item_key, code: n.reason_code, note: n.note })),
     today,
     statementEnd: lastLine.data?.value_date ?? null,
+    proposeGroups: depositGroupSearch(settings),
   });
   return { rec, account, settings, result, lines: new Map(bankLines.map((l) => [l.id, l])) };
 }

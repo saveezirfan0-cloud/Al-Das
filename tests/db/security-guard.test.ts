@@ -236,6 +236,8 @@ const SF20E_SERVICE_FUNCTIONS = [
  */
 const PHASE20_SERVICE_FUNCTIONS = [
   "fin_bank_collections",
+  // W3 follow-up (docs/48): committed advice lines summed per payment reference for the bank run
+  "fin_bank_insurance_payments",
   "fin_bank_import",
   "fin_close_controls",
   "fin_billing_mix",
