@@ -1,4 +1,4 @@
-# Insurance receivable control: Diligence against Tally (asked for by Saeed)
+# Insurance receivable control: Diligence against Tally
 
 Follow-up to docs/47 W3 item (e) and follow-up 4. Built 19 Oct 2026. Migration `supabase/migrations/20261223000300_finance_ins_receivable_control.sql`, paste file `deploy/supabase-paste/106_finance_ins_receivable_control.sql`.
 
@@ -65,13 +65,13 @@ Claims dated on or before the month end. Outstanding as in the close pack (net â
 
 | #   | Question                                                                                                                                                                                                             | Owner                      |
 | --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
-| 1   | Is AED 1.00 the right default tolerance, and should it be a percentage as well?                                                                                                                                      | Saeed                      |
-| 2   | Which Tally ledgers hold insurer receivables (one per insurer under Sundry Debtors, or one control ledger)? Map them in Posting rules with the Diligence payer id as the qualifier so the comparison runs per payer. | Chief Accountant, Vineetha |
+| 1   | Is AED 1.00 the right default tolerance, and should it be a percentage as well?                                                                                                                                      | Hardik                      |
+| 2   | Which Tally ledgers hold insurer receivables (one per insurer under Sundry Debtors, or one control ledger)? Map them in Posting rules with the Diligence payer id as the qualifier so the comparison runs per payer. | Hardik, Vineetha           |
 | 3   | Does Diligence `remitted` already net take-backs, and is `first_remittance_date` reliable? The month-end correction depends on it (same question as docs/47 follow-up 3).                                            | Hardik                     |
 | 4   | Diligence write-offs have no date: should an approved write-off after the month end be added back (needs a date from Diligence)?                                                                                     | Hardik, Mohammed           |
-| 5   | Built: whoever explains must be someone other than the finance signer (any holder of `finance.close.manage` may explain). Is that the rule wanted, or must the explainer also be the person who built the pack?      | Saeed                      |
+| 5   | Built: whoever explains must be someone other than the finance signer (any holder of `finance.close.manage` may explain). Is that the rule wanted, or must the explainer also be the person who built the pack?      | Hardik                      |
 | 6   | Copay and the patient share: Tally's insurer ledgers should hold the insurer share only. Confirm nothing patient-side is posted there.                                                                               | Vineetha                   |
-| 7   | How old may the last Tally pull be before the control should say "stale" instead of comparing? (Today it shows the time and compares.)                                                                               | Saeed                      |
+| 7   | How old may the last Tally pull be before the control should say "stale" instead of comparing? (Today it shows the time and compares.)                                                                               | Hardik                      |
 
 ## Tests
 
