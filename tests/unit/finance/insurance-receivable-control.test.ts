@@ -19,9 +19,12 @@ import {
   type ControlInput,
   type InsReceivableBlock,
 } from "@/lib/finance/insurance-receivable-control";
-import { insNoteText } from "@/lib/finance/close-xlsx";
+import { buildClosePack, type ClosePackInput } from "@/lib/finance/close-pack";
+import { closePackPdf } from "@/lib/finance/close-pdf";
+import { closePackXlsx, insNoteText, type SignOff } from "@/lib/finance/close-xlsx";
 
 import fixture from "./fixtures/ins-receivable-control.synthetic.json";
+import closeFixture from "./fixtures/phase18-close.synthetic.json";
 
 type Case = {
   name: string;
@@ -254,5 +257,56 @@ describe("close pack rendering", () => {
         by: "A Preparer",
       }),
     ).toBe("Two remittances posted in Tally on 1 Oct. (A Preparer, 2026-10-04)");
+  });
+});
+
+describe("Excel and PDF from the frozen pack", () => {
+  const sign: SignOff = {
+    financeBy: null,
+    financeAt: null,
+    financeNote: null,
+    ceoBy: null,
+    ceoAt: null,
+    ceoNote: null,
+    lockedAt: null,
+    hash: null,
+    insNote: {
+      state: "given",
+      text: "INS-B remittance posted in Tally on 1 Oct.",
+      at: "2026-10-04",
+      by: "A Preparer",
+    },
+  };
+  const pack = buildClosePack({
+    ...(closeFixture as unknown as ClosePackInput),
+    controls: controlsWith(block()),
+  });
+
+  it("the workbook holds the control, the matter and the explanation", async () => {
+    const ExcelJS = (await import("exceljs")).default;
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load((await closePackXlsx(pack, sign)) as never);
+    const text = (name: string) => {
+      const lines: string[] = [];
+      wb.getWorksheet(name)!.eachRow((r) => lines.push(String(r.values)));
+      return lines.join("\n");
+    };
+    expect(text("Controls")).toContain("Insurance receivable control (Diligence and Tally)");
+    expect(text("Controls")).toContain("Tally insurer receivable at 2026-09-30");
+    expect(text("Controls")).toContain("differs from Diligence (AED 800.00) by AED 20.00");
+    expect(text("Summary")).toContain(
+      "INS-B remittance posted in Tally on 1 Oct. (A Preparer, 2026-10-04)",
+    );
+  });
+
+  it("the PDF holds the control and the explanation", async () => {
+    const { extractText, getDocumentProxy } = await import("unpdf");
+    const buf = await closePackPdf(pack, sign);
+    const { text } = await extractText(await getDocumentProxy(new Uint8Array(buf)), {
+      mergePages: true,
+    });
+    const all = (Array.isArray(text) ? text.join("\n") : text).replace(/\s+/g, " ");
+    expect(all).toContain("Insurance receivable control (Diligence and Tally)");
+    expect(all).toContain("Preparer's explanation: INS-B remittance posted in Tally on 1 Oct.");
   });
 });
