@@ -22,6 +22,9 @@ globalThis.fetch = ((input: Parameters<typeof fetch>[0], init?: Parameters<typeo
   // Phase 20e: Instagram / Messenger (graph.facebook.com is blocked above) and Google Calendar / OAuth are tested with fake fetches.
   if (/^https?:\/\/([a-z0-9-]+\.)*(instagram\.com|facebook\.com|messenger\.com|googleapis\.com|google\.com)([/:?#]|$)/i.test(url))
     throw new Error("Tests must never call Instagram, Messenger or Google: use a fake fetch");
+  // OQ-182: Sanoflow is tested with a fake fetch and recorded answers; no test may send a WhatsApp message through it.
+  if (/^https?:\/\/([a-z0-9-]+\.)*sanoflow\.io([/:?#]|$)/i.test(url))
+    throw new Error("Tests must never call Sanoflow: pass a fake fetchFn");
   // Phase G: outgoing e-mail (attachments included) is tested with a fake transport; no test may reach Resend.
   if (/^https?:\/\/([a-z0-9-]+\.)*resend\.(com|dev)([/:?#]|$)/i.test(url))
     throw new Error("Tests must never call Resend: pass a fake EmailTransport");

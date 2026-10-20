@@ -323,6 +323,62 @@ describe.skipIf(!TEST_DATABASE_URL)("flows + recall (db)", () => {
       });
     });
 
+    it("seeds {{1}} = first name, else Patient, for chronic and birthday groups only (docs/49 D16)", async () => {
+      await asServiceRole(c, async () => {
+        const { rows } = await c.query<{ key: string; n: string; filled: string }>(
+          `select p.key, count(*) as n,
+                  count(*) filter (where t.variables_map = '{"body.1":"contact.first_name|default:Patient"}'::jsonb) as filled
+             from public.recall_programme_templates t
+             join public.recall_programmes p on p.id = t.programme_id
+            where t.org_id = $1
+            group by p.key order by p.key`,
+          [orgA],
+        );
+        expect(rows.map((r) => [r.key, Number(r.n), Number(r.filled)])).toEqual([
+          ["birthday", 6, 6],
+          ["chronic_90d", 10, 10],
+        ]);
+      });
+    });
+
+    it("the D16 backfill fills empty maps and keeps one someone set", async () => {
+      await asServiceRole(c, async () => {
+        await c.query(
+          `update public.recall_programme_templates set variables_map = '{}'::jsonb
+            where programme_id = $1 and segment_key = 'diabetes'`,
+          [progA],
+        );
+        await c.query(
+          `update public.recall_programme_templates set variables_map = '{"body.1":"contact.last_name"}'::jsonb
+            where programme_id = $1 and segment_key = 'asthma'`,
+          [progA],
+        );
+        // The migration's backfill statement, run again (it is safe to repeat).
+        await c.query(
+          `update public.recall_programme_templates t
+              set variables_map = '{"body.1":"contact.first_name|default:Patient"}'::jsonb
+             from public.recall_programmes p
+            where p.id = t.programme_id and p.key in ('chronic_90d', 'birthday')
+              and t.variables_map = '{}'::jsonb`,
+        );
+        const { rows } = await c.query<{ segment_key: string; v: string }>(
+          `select segment_key, variables_map->>'body.1' as v from public.recall_programme_templates
+            where programme_id = $1 and segment_key in ('diabetes', 'asthma') order by segment_key`,
+          [progA],
+        );
+        expect(rows).toEqual([
+          { segment_key: "asthma", v: "contact.last_name" },
+          { segment_key: "diabetes", v: "contact.first_name|default:Patient" },
+        ]);
+        await c.query(
+          `update public.recall_programme_templates
+              set variables_map = '{"body.1":"contact.first_name|default:Patient"}'::jsonb
+            where programme_id = $1 and segment_key = 'asthma'`,
+          [progA],
+        );
+      });
+    });
+
     it("recall tables are isolated between orgs", async () => {
       await asUser(c, alice, async () => {
         expect(

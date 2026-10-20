@@ -7,6 +7,9 @@ import { fetchAll } from "@/lib/supabase/fetch-all";
 import { parseTestNumbers } from "@/lib/recall/engine";
 
 import { clinicalMessagingEnabled, settingValue } from "@/lib/recall/settings";
+import { recallBodyKeys } from "@/lib/recall/variables";
+import { templateVariables } from "@/lib/whatsapp/templates";
+import type { MetaTemplateComponent } from "@/lib/whatsapp/types";
 import { RecallWorkspace, type ProgrammeVM } from "./recall-workspace";
 
 export const metadata = { title: "Recall" };
@@ -41,11 +44,13 @@ export default async function RecallPage() {
   ] = await Promise.all([
     admin
       .from("recall_programme_templates")
-      .select("id, programme_id, segment_key, wa_template_id, legacy_sanoflow_template_id, active")
+      .select(
+        "id, programme_id, segment_key, wa_template_id, legacy_sanoflow_template_id, active, variables_map",
+      )
       .in("programme_id", ids),
     admin
       .from("wa_templates")
-      .select("id, name, status, category")
+      .select("id, name, status, category, components")
       .eq("org_id", member.orgId)
       .is("archived_at", null)
       .order("name"),
@@ -96,6 +101,7 @@ export default async function RecallPage() {
         wa_template_id: m.wa_template_id,
         legacy: m.legacy_sanoflow_template_id,
         active: m.active,
+        variables: (m.variables_map as Record<string, string> | null) ?? {},
       })),
     last7: last7.get(p.id) ?? {},
     weekly: (weekly ?? [])
@@ -119,7 +125,16 @@ export default async function RecallPage() {
       />
       <RecallWorkspace
         programmes={vms}
-        templates={templates ?? []}
+        templates={(templates ?? []).map((t) => ({
+          id: t.id,
+          name: t.name,
+          status: t.status,
+          category: t.category,
+          // Only the {{n}} keys reach the browser, not the template components.
+          bodyKeys: recallBodyKeys(
+            templateVariables(t.components as unknown as MetaTemplateComponent[]),
+          ),
+        }))}
         workspace={{
           mode: mode === "live" ? "live" : "test",
           testNumbers: parseTestNumbers(testNumbers).length,

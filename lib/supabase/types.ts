@@ -6158,6 +6158,7 @@ export type Database = {
           quality_rating: string | null;
           send_rate_per_sec: number;
           status: string;
+          transport: string;
           type: string;
           updated_at: string;
           verified_name: string | null;
@@ -6184,6 +6185,7 @@ export type Database = {
           quality_rating?: string | null;
           send_rate_per_sec?: number;
           status?: string;
+          transport?: string;
           type?: string;
           updated_at?: string;
           verified_name?: string | null;
@@ -6209,6 +6211,7 @@ export type Database = {
           quality_rating?: string | null;
           send_rate_per_sec?: number;
           status?: string;
+          transport?: string;
           type?: string;
           updated_at?: string;
           verified_name?: string | null;
@@ -23944,6 +23947,7 @@ export type Database = {
           rejected_reason: string | null;
           retry_on_fail: boolean;
           sms_fallback: boolean;
+          sanoflow_template_id: number | null;
           status: string;
           submitted_at: string | null;
           ttl_seconds: number | null;
@@ -23974,6 +23978,7 @@ export type Database = {
           rejected_reason?: string | null;
           retry_on_fail?: boolean;
           sms_fallback?: boolean;
+          sanoflow_template_id?: number | null;
           status?: string;
           submitted_at?: string | null;
           ttl_seconds?: number | null;
@@ -24003,6 +24008,7 @@ export type Database = {
           rejected_reason?: string | null;
           retry_on_fail?: boolean;
           sms_fallback?: boolean;
+          sanoflow_template_id?: number | null;
           status?: string;
           submitted_at?: string | null;
           ttl_seconds?: number | null;

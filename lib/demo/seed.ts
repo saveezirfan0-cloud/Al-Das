@@ -865,7 +865,7 @@ export async function seedDemoWorkspace(admin: Admin, opts: SeedOptions): Promis
       programme_id: programmeId,
       segment_key: "*",
       wa_template_id: tBirthday.id,
-      variables_map: { "1": "contact.first_name" },
+      variables_map: { "body.1": "contact.first_name|default:Patient" },
     })
     .select("id")
     .single();

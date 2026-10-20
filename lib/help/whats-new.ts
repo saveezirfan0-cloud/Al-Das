@@ -3,6 +3,18 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-12-24-recall-template-values",
+    date: "2026-10-20",
+    title: "Recall: choose what fills each {{1}}",
+    body: "On Recall, each group's template now shows what fills its variables: the patient's first, last or full name, or the doctor's name, with a word to use when the value is blank. Chronic recall and birthday groups start with the first name, or Patient when there is none, as the Make scenarios did. A group whose template has a variable with no value is flagged, because its messages would fail.",
+  },
+  {
+    id: "2026-12-24-send-through-sanoflow",
+    date: "2026-10-20",
+    title: "Send through Sanoflow",
+    body: "Pulse's reminders, recall programmes, flows and campaigns can now send their approved templates through your Sanoflow account, the way Make does today, so Sanoflow keeps the clinic's WhatsApp numbers. An administrator adds the Sanoflow API key under Settings, Integrations, Send through Sanoflow, adds the clinic's Sanoflow number, and gives each template its Sanoflow template number. It is off until switched on with the typed words. Sanoflow can tell Pulse when a patient replied or booked, which keeps the recall call list right.",
+  },
+  {
     id: "2026-12-24-menu-access-fixes",
     date: "2026-10-20",
     title: "Self-pay reminders for approvers, and My day for doctors",

@@ -85,6 +85,29 @@ export async function attributeInboundReply(
   return { attributed: true, wantsBooking };
 }
 
+/**
+ * Sanoflow reported that the patient replied (OQ-182: the reply itself stays in Sanoflow, so there is no Pulse message to link).
+ * Credits the newest open send exactly like an inbound reply, without a reply message id or a button outcome.
+ */
+export async function attributeExternalReply(
+  admin: AdminClient,
+  input: { orgId: string; contactId: string; at?: Date },
+): Promise<boolean> {
+  const at = input.at ?? new Date();
+  const target = pickReplyTarget(
+    await openSends(admin, input.orgId, input.contactId),
+    at,
+    await days(admin, input.orgId, "recall_reply_attribution_days", DEFAULT_REPLY_ATTRIBUTION_DAYS),
+  );
+  if (!target) return false;
+  await admin
+    .from("recall_sends")
+    .update({ replied_at: at.toISOString() })
+    .eq("id", target.id)
+    .is("replied_at", null);
+  return true;
+}
+
 /** An appointment was created for a contact: credit the newest open send (replaces Make's "Booked" status call). */
 export async function attributeBooking(
   admin: AdminClient,

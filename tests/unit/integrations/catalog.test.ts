@@ -96,6 +96,9 @@ describe("catalogue", () => {
         "client_secret",
         // Phase 20h: the generic HTTP SMS gateway's bearer token or Basic password
         "gateway_secret",
+        // OQ-182: the Sanoflow API key and the replied / booked webhook token
+        "access_token",
+        "webhook_token",
       ].sort(),
     );
     for (const i of INTEGRATIONS)

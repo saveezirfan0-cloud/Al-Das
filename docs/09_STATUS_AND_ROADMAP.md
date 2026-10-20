@@ -208,6 +208,7 @@ Still to do on these: click through them on a real stack (section 2.2).
 | Clinical messages to patients | Clinical sign-offs (OQ-01 to 06, 36) | Gate is built and fails closed |
 | AI replies | Legal answer on sending text to Anthropic and Voyage (OQ-57) | Switch is OFF per org |
 | Make parallel run | Make-side exports for Token and MRD sync | `/recall/parallel-run` is ready |
+| Make logic carried over | The 23 decisions in `docs/49_MAKE_LOGIC_MATRIX.md` §3 (chronic 85-day and `60 days >` gate, birthday consent and greeting, reminder timing, Sanoflow tags, reply feed) | `docs/49` maps every Make filter and router branch to Pulse (Same / Different / Missing) and is the pattern for new automations |
 
 ### 2.2 Verification that was never done
 
@@ -508,7 +509,7 @@ Each phase starts in Plan Mode and uses the prompt of the same number in `docs/1
 | **17** | AI: Flow Copilot, Campaign Copilot, intent routing, reply-quality loop. **Built; waiting for review, merge, a click-through, a trial with real wording and the answers to OQ-57, OQ-61 and OQ-78 to OQ-82 before any of it is switched on** (`docs/17_PHASE_17_NOTES.md`) | OQ-57, OQ-61 | done in code |
 | **18** | Finance and insurance upgrades: pre-auth, denials, remittance, scorecards, month-end pack. **Built; waiting for review, merge, a click-through and the thresholds (OQ-72 to OQ-77)** (`docs/16_PHASE_18_NOTES.md`) | Diligence export, thresholds | done in code |
 | **19** | Integrations: calendar feed, payments, SMS, reviews, ads attribution | the accounts in 4.8 | per integration |
-| **Go-live** | Staging rehearsal, parallel run, number-by-number cut-over, retire Make, Airtable, Sanoflow | everything in section 3 | 3 weeks including the parallel week |
+| **Go-live** | Staging rehearsal, parallel run, retire Make and Airtable (Sanoflow stays, OQ-182) | everything in section 3 | 3 weeks including the parallel week |
 
 The pitch only needs 12b to be real. 13 to 15 turn it from "it works" into "I would trust it with my clinic".
 
@@ -521,7 +522,7 @@ The pitch only needs 12b to be real. 13 to 15 turn it from "it works" into "I wo
 3. **Data**: Airtable and Sanoflow import with `--dry-run`, then real (`pnpm import:sanoflow:all`; appointments with `--with-appointments` only once Sanoflow's reminders are off), then `pnpm reconcile --live-airtable --sanoflow-counts latest`, sign-off file completed by operations, clinical and engineering.
 4. **Parallel week**: Make and Pulse side by side in Test mode; `/recall/parallel-run` has to be clean before "Make off" unlocks.
 5. **Cut over WhatsApp numbers one at a time**, lowest-traffic number first. Keep Sanoflow subscribed until the third number is stable.
-6. **Retire** Make, then Airtable, then Sanoflow. Revoke the migration tokens. Rotate the Unite keys.
+6. **Retire** Make, then Airtable. Sanoflow stays (owner decision, 20 Oct 2026, OQ-182). Revoke the migration tokens. Rotate the Unite keys.
 7. **Clinical messaging** switches on only after the clinical lead signs the validation period (OQ-16).
 
 Definition of done is in `docs/02_CLAUDE_CODE_BUILD_PLAN.md` section 10 and `docs/06_PHASE_11_CUTOVER.md`.
