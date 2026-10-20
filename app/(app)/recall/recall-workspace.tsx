@@ -35,7 +35,20 @@ import {
 import { CONFIRM_PHRASE } from "@/lib/clinical/sign-off";
 import { describeSchedule, formFromCron } from "@/lib/flow-engine/schedule";
 
-import { previewProgramme, saveProgramme, saveTemplateMap, type Preview } from "./actions";
+import {
+  label,
+  missingRecallVariables,
+  RECALL_VARIABLE_SOURCES,
+  splitRecallVariable,
+} from "@/lib/recall/variables";
+
+import {
+  previewProgramme,
+  saveProgramme,
+  saveTemplateMap,
+  saveTemplateVariables,
+  type Preview,
+} from "./actions";
 
 export type ProgrammeVM = {
   id: string;
@@ -55,6 +68,7 @@ export type ProgrammeVM = {
     wa_template_id: string | null;
     legacy: string | null;
     active: boolean;
+    variables: Record<string, string>;
   }>;
   last7: Record<string, number>;
   weekly: Array<{
@@ -66,7 +80,14 @@ export type ProgrammeVM = {
     booked: number;
   }>;
 };
-type TemplateOption = { id: string; name: string; status: string; category: string };
+type TemplateOption = {
+  id: string;
+  name: string;
+  status: string;
+  category: string;
+  /** The template's {{n}} keys ("body.1", …); the components themselves stay on the server. */
+  bodyKeys: string[];
+};
 type Workspace = { mode: "test" | "live"; testNumbers: number; clinicalMessagingEnabled: boolean };
 type Perms = { manage: boolean; mapTemplates: boolean; signOff: boolean };
 
@@ -471,6 +492,20 @@ function ProgrammeDrawer({
                         ))}
                       </SelectContent>
                     </Select>
+                    {row?.wa_template_id && (
+                      <TemplateValues
+                        key={`${row.wa_template_id}:${JSON.stringify(row.variables)}`}
+                        segment={seg}
+                        bodyKeys={
+                          templates.find((t) => t.id === row.wa_template_id)?.bodyKeys ?? []
+                        }
+                        variables={row.variables}
+                        disabled={!perms.mapTemplates || pending}
+                        onSave={(values) =>
+                          run(() => saveTemplateVariables(p.id, { segment_key: seg, values }))
+                        }
+                      />
+                    )}
                   </TableCell>
                 </TableRow>
               );
@@ -511,6 +546,95 @@ function ProgrammeDrawer({
           Last run {new Date(p.last_run_at).toLocaleString("en-GB", { timeZone: "Asia/Dubai" })}
         </p>
       )}
+    </div>
+  );
+}
+
+/** Which value fills each {{n}} of a group's template, with a fallback for a blank value (docs/49 D16). */
+function TemplateValues({
+  segment,
+  bodyKeys,
+  variables,
+  disabled,
+  onSave,
+}: {
+  segment: string;
+  bodyKeys: string[];
+  variables: Record<string, string>;
+  disabled: boolean;
+  onSave: (values: Record<string, { source: string; fallback: string }>) => void;
+}) {
+  const [values, setValues] = useState(() =>
+    Object.fromEntries(
+      bodyKeys.map((k) => {
+        const v = splitRecallVariable(variables[k]);
+        return [k, { source: v?.source ?? "", fallback: v?.fallback ?? "" }];
+      }),
+    ),
+  );
+  if (bodyKeys.length === 0) return null;
+  const unreadable = bodyKeys.filter((k) => variables[k] && !splitRecallVariable(variables[k]));
+  const missing = missingRecallVariables(bodyKeys, variables);
+  const group = segment === "*" ? "everyone" : segment;
+
+  return (
+    <div className="mt-2 flex flex-col gap-2">
+      {missing.length > 0 && (
+        <Badge variant="warning" className="w-fit">
+          {missing.map(label).join(", ")} {missing.length === 1 ? "has" : "have"} no value, so this
+          group will fail
+        </Badge>
+      )}
+      {unreadable.length > 0 && (
+        <p className="text-muted-foreground text-xs">
+          {unreadable.map(label).join(", ")} {unreadable.length === 1 ? "uses" : "use"} a value set
+          outside this page; saving replaces it.
+        </p>
+      )}
+      {bodyKeys.map((k) => (
+        <div key={k} className="flex flex-wrap items-center gap-2">
+          <span className="text-muted-foreground w-10 text-xs tabular-nums">{label(k)}</span>
+          <Select
+            value={values[k]?.source || "none"}
+            disabled={disabled}
+            onValueChange={(v) =>
+              setValues((s) => ({ ...s, [k]: { ...s[k]!, source: v === "none" ? "" : v } }))
+            }
+          >
+            <SelectTrigger className="w-44" aria-label={`Value for ${label(k)}, ${group}`}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">No value</SelectItem>
+              {RECALL_VARIABLE_SOURCES.map((s) => (
+                <SelectItem key={s.key} value={s.key}>
+                  {s.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Input
+            className="w-32"
+            placeholder="Patient"
+            maxLength={60}
+            value={values[k]?.fallback ?? ""}
+            disabled={disabled || !values[k]?.source}
+            aria-label={`If blank, use (${label(k)}, ${group})`}
+            onChange={(e) =>
+              setValues((s) => ({ ...s, [k]: { ...s[k]!, fallback: e.target.value } }))
+            }
+          />
+        </div>
+      ))}
+      <Button
+        size="sm"
+        variant="outline"
+        className="w-fit"
+        disabled={disabled}
+        onClick={() => onSave(values)}
+      >
+        <Save aria-hidden /> Save values
+      </Button>
     </div>
   );
 }

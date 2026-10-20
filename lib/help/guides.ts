@@ -245,7 +245,7 @@ export const GUIDES: readonly Guide[] = [
       "Send now or schedule. Watch delivery and replies on the campaign page.",
       "Campaigns sent from Sanoflow before the move are under Campaign history (read-only).",
       "Stuck? The Campaign Copilot turns a sentence into an audience with its size, and suggests English and Arabic wording. In Flows, Describe a bot drafts a flow and Dry run tries it with sample messages.",
-      "To send the same campaign on a schedule, choose Repeat under When and how; Recurring lists them with play and pause. On Templates, the row menu has Delivery settings (retry, SMS fallback for reminders, time limit) and Performance.",
+      "To send the same campaign on a schedule, choose Repeat under When and how; Recurring lists them with play and pause. On Templates, the row menu has Delivery settings (retry, SMS fallback for reminders, time limit) and Performance. On Recall, under each group's template, choose what fills each {{1}} (for example the patient's first name) and the word to use when it is blank.",
     ],
     watchOut: [
       "Patients who opted out of marketing are always left out.",

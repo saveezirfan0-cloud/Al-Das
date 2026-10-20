@@ -119,7 +119,7 @@ The module names in the blueprint ("20s", "30s", "50s", "18-25", "26-35", "36-45
 | [6] [20] [46] [59] [72] [85] | Sanoflow v1 `send-template`; `stopOnHttpError` on; no error handler | Template from the map; a failed send sets `failed` (`lib/recall/engine.ts:260`–`265`) | Same |
 | [7] [21] [47] [60] [73] [86] | Set `Birthday Message = Sent` | `recall_sends` row inserted before the send (`lib/recall/engine.ts:227`) | Same (the row is the marker) |
 
-**Message sent.** Template per band (above). One variable: `ifempty(Last Name; First Name)`: Make greets with the **last name** when there is one, else the first name, with no "Patient" fallback. **Pulse:** values come from `recall_programme_templates.variables_map` (`lib/recall/engine.ts:242`, `:274`). The seed leaves it `{}` (`20261010000800_recall.sql:58`, `:250`–`257`), and the Recall page cannot edit it (`saveTemplateMap` takes segment, template and active only; `app/(app)/recall/actions.ts:119`). A template with `{{1}}` then fails with "Missing template values" (`lib/whatsapp/templates.ts:413`). **Missing** (D16). Which name to use is D5.
+**Message sent.** Template per band (above). One variable: `ifempty(Last Name; First Name)`: Make greets with the **last name** when there is one, else the first name, with no "Patient" fallback. **Pulse:** values come from `recall_programme_templates.variables_map` (`lib/recall/engine.ts:242`, `:274`). Since 20 Oct 2026 the seed sets `{"body.1": "contact.first_name|default:Patient"}` on every birthday and chronic row, and existing rows that were still `{}` are filled once (`supabase/migrations/20261224000200_recall_variables_map.sql`). The Recall page edits it per group (`saveTemplateVariables`, rules in `lib/recall/variables.ts`) and flags a group whose template has a variable with no value. **Same** for the name variable (D16, done); the seed uses the first name, so whether to keep Make's last-name rule is still D5.
 
 **Side effects.**
 
@@ -160,7 +160,7 @@ The scenario description says "INACTIVE. Test/live controlled by SEND_MODE varia
 | [2] | Sanoflow `send-template` with `template_id = {{1.Chronic Recall Template ID}}` | Map by `segment_key` = primary condition group (`lib/recall/engine.ts:188`–`207`), seeded 13159–13169 (`20261010000800_recall.sql:236`–`247`) | Same for the ten mapped groups |
 | [2] | Template id SWITCH default **13170** for any other group | No default row: `skipped_no_template` | Different (D14, OQ-24) |
 
-**Message sent.** One variable: `ifempty(first(split(startcase(lower(Patient Name)); space)); "Patient")`: first word of the full name in title case, else "Patient". **Pulse:** `variables_map`, empty in the seed and not editable (D16). With `contact.first_name|default:Patient` Pulse would send the stored first name, not re-capitalised (D17).
+**Message sent.** One variable: `ifempty(first(split(startcase(lower(Patient Name)); space)); "Patient")`: first word of the full name in title case, else "Patient". **Pulse:** `variables_map`, seeded as `contact.first_name|default:Patient` and editable on the Recall page (D16, done). Pulse sends the stored first name, not re-capitalised (D17).
 
 **Side effects.**
 
@@ -258,7 +258,7 @@ Not Make, but part of the same move (OQ-41).
 | D13 | What "Booked" means | A Sanoflow button or flow status; Follow Up Status untouched | A real appointment within 30 days; sets `follow_up_status = booked` | Keep a real appointment as the proof of a booking (needs the Unite appointment sync). Decide whether Sanoflow's "Booked" status (the webhook being built, 2.5) also counts, as it does in Make | Management (OQ-33); credentials OQ-26 |
 | D14 | Chronic fallback template | 13170 for any group not in the SWITCH | Nothing sent (`skipped_no_template`) | Fail closed (Pulse) | Saeed / Abdul (OQ-24) |
 | D15 | Chronic consent | None | Live mode needs `clinical_messaging_consent`, which only test records have after the import, so live chronic recall reaches nobody | Drop the consent requirement for chronic recall (keep `stop_marketing`) or capture consent first | Abdul / Snezana (OQ-104 (6)) |
-| D16 | Recall template variables | Name variable built in each send module | `variables_map` is `{}` in the seed and cannot be edited on the Recall page, so a template with `{{1}}` fails | Seed `{"body.1": "contact.first_name|default:Patient"}` for every chronic and birthday row and add the field to the Recall page | Engineering |
+| D16 | Recall template variables | Name variable built in each send module | **Done 20 Oct 2026.** Seeded `{"body.1": "contact.first_name|default:Patient"}` on every chronic and birthday row (empty maps backfilled once) and editable per group on the Recall page (`supabase/migrations/20261224000200_recall_variables_map.sql`, `lib/recall/variables.ts`) | Done | Engineering |
 | D17 | First-name form | Title-cased first word of the full name (reminders, chronic) | Stored first name, first word (reminders); recall depends on D16 | Add a title-case filter to the shared value map, or accept stored casing | Engineering, with marketing |
 | D18 | Reminder time variable | Raw Unite start time in "tomorrow at {{2}}" | "Mon 12 Oct, 9:00 AM" | Map `body.2` to `appointment.time` on the reminder template | Operations |
 | D19 | Unite token during the parallel run | Make authorises 3× a day and on every reminder run | Pulse authorises on demand with its own credentials | Test once whether one side's authorise invalidates the other's token before both run together (`docs/09_STATUS_AND_ROADMAP.md:292`) | Saveez / Unite |
@@ -326,7 +326,7 @@ Rule of thumb: a Make scenario that starts with "search records where …" on a 
 | `segment_key` | Band or condition group from the view |
 | `wa_template_id` | Pulse template (must be APPROVED) |
 | `legacy_sanoflow_template_id` | The Make template id, kept for the record and the parallel run (stored on each send as `legacy_template_ref`) |
-| `variables_map` | `{"body.1": "contact.first_name|default:Patient"}`. Keys follow `templateVariables` (`body.N`, `lib/whatsapp/templates.ts:121`); values are paths with filters (`contact.*`, `appointment.starts_at`, `appointment.doctor_name`, `recall.segment`, `recall.cycle`; `lib/recall/engine.ts:274`–`296`) |
+| `variables_map` | `{"body.1": "contact.first_name|default:Patient"}`. Keys follow `templateVariables` (`body.N`, `lib/whatsapp/templates.ts:121`); values are paths with filters (`contact.*`, `appointment.starts_at`, `appointment.doctor_name`, `recall.segment`, `recall.cycle`; `lib/recall/engine.ts:274`–`296`). The Recall page offers the patient-facing ones (first, last or full name, doctor's name) with a fallback (`lib/recall/variables.ts`) |
 | `active` | Off rows are ignored |
 
 For sending through Sanoflow, the Pulse template also needs its Sanoflow template number (part of the Sanoflow sender being built, OQ-182); a template without one is not sent through Sanoflow.
@@ -338,7 +338,7 @@ Each Make module of 2.3 and where it lives in Pulse.
 1. **Search [1] and filters [2]–[4], [5]–[84].** View `v_birthday_today` lists today's birthdays with `segment_key` = band and `cycle_key` = year. Nothing to build.
 2. **Schedule.** Recall, Birthday: cron `0 12 * * *` to match Make for the parallel week (D7). Max per run 1000.
 3. **Templates [6]…[85].** For each band row link the approved Pulse template whose Sanoflow number is 12294, 12295, 12296, 12289 or 12291. The legacy id is already seeded.
-4. **Variable.** Set `variables_map` to `{"body.1": "contact.first_name|default:Patient"}` (or the last-name rule, D5). Today this is a database edit (D16).
+4. **Variable.** Already seeded as `{"body.1": "contact.first_name|default:Patient"}`. To change it (for example Make's last-name rule, D5), open the programme on the Recall page and use the values under the group's template (D16).
 5. **Marker [7].** Nothing to do: the `recall_sends` row is written before the send.
 6. **Tags [8]–[17].** Native tag `birthday_sent_<year>` in Live. A Sanoflow tag needs D11.
 7. **Consent.** Decide D6 and set `requires_marketing_opt_in` and the template category to match.

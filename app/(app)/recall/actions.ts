@@ -12,7 +12,10 @@ import { ALLOWED_VIEWS, CLINICAL_KINDS, ELIGIBLE_FLAG_VIEWS } from "@/lib/recall
 import type { ScenarioKey } from "@/lib/parallel-run/diff";
 import { COMPARABLE, SCENARIO_KEYS } from "@/lib/parallel-run/diff";
 import { clinicalMessagingEnabled, settingValue } from "@/lib/recall/settings";
+import { parseRecallVariableMap, recallBodyKeys } from "@/lib/recall/variables";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { templateVariables } from "@/lib/whatsapp/templates";
+import type { MetaTemplateComponent } from "@/lib/whatsapp/types";
 import { fetchAll } from "@/lib/supabase/fetch-all";
 
 export type ActionResult<T = undefined> =
@@ -168,6 +171,65 @@ export async function saveTemplateMap(
   });
   refresh();
   return { ok: true, message: "Template saved.", data: undefined };
+}
+
+const variablesSchema = z.object({
+  segment_key: z.string().trim().min(1).max(60),
+  values: z
+    .record(
+      z.string().max(40),
+      z.object({ source: z.string().max(60), fallback: z.string().max(200).optional() }),
+    )
+    .refine((v) => Object.keys(v).length <= 20),
+});
+
+/** Which value fills each {{n}} of one group's template (docs/49 D16). Only sources the engine can fill are kept. */
+export async function saveTemplateVariables(
+  programmeId: string,
+  input: z.input<typeof variablesSchema>,
+): Promise<ActionResult> {
+  const member = await requirePerm("templates.manage");
+  const parsed = variablesSchema.safeParse(input);
+  if (!parsed.success || !uuid.safeParse(programmeId).success)
+    return { ok: false, error: "Invalid input" };
+  const admin = createAdminClient();
+  const { data: row } = await admin
+    .from("recall_programme_templates")
+    .select("id, wa_template_id")
+    .eq("programme_id", programmeId)
+    .eq("org_id", member.orgId)
+    .eq("segment_key", parsed.data.segment_key)
+    .maybeSingle();
+  if (!row) return { ok: false, error: "Programme group not found" };
+  if (!row.wa_template_id) return { ok: false, error: "Choose a template for this group first." };
+  const { data: tpl } = await admin
+    .from("wa_templates")
+    .select("components")
+    .eq("id", row.wa_template_id)
+    .eq("org_id", member.orgId)
+    .maybeSingle();
+  if (!tpl) return { ok: false, error: "Template not found" };
+  const bodyKeys = recallBodyKeys(
+    templateVariables(tpl.components as unknown as MetaTemplateComponent[]),
+  );
+  const map = parseRecallVariableMap(parsed.data.values, bodyKeys);
+  if (!map.ok) return { ok: false, error: map.error };
+  const { error } = await admin
+    .from("recall_programme_templates")
+    .update({ variables_map: map.map })
+    .eq("id", row.id)
+    .eq("org_id", member.orgId);
+  if (error) return { ok: false, error: "Could not save the values." };
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "recall.template_variables_mapped",
+    entity: "recall_programme",
+    entityId: programmeId,
+    diff: { segment: parsed.data.segment_key, keys: Object.keys(map.map) },
+  });
+  refresh();
+  return { ok: true, message: "Values saved.", data: undefined };
 }
 
 export type Preview = { eligible: number; bySegment: Record<string, number>; note?: string };
