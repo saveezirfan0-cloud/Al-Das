@@ -24,6 +24,7 @@ export const INTEGRATION_KINDS = [
   "document_seal",
   "tally_bridge",
   "wa_mm_lite",
+  "sanoflow",
 ] as const;
 export type IntegrationKind = (typeof INTEGRATION_KINDS)[number];
 
@@ -1045,6 +1046,61 @@ export const INTEGRATIONS: readonly IntegrationDef[] = [
     commonFields: [],
     consequence:
       "Campaign messages that use a Marketing template will reach patients through Meta's Marketing Messages Lite API. Meta decides delivery and pricing for these messages; if the WhatsApp Business Account is not onboarded to MM Lite, those campaign messages fail until this is switched off.",
+  },
+  {
+    kind: "sanoflow",
+    // OQ-182 (owner decision 20 Oct 2026, docs/50_SANOFLOW_SENDING_NOTES.md): Sanoflow keeps the WhatsApp numbers, and Pulse's
+    // automations send their approved templates through Sanoflow's API, as Make does today.
+    outbound: true,
+    title: "Send through Sanoflow",
+    description:
+      "Pulse's reminders, recall programmes, flows and campaigns send their approved templates through your Sanoflow account, the way Make does today, on a WhatsApp number marked as a Sanoflow number. Opt-outs, consent, training mode and the per-number speed limit still apply. Replies stay in Sanoflow; Sanoflow can tell Pulse when a patient replied or booked.",
+    contactsPatients: true,
+    movesMoney: false,
+    sharesData: false,
+    confirmWord: "SEND THROUGH SANOFLOW",
+    viewPermission: "integrations.manage",
+    providers: [
+      {
+        id: "sanoflow",
+        label: "Sanoflow API",
+        fields: [
+          {
+            key: "access_token",
+            label: "Sanoflow API key",
+            type: "password",
+            secret: true,
+            required: true,
+            max: 400,
+            help: "The access token from Sanoflow, Settings, API. Use a new key, not the one inside Make. Stored encrypted; never shown again.",
+          },
+          {
+            key: "webhook_token",
+            label: "Reply and booking webhook token",
+            type: "password",
+            secret: true,
+            max: 200,
+            pattern: "^[A-Za-z0-9_-]{32,200}$",
+            patternHint: "Use 32 to 200 letters, digits, dashes or underscores.",
+            help: "Optional. A long random text of your choosing (32 characters or more). Sanoflow's flow sends it in the x-pulse-token header when it reports that a patient replied or booked.",
+          },
+          {
+            key: "phone_format",
+            label: "Phone number format",
+            type: "select",
+            default: "digits",
+            options: [
+              { value: "digits", label: "Digits only (971501234567)" },
+              { value: "plus", label: "With plus (+971501234567)" },
+            ],
+            help: "How the number is written in each send. Confirm with one test message to a clinic phone.",
+          },
+        ],
+      },
+    ],
+    commonFields: [],
+    consequence:
+      "Patients will receive Pulse's reminder, recall and campaign templates from the clinic's WhatsApp number through Sanoflow. Each message carries the patient's phone number and the template's values (such as first name, time and doctor) to Sanoflow.",
   },
 ];
 

@@ -9,6 +9,14 @@ import { WhatsAppClient } from "@/lib/whatsapp/client";
 
 export type ChannelRow = Tables<"channels">;
 
+/** The number sends through Sanoflow (channels.transport = 'sanoflow'): Meta features (sync, templates, media) are not available. */
+export class SanoflowNumberError extends Error {
+  constructor() {
+    super("This number sends through Sanoflow; Meta features are not available for it.");
+    this.name = "SanoflowNumberError";
+  }
+}
+
 /**
  * The access token for a channel: its own encrypted System User token when one
  * was stored, otherwise META_SYSTEM_USER_TOKEN from the environment.
@@ -71,10 +79,12 @@ export async function clientForChannel(
   // Second line of defence behind the outbound handler: a training workspace never builds a Meta client.
   const { data: owner } = await admin
     .from("channels")
-    .select("org_id")
+    .select("org_id, transport")
     .eq("id", channel.id)
     .maybeSingle();
   if (owner) await assertNotTraining(admin, owner.org_id);
+  // OQ-182: a number Sanoflow holds has no Meta ids or token; nothing may point a Meta call at it.
+  if (owner?.transport === "sanoflow") throw new SanoflowNumberError();
   const token = await channelAccessToken(admin, channel.id);
   return new WhatsAppClient({
     accessToken: token,

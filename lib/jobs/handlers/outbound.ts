@@ -17,6 +17,8 @@ import type { QueueName } from "@/lib/jobs/queues";
 import type { AdminClient } from "@/lib/supabase/admin";
 import { guardCampaignMessage } from "@/lib/campaigns/engine";
 import { deliverChannelOutbound } from "@/lib/channels/outbound";
+import { isSanoflowChannel } from "@/lib/integrations/sanoflow/config";
+import { deliverSanoflowOutbound } from "@/lib/integrations/sanoflow/deliver";
 import { isEnabled } from "@/lib/integrations/accounts";
 import { MEDIA_BUCKET } from "@/lib/jobs/handlers/media-fetch";
 import { isTrainingOrg, simulateTrainingSend } from "@/lib/training/mode";
@@ -61,7 +63,7 @@ export async function deliverOutbound(
   const { data: message } = await admin
     .from("messages")
     .select(
-      "id, org_id, conversation_id, at, status, wa_message_id, payload, body, sent_by_user_id, reply_to_wa_message_id, media_meta_id, media_filename, campaign_recipient_id, conversations(id, status, last_inbound_at, ad_referral, opened_at, channel_id, contact_id, contacts(id, phone_e164, wa_bsuid, stop_marketing), channels(id, org_id, type, status, phone_number_id, waba_id, send_rate_per_sec))",
+      "id, org_id, conversation_id, at, status, wa_message_id, payload, body, sent_by_user_id, reply_to_wa_message_id, media_meta_id, media_filename, campaign_recipient_id, conversations(id, status, last_inbound_at, ad_referral, opened_at, channel_id, contact_id, contacts(id, phone_e164, wa_bsuid, stop_marketing), channels(id, org_id, type, transport, status, phone_number_id, waba_id, send_rate_per_sec))",
     )
     .eq("id", messageId)
     .maybeSingle();
@@ -224,6 +226,22 @@ export async function deliverOutbound(
       { delaySeconds: slotRetryDelaySeconds(attempt) },
     );
     log.info("send slot saturated; re-queued", { messageId: message.id, attempt });
+    return;
+  }
+
+  // OQ-182: a number Sanoflow holds sends its templates through the Sanoflow API (lib/integrations/sanoflow/deliver.ts), after
+  // every guard above (training, campaign withdrawal, paused number, template time limit, send slot). No Meta client is built.
+  if (isSanoflowChannel(channel)) {
+    await deliverSanoflowOutbound(
+      admin,
+      {
+        message,
+        conversation,
+        contact: { ...contact, stop_marketing: contact.stop_marketing },
+        spec,
+      },
+      ctx,
+    );
     return;
   }
 

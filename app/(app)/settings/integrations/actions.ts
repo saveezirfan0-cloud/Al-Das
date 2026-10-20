@@ -31,6 +31,7 @@ import { confirmationMatches, readinessProblems } from "@/lib/integrations/readi
 import { loadReadinessInput } from "@/lib/integrations/readiness-server";
 import { buildCapiClientFor } from "@/lib/integrations/capi/server";
 import { clearAllBusyBlocks } from "@/lib/integrations/gcal/server";
+import { buildSanoflowClientFor } from "@/lib/integrations/sanoflow/server";
 import { buildMessagingClientFor } from "@/lib/integrations/meta-messaging/server";
 import { buildMetaAdsClientFor } from "@/lib/integrations/meta-ads/server";
 import { buildSmsProvider } from "@/lib/integrations/sms/provider";
@@ -204,6 +205,12 @@ export async function testIntegration(kindInput: string): Promise<ActionResult> 
     result = provider?.verify ? await provider.verify() : { ok: false, code: "incomplete" };
   } else if (kind === "instagram" || kind === "messenger") {
     result = (await buildMessagingClientFor(admin, account, kind)?.verify()) ?? {
+      ok: false,
+      code: "incomplete",
+    };
+  } else if (kind === "sanoflow") {
+    // Checks the key only (contact id 0): no message is sent and no patient's details come back.
+    result = (await buildSanoflowClientFor(admin, account)?.client.verify()) ?? {
       ok: false,
       code: "incomplete",
     };

@@ -86,4 +86,6 @@ export const CALL_PROVIDERS: Record<IntegrationKind, readonly string[]> = {
   // Phase 20h: MM Lite sends go through the WhatsApp client with the channel token (messages carry their own status), not
   // through the integration client, so there is nothing in integration_calls to count.
   wa_mm_lite: [],
+  // OQ-182: template sends and the key check through lib/integrations/sanoflow/client.ts.
+  sanoflow: ["sanoflow"],
 };

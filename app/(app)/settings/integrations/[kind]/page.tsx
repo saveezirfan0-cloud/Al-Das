@@ -29,6 +29,7 @@ import { widgetSnippet } from "@/lib/channels/web/snippet";
 import { gcalRedirectUri } from "@/lib/integrations/gcal/config";
 import { listConnections } from "@/lib/integrations/gcal/server";
 import { messagingWebhookBase } from "@/lib/integrations/meta-messaging/config";
+import { sanoflowWebhookBase } from "@/lib/integrations/sanoflow/config";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { templateVariables } from "@/lib/whatsapp/templates";
 import type { MetaTemplateComponent } from "@/lib/whatsapp/types";
@@ -42,6 +43,7 @@ import { IntegrationPanel } from "../integration-panel";
 import { saveReviewTemplate } from "../review-actions";
 import { ReviewLinks } from "../review-links";
 import { ReviewStatsCard } from "../review-stats";
+import { SanoflowPanel } from "../sanoflow-panel";
 import { TemplateMapPanel } from "../template-map-panel";
 
 export const dynamic = "force-dynamic";
@@ -231,6 +233,49 @@ export default async function IntegrationPage({
       />
     );
   }
+  // OQ-182: Sanoflow numbers, template links and the reply webhook.
+  let sanoflowPanel: React.ReactNode = null;
+  if (kind === "sanoflow" && canManage) {
+    const [{ data: numbers }, { data: templates }, id] = await Promise.all([
+      admin
+        .from("channels")
+        .select("id, name, display_phone, status")
+        .eq("org_id", member.orgId)
+        .eq("transport", "sanoflow")
+        .order("created_at"),
+      admin
+        .from("wa_templates")
+        .select("id, name, language, category, status, sanoflow_template_id")
+        .eq("org_id", member.orgId)
+        .eq("status", "APPROVED")
+        .is("archived_at", null)
+        .order("name")
+        .limit(200),
+      view.exists ? accountId(admin, member.orgId, kind) : Promise.resolve(null),
+    ]);
+    sanoflowPanel = (
+      <SanoflowPanel
+        numbers={(numbers ?? []).map((n) => ({
+          id: n.id,
+          name: n.name,
+          displayPhone: n.display_phone,
+          status: n.status,
+        }))}
+        templates={(templates ?? []).map((t) => ({
+          id: t.id,
+          name: t.name,
+          language: t.language,
+          category: t.category,
+          status: t.status,
+          sanoflowTemplateId: t.sanoflow_template_id,
+        }))}
+        webhookUrl={id ? sanoflowWebhookBase(app, id) : null}
+        canManage={canManage}
+        canManageTemplates={can(member, "templates.manage")}
+      />
+    );
+  }
+
   // organisation seal: the stored certificate's public details (never the file or its password)
   let sealPanel: React.ReactNode = null;
   if (kind === "document_seal" && canManage) {
@@ -346,6 +391,7 @@ export default async function IntegrationPage({
       {webChatPanel}
       {gcalPanel}
       {sealPanel}
+      {sanoflowPanel}
     </div>
   );
 }

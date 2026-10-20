@@ -14,6 +14,7 @@ registerTask("templates_sync", {
       .from("channels")
       .select("id, org_id, phone_number_id, waba_id")
       .eq("type", "whatsapp")
+      .eq("transport", "meta") // a Sanoflow number has no Meta account to read (OQ-182)
       .eq("status", "active")
       .order("created_at");
     const seen = new Set<string>();

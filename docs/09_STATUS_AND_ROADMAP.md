@@ -208,6 +208,7 @@ Still to do on these: click through them on a real stack (section 2.2).
 | Clinical messages to patients | Clinical sign-offs (OQ-01 to 06, 36) | Gate is built and fails closed |
 | AI replies | Legal answer on sending text to Anthropic and Voyage (OQ-57) | Switch is OFF per org |
 | Make parallel run | Make-side exports for Token and MRD sync | `/recall/parallel-run` is ready |
+| Make logic carried over | The 23 decisions in `docs/49_MAKE_LOGIC_MATRIX.md` §3 (chronic 85-day and `60 days >` gate, birthday consent and greeting, reminder timing, Sanoflow tags, reply feed) | `docs/49` maps every Make filter and router branch to Pulse (Same / Different / Missing) and is the pattern for new automations |
 
 ### 2.2 Verification that was never done
 

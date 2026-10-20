@@ -64,7 +64,7 @@ _Updated 17 Oct 2026 (section 5b added: insurer payment matching and Unite recor
 ## 7. Decisions (all open questions)
 
 <!-- generated:start -->
-_Generated 20 Oct 2026 by `scripts/compile-todo.py`: 162 open questions, 52 of them blocking a feature._
+_Generated 20 Oct 2026 by `scripts/compile-todo.py`: 161 open questions, 51 of them blocking a feature._
 
 ### Answer these first
 
@@ -242,7 +242,6 @@ _Generated 20 Oct 2026 by `scripts/compile-todo.py`: 162 open questions, 52 of t
 - [ ] **OQ-59** (Saveez): Which external systems will use the public API and webhooks, and what do they need beyond contacts + send-template and the current event list (appointments, enquiries come with Phases 5–6)? What request rate should the Phase 11 limiter allow per key? _(today: none known; proposed: contacts + send-template; limit set in Phase 11)_
 - [ ] **OQ-62** (Saveez (first live run)): Meta pricing analytics: the nightly sync is written from Meta's documentation and has never run against a live account. Confirm on a real WABA: the response shape, that cost is in the WABA currency, that daily buckets start at 00:00 UTC (the report shows Meta's UTC days, up to 4 h off Dubai days), and how far back Meta adjusts recent usage (Pulse re-reads the last 8 days) _(today: none; proposed: nightly sync, fail-closed parser)_
 - [ ] **OQ-89** (OFF, test mode): **E-signature.** Which provider and plan (the adapter is shaped like Dropbox Sign's API; API access needs a paid plan), and is an electronic signature on a consent form legally sufficient for each kind of consent the clinic uses under UAE law? The provider receives the form, the signer's name and e-mail address and keeps its own copy of the signed document: data location, agreement, retention and deletion on request (Pulse withdraws waiting requests when a patient is erased but cannot delete the provider's copy). The consent PDFs must carry the provider's signature tags (`[sig _(today: signer1]) or the signer has nowhere to sign; who prepares them? For a child the signer is the guardian: the signer's e-mail is typed by staff for each request. Test mode is on until an administrator turns it off. Unverified: the request and callback shapes, the event hash, the data-URI download and the expires_at` field; proposed: Phase 19b)_
-- [ ] **OQ-182** (Saveez, blocking): **Sanoflow stays (owner decision, 20 Oct 2026).** Sanoflow is not switched off; only Make, the Airtable automations and the Airtable data move to Pulse. Make sends its reminders, birthday and chronic recall messages through the Sanoflow API (send-template, and / for tags). Pulse sends only through the Meta Cloud API, so its native automations need either (A) a Sanoflow sending channel that copies Make's calls, or (B) Al Das's own Meta app sharing the WhatsApp numbers with Sanoflow. Which one? _(today: Make → Sanoflow API; proposed: (A) Sanoflow sending channel through queueOutbound, with Sanoflow's own reply webhook for reply and booking tracking)_
 
 ### Other
 
