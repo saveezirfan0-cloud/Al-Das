@@ -5,6 +5,8 @@
 ## What we're building
 One platform for Al Das Medical that replaces **Sanoflow** (WhatsApp inbox, templates, campaigns, enquiries, appointments, bots, AI assist, reports) and the **Airtable + Make.com back office** (patient CRM, operational portal screens, Unite sync, native automations, management dashboards). The spec is `docs/01`; the plan and phase prompts are `docs/02`. **Work one phase at a time and start each in Plan Mode.**
 
+**Sanoflow stays (owner decision, 20 Oct 2026, OQ-182).** Sanoflow is not switched off. The migration in scope is Make, the Airtable automations and the Airtable data. Make's logic and filters (docs/audit/make-raw, the Airtable view filters) are carried over as native Pulse automations that staff can copy for new ones; how Pulse sends while Sanoflow holds the WhatsApp numbers is OQ-182.
+
 ## Stack — Supabase + Vercel only
 - Next.js 15 App Router, TypeScript strict, Tailwind, shadcn/ui, deployed on Vercel.
 - Supabase: Postgres (SQL migrations via the Supabase CLI), Auth, Realtime, Storage, **pgmq** (queues), **pg_cron + pg_net** (cron calls `/api/jobs/[queue]`), pgvector.
