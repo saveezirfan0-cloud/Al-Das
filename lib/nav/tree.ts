@@ -23,6 +23,8 @@ export type TopItem = {
   href: string;
   permission?: string;
   permissions?: readonly string[];
+  /** Lower-case role names that see the item (the same role rule as `landingPathFor`); absent = every role. */
+  roles?: readonly string[];
 };
 
 export type TreeNode<T extends TopItem> = T & { sections?: TreeSection[] };
@@ -31,10 +33,11 @@ export function sectionKey(moduleHref: string, title: string): string {
   return `${moduleHref}>${title}`;
 }
 
-export function itemVisible(item: TopItem, member: MemberLike): boolean {
+export function itemVisible(item: TopItem, member: MemberLike & { roleName?: string }): boolean {
   return (
     (!item.permission || can(member, item.permission)) &&
-    (!item.permissions || canAny(member, item.permissions))
+    (!item.permissions || canAny(member, item.permissions)) &&
+    (!item.roles || item.roles.includes((member.roleName ?? "").trim().toLowerCase()))
   );
 }
 
@@ -88,7 +91,7 @@ export function moduleSections(
 export function buildNavTree<T extends TopItem>(
   items: readonly T[],
   modules: NavModules,
-  member: MemberLike,
+  member: MemberLike & { roleName?: string },
 ): TreeNode<T>[] {
   const out: TreeNode<T>[] = [];
   for (const item of items) {

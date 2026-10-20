@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Menu, Search } from "lucide-react";
 
@@ -35,6 +35,7 @@ export function Topbar({
   branchSwitcher?: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const search = useSearchParams();
   const [open, setOpen] = useState(false);
   useEffect(() => {
     const onOpen = () => setOpen(true);
@@ -48,8 +49,9 @@ export function Topbar({
     setIsMac(/mac/i.test(nav.userAgentData?.platform ?? nav.platform ?? ""));
   }, []);
 
-  // the most specific item: /dashboard/management is Management, /staff/rota is Rota
-  const current = currentItem(items, pathname);
+  // the most specific item: /dashboard/management is Management, /staff/rota is Rota, and an entry whose href
+  // carries a query (CRM Branches, /settings/appointments?tab=locations) wins only on that same query
+  const current = currentItem(items, pathname, search);
 
   return (
     <header className="bg-background flex h-14 shrink-0 items-center gap-3 border-b px-4 print:hidden">

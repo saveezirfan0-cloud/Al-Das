@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-12-24-menu-access-fixes",
+    date: "2026-10-20",
+    title: "Self-pay reminders for approvers, and My day for doctors",
+    body: "People who approve the wording of self-pay reminders can now open Finance, Self-pay reminders even if they do not set the reminders up: they see the wording and the Approve button only. My day now appears in the menu for doctors and the Medical Director only; everyone else keeps Appointments. The title at the top of the page now follows the tab you opened (for example CRM, Branches).",
+  },
+  {
     id: "2026-12-23-insurance-followups",
     date: "2026-10-19",
     title: "Insurance: claim status, rejection causes, deposits and the receivable check",
