@@ -256,3 +256,23 @@ describe("app layout stays query-free", () => {
       expect(src, banned).not.toContain(banned);
   });
 });
+
+describe("role-limited menu items", () => {
+  const hrefs = (roleName: string, perms: string[]) =>
+    buildNavTree(NAV_ITEMS, NAV_MODULES, { ...member(perms), roleName }).map((n) => n.href);
+
+  it("shows My day only to doctors and the Medical Director, still behind appointments.view", () => {
+    expect(hrefs("Doctor", ["appointments.view"])).toContain("/my-day");
+    expect(hrefs("Medical Director", ["appointments.view"])).toContain("/my-day");
+    expect(hrefs("Receptionist", ["appointments.view"])).not.toContain("/my-day");
+    expect(hrefs("Admin", ["*"])).not.toContain("/my-day");
+    expect(hrefs("Doctor", [])).not.toContain("/my-day");
+  });
+
+  it("the top bar picks a query entry only on its own query", () => {
+    const tree = buildNavTree(NAV_ITEMS, NAV_MODULES, { ...member(["*"]), roleName: "Admin" });
+    const branches = "/settings/appointments?tab=locations";
+    expect(activeTrail(tree, "/settings/appointments", "?tab=locations").item).toBe(branches);
+    expect(activeTrail(tree, "/settings/appointments", "?tab=hours").item).not.toBe(branches);
+  });
+});

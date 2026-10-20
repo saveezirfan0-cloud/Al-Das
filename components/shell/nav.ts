@@ -63,6 +63,8 @@ export type NavItem = {
   badge?: number;
   /** Visible when the member holds at least one of these. */
   permissions?: readonly string[];
+  /** Only these roles (lower-case names) see the item; see `itemVisible` in lib/nav/tree.ts. */
+  roles?: readonly string[];
 };
 
 export const NAV_ITEMS: readonly NavItem[] = [
@@ -91,6 +93,8 @@ export const NAV_ITEMS: readonly NavItem[] = [
     group: "Today",
     keywords: ["doctor", "my patients", "today's list", "my appointments", "clinic day"],
     permission: "appointments.view",
+    // A doctor's own list: only doctors see it in the menu (others reach the diary).
+    roles: ["doctor", "medical director"],
   },
   {
     href: "/appointments",

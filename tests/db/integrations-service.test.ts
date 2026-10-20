@@ -371,9 +371,10 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)(
           )
         ).rows;
 
-      async function newAppointment(contactId = id.patient, hours = 48) {
+      /** `base` is the clock the code under test uses: NOW, or the real clock for paths that read `new Date()`. */
+      async function newAppointment(contactId = id.patient, hours = 48, base = NOW) {
         const a = await appt({
-          startsAt: new Date(NOW.getTime() + hours * 3_600_000).toISOString(),
+          startsAt: new Date(base.getTime() + hours * 3_600_000).toISOString(),
           contact: contactId,
         });
         const r = await svc(() =>
@@ -815,7 +816,8 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)(
 
       it("stops at the daily limit", async () => {
         await patchConfig(admin, org, "sms", { daily_cap: 1 });
-        const a = await newAppointment();
+        // sent with the real clock (the cap counts today's sends), so the visit must be ahead of the real clock
+        const a = await newAppointment(id.patient, 48, new Date());
         await queueSmsFallback(admin, {
           orgId: org,
           appointmentId: a.a,
@@ -864,7 +866,8 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)(
       });
 
       it("is wired into the failed-reminder path: the call task is still raised and an SMS is queued", async () => {
-        const a = await newAppointment();
+        // reportReminderFailure reads the real clock, so the visit must be ahead of it
+        const a = await newAppointment(id.patient, 48, new Date());
         const number = Number(
           (await svc(() => q("select number from public.appointments where id = $1", [a.a])))
             .rows[0].number,

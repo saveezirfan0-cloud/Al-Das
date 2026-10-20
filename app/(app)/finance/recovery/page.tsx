@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { can } from "@/lib/auth/can";
-import { requirePerm } from "@/lib/auth/session";
+import { requireMember, requirePerm } from "@/lib/auth/session";
 import { money } from "@/lib/finance/format";
 import { recoveryBlockers } from "@/lib/finance/recovery-server";
 import { loadFinanceSettings } from "@/lib/finance/settings-db";
@@ -32,7 +32,12 @@ export const metadata = { title: "Self-pay reminders" };
 export const dynamic = "force-dynamic";
 
 export default async function RecoveryPage() {
-  const member = await requirePerm("finance.recovery.manage");
+  // Preparers (manage) and tone approvers (approve) both open this page; an approver who
+  // cannot manage sees the wording and the approve button only.
+  const current = await requireMember();
+  const canManage = can(current, "finance.recovery.manage");
+  const canApprove = can(current, "finance.recovery.approve");
+  const member = canManage || canApprove ? current : await requirePerm("finance.recovery.manage");
   const admin = createAdminClient(); // service role AFTER the permission check (templates are not otherwise readable by finance roles)
   const settings = await loadFinanceSettings(admin, member.orgId);
   const { problems, template } = await recoveryBlockers(admin, member.orgId, settings);
@@ -63,15 +68,16 @@ export default async function RecoveryPage() {
     };
   });
   const supabase = await createClient();
-  const { data: recent } = await supabase
-    .from("fin_recovery_reminders")
-    .select(
-      "id, sequence_no, status, balance, created_at, skip_reason, fin_invoices(inv_display_number)",
-    )
-    .order("created_at", { ascending: false })
-    .limit(40);
+  const { data: recent } = canManage
+    ? await supabase
+        .from("fin_recovery_reminders")
+        .select(
+          "id, sequence_no, status, balance, created_at, skip_reason, fin_invoices(inv_display_number)",
+        )
+        .order("created_at", { ascending: false })
+        .limit(40)
+    : { data: [] };
   const approved = !!settings.recovery.toneApprovedHash;
-  const canApprove = can(member, "finance.recovery.approve");
 
   return (
     <div className="flex flex-col gap-6">
@@ -99,29 +105,31 @@ export default async function RecoveryPage() {
           )}
         </AlertDescription>
       </Alert>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">1. Template and rules</CardTitle>
-          <CardDescription>
-            A guardian receives the reminder for a dependant, and the guardian&apos;s own opt-in is
-            what counts. A patient with no opt-in, or who stopped marketing, is never messaged.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <SettingsForm
-            templates={templates}
-            values={{
-              templateId: settings.recovery.templateId,
-              map: settings.recovery.variableMap,
-              minBalance: settings.recovery.minBalance,
-              minDaysOverdue: settings.recovery.minDaysOverdue,
-              gapDays: settings.recovery.gapDays,
-              maxReminders: settings.recovery.maxReminders,
-              batchSize: settings.recovery.batchSize,
-            }}
-          />
-        </CardContent>
-      </Card>
+      {canManage ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">1. Template and rules</CardTitle>
+            <CardDescription>
+              A guardian receives the reminder for a dependant, and the guardian&apos;s own opt-in
+              is what counts. A patient with no opt-in, or who stopped marketing, is never messaged.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <SettingsForm
+              templates={templates}
+              values={{
+                templateId: settings.recovery.templateId,
+                map: settings.recovery.variableMap,
+                minBalance: settings.recovery.minBalance,
+                minDaysOverdue: settings.recovery.minDaysOverdue,
+                gapDays: settings.recovery.gapDays,
+                maxReminders: settings.recovery.maxReminders,
+                batchSize: settings.recovery.batchSize,
+              }}
+            />
+          </CardContent>
+        </Card>
+      ) : null}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">2. Finance reviews the tone</CardTitle>
@@ -151,71 +159,75 @@ export default async function RecoveryPage() {
           )}
         </CardContent>
       </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">3. Switch on</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <EnableForm enabled={settings.recovery.enabled} ready={problems.length === 0} />
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Next batch</CardTitle>
-          <CardDescription>
-            Invoice numbers and amounts only; no names or numbers are shown.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <PreviewPanel canRun={settings.recovery.enabled && problems.length === 0} />
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Recent reminders</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {(recent ?? []).length === 0 ? (
-            <p className="text-muted-foreground text-sm">None yet.</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>When</TableHead>
-                  <TableHead>Invoice</TableHead>
-                  <TableHead className="text-right">Reminder</TableHead>
-                  <TableHead className="text-right">Balance</TableHead>
-                  <TableHead>Result</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(recent ?? []).map((r) => (
-                  <TableRow key={r.id}>
-                    <TableCell className="text-xs">
-                      {new Date(r.created_at).toLocaleString("en-GB", {
-                        dateStyle: "medium",
-                        timeStyle: "short",
-                      })}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs">
-                      {r.fin_invoices?.inv_display_number ?? "—"}
-                    </TableCell>
-                    <TableCell className="text-right text-xs">{r.sequence_no}</TableCell>
-                    <TableCell className="text-right text-xs tabular-nums">
-                      {r.balance === null ? "—" : money(r.balance)}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={r.status === "queued" ? "success" : "destructive"}>
-                        {r.status === "queued" ? "queued" : (r.skip_reason ?? "failed")}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+      {canManage ? (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">3. Switch on</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <EnableForm enabled={settings.recovery.enabled} ready={problems.length === 0} />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Next batch</CardTitle>
+              <CardDescription>
+                Invoice numbers and amounts only; no names or numbers are shown.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <PreviewPanel canRun={settings.recovery.enabled && problems.length === 0} />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Recent reminders</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {(recent ?? []).length === 0 ? (
+                <p className="text-muted-foreground text-sm">None yet.</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>When</TableHead>
+                      <TableHead>Invoice</TableHead>
+                      <TableHead className="text-right">Reminder</TableHead>
+                      <TableHead className="text-right">Balance</TableHead>
+                      <TableHead>Result</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(recent ?? []).map((r) => (
+                      <TableRow key={r.id}>
+                        <TableCell className="text-xs">
+                          {new Date(r.created_at).toLocaleString("en-GB", {
+                            dateStyle: "medium",
+                            timeStyle: "short",
+                          })}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs">
+                          {r.fin_invoices?.inv_display_number ?? "—"}
+                        </TableCell>
+                        <TableCell className="text-right text-xs">{r.sequence_no}</TableCell>
+                        <TableCell className="text-right text-xs tabular-nums">
+                          {r.balance === null ? "—" : money(r.balance)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={r.status === "queued" ? "success" : "destructive"}>
+                            {r.status === "queued" ? "queued" : (r.skip_reason ?? "failed")}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </>
+      ) : null}
     </div>
   );
 }
