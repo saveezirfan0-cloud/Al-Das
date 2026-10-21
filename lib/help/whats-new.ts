@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-12-25-group-pack",
+    date: "2026-10-21",
+    title: "Group pack: Al Das's part of the Bindrai reporting pack",
+    body: "Finance, Group pack downloads a month's Al Das submission for the Bindrai group reporting pack as one Excel file: the profit and loss, the KPI scorecard, figures for every branch (Shoreline included), insurer and supplier ageing and the close checklist. Every figure says where it comes from, and anything Pulse does not have yet is left blank with the reason. It is for the Finance Manager and stays provisional until the CEO locks the month.",
+  },
+  {
     id: "2026-12-24-recall-template-values",
     date: "2026-10-20",
     title: "Recall: choose what fills each {{1}}",

@@ -291,6 +291,12 @@ export const FINANCE_NAV: readonly FinanceNavEntry[] = [
   tabGroup("Exports", "Month-end", [
     { href: "/finance/tally", label: "Tally export", permissions: ["finance.tally.export"] },
     { href: "/finance/export", label: "Accounting export", permissions: ["finance.export.run"] },
+    // docs/51: Al Das's part of the Bindrai group reporting pack (the Finance Manager)
+    {
+      href: "/finance/group-pack",
+      label: "Group pack",
+      permissions: ["finance.group_pack.export"],
+    },
   ]),
 ];
 

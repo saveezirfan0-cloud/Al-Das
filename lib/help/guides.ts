@@ -464,6 +464,24 @@ export const GUIDES: readonly Guide[] = [
     ],
   },
   {
+    id: "finance-group-pack",
+    title: "Group pack",
+    pages: ["/finance/group-pack"],
+    purpose:
+      "Downloads Al Das's own part of the Bindrai group reporting pack for a month as one Excel file: the entity profit and loss, the KPI scorecard, the figures for every branch, insurer and supplier ageing and the close checklist. The group consolidation, the other companies and the CEO scorecard are completed in the group workbook.",
+    steps: [
+      "Pick the month and press Download. A month built in Month-end close uses its frozen pack; any other month is built live for the download.",
+      "Read the Read Me sheet first: it says whether the month is locked or provisional and where each figure comes from.",
+      "Copy the figures into the group workbook's Al Das tabs, or attach the file to the monthly pack.",
+    ],
+    watchOut: [
+      "Figures are provisional until the CEO sign-off locks the month; the file name says provisional until then.",
+      "A blank figure means Pulse does not have it yet (payroll, supplies, appointments, commitments) and the sheet says why. It is never zero.",
+      "The profit and loss comes from the ledger, which mirrors Tally: it is empty until the Tally import runs. Unite revenue is shown beside it.",
+      "The file carries the clinic-wide profit and loss, so only the Finance Manager holds the permission, and only someone who sees every branch can download it.",
+    ],
+  },
+  {
     id: "finance-recruitment",
     title: "Recruitment calculator",
     pages: ["/finance/recruitment"],

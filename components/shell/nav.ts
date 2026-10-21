@@ -389,6 +389,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
       "finance.revshare.verify",
       "finance.revshare.approve",
       "finance.parallel_run.manage",
+      "finance.group_pack.export",
     ],
   },
   {

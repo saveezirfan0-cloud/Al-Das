@@ -25,6 +25,7 @@ const CONSOLIDATE_OR_CIRCULATE = [
   "finance.close.signoff.ceo",
   "finance.report_emails.manage",
   "finance.parallel_run.manage",
+  "finance.group_pack.export",
   "finance.export.run",
   "finance.bank.signoff",
   "accounting.reports.view",
@@ -61,8 +62,11 @@ describe("finance controls (16 Oct 2026)", () => {
         "finance.close.manage",
         "finance.close.signoff.finance",
         "finance.report_emails.manage",
+        "finance.group_pack.export",
       ]),
     );
+    // docs/51: the group pack carries the clinic-wide P&L, so the Finance preset does not hold it
+    expect(perms("Finance")).not.toContain("finance.group_pack.export");
     // the final approval and lock stays with the CEO
     expect(perms("CEO")).toContain("finance.close.signoff.ceo");
     expect(perms("Finance Manager")).not.toContain("finance.close.signoff.ceo");

@@ -114,6 +114,28 @@ export async function buildAndStorePack(
   return { closeId: data as string };
 }
 
+/**
+ * docs/51: the close pack's figures for a month that has no frozen pack yet, built live and NOT stored (the group-pack
+ * download shows them as live). Same inputs as buildAndStorePack, without the control summary.
+ */
+export async function liveClosePack(
+  admin: AdminClient,
+  orgId: string,
+  orgName: string,
+  month: string, // YYYY-MM
+  builtAt: string,
+): Promise<ClosePack> {
+  const g = await gather(admin, orgId, month);
+  return buildClosePack({
+    orgName,
+    month: `${month}-01`,
+    builtAt,
+    figures: g.figures,
+    revenue: g.revenue,
+    denialReasons: g.reasons,
+  });
+}
+
 /** What the live mirror says now for a month that already has a pack. */
 export async function liveDriftFor(
   admin: AdminClient,

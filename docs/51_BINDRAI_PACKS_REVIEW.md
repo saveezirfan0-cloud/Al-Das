@@ -2,11 +2,11 @@
 
 Saeed shared three workbooks on 21 Oct 2026. They were read and recalculated (LibreOffice) in the session scratchpad only. **Nothing from them is in the repo**: this note holds sheet names, structure and formula findings, never a figure from the workbooks. The questions they raise are OQ-183 to OQ-188 in `docs/audit/open-questions.md`.
 
-| Workbook | What it is | Sheets |
-|---|---|---|
-| Bindrai Group Financial Reporting Pack | Blank monthly templates for every group entity (Bin Drai Capital, BDC Investment, Al Das, Park Developments, Asyas Nursery) | Read Me, Group Dashboard, Entity P&L, Cash 13W, KPI Scorecard, Working Capital, Commitments & Capex, Intercompany, Compliance, Close & Sign-off, Budget & Forecast |
-| Bindrai All Company Finance Rollout and CEO Monitoring Pack | Who does what, line-by-line acknowledgement, a ten-question test, the CEO scorecard and the Al Das branch source data | Read Me, Acknowledgement Register, Query Register, Test Answer Key, Test Results, CEO Scorecard, CEO Alerts & Decisions, Rollout Calendar, All-Entity Acknowledgements, CEO All-Entity Scorecard, Clinic Branch Source Data |
-| Park Developments, Real Estate Finance Tracker (sample data) | Project P&L, invoices, receipts, consultant cost and cash position for another group company | README, Setup, P&L MOM, Portfolio Summary, Fixed Expenses, Other Overheads, Invoices, Receipts, RW Costs, Cash Position |
+| Workbook                                                     | What it is                                                                                                                  | Sheets                                                                                                                                                                                                                      |
+| ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Bindrai Group Financial Reporting Pack                       | Blank monthly templates for every group entity (Bin Drai Capital, BDC Investment, Al Das, Park Developments, Asyas Nursery) | Read Me, Group Dashboard, Entity P&L, Cash 13W, KPI Scorecard, Working Capital, Commitments & Capex, Intercompany, Compliance, Close & Sign-off, Budget & Forecast                                                          |
+| Bindrai All Company Finance Rollout and CEO Monitoring Pack  | Who does what, line-by-line acknowledgement, a ten-question test, the CEO scorecard and the Al Das branch source data       | Read Me, Acknowledgement Register, Query Register, Test Answer Key, Test Results, CEO Scorecard, CEO Alerts & Decisions, Rollout Calendar, All-Entity Acknowledgements, CEO All-Entity Scorecard, Clinic Branch Source Data |
+| Park Developments, Real Estate Finance Tracker (sample data) | Project P&L, invoices, receipts, consultant cost and cash position for another group company                                | README, Setup, P&L MOM, Portfolio Summary, Fixed Expenses, Other Overheads, Invoices, Receipts, RW Costs, Cash Position                                                                                                     |
 
 The Park Developments tracker carries one named person's pay. Keep it to Finance; it is not Al Das data and is not loaded into Pulse.
 
@@ -19,31 +19,46 @@ The Park Developments tracker carries one named person's pay. Keep it to Finance
 
 ## 2. Where Pulse already has the figure
 
-| Pack line | Pulse source | State |
-|---|---|---|
-| Revenue by branch, by doctor, by payer type | Unite report upload (23A), Daily flash, Doctor performance | Built; needs the daily upload while Unite capture is off (OQ-94) |
-| New patients, repeat visits | Doctor performance (patients, follow-ups = visits − patients) | Built; definition differs from Unite's New / Revisit flag (OQ-186) |
-| Completed appointments, cancellation and no-show rate | Appointments vs invoices (W2) | Built; waits on one real Unite appointment export (D16) |
-| Cash collections | Unite collection report payment modes; cash-up | Built; the daily tie (OQ-181) is unanswered |
-| Claims submitted, denied, pending; aged insurer receivables | Diligence upload, claim status, Receivables by age, denials | Built; waits on the weekly full export (D22) |
-| Payroll and medical supplies as % of revenue | Costs (F8), Contribution | Built; no cost data loaded yet (Q20, D7, D8) |
-| Entity P&L, budget vs actual | Tally mirror (22I/22J), accounting statements, budgets | Built; waits on the Tally connector (OQ-123, D8) |
-| Working capital: receivables and payables ageing | Receivables by age; Accounting, Payables ageing | Built |
-| Close & Sign-off checklist, preparer and reviewer | Close timetable (20G), month close with two signatures and CEO lock | Built; steps are data and can follow the pack's days (OQ-184) |
-| Cash 13W | Collections forecast (insurer inflows by week) | Partial: no self-pay, payroll, supplier or rent outflows |
-| Exceptions and error log, CEO alerts | Exceptions (E01 to E15), management alerts | Built for finance signals; decisions log is not |
-| Compliance calendar | Staff and doctor licence and visa reminders | Partial: no trade licence, facility licence, VAT or corporate tax dates |
-| Commitments & capex | Vouchers and payables (approved spend) | Not built: no commitment or PO register |
-| Intercompany, other entities, acknowledgements, test | none | Out of Pulse's scope (OQ-183) |
+| Pack line                                                   | Pulse source                                                        | State                                                                   |
+| ----------------------------------------------------------- | ------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Revenue by branch, by doctor, by payer type                 | Unite report upload (23A), Daily flash, Doctor performance          | Built; needs the daily upload while Unite capture is off (OQ-94)        |
+| New patients, repeat visits                                 | Doctor performance (patients, follow-ups = visits − patients)       | Built; definition differs from Unite's New / Revisit flag (OQ-186)      |
+| Completed appointments, cancellation and no-show rate       | Appointments vs invoices (W2)                                       | Built; waits on one real Unite appointment export (D16)                 |
+| Cash collections                                            | Unite collection report payment modes; cash-up                      | Built; the daily tie (OQ-181) is unanswered                             |
+| Claims submitted, denied, pending; aged insurer receivables | Diligence upload, claim status, Receivables by age, denials         | Built; waits on the weekly full export (D22)                            |
+| Payroll and medical supplies as % of revenue                | Costs (F8), Contribution                                            | Built; no cost data loaded yet (Q20, D7, D8)                            |
+| Entity P&L, budget vs actual                                | Tally mirror (22I/22J), accounting statements, budgets              | Built; waits on the Tally connector (OQ-123, D8)                        |
+| Working capital: receivables and payables ageing            | Receivables by age; Accounting, Payables ageing                     | Built                                                                   |
+| Close & Sign-off checklist, preparer and reviewer           | Close timetable (20G), month close with two signatures and CEO lock | Built; steps are data and can follow the pack's days (OQ-184)           |
+| Cash 13W                                                    | Collections forecast (insurer inflows by week)                      | Partial: no self-pay, payroll, supplier or rent outflows                |
+| Exceptions and error log, CEO alerts                        | Exceptions (E01 to E15), management alerts                          | Built for finance signals; decisions log is not                         |
+| Compliance calendar                                         | Staff and doctor licence and visa reminders                         | Partial: no trade licence, facility licence, VAT or corporate tax dates |
+| Commitments & capex                                         | Vouchers and payables (approved spend)                              | Not built: no commitment or PO register                                 |
+| Intercompany, other entities, acknowledgements, test        | none                                                                | Out of Pulse's scope (OQ-183)                                           |
 
-## 3. Proposed build (not started; plan first, per CLAUDE.md)
+## 3. Build
 
-1. **Al Das entity submission** as one Excel file in the pack's layout: Entity P&L (month, YTD), the Al Das KPI rows, Clinic Branch Source Data for all three branches, receivables and payables ageing and the close sign-off, from the existing loaders, with a Definitions sheet and "Provisional" until the CEO lock. Only the Finance Manager can download it (it is a clinic-wide P&L, docs/42).
-2. **Close timetable** steps moved to the pack's days once OQ-184 is answered (data only).
-3. **13-week cash view:** add self-pay, approved vouchers and payables by due date, and typed recurring lines (payroll, rent) to the collections forecast.
-4. **Compliance register** for Al Das (facility and trade licences, VAT and corporate tax dates) using the HR reminder pattern.
+**Built (21 Oct 2026): Finance, Group pack** (`/finance/group-pack`, an Exports tab). One Excel file per month, `/api/finance/group-pack?month=yyyy-mm`:
 
-Steps 1 and 2 need no new data; 3 and 4 depend on D3, D7, D8 and Q20.
+| Sheet                                | Source                                                                                                                                                                                                                                                                                          |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Read Me                              | Status (Locked, or Provisional with the sign-off state), the close pack's sha256, where each figure comes from, what stays in the group workbook                                                                                                                                                |
+| Entity P&L                           | The ledger (Tally mirror, `acc_profit_and_loss`, default entity), month and fiscal year to date; Unite net billing and the difference as memo lines. Payroll, depreciation, finance costs and tax stay inside operating expenses until the Tally groups are mapped to the pack's lines (OQ-186) |
+| KPI Scorecard                        | Unite report (revenue, patients, visits, New, repeat visits = visits − patients, revenue per patient against `perf_arpp_target`, cancelled rows), the month's targets (daily × days, as the flash report), the close pack (collections, claims, rejected, pending, over 90 days)                |
+| Clinic Branch Source Data            | The same Unite figures for every finance branch (Shoreline included), "Not assigned to a branch" for additive figures, the Al Das total counted once (patients are never summed); close-pack insurance figures by branch code                                                                   |
+| Receivables ageing / Payables ageing | Close pack ageing (0-30, 31-60, 61-90, 90+ days); `loadPayablesAgeing` at the month end                                                                                                                                                                                                         |
+| Close & Sign-off                     | `fin_close_tasks` with the step titles, owners, due working day, status and blocked reason                                                                                                                                                                                                      |
+| Definitions                          | Every measure in words                                                                                                                                                                                                                                                                          |
+
+Rules: values only (no formulas, `tablesWorkbook`); a figure Pulse does not have is blank with the reason, never 0 (payroll, supplies, appointments, commitments); a month built in Month-end close uses its frozen pack, any other month is built live and not stored (`liveClosePack`); the file name says provisional until the CEO lock. Permission `finance.group_pack.export` (Finance Manager only, migration `20261225000100`, paste file 109) and access to every branch; the P&L also needs `accounting.reports.view` and the payables sheet a payables key, otherwise the sheet names the missing permission. Each download is audited (`finance.group_pack.exported`) and written to the access log. Pure builder `lib/finance/group-pack.ts` (tests in `tests/unit/finance/group-pack.test.ts`), loader `group-pack-server.ts`.
+
+Not built yet:
+
+1. **Close timetable** steps moved to the pack's days once OQ-184 is answered (data only).
+2. **13-week cash view:** add self-pay, approved vouchers and payables by due date, and typed recurring lines (payroll, rent) to the collections forecast.
+3. **Compliance register** for Al Das (facility and trade licences, VAT and corporate tax dates) using the HR reminder pattern.
+
+Items 2 and 3 depend on D3, D7, D8 and Q20.
 
 ## 4. Formula faults found
 
@@ -51,36 +66,36 @@ Checked by recalculation, not by eye, where marked (R). Every fix is small; the 
 
 **Rollout and CEO Monitoring Pack**
 
-| # | Sheet | Fault | Fix |
-|---|---|---|---|
-| R1 | Test Results | (R) `SUMPRODUCT(--(G10:P10='Test Answer Key'!D10:D19))` compares a row with a column, which builds a 10 × 10 grid: ten correct answers score 38 (380%), and ten "A" answers (2 correct) score 20 and PASS | Hold the key as a row (10 cells) and compare row with row, or add the ten single comparisons |
-| R2 | Test Results | (R) Someone who has not sat the test shows "RETAKE REQUIRED"; "No Score" counts blank scores, which never occur (the score cell holds 0) | Leave the result blank until an answer is entered |
-| R3 | Test Answer Key | The ten test questions are not in the workbook, only the key and the topics | Keep the questions in a separate file from the key |
-| R4 | CEO Scorecard, CEO All-Entity Scorecard | (R) An unscored company totals 0 and shows RED; before scoring the summary reports every company RED | Show "Not scored" until all five pillars are filled |
-| R5 | Acknowledgement registers | A status of Acknowledged becomes "Pending Test" and never moves on: the final status does not read Test Results | Look up the person's PASS |
-| R6 | Clinic Branch Source Data | Columns for Meadows and Golden Miles only; Shoreline, the main site, is missing (OQ-185). The "Combined Check" adds the two cancellation / no-show rates | Add Shoreline; combine rates from counts, not by adding |
-| R7 | Several | Spellings differ from the rest of the clinic's records: Crishna, Mohammad, Golden Miles | Use one spelling so filters match |
+| #   | Sheet                                   | Fault                                                                                                                                                                                                     | Fix                                                                                          |
+| --- | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| R1  | Test Results                            | (R) `SUMPRODUCT(--(G10:P10='Test Answer Key'!D10:D19))` compares a row with a column, which builds a 10 × 10 grid: ten correct answers score 38 (380%), and ten "A" answers (2 correct) score 20 and PASS | Hold the key as a row (10 cells) and compare row with row, or add the ten single comparisons |
+| R2  | Test Results                            | (R) Someone who has not sat the test shows "RETAKE REQUIRED"; "No Score" counts blank scores, which never occur (the score cell holds 0)                                                                  | Leave the result blank until an answer is entered                                            |
+| R3  | Test Answer Key                         | The ten test questions are not in the workbook, only the key and the topics                                                                                                                               | Keep the questions in a separate file from the key                                           |
+| R4  | CEO Scorecard, CEO All-Entity Scorecard | (R) An unscored company totals 0 and shows RED; before scoring the summary reports every company RED                                                                                                      | Show "Not scored" until all five pillars are filled                                          |
+| R5  | Acknowledgement registers               | A status of Acknowledged becomes "Pending Test" and never moves on: the final status does not read Test Results                                                                                           | Look up the person's PASS                                                                    |
+| R6  | Clinic Branch Source Data               | Columns for Meadows and Golden Miles only; Shoreline, the main site, is missing (OQ-185). The "Combined Check" adds the two cancellation / no-show rates                                                  | Add Shoreline; combine rates from counts, not by adding                                      |
+| R7  | Several                                 | Spellings differ from the rest of the clinic's records: Crishna, Mohammad, Golden Miles                                                                                                                   | Use one spelling so filters match                                                            |
 
 **Group Financial Reporting Pack**
 
-| # | Sheet | Fault | Fix |
-|---|---|---|---|
-| G1 | Commitments & Capex | Formulas sit one column to the right: "Variance to Budget" holds Actual + Committed + Estimate to complete, "Funding Source" holds Forecast − Budget, and "Forecast Total Cost" is left to type | Forecast = G + H + I; Variance = Forecast − Budget; Funding Source typed |
-| G2 | Cash 13W | The 13-week total's Opening Cash is week 13's opening, not week 1's | Point it at week 1 |
-| G3 | Budget & Forecast | FY Total of Ending Cash adds the 12 month-end balances; the EBITDA row is typed, not calculated | Use month 12 for ending cash; EBITDA = Revenue − Direct − Payroll − Opex |
-| G4 | Group Dashboard | Described as linked, but nothing links to the entity tabs (every figure retyped); the Management Group Total adds Al Das at 100% while HoldCo's share is 60% (OQ-188) | Link the cells; show the 60% view beside the total |
-| G5 | Entity P&L, KPI Scorecard | Variance is Actual − Budget for every line, so a positive cost or no-show variance is bad while a positive revenue variance is good | Label favourable / adverse, or reverse the sign for costs and "lower is better" KPIs |
-| G6 | Intercompany | The certification compares each entity's total due from with its total due to, which is not a reconciliation | Reconcile pairwise: A's receivable from B against B's payable to A |
-| G7 | Working Capital | The summary by entity is not linked to the ageing tables above it | Link it |
+| #   | Sheet                     | Fault                                                                                                                                                                                           | Fix                                                                                  |
+| --- | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| G1  | Commitments & Capex       | Formulas sit one column to the right: "Variance to Budget" holds Actual + Committed + Estimate to complete, "Funding Source" holds Forecast − Budget, and "Forecast Total Cost" is left to type | Forecast = G + H + I; Variance = Forecast − Budget; Funding Source typed             |
+| G2  | Cash 13W                  | The 13-week total's Opening Cash is week 13's opening, not week 1's                                                                                                                             | Point it at week 1                                                                   |
+| G3  | Budget & Forecast         | FY Total of Ending Cash adds the 12 month-end balances; the EBITDA row is typed, not calculated                                                                                                 | Use month 12 for ending cash; EBITDA = Revenue − Direct − Payroll − Opex             |
+| G4  | Group Dashboard           | Described as linked, but nothing links to the entity tabs (every figure retyped); the Management Group Total adds Al Das at 100% while HoldCo's share is 60% (OQ-188)                           | Link the cells; show the 60% view beside the total                                   |
+| G5  | Entity P&L, KPI Scorecard | Variance is Actual − Budget for every line, so a positive cost or no-show variance is bad while a positive revenue variance is good                                                             | Label favourable / adverse, or reverse the sign for costs and "lower is better" KPIs |
+| G6  | Intercompany              | The certification compares each entity's total due from with its total due to, which is not a reconciliation                                                                                    | Reconcile pairwise: A's receivable from B against B's payable to A                   |
+| G7  | Working Capital           | The summary by entity is not linked to the ageing tables above it                                                                                                                               | Link it                                                                              |
 
 **Park Developments tracker** (another company; reported back, not loaded)
 
-| # | Sheet | Fault | Fix |
-|---|---|---|---|
-| P1 | P&L MOM | Corporate tax `IF(P17>375000, (375000−P17)×9%, 0)` is negative once profit passes AED 375,000, so after-tax profit would exceed pre-tax profit. The 14-month column range also spans two tax periods | `(P17 − 375000) × 9%`, per financial year |
-| P2 | P&L MOM | (R) Revenue and consultant cost run to Dec-26, but owner charge, office overheads, insurance, benefits, other overheads and direct expense stop at Aug-26: a September invoice will show without its costs. Subtitles say both "to Jul 2026" and "to Oct 2026" | Extend the fixed lines; one period label |
-| P3 | P&L MOM | (R) Employee benefits: April reads gratuity + flight allowance, May to August read gratuity only | Read the total row for every month |
-| P4 | P&L MOM | Nov-25 collects every invoice up to 30 Nov 2025 and consultant cost from 1 May 2025 | Label it as the catch-up column or split the months |
-| P5 | Receipts | A receipt's amount is copied from the invoice, so an invoice shows PAID when a receipt row exists, not when the bank shows the money | Type receipts from the bank statement |
-| P6 | Cash Position | "Total Invoiced (AED Net)" sums the gross column; two projects use shorter ranges | Fix the label; one range for all |
-| P7 | Portfolio Summary | Per-project GP % is profit ÷ cost (mark-up); the total is profit ÷ revenue (margin) | Use one measure |
+| #   | Sheet             | Fault                                                                                                                                                                                                                                                          | Fix                                                 |
+| --- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| P1  | P&L MOM           | Corporate tax `IF(P17>375000, (375000−P17)×9%, 0)` is negative once profit passes AED 375,000, so after-tax profit would exceed pre-tax profit. The 14-month column range also spans two tax periods                                                           | `(P17 − 375000) × 9%`, per financial year           |
+| P2  | P&L MOM           | (R) Revenue and consultant cost run to Dec-26, but owner charge, office overheads, insurance, benefits, other overheads and direct expense stop at Aug-26: a September invoice will show without its costs. Subtitles say both "to Jul 2026" and "to Oct 2026" | Extend the fixed lines; one period label            |
+| P3  | P&L MOM           | (R) Employee benefits: April reads gratuity + flight allowance, May to August read gratuity only                                                                                                                                                               | Read the total row for every month                  |
+| P4  | P&L MOM           | Nov-25 collects every invoice up to 30 Nov 2025 and consultant cost from 1 May 2025                                                                                                                                                                            | Label it as the catch-up column or split the months |
+| P5  | Receipts          | A receipt's amount is copied from the invoice, so an invoice shows PAID when a receipt row exists, not when the bank shows the money                                                                                                                           | Type receipts from the bank statement               |
+| P6  | Cash Position     | "Total Invoiced (AED Net)" sums the gross column; two projects use shorter ranges                                                                                                                                                                              | Fix the label; one range for all                    |
+| P7  | Portfolio Summary | Per-project GP % is profit ÷ cost (mark-up); the total is profit ÷ revenue (margin)                                                                                                                                                                            | Use one measure                                     |
