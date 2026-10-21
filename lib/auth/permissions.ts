@@ -643,6 +643,13 @@ export const PERMISSIONS = [
       "Type in the manual figures Finance produces today, set the tolerance and record, per area, the decision to rely on Pulse (Finance, Parallel run). Opens the page; each area is shown only with its own report permission. Audited.",
   },
   {
+    key: "finance.group_pack.export",
+    group: "Finance",
+    label: "Download the group pack",
+    description:
+      "Download Al Das's part of the Bindrai group reporting pack (Finance, Group pack): the clinic-wide profit and loss, KPIs, branch figures, ageing and the close checklist as one Excel file. Needs access to every branch. Recorded in the access log.",
+  },
+  {
     key: "accounting.view",
     group: "Accounting",
     label: "Open Accounting",
@@ -866,6 +873,7 @@ export const FINANCE_ROLES: readonly RolePreset[] = [
       "finance.matching.approve",
       "finance.revshare.verify",
       "finance.parallel_run.manage",
+      "finance.group_pack.export",
       "accounting.view",
       "accounting.ledger.view",
       "accounting.reports.view",
