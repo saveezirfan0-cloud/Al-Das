@@ -396,7 +396,7 @@ export const GUIDES: readonly Guide[] = [
     steps: [
       "Pick a month (the latest month with report data opens by default) and, if you work in more than one, a branch.",
       "Departments are listed by revenue with their doctors under them; a doctor who works in two departments appears under both.",
-      "The band compares revenue per patient with the target: Achieved, Near Target, Moderate or Below Target. Finance sets the target and band edges under Targets and report lines.",
+      "The band compares revenue per patient with the target: Achieved, Near Target, Moderate or Below Target. Revenue per patient counts paid patients only: a patient whose visits were all zero-invoice (follow-ups) is left out. Finance sets the target and band edges under Targets and report lines.",
       "Download Excel gives the same figures as plain values, with a Definitions sheet.",
     ],
     watchOut: [
@@ -579,7 +579,8 @@ export const GUIDES: readonly Guide[] = [
     ],
     watchOut: [
       "A line called Unassigned means some invoices match no reporting line. Fix the lines rather than the figures.",
-      "Month-to-date targets are the daily target times the days elapsed.",
+      "Each line's month target is its daily target times its operating days (blank = every day of the month). One day is measured against the daily target; month to date against the month target spread evenly over the days elapsed.",
+      "ARPP divides revenue by paid patients: a patient whose visits that day were all zero-invoice (follow-ups) is left out.",
       "Figures are only as recent as the latest Unite data; the date is shown under the day picker.",
     ],
   },

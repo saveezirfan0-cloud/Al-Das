@@ -116,6 +116,7 @@ const row = (
   doctorName: null,
   net,
   patients: 0,
+  paidPatients: 0,
   invoices: 0,
 });
 const line = (

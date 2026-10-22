@@ -31,6 +31,7 @@ export type TargetView = {
   dailyRevenue: number | null;
   dailyPatients: number | null;
   arpp: number | null;
+  operatingDays?: number | null;
 };
 
 const Check = ({ name, label, checked }: { name: string; label: string; checked: boolean }) => (
@@ -131,10 +132,11 @@ export function TargetsForm({
   return (
     <ActionForm action={saveTargets} submitLabel="Save targets">
       <input type="hidden" name="month" value={month} />
-      <div className="grid gap-x-4 gap-y-2 sm:grid-cols-[1fr_10rem_10rem]">
+      <div className="grid gap-x-4 gap-y-2 sm:grid-cols-[1fr_10rem_10rem_8rem]">
         <div className="text-muted-foreground text-xs font-medium">Line</div>
         <div className="text-muted-foreground text-xs font-medium">Revenue per day (AED)</div>
         <div className="text-muted-foreground text-xs font-medium">Patients per day</div>
+        <div className="text-muted-foreground text-xs font-medium">Operating days</div>
         {lines.map((l) => (
           <div key={l.code} className="contents">
             <div className="flex items-center text-sm">
@@ -153,6 +155,13 @@ export function TargetsForm({
               defaultValue={t(l.code)?.dailyPatients ?? ""}
               aria-label={`${l.label} patients per day`}
             />
+            <Input
+              name={`days_${l.code}`}
+              inputMode="numeric"
+              defaultValue={t(l.code)?.operatingDays ?? ""}
+              placeholder="every day"
+              aria-label={`${l.label} operating days this month`}
+            />
           </div>
         ))}
         <div className="flex items-center text-sm font-semibold">Total</div>
@@ -169,13 +178,23 @@ export function TargetsForm({
           defaultValue={total?.dailyPatients ?? ""}
           aria-label="Total patients per day"
         />
+        <Input
+          name="total_days"
+          inputMode="numeric"
+          defaultValue={total?.operatingDays ?? ""}
+          placeholder="every day"
+          aria-label="Total operating days this month"
+        />
       </div>
       <Field label="ARPP target (AED per patient)" className="max-w-xs">
         <Input name="total_arpp" inputMode="decimal" defaultValue={total?.arpp ?? ""} />
       </Field>
       <p className="text-muted-foreground text-xs">
-        Targets are daily rates. The month-to-date target is the daily target times the calendar
-        days elapsed. Leave a box blank for no target.
+        Targets are daily rates. Operating days are the days the branch opens this month (for
+        example 26 for a branch closed on Sundays); the month target is the daily rate times them,
+        and blank means every day. A single day is measured against the daily rate; a part of the
+        month against the month target spread evenly over the calendar days. Leave a box blank for
+        no target.
       </p>
     </ActionForm>
   );

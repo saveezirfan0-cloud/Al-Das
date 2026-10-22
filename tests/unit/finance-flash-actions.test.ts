@@ -126,8 +126,8 @@ describe("flash settings actions", () => {
     expect(state.rpcCalls[0].fn).toBe("fin_flash_set_targets");
     expect(state.rpcCalls[0].args.p_month).toBe("2026-10-01");
     expect(state.rpcCalls[0].args.p_rows).toEqual([
-      { line_code: "PALM", daily_revenue: 32593, daily_patients: null, arpp: null },
-      { line_code: null, daily_revenue: null, daily_patients: 78.25, arpp: 750 },
+      { line_code: "PALM", daily_revenue: 32593, daily_patients: null, arpp: null, operating_days: null },
+      { line_code: null, daily_revenue: null, daily_patients: 78.25, arpp: 750, operating_days: null },
     ]);
     expect(state.audits[0]).toMatchObject({ action: "finance.flash.targets_saved" });
   });

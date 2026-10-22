@@ -30,6 +30,8 @@ export type FlashRow = {
   doctorName: string | null;
   net: number;
   patients: number;
+  /** Patients whose net in the row is above 0: the revenue-per-patient basis (Q6, 22 Oct 2026). Absent = all patients. */
+  paidPatients?: number;
   invoices: number;
 };
 
@@ -48,6 +50,8 @@ export type RevenueTarget = {
   dailyRevenue: number | null;
   dailyPatients: number | null;
   arpp: number | null;
+  /** Days the line operates in the month (Q7); null or absent = every calendar day. Month target = daily × these days. */
+  operatingDays?: number | null;
 };
 
 export type ShareBasis = "section" | "all";
@@ -65,6 +69,7 @@ export type LineResult = {
   inCore: boolean;
   revenue: Measure;
   patients: number;
+  paidPatients: number;
   patientTarget: number | null;
   arpp: number | null;
 };
@@ -128,8 +133,9 @@ export function measure(actual: number, target: number | null): Measure {
   };
 }
 
-export const arppOf = (revenue: number, patients: number): number | null =>
-  patients > 0 ? round2(revenue / patients) : null;
+/** Revenue per patient over PAID patients (Q6): pass the paid count, never all patients. */
+export const arppOf = (revenue: number, paidPatients: number): number | null =>
+  paidPatients > 0 ? round2(revenue / paidPatients) : null;
 
 /** First day of the month of an ISO date, or null. */
 export function monthOf(date: string): string | null {
@@ -167,7 +173,9 @@ export function effectiveLines(
   rows: readonly FlashRow[],
 ): ReportLine[] {
   if (configured.length > 0) {
-    return [...configured].sort((a, b) => a.sortOrder - b.sortOrder || a.code.localeCompare(b.code));
+    return [...configured].sort(
+      (a, b) => a.sortOrder - b.sortOrder || a.code.localeCompare(b.code),
+    );
   }
   const branches = [...new Set(rows.map((r) => r.branch).filter((b): b is string => !!b))].sort();
   return branches.map((b, i) => ({
@@ -218,15 +226,85 @@ function targetsFor(targets: readonly RevenueTarget[], month: string): TargetSet
   return { line, total };
 }
 
-const times = (rate: number | null | undefined, days: number) =>
-  rate === null || rate === undefined || !Number.isFinite(rate) ? null : rate * days;
+const rateOf = (rate: number | null | undefined): number | null =>
+  rate === null || rate === undefined || !Number.isFinite(rate) ? null : rate;
+
+/** Calendar days in the month that starts on `month` (YYYY-MM-01). */
+export function daysInMonth(month: string): number {
+  const [y, m] = month.split("-").map(Number);
+  return new Date(Date.UTC(y, m, 0)).getUTCDate();
+}
+
+/**
+ * Q7 (Finance, 22 Oct 2026): the daily target is the month's target divided by the line's operating days, so the month
+ * target is the daily target × operating days (every calendar day when none are set).
+ */
+export function monthTargetOf(
+  dailyRate: number | null | undefined,
+  operatingDays: number | null | undefined,
+  dim: number,
+): number | null {
+  const r = rateOf(dailyRate);
+  return r === null ? null : r * (operatingDays ?? dim);
+}
+
+/**
+ * The target for a period of `days` calendar days inside one month: one day is the daily target; the whole month is the
+ * month target; anything in between is the month target pro rata by calendar days (which days a branch is closed is not
+ * known, so a part month is spread evenly). With no operating days this equals daily × days, as before.
+ */
+export function periodTargetOf(
+  monthTarget: number | null,
+  dailyRate: number | null | undefined,
+  days: number,
+  dim: number,
+): number | null {
+  if (monthTarget === null) return null;
+  if (days >= dim) return monthTarget;
+  const r = rateOf(dailyRate);
+  if (days === 1 && r !== null) return r;
+  return (monthTarget * days) / dim;
+}
+
+/**
+ * The month's total revenue and patient targets: the total row (daily × its operating days) when set, else the sum of
+ * the core lines' month targets. Shared by the flash report and the group pack.
+ */
+export function monthTotals(
+  lines: readonly ReportLine[],
+  targets: readonly RevenueTarget[],
+  month: string,
+): {
+  revenue: number | null;
+  patients: number | null;
+  dailyRevenue: number | null;
+  dailyPatients: number | null;
+} {
+  const dim = daysInMonth(month);
+  const t = targetsFor(targets, month);
+  const core = lines.filter((l) => l.inCore).map((l) => t.line.get(l.code));
+  const sum = (xs: (number | null)[]) => {
+    const v = xs.filter((x): x is number => x !== null);
+    return v.length > 0 ? v.reduce((a, x) => a + x, 0) : null;
+  };
+  const revenue =
+    t.total && rateOf(t.total.dailyRevenue) !== null
+      ? monthTargetOf(t.total.dailyRevenue, t.total.operatingDays, dim)
+      : sum(core.map((x) => monthTargetOf(x?.dailyRevenue, x?.operatingDays, dim)));
+  const dailyRevenue =
+    rateOf(t.total?.dailyRevenue) ?? sum(core.map((x) => rateOf(x?.dailyRevenue)));
+  const patients = t.total
+    ? monthTargetOf(t.total.dailyPatients, t.total.operatingDays, dim)
+    : null;
+  return { revenue, patients, dailyRevenue, dailyPatients: rateOf(t.total?.dailyPatients) };
+}
 
 // ---------------------------------------------------------------------------------------------------------------
 // The summary (one day, or month to date)
 
 /**
  * The summary for the period `from`..`to` inside ONE month (the daily summary is from = to; month to date is from = the
- * first of the month). Targets of that month are scaled by the number of calendar days in the period.
+ * first of the month). Targets come from the month target (daily × operating days, Q7) by periodTargetOf.
  */
 export function buildFlashSummary(input: {
   rows: readonly FlashRow[];
@@ -243,6 +321,7 @@ export function buildFlashSummary(input: {
     throw new Error("A flash period must be one or more days inside one month.");
   }
   const days = daysInclusive(from, to);
+  const dim = daysInMonth(month);
   const shareBasis = input.shareBasis ?? "section";
   const rows = input.rows.filter((r) => r.date >= from && r.date <= to);
   const lines = effectiveLines(input.lines, input.rows);
@@ -250,27 +329,31 @@ export function buildFlashSummary(input: {
   const warnings: string[] = [];
 
   // Per line
-  const acc = new Map<string, { revenue: number; patients: number }>();
+  const acc = new Map<string, { revenue: number; patients: number; paid: number }>();
   const lineOf = new Map<FlashRow, string>();
   for (const r of rows) {
     const code = assignLine(r, lines);
     lineOf.set(r, code);
-    const a = acc.get(code) ?? { revenue: 0, patients: 0 };
+    const a = acc.get(code) ?? { revenue: 0, patients: 0, paid: 0 };
     a.revenue += r.net;
     a.patients += r.patients;
+    a.paid += r.paidPatients ?? r.patients;
     acc.set(code, a);
   }
   const lineResult = (code: string, label: string, inCore: boolean): LineResult => {
-    const a = acc.get(code) ?? { revenue: 0, patients: 0 };
+    const a = acc.get(code) ?? { revenue: 0, patients: 0, paid: 0 };
     const lt = t.line.get(code);
+    const target = (rate: number | null | undefined) =>
+      periodTargetOf(monthTargetOf(rate, lt?.operatingDays, dim), rate, days, dim);
     return {
       code,
       label,
       inCore,
-      revenue: measure(a.revenue, times(lt?.dailyRevenue, days)),
+      revenue: measure(a.revenue, target(lt?.dailyRevenue)),
       patients: a.patients,
-      patientTarget: times(lt?.dailyPatients, days),
-      arpp: arppOf(a.revenue, a.patients),
+      paidPatients: a.paid,
+      patientTarget: target(lt?.dailyPatients),
+      arpp: arppOf(a.revenue, a.paid),
     };
   };
   const core = lines.filter((l) => l.inCore).map((l) => lineResult(l.code, l.label, true));
@@ -285,26 +368,23 @@ export function buildFlashSummary(input: {
   // Core total and KPIs
   const coreRevenue = core.reduce((s, l) => s + l.revenue.actual, 0);
   const corePatients = core.reduce((s, l) => s + l.patients, 0);
-  const lineTargetSum = lines
-    .filter((l) => l.inCore)
-    .map((l) => t.line.get(l.code)?.dailyRevenue)
-    .filter((v): v is number => typeof v === "number" && Number.isFinite(v));
-  const totalRevenueRate =
-    t.total?.dailyRevenue ?? (lineTargetSum.length > 0 ? lineTargetSum.reduce((s, v) => s + v, 0) : null);
-  const totalPatientRate = t.total?.dailyPatients ?? null;
+  const corePaid = core.reduce((s, l) => s + l.paidPatients, 0);
+  const totals = monthTotals(lines, input.targets, month);
+  const totalPatientTarget = periodTargetOf(totals.patients, totals.dailyPatients, days, dim);
   const coreTotal: LineResult = {
     code: "CORE",
     label: "Total",
     inCore: true,
-    revenue: measure(coreRevenue, times(totalRevenueRate, days)),
+    revenue: measure(coreRevenue, periodTargetOf(totals.revenue, totals.dailyRevenue, days, dim)),
     patients: corePatients,
-    patientTarget: times(totalPatientRate, days),
-    arpp: arppOf(coreRevenue, corePatients),
+    paidPatients: corePaid,
+    patientTarget: totalPatientTarget,
+    arpp: arppOf(coreRevenue, corePaid),
   };
-  const coreArpp = arppOf(coreRevenue, corePatients);
+  const coreArpp = arppOf(coreRevenue, corePaid);
   const kpis = {
     revenue: coreTotal.revenue,
-    patients: measure(corePatients, times(totalPatientRate, days)),
+    patients: measure(corePatients, totalPatientTarget),
     arpp:
       coreArpp === null
         ? { actual: 0, target: t.total?.arpp ?? null, variance: null, variancePct: null }
@@ -313,20 +393,28 @@ export function buildFlashSummary(input: {
 
   const otherRevenue = otherLines.reduce((s, l) => s + l.revenue.actual, 0);
   const otherPatients = otherLines.reduce((s, l) => s + l.patients, 0);
+  const otherPaid = otherLines.reduce((s, l) => s + l.paidPatients, 0);
   const grandTotal = {
     revenue: round2(coreRevenue + otherRevenue),
     patients: corePatients + otherPatients,
-    arpp: arppOf(coreRevenue + otherRevenue, corePatients + otherPatients),
+    arpp: arppOf(coreRevenue + otherRevenue, corePaid + otherPaid),
   };
 
   // Doctors: one table for the core lines, one per non-core line
   const coreCodes = new Set(core.map((l) => l.code));
   const sections: { code: string; label: string; match: (code: string) => boolean }[] = [
     { code: "CORE", label: "All branches", match: (c) => coreCodes.has(c) },
-    ...otherLines.map((l) => ({ code: l.code, label: l.label, match: (c: string) => c === l.code })),
+    ...otherLines.map((l) => ({
+      code: l.code,
+      label: l.label,
+      match: (c: string) => c === l.code,
+    })),
   ];
   const doctorSections: DoctorSection[] = sections.map((s) => {
-    const byDoc = new Map<string, { id: string | null; name: string; revenue: number; patients: number }>();
+    const byDoc = new Map<
+      string,
+      { id: string | null; name: string; revenue: number; patients: number; paid: number }
+    >();
     for (const r of rows) {
       if (!s.match(lineOf.get(r)!)) continue;
       const key = r.doctorId ?? `name:${norm(r.doctorName)}`;
@@ -335,14 +423,17 @@ export function buildFlashSummary(input: {
         name: r.doctorName?.trim() || r.doctorId || "No doctor on invoice",
         revenue: 0,
         patients: 0,
+        paid: 0,
       };
       d.revenue += r.net;
       d.patients += r.patients;
+      d.paid += r.paidPatients ?? r.patients;
       if (r.doctorName?.trim()) d.name = r.doctorName.trim();
       byDoc.set(key, d);
     }
     const sectionRevenue = [...byDoc.values()].reduce((a, d) => a + d.revenue, 0);
     const sectionPatients = [...byDoc.values()].reduce((a, d) => a + d.patients, 0);
+    const sectionPaid = [...byDoc.values()].reduce((a, d) => a + d.paid, 0);
     const denominator = shareBasis === "all" ? grandTotal.revenue : sectionRevenue;
     const sorted = [...byDoc.values()].sort(
       (a, b) => b.revenue - a.revenue || b.patients - a.patients || a.name.localeCompare(b.name),
@@ -358,13 +449,13 @@ export function buildFlashSummary(input: {
         name: d.name,
         revenue: round2(d.revenue),
         patients: d.patients,
-        arpp: arppOf(d.revenue, d.patients),
+        arpp: arppOf(d.revenue, d.paid),
         share: denominator > 0 ? d.revenue / denominator : null,
       })),
       total: {
         revenue: round2(sectionRevenue),
         patients: sectionPatients,
-        arpp: arppOf(sectionRevenue, sectionPatients),
+        arpp: arppOf(sectionRevenue, sectionPaid),
         share: denominator > 0 ? sectionRevenue / denominator : null,
       },
     };
@@ -377,7 +468,7 @@ export function buildFlashSummary(input: {
       `${noDoctor.reduce((s, r) => s + r.net, 0).toFixed(2)} of revenue has no doctor on the invoice.`,
     );
   }
-  if (totalRevenueRate === null) warnings.push("No revenue target is set for this month.");
+  if (totals.revenue === null) warnings.push("No revenue target is set for this month.");
 
   return {
     from,
@@ -407,17 +498,20 @@ export function buildSalesGrid(input: {
     throw new Error("The sales grid needs a month and a day inside it.");
   }
   const lines = effectiveLines(input.lines, input.rows);
-  const columns = [
-    ...lines.filter((l) => l.inCore),
-    ...lines.filter((l) => !l.inCore),
-  ].map((l) => ({ code: l.code, label: l.label }));
+  const columns = [...lines.filter((l) => l.inCore), ...lines.filter((l) => !l.inCore)].map(
+    (l) => ({ code: l.code, label: l.label }),
+  );
   const rows = input.rows.filter((r) => r.date >= month && r.date <= input.asOf);
   if (rows.some((r) => assignLine(r, lines) === UNASSIGNED)) {
     columns.push({ code: UNASSIGNED, label: "Unassigned" });
   }
   const index = new Map(columns.map((c, i) => [c.code, i]));
   const cells = new Map<string, number[]>();
-  for (const d of eachDay(month, input.asOf)) cells.set(d, columns.map(() => 0));
+  for (const d of eachDay(month, input.asOf))
+    cells.set(
+      d,
+      columns.map(() => 0),
+    );
   for (const r of rows) {
     const v = cells.get(r.date);
     if (!v) continue;
@@ -465,6 +559,11 @@ export function parseFlashRows(json: unknown): FlashRow[] {
         doctorName: optStr(o.doctor_name),
         net: num(o.net),
         patients: Math.max(0, Math.trunc(num(o.patients))),
+        // an older payload has no paid count: fall back to all patients (the previous rule)
+        paidPatients: Math.max(
+          0,
+          Math.trunc(num(o.paid_patients === undefined ? o.patients : o.paid_patients)),
+        ),
         invoices: Math.max(0, Math.trunc(num(o.invoices))),
       };
     })
@@ -495,13 +594,16 @@ export function targetFromRow(r: {
   daily_revenue: number | string | null;
   daily_patients: number | string | null;
   arpp: number | string | null;
+  operating_days?: number | string | null;
 }): RevenueTarget {
+  const days = optNum(r.operating_days ?? null);
   return {
     month: r.month,
     lineCode: r.line_code,
     dailyRevenue: optNum(r.daily_revenue),
     dailyPatients: optNum(r.daily_patients),
     arpp: optNum(r.arpp),
+    operatingDays: days !== null && Number.isInteger(days) && days >= 1 && days <= 31 ? days : null,
   };
 }
 
@@ -530,6 +632,16 @@ export function parseTargetInput(raw: string | undefined | null, max = 100_000_0
   return v;
 }
 
+/** Operating days typed for a line (Q7): blank = every calendar day; a whole number from 1 to the days in the month. */
+export function parseOperatingDays(raw: string | undefined | null, dim: number): number | null {
+  const s = (raw ?? "").trim();
+  if (s === "") return null;
+  if (!/^\d{1,2}$/.test(s)) throw new Error(`"${raw}" is not a number of days.`);
+  const v = Number(s);
+  if (v < 1 || v > dim) throw new Error(`Operating days must be between 1 and ${dim}.`);
+  return v;
+}
+
 export const LINE_CODE_RE = /^[A-Z0-9_]{1,12}$/;
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -553,7 +665,14 @@ export function previousMonthPeriod(asOf: string): { month: string; asOf: string
 }
 
 export type GridComparison = {
-  rows: { code: string; label: string; current: number; previous: number; change: number; changePct: number | null }[];
+  rows: {
+    code: string;
+    label: string;
+    current: number;
+    previous: number;
+    change: number;
+    changePct: number | null;
+  }[];
   total: { current: number; previous: number; change: number; changePct: number | null };
 };
 
@@ -562,7 +681,11 @@ export function compareGrids(current: SalesGrid, previous: SalesGrid): GridCompa
   const prev = new Map(previous.columns.map((c, i) => [c.code, previous.totals[i]]));
   const pct = (c: number, p: number) => (p > 0 ? (c - p) / p : null);
   const codes = [
-    ...current.columns.map((c, i) => ({ code: c.code, label: c.label, current: current.totals[i] })),
+    ...current.columns.map((c, i) => ({
+      code: c.code,
+      label: c.label,
+      current: current.totals[i],
+    })),
     ...previous.columns
       .filter((c) => !current.columns.some((x) => x.code === c.code))
       .map((c) => ({ code: c.code, label: c.label, current: 0 })),

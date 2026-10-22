@@ -258,7 +258,8 @@ describe("helpers", () => {
     expect(
       parseFlashRows({ rows: [{ date: DAY, net: "12.5", patients: "2", invoices: 3, branch: "", doctor_id: "D1" }] }),
     ).toEqual([
-      { date: DAY, branch: null, department: null, doctorId: "D1", doctorName: null, net: 12.5, patients: 2, invoices: 3 },
+      // no paid_patients in the payload: all patients count as paid (the previous rule)
+      { date: DAY, branch: null, department: null, doctorId: "D1", doctorName: null, net: 12.5, patients: 2, paidPatients: 2, invoices: 3 },
     ]);
   });
   it("labels and tones", () => {

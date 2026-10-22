@@ -162,14 +162,14 @@ Send anonymised or synthetic copies where a file contains patient details; heade
 | D2 | Reception daily collection sheet per branch. **Covered by D1** (the same report has the collection per clinic) | 20B / 20C | Krishna |
 | D3 | Bank statement export for each account (CSV or XLSX), one month | 20C | Krishna / Hardik |
 | D4 | Card / EPG settlement report, Tabby payout report, rePG and MX reports | 20C | Krishna |
-| D5 | In-house lab monthly statement and one send-out lab invoice with test list | 20E | Althaf |
+| D5 | In-house lab monthly statement and one send-out lab invoice with test list **Received 15 Oct 2026** (September lab set, analysed in docs/41 §3; not kept) | 20E | Althaf |
 | D6 | One external referral invoice (hospital, radiology) | 20E | Althaf |
 | D7 | Supplier invoice examples and the current payment voucher template | 20D | Althaf |
-| D8 | Tally: ledger list (Chart of accounts export), cost centres, voucher types in use, TallyPrime version and whether it runs on a server | 20D / Tally | Althaf / Hardik |
+| D8 | Tally: ledger list (Chart of accounts export), cost centres, voucher types in use, TallyPrime version and whether it runs on a server **Partly received 22 Oct 2026** (Shoreline general ledger 2025 as a Ledger Vouchers report, docs/52; still needed: cost centres, the XML export, other branch companies if any, OQ-189) | 20D / Tally | Althaf / Hardik |
 | D9 | Diligence reports: remittance activity, remittance received, approvals, resubmissions, corrections | 20I, existing parsers | Mohammed / Vineetha |
-| D10 | Doctor revenue-share and incentive calculation sheets with the contract rules | 20F | Hardik |
+| D10 | Doctor revenue-share and incentive calculation sheets with the contract rules **Received 22 Oct 2026** (3 contracts and calculation sheets, docs/52; differences in OQ-193) | 20F | Hardik |
 | D11 | Branch P&L template and the Board pack template | 20G | Hardik |
-| D12 | The targets sheet (daily revenue and patient targets per branch, ARPP target) | 20A | Hardik / Saeed |
+| D12 | The targets sheet (daily revenue and patient targets per branch, ARPP target) **Partly received 15 Oct 2026** (October revenue target and branch split; operating days from Q7; daily patient targets still needed) | 20A | Hardik / Saeed |
 | D13 | ARP report example | 20I | Vineetha |
 | D14 | The full finance meeting transcript | all | Saveez |
 | D15 | A Unite item-wise (service-level) revenue export for one month, and the list of Longevity services, so Longevity can be split per practitioner (OQ-139) | 23C | Krishna / Saeed |

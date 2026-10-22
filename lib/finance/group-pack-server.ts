@@ -9,6 +9,7 @@ import { can, canAny } from "@/lib/auth/can";
 import type { CurrentMember } from "@/lib/auth/session";
 import { liveClosePack, loadCloseByMonth, monthRange } from "@/lib/finance/close-server";
 import { loadPerfScope, loadDoctorPerformance } from "@/lib/finance/doctor-performance-server";
+import { monthTotals } from "@/lib/finance/flash";
 import { loadLines, loadTargets } from "@/lib/finance/flash-server";
 import {
   type BranchFigures,
@@ -83,24 +84,15 @@ async function loadPl(
   };
 }
 
-/** The month's total revenue and patient targets, as the flash report sets them (daily target × days in the month). */
+/** The month's total revenue and patient targets, by the flash report's own rule (daily target × operating days, Q7). */
 async function loadMonthTargets(admin: AdminClient, orgId: string, month: string) {
   const [lines, targets] = await Promise.all([
     loadLines(admin, orgId),
     loadTargets(admin, orgId, month),
   ]);
-  const days = Number(monthRange(month.slice(0, 7)).last.slice(8, 10));
-  const total = targets.find((t) => t.lineCode === null);
-  const core = new Set(lines.filter((l) => l.inCore).map((l) => l.code));
-  const lineRates = targets
-    .filter((t) => t.lineCode !== null && core.has(t.lineCode))
-    .map((t) => t.dailyRevenue)
-    .filter((v): v is number => typeof v === "number" && Number.isFinite(v));
-  const revenueRate =
-    total?.dailyRevenue ?? (lineRates.length > 0 ? lineRates.reduce((a, v) => a + v, 0) : null);
-  const patientRate = total?.dailyPatients ?? null;
-  const times = (r: number | null) => (r === null ? null : Math.round(r * days * 100) / 100);
-  return { revenue: times(revenueRate), patients: times(patientRate) };
+  const t = monthTotals(lines, targets, month);
+  const r2 = (v: number | null) => (v === null ? null : Math.round(v * 100) / 100);
+  return { revenue: r2(t.revenue), patients: r2(t.patients) };
 }
 
 async function loadTasks(

@@ -75,12 +75,14 @@ describe("measures", () => {
   const s = DEFAULT_PERF_SETTINGS;
 
   it("works out per-patient revenue, expected revenue, gap, achievement and follow-ups", () => {
+    // 4 patients, 1 of them unbilled: revenue per patient counts the 3 paid patients only (OQ-138, 22 Oct 2026)
     const m = measures(C(2849.995, 6, 4, 1, 2), C(500, 2, 2), s);
-    expect(m.revenuePerPatient).toBeCloseTo(712.49875, 9);
-    expect(m.band).toBe("near");
-    expect(m.expectedRevenue).toBe(3000);
-    expect(m.gap).toBe(-150.005);
-    expect(m.achievement).toBeCloseTo(0.94999833, 6);
+    expect(m.paidPatients).toBe(3);
+    expect(m.revenuePerPatient).toBeCloseTo(949.99833333, 6);
+    expect(m.band).toBe("achieved");
+    expect(m.expectedRevenue).toBe(2250);
+    expect(m.gap).toBe(599.995);
+    expect(m.achievement).toBeCloseTo(1.26666444, 6);
     expect(m.followUps).toBe(2);
     expect(m.followUpsPerPatient).toBe(0.5);
     expect(m.unbilledShare).toBe(0.25);
@@ -172,14 +174,16 @@ describe("buildDoctorPerformance", () => {
       revenue: 6499.985,
       visits: 15,
       followUps: 5,
-      band: "moderate",
-      expectedRevenue: 7500,
-      gap: -1000.015,
+      paidPatients: 9,
+      band: "near",
+      expectedRevenue: 6750,
+      gap: -250.015,
       change: 3499.985,
       doctors: 4,
       cancelledVisits: 1,
     });
-    expect(r.total.revenuePerPatient).toBeCloseTo(649.9985, 9);
+    // the clinic's 10 patients include 1 unbilled: revenue per patient is over the 9 paid ones
+    expect(r.total.revenuePerPatient).toBeCloseTo(6499.985 / 9, 9);
     expect(r.total.changePct).toBeCloseTo(1.16666, 4);
   });
 

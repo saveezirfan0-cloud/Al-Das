@@ -57,7 +57,7 @@ export async function loadTargets(
 ): Promise<RevenueTarget[]> {
   const { data, error } = await admin
     .from("fin_ref_revenue_targets")
-    .select("month, line_code, daily_revenue, daily_patients, arpp")
+    .select("month, line_code, daily_revenue, daily_patients, arpp, operating_days")
     .eq("org_id", orgId)
     .eq("month", month);
   if (error) throw new Error("Could not load the targets.");
