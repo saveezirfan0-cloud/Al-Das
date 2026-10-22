@@ -27866,20 +27866,15 @@ export type Database = {
         Args: { p_metric: string; p_n?: number; p_org: string; p_provider: string };
         Returns: undefined;
       };
-      is_reminder_excluded:
-        | {
-            Args: { p_doctor_name: string; p_org: string; p_patient_name: string };
-            Returns: boolean;
-          }
-        | {
-            Args: {
-              p_doctor_name: string;
-              p_location: string | null;
-              p_org: string;
-              p_patient_name: string;
-            };
-            Returns: boolean;
-          };
+      is_reminder_excluded: {
+        Args: {
+          p_doctor_name: string;
+          p_location?: string | null;
+          p_org: string;
+          p_patient_name: string;
+        };
+        Returns: boolean;
+      };
       is_working_day: {
         Args: { p_day: string; p_location?: string; p_org: string };
         Returns: boolean;
