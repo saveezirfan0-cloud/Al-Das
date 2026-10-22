@@ -13509,6 +13509,7 @@ export type Database = {
           scorecard_min_claims: number;
           short_pay_tolerance_amount: number;
           short_pay_tolerance_pct: number;
+          tally_approval_max: number;
           tally_company_name: string | null;
           tally_cost_category: string;
           updated_at: string;
@@ -13619,6 +13620,7 @@ export type Database = {
           scorecard_min_claims?: number;
           short_pay_tolerance_amount?: number;
           short_pay_tolerance_pct?: number;
+          tally_approval_max?: number;
           tally_company_name?: string | null;
           tally_cost_category?: string;
           updated_at?: string;
@@ -13729,6 +13731,7 @@ export type Database = {
           short_pay_tolerance_amount?: number;
           short_pay_tolerance_pct?: number;
           tally_company_name?: string | null;
+          tally_approval_max?: number;
           tally_cost_category?: string;
           updated_at?: string;
           voucher_duplicate_window_days?: number;

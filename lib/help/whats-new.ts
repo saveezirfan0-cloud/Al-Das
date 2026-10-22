@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-12-28-voucher-split-route",
+    date: "2026-10-22",
+    title: "Vouchers can be approved in Tally or Pulse by amount",
+    body: "Voucher settings has a third approval mode, Split by amount: routine vouchers up to a limit (AED 5,000 by default) go to Tally for authorisation, and larger ones, payroll, intercompany and related-party vouchers are approved in Pulse as before. The voucher form says which way a voucher will go before you submit it. Nothing changes until the Finance Manager chooses the mode.",
+  },
+  {
     id: "2026-12-26-finance-answers-oct22",
     date: "2026-10-22",
     title: "Revenue per patient, operating days and lab rules from Finance's answers",

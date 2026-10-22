@@ -2,7 +2,7 @@
 
 import { ActionForm, Field, FormSheet, RunButton, selectClass } from "@/components/finance/forms";
 import { Input } from "@/components/ui/input";
-import type { ApprovalTier } from "@/lib/finance/vouchers";
+import type { ApprovalMode, ApprovalTier } from "@/lib/finance/vouchers";
 
 import {
   deleteLedger,
@@ -95,11 +95,13 @@ export function TierButton({ tier }: { tier?: ApprovalTier }) {
 
 export function ApprovalSettingsForm({
   mode,
+  tallyApprovalMax,
   duplicateWindowDays,
   mismatchTolerance,
   largeAmount,
 }: {
-  mode: "pulse" | "tally";
+  mode: ApprovalMode;
+  tallyApprovalMax: number;
   duplicateWindowDays: number;
   mismatchTolerance: number;
   largeAmount: number;
@@ -108,14 +110,25 @@ export function ApprovalSettingsForm({
     <ActionForm action={saveApprovalSettings} submitLabel="Save">
       <Field
         label="Where vouchers are approved (OQ-90)"
-        hint="Pulse: maker, Finance Manager, department head and CEO approve here and vouchers reach Tally already authorised. Tally: Pulse keeps the voucher and its documents, skips its own approvals and exports the voucher for Tally's Transaction Authorisation."
+        hint="Pulse: maker, Finance Manager, department head and CEO approve here and vouchers reach Tally already authorised. Tally: Pulse keeps the voucher and its documents, skips its own approvals and exports the voucher for Tally's Transaction Authorisation. Split: routine vouchers up to the limit below are approved in Tally, larger ones and payroll, intercompany and related-party vouchers follow the rules above."
       >
         <select name="approval_mode" className={selectClass} defaultValue={mode}>
           <option value="pulse">Approve in Pulse (recommended)</option>
           <option value="tally">Approve in Tally</option>
+          <option value="split">Split by amount: Tally up to the limit, Pulse above it</option>
         </select>
       </Field>
-      <Field label="To change the mode, type the new mode (PULSE or TALLY)">
+      <Field
+        label="Tally approval limit (AED, split mode)"
+        hint="Routine vouchers at or below this amount are approved in Tally. Finance's answer of 22 Oct 2026: 5,000; above it the CEO approves, so the rule for that band should include the CEO."
+      >
+        <Input
+          name="tally_approval_max"
+          inputMode="decimal"
+          defaultValue={tallyApprovalMax.toFixed(2)}
+        />
+      </Field>
+      <Field label="To change the mode, or the limit in split mode, type the mode (PULSE, TALLY or SPLIT)">
         <Input name="confirm" autoComplete="off" />
       </Field>
       <div className="grid gap-3 sm:grid-cols-3">

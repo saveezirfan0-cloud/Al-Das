@@ -11,6 +11,7 @@ import {
   approvalRoute,
   canReadVoucher,
   formatVoucherNumber,
+  parseApprovalMode,
   rejectPermission,
   requiredApprovals,
   tierProblems,
@@ -18,6 +19,7 @@ import {
   voucherEdited,
   voucherReport,
   voucherReadAccess,
+  voucherRoute,
   voucherTransition,
   waitingFor,
   type ApprovalTier,
@@ -82,7 +84,10 @@ function runScenario(s: (typeof fixture.scenarios)[number]): string[] {
       can: (p) => perms.some((g) => permissionMatches(g, p)),
       hash: step.hash === "stale" ? STALE : state.contentHash,
       remarks: step.remarks ?? null,
-      approvalMode: ((s as { approvalMode?: string }).approvalMode ?? "pulse") as "pulse" | "tally",
+      approvalMode: parseApprovalMode((s as { approvalMode?: string }).approvalMode),
+      amount: s.amount,
+      special,
+      tallyApprovalMax: (s as { tallyApprovalMax?: number }).tallyApprovalMax ?? null,
       rule: requiredApprovals(s.amount, special, tiers),
       payment: step.payment ?? null,
     });
@@ -470,5 +475,29 @@ describe("who reads which voucher (voucherReadAccess / canReadVoucher, mirrored 
       true,
     );
     expect(canReadVoucher(access(), row(), "u")).toBe(false);
+  });
+});
+
+describe("approval mode split by amount (Finance, 22 Oct 2026, Q2 / OQ-196)", () => {
+  it("routes routine vouchers up to the limit to Tally and everything else through the Pulse tiers", () => {
+    expect(voucherRoute("split", 5000, "none", 5000)).toBe("tally");
+    expect(voucherRoute("split", 5000.01, "none", 5000)).toBe("pulse");
+    expect(voucherRoute("split", 100, "intercompany", 5000)).toBe("pulse");
+    expect(voucherRoute("split", 2000, "none", 1500)).toBe("pulse");
+    expect(voucherRoute("split", 4000, "none", null)).toBe("tally");
+  });
+
+  it("leaves the pulse and tally modes as they were and keeps a voucher without an amount in Pulse", () => {
+    expect(voucherRoute("pulse", 10, "none", 5000)).toBe("pulse");
+    expect(voucherRoute("tally", 900000, "payroll", 5000)).toBe("tally");
+    expect(voucherRoute("split", null, "none", 5000)).toBe("pulse");
+    expect(voucherRoute("split", Number.NaN, "none", 5000)).toBe("pulse");
+  });
+
+  it("reads an unknown stored mode as pulse", () => {
+    expect(parseApprovalMode("split")).toBe("split");
+    expect(parseApprovalMode("tally")).toBe("tally");
+    expect(parseApprovalMode("SPLIT")).toBe("pulse");
+    expect(parseApprovalMode(null)).toBe("pulse");
   });
 });

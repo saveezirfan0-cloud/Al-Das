@@ -331,6 +331,7 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance payables and vouchers (Phase 20D)",
         inactiveTiers?: string[];
         locked?: boolean;
         approvalMode?: string;
+        tallyApprovalMax?: number;
       };
       const creator = users[sc.creator ?? "maker"];
       const docs = (sc.documents ?? 1) > 0 ? [await doc(orgA)] : [];
@@ -349,8 +350,8 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance payables and vouchers (Phase 20D)",
           );
         if (sc.approvalMode)
           await q(
-            "update public.fin_ref_finance_settings set approval_mode = $2 where org_id = $1",
-            [orgA, sc.approvalMode],
+            "update public.fin_ref_finance_settings set approval_mode = $2, tally_approval_max = $3 where org_id = $1",
+            [orgA, sc.approvalMode, sc.tallyApprovalMax ?? 5000],
           );
       });
       const got: string[] = [];
@@ -397,7 +398,7 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance payables and vouchers (Phase 20D)",
             orgA,
           ]);
           await q(
-            "update public.fin_ref_finance_settings set approval_mode = 'pulse' where org_id = $1",
+            "update public.fin_ref_finance_settings set approval_mode = 'pulse', tally_approval_max = 5000 where org_id = $1",
             [orgA],
           );
         });

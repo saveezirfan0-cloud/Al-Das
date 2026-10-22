@@ -13,6 +13,7 @@ import {
   firstIssue,
   type ActionResult,
 } from "@/lib/finance/action-support";
+import { DEFAULT_TALLY_APPROVAL_MAX } from "@/lib/finance/vouchers";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
@@ -135,7 +136,14 @@ export async function saveTier(values: Record<string, string>): Promise<ActionRe
 }
 
 const modeSchema = z.object({
-  approval_mode: z.enum(["pulse", "tally"], { message: "Choose where vouchers are approved." }),
+  approval_mode: z.enum(["pulse", "tally", "split"], {
+    message: "Choose where vouchers are approved.",
+  }),
+  tally_approval_max: z.coerce
+    .number({ message: "Enter the Tally approval limit." })
+    .gt(0, { message: "The Tally approval limit must be above 0." })
+    .max(10_000_000)
+    .default(DEFAULT_TALLY_APPROVAL_MAX),
   confirm: z.string().default(""),
   voucher_duplicate_window_days: z.coerce.number().int().min(0).max(365),
   voucher_mismatch_tolerance: z.coerce.number().min(0).max(1_000_000),
@@ -151,18 +159,29 @@ export async function saveApprovalSettings(values: Record<string, string>): Prom
   const admin = createAdminClient(member.userId);
   const { data: current } = await admin
     .from("fin_ref_finance_settings")
-    .select("approval_mode")
+    .select("approval_mode, tally_approval_max")
     .eq("org_id", member.orgId)
     .maybeSingle();
+  const tallyMax = Math.round(v.tally_approval_max * 100) / 100;
+  const modeChanged = current?.approval_mode !== v.approval_mode;
+  // in split mode the limit decides which vouchers skip the Pulse approvals, so changing it is confirmed like the mode
+  const limitChanged =
+    v.approval_mode === "split" &&
+    Number(current?.tally_approval_max ?? DEFAULT_TALLY_APPROVAL_MAX) !== tallyMax;
   if (
-    current?.approval_mode !== v.approval_mode &&
+    (modeChanged || limitChanged) &&
     v.confirm.trim().toUpperCase() !== v.approval_mode.toUpperCase()
   )
-    return fail(`Type ${v.approval_mode.toUpperCase()} to confirm the change of approval mode.`);
+    return fail(
+      modeChanged
+        ? `Type ${v.approval_mode.toUpperCase()} to confirm the change of approval mode.`
+        : "Type SPLIT to confirm the change of the Tally approval limit.",
+    );
   const { error } = await admin.from("fin_ref_finance_settings").upsert(
     {
       org_id: member.orgId,
       approval_mode: v.approval_mode,
+      tally_approval_max: tallyMax,
       voucher_duplicate_window_days: v.voucher_duplicate_window_days,
       voucher_mismatch_tolerance: Math.round(v.voucher_mismatch_tolerance * 100) / 100,
       voucher_large_amount: Math.round(v.voucher_large_amount * 100) / 100,
@@ -178,7 +197,9 @@ export async function saveApprovalSettings(values: Record<string, string>): Prom
     entityId: member.orgId,
     diff: {
       approval_mode: v.approval_mode,
-      mode_changed: current?.approval_mode !== v.approval_mode,
+      mode_changed: modeChanged,
+      tally_approval_max: tallyMax,
+      tally_limit_changed: limitChanged,
       duplicate_window_days: v.voucher_duplicate_window_days,
       mismatch_tolerance: v.voucher_mismatch_tolerance,
       large_amount: v.voucher_large_amount,

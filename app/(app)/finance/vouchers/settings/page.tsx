@@ -135,6 +135,7 @@ export default async function VoucherSettingsPage() {
             <CardContent>
               <ApprovalSettingsForm
                 mode={settings.approvalMode}
+                tallyApprovalMax={settings.tallyApprovalMax}
                 duplicateWindowDays={settings.duplicateWindowDays}
                 mismatchTolerance={settings.mismatchTolerance}
                 largeAmount={settings.largeAmount}

@@ -34,6 +34,8 @@ import {
   STATUS_LABEL,
   requiredApprovals,
   waitingFor,
+  voucherRoute,
+  type ApprovalMode,
   type ApprovalTier,
   type SpecialCategory,
   type VoucherAction,
@@ -61,7 +63,8 @@ export type VoucherFormOptions = {
   banks: string[];
   categories: string[];
   tiers: ApprovalTier[];
-  approvalMode: "pulse" | "tally";
+  approvalMode: ApprovalMode;
+  tallyApprovalMax: number;
   today: string;
 };
 
@@ -140,12 +143,16 @@ export function VoucherForm({
   const selected = options.invoices.filter((i) => invoiceIds.includes(i.id));
   const invoiceTotal = Math.round(selected.reduce((a, i) => a + i.total, 0) * 100) / 100;
   const amountNum = Number(amount.replace(/,/g, ""));
-  const route =
-    options.approvalMode === "tally"
-      ? null
-      : Number.isFinite(amountNum) && amountNum > 0
-        ? requiredApprovals(amountNum, special, options.tiers)
-        : undefined;
+  const amountKnown = Number.isFinite(amountNum) && amountNum > 0;
+  const toTally =
+    options.approvalMode === "tally" ||
+    (amountKnown &&
+      voucherRoute(options.approvalMode, amountNum, special, options.tallyApprovalMax) === "tally");
+  const route = toTally
+    ? null
+    : amountKnown
+      ? requiredApprovals(amountNum, special, options.tiers)
+      : undefined;
   const backupCount = documents.length + selected.filter((i) => i.document).length;
 
   const toggleInvoice = (id: string) => {
@@ -395,11 +402,13 @@ export function VoucherForm({
       <p className="text-muted-foreground rounded-md border p-2 text-xs">
         {options.approvalMode === "tally"
           ? "Approval mode is Tally: on submission the voucher goes to Tally for authorisation."
-          : route === undefined
-            ? "Enter the amount to see who approves it."
-            : route === null
-              ? "No approval rule covers this amount or category; it cannot be submitted until Voucher settings are fixed."
-              : `Approval: ${approvalRoute({ route: "pulse", tier: route.tier, needsDept: route.needsDept, needsCeo: route.needsCeo })}`}
+          : toTally
+            ? `At or below the Tally approval limit (AED ${options.tallyApprovalMax.toLocaleString("en-AE", { minimumFractionDigits: 2 })}): on submission the voucher goes to Tally for authorisation.`
+            : route === undefined
+              ? "Enter the amount to see who approves it."
+              : route === null
+                ? "No approval rule covers this amount or category; it cannot be submitted until Voucher settings are fixed."
+                : `Approval: ${approvalRoute({ route: "pulse", tier: route.tier, needsDept: route.needsDept, needsCeo: route.needsCeo })}`}
       </p>
 
       <div>

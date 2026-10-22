@@ -126,6 +126,7 @@ async function formOptions(
     categories: [...categories].sort(),
     tiers,
     approvalMode: settings.approvalMode,
+    tallyApprovalMax: settings.tallyApprovalMax,
     today,
   };
 }
@@ -252,6 +253,13 @@ export default async function VouchersPage({
         <p className="rounded-md border border-amber-300 dark:border-amber-500/30 bg-amber-50 p-2 text-sm text-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
           Approval mode is Tally (OQ-90): submitted vouchers are exported for authorisation in Tally
           and are not verified or approved in Pulse.
+        </p>
+      )}
+      {settings.approvalMode === "split" && (
+        <p className="rounded-md border p-2 text-sm">
+          Approval mode is split by amount (OQ-196): routine vouchers up to AED{" "}
+          {settings.tallyApprovalMax.toLocaleString("en-AE", { minimumFractionDigits: 2 })} are
+          exported for authorisation in Tally; larger ones and special categories are approved here.
         </p>
       )}
 
