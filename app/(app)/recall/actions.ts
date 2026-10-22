@@ -178,7 +178,11 @@ const variablesSchema = z.object({
   values: z
     .record(
       z.string().max(40),
-      z.object({ source: z.string().max(60), fallback: z.string().max(200).optional() }),
+      z.object({
+        source: z.string().max(60),
+        fallback: z.string().max(200).optional(),
+        title: z.boolean().optional(),
+      }),
     )
     .refine((v) => Object.keys(v).length <= 20),
 });

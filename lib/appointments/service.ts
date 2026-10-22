@@ -7,6 +7,8 @@ import {
   remindersAllowed,
   planReminders,
   reminderDedupeKey,
+  reminderRetryDedupeKey,
+  sameLocalDay,
 } from "@/lib/appointments/reminders";
 import { readAppointmentSettings, type AppointmentSettings } from "@/lib/appointments/settings";
 import { isSlotAvailable, localDate } from "@/lib/appointments/slots";
@@ -79,6 +81,7 @@ export async function cancelAppointmentReminders(
     .eq("status", "scheduled");
   for (const r of pending ?? []) {
     await deletePendingReminderJob(admin, reminderDedupeKey(appointmentId, r.idx));
+    await deletePendingReminderJob(admin, reminderRetryDedupeKey(appointmentId, r.idx));
   }
   if (pending?.length) {
     await admin
@@ -100,9 +103,11 @@ export async function syncAppointmentReminders(
   admin: AdminClient,
   appt: Pick<Appointment, "id" | "org_id" | "contact_id" | "starts_at" | "status"> &
     Partial<Pick<Appointment, "source">>,
-  opts: { settings?: AppointmentSettings; now?: Date } = {},
+  opts: { settings?: AppointmentSettings; timezone?: string; now?: Date } = {},
 ): Promise<{ scheduled: number; cancelled: number }> {
-  const settings = opts.settings ?? (await loadOrgSettings(admin, appt.org_id)).settings;
+  const loaded = opts.settings && opts.timezone ? null : await loadOrgSettings(admin, appt.org_id);
+  const settings = opts.settings ?? loaded!.settings;
+  const timezone = opts.timezone ?? loaded?.timezone ?? "Asia/Dubai";
   const status = isAppointmentStatus(appt.status) ? appt.status : "awaiting";
   // Without a contact (unmatched Unite patient) there is nobody to message; imported bookings wait
   // for the administrator's switch (remindersAllowed). A held reminder is cancelled, not deleted.
@@ -113,6 +118,8 @@ export async function syncAppointmentReminders(
           now: opts.now ?? new Date(),
           status,
           rules: settings.reminders,
+          schedule: settings.reminder_schedule,
+          timezone,
         })
       : [];
 
@@ -120,10 +127,15 @@ export async function syncAppointmentReminders(
     .from("appointment_reminders")
     .select("idx, due_at, status")
     .eq("appointment_id", appt.id);
-  const plan = planReminders(desired, existing ?? []);
+  const plan = planReminders(
+    desired,
+    existing ?? [],
+    settings.reminder_schedule.mode === "day_before" ? sameLocalDay(timezone) : undefined,
+  );
 
   for (const idx of plan.cancel) {
     await deletePendingReminderJob(admin, reminderDedupeKey(appt.id, idx));
+    await deletePendingReminderJob(admin, reminderRetryDedupeKey(appt.id, idx));
     await admin
       .from("appointment_reminders")
       .update({ status: "cancelled" })
@@ -154,6 +166,7 @@ export async function syncAppointmentReminders(
       .single();
     if (error) throw new Error(`reminder upsert failed: ${error.message}`);
     await deletePendingReminderJob(admin, key);
+    await deletePendingReminderJob(admin, reminderRetryDedupeKey(appt.id, d.idx));
     await scheduleJob({
       kind: "appointment.reminder",
       payload: { reminder_id: row.id },

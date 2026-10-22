@@ -86,6 +86,17 @@ describe("Unite patients mapper", () => {
     ).toBeNull();
   });
 
+  it("reads Airtable's 60 days > as the long-prescription flag (docs/49 D2)", () => {
+    const at = (v?: string) =>
+      unitePatientsMapper.map({
+        id: "rec5",
+        fields: { [U.patientPin]: "PIN-5", ...(v === undefined ? {} : { fldXbiS53VgVfJaq3: v }) },
+      }).longPrescription;
+    expect(at("True")).toBe(true);
+    expect(at("False")).toBe(false);
+    expect(at()).toBe(false);
+  });
+
   it("warns on bad data but still returns an identifiable contact", () => {
     const m = unitePatientsMapper.map({
       id: "rec2",

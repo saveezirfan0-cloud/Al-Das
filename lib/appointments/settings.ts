@@ -16,6 +16,25 @@ const reminderRule = z.object({
 
 const templateId = z.string().uuid().nullable().default(null);
 
+const runTime = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use HH:MM");
+
+/**
+ * When reminders go out. "offsets" uses `reminders` (hours before the start). "day_before" sends one
+ * reminder the day before the visit at the first of `times` still ahead, and retries a failed one at the
+ * next time that day: Make's 12:00 run and its 18:00 catch-up (docs/49 D8).
+ */
+const reminderSchedule = z
+  .object({
+    mode: z.enum(["offsets", "day_before"]).default("offsets"),
+    times: z
+      .array(runTime)
+      .min(1)
+      .max(3)
+      .refine((t) => new Set(t).size === t.length, "Each time once")
+      .default(["12:00", "18:00"]),
+  })
+  .default({ mode: "offsets", times: ["12:00", "18:00"] });
+
 export const appointmentSettingsSchema = z.object({
   /** Exactly three reminders, each relative to the appointment start. Defaults mirror today's Make run: only 24h. */
   reminders: z
@@ -26,6 +45,7 @@ export const appointmentSettingsSchema = z.object({
       { enabled: true, hours_before: 24 },
       { enabled: false, hours_before: 3 },
     ]),
+  reminder_schedule: reminderSchedule,
   /** Earliest bookable moment from now, in minutes (the UI edits days / hours / minutes). */
   lead_time_minutes: z
     .number()

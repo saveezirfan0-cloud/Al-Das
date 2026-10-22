@@ -323,11 +323,34 @@ describe.skipIf(!TEST_DATABASE_URL)("flows + recall (db)", () => {
       });
     });
 
-    it("seeds {{1}} = first name, else Patient, for chronic and birthday groups only (docs/49 D16)", async () => {
+    it("seeds the Make-parity defaults (docs/49 D6, D7, D15)", async () => {
+      await asServiceRole(c, async () => {
+        const { rows } = await c.query(
+          "select key, cron_expression, requires_marketing_opt_in, requires_clinical_consent from public.recall_programmes where org_id = $1 and key in ('birthday','chronic_90d') order by key",
+          [orgA],
+        );
+        expect(rows).toEqual([
+          {
+            key: "birthday",
+            cron_expression: "0 12 * * *",
+            requires_marketing_opt_in: false,
+            requires_clinical_consent: false,
+          },
+          {
+            key: "chronic_90d",
+            cron_expression: "15 12 * * *",
+            requires_marketing_opt_in: false,
+            requires_clinical_consent: false,
+          },
+        ]);
+      });
+    });
+
+    it("seeds {{1}} = first name (title case), else Patient, for chronic and birthday groups only (docs/49 D16)", async () => {
       await asServiceRole(c, async () => {
         const { rows } = await c.query<{ key: string; n: string; filled: string }>(
           `select p.key, count(*) as n,
-                  count(*) filter (where t.variables_map = '{"body.1":"contact.first_name|default:Patient"}'::jsonb) as filled
+                  count(*) filter (where t.variables_map = '{"body.1":"contact.first_name|title|default:Patient"}'::jsonb) as filled
              from public.recall_programme_templates t
              join public.recall_programmes p on p.id = t.programme_id
             where t.org_id = $1
@@ -356,7 +379,7 @@ describe.skipIf(!TEST_DATABASE_URL)("flows + recall (db)", () => {
         // The migration's backfill statement, run again (it is safe to repeat).
         await c.query(
           `update public.recall_programme_templates t
-              set variables_map = '{"body.1":"contact.first_name|default:Patient"}'::jsonb
+              set variables_map = '{"body.1":"contact.first_name|title|default:Patient"}'::jsonb
              from public.recall_programmes p
             where p.id = t.programme_id and p.key in ('chronic_90d', 'birthday')
               and t.variables_map = '{}'::jsonb`,
@@ -368,11 +391,11 @@ describe.skipIf(!TEST_DATABASE_URL)("flows + recall (db)", () => {
         );
         expect(rows).toEqual([
           { segment_key: "asthma", v: "contact.last_name" },
-          { segment_key: "diabetes", v: "contact.first_name|default:Patient" },
+          { segment_key: "diabetes", v: "contact.first_name|title|default:Patient" },
         ]);
         await c.query(
           `update public.recall_programme_templates
-              set variables_map = '{"body.1":"contact.first_name|default:Patient"}'::jsonb
+              set variables_map = '{"body.1":"contact.first_name|title|default:Patient"}'::jsonb
             where programme_id = $1 and segment_key = 'asthma'`,
           [progA],
         );

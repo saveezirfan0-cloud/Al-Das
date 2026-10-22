@@ -267,6 +267,28 @@ Not Make, but part of the same move (OQ-41).
 | D22 | Chronic Sanoflow contact lookup | `contacts/list?phone={{4.number}}`; whether that field has a value is not determined | n/a | Check in Sanoflow how many contacts carry tag 4654 and label 1800 against the 56 sends, before deciding D11 | Saveez |
 | D23 | Call-list day count | Send day counted (`WORKDAY_DIFF >= 3`, both ends) | Send day not counted, so one working day later | Count the send day, or keep it and set `recall_followup_workdays` to 2 | Abdul (OQ-104 (7)) |
 
+### 3a. Owner decisions (22 Oct 2026)
+
+The owner answered section 3 on 22 Oct 2026: follow what Make and Airtable do today, and keep Make running (D20). Built in `supabase/migrations/20261226000100_make_parity.sql` and `20261226000200_sanoflow_tagging.sql`.
+
+| # | Decision | What Pulse does now |
+|---|---|---|
+| D1 | Reproduce the view: **86 days** | `chronic_recall_min_days` signed 86 for al-das-clininc (signer Saveez). The view's `>=` with 86 equals Airtable's "before 85 days ago" (DB test at the boundary) |
+| D2 | **Keep** the `60 days >` gate | `contacts.long_prescription_flag`, imported from Airtable's `60 days >` (and backfilled from the import refs); the chronic view requires it while `chronic_recall_require_long_prescription` is not signed false. Unsigned, the gate applies (fails closed, as Airtable). Signed true for al-das-clininc. Keep Airtable automation `wflJ8HcmP16BqEv7z` on while the flag comes from Airtable |
+| D5 | Greeting by **first name** | Seeded `contact.first_name|title|default:Patient` on every birthday band |
+| D6 | **No promotions opt-in** unless the template needs it | Birthday `requires_marketing_opt_in = false`; a Marketing template still needs `promotions_opt_in` (engine, at queue time) and `stop_marketing` always wins |
+| D7 | (follows Make) | Birthday runs at **12:00** Dubai (`0 12 * * *`) |
+| D8 | Follow Make | Booking rules, "The day before, at set times" (`reminder_schedule = day_before`, 12:00 and 18:00): one reminder at 12:00 on the day before; a booking made after 12:00 gets the 18:00 run; nothing after 18:00 or for the same day |
+| D9 | Follow Make | A day-before reminder that fails at 12:00 is tried again at 18:00 (Make's implicit retry); the call task, SMS fallback and notice follow only the last failure. On Sanoflow's "Invalid channel details." Pulse looks the patient up in Sanoflow, adds the contact and re-sends once, as Make does (docs/50) |
+| D10 | Follow Make | Exclusions can be limited to a branch. "Load previous defaults" copies each branch's Make filter: Golden Mile and Meadows equals SHORELINE / block, contains break; Palm Jumeirah (Unite clinic DHA-F-0000419) contains SHORELINE / block, equals Break; golden mile, meadows and the doctors everywhere |
+| D11 | Follow Make | After a Live recall send through Sanoflow: birthday adds tag 3590 and writes the first and last name; chronic adds tag 4654 and sets label 1800 (ids editable in the integration; docs/50). Test sends never tag |
+| D15 | Go out **like Make** | Chronic `requires_clinical_consent = false`. The one-time `clinical_messaging_enabled` switch for Live clinical programmes is signed at go-live |
+| D17 | (follows Make) | A `title` filter (Make's startcase) on the recall name and the reminder first name |
+| D18 | (follows Make) | Map the reminder template's `body.2` to "Appointment: time" when it is copied in from Sanoflow |
+| D20 | **Make stays on** | Pulse stays in Test mode (recall `recall_send_mode` test, reminder test mode on) so patients get one message, from Make |
+
+Also fixed: the chronic view had no `segment_key`, so the engine could never pick a chronic template and every chronic row was recorded as "no template".
+
 ---
 
 ## 4. Inactive scenarios
@@ -350,7 +372,7 @@ A **new** programme (for example the annual check-up at 330 days) also needs cod
 
 ### 5.4 Checklist before any automation sends to a patient
 
-- **Opt-out and consent.** `stop_marketing` always wins (rule 11); WhatsApp error 131050 sets it. Marketing templates need `promotions_opt_in` (checked when queued and again when sent, `lib/jobs/handlers/outbound.ts:314`). Clinical programmes need the signed `clinical_messaging_enabled`, and consent where the programme says so.
+- **Opt-out and consent.** `stop_marketing` always wins (rule 11); WhatsApp error 131050 sets it. Marketing templates need `promotions_opt_in` (checked when the message is queued, `lib/recall/engine.ts`); at send time only `stop_marketing` is checked again (`lib/whatsapp/templates.ts`, used by the outbound job and the Sanoflow sender). Clinical programmes need the signed `clinical_messaging_enabled`, and consent where the programme says so.
 - **Template, not free text.** Automations start conversations, so they use approved templates. Free text is allowed only inside the 24-hour window, and only for replies.
 - **Variables.** Every body variable mapped, with a fallback ("Patient", "your doctor"); a missing value fails the send rather than sending a blank.
 - **Rate.** No sleeps. The outbound queue holds the per-number limit. Keep `max_per_run` near what Make sent.
