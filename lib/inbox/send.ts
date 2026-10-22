@@ -88,6 +88,14 @@ export function kindForSpec(spec: SendSpec): Tables<"messages">["kind"] {
   }
 }
 
+/**
+ * Why an automation queued a message, stored at messages.payload.context (never inside the send spec, whose schema strips
+ * unknown keys). The Sanoflow sender reads it after the send (docs/49 D9, D11); ids and words only, never patient data.
+ */
+export type OutboundContext =
+  | { kind: "appointment_reminder" }
+  | { kind: "recall"; programme: "birthday" | "chronic_90d"; live: boolean };
+
 export type QueueOutboundInput = {
   orgId: string;
   conversationId: string;
@@ -113,6 +121,8 @@ export type QueueOutboundInput = {
    * already queued back instead of a copy.
    */
   flowStepKey?: string;
+  /** Why the message was queued (payload.context); see OutboundContext. */
+  context?: OutboundContext;
 };
 
 /** The failed message already has its retry (another worker or listener queued it first). */
@@ -129,6 +139,7 @@ export async function queueOutbound(
   const payload: Record<string, unknown> = { send: spec };
   if (input.retryOf)
     payload.retry = { attempt: input.retryOf.attempt, origin_at: input.retryOf.originAt };
+  if (input.context) payload.context = input.context;
   const { data: message, error } = await admin
     .from("messages")
     .insert({

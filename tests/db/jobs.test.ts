@@ -257,6 +257,7 @@ describe.skipIf(!TEST_DATABASE_URL)("jobs framework (db)", () => {
         "presence_auto_away",
         "recall_run",
         "review_requests_sweep",
+        "sanoflow_tags",
         "scheduler",
         "security_maintenance",
         "sms_outbound",
