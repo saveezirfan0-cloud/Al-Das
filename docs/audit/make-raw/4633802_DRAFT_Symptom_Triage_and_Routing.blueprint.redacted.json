@@ -1,0 +1,322 @@
+{
+  "flow": [
+    {
+      "id": 1,
+      "mapper": {},
+      "module": "gateway:CustomWebHook",
+      "version": 1,
+      "metadata": {
+        "designer": {
+          "x": 0,
+          "y": 300,
+          "messages": [
+            {
+              "message": "Webhook: Value must not be empty.",
+              "category": "setup",
+              "severity": "error"
+            }
+          ]
+        }
+      },
+      "parameters": {
+        "hook": null,
+        "maxResults": 1
+      }
+    },
+    {
+      "id": 2,
+      "mapper": null,
+      "module": "builtin:BasicRouter",
+      "routes": [
+        {
+          "flow": [
+            {
+              "id": 3,
+              "filter": {
+                "name": "P1 Emergency",
+                "conditions": [
+                  [
+                    {
+                      "a": "{{1.message_text}}",
+                      "b": "chest pain|difficulty breathing|severe bleeding|unconscious|seizure|stroke|heart attack|anaphylaxis|choking",
+                      "o": "text:match:ci"
+                    }
+                  ]
+                ]
+              },
+              "mapper": {
+                "ca": "",
+                "qs": [],
+                "url": "https://developers.sanoflow.io/api/v1.1/messages/whatsapp/send-template",
+                "data": "{\n  \"template_id\": \"TEMPLATE_ID_symptom_acknowledged\",\n  \"phone\": \"{{1.contact_phone}}\",\n  \"mapper_value\": [\"{{1.contact_name}}\", \"5\"]\n}",
+                "gzip": true,
+                "method": "post",
+                "headers": [
+                  {
+                    "name": "Content-type",
+                    "value": "application/json"
+                  },
+                  {
+                    "name": "access-token",
+                    "value": "[REDACTED]"
+                  }
+                ],
+                "timeout": "",
+                "useMtls": false,
+                "authPass": "",
+                "authUser": "",
+                "bodyType": "raw",
+                "contentType": "application/json",
+                "serializeUrl": false,
+                "shareCookies": false,
+                "parseResponse": true,
+                "followRedirect": true,
+                "useQuerystring": false,
+                "followAllRedirects": true,
+                "rejectUnauthorized": true
+              },
+              "module": "http:ActionSendData",
+              "version": 3,
+              "metadata": {
+                "designer": {
+                  "x": 600,
+                  "y": 0
+                }
+              },
+              "parameters": {}
+            },
+            {
+              "id": 5,
+              "mapper": {
+                "base": "appZbwlQvkuaUsF2l",
+                "table": "tblTBD_SymptomTriageLog",
+                "record": {
+                  "Patient Name": "{{1.contact_name}}",
+                  "Patient Phone": "{{1.contact_phone}}",
+                  "Triage Status": "Acknowledged",
+                  "Priority Level": "P1",
+                  "Acknowledged At": "{{now}}",
+                  "Symptoms Described": "{{1.message_text}}",
+                  "Response Time Target": 5
+                },
+                "useColumnId": false
+              },
+              "module": "airtable:ActionCreateRecord",
+              "version": 3,
+              "metadata": {
+                "designer": {
+                  "x": 900,
+                  "y": 0
+                }
+              },
+              "parameters": {
+                "__IMTCONN__": 6448605
+              }
+            }
+          ]
+        },
+        {
+          "flow": [
+            {
+              "id": 6,
+              "filter": {
+                "name": "P2 Urgent",
+                "conditions": [
+                  [
+                    {
+                      "a": "{{1.message_text}}",
+                      "b": "high fever|vomiting blood|severe pain|head injury|broken|fracture|allergic reaction|swelling|infection",
+                      "o": "text:match:ci"
+                    }
+                  ]
+                ]
+              },
+              "mapper": {
+                "ca": "",
+                "qs": [],
+                "url": "https://developers.sanoflow.io/api/v1.1/messages/whatsapp/send-template",
+                "data": "{\n  \"template_id\": \"TEMPLATE_ID_symptom_acknowledged\",\n  \"phone\": \"{{1.contact_phone}}\",\n  \"mapper_value\": [\"{{1.contact_name}}\", \"15\"]\n}",
+                "gzip": true,
+                "method": "post",
+                "headers": [
+                  {
+                    "name": "Content-type",
+                    "value": "application/json"
+                  },
+                  {
+                    "name": "access-token",
+                    "value": "[REDACTED]"
+                  }
+                ],
+                "timeout": "",
+                "useMtls": false,
+                "authPass": "",
+                "authUser": "",
+                "bodyType": "raw",
+                "contentType": "application/json",
+                "serializeUrl": false,
+                "shareCookies": false,
+                "parseResponse": true,
+                "followRedirect": true,
+                "useQuerystring": false,
+                "followAllRedirects": true,
+                "rejectUnauthorized": true
+              },
+              "module": "http:ActionSendData",
+              "version": 3,
+              "metadata": {
+                "designer": {
+                  "x": 600,
+                  "y": 300
+                }
+              },
+              "parameters": {}
+            },
+            {
+              "id": 8,
+              "mapper": {
+                "base": "appZbwlQvkuaUsF2l",
+                "table": "tblTBD_SymptomTriageLog",
+                "record": {
+                  "Patient Name": "{{1.contact_name}}",
+                  "Patient Phone": "{{1.contact_phone}}",
+                  "Triage Status": "Acknowledged",
+                  "Priority Level": "P2",
+                  "Acknowledged At": "{{now}}",
+                  "Symptoms Described": "{{1.message_text}}",
+                  "Response Time Target": 15
+                },
+                "useColumnId": false
+              },
+              "module": "airtable:ActionCreateRecord",
+              "version": 3,
+              "metadata": {
+                "designer": {
+                  "x": 900,
+                  "y": 300
+                }
+              },
+              "parameters": {
+                "__IMTCONN__": 6448605
+              }
+            }
+          ]
+        },
+        {
+          "flow": [
+            {
+              "id": 9,
+              "filter": {
+                "name": "P3 Routine",
+                "conditions": [
+                  [
+                    {
+                      "a": "{{1.message_text}}",
+                      "b": "headache|cold|cough|sore throat|back pain|skin rash|fatigue|dizziness|nausea|stomach|joint pain|muscle|eye|ear|dental|tooth",
+                      "o": "text:match:ci"
+                    }
+                  ]
+                ]
+              },
+              "mapper": {
+                "ca": "",
+                "qs": [],
+                "url": "https://developers.sanoflow.io/api/v1.1/messages/whatsapp/send-template",
+                "data": "{\n  \"template_id\": \"TEMPLATE_ID_symptom_acknowledged\",\n  \"phone\": \"{{1.contact_phone}}\",\n  \"mapper_value\": [\"{{1.contact_name}}\", \"30\"]\n}",
+                "gzip": true,
+                "method": "post",
+                "headers": [
+                  {
+                    "name": "Content-type",
+                    "value": "application/json"
+                  },
+                  {
+                    "name": "access-token",
+                    "value": "[REDACTED]"
+                  }
+                ],
+                "timeout": "",
+                "useMtls": false,
+                "authPass": "",
+                "authUser": "",
+                "bodyType": "raw",
+                "contentType": "application/json",
+                "serializeUrl": false,
+                "shareCookies": false,
+                "parseResponse": true,
+                "followRedirect": true,
+                "useQuerystring": false,
+                "followAllRedirects": true,
+                "rejectUnauthorized": true
+              },
+              "module": "http:ActionSendData",
+              "version": 3,
+              "metadata": {
+                "designer": {
+                  "x": 600,
+                  "y": 600
+                }
+              },
+              "parameters": {}
+            },
+            {
+              "id": 10,
+              "mapper": {
+                "base": "appZbwlQvkuaUsF2l",
+                "table": "tblTBD_SymptomTriageLog",
+                "record": {
+                  "Patient Name": "{{1.contact_name}}",
+                  "Patient Phone": "{{1.contact_phone}}",
+                  "Triage Status": "Acknowledged",
+                  "Priority Level": "P3",
+                  "Acknowledged At": "{{now}}",
+                  "Symptoms Described": "{{1.message_text}}",
+                  "Response Time Target": 30
+                },
+                "useColumnId": false
+              },
+              "module": "airtable:ActionCreateRecord",
+              "version": 3,
+              "metadata": {
+                "designer": {
+                  "x": 900,
+                  "y": 600
+                }
+              },
+              "parameters": {
+                "__IMTCONN__": 6448605
+              }
+            }
+          ]
+        }
+      ],
+      "version": 1,
+      "metadata": {
+        "designer": {
+          "x": 300,
+          "y": 300
+        }
+      }
+    }
+  ],
+  "name": "DRAFT - Symptom Triage and Routing",
+  "metadata": {
+    "instant": true,
+    "version": 1,
+    "designer": {
+      "orphans": []
+    },
+    "scenario": {
+      "dlq": false,
+      "slots": null,
+      "dataloss": false,
+      "maxErrors": 3,
+      "autoCommit": true,
+      "roundtrips": 1,
+      "sequential": false,
+      "confidential": false,
+      "freshVariables": false,
+      "autoCommitTriggerLast": true
+    }
+  }
+}

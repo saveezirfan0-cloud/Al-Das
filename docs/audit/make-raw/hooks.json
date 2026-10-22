@@ -1,0 +1,51 @@
+[
+  {
+    "id": 1631594,
+    "name": "Birthday Offer Update",
+    "typeName": "gateway-webhook",
+    "scenarioId": 3630318,
+    "enabled": true
+  },
+  {
+    "id": 1631644,
+    "name": "My gateway-webhook webhook",
+    "typeName": "gateway-webhook",
+    "scenarioId": 3630414,
+    "enabled": true
+  },
+  {
+    "id": 1860132,
+    "name": "Lab Result Ready",
+    "typeName": "gateway-webhook",
+    "scenarioId": 4090446,
+    "enabled": true
+  },
+  {
+    "id": 1860189,
+    "name": "Lab Follow-up Required",
+    "typeName": "gateway-webhook",
+    "scenarioId": 4090519,
+    "enabled": true
+  },
+  {
+    "id": 2176487,
+    "name": "Intelligent Triage Bot",
+    "typeName": "gateway-webhook",
+    "scenarioId": 4778144,
+    "enabled": true
+  },
+  {
+    "id": 2273277,
+    "name": "My gateway-webhook webhook",
+    "typeName": "gateway-webhook",
+    "scenarioId": 4989621,
+    "enabled": true
+  },
+  {
+    "id": 2679889,
+    "name": "chronic update",
+    "typeName": "gateway-webhook",
+    "scenarioId": 5916036,
+    "enabled": true
+  }
+]

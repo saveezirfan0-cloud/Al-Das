@@ -1,0 +1,2026 @@
+{
+  "flow": [
+    {
+      "id": 2,
+      "mapper": {
+        "from": "drive",
+        "limit": "10000",
+        "filter": [
+          [
+            {
+              "a": "E",
+              "o": "notexist"
+            }
+          ]
+        ],
+        "sheetId": "[REDACTED_DOC_ID]",
+        "sortOrder": "asc",
+        "spreadsheetId": "[REDACTED_DOC_ID]",
+        "tableFirstRow": "A1:CZ1",
+        "includesHeaders": true,
+        "valueRenderOption": "FORMATTED_VALUE",
+        "dateTimeRenderOption": "FORMATTED_STRING"
+      },
+      "module": "google-sheets:filterRows",
+      "version": 2,
+      "metadata": {
+        "expect": [
+          {
+            "name": "from",
+            "type": "select",
+            "label": "Search Method",
+            "required": true,
+            "validate": {
+              "enum": [
+                "drive",
+                "share"
+              ]
+            }
+          },
+          {
+            "name": "valueRenderOption",
+            "type": "select",
+            "label": "Value render option",
+            "validate": {
+              "enum": [
+                "FORMATTED_VALUE",
+                "UNFORMATTED_VALUE",
+                "FORMULA"
+              ]
+            }
+          },
+          {
+            "name": "dateTimeRenderOption",
+            "type": "select",
+            "label": "Date and time render option",
+            "validate": {
+              "enum": [
+                "SERIAL_NUMBER",
+                "FORMATTED_STRING"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "type": "uinteger",
+            "label": "Limit"
+          },
+          {
+            "name": "spreadsheetId",
+            "type": "select",
+            "label": "Spreadsheet Name",
+            "required": true
+          },
+          {
+            "name": "sheetId",
+            "type": "select",
+            "label": "Sheet Name",
+            "required": true
+          },
+          {
+            "name": "includesHeaders",
+            "type": "select",
+            "label": "Table contains headers",
+            "required": true,
+            "validate": {
+              "enum": [
+                true,
+                false
+              ]
+            }
+          },
+          {
+            "name": "tableFirstRow",
+            "type": "select",
+            "label": "Column range",
+            "required": true,
+            "validate": {
+              "enum": [
+                "A1:Z1",
+                "A1:BZ1",
+                "A1:CZ1",
+                "A1:DZ1",
+                "A1:MZ1",
+                "A1:ZZ1",
+                "A1:AZZ1",
+                "A1:BZZ1",
+                "A1:CZZ1",
+                "A1:DZZ1",
+                "A1:MZZ1",
+                "A1:ZZZ1"
+              ]
+            }
+          },
+          {
+            "name": "filter",
+            "type": "filter",
+            "label": "Filter",
+            "options": "rpc://google-sheets/2/rpcGetFilterKeys?includesHeaders=true"
+          },
+          {
+            "name": "orderBy",
+            "type": "select",
+            "label": "Order by"
+          },
+          {
+            "name": "sortOrder",
+            "type": "select",
+            "label": "Sort order",
+            "validate": {
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            }
+          }
+        ],
+        "restore": {
+          "expect": {
+            "from": {
+              "label": "Select from My Drive"
+            },
+            "orderBy": {
+              "mode": "chose",
+              "label": "Empty"
+            },
+            "sheetId": {
+              "mode": "chose",
+              "label": "Sheet2"
+            },
+            "sortOrder": {
+              "mode": "chose",
+              "label": "Ascending"
+            },
+            "spreadsheetId": {
+              "mode": "chose",
+              "label": "Diagnosis"
+            },
+            "tableFirstRow": {
+              "label": "A-CZ"
+            },
+            "includesHeaders": {
+              "mode": "chose",
+              "label": "Yes"
+            },
+            "valueRenderOption": {
+              "mode": "chose",
+              "label": "Formatted value"
+            },
+            "dateTimeRenderOption": {
+              "mode": "chose",
+              "label": "Formatted string"
+            }
+          },
+          "parameters": {
+            "__IMTCONN__": {
+              "data": {
+                "scoped": "true",
+                "connection": "google"
+              },
+              "label": "My Google connection ([REDACTED_EMAIL])"
+            }
+          }
+        },
+        "designer": {
+          "x": 0,
+          "y": 150
+        },
+        "interface": [
+          {
+            "name": "__IMTLENGTH__",
+            "type": "uinteger",
+            "label": "Total number of bundles"
+          },
+          {
+            "name": "__IMTINDEX__",
+            "type": "uinteger",
+            "label": "Bundle order position"
+          },
+          {
+            "name": "__ROW_NUMBER__",
+            "type": "number",
+            "label": "Row number"
+          },
+          {
+            "name": "__SPREADSHEET_ID__",
+            "type": "text",
+            "label": "Spreadsheet ID"
+          },
+          {
+            "name": "__SHEET__",
+            "type": "text",
+            "label": "Sheet"
+          },
+          {
+            "name": "0",
+            "type": "text",
+            "label": "DDC_CODE (A)"
+          },
+          {
+            "name": "1",
+            "type": "text",
+            "label": "TRADE_NAME (B)"
+          },
+          {
+            "name": "2",
+            "type": "text",
+            "label": "SCIENTIFIC_NAME (C)"
+          },
+          {
+            "name": "3",
+            "type": "text",
+            "label": "INGREDIENT_STRENGTH (D)"
+          },
+          {
+            "name": "4",
+            "type": "text",
+            "label": "Updated (E)"
+          },
+          {
+            "name": "5",
+            "type": "text",
+            "label": "(F)"
+          },
+          {
+            "name": "6",
+            "type": "text",
+            "label": "(G)"
+          },
+          {
+            "name": "7",
+            "type": "text",
+            "label": "(H)"
+          },
+          {
+            "name": "8",
+            "type": "text",
+            "label": "(I)"
+          },
+          {
+            "name": "9",
+            "type": "text",
+            "label": "(J)"
+          },
+          {
+            "name": "10",
+            "type": "text",
+            "label": "(K)"
+          },
+          {
+            "name": "11",
+            "type": "text",
+            "label": "(L)"
+          },
+          {
+            "name": "12",
+            "type": "text",
+            "label": "(M)"
+          },
+          {
+            "name": "13",
+            "type": "text",
+            "label": "(N)"
+          },
+          {
+            "name": "14",
+            "type": "text",
+            "label": "(O)"
+          },
+          {
+            "name": "15",
+            "type": "text",
+            "label": "(P)"
+          },
+          {
+            "name": "16",
+            "type": "text",
+            "label": "(Q)"
+          },
+          {
+            "name": "17",
+            "type": "text",
+            "label": "(R)"
+          },
+          {
+            "name": "18",
+            "type": "text",
+            "label": "(S)"
+          },
+          {
+            "name": "19",
+            "type": "text",
+            "label": "(T)"
+          },
+          {
+            "name": "20",
+            "type": "text",
+            "label": "(U)"
+          },
+          {
+            "name": "21",
+            "type": "text",
+            "label": "(V)"
+          },
+          {
+            "name": "22",
+            "type": "text",
+            "label": "(W)"
+          },
+          {
+            "name": "23",
+            "type": "text",
+            "label": "(X)"
+          },
+          {
+            "name": "24",
+            "type": "text",
+            "label": "(Y)"
+          },
+          {
+            "name": "25",
+            "type": "text",
+            "label": "(Z)"
+          },
+          {
+            "name": "26",
+            "type": "text",
+            "label": "(AA)"
+          },
+          {
+            "name": "27",
+            "type": "text",
+            "label": "(AB)"
+          },
+          {
+            "name": "28",
+            "type": "text",
+            "label": "(AC)"
+          },
+          {
+            "name": "29",
+            "type": "text",
+            "label": "(AD)"
+          },
+          {
+            "name": "30",
+            "type": "text",
+            "label": "(AE)"
+          },
+          {
+            "name": "31",
+            "type": "text",
+            "label": "(AF)"
+          },
+          {
+            "name": "32",
+            "type": "text",
+            "label": "(AG)"
+          },
+          {
+            "name": "33",
+            "type": "text",
+            "label": "(AH)"
+          },
+          {
+            "name": "34",
+            "type": "text",
+            "label": "(AI)"
+          },
+          {
+            "name": "35",
+            "type": "text",
+            "label": "(AJ)"
+          },
+          {
+            "name": "36",
+            "type": "text",
+            "label": "(AK)"
+          },
+          {
+            "name": "37",
+            "type": "text",
+            "label": "(AL)"
+          },
+          {
+            "name": "38",
+            "type": "text",
+            "label": "(AM)"
+          },
+          {
+            "name": "39",
+            "type": "text",
+            "label": "(AN)"
+          },
+          {
+            "name": "40",
+            "type": "text",
+            "label": "(AO)"
+          },
+          {
+            "name": "41",
+            "type": "text",
+            "label": "(AP)"
+          },
+          {
+            "name": "42",
+            "type": "text",
+            "label": "(AQ)"
+          },
+          {
+            "name": "43",
+            "type": "text",
+            "label": "(AR)"
+          },
+          {
+            "name": "44",
+            "type": "text",
+            "label": "(AS)"
+          },
+          {
+            "name": "45",
+            "type": "text",
+            "label": "(AT)"
+          },
+          {
+            "name": "46",
+            "type": "text",
+            "label": "(AU)"
+          },
+          {
+            "name": "47",
+            "type": "text",
+            "label": "(AV)"
+          },
+          {
+            "name": "48",
+            "type": "text",
+            "label": "(AW)"
+          },
+          {
+            "name": "49",
+            "type": "text",
+            "label": "(AX)"
+          },
+          {
+            "name": "50",
+            "type": "text",
+            "label": "(AY)"
+          },
+          {
+            "name": "51",
+            "type": "text",
+            "label": "(AZ)"
+          },
+          {
+            "name": "52",
+            "type": "text",
+            "label": "(BA)"
+          },
+          {
+            "name": "53",
+            "type": "text",
+            "label": "(BB)"
+          },
+          {
+            "name": "54",
+            "type": "text",
+            "label": "(BC)"
+          },
+          {
+            "name": "55",
+            "type": "text",
+            "label": "(BD)"
+          },
+          {
+            "name": "56",
+            "type": "text",
+            "label": "(BE)"
+          },
+          {
+            "name": "57",
+            "type": "text",
+            "label": "(BF)"
+          },
+          {
+            "name": "58",
+            "type": "text",
+            "label": "(BG)"
+          },
+          {
+            "name": "59",
+            "type": "text",
+            "label": "(BH)"
+          },
+          {
+            "name": "60",
+            "type": "text",
+            "label": "(BI)"
+          },
+          {
+            "name": "61",
+            "type": "text",
+            "label": "(BJ)"
+          },
+          {
+            "name": "62",
+            "type": "text",
+            "label": "(BK)"
+          },
+          {
+            "name": "63",
+            "type": "text",
+            "label": "(BL)"
+          },
+          {
+            "name": "64",
+            "type": "text",
+            "label": "(BM)"
+          },
+          {
+            "name": "65",
+            "type": "text",
+            "label": "(BN)"
+          },
+          {
+            "name": "66",
+            "type": "text",
+            "label": "(BO)"
+          },
+          {
+            "name": "67",
+            "type": "text",
+            "label": "(BP)"
+          },
+          {
+            "name": "68",
+            "type": "text",
+            "label": "(BQ)"
+          },
+          {
+            "name": "69",
+            "type": "text",
+            "label": "(BR)"
+          },
+          {
+            "name": "70",
+            "type": "text",
+            "label": "(BS)"
+          },
+          {
+            "name": "71",
+            "type": "text",
+            "label": "(BT)"
+          },
+          {
+            "name": "72",
+            "type": "text",
+            "label": "(BU)"
+          },
+          {
+            "name": "73",
+            "type": "text",
+            "label": "(BV)"
+          },
+          {
+            "name": "74",
+            "type": "text",
+            "label": "(BW)"
+          },
+          {
+            "name": "75",
+            "type": "text",
+            "label": "(BX)"
+          },
+          {
+            "name": "76",
+            "type": "text",
+            "label": "(BY)"
+          },
+          {
+            "name": "77",
+            "type": "text",
+            "label": "(BZ)"
+          },
+          {
+            "name": "78",
+            "type": "text",
+            "label": "(CA)"
+          },
+          {
+            "name": "79",
+            "type": "text",
+            "label": "(CB)"
+          },
+          {
+            "name": "80",
+            "type": "text",
+            "label": "(CC)"
+          },
+          {
+            "name": "81",
+            "type": "text",
+            "label": "(CD)"
+          },
+          {
+            "name": "82",
+            "type": "text",
+            "label": "(CE)"
+          },
+          {
+            "name": "83",
+            "type": "text",
+            "label": "(CF)"
+          },
+          {
+            "name": "84",
+            "type": "text",
+            "label": "(CG)"
+          },
+          {
+            "name": "85",
+            "type": "text",
+            "label": "(CH)"
+          },
+          {
+            "name": "86",
+            "type": "text",
+            "label": "(CI)"
+          },
+          {
+            "name": "87",
+            "type": "text",
+            "label": "(CJ)"
+          },
+          {
+            "name": "88",
+            "type": "text",
+            "label": "(CK)"
+          },
+          {
+            "name": "89",
+            "type": "text",
+            "label": "(CL)"
+          },
+          {
+            "name": "90",
+            "type": "text",
+            "label": "(CM)"
+          },
+          {
+            "name": "91",
+            "type": "text",
+            "label": "(CN)"
+          },
+          {
+            "name": "92",
+            "type": "text",
+            "label": "(CO)"
+          },
+          {
+            "name": "93",
+            "type": "text",
+            "label": "(CP)"
+          },
+          {
+            "name": "94",
+            "type": "text",
+            "label": "(CQ)"
+          },
+          {
+            "name": "95",
+            "type": "text",
+            "label": "(CR)"
+          },
+          {
+            "name": "96",
+            "type": "text",
+            "label": "(CS)"
+          },
+          {
+            "name": "97",
+            "type": "text",
+            "label": "(CT)"
+          },
+          {
+            "name": "98",
+            "type": "text",
+            "label": "(CU)"
+          },
+          {
+            "name": "99",
+            "type": "text",
+            "label": "(CV)"
+          },
+          {
+            "name": "100",
+            "type": "text",
+            "label": "(CW)"
+          },
+          {
+            "name": "101",
+            "type": "text",
+            "label": "(CX)"
+          },
+          {
+            "name": "102",
+            "type": "text",
+            "label": "(CY)"
+          },
+          {
+            "name": "103",
+            "type": "text",
+            "label": "(CZ)"
+          }
+        ],
+        "parameters": [
+          {
+            "name": "__IMTCONN__",
+            "type": "account:google",
+            "label": "Connection",
+            "required": true
+          }
+        ]
+      },
+      "parameters": {
+        "__IMTCONN__": 6421482
+      }
+    },
+    {
+      "id": 3,
+      "filter": {
+        "name": "",
+        "conditions": [
+          [
+            {
+              "a": "{{2.`0`}}",
+              "o": "exist"
+            }
+          ]
+        ]
+      },
+      "mapper": {
+        "base": "app7QJ2pvhADHQeBP",
+        "table": "tblLM2BXjA680GQws",
+        "formula": "{DDC Code} = '{{2.`0`}}' ",
+        "maxRecords": "1",
+        "useColumnId": false
+      },
+      "module": "airtable:ActionSearchRecords",
+      "version": 3,
+      "metadata": {
+        "expect": [
+          {
+            "name": "base",
+            "type": "select",
+            "label": "Base",
+            "required": true
+          },
+          {
+            "name": "useColumnId",
+            "type": "boolean",
+            "label": "Use Column ID",
+            "required": true
+          },
+          {
+            "name": "table",
+            "type": "select",
+            "label": "Table",
+            "required": true
+          },
+          {
+            "name": "formula",
+            "type": "text",
+            "label": "Formula"
+          },
+          {
+            "name": "maxRecords",
+            "type": "integer",
+            "label": "Limit"
+          },
+          {
+            "name": "sort",
+            "spec": [
+              {
+                "name": "field",
+                "type": "select",
+                "label": "Field",
+                "dynamic": true,
+                "options": []
+              },
+              {
+                "name": "direction",
+                "type": "select",
+                "label": "Direction",
+                "options": [
+                  {
+                    "label": "Descending",
+                    "value": "desc"
+                  },
+                  {
+                    "label": "Ascending",
+                    "value": "asc"
+                  }
+                ]
+              }
+            ],
+            "type": "array",
+            "label": "Sort"
+          },
+          {
+            "name": "view",
+            "type": "select",
+            "label": "View"
+          },
+          {
+            "name": "fields",
+            "type": "select",
+            "label": "Output Fields",
+            "multiple": true
+          }
+        ],
+        "restore": {
+          "expect": {
+            "base": {
+              "mode": "chose",
+              "label": "Unite"
+            },
+            "sort": {
+              "mode": "chose"
+            },
+            "view": {
+              "mode": "chose",
+              "label": "Empty"
+            },
+            "table": {
+              "mode": "chose",
+              "label": "Medication"
+            },
+            "fields": {
+              "mode": "chose"
+            },
+            "useColumnId": {
+              "mode": "chose"
+            }
+          },
+          "parameters": {
+            "__IMTCONN__": {
+              "data": {
+                "scoped": "true",
+                "connection": "airtable3"
+              },
+              "label": "Al Das Clinic (User ID: usr17UaGhbLqsH0hk)"
+            }
+          }
+        },
+        "designer": {
+          "x": 300,
+          "y": 150
+        },
+        "interface": [
+          {
+            "name": "__IMTLENGTH__",
+            "type": "uinteger",
+            "label": "Total number of bundles"
+          },
+          {
+            "name": "__IMTINDEX__",
+            "type": "uinteger",
+            "label": "Bundle order position"
+          },
+          {
+            "name": "id",
+            "type": "text",
+            "label": "ID"
+          },
+          {
+            "name": "createdTime",
+            "type": "date",
+            "label": "Created Time"
+          },
+          {
+            "name": "DDC Code",
+            "type": "text",
+            "label": "DDC Code"
+          },
+          {
+            "name": "Trade Name",
+            "type": "text",
+            "label": "Trade Name"
+          },
+          {
+            "name": "Medical Records Data",
+            "spec": {
+              "label": "Record ID"
+            },
+            "type": "array",
+            "label": "Medical Records Data"
+          },
+          {
+            "name": "Status",
+            "type": "text",
+            "label": "Status"
+          },
+          {
+            "name": "SCIENTIFIC_CODE",
+            "type": "text",
+            "label": "SCIENTIFIC_CODE"
+          },
+          {
+            "name": "SCIENTIFIC_NAME",
+            "type": "text",
+            "label": "SCIENTIFIC_NAME"
+          },
+          {
+            "name": "INGREDIENT_STRENGTH",
+            "type": "text",
+            "label": "INGREDIENT_STRENGTH"
+          },
+          {
+            "name": "DOSAGE_FORM_PACKAGE",
+            "type": "text",
+            "label": "DOSAGE_FORM_PACKAGE"
+          },
+          {
+            "name": "ROUTE_OF_ADMIN",
+            "type": "text",
+            "label": "ROUTE_OF_ADMIN"
+          },
+          {
+            "name": "PACKAGE_PRICE",
+            "type": "text",
+            "label": "PACKAGE_PRICE"
+          },
+          {
+            "name": "GRANULAR_UNIT",
+            "type": "text",
+            "label": "GRANULAR_UNIT"
+          },
+          {
+            "name": "MANUFACTURER",
+            "type": "text",
+            "label": "MANUFACTURER"
+          },
+          {
+            "name": "REGISTERED_OWNER",
+            "type": "text",
+            "label": "REGISTERED_OWNER"
+          },
+          {
+            "name": "UPDATED_DATE",
+            "time": false,
+            "type": "date",
+            "label": "UPDATED_DATE"
+          },
+          {
+            "name": "SOURCE",
+            "type": "text",
+            "label": "SOURCE"
+          },
+          {
+            "name": "IS_EBP",
+            "type": "text",
+            "label": "IS_EBP"
+          },
+          {
+            "name": "Unite",
+            "spec": {
+              "label": "Record ID"
+            },
+            "type": "array",
+            "label": "Unite"
+          },
+          {
+            "name": "Delete",
+            "type": "boolean",
+            "label": "Delete"
+          }
+        ],
+        "parameters": [
+          {
+            "name": "__IMTCONN__",
+            "type": "account:airtable3,airtable2",
+            "label": "Connection",
+            "required": true
+          }
+        ]
+      },
+      "parameters": {
+        "__IMTCONN__": 6448605
+      }
+    },
+    {
+      "id": 6,
+      "mapper": null,
+      "module": "builtin:BasicRouter",
+      "routes": [
+        {
+          "flow": [
+            {
+              "id": 5,
+              "filter": {
+                "name": "",
+                "conditions": [
+                  [
+                    {
+                      "a": "{{3.id}}",
+                      "o": "exist"
+                    }
+                  ]
+                ]
+              },
+              "mapper": {
+                "id": "{{3.id}}",
+                "base": "app7QJ2pvhADHQeBP",
+                "table": "tblLM2BXjA680GQws",
+                "record": {
+                  "fldxCZs4yk0jdXKtM": true
+                },
+                "typecast": false,
+                "useColumnId": false
+              },
+              "module": "airtable:ActionUpdateRecords",
+              "version": 3,
+              "metadata": {
+                "expect": [
+                  {
+                    "name": "base",
+                    "type": "select",
+                    "label": "Base",
+                    "required": true
+                  },
+                  {
+                    "name": "typecast",
+                    "type": "boolean",
+                    "label": "Smart links",
+                    "required": true
+                  },
+                  {
+                    "name": "useColumnId",
+                    "type": "boolean",
+                    "label": "Use Column ID",
+                    "required": true
+                  },
+                  {
+                    "name": "table",
+                    "type": "select",
+                    "label": "Table",
+                    "required": true
+                  },
+                  {
+                    "name": "id",
+                    "type": "text",
+                    "label": "Record ID",
+                    "required": true
+                  },
+                  {
+                    "name": "record",
+                    "spec": [
+                      {
+                        "name": "fld7kgxlA3c0kjFdW",
+                        "type": "text",
+                        "label": "DDC Code"
+                      },
+                      {
+                        "name": "fldvBHlyQEFGX1UFS",
+                        "type": "text",
+                        "label": "Trade Name"
+                      },
+                      {
+                        "name": "fldpryRGaMe7cCqkd",
+                        "spec": {
+                          "name": "value",
+                          "label": "Record ID"
+                        },
+                        "type": "array",
+                        "label": "Medical Records Data"
+                      },
+                      {
+                        "name": "fldDwPzpHS7bHGZbj",
+                        "type": "text",
+                        "label": "Status"
+                      },
+                      {
+                        "name": "fld6erxHG8rlNl7Zr",
+                        "type": "text",
+                        "label": "SCIENTIFIC_CODE"
+                      },
+                      {
+                        "name": "fldIea5PEr6Tk50tY",
+                        "type": "text",
+                        "label": "SCIENTIFIC_NAME"
+                      },
+                      {
+                        "name": "fldsXKIf7k6HF3jhW",
+                        "type": "text",
+                        "label": "INGREDIENT_STRENGTH"
+                      },
+                      {
+                        "name": "fld7ovnGh11wewXqw",
+                        "type": "text",
+                        "label": "DOSAGE_FORM_PACKAGE"
+                      },
+                      {
+                        "name": "flduJNhd0tBaFqDoT",
+                        "type": "text",
+                        "label": "ROUTE_OF_ADMIN"
+                      },
+                      {
+                        "name": "fldQPwna6WcQkIsrb",
+                        "type": "text",
+                        "label": "PACKAGE_PRICE"
+                      },
+                      {
+                        "name": "fldGFRp4X68CfAO6k",
+                        "type": "text",
+                        "label": "GRANULAR_UNIT"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldsS08YzbGDj66zv",
+                        "type": "select",
+                        "label": "MANUFACTURER"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldlWj6a725a6l54H",
+                        "type": "select",
+                        "label": "REGISTERED_OWNER"
+                      },
+                      {
+                        "name": "fldGvn9X6b6sNY9Xi",
+                        "time": false,
+                        "type": "date",
+                        "label": "UPDATED_DATE"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldkhVVFyNnSz5T4n",
+                        "type": "select",
+                        "label": "SOURCE"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldQQsGZMJDEmcIkL",
+                        "type": "select",
+                        "label": "IS_EBP"
+                      },
+                      {
+                        "name": "fldqajLnh3yZU4hf8",
+                        "spec": {
+                          "name": "value",
+                          "label": "Record ID"
+                        },
+                        "type": "array",
+                        "label": "Unite"
+                      },
+                      {
+                        "name": "fldg9JNjNjvOz9tDZ",
+                        "type": "boolean",
+                        "label": "Delete"
+                      },
+                      {
+                        "name": "fldxCZs4yk0jdXKtM",
+                        "type": "boolean",
+                        "label": "Updated"
+                      }
+                    ],
+                    "type": "collection",
+                    "label": "Record"
+                  }
+                ],
+                "restore": {
+                  "expect": {
+                    "base": {
+                      "label": "Unite"
+                    },
+                    "table": {
+                      "label": "Medication"
+                    },
+                    "record": {
+                      "nested": {
+                        "fldQQsGZMJDEmcIkL": {
+                          "mode": "edit"
+                        },
+                        "fldg9JNjNjvOz9tDZ": {
+                          "mode": "chose"
+                        },
+                        "fldkhVVFyNnSz5T4n": {
+                          "mode": "edit"
+                        },
+                        "fldlWj6a725a6l54H": {
+                          "mode": "edit"
+                        },
+                        "fldpryRGaMe7cCqkd": {
+                          "mode": "chose"
+                        },
+                        "fldqajLnh3yZU4hf8": {
+                          "mode": "chose"
+                        },
+                        "fldsS08YzbGDj66zv": {
+                          "mode": "edit"
+                        },
+                        "fldxCZs4yk0jdXKtM": {
+                          "mode": "chose"
+                        }
+                      }
+                    },
+                    "typecast": {
+                      "mode": "chose"
+                    },
+                    "useColumnId": {
+                      "mode": "chose"
+                    }
+                  },
+                  "parameters": {
+                    "__IMTCONN__": {
+                      "data": {
+                        "scoped": "true",
+                        "connection": "airtable3"
+                      },
+                      "label": "Al Das Clinic (User ID: usr17UaGhbLqsH0hk)"
+                    }
+                  }
+                },
+                "designer": {
+                  "x": 900,
+                  "y": 0
+                },
+                "interface": [
+                  {
+                    "name": "id",
+                    "type": "text",
+                    "label": "ID"
+                  },
+                  {
+                    "name": "createdTime",
+                    "type": "date",
+                    "label": "Created Time"
+                  },
+                  {
+                    "name": "DDC Code",
+                    "type": "text",
+                    "label": "DDC Code"
+                  },
+                  {
+                    "name": "Trade Name",
+                    "type": "text",
+                    "label": "Trade Name"
+                  },
+                  {
+                    "name": "Medical Records Data",
+                    "spec": {
+                      "label": "Record ID"
+                    },
+                    "type": "array",
+                    "label": "Medical Records Data"
+                  },
+                  {
+                    "name": "Status",
+                    "type": "text",
+                    "label": "Status"
+                  },
+                  {
+                    "name": "SCIENTIFIC_CODE",
+                    "type": "text",
+                    "label": "SCIENTIFIC_CODE"
+                  },
+                  {
+                    "name": "SCIENTIFIC_NAME",
+                    "type": "text",
+                    "label": "SCIENTIFIC_NAME"
+                  },
+                  {
+                    "name": "INGREDIENT_STRENGTH",
+                    "type": "text",
+                    "label": "INGREDIENT_STRENGTH"
+                  },
+                  {
+                    "name": "DOSAGE_FORM_PACKAGE",
+                    "type": "text",
+                    "label": "DOSAGE_FORM_PACKAGE"
+                  },
+                  {
+                    "name": "ROUTE_OF_ADMIN",
+                    "type": "text",
+                    "label": "ROUTE_OF_ADMIN"
+                  },
+                  {
+                    "name": "PACKAGE_PRICE",
+                    "type": "text",
+                    "label": "PACKAGE_PRICE"
+                  },
+                  {
+                    "name": "GRANULAR_UNIT",
+                    "type": "text",
+                    "label": "GRANULAR_UNIT"
+                  },
+                  {
+                    "name": "MANUFACTURER",
+                    "type": "text",
+                    "label": "MANUFACTURER"
+                  },
+                  {
+                    "name": "REGISTERED_OWNER",
+                    "type": "text",
+                    "label": "REGISTERED_OWNER"
+                  },
+                  {
+                    "name": "UPDATED_DATE",
+                    "time": false,
+                    "type": "date",
+                    "label": "UPDATED_DATE"
+                  },
+                  {
+                    "name": "SOURCE",
+                    "type": "text",
+                    "label": "SOURCE"
+                  },
+                  {
+                    "name": "IS_EBP",
+                    "type": "text",
+                    "label": "IS_EBP"
+                  },
+                  {
+                    "name": "Unite",
+                    "spec": {
+                      "label": "Record ID"
+                    },
+                    "type": "array",
+                    "label": "Unite"
+                  },
+                  {
+                    "name": "Delete",
+                    "type": "boolean",
+                    "label": "Delete"
+                  },
+                  {
+                    "name": "Updated",
+                    "type": "boolean",
+                    "label": "Updated"
+                  }
+                ],
+                "parameters": [
+                  {
+                    "name": "__IMTCONN__",
+                    "type": "account:airtable3,airtable2",
+                    "label": "Connection",
+                    "required": true
+                  }
+                ]
+              },
+              "parameters": {
+                "__IMTCONN__": 6448605
+              }
+            },
+            {
+              "id": 4,
+              "mapper": {
+                "from": "drive",
+                "mode": "select",
+                "values": {
+                  "4": "Update"
+                },
+                "sheetId": "[REDACTED_DOC_ID]",
+                "rowNumber": "{{2.`__ROW_NUMBER__`}}",
+                "spreadsheetId": "[REDACTED_DOC_ID]",
+                "includesHeaders": true,
+                "useColumnHeaders": false,
+                "valueInputOption": "USER_ENTERED"
+              },
+              "module": "google-sheets:updateRow",
+              "version": 2,
+              "metadata": {
+                "expect": [
+                  {
+                    "name": "mode",
+                    "type": "select",
+                    "label": "Search Method",
+                    "required": true,
+                    "validate": {
+                      "enum": [
+                        "select",
+                        "fromAll",
+                        "map"
+                      ]
+                    }
+                  },
+                  {
+                    "name": "valueInputOption",
+                    "type": "select",
+                    "label": "Value input option",
+                    "required": true,
+                    "validate": {
+                      "enum": [
+                        "USER_ENTERED",
+                        "RAW"
+                      ]
+                    }
+                  },
+                  {
+                    "name": "from",
+                    "type": "select",
+                    "label": "Drive",
+                    "required": true,
+                    "validate": {
+                      "enum": [
+                        "drive",
+                        "share",
+                        "team"
+                      ]
+                    }
+                  },
+                  {
+                    "name": "spreadsheetId",
+                    "type": "file",
+                    "label": "Spreadsheet Name",
+                    "required": true
+                  },
+                  {
+                    "name": "sheetId",
+                    "type": "select",
+                    "label": "Sheet Name",
+                    "required": true
+                  },
+                  {
+                    "name": "rowNumber",
+                    "type": "uinteger",
+                    "label": "Row number",
+                    "required": true
+                  },
+                  {
+                    "name": "includesHeaders",
+                    "type": "select",
+                    "label": "Table contains headers",
+                    "required": true,
+                    "validate": {
+                      "enum": [
+                        true,
+                        false
+                      ]
+                    }
+                  },
+                  {
+                    "name": "useColumnHeaders",
+                    "type": "select",
+                    "label": "Use column headers as IDs of the columns",
+                    "required": true,
+                    "validate": {
+                      "enum": [
+                        true,
+                        false
+                      ]
+                    }
+                  },
+                  {
+                    "name": "values",
+                    "spec": [
+                      {
+                        "name": "0",
+                        "type": "text",
+                        "label": "DDC_CODE (A)"
+                      },
+                      {
+                        "name": "1",
+                        "type": "text",
+                        "label": "TRADE_NAME (B)"
+                      },
+                      {
+                        "name": "2",
+                        "type": "text",
+                        "label": "SCIENTIFIC_NAME (C)"
+                      },
+                      {
+                        "name": "3",
+                        "type": "text",
+                        "label": "INGREDIENT_STRENGTH (D)"
+                      },
+                      {
+                        "name": "4",
+                        "type": "text",
+                        "label": "Updated (E)"
+                      },
+                      {
+                        "name": "5",
+                        "type": "text",
+                        "label": "(F)"
+                      },
+                      {
+                        "name": "6",
+                        "type": "text",
+                        "label": "(G)"
+                      },
+                      {
+                        "name": "7",
+                        "type": "text",
+                        "label": "(H)"
+                      },
+                      {
+                        "name": "8",
+                        "type": "text",
+                        "label": "(I)"
+                      },
+                      {
+                        "name": "9",
+                        "type": "text",
+                        "label": "(J)"
+                      },
+                      {
+                        "name": "10",
+                        "type": "text",
+                        "label": "(K)"
+                      },
+                      {
+                        "name": "11",
+                        "type": "text",
+                        "label": "(L)"
+                      },
+                      {
+                        "name": "12",
+                        "type": "text",
+                        "label": "(M)"
+                      },
+                      {
+                        "name": "13",
+                        "type": "text",
+                        "label": "(N)"
+                      },
+                      {
+                        "name": "14",
+                        "type": "text",
+                        "label": "(O)"
+                      },
+                      {
+                        "name": "15",
+                        "type": "text",
+                        "label": "(P)"
+                      },
+                      {
+                        "name": "16",
+                        "type": "text",
+                        "label": "(Q)"
+                      },
+                      {
+                        "name": "17",
+                        "type": "text",
+                        "label": "(R)"
+                      },
+                      {
+                        "name": "18",
+                        "type": "text",
+                        "label": "(S)"
+                      },
+                      {
+                        "name": "19",
+                        "type": "text",
+                        "label": "(T)"
+                      },
+                      {
+                        "name": "20",
+                        "type": "text",
+                        "label": "(U)"
+                      },
+                      {
+                        "name": "21",
+                        "type": "text",
+                        "label": "(V)"
+                      },
+                      {
+                        "name": "22",
+                        "type": "text",
+                        "label": "(W)"
+                      },
+                      {
+                        "name": "23",
+                        "type": "text",
+                        "label": "(X)"
+                      },
+                      {
+                        "name": "24",
+                        "type": "text",
+                        "label": "(Y)"
+                      },
+                      {
+                        "name": "25",
+                        "type": "text",
+                        "label": "(Z)"
+                      }
+                    ],
+                    "type": "collection",
+                    "label": "Values in columns",
+                    "metadata": [
+                      [
+                        [
+                          "DDC_CODE",
+                          "TRADE_NAME",
+                          "SCIENTIFIC_NAME",
+                          "INGREDIENT_STRENGTH",
+                          "Updated"
+                        ]
+                      ]
+                    ]
+                  }
+                ],
+                "restore": {
+                  "expect": {
+                    "from": {
+                      "label": "My Drive"
+                    },
+                    "mode": {
+                      "label": "Search by path"
+                    },
+                    "sheetId": {
+                      "label": "Sheet2"
+                    },
+                    "spreadsheetId": {
+                      "path": [
+                        "Diagnosis"
+                      ]
+                    },
+                    "includesHeaders": {
+                      "label": "Yes"
+                    },
+                    "useColumnHeaders": {
+                      "label": "No"
+                    },
+                    "valueInputOption": {
+                      "mode": "chose",
+                      "label": "User entered"
+                    }
+                  },
+                  "parameters": {
+                    "__IMTCONN__": {
+                      "data": {
+                        "scoped": "true",
+                        "connection": "google"
+                      },
+                      "label": "My Google connection ([REDACTED_EMAIL])"
+                    }
+                  }
+                },
+                "designer": {
+                  "x": 1200,
+                  "y": 0
+                },
+                "parameters": [
+                  {
+                    "name": "__IMTCONN__",
+                    "type": "account:google",
+                    "label": "Connection",
+                    "required": true
+                  }
+                ]
+              },
+              "parameters": {
+                "__IMTCONN__": 6421482
+              }
+            }
+          ]
+        },
+        {
+          "flow": [
+            {
+              "id": 7,
+              "filter": {
+                "name": "",
+                "conditions": [
+                  [
+                    {
+                      "a": "{{3.id}}",
+                      "o": "notexist"
+                    }
+                  ]
+                ]
+              },
+              "mapper": {
+                "from": "drive",
+                "mode": "select",
+                "values": {
+                  "4": "NF"
+                },
+                "sheetId": "[REDACTED_DOC_ID]",
+                "rowNumber": "{{2.`__ROW_NUMBER__`}}",
+                "spreadsheetId": "[REDACTED_DOC_ID]",
+                "includesHeaders": true,
+                "useColumnHeaders": false,
+                "valueInputOption": "USER_ENTERED"
+              },
+              "module": "google-sheets:updateRow",
+              "version": 2,
+              "metadata": {
+                "expect": [
+                  {
+                    "name": "mode",
+                    "type": "select",
+                    "label": "Search Method",
+                    "required": true,
+                    "validate": {
+                      "enum": [
+                        "select",
+                        "fromAll",
+                        "map"
+                      ]
+                    }
+                  },
+                  {
+                    "name": "valueInputOption",
+                    "type": "select",
+                    "label": "Value input option",
+                    "required": true,
+                    "validate": {
+                      "enum": [
+                        "USER_ENTERED",
+                        "RAW"
+                      ]
+                    }
+                  },
+                  {
+                    "name": "from",
+                    "type": "select",
+                    "label": "Drive",
+                    "required": true,
+                    "validate": {
+                      "enum": [
+                        "drive",
+                        "share",
+                        "team"
+                      ]
+                    }
+                  },
+                  {
+                    "name": "spreadsheetId",
+                    "type": "file",
+                    "label": "Spreadsheet Name",
+                    "required": true
+                  },
+                  {
+                    "name": "sheetId",
+                    "type": "select",
+                    "label": "Sheet Name",
+                    "required": true
+                  },
+                  {
+                    "name": "rowNumber",
+                    "type": "uinteger",
+                    "label": "Row number",
+                    "required": true
+                  },
+                  {
+                    "name": "includesHeaders",
+                    "type": "select",
+                    "label": "Table contains headers",
+                    "required": true,
+                    "validate": {
+                      "enum": [
+                        true,
+                        false
+                      ]
+                    }
+                  },
+                  {
+                    "name": "useColumnHeaders",
+                    "type": "select",
+                    "label": "Use column headers as IDs of the columns",
+                    "required": true,
+                    "validate": {
+                      "enum": [
+                        true,
+                        false
+                      ]
+                    }
+                  },
+                  {
+                    "name": "values",
+                    "spec": [
+                      {
+                        "name": "0",
+                        "type": "text",
+                        "label": "DDC_CODE (A)"
+                      },
+                      {
+                        "name": "1",
+                        "type": "text",
+                        "label": "TRADE_NAME (B)"
+                      },
+                      {
+                        "name": "2",
+                        "type": "text",
+                        "label": "SCIENTIFIC_NAME (C)"
+                      },
+                      {
+                        "name": "3",
+                        "type": "text",
+                        "label": "INGREDIENT_STRENGTH (D)"
+                      },
+                      {
+                        "name": "4",
+                        "type": "text",
+                        "label": "Updated (E)"
+                      },
+                      {
+                        "name": "5",
+                        "type": "text",
+                        "label": "(F)"
+                      },
+                      {
+                        "name": "6",
+                        "type": "text",
+                        "label": "(G)"
+                      },
+                      {
+                        "name": "7",
+                        "type": "text",
+                        "label": "(H)"
+                      },
+                      {
+                        "name": "8",
+                        "type": "text",
+                        "label": "(I)"
+                      },
+                      {
+                        "name": "9",
+                        "type": "text",
+                        "label": "(J)"
+                      },
+                      {
+                        "name": "10",
+                        "type": "text",
+                        "label": "(K)"
+                      },
+                      {
+                        "name": "11",
+                        "type": "text",
+                        "label": "(L)"
+                      },
+                      {
+                        "name": "12",
+                        "type": "text",
+                        "label": "(M)"
+                      },
+                      {
+                        "name": "13",
+                        "type": "text",
+                        "label": "(N)"
+                      },
+                      {
+                        "name": "14",
+                        "type": "text",
+                        "label": "(O)"
+                      },
+                      {
+                        "name": "15",
+                        "type": "text",
+                        "label": "(P)"
+                      },
+                      {
+                        "name": "16",
+                        "type": "text",
+                        "label": "(Q)"
+                      },
+                      {
+                        "name": "17",
+                        "type": "text",
+                        "label": "(R)"
+                      },
+                      {
+                        "name": "18",
+                        "type": "text",
+                        "label": "(S)"
+                      },
+                      {
+                        "name": "19",
+                        "type": "text",
+                        "label": "(T)"
+                      },
+                      {
+                        "name": "20",
+                        "type": "text",
+                        "label": "(U)"
+                      },
+                      {
+                        "name": "21",
+                        "type": "text",
+                        "label": "(V)"
+                      },
+                      {
+                        "name": "22",
+                        "type": "text",
+                        "label": "(W)"
+                      },
+                      {
+                        "name": "23",
+                        "type": "text",
+                        "label": "(X)"
+                      },
+                      {
+                        "name": "24",
+                        "type": "text",
+                        "label": "(Y)"
+                      },
+                      {
+                        "name": "25",
+                        "type": "text",
+                        "label": "(Z)"
+                      }
+                    ],
+                    "type": "collection",
+                    "label": "Values in columns",
+                    "metadata": [
+                      [
+                        [
+                          "DDC_CODE",
+                          "TRADE_NAME",
+                          "SCIENTIFIC_NAME",
+                          "INGREDIENT_STRENGTH",
+                          "Updated"
+                        ]
+                      ]
+                    ]
+                  }
+                ],
+                "restore": {
+                  "expect": {
+                    "from": {
+                      "label": "My Drive"
+                    },
+                    "mode": {
+                      "label": "Search by path"
+                    },
+                    "sheetId": {
+                      "label": "Sheet2"
+                    },
+                    "spreadsheetId": {
+                      "path": [
+                        "Diagnosis"
+                      ]
+                    },
+                    "includesHeaders": {
+                      "label": "Yes"
+                    },
+                    "useColumnHeaders": {
+                      "label": "No"
+                    },
+                    "valueInputOption": {
+                      "mode": "chose",
+                      "label": "User entered"
+                    }
+                  },
+                  "parameters": {
+                    "__IMTCONN__": {
+                      "data": {
+                        "scoped": "true",
+                        "connection": "google"
+                      },
+                      "label": "My Google connection ([REDACTED_EMAIL])"
+                    }
+                  }
+                },
+                "designer": {
+                  "x": 900,
+                  "y": 300
+                },
+                "parameters": [
+                  {
+                    "name": "__IMTCONN__",
+                    "type": "account:google",
+                    "label": "Connection",
+                    "required": true
+                  }
+                ]
+              },
+              "parameters": {
+                "__IMTCONN__": 6421482
+              }
+            }
+          ]
+        }
+      ],
+      "version": 1,
+      "metadata": {
+        "designer": {
+          "x": 600,
+          "y": 150
+        }
+      }
+    }
+  ],
+  "name": "Integration Google Sheets, Airtable",
+  "metadata": {
+    "instant": false,
+    "version": 1,
+    "designer": {
+      "orphans": []
+    },
+    "scenario": {
+      "dlq": false,
+      "slots": null,
+      "dataloss": false,
+      "maxErrors": 3,
+      "autoCommit": true,
+      "roundtrips": 1,
+      "sequential": false,
+      "confidential": false,
+      "freshVariables": false,
+      "autoCommitTriggerLast": true
+    }
+  }
+}

@@ -1,0 +1,218 @@
+{
+  "flow": [
+    {
+      "id": 1,
+      "mapper": {
+        "base": "app7QJ2pvhADHQeBP",
+        "table": "tblllKPKIY9qvMoEU",
+        "formula": "AND({Acute Sync On} = BLANK(), {Visit Date} != BLANK(), IS_AFTER({Visit Date}, DATEADD(TODAY(), -30, 'days')))",
+        "maxRecords": "10",
+        "useColumnId": false
+      },
+      "module": "airtable:ActionSearchRecords",
+      "version": 3,
+      "metadata": {
+        "designer": {
+          "x": 0,
+          "y": 0,
+          "name": "Find unsynced recent visits"
+        }
+      },
+      "parameters": {
+        "__IMTCONN__": 6448605
+      }
+    },
+    {
+      "id": 2,
+      "filter": {
+        "name": "Patient link must exist",
+        "conditions": [
+          [
+            {
+              "a": "{{1.Unite}}",
+              "o": "exist"
+            }
+          ]
+        ]
+      },
+      "mapper": {
+        "id": "{{first(1.Unite)}}",
+        "base": "app7QJ2pvhADHQeBP",
+        "table": "tbl9856qJP9S7OEqB",
+        "useColumnId": false
+      },
+      "module": "airtable:ActionGetRecord",
+      "version": 3,
+      "metadata": {
+        "designer": {
+          "x": 300,
+          "y": 0,
+          "name": "Get patient (DOB, department)"
+        }
+      },
+      "parameters": {
+        "__IMTCONN__": 6448605
+      }
+    },
+    {
+      "id": 3,
+      "mapper": {
+        "base": "appH2jHpsNR1nqEQ2",
+        "table": "tblyOweSP3FfeY9q0",
+        "record": {
+          "fld0Uc4dbKfTTV0Ep": "{{2.DOB}}",
+          "fld0uMrH7Uu9lCxdv": "{{if(length(trim(1.`BP Diastolic`)) > 0; parseNumber(replace(last(split(1.`BP Diastolic`; \"/\")); \"/[^0-9.]/g\"; \"\"); \".\"); emptystring)}}",
+          "fld4MabuolV2ia0hn": "{{if(length(trim(1.`BP Systolic`)) > 0; parseNumber(replace(first(split(1.`BP Systolic`; \"/\")); \"/[^0-9.]/g\"; \"\"); \".\"); emptystring)}}",
+          "fld56HJ56HDz5ICqX": "{{1.`Doctor Name`}}",
+          "fld5WrzkmTaFitlca": "{{1.Complaints}} {{1.`History Of Present Illness`}} {{1.`Doctor Notes`}} {{1.`Nurse Notes`}}",
+          "fldAjZRrsEvuCtcVR": false,
+          "fldRPRNAgGU7aaSQe": "{{1.id}}",
+          "fldW2drDyJO7x4Bhn": "{{if(length(trim(1.`Body Temperature`)) > 0; parseNumber(replace(1.`Body Temperature`; \"/[^0-9.]/g\"; \"\"); \".\"); emptystring)}}",
+          "fldWNmWnvGBPYwZ6P": "{{join(1.`Description (from Items)`; \"; \")}}",
+          "fldXlyyw4yhhwby2g": "{{1.`Visit Date`}}",
+          "fldfDoqBTP05oHIhJ": "{{if(contains(lower(2.Department); \"paed\"); \"Paediatrics\"; if(contains(lower(2.Department); \"pedia\"); \"Paediatrics\"; if(contains(lower(2.Department); \"gyn\"); \"Gynaecology\"; if(contains(lower(2.Department); \"obstet\"); \"Gynaecology\"; if(contains(lower(2.Department); \"derma\"); \"Dermatology\"; if(contains(lower(2.Department); \"general\"); \"GP\"; if(contains(lower(2.Department); \"internal\"); \"GP\"; if(contains(lower(2.Department); \"family\"); \"GP\"; \"Other\"))))))))}}",
+          "fldfGYvo9oW5pFvMY": "{{if(length(trim(1.`O2 % BldC Oximetry`)) > 0; parseNumber(replace(1.`O2 % BldC Oximetry`; \"/[^0-9.]/g\"; \"\"); \".\"); emptystring)}}",
+          "fldgZRyGr1tVmNbYk": "Not available in Unite",
+          "fldni7004CwZHjnl1": "{{length(1.Items)}}",
+          "fldutfsNvr26p8pLy": "{{1.`Plan of Treatment`}}",
+          "flduu0Nv3L4JCMitD": "{{join(1.`Description (from Diagnosis)`; \"; \")}}",
+          "fldx908qYxc9kT74t": "{{1.`Primary Diagnosis`}}",
+          "fldyu2FVfEijTqWUR": "{{1.`Procedure Notes`}}",
+          "fldzTCJ2RDTiyZV6p": "{{if(length(trim(1.Pulse)) > 0; parseNumber(replace(1.Pulse; \"/[^0-9.]/g\"; \"\"); \".\"); emptystring)}}"
+        },
+        "typecast": true,
+        "useColumnId": false
+      },
+      "module": "airtable:ActionCreateRecord",
+      "version": 3,
+      "metadata": {
+        "designer": {
+          "x": 600,
+          "y": 0,
+          "name": "Create Visit in Acute base"
+        }
+      },
+      "parameters": {
+        "__IMTCONN__": 6448605
+      }
+    },
+    {
+      "id": 4,
+      "mapper": {
+        "id": "{{1.id}}",
+        "base": "app7QJ2pvhADHQeBP",
+        "table": "tblllKPKIY9qvMoEU",
+        "record": {
+          "fldTVFyiKlZAhzUe6": "{{formatDate(now; \"YYYY-MM-DD\")}}"
+        },
+        "typecast": true,
+        "useColumnId": false
+      },
+      "module": "airtable:ActionUpdateRecords",
+      "version": 3,
+      "metadata": {
+        "designer": {
+          "x": 900,
+          "y": 0,
+          "name": "Mark visit synced"
+        }
+      },
+      "parameters": {
+        "__IMTCONN__": 6448605
+      }
+    },
+    {
+      "id": 5,
+      "mapper": {
+        "array": "{{slice(split(\"1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20\"; \",\"); 0; length(1.Medication))}}"
+      },
+      "module": "builtin:BasicFeeder",
+      "version": 1,
+      "metadata": {
+        "designer": {
+          "x": 1200,
+          "y": 0,
+          "name": "Iterate drug positions (1..n)"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "mapper": {
+        "id": "{{get(1.Medication; 5.value)}}",
+        "base": "app7QJ2pvhADHQeBP",
+        "table": "tblLM2BXjA680GQws",
+        "useColumnId": false
+      },
+      "module": "airtable:ActionGetRecord",
+      "version": 3,
+      "metadata": {
+        "designer": {
+          "x": 1500,
+          "y": 0,
+          "name": "Get drug record (classification)"
+        }
+      },
+      "parameters": {
+        "__IMTCONN__": 6448605
+      }
+    },
+    {
+      "id": 7,
+      "mapper": {
+        "base": "appH2jHpsNR1nqEQ2",
+        "table": "tblQra08AflxuXxQq",
+        "record": {
+          "fld2u0WCiQkYkHbHf": 10,
+          "fld7K9SVDvqjaU30A": "{{if(contains(lower(ifempty(6.`All Medicine Types`; 6.`MEDICINE TYPE`)); \"antibiotic\"); \"Antibiotic\"; if(contains(lower(ifempty(6.`All Medicine Types`; 6.`MEDICINE TYPE`)); \"corticosteroid\"); \"Steroid\"; if(contains(lower(ifempty(6.`All Medicine Types`; 6.`MEDICINE TYPE`)); \"probiotic\"); \"Probiotic\"; if(contains(lower(ifempty(6.`All Medicine Types`; 6.`MEDICINE TYPE`)); \"vitamin\"); \"Supplement\"; if(length(trim(ifempty(6.`All Medicine Types`; 6.`MEDICINE TYPE`))) = 0; \"UNCLASSIFIED\"; \"Other\")))))}}",
+          "fldM5leoAtTzhVg6R": "{{1.`Visit Date`}}",
+          "fldNp6WqXyDjupsue": "{{6.`DDC Code`}}",
+          "fldPLUnLoIBIUfcfT": "{{1.id}}-{{5.value}}",
+          "fldTp7F5vU2efpLY8": "{{6.`Trade Name`}}",
+          "fldWHAoxbXpISk6FS": "Not started",
+          "fldYBAQSnbjTmxsq0": [
+            "{{3.id}}"
+          ],
+          "fldYGZHkRjicwBPz6": false,
+          "fldbHnnCairp1oMA2": "{{trim(get(split(1.`Roa Description (from Medication)`; \",\"); 5.value))}}",
+          "fldfYDjKPKJn9vPPU": "{{parseNumber(trim(get(split(1.`Total Quantity (from Medication)`; \",\"); 5.value)); \".\")}}",
+          "fldfujiLktvFEPNE1": "{{parseNumber(trim(get(split(1.`Dosage Days`; \",\"); 5.value)); \".\")}}",
+          "fldwNVLgPMpESN3Hz": "{{if(contains(lower(ifempty(6.`All Medicine Types`; 6.`MEDICINE TYPE`)); \"antibiotic\"); true; false)}}"
+        },
+        "typecast": true,
+        "useColumnId": false
+      },
+      "module": "airtable:ActionCreateRecord",
+      "version": 3,
+      "metadata": {
+        "designer": {
+          "x": 1800,
+          "y": 0,
+          "name": "Create Prescription"
+        }
+      },
+      "parameters": {
+        "__IMTCONN__": 6448605
+      }
+    }
+  ],
+  "name": "Acute Follow-Up — MRD Sync",
+  "metadata": {
+    "instant": false,
+    "version": 1,
+    "designer": {
+      "orphans": []
+    },
+    "scenario": {
+      "slots": null,
+      "dataloss": false,
+      "maxErrors": 3,
+      "autoCommit": true,
+      "roundtrips": 1,
+      "sequential": false,
+      "confidential": false,
+      "freshVariables": false,
+      "autoCommitTriggerLast": true
+    }
+  }
+}
