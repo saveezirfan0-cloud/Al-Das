@@ -54,6 +54,7 @@ describe("parallel run diff", () => {
     for (const k of Object.keys(EXPECTED_DIFFERENCES))
       expect(COMPARABLE.has(k as never), k).toBe(true);
     expect(EXPECTED_DIFFERENCES.chronic_recall).toMatch(/60 days >/);
+    expect(EXPECTED_DIFFERENCES.chronic_recall).not.toMatch(/does not apply/);
     expect(EXPECTED_DIFFERENCES.chronic_recall).toMatch(/once per last-visit date/);
   });
 

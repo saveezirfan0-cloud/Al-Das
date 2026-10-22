@@ -1,5 +1,5 @@
 ### Chronic Recall - 90 Day (id 5882746)
-- [1] airtable:ActionSearchRecords «Find Patients Due for Chronic Recall»: base=app7QJ2pvhADHQeBP; table=tbl9856qJP9S7OEqB; view=viwXMAipcLg0wpcVt
+- [1] airtable:ActionSearchRecords «Find Patients Due for Chronic Recall»: base=app7QJ2pvhADHQeBP; table=tbl9856qJP9S7OEqB
 - [2] http:ActionSendData «Send Template» (filter: Destination phone must not be empty): url=https://developers.sanoflow.io/api/v1.1/messages/whatsapp/send-template; method=post
 - [3] airtable:ActionCreateRecord «Log Send»: base=appkOnjPr1SMD83CP; table=tbldCbNEKeF5NrTCs
 - [4] airtable:ActionUpdateRecords «Mark Recall Sent (Live only)»: base=app7QJ2pvhADHQeBP; table=tbl9856qJP9S7OEqB

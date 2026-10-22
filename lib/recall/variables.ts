@@ -1,7 +1,8 @@
 /**
  * Which value fills each {{n}} of a recall template (recall_programme_templates.variables_map, docs/49 D16).
  *
- * A stored value is one source path with an optional fallback: "contact.first_name|default:Patient". The engine
+ * A stored value is one source path, optionally title-cased like Make's startcase, with an optional fallback:
+ * "contact.first_name|title|default:Patient". The engine
  * renders it through renderValues (lib/recall/engine.ts), so the sources here are exactly the patient-facing
  * paths renderValues fills. Internal keys (recall.segment, recall.cycle) and the raw appointment start time are left
  * out on purpose: they would put a code or an ISO timestamp in a patient's message.
@@ -16,10 +17,10 @@ export const RECALL_VARIABLE_SOURCES = [
 ] as const;
 
 export type RecallSource = (typeof RECALL_VARIABLE_SOURCES)[number]["key"];
-export type RecallVariable = { source: RecallSource; fallback: string };
+export type RecallVariable = { source: RecallSource; fallback: string; title: boolean };
 
-/** What the seed puts in {{1}} for chronic and birthday groups (Make's rule: first name, else "Patient"). */
-export const DEFAULT_RECALL_VARIABLE = "contact.first_name|default:Patient";
+/** What the seed puts in {{1}} for chronic and birthday groups (Make's rule: first name in title case, else "Patient"). */
+export const DEFAULT_RECALL_VARIABLE = "contact.first_name|title|default:Patient";
 
 export const FALLBACK_MAX = 60;
 const SOURCES: ReadonlySet<string> = new Set(RECALL_VARIABLE_SOURCES.map((s) => s.key));
@@ -43,16 +44,24 @@ export function splitRecallVariable(expr: string | undefined | null): RecallVari
   if (!expr) return null;
   const [path, ...filters] = expr.split("|").map((s) => s.trim());
   if (!path || !isRecallSource(path)) return null;
-  if (filters.length === 0) return { source: path, fallback: "" };
-  if (filters.length > 1) return null;
-  const m = /^default:(.*)$/.exec(filters[0]!);
-  if (!m) return null;
-  return { source: path, fallback: m[1]!.trim() };
+  const out: RecallVariable = { source: path, fallback: "", title: false };
+  let i = 0;
+  if (filters[i] === "title") {
+    out.title = true;
+    i++;
+  }
+  if (i < filters.length) {
+    const m = /^default:(.*)$/.exec(filters[i]!);
+    if (!m) return null;
+    out.fallback = m[1]!.trim();
+    i++;
+  }
+  return i === filters.length ? out : null;
 }
 
 export function joinRecallVariable(v: RecallVariable): string {
   const fallback = v.fallback.trim();
-  return fallback ? `${v.source}|default:${fallback}` : v.source;
+  return `${v.source}${v.title ? "|title" : ""}${fallback ? `|default:${fallback}` : ""}`;
 }
 
 export type ParsedMap = { ok: true; map: Record<string, string> } | { ok: false; error: string };
@@ -62,7 +71,7 @@ export type ParsedMap = { ok: true; map: Record<string, string> } | { ok: false;
  * source and a plain fallback. Errors name the variable, never the typed text.
  */
 export function parseRecallVariableMap(
-  input: Record<string, { source: string; fallback?: string }>,
+  input: Record<string, { source: string; fallback?: string; title?: boolean }>,
   bodyKeys: readonly string[],
 ): ParsedMap {
   const allowed = new Set(bodyKeys);
@@ -84,7 +93,7 @@ export function parseRecallVariableMap(
         ok: false,
         error: `The fallback for ${label(key)} cannot contain braces, a | or quotation marks.`,
       };
-    map[key] = joinRecallVariable({ source: v.source, fallback });
+    map[key] = joinRecallVariable({ source: v.source, fallback, title: v.title === true });
   }
   return { ok: true, map };
 }

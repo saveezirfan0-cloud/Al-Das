@@ -1,18 +1,24 @@
 /**
  * Reminder planning and template values (pure).
  *
- * Booking rules define up to three reminders relative to the appointment start. Each reminder is a
- * row in appointment_reminders (unique per appointment + idx) plus one scheduled_jobs entry, so a
- * re-sync or an edit can never double-send.
+ * Booking rules define up to three reminders relative to the appointment start ("offsets"), or one
+ * reminder on the day before the visit at set times ("day_before", Make's 12:00 run with the 18:00
+ * catch-up, docs/49 D8). Each reminder is a row in appointment_reminders (unique per appointment + idx)
+ * plus one scheduled_jobs entry, so a re-sync or an edit can never double-send.
  */
 import { formatInTimeZone } from "date-fns-tz";
 
+import { localDate, localMinutesToInstant, shiftLocalDate } from "@/lib/appointments/slots";
 import { isInactive, type AppointmentStatus } from "@/lib/appointments/status";
+import { titleCase } from "@/lib/flow-engine/interpolate";
 import { householdNameValues } from "@/lib/household/addressing";
 import { templateVariables } from "@/lib/whatsapp/templates";
 import type { MetaTemplateComponent } from "@/lib/whatsapp/types";
 
 export type ReminderRule = { enabled: boolean; hours_before: number };
+
+/** "offsets": the rules above. "day_before": one reminder the day before the visit, at the first of `times` still ahead. */
+export type ReminderSchedule = { mode: "offsets" | "day_before"; times: readonly string[] };
 
 export type DesiredReminder = { idx: number; dueAt: Date };
 
@@ -29,8 +35,17 @@ export function computeReminders(opts: {
   now: Date;
   status: AppointmentStatus;
   rules: readonly ReminderRule[];
+  schedule?: ReminderSchedule;
+  timezone?: string;
 }): DesiredReminder[] {
   if (isInactive(opts.status)) return [];
+  if (opts.schedule?.mode === "day_before") {
+    // Make: 12:00 for every appointment of tomorrow, 18:00 for those booked since; nothing later, nothing same-day.
+    const next = dayBeforeRuns(opts.startsAt, opts.schedule, opts.timezone ?? "Asia/Dubai").find(
+      (run) => run.getTime() > opts.now.getTime(),
+    );
+    return next ? [{ idx: 1, dueAt: next }] : [];
+  }
   const out: DesiredReminder[] = [];
   opts.rules.slice(0, 3).forEach((rule, i) => {
     if (!rule.enabled) return;
@@ -39,6 +54,43 @@ export function computeReminders(opts: {
     out.push({ idx: i + 1, dueAt });
   });
   return out;
+}
+
+function minutesOf(hhmm: string): number | null {
+  const m = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(hhmm);
+  return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+}
+
+/** The run times on the local day before the visit, earliest first. */
+export function dayBeforeRuns(
+  startsAt: Date,
+  schedule: ReminderSchedule,
+  timezone: string,
+): Date[] {
+  const dayBefore = shiftLocalDate(localDate(startsAt, timezone), -1);
+  return [...new Set(schedule.times.map(minutesOf).filter((m): m is number => m !== null))]
+    .sort((a, b) => a - b)
+    .map((m) => localMinutesToInstant(dayBefore, m, timezone));
+}
+
+/**
+ * Make's implicit retry: a day-before reminder that failed is tried again at the next run of the same
+ * day (the 18:00 run skips only appointments with a logged send). Null when there is no later run, the
+ * schedule is "offsets", or that run has passed; the failure is then reported as before.
+ */
+export function reminderRetryAt(opts: {
+  dueAt: Date;
+  startsAt: Date;
+  now: Date;
+  schedule: ReminderSchedule;
+  timezone: string;
+}): Date | null {
+  if (opts.schedule.mode !== "day_before") return null;
+  const next = dayBeforeRuns(opts.startsAt, opts.schedule, opts.timezone).find(
+    (run) => run.getTime() > opts.dueAt.getTime(),
+  );
+  if (!next || next.getTime() <= opts.now.getTime() || next >= opts.startsAt) return null;
+  return next;
 }
 
 /**
@@ -56,17 +108,20 @@ export function remindersAllowed(
 /**
  * Diff the desired reminders against what is stored. A reminder is (re)scheduled when it is new or
  * its due time moved (appointment rescheduled); rows no longer wanted are cancelled unless they have
- * already gone out.
+ * already gone out. `sameDue` says when a stored due time still counts as the same reminder: exact
+ * equality for offsets; the same local day for day-before runs, so a reminder sent or failed at 12:00
+ * is not sent again at 18:00 by a re-sync, while a move to another day plans it afresh.
  */
 export function planReminders(
   desired: readonly DesiredReminder[],
   existing: readonly ExistingReminder[],
+  sameDue: (stored: Date, wanted: Date) => boolean = (a, b) => a.getTime() === b.getTime(),
 ): { upsert: DesiredReminder[]; cancel: number[] } {
   const byIdx = new Map(existing.map((e) => [e.idx, e]));
   const upsert: DesiredReminder[] = [];
   for (const d of desired) {
     const e = byIdx.get(d.idx);
-    if (!e || new Date(e.due_at).getTime() !== d.dueAt.getTime() || e.status === "cancelled") {
+    if (!e || !sameDue(new Date(e.due_at), d.dueAt) || e.status === "cancelled") {
       upsert.push(d);
     }
   }
@@ -75,6 +130,16 @@ export function planReminders(
     .filter((e) => !wanted.has(e.idx) && e.status === "scheduled")
     .map((e) => e.idx);
   return { upsert, cancel };
+}
+
+/** Same local calendar day: the day-before comparison for planReminders. */
+export function sameLocalDay(timezone: string): (a: Date, b: Date) => boolean {
+  return (a, b) => localDate(a, timezone) === localDate(b, timezone);
+}
+
+/** Key of the retry job (a different key, so it never collides with the job being processed). */
+export function reminderRetryDedupeKey(appointmentId: string, idx: number): string {
+  return `${reminderDedupeKey(appointmentId, idx)}:retry`;
 }
 
 export function reminderDedupeKey(appointmentId: string, idx: number): string {
@@ -113,7 +178,8 @@ export type AppointmentTemplateContext = {
 
 /** Values a variable_map entry may point at. */
 export function appointmentValueMap(ctx: AppointmentTemplateContext): Record<string, string> {
-  const first = (ctx.contact.first_name ?? "").trim().split(/\s+/)[0] || "Patient";
+  // Make: ifempty(first(split(startcase(full name); space)); "Patient"), so the first word in title case.
+  const first = titleCase((ctx.contact.first_name ?? "").trim().split(/\s+/)[0] ?? "") || "Patient";
   const last = (ctx.contact.last_name ?? "").trim();
   const household = householdNameValues({
     patient: ctx.contact,
@@ -159,7 +225,9 @@ export function buildAppointmentTemplateValues(
     ...ctx,
     explicitPatientVariable:
       ctx.explicitPatientVariable ??
-      Object.values(variableMap ?? {}).some((v) => typeof v === "string" && v.startsWith("patient.")),
+      Object.values(variableMap ?? {}).some(
+        (v) => typeof v === "string" && v.startsWith("patient."),
+      ),
   });
   const out: Record<string, string> = {};
   for (const v of templateVariables(components)) {

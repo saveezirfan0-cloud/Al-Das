@@ -17,7 +17,12 @@ import {
   rescheduleAppointment,
   syncAppointmentReminders,
 } from "@/lib/appointments/service";
-import { isoWeekday, localDate, localMinutesToInstant } from "@/lib/appointments/slots";
+import {
+  isoWeekday,
+  localDate,
+  localMinutesToInstant,
+  shiftLocalDate,
+} from "@/lib/appointments/slots";
 import { processReminder, reportReminderFailure } from "@/lib/jobs/handlers/appointments";
 import type { AdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/lib/supabase/types";
@@ -521,11 +526,157 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)(
       expect(await tasks()).toHaveLength(1);
 
       // Once the call is made, a later failure may raise a new one.
-      await admin.from("tasks").update({ done: true, done_at: new Date().toISOString() }).eq("id", rows[0].id);
+      await admin
+        .from("tasks")
+        .update({ done: true, done_at: new Date().toISOString() })
+        .eq("id", rows[0].id);
       await reportReminderFailure(admin, org, appt.id, appt.number, "delivery failed");
       rows = await tasks();
       expect(rows).toHaveLength(2);
       expect(rows.filter((t) => !t.done)).toHaveLength(1);
+    });
+
+    it("day-before reminders retry once at the next run, then report (Make's 12:00 and 18:00, docs/49 D8)", async () => {
+      // templates.reminder is still unset from the test above, so every send fails.
+      await c.query(
+        `update public.orgs set settings = jsonb_set(settings, '{appointments,reminder_schedule}', '{"mode":"day_before","times":["12:00","18:00"]}') where id = $1`,
+        [org],
+      );
+      const r = await createAppointment(admin, {
+        orgId: org,
+        actorId: user,
+        contactId: id.contact,
+        locationId: id.loc,
+        specialistId: id.spec,
+        serviceId: id.svc,
+        startsAt: at("10:15"),
+        override: true,
+      });
+      if (!r.ok) throw new Error(r.error);
+      const appt = r.appointment;
+      const dayBefore = shiftLocalDate(monday, -1);
+      const noon = localMinutesToInstant(dayBefore, 12 * 60, "Asia/Dubai");
+      const six = localMinutesToInstant(dayBefore, 18 * 60, "Asia/Dubai");
+      const reminder = async () =>
+        (
+          await admin
+            .from("appointment_reminders")
+            .select("id, status, due_at, error")
+            .eq("appointment_id", appt.id)
+            .single()
+        ).data!;
+      const rem = await reminder();
+      expect(new Date(rem.due_at).getTime()).toBe(noon.getTime());
+      const tasks = async () =>
+        (await admin.from("tasks").select("id").eq("appointment_id", appt.id)).data ?? [];
+
+      // The 12:00 run fails: the reminder waits for 18:00, with no task yet.
+      expect(await processReminder(admin, org, rem.id, log, new Date(noon.getTime() + 1000))).toBe(
+        "failed",
+      );
+      const retried = await reminder();
+      expect(retried.status).toBe("scheduled");
+      expect(new Date(retried.due_at).getTime()).toBe(six.getTime());
+      expect(retried.error).toBeTruthy();
+      expect(await tasks()).toHaveLength(0);
+      const { data: jobs } = await admin
+        .from("scheduled_jobs")
+        .select("id")
+        .eq("dedupe_key", `reminder:${appt.id}:1:retry`)
+        .is("done_at", null);
+      expect(jobs).toHaveLength(1);
+
+      // A re-sync (sweep) does not move it or send it twice.
+      const sync = await syncAppointmentReminders(admin, appt, {});
+      expect(sync.scheduled).toBe(0);
+
+      // The 18:00 run fails too: now it is reported, as before.
+      expect(await processReminder(admin, org, rem.id, log, new Date(six.getTime() + 1000))).toBe(
+        "failed",
+      );
+      expect((await reminder()).status).toBe("failed");
+      expect(await tasks()).toHaveLength(1);
+
+      await c.query(
+        `update public.orgs set settings = settings #- '{appointments,reminder_schedule}' where id = $1`,
+        [org],
+      );
+    });
+
+    it("reminder exclusions can be limited to one branch; the defaults follow each branch's Make filter (D10)", async () => {
+      await c.query("set role service_role");
+      const loc = async (name: string, ext: string) =>
+        (
+          await c.query<{ id: string }>(
+            "insert into public.locations (org_id, name, external_id) values ($1, $2, $3) returning id",
+            [org, name, ext],
+          )
+        ).rows[0].id;
+      const palm = await loc("Palm Demo", "DHA-F-0000419");
+      const golden = await loc("Golden Demo", "DHA-F-6456618");
+      const excluded = async (name: string, location: string | null) =>
+        (
+          await c.query<{ x: boolean }>(
+            "select public.is_reminder_excluded($1, $2, 'Dr Nobody', $3) as x",
+            [org, name, location],
+          )
+        ).rows[0].x;
+
+      await c.query("delete from public.reminder_exclusions where org_id = $1", [org]);
+      await c.query("select public.seed_reminder_exclusions($1)", [org]);
+      // Palm Jumeirah: contains SHORELINE / block, equals Break.
+      expect(await excluded("SHORELINE 2", palm)).toBe(true);
+      expect(await excluded("Breakfast slot", palm)).toBe(false);
+      expect(await excluded("break", palm)).toBe(true);
+      // Golden Mile: equals SHORELINE / block, contains break.
+      expect(await excluded("SHORELINE 2", golden)).toBe(false);
+      expect(await excluded("shoreline", golden)).toBe(true);
+      expect(await excluded("Lunch Break", golden)).toBe(true);
+      // Every branch: golden mile / meadows.
+      expect(await excluded("Meadows", palm)).toBe(true);
+      expect(await excluded("meadows", golden)).toBe(true);
+      // The earlier all-branch rows gave way to the branch rows.
+      const { rows } = await c.query(
+        "select count(*)::int as n from public.reminder_exclusions where org_id = $1 and location_id is null and active and value in ('SHORELINE','block','break')",
+        [org],
+      );
+      expect(rows[0].n).toBe(0);
+      // Seeding again adds nothing.
+      const before = (
+        await c.query(
+          "select count(*)::int as n from public.reminder_exclusions where org_id = $1",
+          [org],
+        )
+      ).rows[0].n;
+      await c.query("select public.seed_reminder_exclusions($1)", [org]);
+      expect(
+        (
+          await c.query(
+            "select count(*)::int as n from public.reminder_exclusions where org_id = $1",
+            [org],
+          )
+        ).rows[0].n,
+      ).toBe(before);
+
+      // A rule of one branch never applies at another; the three-argument form ignores branch rules.
+      await c.query(
+        "insert into public.reminder_exclusions (org_id, kind, match_type, value, location_id) values ($1, 'placeholder_name', 'equals', 'Only Golden', $2)",
+        [org, golden],
+      );
+      expect(await excluded("only golden", golden)).toBe(true);
+      expect(await excluded("only golden", palm)).toBe(false);
+      expect(
+        (
+          await c.query<{ x: boolean }>(
+            "select public.is_reminder_excluded($1, 'only golden', 'Dr Nobody') as x",
+            [org],
+          )
+        ).rows[0].x,
+      ).toBe(false);
+
+      await c.query("delete from public.reminder_exclusions where org_id = $1", [org]);
+      await c.query("delete from public.locations where id in ($1, $2)", [palm, golden]);
+      await c.query("reset role");
     });
 
     it("Phase 20c: the slot list and booking honour slot length, buffers, weekly blocks and places", async () => {
@@ -553,7 +704,15 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)(
       );
       await c.query("reset role");
 
-      const q = { orgId: org, specialistId: spec, locationId: id.loc, date: monday, durationMin: 40, serviceId: group, ignoreLeadTime: true };
+      const q = {
+        orgId: org,
+        specialistId: spec,
+        locationId: id.loc,
+        date: monday,
+        durationMin: 40,
+        serviceId: group,
+        ignoreLeadTime: true,
+      };
       const labels = async () => (await slotsForDay(admin, q)).map((s) => s.label);
       // 20-minute steps; 40 minutes + 20 cleaning must stay clear of the 10:40 break.
       expect(await labels()).toEqual(["09:00", "09:20", "09:40", "11:00", "11:20"]);

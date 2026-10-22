@@ -246,6 +246,8 @@ export async function runProgramme(deps: RecallDeps, programmeId: string): Promi
         contactId: recipient.id,
         waTemplateId: tpl.id,
         values,
+        programmeKey: p.key,
+        live: mode === "live",
       });
       await store.updateSend(send.id, {
         message_id: sent.messageId,

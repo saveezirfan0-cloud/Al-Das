@@ -5,7 +5,20 @@ import {
   type HttpResult,
 } from "@/lib/integrations/client";
 
-import { SANOFLOW_CONTACTS_URL, SANOFLOW_HOST, SANOFLOW_SEND_TEMPLATE_URL } from "./config";
+import {
+  SANOFLOW_CONTACTS_ADD_URL,
+  SANOFLOW_CONTACTS_EDIT_URL,
+  SANOFLOW_CONTACTS_URL,
+  SANOFLOW_HOST,
+  SANOFLOW_SEND_TEMPLATE_URL,
+} from "./config";
+import {
+  answerSaysInvalidChannel,
+  parseContactList,
+  readAddedContactId,
+  type ContactEdit,
+  type SanoflowContact,
+} from "./contacts";
 
 /**
  * The Sanoflow API adapter (OQ-182), built on the shared integration client: only developers.sanoflow.io, https, no redirects,
@@ -30,7 +43,13 @@ export type SanoflowSendResult =
       auth: boolean;
       /** The answer carried WhatsApp's 131050 (the person stopped marketing messages). */
       stopMarketing: boolean;
+      /** Sanoflow answered "Invalid channel details." (Make's reminder error path, docs/49 D9). */
+      invalidChannel: boolean;
     };
+
+/** A contacts call: the value, or a failure code; `ambiguous` means a write may have happened (never repeat it). */
+export type SanoflowCallResult<T> =
+  { ok: true; value: T } | { ok: false; code: string; ambiguous: boolean };
 
 export interface SanoflowClient {
   sendTemplate(input: {
@@ -39,6 +58,18 @@ export interface SanoflowClient {
     values: readonly string[];
   }): Promise<SanoflowSendResult>;
   verify(): Promise<{ ok: boolean; code?: string }>;
+  /** GET v1.1/contacts/list by phone or by Sanoflow contact id. */
+  contactsList(
+    query: { phone: string } | { contactId: number },
+  ): Promise<SanoflowCallResult<SanoflowContact[]>>;
+  /** POST v1/contacts/add (no idempotency key: a timeout or 5xx is ambiguous). */
+  contactsAdd(input: {
+    firstName: string;
+    lastName: string;
+    phone: string;
+  }): Promise<SanoflowCallResult<{ contactId: number | null }>>;
+  /** POST v1.1/contacts/edit: replaces the contact's tag list (and label when given), so repeating it is harmless. */
+  contactsEdit(input: ContactEdit): Promise<SanoflowCallResult<null>>;
 }
 
 export type SanoflowClientOptions = { accessToken: string } & Partial<
@@ -102,6 +133,22 @@ function failure(res: HttpResult): SanoflowSendResult {
     ambiguous: false,
     auth,
     stopMarketing: answerStopsMarketing(res.json),
+    invalidChannel: answerSaysInvalidChannel(res.json),
+  };
+}
+
+function callFailure(err: unknown): { ok: false; code: string; ambiguous: boolean } {
+  if (err instanceof IntegrationError)
+    return { ok: false, code: err.kind, ambiguous: err.ambiguous };
+  throw err;
+}
+
+function httpFailure(res: HttpResult): { ok: false; code: string; ambiguous: false } {
+  const auth = res.status === 401 || res.status === 403;
+  return {
+    ok: false,
+    code: auth ? "auth" : res.ok ? "rejected" : `http_${res.status}`,
+    ambiguous: false,
   };
 }
 
@@ -151,6 +198,7 @@ export function createSanoflowClient(o: SanoflowClientOptions): SanoflowClient |
             ambiguous: err.ambiguous,
             auth: false,
             stopMarketing: false,
+            invalidChannel: false,
           };
         }
         throw err;
@@ -173,6 +221,70 @@ export function createSanoflowClient(o: SanoflowClientOptions): SanoflowClient |
         return res.ok ? { ok: true } : { ok: false, code: `http_${res.status}` };
       } catch (err) {
         return { ok: false, code: err instanceof IntegrationError ? err.kind : "error" };
+      }
+    },
+
+    async contactsList(query) {
+      const qs =
+        "phone" in query
+          ? `phone=${encodeURIComponent(query.phone)}`
+          : `contact_id=${encodeURIComponent(String(query.contactId))}`;
+      try {
+        const res = await client.request({
+          operation: "sanoflow.contacts_list",
+          method: "GET",
+          url: `${SANOFLOW_CONTACTS_URL}?${qs}`,
+          headers,
+        });
+        if (!res.ok || answerSaysFailed(res.json)) return httpFailure(res);
+        return { ok: true, value: parseContactList(res.json) };
+      } catch (err) {
+        return callFailure(err);
+      }
+    },
+
+    async contactsAdd(input) {
+      try {
+        const res = await client.request({
+          operation: "sanoflow.contacts_add",
+          method: "POST",
+          url: SANOFLOW_CONTACTS_ADD_URL,
+          headers,
+          body: JSON.stringify({
+            first_name: input.firstName,
+            last_name: input.lastName,
+            phone: input.phone,
+          }),
+          idempotent: false,
+        });
+        if (!res.ok || answerSaysFailed(res.json)) return httpFailure(res);
+        return { ok: true, value: { contactId: readAddedContactId(res.json) } };
+      } catch (err) {
+        return callFailure(err);
+      }
+    },
+
+    async contactsEdit(input) {
+      try {
+        const res = await client.request({
+          operation: "sanoflow.contacts_edit",
+          method: "POST",
+          url: SANOFLOW_CONTACTS_EDIT_URL,
+          headers,
+          body: JSON.stringify({
+            contact_id: input.contactId,
+            first_name: input.firstName,
+            last_name: input.lastName,
+            ...(input.label !== undefined ? { label: input.label } : {}),
+            tags: input.tags,
+          }),
+          // The whole tag list and label are replaced, so a repeat writes the same state.
+          idempotent: true,
+        });
+        if (!res.ok || answerSaysFailed(res.json)) return httpFailure(res);
+        return { ok: true, value: null };
+      } catch (err) {
+        return callFailure(err);
       }
     },
   };

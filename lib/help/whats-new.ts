@@ -9,6 +9,12 @@ export const WHATS_NEW: readonly WhatsNewEntry[] = [
     body: "Revenue per patient now counts paid patients only: a patient whose visits were all zero-invoice follow-ups is left out, as Finance measures the AED 750 target. In Flash settings each reporting line has its operating days for the month (for example 26 for a branch closed on Sundays); the month target is the daily target times them. Lab bills and lab requests now match up to 5 days apart, and lab cost follows the branch on the Unite bill.",
   },
   {
+    id: "2026-12-26-make-parity",
+    date: "2026-10-22",
+    title: "Reminders and recalls now work like the Make scenarios",
+    body: "Under Settings, Appointments, Booking rules, reminders can go out the day before the visit at set times (12:00, then 18:00 for later bookings), and one that fails at 12:00 is tried again at 18:00. Reminder exclusions can be limited to one branch, and Load previous defaults copies each branch's old filter. Chronic recall now needs a 60- or 90-day prescription, as the Airtable view did, and no longer asks for clinical consent per patient. Birthday messages go out at 12:00 without the promotions opt-in unless the template is a marketing one. Patient names in these messages are capitalised. When Pulse sends through Sanoflow, it tags the patient in Sanoflow the way Make does.",
+  },
+  {
     id: "2026-12-25-group-pack",
     date: "2026-10-21",
     title: "Group pack: Al Das's part of the Bindrai reporting pack",

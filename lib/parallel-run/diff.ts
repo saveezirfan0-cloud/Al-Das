@@ -30,10 +30,14 @@ export const COMPARABLE: ReadonlySet<ScenarioKey> = new Set<ScenarioKey>([
 export const EXPECTED_DIFFERENCES: Partial<Record<ScenarioKey, string>> = {
   chronic_recall:
     "Pulse is expected to select patients Make does not: those with a chronic-coded visit that Make never added to their " +
-    'Chronic Diagnosis list, and those the Airtable view leaves out through its "60 days >" (60/90-day prescription) ' +
-    "filter, which Pulse does not apply (OQ-104 (4)). Pulse skips opted-out and test patients, and in Live mode patients " +
-    "without clinical-messaging consent (OQ-104 (6)). Make messages a patient once ever; Pulse once per last-visit date " +
-    "(OQ-104 (5)). Both count days from Unite's last visit date (Pulse uses a later Pulse visit when there is one).",
+    'Chronic Diagnosis list. Like the Airtable view, Pulse requires "60 days >" (a 60/90-day prescription, imported from ' +
+    "Airtable) and more than 85 days since the last visit (docs/49 D1, D2). Pulse skips opted-out and test patients. Make " +
+    "messages a patient once ever; Pulse once per last-visit date (OQ-104 (5)). Both count days from Unite's last visit " +
+    "date (Pulse uses a later Pulse visit when there is one).",
+  birthday:
+    "Same bands and templates as Make. Pulse greets by first name (Make: last name, else first name; docs/49 D5), " +
+    "skips opted-out and test patients, sends once per year rather than once ever (OQ-17), and sends a Marketing " +
+    "template only to patients who opted in to promotions (D6).",
 };
 
 export function hashRef(orgId: string, id: string): string {

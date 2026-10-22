@@ -38,6 +38,10 @@ function redact(o: any): any {
     const out: any = {};
     for (const [k, v] of Object.entries(o)) {
       if (k === "samples") continue; // sample bundles contain patient data
+      if (/^(spreadsheetId|spreadsheet|sheetId|fileId|documentId)$/.test(k) && typeof v === "string") {
+        out[k] = "[REDACTED_DOC_ID]"; // a shared Sheet id can open patient rows
+        continue;
+      }
       if (typeof v === "string" && SECRET_KEY.test(k)) {
         out[k] = "[REDACTED]";
         continue;
@@ -60,7 +64,10 @@ function redact(o: any): any {
         "$1[REDACTED]",
       )
       .replace(/eyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-.]+/g, "[REDACTED_JWT]")
-      .replace(/[A-Za-z0-9+/]{30,}={1,2}[A-Za-z0-9+/=]*/g, "[REDACTED_B64]");
+      .replace(/[A-Za-z0-9+/]{30,}={1,2}[A-Za-z0-9+/=]*/g, "[REDACTED_B64]")
+      .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, "[REDACTED_EMAIL]")
+      .replace(/\+[1-9][0-9]{9,14}\b/g, "[REDACTED_PHONE]")
+      .replace(/(docs\.google\.com\/[a-z]+\/d\/)[A-Za-z0-9_-]{20,}/g, "$1[REDACTED_DOC_ID]");
   }
   return o;
 }
@@ -88,65 +95,73 @@ function summarise(flow: any[], depth = 0, lines: string[] = []): string[] {
   return lines;
 }
 
-const all = process.argv.includes("--all");
-const { scenarios } = await api(`/scenarios?teamId=${TEAM}&pg[limit]=500`);
-fs.writeFileSync(path.join(OUT, "scenarios_list.json"), JSON.stringify(scenarios, null, 2));
-const index: string[] = ["| id | name | active | trigger | ops |", "|---|---|---|---|---|"];
+async function main() {
+  const all = process.argv.includes("--all");
+  const { scenarios } = await api(`/scenarios?teamId=${TEAM}&pg[limit]=500`);
+  fs.writeFileSync(path.join(OUT, "scenarios_list.json"), JSON.stringify(redact(scenarios), null, 2));
+  const index: string[] = ["| id | name | active | trigger | ops |", "|---|---|---|---|---|"];
 
-for (const s of scenarios) {
-  const active = s.islinked && !s.isPaused;
-  index.push(
-    `| ${s.id} | ${s.name} | ${active ? "ON" : "off"} | ${s.hookId ? "webhook" : s.scheduling?.type} | ${s.operations ?? ""} |`,
-  );
-  if (!active && !all) continue;
-  const { response } = await api(`/scenarios/${s.id}/blueprint`);
-  const bp = response?.blueprint ?? response;
-  const safe = `${s.id}_${s.name}`.replace(/[^A-Za-z0-9]+/g, "_").slice(0, 80);
+  for (const s of scenarios) {
+    const active = s.islinked && !s.isPaused;
+    index.push(
+      `| ${s.id} | ${s.name} | ${active ? "ON" : "off"} | ${s.hookId ? "webhook" : s.scheduling?.type} | ${s.operations ?? ""} |`,
+    );
+    if (!active && !all) continue;
+    const { response } = await api(`/scenarios/${s.id}/blueprint`);
+    const bp = response?.blueprint ?? response;
+    const safe = `${s.id}_${s.name}`.replace(/[^A-Za-z0-9]+/g, "_").slice(0, 80);
+    fs.writeFileSync(
+      path.join(OUT, `${safe}.blueprint.redacted.json`),
+      JSON.stringify(redact(bp), null, 2),
+    );
+    fs.writeFileSync(
+      path.join(OUT, `${safe}.summary.md`),
+      `### ${s.name} (id ${s.id})\n${summarise(bp.flow).join("\n")}\n`,
+    );
+    console.log(`✔ ${s.name}`);
+  }
+  fs.writeFileSync(path.join(OUT, "INDEX.md"), index.join("\n") + "\n");
+
+  // Data stores: structure only (never records)
+  const { dataStores } = await api(`/data-stores?teamId=${TEAM}`);
   fs.writeFileSync(
-    path.join(OUT, `${safe}.blueprint.redacted.json`),
-    JSON.stringify(redact(bp), null, 2),
+    path.join(OUT, "data_stores.json"),
+    JSON.stringify(
+      dataStores.map((d: any) => ({
+        id: d.id,
+        name: d.name,
+        records: d.records,
+        datastructureId: d.datastructureId,
+      })),
+      null,
+      2,
+    ),
   );
+
+  // Webhooks: names + linked scenario (URLs are secrets-ish: keep out of git)
+  const { hooks } = await api(`/hooks?teamId=${TEAM}`);
   fs.writeFileSync(
-    path.join(OUT, `${safe}.summary.md`),
-    `### ${s.name} (id ${s.id})\n${summarise(bp.flow).join("\n")}\n`,
+    path.join(OUT, "hooks.json"),
+    JSON.stringify(
+      hooks.map((h: any) => ({
+        id: h.id,
+        name: h.name,
+        typeName: h.typeName,
+        scenarioId: h.scenarioId,
+        enabled: h.enabled,
+      })),
+      null,
+      2,
+    ),
   );
-  console.log(`✔ ${s.name}`);
+
+  console.log(
+    `Done → ${OUT}. Commit the redacted files only; add docs/audit/make-raw/hooks.json to .gitignore if unsure.`,
+  );
 }
-fs.writeFileSync(path.join(OUT, "INDEX.md"), index.join("\n") + "\n");
 
-// Data stores: structure only (never records)
-const { dataStores } = await api(`/data-stores?teamId=${TEAM}`);
-fs.writeFileSync(
-  path.join(OUT, "data_stores.json"),
-  JSON.stringify(
-    dataStores.map((d: any) => ({
-      id: d.id,
-      name: d.name,
-      records: d.records,
-      datastructureId: d.datastructureId,
-    })),
-    null,
-    2,
-  ),
-);
-
-// Webhooks: names + linked scenario (URLs are secrets-ish: keep out of git)
-const { hooks } = await api(`/hooks?teamId=${TEAM}`);
-fs.writeFileSync(
-  path.join(OUT, "hooks.json"),
-  JSON.stringify(
-    hooks.map((h: any) => ({
-      id: h.id,
-      name: h.name,
-      typeName: h.typeName,
-      scenarioId: h.scenarioId,
-      enabled: h.enabled,
-    })),
-    null,
-    2,
-  ),
-);
-
-console.log(
-  `Done → ${OUT}. Commit the redacted files only; add docs/audit/make-raw/hooks.json to .gitignore if unsure.`,
-);
+// Wrapped in main(): tsx compiles this file as CommonJS, which has no top-level await.
+main().catch((err) => {
+  console.error(err instanceof Error ? err.message.slice(0, 200) : "export failed");
+  process.exit(1);
+});

@@ -7,6 +7,7 @@ import {
   syncAppointmentReminders,
 } from "@/lib/appointments/service";
 import { applyReminderReply } from "@/lib/appointments/replies";
+import { reminderRetryAt, reminderRetryDedupeKey } from "@/lib/appointments/reminders";
 import { expireOffer, handleOfferReply, offerFreedSlot } from "@/lib/front-desk/offers";
 import { classifyOfferButton, classifyOfferReply } from "@/lib/front-desk/waitlist";
 import { WHATSAPP_DECLINED_REASON } from "@/lib/front-desk/whatsapp-consent";
@@ -18,6 +19,7 @@ import { queueSmsFallback } from "@/lib/integrations/sms/fallback";
 import { processReviewRequest } from "@/lib/integrations/reviews/server";
 import { cleanupRoom } from "@/lib/integrations/telehealth/server";
 import { redactText } from "@/lib/redact";
+import { scheduleJob } from "@/lib/jobs/enqueue";
 import { registerHandler } from "@/lib/jobs/registry";
 import { registerTask } from "@/lib/jobs/tasks";
 import { PermanentJobError, type JobLogger } from "@/lib/jobs/types";
@@ -82,7 +84,7 @@ export async function processReminder(
   const { data: reminder } = await admin
     .from("appointment_reminders")
     .select(
-      "id, status, due_at, appointment_id, appointments(id, number, status, starts_at, contact_id, specialist_id, custom)",
+      "id, idx, status, due_at, appointment_id, appointments(id, number, status, starts_at, contact_id, specialist_id, location_id, custom)",
     )
     .eq("id", reminderId)
     .eq("org_id", orgId)
@@ -119,10 +121,12 @@ export async function processReminder(
     loadOrgSettings(admin, orgId),
   ]);
 
+  // Branch-specific rules apply only at their branch (the Make filters differ per branch, docs/49 D10).
   const { data: excluded } = await admin.rpc("is_reminder_excluded", {
     p_org: orgId,
     p_patient_name: contact?.full_name ?? "",
     p_doctor_name: specialist?.name ?? "",
+    p_location: appt.location_id ?? null,
   });
   if (excluded) {
     await finish({ status: "excluded", exclusion_reason: "exclusion_list" });
@@ -158,6 +162,10 @@ export async function processReminder(
   });
   if (!result.ok) {
     await finish({ status: "failed", error: result.error.slice(0, 300) });
+    if (await retryAtNextRun(admin, orgId, reminder, appt.starts_at, now)) {
+      log.warn("reminder not sent; retried at the next run", { reminderId: reminder.id });
+      return "failed";
+    }
     await reportReminderFailure(admin, orgId, appt.id, appt.number, result.error, {
       reminderId: reminder.id,
     });
@@ -171,6 +179,45 @@ export async function processReminder(
     message_id: result.messageId,
   });
   return "sent";
+}
+
+/**
+ * Day-before reminders follow Make's implicit retry: one that failed at 12:00 is tried again at 18:00
+ * (reminderRetryAt). The row goes back to 'scheduled' with its error kept; the call task, the SMS
+ * fallback and the notice wait for the last run. True when a retry was scheduled.
+ */
+async function retryAtNextRun(
+  admin: AdminClient,
+  orgId: string,
+  reminder: { id: string; idx: number; due_at: string; appointment_id: string },
+  startsAt: string,
+  now: Date,
+): Promise<boolean> {
+  const { settings, timezone } = await loadOrgSettings(admin, orgId);
+  const next = reminderRetryAt({
+    dueAt: new Date(reminder.due_at),
+    startsAt: new Date(startsAt),
+    now,
+    schedule: settings.reminder_schedule,
+    timezone,
+  });
+  if (!next) return false;
+  const { data: rearmed } = await admin
+    .from("appointment_reminders")
+    .update({ status: "scheduled", due_at: next.toISOString(), sent_at: null, message_id: null })
+    .eq("id", reminder.id)
+    .eq("org_id", orgId)
+    .eq("status", "failed")
+    .select("id");
+  if (!rearmed?.length) return false;
+  await scheduleJob({
+    kind: "appointment.reminder",
+    payload: { reminder_id: reminder.id },
+    runAt: next,
+    orgId,
+    dedupeKey: reminderRetryDedupeKey(reminder.appointment_id, reminder.idx),
+  });
+  return true;
 }
 
 /** How long reception has to ring the patient before the task is overdue. */
@@ -399,9 +446,17 @@ on("message.failed", async (event) => {
     .eq("message_id", messageId)
     .eq("org_id", event.orgId)
     .eq("status", "sent")
-    .select("id, appointment_id, appointments(number)");
+    .select("id, idx, due_at, appointment_id, appointments(number, starts_at, status)");
   const code = Number(event.payload.code);
   for (const r of failed ?? []) {
+    // A Sanoflow refusal arrives here; a day-before reminder gets Make's 18:00 retry first.
+    const appt = r.appointments;
+    if (
+      appt &&
+      !isInactive(isAppointmentStatus(appt.status) ? appt.status : "awaiting") &&
+      (await retryAtNextRun(admin, event.orgId, r, appt.starts_at, new Date()))
+    )
+      continue;
     await reportReminderFailure(
       admin,
       event.orgId,
@@ -429,7 +484,7 @@ registerTask("appointments_sweep", {
     let scheduled = 0;
     let cancelled = 0;
     for (const org of orgs ?? []) {
-      const { settings } = await loadOrgSettings(admin, org.id);
+      const { settings, timezone } = await loadOrgSettings(admin, org.id);
       const horizon = new Date(Date.now() + 30 * 24 * 3600_000).toISOString();
       const { data: upcoming } = await admin
         .from("appointments")
@@ -441,7 +496,7 @@ registerTask("appointments_sweep", {
         .order("starts_at")
         .limit(1000);
       for (const a of upcoming ?? []) {
-        const r = await syncAppointmentReminders(admin, a, { settings });
+        const r = await syncAppointmentReminders(admin, a, { settings, timezone });
         checked++;
         scheduled += r.scheduled;
         cancelled += r.cancelled;

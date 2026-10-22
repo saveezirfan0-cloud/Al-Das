@@ -14,6 +14,8 @@ export type MappedPatient = {
   isTestRecord: boolean;
   /** Unite's patient-level Last Visit Date (YYYY-MM-DD) → contacts.unite_last_visit_date (chronic recall, 21B). */
   uniteLastVisitDate?: string | null;
+  /** Airtable "60 days >" (a 60- or 90-day prescription) → contacts.long_prescription_flag (chronic recall, D2). */
+  longPrescription?: boolean;
 };
 
 export type PatientMapper = {

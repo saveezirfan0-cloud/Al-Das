@@ -1,5 +1,5 @@
 /**
- * Finance's answers of 22 Oct 2026 (docs/52), migration 20261226000100: the lab matching window is 5 days by default,
+ * Finance's answers of 22 Oct 2026 (docs/52), migration 20261227000100: the lab matching window is 5 days by default,
  * and an organisation still on the old default (2) moves to 5 while a value Finance chose is kept. Needs
  * TEST_DATABASE_URL.
  */
@@ -59,7 +59,7 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance answers of 22 Oct 2026", () => {
   it("the migration moves the old default to 5 and keeps a value Finance chose", async () => {
     const { readFileSync } = await import("node:fs");
     const sql = readFileSync(
-      "supabase/migrations/20261226000100_finance_reporting_rules_oct22.sql",
+      "supabase/migrations/20261227000100_finance_reporting_rules_oct22.sql",
       "utf8",
     );
     const update =

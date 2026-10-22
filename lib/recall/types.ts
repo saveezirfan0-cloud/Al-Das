@@ -128,6 +128,9 @@ export interface RecallSender {
     contactId: string;
     waTemplateId: string;
     values: Record<string, string>;
+    /** Which programme sent it and whether in Live mode: the Sanoflow sender tags Live sends like Make (docs/49 D11). */
+    programmeKey?: string;
+    live?: boolean;
   }): Promise<{ messageId: string }>;
 }
 

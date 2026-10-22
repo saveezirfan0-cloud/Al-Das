@@ -61,7 +61,7 @@ export default async function AppointmentSettingsPage({
       .order("name"),
     admin
       .from("reminder_exclusions")
-      .select("id, kind, match_type, value, reason, active")
+      .select("id, kind, match_type, value, reason, active, location_id")
       .eq("org_id", org)
       .order("kind")
       .order("value"),

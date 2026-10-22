@@ -1,0 +1,352 @@
+{
+  "flow": [
+    {
+      "id": 1,
+      "mapper": {
+        "base": "appZbwlQvkuaUsF2l",
+        "view": "viwLZDZVHi53Lx5eR",
+        "table": "tblRNJcasTIz0vLhR",
+        "formula": "AND({Medication Type} = 'Antibiotic', NOT({Antibiotic Follow-Up Sent}), IS_SAME(DATEADD({Start Date}, {Duration (Days)}+1, 'days'), TODAY(), 'day'))",
+        "maxRecords": "50",
+        "useColumnId": false
+      },
+      "module": "airtable:ActionSearchRecords",
+      "version": 3,
+      "metadata": {
+        "restore": {
+          "expect": {
+            "base": {
+              "mode": "chose",
+              "label": "Patient Treatment & Follow-Up System"
+            },
+            "sort": {
+              "mode": "chose"
+            },
+            "view": {
+              "mode": "chose"
+            },
+            "table": {
+              "mode": "chose",
+              "label": "Prescriptions"
+            },
+            "fields": {
+              "mode": "chose"
+            },
+            "useColumnId": {
+              "mode": "chose"
+            }
+          },
+          "parameters": {
+            "__IMTCONN__": {
+              "data": {
+                "scoped": "true",
+                "connection": "airtable3"
+              },
+              "label": "Al Das Clinic (User ID: usr17UaGhbLqsH0hk)"
+            }
+          }
+        },
+        "designer": {
+          "x": 0,
+          "y": 0
+        },
+        "parameters": [
+          {
+            "name": "__IMTCONN__",
+            "type": "account:airtable3,airtable2",
+            "label": "Connection",
+            "required": true
+          }
+        ]
+      },
+      "parameters": {
+        "__IMTCONN__": 6448605
+      }
+    },
+    {
+      "id": 2,
+      "mapper": {
+        "array": "{{1.`Patient`}}"
+      },
+      "module": "builtin:BasicFeeder",
+      "version": 1,
+      "metadata": {
+        "designer": {
+          "x": 300,
+          "y": 0
+        }
+      },
+      "parameters": {}
+    },
+    {
+      "id": 3,
+      "mapper": {
+        "id": "{{2}}",
+        "base": "appZbwlQvkuaUsF2l",
+        "table": "tbl9856qJP9S7OEqB",
+        "useColumnId": false
+      },
+      "module": "airtable:ActionGetRecord",
+      "version": 3,
+      "metadata": {
+        "restore": {
+          "expect": {
+            "base": {
+              "mode": "chose",
+              "label": "Patient Treatment & Follow-Up System"
+            },
+            "table": {
+              "mode": "chose",
+              "label": "Patients"
+            },
+            "useColumnId": {
+              "mode": "chose"
+            }
+          },
+          "parameters": {
+            "__IMTCONN__": {
+              "data": {
+                "scoped": "true",
+                "connection": "airtable3"
+              },
+              "label": "Al Das Clinic (User ID: usr17UaGhbLqsH0hk)"
+            }
+          }
+        },
+        "designer": {
+          "x": 600,
+          "y": 0
+        },
+        "parameters": [
+          {
+            "name": "__IMTCONN__",
+            "type": "account:airtable3,airtable2",
+            "label": "Connection",
+            "required": true
+          }
+        ]
+      },
+      "parameters": {
+        "__IMTCONN__": 6448605
+      }
+    },
+    {
+      "id": 4,
+      "mapper": {
+        "ca": "",
+        "qs": [],
+        "url": "https://developers.sanoflow.io/api/v1.1/messages/whatsapp/send-template",
+        "data": "{\n  \"template_id\": \"12108\",\n  \"phone\": \"{{3.`Phone`}}\",\n  \"mapper_value\": [\"{{3.`Patient Name`}}\", \"{{1.`Medication Name`}}\", \"{{formatDate(1.`Prescription Date`; \"YYYY-MM-DD\")}}\"]\n}",
+        "gzip": true,
+        "method": "post",
+        "headers": [
+          {
+            "name": "Content-type",
+            "value": "application/json"
+          },
+          {
+            "name": "access-token",
+            "value": "[REDACTED]"
+          }
+        ],
+        "timeout": "",
+        "useMtls": false,
+        "authPass": "",
+        "authUser": "",
+        "bodyType": "raw",
+        "contentType": "application/json",
+        "serializeUrl": false,
+        "shareCookies": false,
+        "parseResponse": true,
+        "followRedirect": true,
+        "useQuerystring": false,
+        "followAllRedirects": true,
+        "rejectUnauthorized": true
+      },
+      "module": "http:ActionSendData",
+      "version": 3,
+      "metadata": {
+        "restore": {
+          "expect": {
+            "qs": {
+              "mode": "chose"
+            },
+            "method": {
+              "mode": "chose",
+              "label": "POST"
+            },
+            "headers": {
+              "mode": "chose",
+              "items": [
+                null,
+                null
+              ]
+            },
+            "bodyType": {
+              "label": "Raw"
+            },
+            "contentType": {
+              "label": "JSON (application/json)"
+            }
+          }
+        },
+        "designer": {
+          "x": 900,
+          "y": 0
+        },
+        "parameters": [
+          {
+            "name": "handleErrors",
+            "type": "boolean",
+            "label": "Evaluate all states as errors (except for 2xx and 3xx )",
+            "required": true
+          },
+          {
+            "name": "useNewZLibDeCompress",
+            "type": "hidden"
+          }
+        ]
+      },
+      "parameters": {
+        "handleErrors": true,
+        "useNewZLibDeCompress": true
+      }
+    },
+    {
+      "id": 5,
+      "mapper": {
+        "base": "appZbwlQvkuaUsF2l",
+        "table": "tblFQn2YMbmoqa6HF",
+        "record": {
+          "Notes": "Antibiotic follow-up sent for prescription {{1.`Prescription ID`}} ({{1.`Medication Name`}}, {{1.`Duration (Days)`}}-day course starting {{formatDate(1.`Start Date`; \"YYYY-MM-DD\")}}).",
+          "Status": "Completed",
+          "Visit Date": "{{formatDate(now; \"YYYY-MM-DD\")}}",
+          "Visit Type": "Antibiotic Prescription",
+          "Doctor Name": "{{first(1.`Dr. Name (from Patient)`)}}",
+          "Patient Name": "{{3.`Patient Name`}}",
+          "Patient Phone": "{{3.`Phone`}}",
+          "Antibiotic Follow-Up Sent": true
+        },
+        "useColumnId": false
+      },
+      "module": "airtable:ActionCreateRecord",
+      "version": 3,
+      "metadata": {
+        "restore": {
+          "expect": {
+            "base": {
+              "mode": "chose",
+              "label": "Patient Treatment & Follow-Up System"
+            },
+            "table": {
+              "mode": "chose",
+              "label": "DRAFT - Post-Visit Follow-Up"
+            },
+            "useColumnId": {
+              "mode": "chose"
+            }
+          },
+          "parameters": {
+            "__IMTCONN__": {
+              "data": {
+                "scoped": "true",
+                "connection": "airtable3"
+              },
+              "label": "Al Das Clinic (User ID: usr17UaGhbLqsH0hk)"
+            }
+          }
+        },
+        "designer": {
+          "x": 1200,
+          "y": 0
+        },
+        "parameters": [
+          {
+            "name": "__IMTCONN__",
+            "type": "account:airtable3,airtable2",
+            "label": "Connection",
+            "required": true
+          }
+        ]
+      },
+      "parameters": {
+        "__IMTCONN__": 6448605
+      }
+    },
+    {
+      "id": 6,
+      "mapper": {
+        "id": "{{1.id}}",
+        "base": "appZbwlQvkuaUsF2l",
+        "table": "tblRNJcasTIz0vLhR",
+        "record": {
+          "Antibiotic Follow-Up Sent": true
+        },
+        "useColumnId": false
+      },
+      "module": "airtable:ActionUpdateRecords",
+      "version": 3,
+      "metadata": {
+        "restore": {
+          "expect": {
+            "base": {
+              "mode": "chose",
+              "label": "Patient Treatment & Follow-Up System"
+            },
+            "table": {
+              "mode": "chose",
+              "label": "Prescriptions"
+            },
+            "useColumnId": {
+              "mode": "chose"
+            }
+          },
+          "parameters": {
+            "__IMTCONN__": {
+              "data": {
+                "scoped": "true",
+                "connection": "airtable3"
+              },
+              "label": "Al Das Clinic (User ID: usr17UaGhbLqsH0hk)"
+            }
+          }
+        },
+        "designer": {
+          "x": 1500,
+          "y": 0
+        },
+        "parameters": [
+          {
+            "name": "__IMTCONN__",
+            "type": "account:airtable3,airtable2",
+            "label": "Connection",
+            "required": true
+          }
+        ]
+      },
+      "parameters": {
+        "__IMTCONN__": 6448605
+      }
+    }
+  ],
+  "name": "DRAFT - Antibiotic Follow-Up Conditional",
+  "metadata": {
+    "instant": false,
+    "version": 1,
+    "designer": {
+      "orphans": []
+    },
+    "scenario": {
+      "dlq": false,
+      "slots": null,
+      "dataloss": false,
+      "maxErrors": 3,
+      "autoCommit": true,
+      "roundtrips": 1,
+      "sequential": false,
+      "confidential": false,
+      "freshVariables": false,
+      "autoCommitTriggerLast": true
+    }
+  }
+}

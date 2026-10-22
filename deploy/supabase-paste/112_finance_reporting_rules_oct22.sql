@@ -1,6 +1,6 @@
 -- Paste this whole file into Supabase > SQL Editor > New query, then Run.
 -- Run the files in numeric order. A failed file rolls back as a whole, so it is safe to retry.
--- Needs every earlier file first, up to and including 109_finance_group_pack_key.sql.
+-- Needs every earlier file first, up to and including 111_sanoflow_tagging.sql.
 -- Production normally gets this through .github/workflows/db-migrate.yml on merge; this file is the manual route.
 
 -- Finance's answers of 22 Oct 2026 (the 19 Oct requests document, Q6, Q7 and Q39; docs/52_FINANCE_ANSWERS_OCT22_NOTES.md):

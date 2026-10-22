@@ -1,0 +1,2843 @@
+{
+  "flow": [
+    {
+      "id": 1,
+      "mapper": {
+        "base": "appZbwlQvkuaUsF2l",
+        "table": "tblFQn2YMbmoqa6HF",
+        "formula": "OR(AND({Day 0 - Thank You Sent} = 'Pending', DATETIME_DIFF(NOW(), {Visit Date}, 'hours') >= 2), AND({Day 1 - Wellness Check Sent} = 'Pending', DATETIME_DIFF(NOW(), {Visit Date}, 'hours') >= 24), AND({Day 3 - Follow-Up Sent} = 'Pending', DATETIME_DIFF(NOW(), {Visit Date}, 'hours') >= 72), AND({Day 7 - Final Check Sent} = 'Pending', DATETIME_DIFF(NOW(), {Visit Date}, 'hours') >= 168))",
+        "maxRecords": "50",
+        "useColumnId": false
+      },
+      "module": "airtable:ActionSearchRecords",
+      "version": 3,
+      "metadata": {
+        "expect": [
+          {
+            "name": "base",
+            "type": "select",
+            "label": "Base",
+            "required": true
+          },
+          {
+            "name": "useColumnId",
+            "type": "boolean",
+            "label": "Use Column ID",
+            "required": true
+          },
+          {
+            "name": "table",
+            "type": "select",
+            "label": "Table",
+            "required": true
+          },
+          {
+            "name": "formula",
+            "type": "text",
+            "label": "Formula"
+          },
+          {
+            "name": "maxRecords",
+            "type": "integer",
+            "label": "Limit"
+          },
+          {
+            "name": "sort",
+            "spec": [
+              {
+                "name": "field",
+                "type": "select",
+                "label": "Field",
+                "dynamic": true,
+                "options": []
+              },
+              {
+                "name": "direction",
+                "type": "select",
+                "label": "Direction",
+                "options": [
+                  {
+                    "label": "Descending",
+                    "value": "desc"
+                  },
+                  {
+                    "label": "Ascending",
+                    "value": "asc"
+                  }
+                ]
+              }
+            ],
+            "type": "array",
+            "label": "Sort"
+          },
+          {
+            "name": "view",
+            "type": "select",
+            "label": "View"
+          },
+          {
+            "name": "fields",
+            "type": "select",
+            "label": "Output Fields",
+            "multiple": true
+          }
+        ],
+        "restore": {
+          "expect": {
+            "base": {
+              "mode": "chose",
+              "label": "Patient Treatment & Follow-Up System"
+            },
+            "sort": {
+              "mode": "chose"
+            },
+            "view": {
+              "mode": "chose",
+              "label": "Empty"
+            },
+            "table": {
+              "mode": "chose",
+              "label": "DRAFT - Post-Visit Follow-Up"
+            },
+            "fields": {
+              "mode": "chose"
+            },
+            "useColumnId": {
+              "mode": "chose"
+            }
+          },
+          "parameters": {
+            "__IMTCONN__": {
+              "data": {
+                "scoped": "true",
+                "connection": "airtable3"
+              },
+              "label": "Al Das Clinic (User ID: usr17UaGhbLqsH0hk)"
+            }
+          }
+        },
+        "designer": {
+          "x": 0,
+          "y": 450,
+          "name": "Find records ready to send"
+        },
+        "interface": [
+          {
+            "name": "__IMTLENGTH__",
+            "type": "uinteger",
+            "label": "Total number of bundles"
+          },
+          {
+            "name": "__IMTINDEX__",
+            "type": "uinteger",
+            "label": "Bundle order position"
+          },
+          {
+            "name": "id",
+            "type": "text",
+            "label": "ID"
+          },
+          {
+            "name": "createdTime",
+            "type": "date",
+            "label": "Created Time"
+          },
+          {
+            "name": "Patient Name",
+            "type": "text",
+            "label": "Patient Name"
+          },
+          {
+            "name": "Patient Phone",
+            "type": "text",
+            "label": "Patient Phone"
+          },
+          {
+            "name": "Visit Date",
+            "time": false,
+            "type": "date",
+            "label": "Visit Date"
+          },
+          {
+            "name": "Doctor Name",
+            "type": "text",
+            "label": "Doctor Name"
+          },
+          {
+            "name": "Department",
+            "type": "text",
+            "label": "Department"
+          },
+          {
+            "name": "Visit Type",
+            "type": "text",
+            "label": "Visit Type"
+          },
+          {
+            "name": "Day 0 - Thank You Sent",
+            "type": "text",
+            "label": "Day 0 - Thank You Sent"
+          },
+          {
+            "name": "Day 1 - Wellness Check Sent",
+            "type": "text",
+            "label": "Day 1 - Wellness Check Sent"
+          },
+          {
+            "name": "Day 1 - Patient Replied",
+            "type": "text",
+            "label": "Day 1 - Patient Replied"
+          },
+          {
+            "name": "Day 1 - Patient Response",
+            "type": "text",
+            "label": "Day 1 - Patient Response",
+            "multiline": true
+          },
+          {
+            "name": "Day 3 - Follow-Up Sent",
+            "type": "text",
+            "label": "Day 3 - Follow-Up Sent"
+          },
+          {
+            "name": "Day 3 - Patient Replied",
+            "type": "text",
+            "label": "Day 3 - Patient Replied"
+          },
+          {
+            "name": "Day 3 - Patient Response",
+            "type": "text",
+            "label": "Day 3 - Patient Response",
+            "multiline": true
+          },
+          {
+            "name": "Day 7 - Final Check Sent",
+            "type": "text",
+            "label": "Day 7 - Final Check Sent"
+          },
+          {
+            "name": "Day 7 - Patient Replied",
+            "type": "text",
+            "label": "Day 7 - Patient Replied"
+          },
+          {
+            "name": "Day 7 - Patient Response",
+            "type": "text",
+            "label": "Day 7 - Patient Response",
+            "multiline": true
+          },
+          {
+            "name": "Needs Doctor Review",
+            "type": "text",
+            "label": "Needs Doctor Review"
+          },
+          {
+            "name": "Doctor Notified",
+            "type": "text",
+            "label": "Doctor Notified"
+          },
+          {
+            "name": "Status",
+            "type": "text",
+            "label": "Status"
+          },
+          {
+            "name": "Notes",
+            "type": "text",
+            "label": "Notes",
+            "multiline": true
+          }
+        ],
+        "parameters": [
+          {
+            "name": "__IMTCONN__",
+            "type": "account:airtable3,airtable2",
+            "label": "Connection",
+            "required": true
+          }
+        ]
+      },
+      "parameters": {
+        "__IMTCONN__": 6448605
+      }
+    },
+    {
+      "id": 4,
+      "mapper": null,
+      "module": "builtin:BasicRouter",
+      "routes": [
+        {
+          "flow": [
+            {
+              "id": 5,
+              "filter": {
+                "name": "Day 0 ready",
+                "conditions": [
+                  [
+                    {
+                      "a": "{{1.`Day 0 - Thank You Sent`}}",
+                      "b": "Pending",
+                      "o": "text:equal"
+                    }
+                  ]
+                ]
+              },
+              "mapper": {
+                "ca": "",
+                "qs": [],
+                "url": "https://developers.sanoflow.io/api/v1.1/messages/whatsapp/send-template",
+                "data": "{\n  \"template_id\": \"12104\",\n  \"phone\": \"{{1.`Patient Phone`}}\",\n  \"mapper_value\": [\"{{1.`Patient Name`}}\", \"{{1.`Doctor Name`}}\"]\n}",
+                "gzip": true,
+                "method": "post",
+                "headers": [
+                  {
+                    "name": "Content-type",
+                    "value": "application/json"
+                  },
+                  {
+                    "name": "access-token",
+                    "value": "[REDACTED]"
+                  }
+                ],
+                "timeout": "",
+                "useMtls": false,
+                "authPass": "",
+                "authUser": "",
+                "bodyType": "raw",
+                "contentType": "application/json",
+                "serializeUrl": false,
+                "shareCookies": false,
+                "parseResponse": true,
+                "followRedirect": true,
+                "useQuerystring": false,
+                "followAllRedirects": true,
+                "rejectUnauthorized": true
+              },
+              "module": "http:ActionSendData",
+              "version": 3,
+              "metadata": {
+                "expect": [
+                  {
+                    "name": "url",
+                    "type": "url",
+                    "label": "URL",
+                    "required": true
+                  },
+                  {
+                    "name": "serializeUrl",
+                    "type": "boolean",
+                    "label": "Serialize URL",
+                    "required": true
+                  },
+                  {
+                    "name": "method",
+                    "type": "select",
+                    "label": "Method",
+                    "required": true,
+                    "validate": {
+                      "enum": [
+                        "get",
+                        "head",
+                        "post",
+                        "put",
+                        "patch",
+                        "delete",
+                        "options"
+                      ]
+                    }
+                  },
+                  {
+                    "name": "headers",
+                    "spec": [
+                      {
+                        "name": "name",
+                        "type": "text",
+                        "label": "Name",
+                        "required": true
+                      },
+                      {
+                        "name": "value",
+                        "type": "text",
+                        "label": "Value"
+                      }
+                    ],
+                    "type": "array",
+                    "label": "Headers"
+                  },
+                  {
+                    "name": "qs",
+                    "spec": [
+                      {
+                        "name": "name",
+                        "type": "text",
+                        "label": "Name",
+                        "required": true
+                      },
+                      {
+                        "name": "value",
+                        "type": "text",
+                        "label": "Value"
+                      }
+                    ],
+                    "type": "array",
+                    "label": "Query String"
+                  },
+                  {
+                    "name": "bodyType",
+                    "type": "select",
+                    "label": "Body type",
+                    "validate": {
+                      "enum": [
+                        "raw",
+                        "x_www_form_urlencoded",
+                        "multipart_form_data"
+                      ]
+                    }
+                  },
+                  {
+                    "name": "parseResponse",
+                    "type": "boolean",
+                    "label": "Parse response",
+                    "required": true
+                  },
+                  {
+                    "name": "authUser",
+                    "type": "text",
+                    "label": "User name"
+                  },
+                  {
+                    "name": "authPass",
+                    "type": "password",
+                    "label": "Password"
+                  },
+                  {
+                    "name": "timeout",
+                    "type": "uinteger",
+                    "label": "Timeout",
+                    "validate": {
+                      "max": 300,
+                      "min": 1
+                    }
+                  },
+                  {
+                    "name": "shareCookies",
+                    "type": "boolean",
+                    "label": "Share cookies with other HTTP modules",
+                    "required": true
+                  },
+                  {
+                    "name": "ca",
+                    "type": "cert",
+                    "label": "Self-signed certificate"
+                  },
+                  {
+                    "name": "rejectUnauthorized",
+                    "type": "boolean",
+                    "label": "Reject connections that are using unverified (self-signed) certificates",
+                    "required": true
+                  },
+                  {
+                    "name": "followRedirect",
+                    "type": "boolean",
+                    "label": "Follow redirect",
+                    "required": true
+                  },
+                  {
+                    "name": "useQuerystring",
+                    "type": "boolean",
+                    "label": "Disable serialization of multiple same query string keys as arrays",
+                    "required": true
+                  },
+                  {
+                    "name": "gzip",
+                    "type": "boolean",
+                    "label": "Request compressed content",
+                    "required": true
+                  },
+                  {
+                    "name": "useMtls",
+                    "type": "boolean",
+                    "label": "Use Mutual TLS",
+                    "required": true
+                  },
+                  {
+                    "name": "contentType",
+                    "type": "select",
+                    "label": "Content type",
+                    "validate": {
+                      "enum": [
+                        "text/plain",
+                        "application/json",
+                        "application/xml",
+                        "text/xml",
+                        "text/html",
+                        "custom"
+                      ]
+                    }
+                  },
+                  {
+                    "name": "data",
+                    "type": "buffer",
+                    "label": "Request content"
+                  },
+                  {
+                    "name": "followAllRedirects",
+                    "type": "boolean",
+                    "label": "Follow all redirect",
+                    "required": true
+                  }
+                ],
+                "restore": {
+                  "expect": {
+                    "qs": {
+                      "mode": "chose"
+                    },
+                    "method": {
+                      "mode": "chose",
+                      "label": "POST"
+                    },
+                    "headers": {
+                      "mode": "chose",
+                      "items": [
+                        null,
+                        null
+                      ]
+                    },
+                    "bodyType": {
+                      "label": "Raw"
+                    },
+                    "contentType": {
+                      "label": "JSON (application/json)"
+                    }
+                  }
+                },
+                "designer": {
+                  "x": 600,
+                  "y": 0,
+                  "name": "Send Day 0"
+                },
+                "parameters": [
+                  {
+                    "name": "handleErrors",
+                    "type": "boolean",
+                    "label": "Evaluate all states as errors (except for 2xx and 3xx )",
+                    "required": true
+                  },
+                  {
+                    "name": "useNewZLibDeCompress",
+                    "type": "hidden"
+                  }
+                ]
+              },
+              "parameters": {
+                "handleErrors": true,
+                "useNewZLibDeCompress": true
+              }
+            },
+            {
+              "id": 6,
+              "mapper": {
+                "id": "{{1.id}}",
+                "base": "appZbwlQvkuaUsF2l",
+                "table": "tblFQn2YMbmoqa6HF",
+                "record": {
+                  "fldb8MQ4Q44b8JmjI": "Pending",
+                  "fldjNMsHqUaLyYfo1": "Yes"
+                },
+                "typecast": false,
+                "useColumnId": false
+              },
+              "module": "airtable:ActionUpdateRecords",
+              "version": 3,
+              "metadata": {
+                "expect": [
+                  {
+                    "name": "base",
+                    "type": "select",
+                    "label": "Base",
+                    "required": true
+                  },
+                  {
+                    "name": "typecast",
+                    "type": "boolean",
+                    "label": "Smart links",
+                    "required": true
+                  },
+                  {
+                    "name": "useColumnId",
+                    "type": "boolean",
+                    "label": "Use Column ID",
+                    "required": true
+                  },
+                  {
+                    "name": "table",
+                    "type": "select",
+                    "label": "Table",
+                    "required": true
+                  },
+                  {
+                    "name": "id",
+                    "type": "text",
+                    "label": "Record ID",
+                    "required": true
+                  },
+                  {
+                    "name": "record",
+                    "spec": [
+                      {
+                        "name": "fldX6WXZAl2vw7NDA",
+                        "type": "text",
+                        "label": "Patient Name"
+                      },
+                      {
+                        "name": "fld88UckrSYq8DZgE",
+                        "type": "text",
+                        "label": "Patient Phone"
+                      },
+                      {
+                        "name": "fldjosnkWepenrNsu",
+                        "time": false,
+                        "type": "date",
+                        "label": "Visit Date"
+                      },
+                      {
+                        "name": "fldlSRASvTZ56KCqi",
+                        "type": "text",
+                        "label": "Doctor Name"
+                      },
+                      {
+                        "name": "fldZ5PO7HXmLGFehP",
+                        "type": "text",
+                        "label": "Department"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldEQtgrqgSjceiYh",
+                        "type": "select",
+                        "label": "Visit Type"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldjNMsHqUaLyYfo1",
+                        "type": "select",
+                        "label": "Day 0 - Thank You Sent"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldb8MQ4Q44b8JmjI",
+                        "type": "select",
+                        "label": "Day 1 - Wellness Check Sent"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldwwBcHpLAJb5WtK",
+                        "type": "select",
+                        "label": "Day 1 - Patient Replied"
+                      },
+                      {
+                        "name": "fldvmIZ6lebRPZZHB",
+                        "type": "text",
+                        "label": "Day 1 - Patient Response"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldBnHl4MzHOLjV9L",
+                        "type": "select",
+                        "label": "Day 3 - Follow-Up Sent"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldS9F70mLwzYnYRN",
+                        "type": "select",
+                        "label": "Day 3 - Patient Replied"
+                      },
+                      {
+                        "name": "fldVwZ3ggRCswIKkI",
+                        "type": "text",
+                        "label": "Day 3 - Patient Response"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldrTC2bFozodX4yW",
+                        "type": "select",
+                        "label": "Day 7 - Final Check Sent"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldB3MVR2EgqFRBEn",
+                        "type": "select",
+                        "label": "Day 7 - Patient Replied"
+                      },
+                      {
+                        "name": "fldSQnPDkyvOIk9Of",
+                        "type": "text",
+                        "label": "Day 7 - Patient Response"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fld89UL2IAdxzVmXG",
+                        "type": "select",
+                        "label": "Needs Doctor Review"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldZ8dLGzOw3whE3D",
+                        "type": "select",
+                        "label": "Doctor Notified"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldDySGq3mlDsnuXH",
+                        "type": "select",
+                        "label": "Status"
+                      },
+                      {
+                        "name": "fldDeKSkfINlzU7TD",
+                        "type": "text",
+                        "label": "Notes"
+                      }
+                    ],
+                    "type": "collection",
+                    "label": "Record"
+                  }
+                ],
+                "restore": {
+                  "expect": {
+                    "base": {
+                      "label": "Patient Treatment & Follow-Up System"
+                    },
+                    "table": {
+                      "label": "DRAFT - Post-Visit Follow-Up"
+                    },
+                    "record": {
+                      "nested": {
+                        "fld89UL2IAdxzVmXG": {
+                          "mode": "edit"
+                        },
+                        "fldB3MVR2EgqFRBEn": {
+                          "mode": "edit"
+                        },
+                        "fldBnHl4MzHOLjV9L": {
+                          "mode": "chose",
+                          "label": "Empty"
+                        },
+                        "fldDySGq3mlDsnuXH": {
+                          "mode": "edit"
+                        },
+                        "fldEQtgrqgSjceiYh": {
+                          "mode": "edit"
+                        },
+                        "fldS9F70mLwzYnYRN": {
+                          "mode": "chose",
+                          "label": "Empty"
+                        },
+                        "fldZ8dLGzOw3whE3D": {
+                          "mode": "edit"
+                        },
+                        "fldb8MQ4Q44b8JmjI": {
+                          "mode": "chose",
+                          "label": "Pending"
+                        },
+                        "fldjNMsHqUaLyYfo1": {
+                          "mode": "chose",
+                          "label": "Yes"
+                        },
+                        "fldrTC2bFozodX4yW": {
+                          "mode": "edit"
+                        },
+                        "fldwwBcHpLAJb5WtK": {
+                          "mode": "edit"
+                        }
+                      }
+                    },
+                    "typecast": {
+                      "mode": "chose"
+                    },
+                    "useColumnId": {
+                      "mode": "chose"
+                    }
+                  },
+                  "parameters": {
+                    "__IMTCONN__": {
+                      "data": {
+                        "scoped": "true",
+                        "connection": "airtable3"
+                      },
+                      "label": "Al Das Clinic (User ID: usr17UaGhbLqsH0hk)"
+                    }
+                  }
+                },
+                "designer": {
+                  "x": 900,
+                  "y": 0,
+                  "name": "Mark Day 0 Sent + Queue Day 1"
+                },
+                "interface": [
+                  {
+                    "name": "id",
+                    "type": "text",
+                    "label": "ID"
+                  },
+                  {
+                    "name": "createdTime",
+                    "type": "date",
+                    "label": "Created Time"
+                  },
+                  {
+                    "name": "Patient Name",
+                    "type": "text",
+                    "label": "Patient Name"
+                  },
+                  {
+                    "name": "Patient Phone",
+                    "type": "text",
+                    "label": "Patient Phone"
+                  },
+                  {
+                    "name": "Visit Date",
+                    "time": false,
+                    "type": "date",
+                    "label": "Visit Date"
+                  },
+                  {
+                    "name": "Doctor Name",
+                    "type": "text",
+                    "label": "Doctor Name"
+                  },
+                  {
+                    "name": "Department",
+                    "type": "text",
+                    "label": "Department"
+                  },
+                  {
+                    "name": "Visit Type",
+                    "type": "text",
+                    "label": "Visit Type"
+                  },
+                  {
+                    "name": "Day 0 - Thank You Sent",
+                    "type": "text",
+                    "label": "Day 0 - Thank You Sent"
+                  },
+                  {
+                    "name": "Day 1 - Wellness Check Sent",
+                    "type": "text",
+                    "label": "Day 1 - Wellness Check Sent"
+                  },
+                  {
+                    "name": "Day 1 - Patient Replied",
+                    "type": "text",
+                    "label": "Day 1 - Patient Replied"
+                  },
+                  {
+                    "name": "Day 1 - Patient Response",
+                    "type": "text",
+                    "label": "Day 1 - Patient Response",
+                    "multiline": true
+                  },
+                  {
+                    "name": "Day 3 - Follow-Up Sent",
+                    "type": "text",
+                    "label": "Day 3 - Follow-Up Sent"
+                  },
+                  {
+                    "name": "Day 3 - Patient Replied",
+                    "type": "text",
+                    "label": "Day 3 - Patient Replied"
+                  },
+                  {
+                    "name": "Day 3 - Patient Response",
+                    "type": "text",
+                    "label": "Day 3 - Patient Response",
+                    "multiline": true
+                  },
+                  {
+                    "name": "Day 7 - Final Check Sent",
+                    "type": "text",
+                    "label": "Day 7 - Final Check Sent"
+                  },
+                  {
+                    "name": "Day 7 - Patient Replied",
+                    "type": "text",
+                    "label": "Day 7 - Patient Replied"
+                  },
+                  {
+                    "name": "Day 7 - Patient Response",
+                    "type": "text",
+                    "label": "Day 7 - Patient Response",
+                    "multiline": true
+                  },
+                  {
+                    "name": "Needs Doctor Review",
+                    "type": "text",
+                    "label": "Needs Doctor Review"
+                  },
+                  {
+                    "name": "Doctor Notified",
+                    "type": "text",
+                    "label": "Doctor Notified"
+                  },
+                  {
+                    "name": "Status",
+                    "type": "text",
+                    "label": "Status"
+                  },
+                  {
+                    "name": "Notes",
+                    "type": "text",
+                    "label": "Notes",
+                    "multiline": true
+                  }
+                ],
+                "parameters": [
+                  {
+                    "name": "__IMTCONN__",
+                    "type": "account:airtable3,airtable2",
+                    "label": "Connection",
+                    "required": true
+                  }
+                ]
+              },
+              "parameters": {
+                "__IMTCONN__": 6448605
+              }
+            }
+          ]
+        },
+        {
+          "flow": [
+            {
+              "id": 7,
+              "filter": {
+                "name": "Day 1 ready",
+                "conditions": [
+                  [
+                    {
+                      "a": "{{1.`Day 1 - Wellness Check Sent`}}",
+                      "b": "Pending",
+                      "o": "text:equal"
+                    }
+                  ]
+                ]
+              },
+              "mapper": {
+                "ca": "",
+                "qs": [],
+                "url": "https://developers.sanoflow.io/api/v1.1/messages/whatsapp/send-template",
+                "data": "{\n  \"template_id\": \"12105\",\n  \"phone\": \"{{1.`Patient Phone`}}\",\n  \"mapper_value\": [\"{{1.`Patient Name`}}\", \"{{1.`Doctor Name`}}\"]\n}",
+                "gzip": true,
+                "method": "post",
+                "headers": [
+                  {
+                    "name": "Content-type",
+                    "value": "application/json"
+                  },
+                  {
+                    "name": "access-token",
+                    "value": "[REDACTED]"
+                  }
+                ],
+                "timeout": "",
+                "useMtls": false,
+                "authPass": "",
+                "authUser": "",
+                "bodyType": "raw",
+                "contentType": "application/json",
+                "serializeUrl": false,
+                "shareCookies": false,
+                "parseResponse": true,
+                "followRedirect": true,
+                "useQuerystring": false,
+                "followAllRedirects": true,
+                "rejectUnauthorized": true
+              },
+              "module": "http:ActionSendData",
+              "version": 3,
+              "metadata": {
+                "expect": [
+                  {
+                    "name": "url",
+                    "type": "url",
+                    "label": "URL",
+                    "required": true
+                  },
+                  {
+                    "name": "serializeUrl",
+                    "type": "boolean",
+                    "label": "Serialize URL",
+                    "required": true
+                  },
+                  {
+                    "name": "method",
+                    "type": "select",
+                    "label": "Method",
+                    "required": true,
+                    "validate": {
+                      "enum": [
+                        "get",
+                        "head",
+                        "post",
+                        "put",
+                        "patch",
+                        "delete",
+                        "options"
+                      ]
+                    }
+                  },
+                  {
+                    "name": "headers",
+                    "spec": [
+                      {
+                        "name": "name",
+                        "type": "text",
+                        "label": "Name",
+                        "required": true
+                      },
+                      {
+                        "name": "value",
+                        "type": "text",
+                        "label": "Value"
+                      }
+                    ],
+                    "type": "array",
+                    "label": "Headers"
+                  },
+                  {
+                    "name": "qs",
+                    "spec": [
+                      {
+                        "name": "name",
+                        "type": "text",
+                        "label": "Name",
+                        "required": true
+                      },
+                      {
+                        "name": "value",
+                        "type": "text",
+                        "label": "Value"
+                      }
+                    ],
+                    "type": "array",
+                    "label": "Query String"
+                  },
+                  {
+                    "name": "bodyType",
+                    "type": "select",
+                    "label": "Body type",
+                    "validate": {
+                      "enum": [
+                        "raw",
+                        "x_www_form_urlencoded",
+                        "multipart_form_data"
+                      ]
+                    }
+                  },
+                  {
+                    "name": "parseResponse",
+                    "type": "boolean",
+                    "label": "Parse response",
+                    "required": true
+                  },
+                  {
+                    "name": "authUser",
+                    "type": "text",
+                    "label": "User name"
+                  },
+                  {
+                    "name": "authPass",
+                    "type": "password",
+                    "label": "Password"
+                  },
+                  {
+                    "name": "timeout",
+                    "type": "uinteger",
+                    "label": "Timeout",
+                    "validate": {
+                      "max": 300,
+                      "min": 1
+                    }
+                  },
+                  {
+                    "name": "shareCookies",
+                    "type": "boolean",
+                    "label": "Share cookies with other HTTP modules",
+                    "required": true
+                  },
+                  {
+                    "name": "ca",
+                    "type": "cert",
+                    "label": "Self-signed certificate"
+                  },
+                  {
+                    "name": "rejectUnauthorized",
+                    "type": "boolean",
+                    "label": "Reject connections that are using unverified (self-signed) certificates",
+                    "required": true
+                  },
+                  {
+                    "name": "followRedirect",
+                    "type": "boolean",
+                    "label": "Follow redirect",
+                    "required": true
+                  },
+                  {
+                    "name": "useQuerystring",
+                    "type": "boolean",
+                    "label": "Disable serialization of multiple same query string keys as arrays",
+                    "required": true
+                  },
+                  {
+                    "name": "gzip",
+                    "type": "boolean",
+                    "label": "Request compressed content",
+                    "required": true
+                  },
+                  {
+                    "name": "useMtls",
+                    "type": "boolean",
+                    "label": "Use Mutual TLS",
+                    "required": true
+                  },
+                  {
+                    "name": "contentType",
+                    "type": "select",
+                    "label": "Content type",
+                    "validate": {
+                      "enum": [
+                        "text/plain",
+                        "application/json",
+                        "application/xml",
+                        "text/xml",
+                        "text/html",
+                        "custom"
+                      ]
+                    }
+                  },
+                  {
+                    "name": "data",
+                    "type": "buffer",
+                    "label": "Request content"
+                  },
+                  {
+                    "name": "followAllRedirects",
+                    "type": "boolean",
+                    "label": "Follow all redirect",
+                    "required": true
+                  }
+                ],
+                "restore": {
+                  "expect": {
+                    "qs": {
+                      "mode": "chose"
+                    },
+                    "method": {
+                      "mode": "chose",
+                      "label": "POST"
+                    },
+                    "headers": {
+                      "mode": "chose",
+                      "items": [
+                        null,
+                        null
+                      ]
+                    },
+                    "bodyType": {
+                      "label": "Raw"
+                    },
+                    "contentType": {
+                      "label": "JSON (application/json)"
+                    }
+                  }
+                },
+                "designer": {
+                  "x": 600,
+                  "y": 300,
+                  "name": "Send Day 1"
+                },
+                "parameters": [
+                  {
+                    "name": "handleErrors",
+                    "type": "boolean",
+                    "label": "Evaluate all states as errors (except for 2xx and 3xx )",
+                    "required": true
+                  },
+                  {
+                    "name": "useNewZLibDeCompress",
+                    "type": "hidden"
+                  }
+                ]
+              },
+              "parameters": {
+                "handleErrors": true,
+                "useNewZLibDeCompress": true
+              }
+            },
+            {
+              "id": 8,
+              "mapper": {
+                "id": "{{1.id}}",
+                "base": "appZbwlQvkuaUsF2l",
+                "table": "tblFQn2YMbmoqa6HF",
+                "record": {
+                  "fldBnHl4MzHOLjV9L": "Pending",
+                  "fldb8MQ4Q44b8JmjI": "Yes"
+                },
+                "typecast": false,
+                "useColumnId": false
+              },
+              "module": "airtable:ActionUpdateRecords",
+              "version": 3,
+              "metadata": {
+                "expect": [
+                  {
+                    "name": "base",
+                    "type": "select",
+                    "label": "Base",
+                    "required": true
+                  },
+                  {
+                    "name": "typecast",
+                    "type": "boolean",
+                    "label": "Smart links",
+                    "required": true
+                  },
+                  {
+                    "name": "useColumnId",
+                    "type": "boolean",
+                    "label": "Use Column ID",
+                    "required": true
+                  },
+                  {
+                    "name": "table",
+                    "type": "select",
+                    "label": "Table",
+                    "required": true
+                  },
+                  {
+                    "name": "id",
+                    "type": "text",
+                    "label": "Record ID",
+                    "required": true
+                  },
+                  {
+                    "name": "record",
+                    "spec": [
+                      {
+                        "name": "fldX6WXZAl2vw7NDA",
+                        "type": "text",
+                        "label": "Patient Name"
+                      },
+                      {
+                        "name": "fld88UckrSYq8DZgE",
+                        "type": "text",
+                        "label": "Patient Phone"
+                      },
+                      {
+                        "name": "fldjosnkWepenrNsu",
+                        "time": false,
+                        "type": "date",
+                        "label": "Visit Date"
+                      },
+                      {
+                        "name": "fldlSRASvTZ56KCqi",
+                        "type": "text",
+                        "label": "Doctor Name"
+                      },
+                      {
+                        "name": "fldZ5PO7HXmLGFehP",
+                        "type": "text",
+                        "label": "Department"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldEQtgrqgSjceiYh",
+                        "type": "select",
+                        "label": "Visit Type"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldjNMsHqUaLyYfo1",
+                        "type": "select",
+                        "label": "Day 0 - Thank You Sent"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldb8MQ4Q44b8JmjI",
+                        "type": "select",
+                        "label": "Day 1 - Wellness Check Sent"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldwwBcHpLAJb5WtK",
+                        "type": "select",
+                        "label": "Day 1 - Patient Replied"
+                      },
+                      {
+                        "name": "fldvmIZ6lebRPZZHB",
+                        "type": "text",
+                        "label": "Day 1 - Patient Response"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldBnHl4MzHOLjV9L",
+                        "type": "select",
+                        "label": "Day 3 - Follow-Up Sent"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldS9F70mLwzYnYRN",
+                        "type": "select",
+                        "label": "Day 3 - Patient Replied"
+                      },
+                      {
+                        "name": "fldVwZ3ggRCswIKkI",
+                        "type": "text",
+                        "label": "Day 3 - Patient Response"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldrTC2bFozodX4yW",
+                        "type": "select",
+                        "label": "Day 7 - Final Check Sent"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldB3MVR2EgqFRBEn",
+                        "type": "select",
+                        "label": "Day 7 - Patient Replied"
+                      },
+                      {
+                        "name": "fldSQnPDkyvOIk9Of",
+                        "type": "text",
+                        "label": "Day 7 - Patient Response"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fld89UL2IAdxzVmXG",
+                        "type": "select",
+                        "label": "Needs Doctor Review"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldZ8dLGzOw3whE3D",
+                        "type": "select",
+                        "label": "Doctor Notified"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldDySGq3mlDsnuXH",
+                        "type": "select",
+                        "label": "Status"
+                      },
+                      {
+                        "name": "fldDeKSkfINlzU7TD",
+                        "type": "text",
+                        "label": "Notes"
+                      }
+                    ],
+                    "type": "collection",
+                    "label": "Record"
+                  }
+                ],
+                "restore": {
+                  "expect": {
+                    "base": {
+                      "label": "Patient Treatment & Follow-Up System"
+                    },
+                    "table": {
+                      "label": "DRAFT - Post-Visit Follow-Up"
+                    },
+                    "record": {
+                      "nested": {
+                        "fld89UL2IAdxzVmXG": {
+                          "mode": "edit"
+                        },
+                        "fldB3MVR2EgqFRBEn": {
+                          "mode": "edit"
+                        },
+                        "fldBnHl4MzHOLjV9L": {
+                          "mode": "chose",
+                          "label": "Pending"
+                        },
+                        "fldDySGq3mlDsnuXH": {
+                          "mode": "edit"
+                        },
+                        "fldEQtgrqgSjceiYh": {
+                          "mode": "edit"
+                        },
+                        "fldS9F70mLwzYnYRN": {
+                          "mode": "edit"
+                        },
+                        "fldZ8dLGzOw3whE3D": {
+                          "mode": "edit"
+                        },
+                        "fldb8MQ4Q44b8JmjI": {
+                          "mode": "chose",
+                          "label": "Yes"
+                        },
+                        "fldjNMsHqUaLyYfo1": {
+                          "mode": "edit"
+                        },
+                        "fldrTC2bFozodX4yW": {
+                          "mode": "edit"
+                        },
+                        "fldwwBcHpLAJb5WtK": {
+                          "mode": "edit"
+                        }
+                      }
+                    },
+                    "typecast": {
+                      "mode": "chose"
+                    },
+                    "useColumnId": {
+                      "mode": "chose"
+                    }
+                  },
+                  "parameters": {
+                    "__IMTCONN__": {
+                      "data": {
+                        "scoped": "true",
+                        "connection": "airtable3"
+                      },
+                      "label": "Al Das Clinic (User ID: usr17UaGhbLqsH0hk)"
+                    }
+                  }
+                },
+                "designer": {
+                  "x": 900,
+                  "y": 300,
+                  "name": "Mark Day 1 Sent + Queue Day 3"
+                },
+                "interface": [
+                  {
+                    "name": "id",
+                    "type": "text",
+                    "label": "ID"
+                  },
+                  {
+                    "name": "createdTime",
+                    "type": "date",
+                    "label": "Created Time"
+                  },
+                  {
+                    "name": "Patient Name",
+                    "type": "text",
+                    "label": "Patient Name"
+                  },
+                  {
+                    "name": "Patient Phone",
+                    "type": "text",
+                    "label": "Patient Phone"
+                  },
+                  {
+                    "name": "Visit Date",
+                    "time": false,
+                    "type": "date",
+                    "label": "Visit Date"
+                  },
+                  {
+                    "name": "Doctor Name",
+                    "type": "text",
+                    "label": "Doctor Name"
+                  },
+                  {
+                    "name": "Department",
+                    "type": "text",
+                    "label": "Department"
+                  },
+                  {
+                    "name": "Visit Type",
+                    "type": "text",
+                    "label": "Visit Type"
+                  },
+                  {
+                    "name": "Day 0 - Thank You Sent",
+                    "type": "text",
+                    "label": "Day 0 - Thank You Sent"
+                  },
+                  {
+                    "name": "Day 1 - Wellness Check Sent",
+                    "type": "text",
+                    "label": "Day 1 - Wellness Check Sent"
+                  },
+                  {
+                    "name": "Day 1 - Patient Replied",
+                    "type": "text",
+                    "label": "Day 1 - Patient Replied"
+                  },
+                  {
+                    "name": "Day 1 - Patient Response",
+                    "type": "text",
+                    "label": "Day 1 - Patient Response",
+                    "multiline": true
+                  },
+                  {
+                    "name": "Day 3 - Follow-Up Sent",
+                    "type": "text",
+                    "label": "Day 3 - Follow-Up Sent"
+                  },
+                  {
+                    "name": "Day 3 - Patient Replied",
+                    "type": "text",
+                    "label": "Day 3 - Patient Replied"
+                  },
+                  {
+                    "name": "Day 3 - Patient Response",
+                    "type": "text",
+                    "label": "Day 3 - Patient Response",
+                    "multiline": true
+                  },
+                  {
+                    "name": "Day 7 - Final Check Sent",
+                    "type": "text",
+                    "label": "Day 7 - Final Check Sent"
+                  },
+                  {
+                    "name": "Day 7 - Patient Replied",
+                    "type": "text",
+                    "label": "Day 7 - Patient Replied"
+                  },
+                  {
+                    "name": "Day 7 - Patient Response",
+                    "type": "text",
+                    "label": "Day 7 - Patient Response",
+                    "multiline": true
+                  },
+                  {
+                    "name": "Needs Doctor Review",
+                    "type": "text",
+                    "label": "Needs Doctor Review"
+                  },
+                  {
+                    "name": "Doctor Notified",
+                    "type": "text",
+                    "label": "Doctor Notified"
+                  },
+                  {
+                    "name": "Status",
+                    "type": "text",
+                    "label": "Status"
+                  },
+                  {
+                    "name": "Notes",
+                    "type": "text",
+                    "label": "Notes",
+                    "multiline": true
+                  }
+                ],
+                "parameters": [
+                  {
+                    "name": "__IMTCONN__",
+                    "type": "account:airtable3,airtable2",
+                    "label": "Connection",
+                    "required": true
+                  }
+                ]
+              },
+              "parameters": {
+                "__IMTCONN__": 6448605
+              }
+            }
+          ]
+        },
+        {
+          "flow": [
+            {
+              "id": 9,
+              "filter": {
+                "name": "Day 3 ready",
+                "conditions": [
+                  [
+                    {
+                      "a": "{{1.`Day 3 - Follow-Up Sent`}}",
+                      "b": "Pending",
+                      "o": "text:equal"
+                    }
+                  ]
+                ]
+              },
+              "mapper": {
+                "ca": "",
+                "qs": [],
+                "url": "https://developers.sanoflow.io/api/v1.1/messages/whatsapp/send-template",
+                "data": "{\n  \"template_id\": \"12106\",\n  \"phone\": \"{{1.`Patient Phone`}}\",\n  \"mapper_value\": [\"{{1.`Patient Name`}}\"]\n}",
+                "gzip": true,
+                "method": "post",
+                "headers": [
+                  {
+                    "name": "Content-type",
+                    "value": "application/json"
+                  },
+                  {
+                    "name": "access-token",
+                    "value": "[REDACTED]"
+                  }
+                ],
+                "timeout": "",
+                "useMtls": false,
+                "authPass": "",
+                "authUser": "",
+                "bodyType": "raw",
+                "contentType": "application/json",
+                "serializeUrl": false,
+                "shareCookies": false,
+                "parseResponse": true,
+                "followRedirect": true,
+                "useQuerystring": false,
+                "followAllRedirects": true,
+                "rejectUnauthorized": true
+              },
+              "module": "http:ActionSendData",
+              "version": 3,
+              "metadata": {
+                "expect": [
+                  {
+                    "name": "url",
+                    "type": "url",
+                    "label": "URL",
+                    "required": true
+                  },
+                  {
+                    "name": "serializeUrl",
+                    "type": "boolean",
+                    "label": "Serialize URL",
+                    "required": true
+                  },
+                  {
+                    "name": "method",
+                    "type": "select",
+                    "label": "Method",
+                    "required": true,
+                    "validate": {
+                      "enum": [
+                        "get",
+                        "head",
+                        "post",
+                        "put",
+                        "patch",
+                        "delete",
+                        "options"
+                      ]
+                    }
+                  },
+                  {
+                    "name": "headers",
+                    "spec": [
+                      {
+                        "name": "name",
+                        "type": "text",
+                        "label": "Name",
+                        "required": true
+                      },
+                      {
+                        "name": "value",
+                        "type": "text",
+                        "label": "Value"
+                      }
+                    ],
+                    "type": "array",
+                    "label": "Headers"
+                  },
+                  {
+                    "name": "qs",
+                    "spec": [
+                      {
+                        "name": "name",
+                        "type": "text",
+                        "label": "Name",
+                        "required": true
+                      },
+                      {
+                        "name": "value",
+                        "type": "text",
+                        "label": "Value"
+                      }
+                    ],
+                    "type": "array",
+                    "label": "Query String"
+                  },
+                  {
+                    "name": "bodyType",
+                    "type": "select",
+                    "label": "Body type",
+                    "validate": {
+                      "enum": [
+                        "raw",
+                        "x_www_form_urlencoded",
+                        "multipart_form_data"
+                      ]
+                    }
+                  },
+                  {
+                    "name": "parseResponse",
+                    "type": "boolean",
+                    "label": "Parse response",
+                    "required": true
+                  },
+                  {
+                    "name": "authUser",
+                    "type": "text",
+                    "label": "User name"
+                  },
+                  {
+                    "name": "authPass",
+                    "type": "password",
+                    "label": "Password"
+                  },
+                  {
+                    "name": "timeout",
+                    "type": "uinteger",
+                    "label": "Timeout",
+                    "validate": {
+                      "max": 300,
+                      "min": 1
+                    }
+                  },
+                  {
+                    "name": "shareCookies",
+                    "type": "boolean",
+                    "label": "Share cookies with other HTTP modules",
+                    "required": true
+                  },
+                  {
+                    "name": "ca",
+                    "type": "cert",
+                    "label": "Self-signed certificate"
+                  },
+                  {
+                    "name": "rejectUnauthorized",
+                    "type": "boolean",
+                    "label": "Reject connections that are using unverified (self-signed) certificates",
+                    "required": true
+                  },
+                  {
+                    "name": "followRedirect",
+                    "type": "boolean",
+                    "label": "Follow redirect",
+                    "required": true
+                  },
+                  {
+                    "name": "useQuerystring",
+                    "type": "boolean",
+                    "label": "Disable serialization of multiple same query string keys as arrays",
+                    "required": true
+                  },
+                  {
+                    "name": "gzip",
+                    "type": "boolean",
+                    "label": "Request compressed content",
+                    "required": true
+                  },
+                  {
+                    "name": "useMtls",
+                    "type": "boolean",
+                    "label": "Use Mutual TLS",
+                    "required": true
+                  },
+                  {
+                    "name": "contentType",
+                    "type": "select",
+                    "label": "Content type",
+                    "validate": {
+                      "enum": [
+                        "text/plain",
+                        "application/json",
+                        "application/xml",
+                        "text/xml",
+                        "text/html",
+                        "custom"
+                      ]
+                    }
+                  },
+                  {
+                    "name": "data",
+                    "type": "buffer",
+                    "label": "Request content"
+                  },
+                  {
+                    "name": "followAllRedirects",
+                    "type": "boolean",
+                    "label": "Follow all redirect",
+                    "required": true
+                  }
+                ],
+                "restore": {
+                  "expect": {
+                    "qs": {
+                      "mode": "chose"
+                    },
+                    "method": {
+                      "mode": "chose",
+                      "label": "POST"
+                    },
+                    "headers": {
+                      "mode": "chose",
+                      "items": [
+                        null,
+                        null
+                      ]
+                    },
+                    "bodyType": {
+                      "label": "Raw"
+                    },
+                    "contentType": {
+                      "label": "JSON (application/json)"
+                    }
+                  }
+                },
+                "designer": {
+                  "x": 600,
+                  "y": 600,
+                  "name": "Send Day 3"
+                },
+                "parameters": [
+                  {
+                    "name": "handleErrors",
+                    "type": "boolean",
+                    "label": "Evaluate all states as errors (except for 2xx and 3xx )",
+                    "required": true
+                  },
+                  {
+                    "name": "useNewZLibDeCompress",
+                    "type": "hidden"
+                  }
+                ]
+              },
+              "parameters": {
+                "handleErrors": true,
+                "useNewZLibDeCompress": true
+              }
+            },
+            {
+              "id": 10,
+              "mapper": {
+                "id": "{{1.id}}",
+                "base": "appZbwlQvkuaUsF2l",
+                "table": "tblFQn2YMbmoqa6HF",
+                "record": {
+                  "fldBnHl4MzHOLjV9L": "Yes",
+                  "fldrTC2bFozodX4yW": "Pending"
+                },
+                "typecast": false,
+                "useColumnId": false
+              },
+              "module": "airtable:ActionUpdateRecords",
+              "version": 3,
+              "metadata": {
+                "expect": [
+                  {
+                    "name": "base",
+                    "type": "select",
+                    "label": "Base",
+                    "required": true
+                  },
+                  {
+                    "name": "typecast",
+                    "type": "boolean",
+                    "label": "Smart links",
+                    "required": true
+                  },
+                  {
+                    "name": "useColumnId",
+                    "type": "boolean",
+                    "label": "Use Column ID",
+                    "required": true
+                  },
+                  {
+                    "name": "table",
+                    "type": "select",
+                    "label": "Table",
+                    "required": true
+                  },
+                  {
+                    "name": "id",
+                    "type": "text",
+                    "label": "Record ID",
+                    "required": true
+                  },
+                  {
+                    "name": "record",
+                    "spec": [
+                      {
+                        "name": "fldX6WXZAl2vw7NDA",
+                        "type": "text",
+                        "label": "Patient Name"
+                      },
+                      {
+                        "name": "fld88UckrSYq8DZgE",
+                        "type": "text",
+                        "label": "Patient Phone"
+                      },
+                      {
+                        "name": "fldjosnkWepenrNsu",
+                        "time": false,
+                        "type": "date",
+                        "label": "Visit Date"
+                      },
+                      {
+                        "name": "fldlSRASvTZ56KCqi",
+                        "type": "text",
+                        "label": "Doctor Name"
+                      },
+                      {
+                        "name": "fldZ5PO7HXmLGFehP",
+                        "type": "text",
+                        "label": "Department"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldEQtgrqgSjceiYh",
+                        "type": "select",
+                        "label": "Visit Type"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldjNMsHqUaLyYfo1",
+                        "type": "select",
+                        "label": "Day 0 - Thank You Sent"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldb8MQ4Q44b8JmjI",
+                        "type": "select",
+                        "label": "Day 1 - Wellness Check Sent"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldwwBcHpLAJb5WtK",
+                        "type": "select",
+                        "label": "Day 1 - Patient Replied"
+                      },
+                      {
+                        "name": "fldvmIZ6lebRPZZHB",
+                        "type": "text",
+                        "label": "Day 1 - Patient Response"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldBnHl4MzHOLjV9L",
+                        "type": "select",
+                        "label": "Day 3 - Follow-Up Sent"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldS9F70mLwzYnYRN",
+                        "type": "select",
+                        "label": "Day 3 - Patient Replied"
+                      },
+                      {
+                        "name": "fldVwZ3ggRCswIKkI",
+                        "type": "text",
+                        "label": "Day 3 - Patient Response"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldrTC2bFozodX4yW",
+                        "type": "select",
+                        "label": "Day 7 - Final Check Sent"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldB3MVR2EgqFRBEn",
+                        "type": "select",
+                        "label": "Day 7 - Patient Replied"
+                      },
+                      {
+                        "name": "fldSQnPDkyvOIk9Of",
+                        "type": "text",
+                        "label": "Day 7 - Patient Response"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fld89UL2IAdxzVmXG",
+                        "type": "select",
+                        "label": "Needs Doctor Review"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldZ8dLGzOw3whE3D",
+                        "type": "select",
+                        "label": "Doctor Notified"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldDySGq3mlDsnuXH",
+                        "type": "select",
+                        "label": "Status"
+                      },
+                      {
+                        "name": "fldDeKSkfINlzU7TD",
+                        "type": "text",
+                        "label": "Notes"
+                      }
+                    ],
+                    "type": "collection",
+                    "label": "Record"
+                  }
+                ],
+                "restore": {
+                  "expect": {
+                    "base": {
+                      "label": "Patient Treatment & Follow-Up System"
+                    },
+                    "table": {
+                      "label": "DRAFT - Post-Visit Follow-Up"
+                    },
+                    "record": {
+                      "nested": {
+                        "fld89UL2IAdxzVmXG": {
+                          "mode": "edit"
+                        },
+                        "fldB3MVR2EgqFRBEn": {
+                          "mode": "edit"
+                        },
+                        "fldBnHl4MzHOLjV9L": {
+                          "mode": "chose",
+                          "label": "Yes"
+                        },
+                        "fldDySGq3mlDsnuXH": {
+                          "mode": "edit"
+                        },
+                        "fldEQtgrqgSjceiYh": {
+                          "mode": "edit"
+                        },
+                        "fldS9F70mLwzYnYRN": {
+                          "mode": "edit"
+                        },
+                        "fldZ8dLGzOw3whE3D": {
+                          "mode": "edit"
+                        },
+                        "fldb8MQ4Q44b8JmjI": {
+                          "mode": "edit"
+                        },
+                        "fldjNMsHqUaLyYfo1": {
+                          "mode": "edit"
+                        },
+                        "fldrTC2bFozodX4yW": {
+                          "mode": "chose",
+                          "label": "Pending"
+                        },
+                        "fldwwBcHpLAJb5WtK": {
+                          "mode": "edit"
+                        }
+                      }
+                    },
+                    "typecast": {
+                      "mode": "chose"
+                    },
+                    "useColumnId": {
+                      "mode": "chose"
+                    }
+                  },
+                  "parameters": {
+                    "__IMTCONN__": {
+                      "data": {
+                        "scoped": "true",
+                        "connection": "airtable3"
+                      },
+                      "label": "Al Das Clinic (User ID: usr17UaGhbLqsH0hk)"
+                    }
+                  }
+                },
+                "designer": {
+                  "x": 900,
+                  "y": 600,
+                  "name": "Mark Day 3 Sent + Queue Day 7"
+                },
+                "interface": [
+                  {
+                    "name": "id",
+                    "type": "text",
+                    "label": "ID"
+                  },
+                  {
+                    "name": "createdTime",
+                    "type": "date",
+                    "label": "Created Time"
+                  },
+                  {
+                    "name": "Patient Name",
+                    "type": "text",
+                    "label": "Patient Name"
+                  },
+                  {
+                    "name": "Patient Phone",
+                    "type": "text",
+                    "label": "Patient Phone"
+                  },
+                  {
+                    "name": "Visit Date",
+                    "time": false,
+                    "type": "date",
+                    "label": "Visit Date"
+                  },
+                  {
+                    "name": "Doctor Name",
+                    "type": "text",
+                    "label": "Doctor Name"
+                  },
+                  {
+                    "name": "Department",
+                    "type": "text",
+                    "label": "Department"
+                  },
+                  {
+                    "name": "Visit Type",
+                    "type": "text",
+                    "label": "Visit Type"
+                  },
+                  {
+                    "name": "Day 0 - Thank You Sent",
+                    "type": "text",
+                    "label": "Day 0 - Thank You Sent"
+                  },
+                  {
+                    "name": "Day 1 - Wellness Check Sent",
+                    "type": "text",
+                    "label": "Day 1 - Wellness Check Sent"
+                  },
+                  {
+                    "name": "Day 1 - Patient Replied",
+                    "type": "text",
+                    "label": "Day 1 - Patient Replied"
+                  },
+                  {
+                    "name": "Day 1 - Patient Response",
+                    "type": "text",
+                    "label": "Day 1 - Patient Response",
+                    "multiline": true
+                  },
+                  {
+                    "name": "Day 3 - Follow-Up Sent",
+                    "type": "text",
+                    "label": "Day 3 - Follow-Up Sent"
+                  },
+                  {
+                    "name": "Day 3 - Patient Replied",
+                    "type": "text",
+                    "label": "Day 3 - Patient Replied"
+                  },
+                  {
+                    "name": "Day 3 - Patient Response",
+                    "type": "text",
+                    "label": "Day 3 - Patient Response",
+                    "multiline": true
+                  },
+                  {
+                    "name": "Day 7 - Final Check Sent",
+                    "type": "text",
+                    "label": "Day 7 - Final Check Sent"
+                  },
+                  {
+                    "name": "Day 7 - Patient Replied",
+                    "type": "text",
+                    "label": "Day 7 - Patient Replied"
+                  },
+                  {
+                    "name": "Day 7 - Patient Response",
+                    "type": "text",
+                    "label": "Day 7 - Patient Response",
+                    "multiline": true
+                  },
+                  {
+                    "name": "Needs Doctor Review",
+                    "type": "text",
+                    "label": "Needs Doctor Review"
+                  },
+                  {
+                    "name": "Doctor Notified",
+                    "type": "text",
+                    "label": "Doctor Notified"
+                  },
+                  {
+                    "name": "Status",
+                    "type": "text",
+                    "label": "Status"
+                  },
+                  {
+                    "name": "Notes",
+                    "type": "text",
+                    "label": "Notes",
+                    "multiline": true
+                  }
+                ],
+                "parameters": [
+                  {
+                    "name": "__IMTCONN__",
+                    "type": "account:airtable3,airtable2",
+                    "label": "Connection",
+                    "required": true
+                  }
+                ]
+              },
+              "parameters": {
+                "__IMTCONN__": 6448605
+              }
+            }
+          ]
+        },
+        {
+          "flow": [
+            {
+              "id": 11,
+              "filter": {
+                "name": "Day 7 ready",
+                "conditions": [
+                  [
+                    {
+                      "a": "{{1.`Day 7 - Final Check Sent`}}",
+                      "b": "Pending",
+                      "o": "text:equal"
+                    }
+                  ]
+                ]
+              },
+              "mapper": {
+                "ca": "",
+                "qs": [],
+                "url": "https://developers.sanoflow.io/api/v1.1/messages/whatsapp/send-template",
+                "data": "{\n  \"template_id\": \"12107\",\n  \"phone\": \"{{1.`Patient Phone`}}\",\n  \"mapper_value\": [\"{{1.`Patient Name`}}\", \"{{1.`Doctor Name`}}\"]\n}",
+                "gzip": true,
+                "method": "post",
+                "headers": [
+                  {
+                    "name": "Content-type",
+                    "value": "application/json"
+                  },
+                  {
+                    "name": "access-token",
+                    "value": "[REDACTED]"
+                  }
+                ],
+                "timeout": "",
+                "useMtls": false,
+                "authPass": "",
+                "authUser": "",
+                "bodyType": "raw",
+                "contentType": "application/json",
+                "serializeUrl": false,
+                "shareCookies": false,
+                "parseResponse": true,
+                "followRedirect": true,
+                "useQuerystring": false,
+                "followAllRedirects": true,
+                "rejectUnauthorized": true
+              },
+              "module": "http:ActionSendData",
+              "version": 3,
+              "metadata": {
+                "expect": [
+                  {
+                    "name": "url",
+                    "type": "url",
+                    "label": "URL",
+                    "required": true
+                  },
+                  {
+                    "name": "serializeUrl",
+                    "type": "boolean",
+                    "label": "Serialize URL",
+                    "required": true
+                  },
+                  {
+                    "name": "method",
+                    "type": "select",
+                    "label": "Method",
+                    "required": true,
+                    "validate": {
+                      "enum": [
+                        "get",
+                        "head",
+                        "post",
+                        "put",
+                        "patch",
+                        "delete",
+                        "options"
+                      ]
+                    }
+                  },
+                  {
+                    "name": "headers",
+                    "spec": [
+                      {
+                        "name": "name",
+                        "type": "text",
+                        "label": "Name",
+                        "required": true
+                      },
+                      {
+                        "name": "value",
+                        "type": "text",
+                        "label": "Value"
+                      }
+                    ],
+                    "type": "array",
+                    "label": "Headers"
+                  },
+                  {
+                    "name": "qs",
+                    "spec": [
+                      {
+                        "name": "name",
+                        "type": "text",
+                        "label": "Name",
+                        "required": true
+                      },
+                      {
+                        "name": "value",
+                        "type": "text",
+                        "label": "Value"
+                      }
+                    ],
+                    "type": "array",
+                    "label": "Query String"
+                  },
+                  {
+                    "name": "bodyType",
+                    "type": "select",
+                    "label": "Body type",
+                    "validate": {
+                      "enum": [
+                        "raw",
+                        "x_www_form_urlencoded",
+                        "multipart_form_data"
+                      ]
+                    }
+                  },
+                  {
+                    "name": "parseResponse",
+                    "type": "boolean",
+                    "label": "Parse response",
+                    "required": true
+                  },
+                  {
+                    "name": "authUser",
+                    "type": "text",
+                    "label": "User name"
+                  },
+                  {
+                    "name": "authPass",
+                    "type": "password",
+                    "label": "Password"
+                  },
+                  {
+                    "name": "timeout",
+                    "type": "uinteger",
+                    "label": "Timeout",
+                    "validate": {
+                      "max": 300,
+                      "min": 1
+                    }
+                  },
+                  {
+                    "name": "shareCookies",
+                    "type": "boolean",
+                    "label": "Share cookies with other HTTP modules",
+                    "required": true
+                  },
+                  {
+                    "name": "ca",
+                    "type": "cert",
+                    "label": "Self-signed certificate"
+                  },
+                  {
+                    "name": "rejectUnauthorized",
+                    "type": "boolean",
+                    "label": "Reject connections that are using unverified (self-signed) certificates",
+                    "required": true
+                  },
+                  {
+                    "name": "followRedirect",
+                    "type": "boolean",
+                    "label": "Follow redirect",
+                    "required": true
+                  },
+                  {
+                    "name": "useQuerystring",
+                    "type": "boolean",
+                    "label": "Disable serialization of multiple same query string keys as arrays",
+                    "required": true
+                  },
+                  {
+                    "name": "gzip",
+                    "type": "boolean",
+                    "label": "Request compressed content",
+                    "required": true
+                  },
+                  {
+                    "name": "useMtls",
+                    "type": "boolean",
+                    "label": "Use Mutual TLS",
+                    "required": true
+                  },
+                  {
+                    "name": "contentType",
+                    "type": "select",
+                    "label": "Content type",
+                    "validate": {
+                      "enum": [
+                        "text/plain",
+                        "application/json",
+                        "application/xml",
+                        "text/xml",
+                        "text/html",
+                        "custom"
+                      ]
+                    }
+                  },
+                  {
+                    "name": "data",
+                    "type": "buffer",
+                    "label": "Request content"
+                  },
+                  {
+                    "name": "followAllRedirects",
+                    "type": "boolean",
+                    "label": "Follow all redirect",
+                    "required": true
+                  }
+                ],
+                "restore": {
+                  "expect": {
+                    "qs": {
+                      "mode": "chose"
+                    },
+                    "method": {
+                      "mode": "chose",
+                      "label": "POST"
+                    },
+                    "headers": {
+                      "mode": "chose",
+                      "items": [
+                        null,
+                        null
+                      ]
+                    },
+                    "bodyType": {
+                      "label": "Raw"
+                    },
+                    "contentType": {
+                      "label": "JSON (application/json)"
+                    }
+                  }
+                },
+                "designer": {
+                  "x": 600,
+                  "y": 900,
+                  "name": "Send Day 7"
+                },
+                "parameters": [
+                  {
+                    "name": "handleErrors",
+                    "type": "boolean",
+                    "label": "Evaluate all states as errors (except for 2xx and 3xx )",
+                    "required": true
+                  },
+                  {
+                    "name": "useNewZLibDeCompress",
+                    "type": "hidden"
+                  }
+                ]
+              },
+              "parameters": {
+                "handleErrors": true,
+                "useNewZLibDeCompress": true
+              }
+            },
+            {
+              "id": 12,
+              "mapper": {
+                "id": "{{1.id}}",
+                "base": "appZbwlQvkuaUsF2l",
+                "table": "tblFQn2YMbmoqa6HF",
+                "record": {
+                  "fldrTC2bFozodX4yW": "Yes"
+                },
+                "typecast": false,
+                "useColumnId": false
+              },
+              "module": "airtable:ActionUpdateRecords",
+              "version": 3,
+              "metadata": {
+                "expect": [
+                  {
+                    "name": "base",
+                    "type": "select",
+                    "label": "Base",
+                    "required": true
+                  },
+                  {
+                    "name": "typecast",
+                    "type": "boolean",
+                    "label": "Smart links",
+                    "required": true
+                  },
+                  {
+                    "name": "useColumnId",
+                    "type": "boolean",
+                    "label": "Use Column ID",
+                    "required": true
+                  },
+                  {
+                    "name": "table",
+                    "type": "select",
+                    "label": "Table",
+                    "required": true
+                  },
+                  {
+                    "name": "id",
+                    "type": "text",
+                    "label": "Record ID",
+                    "required": true
+                  },
+                  {
+                    "name": "record",
+                    "spec": [
+                      {
+                        "name": "fldX6WXZAl2vw7NDA",
+                        "type": "text",
+                        "label": "Patient Name"
+                      },
+                      {
+                        "name": "fld88UckrSYq8DZgE",
+                        "type": "text",
+                        "label": "Patient Phone"
+                      },
+                      {
+                        "name": "fldjosnkWepenrNsu",
+                        "time": false,
+                        "type": "date",
+                        "label": "Visit Date"
+                      },
+                      {
+                        "name": "fldlSRASvTZ56KCqi",
+                        "type": "text",
+                        "label": "Doctor Name"
+                      },
+                      {
+                        "name": "fldZ5PO7HXmLGFehP",
+                        "type": "text",
+                        "label": "Department"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldEQtgrqgSjceiYh",
+                        "type": "select",
+                        "label": "Visit Type"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldjNMsHqUaLyYfo1",
+                        "type": "select",
+                        "label": "Day 0 - Thank You Sent"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldb8MQ4Q44b8JmjI",
+                        "type": "select",
+                        "label": "Day 1 - Wellness Check Sent"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldwwBcHpLAJb5WtK",
+                        "type": "select",
+                        "label": "Day 1 - Patient Replied"
+                      },
+                      {
+                        "name": "fldvmIZ6lebRPZZHB",
+                        "type": "text",
+                        "label": "Day 1 - Patient Response"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldBnHl4MzHOLjV9L",
+                        "type": "select",
+                        "label": "Day 3 - Follow-Up Sent"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldS9F70mLwzYnYRN",
+                        "type": "select",
+                        "label": "Day 3 - Patient Replied"
+                      },
+                      {
+                        "name": "fldVwZ3ggRCswIKkI",
+                        "type": "text",
+                        "label": "Day 3 - Patient Response"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldrTC2bFozodX4yW",
+                        "type": "select",
+                        "label": "Day 7 - Final Check Sent"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldB3MVR2EgqFRBEn",
+                        "type": "select",
+                        "label": "Day 7 - Patient Replied"
+                      },
+                      {
+                        "name": "fldSQnPDkyvOIk9Of",
+                        "type": "text",
+                        "label": "Day 7 - Patient Response"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fld89UL2IAdxzVmXG",
+                        "type": "select",
+                        "label": "Needs Doctor Review"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldZ8dLGzOw3whE3D",
+                        "type": "select",
+                        "label": "Doctor Notified"
+                      },
+                      {
+                        "mode": "edit",
+                        "name": "fldDySGq3mlDsnuXH",
+                        "type": "select",
+                        "label": "Status"
+                      },
+                      {
+                        "name": "fldDeKSkfINlzU7TD",
+                        "type": "text",
+                        "label": "Notes"
+                      }
+                    ],
+                    "type": "collection",
+                    "label": "Record"
+                  }
+                ],
+                "restore": {
+                  "expect": {
+                    "base": {
+                      "label": "Patient Treatment & Follow-Up System"
+                    },
+                    "table": {
+                      "label": "DRAFT - Post-Visit Follow-Up"
+                    },
+                    "record": {
+                      "nested": {
+                        "fld89UL2IAdxzVmXG": {
+                          "mode": "edit"
+                        },
+                        "fldB3MVR2EgqFRBEn": {
+                          "mode": "edit"
+                        },
+                        "fldBnHl4MzHOLjV9L": {
+                          "mode": "edit"
+                        },
+                        "fldDySGq3mlDsnuXH": {
+                          "mode": "edit"
+                        },
+                        "fldEQtgrqgSjceiYh": {
+                          "mode": "edit"
+                        },
+                        "fldS9F70mLwzYnYRN": {
+                          "mode": "edit"
+                        },
+                        "fldZ8dLGzOw3whE3D": {
+                          "mode": "edit"
+                        },
+                        "fldb8MQ4Q44b8JmjI": {
+                          "mode": "edit"
+                        },
+                        "fldjNMsHqUaLyYfo1": {
+                          "mode": "edit"
+                        },
+                        "fldrTC2bFozodX4yW": {
+                          "mode": "chose",
+                          "label": "Yes"
+                        },
+                        "fldwwBcHpLAJb5WtK": {
+                          "mode": "edit"
+                        }
+                      }
+                    },
+                    "typecast": {
+                      "mode": "chose"
+                    },
+                    "useColumnId": {
+                      "mode": "chose"
+                    }
+                  },
+                  "parameters": {
+                    "__IMTCONN__": {
+                      "data": {
+                        "scoped": "true",
+                        "connection": "airtable3"
+                      },
+                      "label": "Al Das Clinic (User ID: usr17UaGhbLqsH0hk)"
+                    }
+                  }
+                },
+                "designer": {
+                  "x": 900,
+                  "y": 900,
+                  "name": "Mark Day 7 Sent + Complete"
+                },
+                "interface": [
+                  {
+                    "name": "id",
+                    "type": "text",
+                    "label": "ID"
+                  },
+                  {
+                    "name": "createdTime",
+                    "type": "date",
+                    "label": "Created Time"
+                  },
+                  {
+                    "name": "Patient Name",
+                    "type": "text",
+                    "label": "Patient Name"
+                  },
+                  {
+                    "name": "Patient Phone",
+                    "type": "text",
+                    "label": "Patient Phone"
+                  },
+                  {
+                    "name": "Visit Date",
+                    "time": false,
+                    "type": "date",
+                    "label": "Visit Date"
+                  },
+                  {
+                    "name": "Doctor Name",
+                    "type": "text",
+                    "label": "Doctor Name"
+                  },
+                  {
+                    "name": "Department",
+                    "type": "text",
+                    "label": "Department"
+                  },
+                  {
+                    "name": "Visit Type",
+                    "type": "text",
+                    "label": "Visit Type"
+                  },
+                  {
+                    "name": "Day 0 - Thank You Sent",
+                    "type": "text",
+                    "label": "Day 0 - Thank You Sent"
+                  },
+                  {
+                    "name": "Day 1 - Wellness Check Sent",
+                    "type": "text",
+                    "label": "Day 1 - Wellness Check Sent"
+                  },
+                  {
+                    "name": "Day 1 - Patient Replied",
+                    "type": "text",
+                    "label": "Day 1 - Patient Replied"
+                  },
+                  {
+                    "name": "Day 1 - Patient Response",
+                    "type": "text",
+                    "label": "Day 1 - Patient Response",
+                    "multiline": true
+                  },
+                  {
+                    "name": "Day 3 - Follow-Up Sent",
+                    "type": "text",
+                    "label": "Day 3 - Follow-Up Sent"
+                  },
+                  {
+                    "name": "Day 3 - Patient Replied",
+                    "type": "text",
+                    "label": "Day 3 - Patient Replied"
+                  },
+                  {
+                    "name": "Day 3 - Patient Response",
+                    "type": "text",
+                    "label": "Day 3 - Patient Response",
+                    "multiline": true
+                  },
+                  {
+                    "name": "Day 7 - Final Check Sent",
+                    "type": "text",
+                    "label": "Day 7 - Final Check Sent"
+                  },
+                  {
+                    "name": "Day 7 - Patient Replied",
+                    "type": "text",
+                    "label": "Day 7 - Patient Replied"
+                  },
+                  {
+                    "name": "Day 7 - Patient Response",
+                    "type": "text",
+                    "label": "Day 7 - Patient Response",
+                    "multiline": true
+                  },
+                  {
+                    "name": "Needs Doctor Review",
+                    "type": "text",
+                    "label": "Needs Doctor Review"
+                  },
+                  {
+                    "name": "Doctor Notified",
+                    "type": "text",
+                    "label": "Doctor Notified"
+                  },
+                  {
+                    "name": "Status",
+                    "type": "text",
+                    "label": "Status"
+                  },
+                  {
+                    "name": "Notes",
+                    "type": "text",
+                    "label": "Notes",
+                    "multiline": true
+                  }
+                ],
+                "parameters": [
+                  {
+                    "name": "__IMTCONN__",
+                    "type": "account:airtable3,airtable2",
+                    "label": "Connection",
+                    "required": true
+                  }
+                ]
+              },
+              "parameters": {
+                "__IMTCONN__": 6448605
+              }
+            }
+          ]
+        }
+      ],
+      "version": 1,
+      "metadata": {
+        "designer": {
+          "x": 300,
+          "y": 450
+        }
+      }
+    }
+  ],
+  "name": "DRAFT - Post-Visit Follow-Up Automation",
+  "metadata": {
+    "instant": false,
+    "version": 1,
+    "designer": {
+      "orphans": []
+    },
+    "scenario": {
+      "dlq": false,
+      "slots": null,
+      "dataloss": false,
+      "maxErrors": 3,
+      "autoCommit": true,
+      "roundtrips": 1,
+      "sequential": false,
+      "confidential": false,
+      "freshVariables": false,
+      "autoCommitTriggerLast": true
+    }
+  }
+}

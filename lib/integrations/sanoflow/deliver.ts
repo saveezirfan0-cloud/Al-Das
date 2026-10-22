@@ -1,15 +1,25 @@
 import "server-only";
 
+import { upsertExternalRef } from "@/lib/contacts/import-writer";
 import { emit } from "@/lib/events/emit";
 import { loadAccount } from "@/lib/integrations/accounts";
 import type { SendSpec } from "@/lib/inbox/send";
+import { enqueue } from "@/lib/jobs/enqueue";
 import type { JobContext } from "@/lib/jobs/types";
 import type { AdminClient } from "@/lib/supabase/admin";
 import { isAuthTemplate, isMarketingBlocked, isTemplateSendable } from "@/lib/whatsapp/templates";
 import type { MetaTemplateComponent } from "@/lib/whatsapp/types";
 
-import type { SanoflowClient } from "./client";
-import { sanoflowPhone } from "./config";
+import type { SanoflowClient, SanoflowSendResult } from "./client";
+import { readSanoflowConfig, sanoflowPhone, type SanoflowConfig } from "./config";
+import {
+  contactFullName,
+  firstLastWord,
+  readOutboundContext,
+  shouldRecoverInvalidChannel,
+  shouldTagAfterSend,
+  type OutboundContext,
+} from "./contacts";
 import { sanoflowMapperValues } from "./params";
 import { buildSanoflowClientFor } from "./server";
 
@@ -22,7 +32,8 @@ export class SanoflowRetryError extends Error {
 }
 
 export type SanoflowOutboundInput = {
-  message: { id: string; org_id: string };
+  /** `payload` carries the queueing context (payload.context: appointment reminder or recall send). */
+  message: { id: string; org_id: string; payload?: unknown };
   conversation: { id: string };
   contact: { id: string; phone_e164: string | null; stop_marketing: boolean | null };
   spec: SendSpec;
@@ -70,7 +81,12 @@ export async function deliverSanoflowOutbound(
   admin: AdminClient,
   a: SanoflowOutboundInput,
   ctx: Pick<JobContext, "log" | "readCt">,
-  deps: { fetchFn?: typeof fetch; client?: SanoflowClient; phoneFormat?: "digits" | "plus" } = {},
+  deps: {
+    fetchFn?: typeof fetch;
+    client?: SanoflowClient;
+    phoneFormat?: "digits" | "plus";
+    config?: SanoflowConfig;
+  } = {},
 ): Promise<void> {
   if (a.spec.type !== "template") {
     await markFailed(
@@ -84,6 +100,7 @@ export async function deliverSanoflowOutbound(
 
   let client = deps.client ?? null;
   let phoneFormat = deps.phoneFormat ?? "digits";
+  let config: SanoflowConfig = deps.config ?? readSanoflowConfig({ phone_format: phoneFormat });
   if (!client) {
     const account = await loadAccount(admin, a.message.org_id, "sanoflow");
     if (!account?.enabled) {
@@ -97,7 +114,9 @@ export async function deliverSanoflowOutbound(
     }
     client = built.client;
     phoneFormat = built.config.phoneFormat;
+    config = built.config;
   }
+  const context = readOutboundContext(a.message.payload);
 
   const { data: tpl } = await admin
     .from("wa_templates")
@@ -183,7 +202,14 @@ export async function deliverSanoflowOutbound(
     return;
   }
 
-  const r = await client.sendTemplate({ templateId: templateNumber, phone, values: mapped.values });
+  const send = { templateId: templateNumber, phone, values: mapped.values };
+  let r = await client.sendTemplate(send);
+  if (!r.ok && shouldRecoverInvalidChannel(context, r)) {
+    const again = await recoverInvalidChannel(admin, a, client, phone, ctx);
+    if (again) r = await client.sendTemplate(send);
+    // The second answer is final: a 429 now is not queued again, because a re-run would repeat contacts/add.
+    if (!r.ok) r = { ...r, retryable: false };
+  }
   if (r.ok) {
     const externalId = `sanoflow:${r.providerMessageId ?? a.message.id}`.slice(0, 200);
     await admin
@@ -199,8 +225,18 @@ export async function deliverSanoflowOutbound(
       conversation_id: a.conversation.id,
       kind: "template",
     });
+    await queueTagging(a, context, config, ctx);
     return;
   }
+  await handleFailure(admin, a, r, ctx);
+}
+
+async function handleFailure(
+  admin: AdminClient,
+  a: SanoflowOutboundInput,
+  r: Extract<SanoflowSendResult, { ok: false }>,
+  ctx: Pick<JobContext, "log" | "readCt">,
+): Promise<void> {
   if (r.retryable && ctx.readCt < 5) {
     await admin.from("messages").update({ status: "queued" }).eq("id", a.message.id);
     ctx.log.warn("sanoflow send throttled", { messageId: a.message.id, code: r.code });
@@ -239,7 +275,76 @@ export async function deliverSanoflowOutbound(
       ? "Sanoflow rejected the API key."
       : r.code === "breaker_open"
         ? "Sanoflow has been failing; sends are paused for a few minutes."
-        : "Sanoflow refused the message.",
+        : r.invalidChannel
+          ? "Sanoflow does not know this number's WhatsApp channel."
+          : "Sanoflow refused the message.",
     r.auth ? "account" : "message",
   );
+}
+
+/**
+ * docs/49 D9, as Make's reminder error path: Sanoflow refused the reminder with "Invalid channel details.", so look the
+ * number up in Sanoflow; for a contact found, create it again on v1 (first and last word of the name) and let the caller send
+ * the template once more. No contact found, or any failed or ambiguous answer, stops here: nothing is sent again after an
+ * answer nobody can read. Returns true when the template should be sent again.
+ */
+async function recoverInvalidChannel(
+  admin: AdminClient,
+  a: SanoflowOutboundInput,
+  client: SanoflowClient,
+  phone: string,
+  ctx: Pick<JobContext, "log">,
+): Promise<boolean> {
+  const found = await client.contactsList({ phone });
+  if (!found.ok || found.value.length === 0) {
+    ctx.log.info("sanoflow invalid channel: no contact to re-create", {
+      messageId: a.message.id,
+      code: found.ok ? "none_found" : found.code,
+    });
+    return false;
+  }
+  const { data: person } = await admin
+    .from("contacts")
+    .select("first_name, last_name, full_name")
+    .eq("id", a.contact.id)
+    .maybeSingle();
+  const name = firstLastWord(contactFullName(person ?? {}));
+  const added = await client.contactsAdd({ firstName: name.first, lastName: name.last, phone });
+  if (!added.ok) {
+    ctx.log.warn("sanoflow contact add failed", { messageId: a.message.id, code: added.code });
+    return false;
+  }
+  if (added.value.contactId !== null) {
+    await upsertExternalRef(admin, {
+      orgId: a.message.org_id,
+      source: "sanoflow",
+      entity: "contact",
+      externalId: String(added.value.contactId),
+      localTable: "contacts",
+      localId: a.contact.id,
+    });
+  }
+  return true;
+}
+
+/**
+ * docs/49 D11: after a Live recall send, Make writes its tag (and the chronic label) to the Sanoflow contact. That happens in
+ * its own job (sanoflow_tags) so a failed or slow tag write can never touch the message. Ids only in the job.
+ */
+async function queueTagging(
+  a: SanoflowOutboundInput,
+  context: OutboundContext | null,
+  config: SanoflowConfig,
+  ctx: Pick<JobContext, "log">,
+): Promise<void> {
+  if (!shouldTagAfterSend(context, config)) return;
+  try {
+    await enqueue("sanoflow_tags", {
+      org_id: a.message.org_id,
+      contact_id: a.contact.id,
+      programme: context.programme,
+    });
+  } catch {
+    ctx.log.warn("sanoflow tag job not queued", { messageId: a.message.id });
+  }
 }

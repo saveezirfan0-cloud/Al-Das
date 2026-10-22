@@ -1,0 +1,1769 @@
+{
+  "flow": [
+    {
+      "id": 1,
+      "mapper": {
+        "key": "token",
+        "returnWrapped": false
+      },
+      "module": "datastore:GetRecord",
+      "version": 1,
+      "metadata": {
+        "expect": [
+          {
+            "name": "key",
+            "type": "text",
+            "label": "Key",
+            "required": true
+          },
+          {
+            "name": "returnWrapped",
+            "type": "boolean",
+            "label": "Return Wrapped Output",
+            "required": true
+          }
+        ],
+        "restore": {
+          "parameters": {
+            "datastore": {
+              "label": "Token"
+            }
+          }
+        },
+        "designer": {
+          "x": 0,
+          "y": 300
+        },
+        "interface": [
+          {
+            "help": "",
+            "name": "Access Token",
+            "type": "text",
+            "label": null,
+            "default": null,
+            "required": false,
+            "multiline": false
+          },
+          {
+            "help": "",
+            "name": "Refresh Token",
+            "type": "text",
+            "label": null,
+            "default": null,
+            "required": false,
+            "multiline": false
+          }
+        ],
+        "parameters": [
+          {
+            "name": "datastore",
+            "type": "datastore",
+            "label": "Data store",
+            "required": true
+          }
+        ]
+      },
+      "parameters": {
+        "datastore": 61544
+      }
+    },
+    {
+      "id": 2,
+      "mapper": {
+        "name": "Date",
+        "scope": "roundtrip",
+        "value": "{{formatDate(addDays(now; -1); \"DD-MM-YYYY\")}}"
+      },
+      "module": "util:SetVariable2",
+      "version": 1,
+      "metadata": {
+        "expect": [
+          {
+            "name": "name",
+            "type": "text",
+            "label": "Variable name",
+            "required": true
+          },
+          {
+            "name": "scope",
+            "type": "select",
+            "label": "Variable lifetime",
+            "required": true,
+            "validate": {
+              "enum": [
+                "roundtrip",
+                "execution"
+              ]
+            }
+          },
+          {
+            "name": "value",
+            "type": "any",
+            "label": "Variable value"
+          }
+        ],
+        "restore": {
+          "expect": {
+            "scope": {
+              "label": "One cycle"
+            }
+          }
+        },
+        "designer": {
+          "x": 300,
+          "y": 300
+        },
+        "interface": [
+          {
+            "name": "Date",
+            "type": "any",
+            "label": "Date"
+          }
+        ]
+      },
+      "parameters": {}
+    },
+    {
+      "id": 3,
+      "mapper": null,
+      "module": "builtin:BasicRouter",
+      "routes": [
+        {
+          "flow": [
+            {
+              "id": 4,
+              "filter": {
+                "name": "Al Das Medical Clinic - Palm Jumeirah",
+                "conditions": []
+              },
+              "mapper": {
+                "ca": "",
+                "qs": [],
+                "url": "https://ucexternalapiprod.uniteuae.care/gateway/getallappointments?clinic_id=DHA-F-0000419&from_date={{2.Date}}&to_date={{2.Date}}",
+                "gzip": true,
+                "method": "get",
+                "headers": [
+                  {
+                    "name": "Content-type",
+                    "value": "application/json"
+                  },
+                  {
+                    "name": "Authorization",
+                    "value": "[REDACTED]"
+                  }
+                ],
+                "timeout": "",
+                "useMtls": false,
+                "authPass": "",
+                "authUser": "",
+                "bodyType": "",
+                "serializeUrl": false,
+                "shareCookies": false,
+                "parseResponse": true,
+                "followRedirect": true,
+                "useQuerystring": false,
+                "followAllRedirects": false,
+                "rejectUnauthorized": true
+              },
+              "module": "http:ActionSendData",
+              "version": 3,
+              "metadata": {
+                "expect": [
+                  {
+                    "name": "url",
+                    "type": "url",
+                    "label": "URL",
+                    "required": true
+                  },
+                  {
+                    "name": "serializeUrl",
+                    "type": "boolean",
+                    "label": "Serialize URL",
+                    "required": true
+                  },
+                  {
+                    "name": "method",
+                    "type": "select",
+                    "label": "Method",
+                    "required": true,
+                    "validate": {
+                      "enum": [
+                        "get",
+                        "head",
+                        "post",
+                        "put",
+                        "patch",
+                        "delete",
+                        "options"
+                      ]
+                    }
+                  },
+                  {
+                    "name": "headers",
+                    "spec": [
+                      {
+                        "name": "name",
+                        "type": "text",
+                        "label": "Name",
+                        "required": true
+                      },
+                      {
+                        "name": "value",
+                        "type": "text",
+                        "label": "Value"
+                      }
+                    ],
+                    "type": "array",
+                    "label": "Headers"
+                  },
+                  {
+                    "name": "qs",
+                    "spec": [
+                      {
+                        "name": "name",
+                        "type": "text",
+                        "label": "Name",
+                        "required": true
+                      },
+                      {
+                        "name": "value",
+                        "type": "text",
+                        "label": "Value"
+                      }
+                    ],
+                    "type": "array",
+                    "label": "Query String"
+                  },
+                  {
+                    "name": "bodyType",
+                    "type": "select",
+                    "label": "Body type",
+                    "validate": {
+                      "enum": [
+                        "raw",
+                        "x_www_form_urlencoded",
+                        "multipart_form_data"
+                      ]
+                    }
+                  },
+                  {
+                    "name": "parseResponse",
+                    "type": "boolean",
+                    "label": "Parse response",
+                    "required": true
+                  },
+                  {
+                    "name": "authUser",
+                    "type": "text",
+                    "label": "User name"
+                  },
+                  {
+                    "name": "authPass",
+                    "type": "password",
+                    "label": "Password"
+                  },
+                  {
+                    "name": "timeout",
+                    "type": "uinteger",
+                    "label": "Timeout",
+                    "validate": {
+                      "max": 300,
+                      "min": 1
+                    }
+                  },
+                  {
+                    "name": "shareCookies",
+                    "type": "boolean",
+                    "label": "Share cookies with other HTTP modules",
+                    "required": true
+                  },
+                  {
+                    "name": "ca",
+                    "type": "cert",
+                    "label": "Self-signed certificate"
+                  },
+                  {
+                    "name": "rejectUnauthorized",
+                    "type": "boolean",
+                    "label": "Reject connections that are using unverified (self-signed) certificates",
+                    "required": true
+                  },
+                  {
+                    "name": "followRedirect",
+                    "type": "boolean",
+                    "label": "Follow redirect",
+                    "required": true
+                  },
+                  {
+                    "name": "useQuerystring",
+                    "type": "boolean",
+                    "label": "Disable serialization of multiple same query string keys as arrays",
+                    "required": true
+                  },
+                  {
+                    "name": "gzip",
+                    "type": "boolean",
+                    "label": "Request compressed content",
+                    "required": true
+                  },
+                  {
+                    "name": "useMtls",
+                    "type": "boolean",
+                    "label": "Use Mutual TLS",
+                    "required": true
+                  },
+                  {
+                    "name": "followAllRedirects",
+                    "type": "boolean",
+                    "label": "Follow all redirect",
+                    "required": true
+                  }
+                ],
+                "restore": {
+                  "expect": {
+                    "qs": {
+                      "mode": "chose"
+                    },
+                    "method": {
+                      "mode": "chose",
+                      "label": "GET"
+                    },
+                    "headers": {
+                      "mode": "chose",
+                      "items": [
+                        null,
+                        null
+                      ]
+                    },
+                    "bodyType": {
+                      "label": "Empty"
+                    }
+                  }
+                },
+                "advanced": true,
+                "designer": {
+                  "x": 900,
+                  "y": 0,
+                  "name": "Get Appointments"
+                },
+                "parameters": [
+                  {
+                    "name": "handleErrors",
+                    "type": "boolean",
+                    "label": "Evaluate all states as errors (except for 2xx and 3xx )",
+                    "required": true
+                  },
+                  {
+                    "name": "useNewZLibDeCompress",
+                    "type": "hidden"
+                  }
+                ]
+              },
+              "parameters": {
+                "handleErrors": true,
+                "useNewZLibDeCompress": true
+              }
+            },
+            {
+              "id": 5,
+              "mapper": {
+                "array": "{{4.data.Data}}"
+              },
+              "module": "builtin:BasicFeeder",
+              "version": 1,
+              "metadata": {
+                "expect": [
+                  {
+                    "mode": "edit",
+                    "name": "array",
+                    "spec": [],
+                    "type": "array",
+                    "label": "Array"
+                  }
+                ],
+                "restore": {
+                  "expect": {
+                    "array": {
+                      "mode": "edit"
+                    }
+                  }
+                },
+                "designer": {
+                  "x": 1200,
+                  "y": 0
+                }
+              },
+              "parameters": {}
+            },
+            {
+              "id": 24,
+              "filter": {
+                "name": "",
+                "conditions": [
+                  [
+                    {
+                      "a": "{{5.statusdescription}}",
+                      "b": "Appointment Honoured",
+                      "o": "text:equal"
+                    }
+                  ]
+                ]
+              },
+              "mapper": {
+                "ca": "",
+                "qs": [],
+                "url": "https://developers.sanoflow.io/api/v1.1/messages/whatsapp/send-template",
+                "data": "{\n  \"template_id\": 9532,\n  \"phone\": \"{{5.patientmobilephone}}\",\n  \"mapper_value\": [\n    \"{{first(split(5.patientfullname; space))}}\"\n  ]\n}",
+                "gzip": true,
+                "method": "post",
+                "headers": [
+                  {
+                    "name": "Content-type",
+                    "value": "application/json"
+                  },
+                  {
+                    "name": "access-token",
+                    "value": "[REDACTED]"
+                  }
+                ],
+                "timeout": "",
+                "useMtls": false,
+                "authPass": "",
+                "authUser": "",
+                "bodyType": "raw",
+                "contentType": "application/json",
+                "serializeUrl": false,
+                "shareCookies": false,
+                "parseResponse": true,
+                "followRedirect": true,
+                "useQuerystring": false,
+                "followAllRedirects": true,
+                "rejectUnauthorized": true
+              },
+              "module": "http:ActionSendData",
+              "version": 3,
+              "metadata": {
+                "expect": [
+                  {
+                    "name": "url",
+                    "type": "url",
+                    "label": "URL",
+                    "required": true
+                  },
+                  {
+                    "name": "serializeUrl",
+                    "type": "boolean",
+                    "label": "Serialize URL",
+                    "required": true
+                  },
+                  {
+                    "name": "method",
+                    "type": "select",
+                    "label": "Method",
+                    "required": true,
+                    "validate": {
+                      "enum": [
+                        "get",
+                        "head",
+                        "post",
+                        "put",
+                        "patch",
+                        "delete",
+                        "options"
+                      ]
+                    }
+                  },
+                  {
+                    "name": "headers",
+                    "spec": [
+                      {
+                        "name": "name",
+                        "type": "text",
+                        "label": "Name",
+                        "required": true
+                      },
+                      {
+                        "name": "value",
+                        "type": "text",
+                        "label": "Value"
+                      }
+                    ],
+                    "type": "array",
+                    "label": "Headers"
+                  },
+                  {
+                    "name": "qs",
+                    "spec": [
+                      {
+                        "name": "name",
+                        "type": "text",
+                        "label": "Name",
+                        "required": true
+                      },
+                      {
+                        "name": "value",
+                        "type": "text",
+                        "label": "Value"
+                      }
+                    ],
+                    "type": "array",
+                    "label": "Query String"
+                  },
+                  {
+                    "name": "bodyType",
+                    "type": "select",
+                    "label": "Body type",
+                    "validate": {
+                      "enum": [
+                        "raw",
+                        "x_www_form_urlencoded",
+                        "multipart_form_data"
+                      ]
+                    }
+                  },
+                  {
+                    "name": "parseResponse",
+                    "type": "boolean",
+                    "label": "Parse response",
+                    "required": true
+                  },
+                  {
+                    "name": "authUser",
+                    "type": "text",
+                    "label": "User name"
+                  },
+                  {
+                    "name": "authPass",
+                    "type": "password",
+                    "label": "Password"
+                  },
+                  {
+                    "name": "timeout",
+                    "type": "uinteger",
+                    "label": "Timeout",
+                    "validate": {
+                      "max": 300,
+                      "min": 1
+                    }
+                  },
+                  {
+                    "name": "shareCookies",
+                    "type": "boolean",
+                    "label": "Share cookies with other HTTP modules",
+                    "required": true
+                  },
+                  {
+                    "name": "ca",
+                    "type": "cert",
+                    "label": "Self-signed certificate"
+                  },
+                  {
+                    "name": "rejectUnauthorized",
+                    "type": "boolean",
+                    "label": "Reject connections that are using unverified (self-signed) certificates",
+                    "required": true
+                  },
+                  {
+                    "name": "followRedirect",
+                    "type": "boolean",
+                    "label": "Follow redirect",
+                    "required": true
+                  },
+                  {
+                    "name": "useQuerystring",
+                    "type": "boolean",
+                    "label": "Disable serialization of multiple same query string keys as arrays",
+                    "required": true
+                  },
+                  {
+                    "name": "gzip",
+                    "type": "boolean",
+                    "label": "Request compressed content",
+                    "required": true
+                  },
+                  {
+                    "name": "useMtls",
+                    "type": "boolean",
+                    "label": "Use Mutual TLS",
+                    "required": true
+                  },
+                  {
+                    "name": "contentType",
+                    "type": "select",
+                    "label": "Content type",
+                    "validate": {
+                      "enum": [
+                        "text/plain",
+                        "application/json",
+                        "application/xml",
+                        "text/xml",
+                        "text/html",
+                        "custom"
+                      ]
+                    }
+                  },
+                  {
+                    "name": "data",
+                    "type": "buffer",
+                    "label": "Request content"
+                  },
+                  {
+                    "name": "followAllRedirects",
+                    "type": "boolean",
+                    "label": "Follow all redirect",
+                    "required": true
+                  }
+                ],
+                "restore": {
+                  "expect": {
+                    "qs": {
+                      "mode": "chose"
+                    },
+                    "method": {
+                      "mode": "chose",
+                      "label": "POST"
+                    },
+                    "headers": {
+                      "mode": "chose",
+                      "items": [
+                        null,
+                        null
+                      ]
+                    },
+                    "bodyType": {
+                      "label": "Raw"
+                    },
+                    "contentType": {
+                      "label": "JSON (application/json)"
+                    }
+                  }
+                },
+                "advanced": true,
+                "designer": {
+                  "x": 1499,
+                  "y": -1,
+                  "name": "Send Template: POST-APPOINTMENT FOLLOW-UP"
+                },
+                "parameters": [
+                  {
+                    "name": "handleErrors",
+                    "type": "boolean",
+                    "label": "Evaluate all states as errors (except for 2xx and 3xx )",
+                    "required": true
+                  },
+                  {
+                    "name": "useNewZLibDeCompress",
+                    "type": "hidden"
+                  }
+                ]
+              },
+              "parameters": {
+                "handleErrors": true,
+                "useNewZLibDeCompress": true
+              }
+            }
+          ]
+        },
+        {
+          "flow": [
+            {
+              "id": 6,
+              "filter": {
+                "name": "Al Das Medical Clinic - Golden Mile",
+                "conditions": []
+              },
+              "mapper": {
+                "ca": "",
+                "qs": [],
+                "url": "https://ucexternalapiprod.uniteuae.care/gateway/getallappointments?clinic_id=DHA-F-6456618&from_date={{2.Date}}&to_date={{2.Date}}",
+                "gzip": true,
+                "method": "get",
+                "headers": [
+                  {
+                    "name": "Content-type",
+                    "value": "application/json"
+                  },
+                  {
+                    "name": "Authorization",
+                    "value": "[REDACTED]"
+                  }
+                ],
+                "timeout": "",
+                "useMtls": false,
+                "authPass": "",
+                "authUser": "",
+                "bodyType": "",
+                "serializeUrl": false,
+                "shareCookies": false,
+                "parseResponse": true,
+                "followRedirect": true,
+                "useQuerystring": false,
+                "followAllRedirects": false,
+                "rejectUnauthorized": true
+              },
+              "module": "http:ActionSendData",
+              "version": 3,
+              "metadata": {
+                "expect": [
+                  {
+                    "name": "url",
+                    "type": "url",
+                    "label": "URL",
+                    "required": true
+                  },
+                  {
+                    "name": "serializeUrl",
+                    "type": "boolean",
+                    "label": "Serialize URL",
+                    "required": true
+                  },
+                  {
+                    "name": "method",
+                    "type": "select",
+                    "label": "Method",
+                    "required": true,
+                    "validate": {
+                      "enum": [
+                        "get",
+                        "head",
+                        "post",
+                        "put",
+                        "patch",
+                        "delete",
+                        "options"
+                      ]
+                    }
+                  },
+                  {
+                    "name": "headers",
+                    "spec": [
+                      {
+                        "name": "name",
+                        "type": "text",
+                        "label": "Name",
+                        "required": true
+                      },
+                      {
+                        "name": "value",
+                        "type": "text",
+                        "label": "Value"
+                      }
+                    ],
+                    "type": "array",
+                    "label": "Headers"
+                  },
+                  {
+                    "name": "qs",
+                    "spec": [
+                      {
+                        "name": "name",
+                        "type": "text",
+                        "label": "Name",
+                        "required": true
+                      },
+                      {
+                        "name": "value",
+                        "type": "text",
+                        "label": "Value"
+                      }
+                    ],
+                    "type": "array",
+                    "label": "Query String"
+                  },
+                  {
+                    "name": "bodyType",
+                    "type": "select",
+                    "label": "Body type",
+                    "validate": {
+                      "enum": [
+                        "raw",
+                        "x_www_form_urlencoded",
+                        "multipart_form_data"
+                      ]
+                    }
+                  },
+                  {
+                    "name": "parseResponse",
+                    "type": "boolean",
+                    "label": "Parse response",
+                    "required": true
+                  },
+                  {
+                    "name": "authUser",
+                    "type": "text",
+                    "label": "User name"
+                  },
+                  {
+                    "name": "authPass",
+                    "type": "password",
+                    "label": "Password"
+                  },
+                  {
+                    "name": "timeout",
+                    "type": "uinteger",
+                    "label": "Timeout",
+                    "validate": {
+                      "max": 300,
+                      "min": 1
+                    }
+                  },
+                  {
+                    "name": "shareCookies",
+                    "type": "boolean",
+                    "label": "Share cookies with other HTTP modules",
+                    "required": true
+                  },
+                  {
+                    "name": "ca",
+                    "type": "cert",
+                    "label": "Self-signed certificate"
+                  },
+                  {
+                    "name": "rejectUnauthorized",
+                    "type": "boolean",
+                    "label": "Reject connections that are using unverified (self-signed) certificates",
+                    "required": true
+                  },
+                  {
+                    "name": "followRedirect",
+                    "type": "boolean",
+                    "label": "Follow redirect",
+                    "required": true
+                  },
+                  {
+                    "name": "useQuerystring",
+                    "type": "boolean",
+                    "label": "Disable serialization of multiple same query string keys as arrays",
+                    "required": true
+                  },
+                  {
+                    "name": "gzip",
+                    "type": "boolean",
+                    "label": "Request compressed content",
+                    "required": true
+                  },
+                  {
+                    "name": "useMtls",
+                    "type": "boolean",
+                    "label": "Use Mutual TLS",
+                    "required": true
+                  },
+                  {
+                    "name": "followAllRedirects",
+                    "type": "boolean",
+                    "label": "Follow all redirect",
+                    "required": true
+                  }
+                ],
+                "restore": {
+                  "expect": {
+                    "qs": {
+                      "mode": "chose"
+                    },
+                    "method": {
+                      "mode": "chose",
+                      "label": "GET"
+                    },
+                    "headers": {
+                      "mode": "chose",
+                      "items": [
+                        null,
+                        null
+                      ]
+                    },
+                    "bodyType": {
+                      "label": "Empty"
+                    }
+                  }
+                },
+                "advanced": true,
+                "designer": {
+                  "x": 900,
+                  "y": 300,
+                  "name": "Get Appointments"
+                },
+                "parameters": [
+                  {
+                    "name": "handleErrors",
+                    "type": "boolean",
+                    "label": "Evaluate all states as errors (except for 2xx and 3xx )",
+                    "required": true
+                  },
+                  {
+                    "name": "useNewZLibDeCompress",
+                    "type": "hidden"
+                  }
+                ]
+              },
+              "parameters": {
+                "handleErrors": true,
+                "useNewZLibDeCompress": true
+              }
+            },
+            {
+              "id": 7,
+              "mapper": {
+                "array": "{{6.data.Data}}"
+              },
+              "module": "builtin:BasicFeeder",
+              "version": 1,
+              "metadata": {
+                "expect": [
+                  {
+                    "mode": "edit",
+                    "name": "array",
+                    "spec": [],
+                    "type": "array",
+                    "label": "Array"
+                  }
+                ],
+                "restore": {
+                  "expect": {
+                    "array": {
+                      "mode": "edit"
+                    }
+                  }
+                },
+                "designer": {
+                  "x": 1200,
+                  "y": 300
+                }
+              },
+              "parameters": {}
+            },
+            {
+              "id": 25,
+              "filter": {
+                "name": "",
+                "conditions": [
+                  [
+                    {
+                      "a": "{{7.statusdescription}}",
+                      "b": "Appointment Honoured",
+                      "o": "text:equal"
+                    }
+                  ]
+                ]
+              },
+              "mapper": {
+                "ca": "",
+                "qs": [],
+                "url": "https://developers.sanoflow.io/api/v1.1/messages/whatsapp/send-template",
+                "data": "{\n  \"template_id\": 9532,\n  \"phone\": \"{{7.patientmobilephone}}\",\n  \"mapper_value\": [\n    \"{{first(split(7.patientfullname; space))}}\"\n  ]\n}",
+                "gzip": true,
+                "method": "post",
+                "headers": [
+                  {
+                    "name": "Content-type",
+                    "value": "application/json"
+                  },
+                  {
+                    "name": "access-token",
+                    "value": "[REDACTED]"
+                  }
+                ],
+                "timeout": "",
+                "useMtls": false,
+                "authPass": "",
+                "authUser": "",
+                "bodyType": "raw",
+                "contentType": "application/json",
+                "serializeUrl": false,
+                "shareCookies": false,
+                "parseResponse": true,
+                "followRedirect": true,
+                "useQuerystring": false,
+                "followAllRedirects": true,
+                "rejectUnauthorized": true
+              },
+              "module": "http:ActionSendData",
+              "version": 3,
+              "metadata": {
+                "expect": [
+                  {
+                    "name": "url",
+                    "type": "url",
+                    "label": "URL",
+                    "required": true
+                  },
+                  {
+                    "name": "serializeUrl",
+                    "type": "boolean",
+                    "label": "Serialize URL",
+                    "required": true
+                  },
+                  {
+                    "name": "method",
+                    "type": "select",
+                    "label": "Method",
+                    "required": true,
+                    "validate": {
+                      "enum": [
+                        "get",
+                        "head",
+                        "post",
+                        "put",
+                        "patch",
+                        "delete",
+                        "options"
+                      ]
+                    }
+                  },
+                  {
+                    "name": "headers",
+                    "spec": [
+                      {
+                        "name": "name",
+                        "type": "text",
+                        "label": "Name",
+                        "required": true
+                      },
+                      {
+                        "name": "value",
+                        "type": "text",
+                        "label": "Value"
+                      }
+                    ],
+                    "type": "array",
+                    "label": "Headers"
+                  },
+                  {
+                    "name": "qs",
+                    "spec": [
+                      {
+                        "name": "name",
+                        "type": "text",
+                        "label": "Name",
+                        "required": true
+                      },
+                      {
+                        "name": "value",
+                        "type": "text",
+                        "label": "Value"
+                      }
+                    ],
+                    "type": "array",
+                    "label": "Query String"
+                  },
+                  {
+                    "name": "bodyType",
+                    "type": "select",
+                    "label": "Body type",
+                    "validate": {
+                      "enum": [
+                        "raw",
+                        "x_www_form_urlencoded",
+                        "multipart_form_data"
+                      ]
+                    }
+                  },
+                  {
+                    "name": "parseResponse",
+                    "type": "boolean",
+                    "label": "Parse response",
+                    "required": true
+                  },
+                  {
+                    "name": "authUser",
+                    "type": "text",
+                    "label": "User name"
+                  },
+                  {
+                    "name": "authPass",
+                    "type": "password",
+                    "label": "Password"
+                  },
+                  {
+                    "name": "timeout",
+                    "type": "uinteger",
+                    "label": "Timeout",
+                    "validate": {
+                      "max": 300,
+                      "min": 1
+                    }
+                  },
+                  {
+                    "name": "shareCookies",
+                    "type": "boolean",
+                    "label": "Share cookies with other HTTP modules",
+                    "required": true
+                  },
+                  {
+                    "name": "ca",
+                    "type": "cert",
+                    "label": "Self-signed certificate"
+                  },
+                  {
+                    "name": "rejectUnauthorized",
+                    "type": "boolean",
+                    "label": "Reject connections that are using unverified (self-signed) certificates",
+                    "required": true
+                  },
+                  {
+                    "name": "followRedirect",
+                    "type": "boolean",
+                    "label": "Follow redirect",
+                    "required": true
+                  },
+                  {
+                    "name": "useQuerystring",
+                    "type": "boolean",
+                    "label": "Disable serialization of multiple same query string keys as arrays",
+                    "required": true
+                  },
+                  {
+                    "name": "gzip",
+                    "type": "boolean",
+                    "label": "Request compressed content",
+                    "required": true
+                  },
+                  {
+                    "name": "useMtls",
+                    "type": "boolean",
+                    "label": "Use Mutual TLS",
+                    "required": true
+                  },
+                  {
+                    "name": "contentType",
+                    "type": "select",
+                    "label": "Content type",
+                    "validate": {
+                      "enum": [
+                        "text/plain",
+                        "application/json",
+                        "application/xml",
+                        "text/xml",
+                        "text/html",
+                        "custom"
+                      ]
+                    }
+                  },
+                  {
+                    "name": "data",
+                    "type": "buffer",
+                    "label": "Request content"
+                  },
+                  {
+                    "name": "followAllRedirects",
+                    "type": "boolean",
+                    "label": "Follow all redirect",
+                    "required": true
+                  }
+                ],
+                "restore": {
+                  "expect": {
+                    "qs": {
+                      "mode": "chose"
+                    },
+                    "method": {
+                      "mode": "chose",
+                      "label": "POST"
+                    },
+                    "headers": {
+                      "mode": "chose",
+                      "items": [
+                        null,
+                        null
+                      ]
+                    },
+                    "bodyType": {
+                      "label": "Raw"
+                    },
+                    "contentType": {
+                      "label": "JSON (application/json)"
+                    }
+                  }
+                },
+                "advanced": true,
+                "designer": {
+                  "x": 1513,
+                  "y": 303,
+                  "name": "Send Template: POST-APPOINTMENT FOLLOW-UP"
+                },
+                "parameters": [
+                  {
+                    "name": "handleErrors",
+                    "type": "boolean",
+                    "label": "Evaluate all states as errors (except for 2xx and 3xx )",
+                    "required": true
+                  },
+                  {
+                    "name": "useNewZLibDeCompress",
+                    "type": "hidden"
+                  }
+                ]
+              },
+              "parameters": {
+                "handleErrors": true,
+                "useNewZLibDeCompress": true
+              }
+            }
+          ]
+        },
+        {
+          "flow": [
+            {
+              "id": 8,
+              "filter": {
+                "name": "Al Das Medical Clinic - Meadows",
+                "conditions": []
+              },
+              "mapper": {
+                "ca": "",
+                "qs": [],
+                "url": "https://ucexternalapiprod.uniteuae.care/gateway/getallappointments?clinic_id=DHA-F-2116734&from_date={{2.Date}}&to_date={{2.Date}}",
+                "gzip": true,
+                "method": "get",
+                "headers": [
+                  {
+                    "name": "Content-type",
+                    "value": "application/json"
+                  },
+                  {
+                    "name": "Authorization",
+                    "value": "[REDACTED]"
+                  }
+                ],
+                "timeout": "",
+                "useMtls": false,
+                "authPass": "",
+                "authUser": "",
+                "bodyType": "",
+                "serializeUrl": false,
+                "shareCookies": false,
+                "parseResponse": true,
+                "followRedirect": true,
+                "useQuerystring": false,
+                "followAllRedirects": false,
+                "rejectUnauthorized": true
+              },
+              "module": "http:ActionSendData",
+              "version": 3,
+              "metadata": {
+                "expect": [
+                  {
+                    "name": "url",
+                    "type": "url",
+                    "label": "URL",
+                    "required": true
+                  },
+                  {
+                    "name": "serializeUrl",
+                    "type": "boolean",
+                    "label": "Serialize URL",
+                    "required": true
+                  },
+                  {
+                    "name": "method",
+                    "type": "select",
+                    "label": "Method",
+                    "required": true,
+                    "validate": {
+                      "enum": [
+                        "get",
+                        "head",
+                        "post",
+                        "put",
+                        "patch",
+                        "delete",
+                        "options"
+                      ]
+                    }
+                  },
+                  {
+                    "name": "headers",
+                    "spec": [
+                      {
+                        "name": "name",
+                        "type": "text",
+                        "label": "Name",
+                        "required": true
+                      },
+                      {
+                        "name": "value",
+                        "type": "text",
+                        "label": "Value"
+                      }
+                    ],
+                    "type": "array",
+                    "label": "Headers"
+                  },
+                  {
+                    "name": "qs",
+                    "spec": [
+                      {
+                        "name": "name",
+                        "type": "text",
+                        "label": "Name",
+                        "required": true
+                      },
+                      {
+                        "name": "value",
+                        "type": "text",
+                        "label": "Value"
+                      }
+                    ],
+                    "type": "array",
+                    "label": "Query String"
+                  },
+                  {
+                    "name": "bodyType",
+                    "type": "select",
+                    "label": "Body type",
+                    "validate": {
+                      "enum": [
+                        "raw",
+                        "x_www_form_urlencoded",
+                        "multipart_form_data"
+                      ]
+                    }
+                  },
+                  {
+                    "name": "parseResponse",
+                    "type": "boolean",
+                    "label": "Parse response",
+                    "required": true
+                  },
+                  {
+                    "name": "authUser",
+                    "type": "text",
+                    "label": "User name"
+                  },
+                  {
+                    "name": "authPass",
+                    "type": "password",
+                    "label": "Password"
+                  },
+                  {
+                    "name": "timeout",
+                    "type": "uinteger",
+                    "label": "Timeout",
+                    "validate": {
+                      "max": 300,
+                      "min": 1
+                    }
+                  },
+                  {
+                    "name": "shareCookies",
+                    "type": "boolean",
+                    "label": "Share cookies with other HTTP modules",
+                    "required": true
+                  },
+                  {
+                    "name": "ca",
+                    "type": "cert",
+                    "label": "Self-signed certificate"
+                  },
+                  {
+                    "name": "rejectUnauthorized",
+                    "type": "boolean",
+                    "label": "Reject connections that are using unverified (self-signed) certificates",
+                    "required": true
+                  },
+                  {
+                    "name": "followRedirect",
+                    "type": "boolean",
+                    "label": "Follow redirect",
+                    "required": true
+                  },
+                  {
+                    "name": "useQuerystring",
+                    "type": "boolean",
+                    "label": "Disable serialization of multiple same query string keys as arrays",
+                    "required": true
+                  },
+                  {
+                    "name": "gzip",
+                    "type": "boolean",
+                    "label": "Request compressed content",
+                    "required": true
+                  },
+                  {
+                    "name": "useMtls",
+                    "type": "boolean",
+                    "label": "Use Mutual TLS",
+                    "required": true
+                  },
+                  {
+                    "name": "followAllRedirects",
+                    "type": "boolean",
+                    "label": "Follow all redirect",
+                    "required": true
+                  }
+                ],
+                "restore": {
+                  "expect": {
+                    "qs": {
+                      "mode": "chose"
+                    },
+                    "method": {
+                      "mode": "chose",
+                      "label": "GET"
+                    },
+                    "headers": {
+                      "mode": "chose",
+                      "items": [
+                        null,
+                        null
+                      ]
+                    },
+                    "bodyType": {
+                      "label": "Empty"
+                    }
+                  }
+                },
+                "advanced": true,
+                "designer": {
+                  "x": 900,
+                  "y": 600,
+                  "name": "Get Appointments"
+                },
+                "parameters": [
+                  {
+                    "name": "handleErrors",
+                    "type": "boolean",
+                    "label": "Evaluate all states as errors (except for 2xx and 3xx )",
+                    "required": true
+                  },
+                  {
+                    "name": "useNewZLibDeCompress",
+                    "type": "hidden"
+                  }
+                ]
+              },
+              "parameters": {
+                "handleErrors": true,
+                "useNewZLibDeCompress": true
+              }
+            },
+            {
+              "id": 9,
+              "mapper": {
+                "array": "{{8.data.Data}}"
+              },
+              "module": "builtin:BasicFeeder",
+              "version": 1,
+              "metadata": {
+                "expect": [
+                  {
+                    "mode": "edit",
+                    "name": "array",
+                    "spec": [],
+                    "type": "array",
+                    "label": "Array"
+                  }
+                ],
+                "restore": {
+                  "expect": {
+                    "array": {
+                      "mode": "edit"
+                    }
+                  }
+                },
+                "designer": {
+                  "x": 1200,
+                  "y": 600
+                }
+              },
+              "parameters": {}
+            },
+            {
+              "id": 26,
+              "filter": {
+                "name": "",
+                "conditions": [
+                  [
+                    {
+                      "a": "{{9.statusdescription}}",
+                      "b": "Appointment Honoured",
+                      "o": "text:equal"
+                    }
+                  ]
+                ]
+              },
+              "mapper": {
+                "ca": "",
+                "qs": [],
+                "url": "https://developers.sanoflow.io/api/v1.1/messages/whatsapp/send-template",
+                "data": "{\n  \"template_id\": 9532,\n  \"phone\": \"{{9.patientmobilephone}}\",\n  \"mapper_value\": [\n    \"{{first(split(9.patientfullname; space))}}\"\n  ]\n}",
+                "gzip": true,
+                "method": "post",
+                "headers": [
+                  {
+                    "name": "Content-type",
+                    "value": "application/json"
+                  },
+                  {
+                    "name": "access-token",
+                    "value": "[REDACTED]"
+                  }
+                ],
+                "timeout": "",
+                "useMtls": false,
+                "authPass": "",
+                "authUser": "",
+                "bodyType": "raw",
+                "contentType": "application/json",
+                "serializeUrl": false,
+                "shareCookies": false,
+                "parseResponse": true,
+                "followRedirect": true,
+                "useQuerystring": false,
+                "followAllRedirects": false,
+                "rejectUnauthorized": true
+              },
+              "module": "http:ActionSendData",
+              "version": 3,
+              "metadata": {
+                "expect": [
+                  {
+                    "name": "url",
+                    "type": "url",
+                    "label": "URL",
+                    "required": true
+                  },
+                  {
+                    "name": "serializeUrl",
+                    "type": "boolean",
+                    "label": "Serialize URL",
+                    "required": true
+                  },
+                  {
+                    "name": "method",
+                    "type": "select",
+                    "label": "Method",
+                    "required": true,
+                    "validate": {
+                      "enum": [
+                        "get",
+                        "head",
+                        "post",
+                        "put",
+                        "patch",
+                        "delete",
+                        "options"
+                      ]
+                    }
+                  },
+                  {
+                    "name": "headers",
+                    "spec": [
+                      {
+                        "name": "name",
+                        "type": "text",
+                        "label": "Name",
+                        "required": true
+                      },
+                      {
+                        "name": "value",
+                        "type": "text",
+                        "label": "Value"
+                      }
+                    ],
+                    "type": "array",
+                    "label": "Headers"
+                  },
+                  {
+                    "name": "qs",
+                    "spec": [
+                      {
+                        "name": "name",
+                        "type": "text",
+                        "label": "Name",
+                        "required": true
+                      },
+                      {
+                        "name": "value",
+                        "type": "text",
+                        "label": "Value"
+                      }
+                    ],
+                    "type": "array",
+                    "label": "Query String"
+                  },
+                  {
+                    "name": "bodyType",
+                    "type": "select",
+                    "label": "Body type",
+                    "validate": {
+                      "enum": [
+                        "raw",
+                        "x_www_form_urlencoded",
+                        "multipart_form_data"
+                      ]
+                    }
+                  },
+                  {
+                    "name": "parseResponse",
+                    "type": "boolean",
+                    "label": "Parse response",
+                    "required": true
+                  },
+                  {
+                    "name": "authUser",
+                    "type": "text",
+                    "label": "User name"
+                  },
+                  {
+                    "name": "authPass",
+                    "type": "password",
+                    "label": "Password"
+                  },
+                  {
+                    "name": "timeout",
+                    "type": "uinteger",
+                    "label": "Timeout",
+                    "validate": {
+                      "max": 300,
+                      "min": 1
+                    }
+                  },
+                  {
+                    "name": "shareCookies",
+                    "type": "boolean",
+                    "label": "Share cookies with other HTTP modules",
+                    "required": true
+                  },
+                  {
+                    "name": "ca",
+                    "type": "cert",
+                    "label": "Self-signed certificate"
+                  },
+                  {
+                    "name": "rejectUnauthorized",
+                    "type": "boolean",
+                    "label": "Reject connections that are using unverified (self-signed) certificates",
+                    "required": true
+                  },
+                  {
+                    "name": "followRedirect",
+                    "type": "boolean",
+                    "label": "Follow redirect",
+                    "required": true
+                  },
+                  {
+                    "name": "useQuerystring",
+                    "type": "boolean",
+                    "label": "Disable serialization of multiple same query string keys as arrays",
+                    "required": true
+                  },
+                  {
+                    "name": "gzip",
+                    "type": "boolean",
+                    "label": "Request compressed content",
+                    "required": true
+                  },
+                  {
+                    "name": "useMtls",
+                    "type": "boolean",
+                    "label": "Use Mutual TLS",
+                    "required": true
+                  },
+                  {
+                    "name": "contentType",
+                    "type": "select",
+                    "label": "Content type",
+                    "validate": {
+                      "enum": [
+                        "text/plain",
+                        "application/json",
+                        "application/xml",
+                        "text/xml",
+                        "text/html",
+                        "custom"
+                      ]
+                    }
+                  },
+                  {
+                    "name": "data",
+                    "type": "buffer",
+                    "label": "Request content"
+                  },
+                  {
+                    "name": "followAllRedirects",
+                    "type": "boolean",
+                    "label": "Follow all redirect",
+                    "required": true
+                  }
+                ],
+                "restore": {
+                  "expect": {
+                    "qs": {
+                      "mode": "chose"
+                    },
+                    "method": {
+                      "mode": "chose",
+                      "label": "POST"
+                    },
+                    "headers": {
+                      "mode": "chose",
+                      "items": [
+                        null,
+                        null
+                      ]
+                    },
+                    "bodyType": {
+                      "label": "Raw"
+                    },
+                    "contentType": {
+                      "label": "JSON (application/json)"
+                    }
+                  }
+                },
+                "advanced": true,
+                "designer": {
+                  "x": 1505,
+                  "y": 597,
+                  "name": "Send Template: POST-APPOINTMENT FOLLOW-UP"
+                },
+                "parameters": [
+                  {
+                    "name": "handleErrors",
+                    "type": "boolean",
+                    "label": "Evaluate all states as errors (except for 2xx and 3xx )",
+                    "required": true
+                  },
+                  {
+                    "name": "useNewZLibDeCompress",
+                    "type": "hidden"
+                  }
+                ]
+              },
+              "parameters": {
+                "handleErrors": true,
+                "useNewZLibDeCompress": true
+              }
+            }
+          ]
+        }
+      ],
+      "version": 1,
+      "metadata": {
+        "designer": {
+          "x": 600,
+          "y": 300
+        }
+      }
+    }
+  ],
+  "name": "Post-Appointment Follow-up",
+  "metadata": {
+    "instant": false,
+    "version": 1,
+    "designer": {
+      "orphans": []
+    },
+    "scenario": {
+      "dlq": false,
+      "slots": null,
+      "dataloss": false,
+      "maxErrors": 3,
+      "autoCommit": true,
+      "roundtrips": 1,
+      "sequential": false,
+      "confidential": false,
+      "freshVariables": false,
+      "autoCommitTriggerLast": true
+    }
+  }
+}

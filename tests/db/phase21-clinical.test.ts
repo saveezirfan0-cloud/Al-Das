@@ -328,6 +328,8 @@ describe.skipIf(!TEST_DATABASE_URL)("phase 21 clinical gaps", () => {
 
   it("derives nothing while the rule is unsigned, so chronic recall selects nobody (fail closed)", async () => {
     await svc(() => sign(orgA, "chronic_recall_min_days", "90"));
+    // The "60 days >" gate (docs/49 D2) is tested in chronic-alignment; lifted here, as these patients have no prescriptions.
+    await svc(() => sign(orgA, "chronic_recall_require_long_prescription", "false"));
     const r = await svc(() => derive(orgA));
     expect(r).toMatchObject({
       derived: 0,
