@@ -193,6 +193,24 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance flash report (Phase 20A)", () => {
       expect(Math.round(total * 100) / 100).toBe(53121 + 777);
     });
 
+    it("counts paid patients: a zero invoice adds a patient but not a paid one (Q6, 22 Oct 2026)", async () => {
+      const before = parseFlashRows(await inputs()).find((x) => x.doctorId === "SYN-0001")!;
+      expect(before.paidPatients).toBe(before.patients);
+      const src = (fixture.rows as FlashRow[]).find((x) => x.doctorId === "SYN-0001")!;
+      await svc(() =>
+        q(
+          `insert into public.fin_invoices (org_id, inv_display_number, transaction_date, branch_code, department, doctor_dha_id, doctor_name, inv_type, net, total, patient_pin, record_hash)
+           values ($1, 'SYN/FU', $2, $3, $4, $5, $6, 'SELF PAID', 0, 0, 'PIN-FOLLOWUP', 'h')`,
+          [orgA, src.date, src.branch, src.department, src.doctorId, src.doctorName],
+        ),
+      );
+      const after = parseFlashRows(await inputs()).find((x) => x.doctorId === "SYN-0001")!;
+      expect(after.patients).toBe(before.patients + 1);
+      expect(after.paidPatients).toBe(before.paidPatients);
+      expect(after.net).toBe(before.net);
+      await svc(() => q("delete from public.fin_invoices where org_id = $1 and inv_display_number = 'SYN/FU'", [orgA]));
+    });
+
     it("uses the doctor name from the doctor reference when there is one", async () => {
       await svc(() =>
         q("insert into public.fin_ref_doctors (org_id, dha_id, name) values ($1, 'SYN-0002', 'Dr Reference Bravo')", [orgA]),
@@ -237,6 +255,26 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance flash report (Phase 20A)", () => {
       expect(await targets()).toEqual([{ line_code: "PALM", rev: 1000, pat: null, arpp: null }]);
       await expect(set([], "2026-10-02")).rejects.toThrow(/first day/);
       await expect(set([{ line_code: "bad code!", daily_revenue: 1 }])).rejects.toThrow();
+    });
+
+    it("stores operating days per line and refuses more than the month has (Q7)", async () => {
+      await set([
+        { line_code: "GM", daily_revenue: 8000, operating_days: 26 },
+        { line_code: "PALM", daily_revenue: 1000, operating_days: "" },
+      ]);
+      const r = await svc(() =>
+        q(
+          "select line_code, operating_days from public.fin_ref_revenue_targets where org_id = $1 and month = '2026-10-01' order by line_code",
+          [orgA],
+        ),
+      );
+      expect(r.rows).toEqual([
+        { line_code: "GM", operating_days: 26 },
+        { line_code: "PALM", operating_days: null },
+      ]);
+      await expect(set([{ line_code: "GM", daily_revenue: 1, operating_days: 29 }], "2026-02-01")).rejects.toThrow(/operating days/);
+      await expect(set([{ line_code: "GM", daily_revenue: 1, operating_days: 0 }])).rejects.toThrow(/operating days/);
+      await set([{ line_code: "PALM", daily_revenue: 1000 }]);
     });
 
     it("keeps one total row per month", async () => {

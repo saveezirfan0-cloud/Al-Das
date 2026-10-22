@@ -1,7 +1,7 @@
 import type { PayablesAgeing } from "@/lib/accounting/payables-ageing";
 import type { ClosePack } from "@/lib/finance/close-pack";
 import { monthLabel } from "@/lib/finance/close-pack";
-import type { Counts } from "@/lib/finance/doctor-performance";
+import { paidPatientsOf, type Counts } from "@/lib/finance/doctor-performance";
 import type { TableColumn, TableSheet } from "@/lib/export/table-xlsx";
 
 /**
@@ -82,7 +82,7 @@ export type GroupPackInput = {
   branches: BranchFigures[];
   /** The whole clinic from the Unite report, or null when the month has no report rows. */
   clinic: ClinicFigures | null;
-  /** The month's total revenue and patient targets (daily target × days in the month), or null when none is set. */
+  /** The month's total revenue and patient targets (daily target × operating days, Q7), or null when none is set. */
   targets: { revenue: number | null; patients: number | null };
   /** The close pack: the frozen snapshot when the month was built, otherwise built live for this download. */
   close: { pack: ClosePack; frozen: boolean } | null;
@@ -121,8 +121,13 @@ export function statusLabel(status: CloseStatus, sign: SignOffFacts | null): str
 export const repeatVisits = (c: Pick<Counts, "visits" | "patients">) =>
   Math.max(0, c.visits - c.patients);
 
-const perPatient = (c: Pick<Counts, "revenue" | "patients">): number | null =>
-  c.patients > 0 ? r2(c.revenue / c.patients) : null;
+/** Revenue ÷ paid patients (the target's own basis, OQ-138): zero-invoice patients are left out. */
+const perPatient = (
+  c: Pick<Counts, "revenue" | "patients" | "unbilledPatients">,
+): number | null => {
+  const paid = paidPatientsOf(c);
+  return paid > 0 ? r2(c.revenue / paid) : null;
+};
 
 const diff = (a: number | null, b: number | null): number | null =>
   a === null || b === null ? null : r2(a - b);
@@ -315,7 +320,7 @@ export function buildGroupPack(input: GroupPackInput): TableSheet[] {
         c.arppTarget,
         diff(perPatient(c), c.arppTarget),
         perPatient(c.previous),
-        "Revenue ÷ patients.",
+        "Revenue ÷ paid patients (patients with something billed).",
       ],
       [
         "Cancelled visits (Unite report)",
@@ -447,7 +452,12 @@ export function buildGroupPack(input: GroupPackInput): TableSheet[] {
       "Per branch and for the clinic; not additive.",
       false,
     ),
-    unite("Revenue per patient, AED", (x) => perPatient(x), "Revenue ÷ patients.", false),
+    unite(
+      "Revenue per patient, AED",
+      (x) => perPatient(x),
+      "Revenue ÷ paid patients (patients with something billed).",
+      false,
+    ),
     unite("Cancelled visits", (x) => x.cancelledVisits, "Rows Unite marks cancelled.", true),
   ];
   if (pack) {
@@ -631,9 +641,12 @@ export const GROUP_PACK_DEFINITIONS: readonly (readonly [string, string])[] = [
   ["Repeat visits", "Visits − patients within the month (never below 0)."],
   [
     "Revenue per patient",
-    "Revenue ÷ patients; the target is the revenue-per-patient target in Finance settings.",
+    "Revenue ÷ paid patients (a patient whose visits were all zero-invoice is left out); the target is the revenue-per-patient target in Finance settings.",
   ],
-  ["Targets", "The month's revenue and patient targets: the daily target × the days in the month."],
+  [
+    "Targets",
+    "The month's revenue and patient targets: the daily target × the branch's operating days in the month (every calendar day when none are set).",
+  ],
   [
     "Branch",
     "Derived from the Unite clinic name (and its old names) for each row; a row whose clinic is not mapped is not assigned.",

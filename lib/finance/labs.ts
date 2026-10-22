@@ -12,7 +12,8 @@ import { dayNumber } from "@/lib/documents/expiry";
  *      billed but not on the file (send-out labs only: Unite billed a test the lab has no record of), price variances
  *      against the agreed price, turnaround against the expected days.
  *   3. Cost per doctor and branch: invoice amounts, or for the in-house lab its fixed monthly fee shared by test count
- *      or by billed revenue (largest remainder, so the shares add up to the fee exactly).
+ *      or by billed revenue (largest remainder, so the shares add up to the fee exactly). The branch is the Unite bill's
+ *      (Q42), else the lab file's.
  *   4. Every unmatched line and every billed test missing from the file needs a reason before the review.
  */
 
@@ -334,7 +335,9 @@ export function reconcileStatement(input: StatementInput): StatementResult {
   for (const l of lines) {
     const u = matchedLine.get(l.id);
     const doctor = u?.doctor ? norm(u.doctor) : l.doctor ? norm(l.doctor) : null;
-    const branch = l.branch ?? u?.branch ?? null;
+    // Q42 (Finance, 22 Oct 2026): lab cost follows the branch on the Unite bill; the lab file's branch only when the
+    // line is unmatched or the bill has none
+    const branch = u?.branch ?? l.branch ?? null;
     const k = `${doctor ?? ""}|${branch ?? ""}`;
     const g = groups.get(k) ?? { doctor, branch, tests: 0, cost: 0, weight: 0, costCents: 0 };
     g.tests++;

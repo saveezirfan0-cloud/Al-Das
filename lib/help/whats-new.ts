@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-12-26-finance-answers-oct22",
+    date: "2026-10-22",
+    title: "Revenue per patient, operating days and lab rules from Finance's answers",
+    body: "Revenue per patient now counts paid patients only: a patient whose visits were all zero-invoice follow-ups is left out, as Finance measures the AED 750 target. In Flash settings each reporting line has its operating days for the month (for example 26 for a branch closed on Sundays); the month target is the daily target times them. Lab bills and lab requests now match up to 5 days apart, and lab cost follows the branch on the Unite bill.",
+  },
+  {
     id: "2026-12-26-make-parity",
     date: "2026-10-22",
     title: "Reminders and recalls now work like the Make scenarios",

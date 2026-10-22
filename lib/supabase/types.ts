@@ -14006,6 +14006,7 @@ export type Database = {
           id: string;
           line_code: string | null;
           month: string;
+          operating_days: number | null;
           org_id: string;
         };
         ComputedFields: never;
@@ -14018,6 +14019,7 @@ export type Database = {
           id?: string;
           line_code?: string | null;
           month: string;
+          operating_days?: number | null;
           org_id: string;
         };
         Update: {
@@ -14029,6 +14031,7 @@ export type Database = {
           id?: string;
           line_code?: string | null;
           month?: string;
+          operating_days?: number | null;
           org_id?: string;
         };
         Relationships: [

@@ -140,7 +140,9 @@ export function parseDoctorPerformanceInputs(raw: unknown): DoctorPerformanceInp
 // ---------------------------------------------------------------------------
 
 export type Measures = Counts & {
-  /** Revenue / patients, unrounded (the band is judged on it; screens round to 2 dp); null with no patients. */
+  /** Patients − unbilled patients: those with something billed in the month. */
+  paidPatients: number;
+  /** Revenue / paid patients, unrounded (the band is judged on it; screens round to 2 dp); null with none. */
   revenuePerPatient: number | null;
   band: Band | null;
   expectedRevenue: number;
@@ -195,12 +197,21 @@ const mils = (v: number) => Math.round(v * 1000);
 export const round3 = (v: number) => mils(v) / 1000;
 const ratio = (a: number, b: number): number | null => (b === 0 ? null : a / b);
 
+/**
+ * Patients with something billed in the month: the revenue-per-patient target counts paid patients only, so a patient
+ * whose visits were all zero-invoice (follow-ups) is left out (Finance, 22 Oct 2026, OQ-138).
+ */
+export const paidPatientsOf = (c: Pick<Counts, "patients" | "unbilledPatients">) =>
+  Math.max(0, c.patients - c.unbilledPatients);
+
 export function measures(cur: Counts, prev: Counts, s: PerfSettings): Measures {
-  const revenuePerPatient = cur.patients > 0 ? cur.revenue / cur.patients : null;
-  const expectedRevenue = round3(cur.patients * s.target);
+  const paidPatients = paidPatientsOf(cur);
+  const revenuePerPatient = paidPatients > 0 ? cur.revenue / paidPatients : null;
+  const expectedRevenue = round3(paidPatients * s.target);
   const followUps = Math.max(0, cur.visits - cur.patients);
   return {
     ...cur,
+    paidPatients,
     revenuePerPatient,
     band: bandOf(revenuePerPatient, s),
     expectedRevenue,

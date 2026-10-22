@@ -62,7 +62,7 @@ export default async function FlashSettingsPage({
       .order("sort_order"),
     admin
       .from("fin_ref_revenue_targets")
-      .select("month, line_code, daily_revenue, daily_patients, arpp")
+      .select("month, line_code, daily_revenue, daily_patients, arpp, operating_days")
       .eq("org_id", member.orgId)
       .eq("month", month),
     admin

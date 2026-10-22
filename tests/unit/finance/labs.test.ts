@@ -252,8 +252,26 @@ describe("turnaround", () => {
   });
 });
 
+describe("cost branch (Q42)", () => {
+  it("uses the lab file's branch only when the line is unmatched or the bill has no branch", () => {
+    const r = reconcileStatement(
+      input({
+        lines: [
+          line("l1", { amount: 40, branch: "G" }),
+          line("l2", { pin: "SYN-002", amount: 20, branch: "M" }),
+        ],
+        unite: [unite("u1", { branch: null })],
+      }),
+    );
+    expect(r.allocation.map((a) => [a.branch, a.cost])).toEqual([
+      ["G", 40],
+      ["M", 20],
+    ]);
+  });
+});
+
 describe("cost by doctor and branch", () => {
-  it("invoice amounts per doctor and branch: the Unite doctor of a matched test, else the file's doctor", () => {
+  it("invoice amounts per doctor and branch: the Unite doctor and branch of a matched test, else the file's", () => {
     const r = reconcileStatement(
       input({
         lines: [
@@ -264,8 +282,9 @@ describe("cost by doctor and branch", () => {
         unite: [unite("u1")],
       }),
     );
+    // Q42 (22 Oct 2026): the matched line takes the Unite bill's branch (P), not the lab file's (G)
     expect(r.allocation).toEqual([
-      { doctor: "DHA-SYN-1", branch: "G", tests: 1, cost: 40 },
+      { doctor: "DHA-SYN-1", branch: "P", tests: 1, cost: 40 },
       { doctor: "DHA-SYN-2", branch: null, tests: 1, cost: 25.5 },
       { doctor: null, branch: null, tests: 1, cost: 10 },
     ]);

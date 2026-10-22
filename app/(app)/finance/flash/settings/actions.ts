@@ -15,7 +15,13 @@ import {
 } from "@/lib/finance/action-support";
 import { dqSettingsSchema } from "@/lib/finance/collections";
 import { perfSettingsSchema } from "@/lib/finance/doctor-performance";
-import { LINE_CODE_RE, monthOf, parseTargetInput } from "@/lib/finance/flash";
+import {
+  daysInMonth,
+  LINE_CODE_RE,
+  monthOf,
+  parseOperatingDays,
+  parseTargetInput,
+} from "@/lib/finance/flash";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/types";
 import { reconSettingsSchema } from "@/lib/finance/insurance-billing";
@@ -139,8 +145,8 @@ export async function deleteReportLine(values: Record<string, string>): Promise<
 }
 
 /**
- * Saves one month's targets. Field names: `rev_<CODE>`, `pat_<CODE>` per line and `total_rev`, `total_pat`,
- * `total_arpp` for the total. Blank = no target. The month is replaced as a whole (fin_flash_set_targets).
+ * Saves one month's targets. Field names: `rev_<CODE>`, `pat_<CODE>`, `days_<CODE>` (operating days, Q7) per line and
+ * `total_rev`, `total_pat`, `total_days`, `total_arpp` for the total. Blank = no target. The month is replaced as a whole (fin_flash_set_targets).
  */
 export async function saveTargets(values: Record<string, string>): Promise<ActionResult> {
   const member = await gate();
@@ -153,19 +159,23 @@ export async function saveTargets(values: Record<string, string>): Promise<Actio
     daily_revenue: number | null;
     daily_patients: number | null;
     arpp: number | null;
+    operating_days: number | null;
   };
+  const dim = daysInMonth(month);
   const byLine = new Map<string, Row>();
   try {
     for (const [k, raw] of Object.entries(values)) {
-      const m = /^(rev|pat)_([A-Z0-9_]{1,12})$/.exec(k);
+      const m = /^(rev|pat|days)_([A-Z0-9_]{1,12})$/.exec(k);
       if (!m) continue;
       const row = byLine.get(m[2]) ?? {
         line_code: m[2],
         daily_revenue: null,
         daily_patients: null,
         arpp: null,
+        operating_days: null,
       };
       if (m[1] === "rev") row.daily_revenue = parseTargetInput(raw);
+      else if (m[1] === "days") row.operating_days = parseOperatingDays(raw, dim);
       else row.daily_patients = parseTargetInput(raw, 100_000);
       byLine.set(m[2], row);
     }
@@ -175,6 +185,7 @@ export async function saveTargets(values: Record<string, string>): Promise<Actio
       daily_revenue: parseTargetInput(values.total_rev),
       daily_patients: parseTargetInput(values.total_pat, 100_000),
       arpp: parseTargetInput(values.total_arpp, 1_000_000),
+      operating_days: parseOperatingDays(values.total_days, dim),
     };
     const rows = [...byLine.values(), total].filter(
       (r) => r.daily_revenue !== null || r.daily_patients !== null || r.arpp !== null,
@@ -221,7 +232,7 @@ export async function copyPreviousTargets(values: Record<string, string>): Promi
       .limit(1),
     admin
       .from("fin_ref_revenue_targets")
-      .select("line_code, daily_revenue, daily_patients, arpp")
+      .select("line_code, daily_revenue, daily_patients, arpp, operating_days")
       .eq("org_id", member.orgId)
       .eq("month", previous),
   ]);
@@ -232,7 +243,12 @@ export async function copyPreviousTargets(values: Record<string, string>): Promi
   const { error: e2 } = await admin.rpc("fin_flash_set_targets", {
     p_org_id: member.orgId,
     p_month: month,
-    p_rows: prev as unknown as Json,
+    // a shorter month cannot have more operating days than it has days
+    p_rows: (prev ?? []).map((r) => ({
+      ...r,
+      operating_days:
+        r.operating_days === null ? null : Math.min(r.operating_days, daysInMonth(month)),
+    })) as unknown as Json,
     p_user: member.userId,
   });
   if (e2) return fail(dbMessage(e2, "Nothing was copied."));

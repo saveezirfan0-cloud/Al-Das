@@ -196,7 +196,8 @@ describe("buildGroupPack", () => {
       9100.5, 12000, -2899.5, 8000,
     ]);
     expect(row(s, "KPI Scorecard", "Revenue per patient, AED").slice(1, 4)).toEqual([
-      151.68, 750, -598.32,
+      // 60 patients, 3 unbilled: 9100.5 / 57 paid patients (OQ-138)
+      159.66, 750, -590.34,
     ]);
     expect(row(s, "KPI Scorecard", "Repeat visits (visits − patients)")[1]).toBe(22);
     expect(repeatVisits({ visits: 3, patients: 5 })).toBe(0);

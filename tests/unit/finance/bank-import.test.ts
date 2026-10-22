@@ -104,6 +104,18 @@ describe("scalars", () => {
     expect(readDate("  ", "DD/MM/YYYY")).toBeNull();
   });
 
+  it("reads a day, an English month name and a four-digit year in any layout", () => {
+    expect(readDate("05-Jan-2026", "DD/MM/YYYY")).toBe("2026-01-05");
+    expect(readDate("05-Jan-2026", "MM/DD/YYYY")).toBe("2026-01-05");
+    expect(readDate("5 January 2026", "YYYY-MM-DD")).toBe("2026-01-05");
+    expect(readDate("30-Sept-2026", "DD/MM/YYYY")).toBe("2026-09-30");
+    expect(readDate("12-DEC-2025 10:15", "DD/MM/YYYY")).toBe("2025-12-12");
+    expect(readDate("31-Feb-2026", "DD/MM/YYYY")).toBe("invalid");
+    expect(readDate("05-Janxyz-2026", "DD/MM/YYYY")).toBe("invalid");
+    expect(readDate("05-Foo-2026", "DD/MM/YYYY")).toBe("invalid");
+    expect(readDate("05-Jan-26", "DD/MM/YYYY")).toBe("invalid");
+  });
+
   it("reads amounts with thousands separators, a currency prefix and accounting brackets", () => {
     expect(readAmount("1,234.50")).toBe(1234.5);
     expect(readAmount("AED 975.00")).toBe(975);
