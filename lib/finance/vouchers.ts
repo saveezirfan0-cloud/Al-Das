@@ -231,6 +231,40 @@ export function tierProblems(tiers: readonly ApprovalTier[]): string[] {
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
+// Where a voucher is approved (fin_ref_finance_settings.approval_mode, OQ-90 / OQ-196)
+// ---------------------------------------------------------------------------------------------------------------------
+
+/** pulse: every voucher through the tiers; tally: every voucher in Tally; split: routine vouchers up to a limit in Tally. */
+export type ApprovalMode = "pulse" | "tally" | "split";
+
+export const APPROVAL_MODES: readonly ApprovalMode[] = ["pulse", "tally", "split"];
+
+/** fin_ref_finance_settings.tally_approval_max's default (Finance, 22 Oct 2026, Q2). */
+export const DEFAULT_TALLY_APPROVAL_MAX = 5000;
+
+export const parseApprovalMode = (raw: unknown): ApprovalMode =>
+  raw === "tally" || raw === "split" ? raw : "pulse";
+
+/**
+ * Where a voucher goes on submission (mirror of fin_voucher_act's submit branch). In split mode a voucher of no special
+ * category at or below the limit is approved in Tally; payroll, intercompany and related-party vouchers and anything
+ * above the limit follow the Pulse tiers. Without an amount it stays in Pulse (more approvals, never fewer).
+ */
+export function voucherRoute(
+  mode: ApprovalMode,
+  amount: number | null | undefined,
+  special: SpecialCategory,
+  tallyApprovalMax: number | null | undefined,
+): "pulse" | "tally" {
+  if (mode === "tally") return "tally";
+  if (mode !== "split" || amount === null || amount === undefined || !Number.isFinite(amount))
+    return "pulse";
+  return special === "none" && amount <= (tallyApprovalMax ?? DEFAULT_TALLY_APPROVAL_MAX)
+    ? "tally"
+    : "pulse";
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
 // The state machine (mirror of fin_voucher_act; same order of checks)
 // ---------------------------------------------------------------------------------------------------------------------
 
@@ -262,7 +296,11 @@ export type VoucherContext = {
   can: (permission: string) => boolean;
   hash?: string | null;
   remarks?: string | null;
-  approvalMode: "pulse" | "tally";
+  approvalMode: ApprovalMode;
+  /** The voucher's amount and category and the split limit (used by submit in split mode). */
+  amount?: number | null;
+  special?: SpecialCategory;
+  tallyApprovalMax?: number | null;
   /** requiredApprovals() for the voucher as it is now (used by submit). */
   rule: RequiredApprovals | null;
   /** True when the payment date falls in a locked month. */
@@ -307,7 +345,10 @@ export function voucherTransition(
       if (s.documents === 0) return fail("no_attachment");
       if (s.blockedDocuments > 0) return fail("attachment_blocked");
       const makers = s.makers.includes(ctx.actor) ? s.makers : [...s.makers, ctx.actor];
-      if (ctx.approvalMode === "tally")
+      if (
+        voucherRoute(ctx.approvalMode, ctx.amount, ctx.special ?? "none", ctx.tallyApprovalMax) ===
+        "tally"
+      )
         return ok({
           status: "for_tally",
           route: "tally",
@@ -744,14 +785,14 @@ export const EVENT_LABEL: Record<string, string> = {
   exported: "Exported to Tally",
 };
 
-/** "T2: Maker > Finance Manager > Department head", or how a Tally-mode voucher is approved. */
+/** "T2: Maker > Finance Manager > Department head", or how a voucher routed to Tally is approved. */
 export function approvalRoute(c: {
   route: "pulse" | "tally" | null;
   tier: string | null;
   needsDept: boolean;
   needsCeo: boolean;
 }): string {
-  if (c.route === "tally") return "Authorised in Tally (approval mode: Tally)";
+  if (c.route === "tally") return "Authorised in Tally";
   if (!c.route) return "Not submitted";
   const steps = ["Maker", "Finance Manager"];
   if (c.needsDept) steps.push("Department head");

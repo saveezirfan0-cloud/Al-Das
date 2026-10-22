@@ -171,6 +171,38 @@
       ]
     },
     {
+      "name": "Split mode (Q2): a routine voucher at the Tally limit goes to Tally",
+      "amount": 5000,
+      "approvalMode": "split",
+      "steps": [
+        { "actor": "maker", "action": "submit", "expect": "for_tally" },
+        { "actor": "fm", "action": "check", "expect": "wrong_status" }
+      ]
+    },
+    {
+      "name": "Split mode (Q2): above the Tally limit the Pulse tiers apply",
+      "amount": 5000.01,
+      "approvalMode": "split",
+      "steps": [
+        { "actor": "maker", "action": "submit", "expect": "submitted" },
+        { "actor": "fm", "action": "check", "expect": "checked" }
+      ]
+    },
+    {
+      "name": "Split mode (Q2): a special category stays in Pulse whatever the amount",
+      "amount": 1000,
+      "special": "payroll",
+      "approvalMode": "split",
+      "steps": [{ "actor": "maker", "action": "submit", "expect": "submitted" }]
+    },
+    {
+      "name": "Split mode (Q2): the limit is a setting",
+      "amount": 2000,
+      "approvalMode": "split",
+      "tallyApprovalMax": 1500,
+      "steps": [{ "actor": "maker", "action": "submit", "expect": "submitted" }]
+    },
+    {
       "name": "Cancelling needs remarks and ends the voucher",
       "amount": 600,
       "steps": [

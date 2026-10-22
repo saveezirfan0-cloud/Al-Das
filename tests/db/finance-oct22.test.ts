@@ -1,7 +1,8 @@
 /**
  * Finance's answers of 22 Oct 2026 (docs/52), migration 20261227000100: the lab matching window is 5 days by default,
- * and an organisation still on the old default (2) moves to 5 while a value Finance chose is kept. Needs
- * TEST_DATABASE_URL.
+ * and an organisation still on the old default (2) moves to 5 while a value Finance chose is kept. Migration
+ * 20261228000100: the split approval mode and its Tally limit (the routing itself is in the phase20d scenarios run by
+ * finance-payables.test.ts). Needs TEST_DATABASE_URL.
  */
 import type { Client } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -77,5 +78,43 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance answers of 22 Oct 2026", () => {
     });
     expect(await windowOf(orgA)).toBe(5);
     expect(await windowOf(orgB)).toBe(3);
+  });
+
+  it("accepts the split approval mode with a positive Tally limit (default 5,000) and refuses anything else", async () => {
+    const code = async (sql: string) => {
+      try {
+        await svc(() => q(sql, [orgA]));
+        return "ok";
+      } catch (e) {
+        return (e as { code?: string }).code;
+      }
+    };
+    const limit = await svc(() =>
+      q(
+        "select tally_approval_max::float8 as m from public.fin_ref_finance_settings where org_id = $1",
+        [orgA],
+      ),
+    );
+    expect(limit.rows[0].m).toBe(5000);
+    expect(
+      await code(
+        "update public.fin_ref_finance_settings set approval_mode = 'split' where org_id = $1",
+      ),
+    ).toBe("ok");
+    expect(
+      await code(
+        "update public.fin_ref_finance_settings set approval_mode = 'cfo' where org_id = $1",
+      ),
+    ).toBe("23514");
+    expect(
+      await code(
+        "update public.fin_ref_finance_settings set tally_approval_max = 0 where org_id = $1",
+      ),
+    ).toBe("23514");
+    await svc(() =>
+      q("update public.fin_ref_finance_settings set approval_mode = 'pulse' where org_id = $1", [
+        orgA,
+      ]),
+    );
   });
 });

@@ -6,7 +6,10 @@ import { fetchAll } from "@/lib/supabase/fetch-all";
 import type { CertificateEvent, VoucherCertificate } from "@/lib/finance/voucher-certificate";
 import {
   canReadVoucher,
+  DEFAULT_TALLY_APPROVAL_MAX,
+  parseApprovalMode,
   voucherReadAccess,
+  type ApprovalMode,
   type ApprovalTier,
   type PaymentMethod,
   type ReportSettings,
@@ -19,7 +22,9 @@ import type { TallyLedgerRow, TallyPayment, TallyPurchase } from "@/lib/finance/
 /** Server side of payables and vouchers: loaders for pages, routes and actions. Service role; callers have run can(). */
 
 export type PayablesSettings = ReportSettings & {
-  approvalMode: "pulse" | "tally";
+  approvalMode: ApprovalMode;
+  /** Split mode: routine vouchers up to this amount are approved in Tally. */
+  tallyApprovalMax: number;
   tallyCompany: string | null;
   tallyCostCategory: string;
 };
@@ -31,12 +36,13 @@ export async function loadPayablesSettings(
   const { data } = await admin
     .from("fin_ref_finance_settings")
     .select(
-      "approval_mode, voucher_duplicate_window_days, voucher_mismatch_tolerance, voucher_large_amount, tally_company_name, tally_cost_category",
+      "approval_mode, tally_approval_max, voucher_duplicate_window_days, voucher_mismatch_tolerance, voucher_large_amount, tally_company_name, tally_cost_category",
     )
     .eq("org_id", orgId)
     .maybeSingle();
   return {
-    approvalMode: data?.approval_mode === "tally" ? "tally" : "pulse",
+    approvalMode: parseApprovalMode(data?.approval_mode),
+    tallyApprovalMax: Number(data?.tally_approval_max ?? DEFAULT_TALLY_APPROVAL_MAX),
     duplicateWindowDays: data?.voucher_duplicate_window_days ?? 30,
     mismatchTolerance: Number(data?.voucher_mismatch_tolerance ?? 1),
     largeAmount: Number(data?.voucher_large_amount ?? 50000),
