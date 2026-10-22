@@ -1,0 +1,1328 @@
+{
+  "flow": [
+    {
+      "id": 1,
+      "mapper": {
+        "base": "appZbwlQvkuaUsF2l",
+        "table": "tbldH45nIL5EQAjpy",
+        "formula": "AND({Visit Date} = DATEADD(TODAY(), -1, 'day'), {Visit Status} = 'No Show')",
+        "maxRecords": "100",
+        "useColumnId": false
+      },
+      "module": "airtable:ActionSearchRecords",
+      "version": 3,
+      "metadata": {
+        "expect": [
+          {
+            "name": "base",
+            "type": "select",
+            "label": "Base",
+            "required": true
+          },
+          {
+            "name": "useColumnId",
+            "type": "boolean",
+            "label": "Use Column ID",
+            "required": true
+          },
+          {
+            "name": "table",
+            "type": "select",
+            "label": "Table",
+            "required": true
+          },
+          {
+            "name": "formula",
+            "type": "text",
+            "label": "Formula"
+          },
+          {
+            "name": "maxRecords",
+            "type": "integer",
+            "label": "Limit"
+          },
+          {
+            "name": "sort",
+            "spec": [
+              {
+                "name": "field",
+                "type": "select",
+                "label": "Field",
+                "dynamic": true,
+                "options": []
+              },
+              {
+                "name": "direction",
+                "type": "select",
+                "label": "Direction",
+                "options": [
+                  {
+                    "label": "Descending",
+                    "value": "desc"
+                  },
+                  {
+                    "label": "Ascending",
+                    "value": "asc"
+                  }
+                ]
+              }
+            ],
+            "type": "array",
+            "label": "Sort"
+          },
+          {
+            "name": "view",
+            "type": "select",
+            "label": "View"
+          },
+          {
+            "name": "fields",
+            "type": "select",
+            "label": "Output Fields",
+            "multiple": true
+          }
+        ],
+        "restore": {
+          "expect": {
+            "base": {
+              "mode": "chose",
+              "label": "Patient Treatment & Follow-Up System"
+            },
+            "sort": {
+              "mode": "chose"
+            },
+            "view": {
+              "mode": "chose",
+              "label": "Empty"
+            },
+            "table": {
+              "mode": "chose",
+              "label": "Patient Visits"
+            },
+            "fields": {
+              "mode": "chose"
+            },
+            "useColumnId": {
+              "mode": "chose"
+            }
+          },
+          "parameters": {
+            "__IMTCONN__": {
+              "data": {
+                "scoped": "true",
+                "connection": "airtable3"
+              },
+              "label": "Al Das Clinic (User ID: usr17UaGhbLqsH0hk)"
+            }
+          }
+        },
+        "designer": {
+          "x": 0,
+          "y": 0
+        },
+        "interface": [
+          {
+            "name": "__IMTLENGTH__",
+            "type": "uinteger",
+            "label": "Total number of bundles"
+          },
+          {
+            "name": "__IMTINDEX__",
+            "type": "uinteger",
+            "label": "Bundle order position"
+          },
+          {
+            "name": "id",
+            "type": "text",
+            "label": "ID"
+          },
+          {
+            "name": "createdTime",
+            "type": "date",
+            "label": "Created Time"
+          },
+          {
+            "name": "Visit ID",
+            "type": "text",
+            "label": "Visit ID"
+          },
+          {
+            "name": "Visit Date",
+            "time": false,
+            "type": "date",
+            "label": "Visit Date"
+          },
+          {
+            "name": "Department",
+            "type": "text",
+            "label": "Department"
+          },
+          {
+            "name": "Location",
+            "type": "text",
+            "label": "Location"
+          },
+          {
+            "name": "Visit Status",
+            "type": "text",
+            "label": "Visit Status"
+          },
+          {
+            "name": "Feedback Status",
+            "type": "text",
+            "label": "Feedback Status"
+          },
+          {
+            "name": "Star Rating",
+            "type": "uinteger",
+            "label": "Star Rating",
+            "validate": {
+              "min": 1
+            }
+          },
+          {
+            "name": "Feedback Comment",
+            "type": "text",
+            "label": "Feedback Comment",
+            "multiline": true
+          },
+          {
+            "name": "Feedback Timestamp",
+            "time": true,
+            "type": "date",
+            "label": "Feedback Timestamp"
+          },
+          {
+            "name": "Patient",
+            "spec": {
+              "name": "value",
+              "type": "text",
+              "label": "Record ID"
+            },
+            "type": "array",
+            "label": "Patient"
+          },
+          {
+            "name": "Doctor",
+            "spec": {
+              "label": "Record ID"
+            },
+            "type": "array",
+            "label": "Doctor"
+          },
+          {
+            "name": "Low Rating Alert Sent",
+            "type": "boolean",
+            "label": "Low Rating Alert Sent"
+          },
+          {
+            "name": "Feedback Link",
+            "type": "text",
+            "label": "Feedback Link"
+          },
+          {
+            "name": "Messages Sent",
+            "spec": {
+              "label": "Record ID"
+            },
+            "type": "array",
+            "label": "Messages Sent"
+          }
+        ],
+        "parameters": [
+          {
+            "name": "__IMTCONN__",
+            "type": "account:airtable3,airtable2",
+            "label": "Connection",
+            "required": true
+          }
+        ]
+      },
+      "parameters": {
+        "__IMTCONN__": 6448605
+      }
+    },
+    {
+      "id": 2,
+      "mapper": {
+        "array": "{{1.Patient}}"
+      },
+      "module": "builtin:BasicFeeder",
+      "version": 1,
+      "metadata": {
+        "expect": [
+          {
+            "mode": "edit",
+            "name": "array",
+            "spec": [],
+            "type": "array",
+            "label": "Array"
+          }
+        ],
+        "restore": {
+          "expect": {
+            "array": {
+              "mode": "edit"
+            }
+          }
+        },
+        "designer": {
+          "x": 300,
+          "y": 0
+        }
+      },
+      "parameters": {}
+    },
+    {
+      "id": 5,
+      "filter": null,
+      "mapper": {
+        "id": "{{2.value}}",
+        "base": "appZbwlQvkuaUsF2l",
+        "table": "tbl9856qJP9S7OEqB",
+        "useColumnId": false
+      },
+      "module": "airtable:ActionGetRecord",
+      "version": 3,
+      "metadata": {
+        "expect": [
+          {
+            "name": "base",
+            "type": "select",
+            "label": "Base",
+            "required": true
+          },
+          {
+            "name": "useColumnId",
+            "type": "boolean",
+            "label": "Use Column ID",
+            "required": true
+          },
+          {
+            "name": "table",
+            "type": "select",
+            "label": "Table",
+            "required": true
+          },
+          {
+            "name": "id",
+            "type": "text",
+            "label": "Record ID",
+            "required": true
+          }
+        ],
+        "restore": {
+          "expect": {
+            "base": {
+              "mode": "chose",
+              "label": "Patient Treatment & Follow-Up System"
+            },
+            "table": {
+              "mode": "chose",
+              "label": "Patients"
+            },
+            "useColumnId": {
+              "mode": "chose"
+            }
+          },
+          "parameters": {
+            "__IMTCONN__": {
+              "data": {
+                "scoped": "true",
+                "connection": "airtable3"
+              },
+              "label": "Al Das Clinic (User ID: usr17UaGhbLqsH0hk)"
+            }
+          }
+        },
+        "designer": {
+          "x": 600,
+          "y": 0
+        },
+        "interface": [
+          {
+            "name": "id",
+            "type": "text",
+            "label": "ID"
+          },
+          {
+            "name": "createdTime",
+            "type": "date",
+            "label": "Created Time"
+          },
+          {
+            "name": "Patient Name",
+            "type": "text",
+            "label": "Patient Name"
+          },
+          {
+            "name": "Patient Pin",
+            "type": "text",
+            "label": "Patient Pin"
+          },
+          {
+            "name": "Sanoflow Contact Id",
+            "type": "text",
+            "label": "Sanoflow Contact Id"
+          },
+          {
+            "name": "Phone",
+            "type": "text",
+            "label": "Phone"
+          },
+          {
+            "name": "number",
+            "type": "text",
+            "label": "number"
+          },
+          {
+            "name": "Email",
+            "type": "text",
+            "label": "Email"
+          },
+          {
+            "name": "Nationality",
+            "type": "text",
+            "label": "Nationality"
+          },
+          {
+            "name": "Nationality -t",
+            "type": "text",
+            "label": "Nationality -t"
+          },
+          {
+            "name": "Gender",
+            "type": "text",
+            "label": "Gender"
+          },
+          {
+            "name": "DOB",
+            "time": false,
+            "type": "date",
+            "label": "DOB"
+          },
+          {
+            "name": "DOB (DD-MM)",
+            "type": "text",
+            "label": "DOB (DD-MM)"
+          },
+          {
+            "name": "Birth Month",
+            "type": "text",
+            "label": "Birth Month"
+          },
+          {
+            "name": "Address",
+            "type": "text",
+            "label": "Address",
+            "multiline": true
+          },
+          {
+            "name": "First Visit Date",
+            "time": false,
+            "type": "date",
+            "label": "First Visit Date"
+          },
+          {
+            "name": "Last Visit Date",
+            "time": false,
+            "type": "date",
+            "label": "Last Visit Date"
+          },
+          {
+            "name": "Dr. Name",
+            "type": "text",
+            "label": "Dr. Name"
+          },
+          {
+            "name": "Clinic",
+            "type": "text",
+            "label": "Clinic"
+          },
+          {
+            "name": "Department",
+            "type": "text",
+            "label": "Department"
+          },
+          {
+            "name": "Sano Id",
+            "type": "text",
+            "label": "Sano Id"
+          },
+          {
+            "name": "Phone Number After Dash",
+            "type": "text",
+            "label": "Phone Number After Dash"
+          },
+          {
+            "name": "First Name",
+            "type": "text",
+            "label": "First Name"
+          },
+          {
+            "name": "Last Name",
+            "type": "text",
+            "label": "Last Name"
+          },
+          {
+            "name": "Age",
+            "type": "text",
+            "label": "Age"
+          },
+          {
+            "name": "Language Preference",
+            "type": "text",
+            "label": "Language Preference"
+          },
+          {
+            "name": "Consent for Whatsapp",
+            "type": "boolean",
+            "label": "Consent for Whatsapp"
+          },
+          {
+            "name": "Prescriptions",
+            "spec": {
+              "label": "Record ID"
+            },
+            "type": "array",
+            "label": "Prescriptions"
+          },
+          {
+            "name": "Laboratory & Diagnostic Test",
+            "spec": {
+              "label": "Record ID"
+            },
+            "type": "array",
+            "label": "Laboratory & Diagnostic Test"
+          },
+          {
+            "name": "Whatsapp Automation Log",
+            "spec": {
+              "label": "Record ID"
+            },
+            "type": "array",
+            "label": "Whatsapp Automation Log"
+          },
+          {
+            "name": "Feedback & Outcomes",
+            "spec": {
+              "label": "Record ID"
+            },
+            "type": "array",
+            "label": "Feedback & Outcomes"
+          },
+          {
+            "name": "Patient Visits",
+            "spec": {
+              "label": "Record ID"
+            },
+            "type": "array",
+            "label": "Patient Visits"
+          }
+        ],
+        "parameters": [
+          {
+            "name": "__IMTCONN__",
+            "type": "account:airtable3,airtable2",
+            "label": "Connection",
+            "required": true
+          }
+        ]
+      },
+      "parameters": {
+        "__IMTCONN__": 6448605
+      }
+    },
+    {
+      "id": 3,
+      "mapper": {
+        "ca": "",
+        "qs": [],
+        "url": "https://developers.sanoflow.io/api/v1.1/messages/whatsapp/send-template",
+        "data": "{\n  \"template_id\": \"12115\",\n  \"phone\": \"{{5.Phone}}\",\n  \"mapper_value\": [\"{{5.`Patient Name`}}\", \"{{5.`Dr. Name`}}\", \"{{formatDate(1.`Appointment Time`; \"HH:mm\")}}\", \"Please call to check\", \"Please call to check\"]\n}",
+        "gzip": true,
+        "method": "post",
+        "headers": [
+          {
+            "name": "Content-type",
+            "value": "application/json"
+          },
+          {
+            "name": "access-token",
+            "value": "[REDACTED]"
+          }
+        ],
+        "timeout": "",
+        "useMtls": false,
+        "authPass": "",
+        "authUser": "",
+        "bodyType": "raw",
+        "contentType": "application/json",
+        "serializeUrl": false,
+        "shareCookies": false,
+        "parseResponse": true,
+        "followRedirect": true,
+        "useQuerystring": false,
+        "followAllRedirects": true,
+        "rejectUnauthorized": true
+      },
+      "module": "http:ActionSendData",
+      "version": 3,
+      "metadata": {
+        "expect": [
+          {
+            "name": "url",
+            "type": "url",
+            "label": "URL",
+            "required": true
+          },
+          {
+            "name": "serializeUrl",
+            "type": "boolean",
+            "label": "Serialize URL",
+            "required": true
+          },
+          {
+            "name": "method",
+            "type": "select",
+            "label": "Method",
+            "required": true,
+            "validate": {
+              "enum": [
+                "get",
+                "head",
+                "post",
+                "put",
+                "patch",
+                "delete",
+                "options"
+              ]
+            }
+          },
+          {
+            "name": "headers",
+            "spec": [
+              {
+                "name": "name",
+                "type": "text",
+                "label": "Name",
+                "required": true
+              },
+              {
+                "name": "value",
+                "type": "text",
+                "label": "Value"
+              }
+            ],
+            "type": "array",
+            "label": "Headers"
+          },
+          {
+            "name": "qs",
+            "spec": [
+              {
+                "name": "name",
+                "type": "text",
+                "label": "Name",
+                "required": true
+              },
+              {
+                "name": "value",
+                "type": "text",
+                "label": "Value"
+              }
+            ],
+            "type": "array",
+            "label": "Query String"
+          },
+          {
+            "name": "bodyType",
+            "type": "select",
+            "label": "Body type",
+            "validate": {
+              "enum": [
+                "raw",
+                "x_www_form_urlencoded",
+                "multipart_form_data"
+              ]
+            }
+          },
+          {
+            "name": "parseResponse",
+            "type": "boolean",
+            "label": "Parse response",
+            "required": true
+          },
+          {
+            "name": "authUser",
+            "type": "text",
+            "label": "User name"
+          },
+          {
+            "name": "authPass",
+            "type": "password",
+            "label": "Password"
+          },
+          {
+            "name": "timeout",
+            "type": "uinteger",
+            "label": "Timeout",
+            "validate": {
+              "max": 300,
+              "min": 1
+            }
+          },
+          {
+            "name": "shareCookies",
+            "type": "boolean",
+            "label": "Share cookies with other HTTP modules",
+            "required": true
+          },
+          {
+            "name": "ca",
+            "type": "cert",
+            "label": "Self-signed certificate"
+          },
+          {
+            "name": "rejectUnauthorized",
+            "type": "boolean",
+            "label": "Reject connections that are using unverified (self-signed) certificates",
+            "required": true
+          },
+          {
+            "name": "followRedirect",
+            "type": "boolean",
+            "label": "Follow redirect",
+            "required": true
+          },
+          {
+            "name": "useQuerystring",
+            "type": "boolean",
+            "label": "Disable serialization of multiple same query string keys as arrays",
+            "required": true
+          },
+          {
+            "name": "gzip",
+            "type": "boolean",
+            "label": "Request compressed content",
+            "required": true
+          },
+          {
+            "name": "useMtls",
+            "type": "boolean",
+            "label": "Use Mutual TLS",
+            "required": true
+          },
+          {
+            "name": "contentType",
+            "type": "select",
+            "label": "Content type",
+            "validate": {
+              "enum": [
+                "text/plain",
+                "application/json",
+                "application/xml",
+                "text/xml",
+                "text/html",
+                "custom"
+              ]
+            }
+          },
+          {
+            "name": "data",
+            "type": "buffer",
+            "label": "Request content"
+          },
+          {
+            "name": "followAllRedirects",
+            "type": "boolean",
+            "label": "Follow all redirect",
+            "required": true
+          }
+        ],
+        "restore": {
+          "expect": {
+            "qs": {
+              "mode": "chose"
+            },
+            "method": {
+              "mode": "chose",
+              "label": "POST"
+            },
+            "headers": {
+              "mode": "chose",
+              "items": [
+                null,
+                null
+              ]
+            },
+            "bodyType": {
+              "label": "Raw"
+            },
+            "contentType": {
+              "label": "JSON (application/json)"
+            }
+          }
+        },
+        "designer": {
+          "x": 900,
+          "y": 0
+        },
+        "parameters": [
+          {
+            "name": "handleErrors",
+            "type": "boolean",
+            "label": "Evaluate all states as errors (except for 2xx and 3xx )",
+            "required": true
+          },
+          {
+            "name": "useNewZLibDeCompress",
+            "type": "hidden"
+          }
+        ]
+      },
+      "parameters": {
+        "handleErrors": true,
+        "useNewZLibDeCompress": true
+      }
+    },
+    {
+      "id": 4,
+      "mapper": {
+        "base": "appZbwlQvkuaUsF2l",
+        "table": "tblrQgE70HzqJYw2n",
+        "record": {
+          "fld7wBqw7Y23Rr39t": "{{5.Department}}",
+          "fldCey046R4viJ3MG": "Yes",
+          "fldFsdfcfDQ6hfeRW": "{{5.`Dr. Name`}}",
+          "fldSictiG7y1XdhJ9": "{{5.Phone}}",
+          "fldjsjlmiqVNdL0aa": "{{now}}",
+          "fldpeuNcsaVe59DC7": "{{1.`Appointment Time`}}",
+          "fldvF3gsPFLoUlaTo": "{{5.Clinic}}",
+          "fldxbQ1pnbBiOFJH0": "{{5.`Patient Name`}}"
+        },
+        "typecast": false,
+        "useColumnId": false
+      },
+      "module": "airtable:ActionCreateRecord",
+      "version": 3,
+      "metadata": {
+        "expect": [
+          {
+            "name": "base",
+            "type": "select",
+            "label": "Base",
+            "required": true
+          },
+          {
+            "name": "typecast",
+            "type": "boolean",
+            "label": "Smart links",
+            "required": true
+          },
+          {
+            "name": "useColumnId",
+            "type": "boolean",
+            "label": "Use Column ID",
+            "required": true
+          },
+          {
+            "name": "table",
+            "type": "select",
+            "label": "Table",
+            "required": true
+          },
+          {
+            "name": "record",
+            "spec": [
+              {
+                "name": "fldxbQ1pnbBiOFJH0",
+                "type": "text",
+                "label": "Patient Name"
+              },
+              {
+                "name": "fldSictiG7y1XdhJ9",
+                "type": "text",
+                "label": "Patient Phone"
+              },
+              {
+                "name": "fldpeuNcsaVe59DC7",
+                "time": false,
+                "type": "date",
+                "label": "Missed Appointment Date"
+              },
+              {
+                "name": "fldFsdfcfDQ6hfeRW",
+                "type": "text",
+                "label": "Doctor Name"
+              },
+              {
+                "name": "fld7wBqw7Y23Rr39t",
+                "type": "text",
+                "label": "Department"
+              },
+              {
+                "mode": "edit",
+                "name": "fldvF3gsPFLoUlaTo",
+                "type": "select",
+                "label": "Branch"
+              },
+              {
+                "mode": "edit",
+                "name": "fldCey046R4viJ3MG",
+                "type": "select",
+                "label": "Recovery Message Sent"
+              },
+              {
+                "name": "fldjsjlmiqVNdL0aa",
+                "type": "text",
+                "label": "Sent At"
+              },
+              {
+                "mode": "edit",
+                "name": "fldLOZLBBEqPTuIOk",
+                "type": "select",
+                "label": "Patient Replied"
+              },
+              {
+                "name": "fldnPMgo2IjPNcjE3",
+                "type": "text",
+                "label": "Patient Response"
+              },
+              {
+                "mode": "edit",
+                "name": "fld6YV1XSA0d5AeSF",
+                "type": "select",
+                "label": "Rebooked"
+              },
+              {
+                "name": "fld2kTP6vUB9SoSxa",
+                "time": false,
+                "type": "date",
+                "label": "New Appointment Date"
+              },
+              {
+                "name": "fldTYQBLliKOq37H2",
+                "type": "number",
+                "label": "No-Show Count"
+              },
+              {
+                "mode": "edit",
+                "name": "fld0HhQPDkspYhJMd",
+                "type": "select",
+                "label": "Reason Given"
+              },
+              {
+                "mode": "edit",
+                "name": "fldv3C3vXZcrjU33W",
+                "type": "select",
+                "label": "Status"
+              },
+              {
+                "name": "fldmllBvblUKWysd8",
+                "type": "text",
+                "label": "Notes"
+              }
+            ],
+            "type": "collection",
+            "label": "Record"
+          }
+        ],
+        "restore": {
+          "expect": {
+            "base": {
+              "label": "Patient Treatment & Follow-Up System"
+            },
+            "table": {
+              "label": "DRAFT - No-Show Recovery",
+              "nested": [
+                {
+                  "name": "record",
+                  "spec": [
+                    {
+                      "name": "fldxbQ1pnbBiOFJH0",
+                      "type": "text",
+                      "label": "Patient Name"
+                    },
+                    {
+                      "name": "fldSictiG7y1XdhJ9",
+                      "type": "text",
+                      "label": "Patient Phone"
+                    },
+                    {
+                      "name": "fldpeuNcsaVe59DC7",
+                      "time": false,
+                      "type": "date",
+                      "label": "Missed Appointment Date"
+                    },
+                    {
+                      "name": "fldFsdfcfDQ6hfeRW",
+                      "type": "text",
+                      "label": "Doctor Name"
+                    },
+                    {
+                      "name": "fld7wBqw7Y23Rr39t",
+                      "type": "text",
+                      "label": "Department"
+                    },
+                    {
+                      "mode": "edit",
+                      "name": "fldvF3gsPFLoUlaTo",
+                      "type": "select",
+                      "label": "Branch",
+                      "dynamic": true,
+                      "options": [
+                        {
+                          "label": "Al Das - Palm Jumeirah",
+                          "value": "Al Das - Palm Jumeirah"
+                        },
+                        {
+                          "label": "Al Das - Mirdif",
+                          "value": "Al Das - Mirdif"
+                        },
+                        {
+                          "label": "Al Das - Motor City",
+                          "value": "Al Das - Motor City"
+                        }
+                      ],
+                      "validate": false
+                    },
+                    {
+                      "mode": "edit",
+                      "name": "fldCey046R4viJ3MG",
+                      "type": "select",
+                      "label": "Recovery Message Sent",
+                      "dynamic": true,
+                      "options": [
+                        {
+                          "label": "Yes",
+                          "value": "Yes"
+                        },
+                        {
+                          "label": "No",
+                          "value": "No"
+                        },
+                        {
+                          "label": "Failed",
+                          "value": "Failed"
+                        }
+                      ],
+                      "validate": false
+                    },
+                    {
+                      "name": "fldjsjlmiqVNdL0aa",
+                      "type": "text",
+                      "label": "Sent At"
+                    },
+                    {
+                      "mode": "edit",
+                      "name": "fldLOZLBBEqPTuIOk",
+                      "type": "select",
+                      "label": "Patient Replied",
+                      "dynamic": true,
+                      "options": [
+                        {
+                          "label": "Yes",
+                          "value": "Yes"
+                        },
+                        {
+                          "label": "No",
+                          "value": "No"
+                        }
+                      ],
+                      "validate": false
+                    },
+                    {
+                      "name": "fldnPMgo2IjPNcjE3",
+                      "type": "text",
+                      "label": "Patient Response",
+                      "multiline": true
+                    },
+                    {
+                      "mode": "edit",
+                      "name": "fld6YV1XSA0d5AeSF",
+                      "type": "select",
+                      "label": "Rebooked",
+                      "dynamic": true,
+                      "options": [
+                        {
+                          "label": "Yes",
+                          "value": "Yes"
+                        },
+                        {
+                          "label": "No",
+                          "value": "No"
+                        },
+                        {
+                          "label": "Pending",
+                          "value": "Pending"
+                        }
+                      ],
+                      "validate": false
+                    },
+                    {
+                      "name": "fld2kTP6vUB9SoSxa",
+                      "time": false,
+                      "type": "date",
+                      "label": "New Appointment Date"
+                    },
+                    {
+                      "name": "fldTYQBLliKOq37H2",
+                      "type": "number",
+                      "label": "No-Show Count"
+                    },
+                    {
+                      "mode": "edit",
+                      "name": "fld0HhQPDkspYhJMd",
+                      "type": "select",
+                      "label": "Reason Given",
+                      "dynamic": true,
+                      "options": [
+                        {
+                          "label": "Forgot",
+                          "value": "Forgot"
+                        },
+                        {
+                          "label": "Emergency",
+                          "value": "Emergency"
+                        },
+                        {
+                          "label": "Traffic/Transport",
+                          "value": "Traffic/Transport"
+                        },
+                        {
+                          "label": "Changed Mind",
+                          "value": "Changed Mind"
+                        },
+                        {
+                          "label": "Went Elsewhere",
+                          "value": "Went Elsewhere"
+                        },
+                        {
+                          "label": "No Reason Given",
+                          "value": "No Reason Given"
+                        },
+                        {
+                          "label": "Other",
+                          "value": "Other"
+                        }
+                      ],
+                      "validate": false
+                    },
+                    {
+                      "mode": "edit",
+                      "name": "fldv3C3vXZcrjU33W",
+                      "type": "select",
+                      "label": "Status",
+                      "dynamic": true,
+                      "options": [
+                        {
+                          "label": "Pending Outreach",
+                          "value": "Pending Outreach"
+                        },
+                        {
+                          "label": "Message Sent",
+                          "value": "Message Sent"
+                        },
+                        {
+                          "label": "Rebooked",
+                          "value": "Rebooked"
+                        },
+                        {
+                          "label": "Lost",
+                          "value": "Lost"
+                        },
+                        {
+                          "label": "Chronic No-Show",
+                          "value": "Chronic No-Show"
+                        }
+                      ],
+                      "validate": false
+                    },
+                    {
+                      "name": "fldmllBvblUKWysd8",
+                      "type": "text",
+                      "label": "Notes",
+                      "multiline": true
+                    }
+                  ],
+                  "type": "collection",
+                  "label": "Record"
+                }
+              ]
+            },
+            "record": {
+              "nested": {
+                "fld0HhQPDkspYhJMd": {
+                  "mode": "edit"
+                },
+                "fld6YV1XSA0d5AeSF": {
+                  "mode": "edit"
+                },
+                "fldCey046R4viJ3MG": {
+                  "mode": "chose",
+                  "label": "Yes"
+                },
+                "fldLOZLBBEqPTuIOk": {
+                  "mode": "edit"
+                },
+                "fldv3C3vXZcrjU33W": {
+                  "mode": "edit"
+                },
+                "fldvF3gsPFLoUlaTo": {
+                  "mode": "edit"
+                }
+              }
+            },
+            "typecast": {
+              "mode": "chose"
+            },
+            "useColumnId": {
+              "mode": "chose"
+            }
+          },
+          "parameters": {
+            "__IMTCONN__": {
+              "data": {
+                "scoped": "true",
+                "connection": "airtable3"
+              },
+              "label": "Al Das Clinic (User ID: usr17UaGhbLqsH0hk)"
+            }
+          }
+        },
+        "designer": {
+          "x": 1200,
+          "y": 0
+        },
+        "interface": [
+          {
+            "name": "id",
+            "type": "text",
+            "label": "ID"
+          },
+          {
+            "name": "createdTime",
+            "type": "date",
+            "label": "Created Time"
+          },
+          {
+            "name": "Patient Name",
+            "type": "text",
+            "label": "Patient Name"
+          },
+          {
+            "name": "Patient Phone",
+            "type": "text",
+            "label": "Patient Phone"
+          },
+          {
+            "name": "Missed Appointment Date",
+            "time": false,
+            "type": "date",
+            "label": "Missed Appointment Date"
+          },
+          {
+            "name": "Doctor Name",
+            "type": "text",
+            "label": "Doctor Name"
+          },
+          {
+            "name": "Department",
+            "type": "text",
+            "label": "Department"
+          },
+          {
+            "name": "Branch",
+            "type": "text",
+            "label": "Branch"
+          },
+          {
+            "name": "Recovery Message Sent",
+            "type": "text",
+            "label": "Recovery Message Sent"
+          },
+          {
+            "name": "Sent At",
+            "type": "text",
+            "label": "Sent At"
+          },
+          {
+            "name": "Patient Replied",
+            "type": "text",
+            "label": "Patient Replied"
+          },
+          {
+            "name": "Patient Response",
+            "type": "text",
+            "label": "Patient Response",
+            "multiline": true
+          },
+          {
+            "name": "Rebooked",
+            "type": "text",
+            "label": "Rebooked"
+          },
+          {
+            "name": "New Appointment Date",
+            "time": false,
+            "type": "date",
+            "label": "New Appointment Date"
+          },
+          {
+            "name": "No-Show Count",
+            "type": "number",
+            "label": "No-Show Count"
+          },
+          {
+            "name": "Reason Given",
+            "type": "text",
+            "label": "Reason Given"
+          },
+          {
+            "name": "Status",
+            "type": "text",
+            "label": "Status"
+          },
+          {
+            "name": "Notes",
+            "type": "text",
+            "label": "Notes",
+            "multiline": true
+          }
+        ],
+        "parameters": [
+          {
+            "name": "__IMTCONN__",
+            "type": "account:airtable3,airtable2",
+            "label": "Connection",
+            "required": true
+          }
+        ]
+      },
+      "parameters": {
+        "__IMTCONN__": 6448605
+      }
+    }
+  ],
+  "name": "DRAFT - No-Show Recovery Outreach",
+  "metadata": {
+    "instant": false,
+    "version": 1,
+    "designer": {
+      "orphans": []
+    },
+    "scenario": {
+      "dlq": false,
+      "slots": null,
+      "dataloss": false,
+      "maxErrors": 3,
+      "autoCommit": true,
+      "roundtrips": 1,
+      "sequential": false,
+      "confidential": false,
+      "freshVariables": false,
+      "autoCommitTriggerLast": true
+    }
+  }
+}

@@ -189,6 +189,17 @@ export async function runPatientTable(
           result.warnings.last_visit_date_not_written =
             (result.warnings.last_visit_date_not_written ?? 0) + 1;
       }
+      if (mapped.longPrescription !== undefined) {
+        // Airtable "60 days >": the chronic recall gate (docs/49 D2). Written both ways, so a re-import can clear it.
+        const { error } = await admin
+          .from("contacts")
+          .update({ long_prescription_flag: mapped.longPrescription })
+          .eq("id", res.id)
+          .eq("org_id", orgId);
+        if (error)
+          result.warnings.long_prescription_not_written =
+            (result.warnings.long_prescription_not_written ?? 0) + 1;
+      }
       await upsertExternalRef(admin, {
         orgId,
         source: "airtable",

@@ -15,6 +15,7 @@ export const QUEUES = [
   "ai_insights",
   "sms_outbound",
   "capi_events",
+  "sanoflow_tags",
   "clinical",
 ] as const;
 

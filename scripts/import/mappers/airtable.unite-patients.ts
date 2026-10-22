@@ -166,6 +166,7 @@ export const unitePatientsMapper: PatientMapper = {
       warnings,
       isTestRecord: false,
       uniteLastVisitDate,
+      longPrescription: flag(F.sixtyDays) === "True",
     };
   },
 };

@@ -1,0 +1,93 @@
+{
+  "flow": [
+    {
+      "id": 1,
+      "mapper": {
+        "key": "token",
+        "returnWrapped": false
+      },
+      "module": "datastore:GetRecord",
+      "version": 1,
+      "metadata": {
+        "designer": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      "parameters": {
+        "datastore": 61544
+      }
+    },
+    {
+      "id": 2,
+      "mapper": {
+        "url": "https://ucexternalapiprod.uniteuae.care/gateway/GetFinanceDetails",
+        "method": "post",
+        "headers": [
+          {
+            "name": "Authorization",
+            "value": "[REDACTED]"
+          }
+        ],
+        "timeout": 120,
+        "contentType": "json",
+        "inputMethod": "jsonString",
+        "shareCookies": false,
+        "parseResponse": false,
+        "allowRedirects": true,
+        "stopOnHttpError": false,
+        "jsonStringBodyContent": "{\"fromDate\": \"{{var.input.fromDate}}\", \"toDate\": \"{{var.input.toDate}}\", \"count\": {{var.input.count}}}",
+        "requestCompressedContent": true
+      },
+      "module": "http:MakeRequest",
+      "version": 4,
+      "metadata": {
+        "designer": {
+          "x": 300,
+          "y": 0
+        }
+      },
+      "parameters": {
+        "tlsType": "",
+        "authenticationType": "noAuth"
+      }
+    },
+    {
+      "id": 3,
+      "mapper": {
+        "key": "{{var.input.tag}}-raw",
+        "data": {
+          "meta": "{{2.data}}"
+        },
+        "overwrite": true
+      },
+      "module": "datastore:AddRecord",
+      "version": 1,
+      "metadata": {
+        "designer": {
+          "x": 600,
+          "y": 0
+        }
+      },
+      "parameters": {
+        "datastore": 167670
+      }
+    }
+  ],
+  "name": "TEST - Unite Finance API (DO NOT RUN - each call consumes the Unite sync queue)",
+  "metadata": {
+    "instant": false,
+    "version": 1,
+    "scenario": {
+      "dlq": false,
+      "dataloss": false,
+      "maxErrors": 3,
+      "autoCommit": true,
+      "roundtrips": 1,
+      "sequential": false,
+      "confidential": false,
+      "freshVariables": false,
+      "autoCommitTriggerLast": true
+    }
+  }
+}

@@ -8,6 +8,7 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -562,13 +563,16 @@ function TemplateValues({
   bodyKeys: string[];
   variables: Record<string, string>;
   disabled: boolean;
-  onSave: (values: Record<string, { source: string; fallback: string }>) => void;
+  onSave: (values: Record<string, { source: string; fallback: string; title: boolean }>) => void;
 }) {
   const [values, setValues] = useState(() =>
     Object.fromEntries(
       bodyKeys.map((k) => {
         const v = splitRecallVariable(variables[k]);
-        return [k, { source: v?.source ?? "", fallback: v?.fallback ?? "" }];
+        return [
+          k,
+          { source: v?.source ?? "", fallback: v?.fallback ?? "", title: v?.title ?? false },
+        ];
       }),
     ),
   );
@@ -624,6 +628,16 @@ function TemplateValues({
               setValues((s) => ({ ...s, [k]: { ...s[k]!, fallback: e.target.value } }))
             }
           />
+          <label className="flex items-center gap-1.5 text-xs">
+            <Checkbox
+              checked={values[k]?.title ?? false}
+              disabled={disabled || !values[k]?.source}
+              onCheckedChange={(c) =>
+                setValues((s) => ({ ...s, [k]: { ...s[k]!, title: c === true } }))
+              }
+            />
+            Capitalise
+          </label>
         </div>
       ))}
       <Button

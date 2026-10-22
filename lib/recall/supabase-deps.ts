@@ -179,7 +179,7 @@ export function createRecallDeps(admin: AdminClient): RecallDeps {
   return {
     store: supabaseRecallStore(admin),
     sender: {
-      async sendTemplate({ orgId, contactId, waTemplateId, values }) {
+      async sendTemplate({ orgId, contactId, waTemplateId, values, programmeKey, live }) {
         const conv = await ensureConversation(
           admin,
           orgId,
@@ -198,6 +198,11 @@ export function createRecallDeps(admin: AdminClient): RecallDeps {
           spec: { type: "template", template_id: waTemplateId, values },
           body,
           sentByUserId: null,
+          // Lets the Sanoflow sender write Make's tags after a Live send (docs/49 D11); other programmes carry nothing.
+          context:
+            programmeKey === "birthday" || programmeKey === "chronic_90d"
+              ? { kind: "recall", programme: programmeKey, live: live === true }
+              : undefined,
           priority: false,
         });
         return { messageId: msg.id };

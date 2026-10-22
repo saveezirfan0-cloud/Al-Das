@@ -24,17 +24,24 @@ const ROW: EligibleRow = {
 const TZ = { timezone: "Asia/Dubai" };
 
 describe("recall template values (docs/49 D16)", () => {
-  it("the seeded value reads back as first name with the Patient fallback", () => {
+  it("the seeded value reads back as first name, title-cased, with the Patient fallback", () => {
     expect(splitRecallVariable(DEFAULT_RECALL_VARIABLE)).toEqual({
       source: "contact.first_name",
       fallback: "Patient",
+      title: true,
     });
-    expect(joinRecallVariable({ source: "contact.first_name", fallback: "Patient" })).toBe(
-      DEFAULT_RECALL_VARIABLE,
-    );
-    expect(joinRecallVariable({ source: "contact.last_name", fallback: "  " })).toBe(
+    expect(
+      joinRecallVariable({ source: "contact.first_name", fallback: "Patient", title: true }),
+    ).toBe(DEFAULT_RECALL_VARIABLE);
+    expect(joinRecallVariable({ source: "contact.last_name", fallback: "  ", title: false })).toBe(
       "contact.last_name",
     );
+    // The earlier seed value still reads back (rows a person saved before D17).
+    expect(splitRecallVariable("contact.first_name|default:Patient")).toEqual({
+      source: "contact.first_name",
+      fallback: "Patient",
+      title: false,
+    });
   });
 
   it("the engine renders the seeded value, falling back to Patient for a blank first name", () => {
@@ -42,6 +49,10 @@ describe("recall template values (docs/49 D16)", () => {
     expect(
       renderValues(map, { first_name: "Mona", last_name: "Test", full_name: "Mona Test" }, ROW, TZ),
     ).toEqual({ "body.1": "Mona" });
+    // Like Make's startcase: "mONA" → "Mona".
+    expect(
+      renderValues(map, { first_name: "mONA ann", last_name: "", full_name: "" }, ROW, TZ),
+    ).toEqual({ "body.1": "Mona Ann" });
     expect(renderValues(map, { first_name: "", last_name: "", full_name: "" }, ROW, TZ)).toEqual({
       "body.1": "Patient",
     });
@@ -66,6 +77,7 @@ describe("recall template values (docs/49 D16)", () => {
     expect(splitRecallVariable("recall.segment")).toBeNull();
     expect(splitRecallVariable("contact.first_name|upper")).toBeNull();
     expect(splitRecallVariable("contact.first_name|default:A|default:B")).toBeNull();
+    expect(splitRecallVariable("contact.first_name|default:A|title")).toBeNull();
     expect(splitRecallVariable("")).toBeNull();
     expect(splitRecallVariable(undefined)).toBeNull();
   });

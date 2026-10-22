@@ -5,6 +5,7 @@
  *   {steps.<node>.response.x}          output of an earlier node
  *   {appointment.starts_at|date:"DD MMM HH:mm"}
  *   {contact.first_name|default:Patient}
+ *   {contact.first_name|title}           Make's startcase: "mARY ann" → "Mary Ann"
  * Unknown paths render as an empty string and are reported in `missing` so the
  * run log can show them. Values are never logged here.
  */
@@ -30,6 +31,13 @@ function toDateFnsPattern(fmt: string): string {
   return fmt.replace(/YYYY/g, "yyyy").replace(/YY/g, "yy").replace(/DD/g, "dd").replace(/D/g, "d");
 }
 
+/** Make's startcase(): every word starts with a capital, the rest is lower case. */
+export function titleCase(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/(^|\s)(\p{L})/gu, (_m, sp: string, ch: string) => sp + ch.toUpperCase());
+}
+
 function applyFilter(value: unknown, filter: string, timezone: string): unknown {
   const idx = filter.indexOf(":");
   const name = (idx === -1 ? filter : filter.slice(0, idx)).trim();
@@ -42,6 +50,8 @@ function applyFilter(value: unknown, filter: string, timezone: string): unknown 
       return String(value ?? "").toUpperCase();
     case "lower":
       return String(value ?? "").toLowerCase();
+    case "title":
+      return titleCase(String(value ?? ""));
     case "date": {
       if (value === undefined || value === null || value === "") return "";
       const d = new Date(String(value));

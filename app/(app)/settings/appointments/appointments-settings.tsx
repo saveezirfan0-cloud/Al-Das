@@ -96,6 +96,7 @@ export function AppointmentsSettings({
           templates={templates}
           channels={channels}
           exclusions={exclusions}
+          branches={locations.map((l) => ({ id: l.id, name: l.name }))}
         />
       </TabsContent>
     </Tabs>

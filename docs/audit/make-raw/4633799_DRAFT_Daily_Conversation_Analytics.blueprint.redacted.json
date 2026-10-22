@@ -1,0 +1,112 @@
+{
+  "flow": [
+    {
+      "id": 1,
+      "mapper": {
+        "base": "appZbwlQvkuaUsF2l",
+        "table": "tblFQn2YMbmoqa6HF",
+        "formula": "IS_SAME(CREATED_TIME(), TODAY(), 'day')",
+        "maxRecords": "500",
+        "useColumnId": false
+      },
+      "module": "airtable:ActionSearchRecords",
+      "version": 3,
+      "metadata": {
+        "designer": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      "parameters": {
+        "__IMTCONN__": 6448605
+      }
+    },
+    {
+      "id": 2,
+      "mapper": {
+        "base": "appZbwlQvkuaUsF2l",
+        "table": "tblTBD_SymptomTriageLog",
+        "formula": "IS_SAME(CREATED_TIME(), TODAY(), 'day')",
+        "maxRecords": "500",
+        "useColumnId": false
+      },
+      "module": "airtable:ActionSearchRecords",
+      "version": 3,
+      "metadata": {
+        "designer": {
+          "x": 300,
+          "y": 0
+        }
+      },
+      "parameters": {
+        "__IMTCONN__": 6448605
+      }
+    },
+    {
+      "id": 3,
+      "mapper": {
+        "base": "appZbwlQvkuaUsF2l",
+        "table": "tblTBD_NoShowRecovery",
+        "formula": "IS_SAME(CREATED_TIME(), TODAY(), 'day')",
+        "maxRecords": "500",
+        "useColumnId": false
+      },
+      "module": "airtable:ActionSearchRecords",
+      "version": 3,
+      "metadata": {
+        "designer": {
+          "x": 600,
+          "y": 0
+        }
+      },
+      "parameters": {
+        "__IMTCONN__": 6448605
+      }
+    },
+    {
+      "id": 4,
+      "mapper": {
+        "base": "appZbwlQvkuaUsF2l",
+        "table": "tblTBD_ConversationAnalytics",
+        "record": {
+          "Date": "{{formatDate(now; 'YYYY-MM-DD')}}",
+          "Symptom Inquiries": "{{length(2.array)}}",
+          "No-Shows Recovered": "{{length(3.array)}}",
+          "Total Follow-Ups Sent": "{{length(1.array)}}"
+        },
+        "useColumnId": false
+      },
+      "module": "airtable:ActionCreateRecord",
+      "version": 3,
+      "metadata": {
+        "designer": {
+          "x": 900,
+          "y": 0
+        }
+      },
+      "parameters": {
+        "__IMTCONN__": 6448605
+      }
+    }
+  ],
+  "name": "DRAFT - Daily Conversation Analytics",
+  "metadata": {
+    "instant": false,
+    "version": 1,
+    "designer": {
+      "orphans": []
+    },
+    "scenario": {
+      "dlq": false,
+      "slots": null,
+      "dataloss": false,
+      "maxErrors": 3,
+      "autoCommit": true,
+      "roundtrips": 1,
+      "sequential": false,
+      "confidential": false,
+      "freshVariables": false,
+      "autoCommitTriggerLast": true
+    }
+  }
+}

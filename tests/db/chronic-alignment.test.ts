@@ -7,7 +7,9 @@
  *   - an imported send carrying the last-visit date blocks that cycle;
  *   - a booked patient is never on the call list;
  *   - erasure clears the date and a merge carries it to the surviving record;
- *   - chronic_condition_min_visits has its corrected description and is still unsigned.
+ *   - chronic_condition_min_visits has its corrected description and is still unsigned;
+ *   - Make parity (docs/49): segment_key for the template map, the 86-day boundary (D1) and the
+ *     "60 days >" long-prescription gate (D2), which applies while unsigned; erase clears the flag, merge carries it.
  * Synthetic people only ("Layla Demo-07", +44 7700 900xxx). Runs with TEST_DATABASE_URL.
  */
 import type { Client } from "pg";
@@ -65,6 +67,8 @@ describe.skipIf(!TEST_DATABASE_URL)("chronic recall alignment (21B)", () => {
       await c.query("select public.seed_phase8_defaults($1)", [org]);
       await sign("chronic_recall_min_days", "90");
       await sign("recall_followup_workdays", "3");
+      // The 60-days gate (docs/49 D2) has its own tests at the end; the 21B tests above it are about other rules.
+      await sign("chronic_recall_require_long_prescription", "false");
       const dx = (code: string, chronic: boolean, group: string | null) =>
         one(
           `insert into public.ref_diagnoses (org_id, code, chronic, condition_group_id)
@@ -261,5 +265,110 @@ describe.skipIf(!TEST_DATABASE_URL)("chronic recall alignment (21B)", () => {
     });
     expect(rows[0].notes).toMatch(/Update Chronic/);
     expect(rows[0].notes).not.toMatch(/how Unite fills it/);
+  });
+  describe("Make parity (docs/49 D1, D2)", () => {
+    const row = async (contact: string) =>
+      (
+        await c.query<{ eligible: boolean; segment_key: string | null }>(
+          "select eligible, segment_key from public.v_chronic_recall_eligibility where contact_id = $1",
+          [contact],
+        )
+      ).rows[0];
+    const unsign = (key: string) =>
+      c.query(
+        `update public.clinical_settings set approved_value = null, sign_off_status = 'awaiting', signed_by = null, signed_at = null
+         where org_id = $1 and key = $2`,
+        [org, key],
+      );
+
+    it("gives the engine a segment_key (the primary condition group) to pick the template by", async () => {
+      expect(await svc(() => row(id.layla))).toMatchObject({ segment_key: "hypertension" });
+    });
+
+    it("86 days reproduces the Airtable view's 'before 85 days ago'", async () => {
+      await svc(async () => {
+        await sign("chronic_recall_min_days", "86");
+        for (const [k, days, phone] of [
+          ["d85", 85, "+447700900085"],
+          ["d86", 86, "+447700900086"],
+        ] as const) {
+          id[k] = await one(
+            `insert into public.contacts (org_id, first_name, last_name, phone_e164, unite_last_visit_date, long_prescription_flag)
+             values ($1, $2, 'Synthetic', $3, current_date - $4::int, true)`,
+            [org, `Boundary Demo-${days}`, phone, days],
+          );
+          await c.query(
+            "insert into public.contact_chronic_conditions (org_id, contact_id, ref_diagnosis_id, source) values ($1, $2, $3, 'airtable')",
+            [org, id[k], id.htn],
+          );
+        }
+      });
+      expect((await svc(() => row(id.d85))).eligible).toBe(false);
+      expect((await svc(() => row(id.d86))).eligible).toBe(true);
+    });
+
+    it("requires '60 days >' while the gate is signed true or unsigned; signed false lifts it", async () => {
+      id.nolong = await svc(async () => {
+        const contact = await one(
+          `insert into public.contacts (org_id, first_name, last_name, phone_e164, unite_last_visit_date)
+           values ($1, 'Gate Demo-11', 'Synthetic', '+447700900011', current_date - 100)`,
+          [org],
+        );
+        await c.query(
+          "insert into public.contact_chronic_conditions (org_id, contact_id, ref_diagnosis_id, source) values ($1, $2, $3, 'airtable')",
+          [org, contact, id.htn],
+        );
+        return contact;
+      });
+      await svc(() => sign("chronic_recall_require_long_prescription", "true"));
+      expect((await svc(() => row(id.nolong))).eligible).toBe(false); // no long prescription
+      expect((await svc(() => row(id.d86))).eligible).toBe(true);
+
+      await svc(() => unsign("chronic_recall_require_long_prescription"));
+      expect((await svc(() => row(id.nolong))).eligible).toBe(false); // unsigned: applied (fails closed, as Airtable)
+      expect((await svc(() => row(id.d86))).eligible).toBe(true);
+
+      await svc(() => sign("chronic_recall_require_long_prescription", "false"));
+      expect((await svc(() => row(id.nolong))).eligible).toBe(true);
+    });
+
+    it("the gate setting is seeded awaiting sign-off, proposed true", async () => {
+      await svc(() => unsign("chronic_recall_require_long_prescription"));
+      const { rows } = await svc(() =>
+        c.query(
+          "select proposed_value, value_type, sign_off_status from public.clinical_settings where org_id = $1 and key = 'chronic_recall_require_long_prescription'",
+          [org],
+        ),
+      );
+      expect(rows[0]).toEqual({
+        proposed_value: "true",
+        value_type: "boolean",
+        sign_off_status: "awaiting",
+      });
+    });
+
+    it("a merge carries the flag to the surviving record; erasure clears it", async () => {
+      await svc(async () => {
+        await c.query("update public.contacts set long_prescription_flag = false where id = $1", [
+          id.layla,
+        ]);
+        await c.query("update public.contacts set merged_into_id = $2 where id = $1", [
+          id.d85,
+          id.layla,
+        ]);
+      });
+      const flag = async (contact: string) =>
+        (
+          await svc(() =>
+            c.query<{ f: boolean }>(
+              "select long_prescription_flag as f from public.contacts where id = $1",
+              [contact],
+            ),
+          )
+        ).rows[0].f;
+      expect(await flag(id.layla)).toBe(true);
+      await svc(() => c.query("select public.erase_contact($1, $2)", [org, id.d86]));
+      expect(await flag(id.d86)).toBe(false);
+    });
   });
 });

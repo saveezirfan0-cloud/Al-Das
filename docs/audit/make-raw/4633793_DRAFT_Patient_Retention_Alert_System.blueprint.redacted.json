@@ -1,0 +1,165 @@
+{
+  "flow": [
+    {
+      "id": 1,
+      "mapper": {},
+      "module": "gateway:CustomWebHook",
+      "version": 1,
+      "metadata": {
+        "designer": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      "parameters": {
+        "hook": null,
+        "maxResults": 1
+      }
+    },
+    {
+      "id": 2,
+      "filter": {
+        "name": "Retention keyword matched",
+        "conditions": [
+          [
+            {
+              "a": "{{1.message_text}}",
+              "b": "go to another|switch clinic|competitor|too expensive|not happy|disappointed|complaint|worst experience|never coming back|cancel all|find another doctor|waste of time|rip off|overcharged|bad service|unprofessional",
+              "o": "text:match:ci"
+            }
+          ]
+        ]
+      },
+      "mapper": {
+        "base": "appZbwlQvkuaUsF2l",
+        "table": "tblTBD_RetentionAlerts",
+        "record": {
+          "Phone": "{{1.contact_phone}}",
+          "Severity": "High",
+          "Alert Status": "New",
+          "Patient Name": "{{1.contact_name}}",
+          "Trigger Phrase": "{{1.message_text}}",
+          "Original Message": "{{1.message_text}}"
+        },
+        "useColumnId": false
+      },
+      "module": "airtable:ActionCreateRecord",
+      "version": 3,
+      "metadata": {
+        "designer": {
+          "x": 300,
+          "y": 0
+        }
+      },
+      "parameters": {
+        "__IMTCONN__": 6448605
+      }
+    },
+    {
+      "id": 3,
+      "mapper": {
+        "ca": "",
+        "qs": [],
+        "url": "https://developers.sanoflow.io/api/v1.1/messages/whatsapp/send-text",
+        "data": "{\"phone\": \"MANAGER_PHONE_TBD\", \"channel_id\": \"CHANNEL_COMMS_TBD\", \"message\": \"RETENTION ALERT: Patient {{1.contact_name}} ({{1.contact_phone}}) expressed dissatisfaction: '{{1.message_text}}'. Please respond within 30 minutes.\"}",
+        "gzip": true,
+        "method": "post",
+        "headers": [
+          {
+            "name": "Content-type",
+            "value": "application/json"
+          },
+          {
+            "name": "access-token",
+            "value": "[REDACTED]"
+          }
+        ],
+        "timeout": "",
+        "useMtls": false,
+        "authPass": "",
+        "authUser": "",
+        "bodyType": "raw",
+        "contentType": "application/json",
+        "serializeUrl": false,
+        "shareCookies": false,
+        "parseResponse": true,
+        "followRedirect": true,
+        "useQuerystring": false,
+        "followAllRedirects": true,
+        "rejectUnauthorized": true
+      },
+      "module": "http:ActionSendData",
+      "version": 3,
+      "metadata": {
+        "designer": {
+          "x": 600,
+          "y": 0
+        }
+      },
+      "parameters": {}
+    },
+    {
+      "id": 4,
+      "mapper": {
+        "ca": "",
+        "qs": [],
+        "url": "https://developers.sanoflow.io/api/v1.1/messages/whatsapp/send-template",
+        "data": "{\n  \"template_id\": \"TEMPLATE_ID_retention_alert\",\n  \"phone\": \"{{1.contact_phone}}\",\n  \"mapper_value\": [\"{{1.contact_name}}\"]\n}",
+        "gzip": true,
+        "method": "post",
+        "headers": [
+          {
+            "name": "Content-type",
+            "value": "application/json"
+          },
+          {
+            "name": "access-token",
+            "value": "[REDACTED]"
+          }
+        ],
+        "timeout": "",
+        "useMtls": false,
+        "authPass": "",
+        "authUser": "",
+        "bodyType": "raw",
+        "contentType": "application/json",
+        "serializeUrl": false,
+        "shareCookies": false,
+        "parseResponse": true,
+        "followRedirect": true,
+        "useQuerystring": false,
+        "followAllRedirects": true,
+        "rejectUnauthorized": true
+      },
+      "module": "http:ActionSendData",
+      "version": 3,
+      "metadata": {
+        "designer": {
+          "x": 900,
+          "y": 0
+        }
+      },
+      "parameters": {}
+    }
+  ],
+  "name": "DRAFT - Patient Retention Alert System",
+  "metadata": {
+    "instant": true,
+    "version": 1,
+    "designer": {
+      "orphans": []
+    },
+    "scenario": {
+      "dlq": false,
+      "slots": null,
+      "dataloss": false,
+      "maxErrors": 3,
+      "autoCommit": true,
+      "roundtrips": 1,
+      "sequential": false,
+      "confidential": false,
+      "freshVariables": false,
+      "autoCommitTriggerLast": true
+    }
+  }
+}

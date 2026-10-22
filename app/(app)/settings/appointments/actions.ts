@@ -552,9 +552,10 @@ export async function saveBookingRules(input: unknown): Promise<ActionResult> {
   });
 
   // Re-plan reminders of upcoming appointments now (the 5-minute sweep would also catch it).
+  // `source` is selected so imported bookings stay held while import reminders are off.
   const { data: upcoming } = await admin
     .from("appointments")
-    .select("id, org_id, contact_id, starts_at, status")
+    .select("id, org_id, contact_id, starts_at, status, source")
     .eq("org_id", member.orgId)
     .in("status", ["awaiting", "confirmed"])
     .gt("starts_at", new Date().toISOString())
@@ -573,6 +574,8 @@ const exclusionSchema = z.object({
   match_type: z.enum(["equals", "contains"]),
   value: z.string().trim().min(1, "Enter a value").max(120),
   reason: optionalText(200),
+  /** Null: every branch. Checked against the org by a trigger as well. */
+  location_id: uuid.nullable().default(null),
 });
 
 export async function addExclusion(input: z.input<typeof exclusionSchema>): Promise<ActionResult> {
@@ -580,6 +583,15 @@ export async function addExclusion(input: z.input<typeof exclusionSchema>): Prom
   const parsed = exclusionSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid" };
   const admin = createAdminClient();
+  if (parsed.data.location_id) {
+    const { data: loc } = await admin
+      .from("locations")
+      .select("id")
+      .eq("id", parsed.data.location_id)
+      .eq("org_id", member.orgId)
+      .maybeSingle();
+    if (!loc) return { ok: false, error: "Branch not found." };
+  }
   const { error } = await admin
     .from("reminder_exclusions")
     .insert({ ...parsed.data, org_id: member.orgId });

@@ -1,0 +1,1098 @@
+{
+  "flow": [
+    {
+      "id": 1,
+      "mapper": {
+        "key": "token",
+        "returnWrapped": false
+      },
+      "module": "datastore:GetRecord",
+      "version": 1,
+      "metadata": {
+        "expect": [
+          {
+            "name": "key",
+            "type": "text",
+            "label": "Key",
+            "required": true
+          },
+          {
+            "name": "returnWrapped",
+            "type": "boolean",
+            "label": "Return Wrapped Output",
+            "required": true
+          }
+        ],
+        "restore": {
+          "parameters": {
+            "datastore": {
+              "label": "Token"
+            }
+          }
+        },
+        "advanced": true,
+        "designer": {
+          "x": 0,
+          "y": 150
+        },
+        "interface": [
+          {
+            "help": "",
+            "name": "Access Token",
+            "type": "text",
+            "label": null,
+            "default": null,
+            "required": false,
+            "multiline": false
+          },
+          {
+            "help": "",
+            "name": "Refresh Token",
+            "type": "text",
+            "label": null,
+            "default": null,
+            "required": false,
+            "multiline": false
+          }
+        ],
+        "parameters": [
+          {
+            "name": "datastore",
+            "type": "datastore",
+            "label": "Data store",
+            "required": true
+          }
+        ]
+      },
+      "parameters": {
+        "datastore": 61544
+      }
+    },
+    {
+      "id": 4,
+      "mapper": {
+        "ca": "",
+        "qs": [],
+        "url": "https://ucexternalapiprod.uniteuae.care/gateway/authorize?app_id={{encodeURL(\"[REDACTED]\")}}&app_key={{encodeURL(\"[REDACTED]\")}}",
+        "gzip": true,
+        "method": "get",
+        "headers": [
+          {
+            "name": "Authorization",
+            "value": "[REDACTED]"
+          }
+        ],
+        "timeout": "",
+        "useMtls": false,
+        "authPass": "",
+        "authUser": "",
+        "bodyType": "",
+        "serializeUrl": false,
+        "shareCookies": false,
+        "parseResponse": true,
+        "followRedirect": true,
+        "useQuerystring": false,
+        "followAllRedirects": false,
+        "rejectUnauthorized": true
+      },
+      "module": "http:ActionSendData",
+      "version": 3,
+      "metadata": {
+        "expect": [
+          {
+            "name": "url",
+            "type": "url",
+            "label": "URL",
+            "required": true
+          },
+          {
+            "name": "serializeUrl",
+            "type": "boolean",
+            "label": "Serialize URL",
+            "required": true
+          },
+          {
+            "name": "method",
+            "type": "select",
+            "label": "Method",
+            "required": true,
+            "validate": {
+              "enum": [
+                "get",
+                "head",
+                "post",
+                "put",
+                "patch",
+                "delete",
+                "options"
+              ]
+            }
+          },
+          {
+            "name": "headers",
+            "spec": [
+              {
+                "name": "name",
+                "type": "text",
+                "label": "Name",
+                "required": true
+              },
+              {
+                "name": "value",
+                "type": "text",
+                "label": "Value"
+              }
+            ],
+            "type": "array",
+            "label": "Headers"
+          },
+          {
+            "name": "qs",
+            "spec": [
+              {
+                "name": "name",
+                "type": "text",
+                "label": "Name",
+                "required": true
+              },
+              {
+                "name": "value",
+                "type": "text",
+                "label": "Value"
+              }
+            ],
+            "type": "array",
+            "label": "Query String"
+          },
+          {
+            "name": "bodyType",
+            "type": "select",
+            "label": "Body type",
+            "validate": {
+              "enum": [
+                "raw",
+                "x_www_form_urlencoded",
+                "multipart_form_data"
+              ]
+            }
+          },
+          {
+            "name": "parseResponse",
+            "type": "boolean",
+            "label": "Parse response",
+            "required": true
+          },
+          {
+            "name": "authUser",
+            "type": "text",
+            "label": "User name"
+          },
+          {
+            "name": "authPass",
+            "type": "password",
+            "label": "Password"
+          },
+          {
+            "name": "timeout",
+            "type": "uinteger",
+            "label": "Timeout",
+            "validate": {
+              "max": 300,
+              "min": 1
+            }
+          },
+          {
+            "name": "shareCookies",
+            "type": "boolean",
+            "label": "Share cookies with other HTTP modules",
+            "required": true
+          },
+          {
+            "name": "ca",
+            "type": "cert",
+            "label": "Self-signed certificate"
+          },
+          {
+            "name": "rejectUnauthorized",
+            "type": "boolean",
+            "label": "Reject connections that are using unverified (self-signed) certificates",
+            "required": true
+          },
+          {
+            "name": "followRedirect",
+            "type": "boolean",
+            "label": "Follow redirect",
+            "required": true
+          },
+          {
+            "name": "useQuerystring",
+            "type": "boolean",
+            "label": "Disable serialization of multiple same query string keys as arrays",
+            "required": true
+          },
+          {
+            "name": "gzip",
+            "type": "boolean",
+            "label": "Request compressed content",
+            "required": true
+          },
+          {
+            "name": "useMtls",
+            "type": "boolean",
+            "label": "Use Mutual TLS",
+            "required": true
+          },
+          {
+            "name": "followAllRedirects",
+            "type": "boolean",
+            "label": "Follow all redirect",
+            "required": true
+          }
+        ],
+        "restore": {
+          "expect": {
+            "qs": {
+              "mode": "chose"
+            },
+            "method": {
+              "mode": "chose",
+              "label": "GET"
+            },
+            "headers": {
+              "mode": "chose",
+              "items": [
+                null
+              ]
+            },
+            "bodyType": {
+              "label": "Empty"
+            }
+          }
+        },
+        "designer": {
+          "x": 305,
+          "y": 150
+        },
+        "parameters": [
+          {
+            "name": "handleErrors",
+            "type": "boolean",
+            "label": "Evaluate all states as errors (except for 2xx and 3xx )",
+            "required": true
+          },
+          {
+            "name": "useNewZLibDeCompress",
+            "type": "hidden"
+          }
+        ]
+      },
+      "parameters": {
+        "handleErrors": true,
+        "useNewZLibDeCompress": true
+      }
+    },
+    {
+      "id": 6,
+      "mapper": null,
+      "module": "builtin:BasicRouter",
+      "routes": [
+        {
+          "flow": [
+            {
+              "id": 5,
+              "filter": {
+                "name": "",
+                "conditions": [
+                  [
+                    {
+                      "a": "{{4.data.Status}}",
+                      "b": "Success",
+                      "o": "text:equal"
+                    }
+                  ]
+                ]
+              },
+              "mapper": {
+                "key": "token",
+                "data": {
+                  "Access Token": "[REDACTED]",
+                  "Refresh Token": "[REDACTED]"
+                },
+                "overwrite": true
+              },
+              "module": "datastore:AddRecord",
+              "version": 1,
+              "metadata": {
+                "expect": [
+                  {
+                    "name": "key",
+                    "type": "text",
+                    "label": "Key"
+                  },
+                  {
+                    "name": "overwrite",
+                    "type": "boolean",
+                    "label": "Overwrite an existing record",
+                    "required": true
+                  },
+                  {
+                    "name": "data",
+                    "spec": [
+                      {
+                        "name": "Access Token",
+                        "type": "text",
+                        "label": null
+                      },
+                      {
+                        "name": "Refresh Token",
+                        "type": "text",
+                        "label": null
+                      }
+                    ],
+                    "type": "collection",
+                    "label": "Record"
+                  }
+                ],
+                "restore": {
+                  "expect": {
+                    "overwrite": {
+                      "mode": "chose"
+                    }
+                  },
+                  "parameters": {
+                    "datastore": {
+                      "label": "Token"
+                    }
+                  }
+                },
+                "designer": {
+                  "x": 900,
+                  "y": 0
+                },
+                "parameters": [
+                  {
+                    "name": "datastore",
+                    "type": "datastore",
+                    "label": "Data store",
+                    "required": true
+                  }
+                ]
+              },
+              "parameters": {
+                "datastore": 61544
+              }
+            }
+          ]
+        },
+        {
+          "flow": [
+            {
+              "id": 2,
+              "filter": {
+                "name": "",
+                "conditions": [
+                  [
+                    {
+                      "a": "{{4.data.Message}}",
+                      "b": "Token Expired",
+                      "o": "text:equal"
+                    }
+                  ]
+                ]
+              },
+              "mapper": {
+                "ca": "",
+                "qs": [],
+                "url": "https://ucexternalapiprod.uniteuae.care/gateway/refreshtoken",
+                "data": "{\n\"app_id\": \"[REDACTED]\",\n\"app_key\": \"[REDACTED]\",\n\"token\":\n\"{{1.`Access Token`}}\"\n}",
+                "gzip": true,
+                "method": "post",
+                "headers": [
+                  {
+                    "name": "Authorization",
+                    "value": "[REDACTED]"
+                  },
+                  {
+                    "name": "Content-type",
+                    "value": "application/json"
+                  }
+                ],
+                "timeout": "",
+                "useMtls": false,
+                "authPass": "",
+                "authUser": "",
+                "bodyType": "raw",
+                "contentType": "application/json",
+                "serializeUrl": false,
+                "shareCookies": false,
+                "parseResponse": true,
+                "followRedirect": true,
+                "useQuerystring": false,
+                "followAllRedirects": false,
+                "rejectUnauthorized": true
+              },
+              "module": "http:ActionSendData",
+              "version": 3,
+              "metadata": {
+                "expect": [
+                  {
+                    "name": "url",
+                    "type": "url",
+                    "label": "URL",
+                    "required": true
+                  },
+                  {
+                    "name": "serializeUrl",
+                    "type": "boolean",
+                    "label": "Serialize URL",
+                    "required": true
+                  },
+                  {
+                    "name": "method",
+                    "type": "select",
+                    "label": "Method",
+                    "required": true,
+                    "validate": {
+                      "enum": [
+                        "get",
+                        "head",
+                        "post",
+                        "put",
+                        "patch",
+                        "delete",
+                        "options"
+                      ]
+                    }
+                  },
+                  {
+                    "name": "headers",
+                    "spec": [
+                      {
+                        "name": "name",
+                        "type": "text",
+                        "label": "Name",
+                        "required": true
+                      },
+                      {
+                        "name": "value",
+                        "type": "text",
+                        "label": "Value"
+                      }
+                    ],
+                    "type": "array",
+                    "label": "Headers"
+                  },
+                  {
+                    "name": "qs",
+                    "spec": [
+                      {
+                        "name": "name",
+                        "type": "text",
+                        "label": "Name",
+                        "required": true
+                      },
+                      {
+                        "name": "value",
+                        "type": "text",
+                        "label": "Value"
+                      }
+                    ],
+                    "type": "array",
+                    "label": "Query String"
+                  },
+                  {
+                    "name": "bodyType",
+                    "type": "select",
+                    "label": "Body type",
+                    "validate": {
+                      "enum": [
+                        "raw",
+                        "x_www_form_urlencoded",
+                        "multipart_form_data"
+                      ]
+                    }
+                  },
+                  {
+                    "name": "parseResponse",
+                    "type": "boolean",
+                    "label": "Parse response",
+                    "required": true
+                  },
+                  {
+                    "name": "authUser",
+                    "type": "text",
+                    "label": "User name"
+                  },
+                  {
+                    "name": "authPass",
+                    "type": "password",
+                    "label": "Password"
+                  },
+                  {
+                    "name": "timeout",
+                    "type": "uinteger",
+                    "label": "Timeout",
+                    "validate": {
+                      "max": 300,
+                      "min": 1
+                    }
+                  },
+                  {
+                    "name": "shareCookies",
+                    "type": "boolean",
+                    "label": "Share cookies with other HTTP modules",
+                    "required": true
+                  },
+                  {
+                    "name": "ca",
+                    "type": "cert",
+                    "label": "Self-signed certificate"
+                  },
+                  {
+                    "name": "rejectUnauthorized",
+                    "type": "boolean",
+                    "label": "Reject connections that are using unverified (self-signed) certificates",
+                    "required": true
+                  },
+                  {
+                    "name": "followRedirect",
+                    "type": "boolean",
+                    "label": "Follow redirect",
+                    "required": true
+                  },
+                  {
+                    "name": "useQuerystring",
+                    "type": "boolean",
+                    "label": "Disable serialization of multiple same query string keys as arrays",
+                    "required": true
+                  },
+                  {
+                    "name": "gzip",
+                    "type": "boolean",
+                    "label": "Request compressed content",
+                    "required": true
+                  },
+                  {
+                    "name": "useMtls",
+                    "type": "boolean",
+                    "label": "Use Mutual TLS",
+                    "required": true
+                  },
+                  {
+                    "name": "contentType",
+                    "type": "select",
+                    "label": "Content type",
+                    "validate": {
+                      "enum": [
+                        "text/plain",
+                        "application/json",
+                        "application/xml",
+                        "text/xml",
+                        "text/html",
+                        "custom"
+                      ]
+                    }
+                  },
+                  {
+                    "name": "data",
+                    "type": "buffer",
+                    "label": "Request content"
+                  },
+                  {
+                    "name": "followAllRedirects",
+                    "type": "boolean",
+                    "label": "Follow all redirect",
+                    "required": true
+                  }
+                ],
+                "restore": {
+                  "expect": {
+                    "qs": {
+                      "mode": "chose"
+                    },
+                    "method": {
+                      "mode": "chose",
+                      "label": "POST"
+                    },
+                    "headers": {
+                      "mode": "chose",
+                      "items": [
+                        null,
+                        null
+                      ]
+                    },
+                    "bodyType": {
+                      "label": "Raw"
+                    },
+                    "contentType": {
+                      "label": "JSON (application/json)"
+                    }
+                  }
+                },
+                "designer": {
+                  "x": 900,
+                  "y": 300
+                },
+                "parameters": [
+                  {
+                    "name": "handleErrors",
+                    "type": "boolean",
+                    "label": "Evaluate all states as errors (except for 2xx and 3xx )",
+                    "required": true
+                  },
+                  {
+                    "name": "useNewZLibDeCompress",
+                    "type": "hidden"
+                  }
+                ]
+              },
+              "parameters": {
+                "handleErrors": true,
+                "useNewZLibDeCompress": true
+              }
+            },
+            {
+              "id": 3,
+              "mapper": {
+                "key": "token",
+                "data": {
+                  "Access Token": "[REDACTED]",
+                  "Refresh Token": "[REDACTED]"
+                },
+                "overwrite": true
+              },
+              "module": "datastore:AddRecord",
+              "version": 1,
+              "metadata": {
+                "expect": [
+                  {
+                    "name": "key",
+                    "type": "text",
+                    "label": "Key"
+                  },
+                  {
+                    "name": "overwrite",
+                    "type": "boolean",
+                    "label": "Overwrite an existing record",
+                    "required": true
+                  },
+                  {
+                    "name": "data",
+                    "spec": [
+                      {
+                        "name": "Access Token",
+                        "type": "text",
+                        "label": null
+                      },
+                      {
+                        "name": "Refresh Token",
+                        "type": "text",
+                        "label": null
+                      }
+                    ],
+                    "type": "collection",
+                    "label": "Record"
+                  }
+                ],
+                "restore": {
+                  "expect": {
+                    "overwrite": {
+                      "mode": "chose"
+                    }
+                  },
+                  "parameters": {
+                    "datastore": {
+                      "label": "Token"
+                    }
+                  }
+                },
+                "designer": {
+                  "x": 1200,
+                  "y": 300
+                },
+                "parameters": [
+                  {
+                    "name": "datastore",
+                    "type": "datastore",
+                    "label": "Data store",
+                    "required": true
+                  }
+                ]
+              },
+              "parameters": {
+                "datastore": 61544
+              }
+            }
+          ]
+        }
+      ],
+      "version": 1,
+      "metadata": {
+        "designer": {
+          "x": 600,
+          "y": 150
+        }
+      }
+    }
+  ],
+  "name": "Token",
+  "metadata": {
+    "instant": false,
+    "version": 1,
+    "designer": {
+      "orphans": [
+        [
+          {
+            "id": 7,
+            "mapper": {
+              "ca": "",
+              "qs": [],
+              "url": "https://ucexternalapiprod.uniteuae.care/gateway/refreshtoken",
+              "data": "{\n\"app_id\": \"[REDACTED]\",\n\"app_key\": \"[REDACTED]\",\n\"token\":\n\"{{1.`Access Token`}}\"\n}",
+              "gzip": true,
+              "method": "post",
+              "headers": [
+                {
+                  "name": "Authorization",
+                  "value": "[REDACTED]"
+                },
+                {
+                  "name": "Content-type",
+                  "value": "application/json"
+                }
+              ],
+              "timeout": "",
+              "useMtls": false,
+              "authPass": "",
+              "authUser": "",
+              "bodyType": "raw",
+              "contentType": "application/json",
+              "serializeUrl": false,
+              "shareCookies": false,
+              "parseResponse": true,
+              "followRedirect": true,
+              "useQuerystring": false,
+              "followAllRedirects": false,
+              "rejectUnauthorized": true
+            },
+            "module": "http:ActionSendData",
+            "version": 3,
+            "metadata": {
+              "expect": [
+                {
+                  "name": "url",
+                  "type": "url",
+                  "label": "URL",
+                  "required": true
+                },
+                {
+                  "name": "serializeUrl",
+                  "type": "boolean",
+                  "label": "Serialize URL",
+                  "required": true
+                },
+                {
+                  "name": "method",
+                  "type": "select",
+                  "label": "Method",
+                  "required": true,
+                  "validate": {
+                    "enum": [
+                      "get",
+                      "head",
+                      "post",
+                      "put",
+                      "patch",
+                      "delete",
+                      "options"
+                    ]
+                  }
+                },
+                {
+                  "name": "headers",
+                  "spec": [
+                    {
+                      "name": "name",
+                      "type": "text",
+                      "label": "Name",
+                      "required": true
+                    },
+                    {
+                      "name": "value",
+                      "type": "text",
+                      "label": "Value"
+                    }
+                  ],
+                  "type": "array",
+                  "label": "Headers"
+                },
+                {
+                  "name": "qs",
+                  "spec": [
+                    {
+                      "name": "name",
+                      "type": "text",
+                      "label": "Name",
+                      "required": true
+                    },
+                    {
+                      "name": "value",
+                      "type": "text",
+                      "label": "Value"
+                    }
+                  ],
+                  "type": "array",
+                  "label": "Query String"
+                },
+                {
+                  "name": "bodyType",
+                  "type": "select",
+                  "label": "Body type",
+                  "validate": {
+                    "enum": [
+                      "raw",
+                      "x_www_form_urlencoded",
+                      "multipart_form_data"
+                    ]
+                  }
+                },
+                {
+                  "name": "parseResponse",
+                  "type": "boolean",
+                  "label": "Parse response",
+                  "required": true
+                },
+                {
+                  "name": "authUser",
+                  "type": "text",
+                  "label": "User name"
+                },
+                {
+                  "name": "authPass",
+                  "type": "password",
+                  "label": "Password"
+                },
+                {
+                  "name": "timeout",
+                  "type": "uinteger",
+                  "label": "Timeout",
+                  "validate": {
+                    "max": 300,
+                    "min": 1
+                  }
+                },
+                {
+                  "name": "shareCookies",
+                  "type": "boolean",
+                  "label": "Share cookies with other HTTP modules",
+                  "required": true
+                },
+                {
+                  "name": "ca",
+                  "type": "cert",
+                  "label": "Self-signed certificate"
+                },
+                {
+                  "name": "rejectUnauthorized",
+                  "type": "boolean",
+                  "label": "Reject connections that are using unverified (self-signed) certificates",
+                  "required": true
+                },
+                {
+                  "name": "followRedirect",
+                  "type": "boolean",
+                  "label": "Follow redirect",
+                  "required": true
+                },
+                {
+                  "name": "useQuerystring",
+                  "type": "boolean",
+                  "label": "Disable serialization of multiple same query string keys as arrays",
+                  "required": true
+                },
+                {
+                  "name": "gzip",
+                  "type": "boolean",
+                  "label": "Request compressed content",
+                  "required": true
+                },
+                {
+                  "name": "useMtls",
+                  "type": "boolean",
+                  "label": "Use Mutual TLS",
+                  "required": true
+                },
+                {
+                  "name": "contentType",
+                  "type": "select",
+                  "label": "Content type",
+                  "validate": {
+                    "enum": [
+                      "text/plain",
+                      "application/json",
+                      "application/xml",
+                      "text/xml",
+                      "text/html",
+                      "custom"
+                    ]
+                  }
+                },
+                {
+                  "name": "data",
+                  "type": "buffer",
+                  "label": "Request content"
+                },
+                {
+                  "name": "followAllRedirects",
+                  "type": "boolean",
+                  "label": "Follow all redirect",
+                  "required": true
+                }
+              ],
+              "restore": {
+                "expect": {
+                  "qs": {
+                    "mode": "chose"
+                  },
+                  "method": {
+                    "mode": "chose",
+                    "label": "POST"
+                  },
+                  "headers": {
+                    "mode": "chose",
+                    "items": [
+                      null,
+                      null
+                    ]
+                  },
+                  "bodyType": {
+                    "label": "Raw"
+                  },
+                  "contentType": {
+                    "label": "JSON (application/json)"
+                  }
+                }
+              },
+              "designer": {
+                "x": 192,
+                "y": 787,
+                "messages": [
+                  {
+                    "message": "'HTTP (legacy) - Make a request' [module ID 7] references inaccessible module 'Data store - Get a record' [module ID 1].",
+                    "category": "reference",
+                    "severity": "error"
+                  },
+                  {
+                    "message": "This module is not connected to the flow. This module and everything after it will be skipped during execution. <autoconnect>Link it to your scenario to include them.</autoconnect>",
+                    "category": "link",
+                    "severity": "warning"
+                  }
+                ]
+              },
+              "parameters": [
+                {
+                  "name": "handleErrors",
+                  "type": "boolean",
+                  "label": "Evaluate all states as errors (except for 2xx and 3xx )",
+                  "required": true
+                },
+                {
+                  "name": "useNewZLibDeCompress",
+                  "type": "hidden"
+                }
+              ]
+            },
+            "parameters": {
+              "handleErrors": true,
+              "useNewZLibDeCompress": true
+            }
+          },
+          {
+            "id": 8,
+            "mapper": {
+              "key": "token",
+              "data": {
+                "Access Token": "[REDACTED]",
+                "Refresh Token": "[REDACTED]"
+              },
+              "overwrite": true
+            },
+            "module": "datastore:AddRecord",
+            "version": 1,
+            "metadata": {
+              "expect": [
+                {
+                  "name": "key",
+                  "type": "text",
+                  "label": "Key"
+                },
+                {
+                  "name": "overwrite",
+                  "type": "boolean",
+                  "label": "Overwrite an existing record",
+                  "required": true
+                },
+                {
+                  "name": "data",
+                  "spec": [
+                    {
+                      "name": "Access Token",
+                      "type": "text",
+                      "label": null
+                    },
+                    {
+                      "name": "Refresh Token",
+                      "type": "text",
+                      "label": null
+                    }
+                  ],
+                  "type": "collection",
+                  "label": "Record"
+                }
+              ],
+              "restore": {
+                "expect": {
+                  "overwrite": {
+                    "mode": "chose"
+                  }
+                },
+                "parameters": {
+                  "datastore": {
+                    "label": "Token"
+                  }
+                }
+              },
+              "designer": {
+                "x": 473,
+                "y": 804
+              },
+              "parameters": [
+                {
+                  "name": "datastore",
+                  "type": "datastore",
+                  "label": "Data store",
+                  "required": true
+                }
+              ]
+            },
+            "parameters": {
+              "datastore": 61544
+            }
+          }
+        ]
+      ]
+    },
+    "scenario": {
+      "dlq": false,
+      "slots": null,
+      "dataloss": false,
+      "maxErrors": 3,
+      "autoCommit": true,
+      "roundtrips": 1,
+      "sequential": false,
+      "confidential": false,
+      "freshVariables": false,
+      "autoCommitTriggerLast": true
+    }
+  }
+}

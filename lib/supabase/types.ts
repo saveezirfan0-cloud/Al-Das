@@ -7365,6 +7365,7 @@ export type Database = {
           last_interaction_at: string | null;
           last_name: string;
           location_id: string | null;
+          long_prescription_flag: boolean;
           merged_into_id: string | null;
           nationality: string | null;
           no_review_requests_at: string | null;
@@ -7405,6 +7406,7 @@ export type Database = {
           last_interaction_at?: string | null;
           last_name?: string;
           location_id?: string | null;
+          long_prescription_flag?: boolean;
           merged_into_id?: string | null;
           nationality?: string | null;
           no_review_requests_at?: string | null;
@@ -7444,6 +7446,7 @@ export type Database = {
           last_interaction_at?: string | null;
           last_name?: string;
           location_id?: string | null;
+          long_prescription_flag?: boolean;
           merged_into_id?: string | null;
           nationality?: string | null;
           no_review_requests_at?: string | null;
@@ -20629,6 +20632,7 @@ export type Database = {
           created_at: string;
           id: string;
           kind: string;
+          location_id: string | null;
           match_type: string;
           org_id: string;
           reason: string | null;
@@ -20641,6 +20645,7 @@ export type Database = {
           created_at?: string;
           id?: string;
           kind: string;
+          location_id?: string | null;
           match_type?: string;
           org_id: string;
           reason?: string | null;
@@ -20652,6 +20657,7 @@ export type Database = {
           created_at?: string;
           id?: string;
           kind?: string;
+          location_id?: string | null;
           match_type?: string;
           org_id?: string;
           reason?: string | null;
@@ -25046,10 +25052,12 @@ export type Database = {
           days_since_last_visit: number | null;
           eligible: boolean | null;
           last_visit_date: string | null;
+          long_prescription_flag: boolean | null;
           messageable_groups: string[] | null;
           min_days: number | null;
           org_id: string | null;
           primary_condition_group: string | null;
+          segment_key: string | null;
         };
         ComputedFields: never;
         Relationships: [
@@ -27859,7 +27867,12 @@ export type Database = {
         Returns: undefined;
       };
       is_reminder_excluded: {
-        Args: { p_doctor_name: string; p_org: string; p_patient_name: string };
+        Args: {
+          p_doctor_name: string;
+          p_location?: string | null;
+          p_org: string;
+          p_patient_name: string;
+        };
         Returns: boolean;
       };
       is_working_day: {

@@ -36,6 +36,8 @@ export type Exclusion = {
   value: string;
   reason: string | null;
   active: boolean;
+  /** Null: every branch. */
+  location_id: string | null;
 };
 
 function Row({
@@ -118,11 +120,13 @@ export function BookingRules({
   templates,
   channels,
   exclusions,
+  branches,
 }: {
   initial: AppointmentSettings;
   templates: TemplateOption[];
   channels: ChannelOption[];
   exclusions: Exclusion[];
+  branches: Array<{ id: string; name: string }>;
 }) {
   const [s, setS] = useState<AppointmentSettings>(initial);
   const [testNumber, setTestNumber] = useState("");
@@ -130,7 +134,11 @@ export function BookingRules({
     kind: "doctor" as "doctor" | "placeholder_name",
     match_type: "equals" as "equals" | "contains",
     value: "",
+    location_id: null as string | null,
   });
+  const branchName = (id: string | null) =>
+    id ? (branches.find((b) => b.id === id)?.name ?? "One branch") : null;
+  const dayBefore = s.reminder_schedule.mode === "day_before";
   const { pending, run } = useRun();
   const set = <K extends keyof AppointmentSettings>(k: K, v: AppointmentSettings[K]) =>
     setS((p) => ({ ...p, [k]: v }));
@@ -152,49 +160,91 @@ export function BookingRules({
           <CardHeader>
             <CardTitle>Reminders</CardTitle>
             <CardDescription>
-              Up to three WhatsApp reminders, each sent a set number of hours before the start. A
-              reminder that would already be overdue when the appointment is booked is skipped.
+              {dayBefore
+                ? "One WhatsApp reminder the day before the visit, at the first time below that is still ahead. One that fails is tried again at the next time that day. A booking made after the last time gets no reminder (as the Make scenarios did)."
+                : "Up to three WhatsApp reminders, each sent a set number of hours before the start. A reminder that would already be overdue when the appointment is booked is skipped."}
             </CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-2 lg:grid-cols-3">
-            {s.reminders.map((r, i) => (
-              <div
-                key={i}
-                className="flex items-center justify-between gap-3 rounded-md border px-3 py-2"
+          <CardContent className="flex flex-col gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <Select
+                value={s.reminder_schedule.mode}
+                onValueChange={(v) =>
+                  set("reminder_schedule", {
+                    ...s.reminder_schedule,
+                    mode: v as "offsets" | "day_before",
+                  })
+                }
               >
-                <label className="flex items-center gap-2 text-sm">
-                  <Switch
-                    checked={r.enabled}
-                    onCheckedChange={(c) =>
-                      set(
-                        "reminders",
-                        s.reminders.map((x, j) => (j === i ? { ...x, enabled: c } : x)),
-                      )
-                    }
-                  />
-                  Reminder {i + 1}
-                </label>
-                <span className="flex items-center gap-1.5">
+                <SelectTrigger className="w-64" aria-label="When reminders are sent">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="offsets">Hours before the appointment</SelectItem>
+                  <SelectItem value="day_before">The day before, at set times</SelectItem>
+                </SelectContent>
+              </Select>
+              {dayBefore &&
+                s.reminder_schedule.times.map((t, i) => (
                   <Input
-                    type="number"
-                    min={1}
-                    max={720}
-                    className="w-20"
-                    aria-label={`Reminder ${i + 1} hours before`}
-                    value={r.hours_before}
+                    key={i}
+                    type="time"
+                    className="w-32"
+                    aria-label={`Reminder time ${i + 1}`}
+                    value={t}
                     onChange={(e) =>
-                      set(
-                        "reminders",
-                        s.reminders.map((x, j) =>
-                          j === i ? { ...x, hours_before: Number(e.target.value) } : x,
+                      set("reminder_schedule", {
+                        ...s.reminder_schedule,
+                        times: s.reminder_schedule.times.map((x, j) =>
+                          j === i ? e.target.value : x,
                         ),
-                      )
+                      })
                     }
                   />
-                  <span className="text-muted-foreground text-xs">h before</span>
-                </span>
+                ))}
+            </div>
+            {!dayBefore && (
+              <div className="grid gap-2 lg:grid-cols-3">
+                {s.reminders.map((r, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center justify-between gap-3 rounded-md border px-3 py-2"
+                  >
+                    <label className="flex items-center gap-2 text-sm">
+                      <Switch
+                        checked={r.enabled}
+                        onCheckedChange={(c) =>
+                          set(
+                            "reminders",
+                            s.reminders.map((x, j) => (j === i ? { ...x, enabled: c } : x)),
+                          )
+                        }
+                      />
+                      Reminder {i + 1}
+                    </label>
+                    <span className="flex items-center gap-1.5">
+                      <Input
+                        type="number"
+                        min={1}
+                        max={720}
+                        className="w-20"
+                        aria-label={`Reminder ${i + 1} hours before`}
+                        value={r.hours_before}
+                        onChange={(e) =>
+                          set(
+                            "reminders",
+                            s.reminders.map((x, j) =>
+                              j === i ? { ...x, hours_before: Number(e.target.value) } : x,
+                            ),
+                          )
+                        }
+                      />
+                      <span className="text-muted-foreground text-xs">h before</span>
+                    </span>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
           </CardContent>
         </Card>
 
@@ -505,8 +555,25 @@ export function BookingRules({
               className="w-56"
               value={newEx.value}
               placeholder="Value"
+              aria-label="Value to match"
               onChange={(e) => setNewEx({ ...newEx, value: e.target.value })}
             />
+            <Select
+              value={newEx.location_id ?? "all"}
+              onValueChange={(v) => setNewEx({ ...newEx, location_id: v === "all" ? null : v })}
+            >
+              <SelectTrigger className="w-44" aria-label="Branch">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Every branch</SelectItem>
+                {branches.map((b) => (
+                  <SelectItem key={b.id} value={b.id}>
+                    {b.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Button type="submit" size="sm" disabled={pending || !newEx.value.trim()}>
               <Plus /> Add
             </Button>
@@ -520,6 +587,10 @@ export function BookingRules({
                 <span>
                   <Badge variant="outline">{x.kind === "doctor" ? "Doctor" : "Patient name"}</Badge>{" "}
                   {x.match_type} <span className="font-medium">{x.value}</span>
+                  {branchName(x.location_id) && (
+                    <span className="text-muted-foreground"> · {branchName(x.location_id)}</span>
+                  )}
+                  {!x.active && <span className="text-muted-foreground"> · off</span>}
                   {x.reason && (
                     <span className="text-muted-foreground block text-xs">{x.reason}</span>
                   )}
