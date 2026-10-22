@@ -62,9 +62,29 @@ function ymd(y: number, m: number, d: number): string | null {
   return `${y}-${pad(m)}-${pad(d)}`;
 }
 
+const MONTH_NAMES = [
+  "january",
+  "february",
+  "march",
+  "april",
+  "may",
+  "june",
+  "july",
+  "august",
+  "september",
+  "october",
+  "november",
+  "december",
+];
+/** 1-12 for an English month name or its start of at least three letters ("Jan", "Sept", "January"), else 0. */
+const monthOf = (word: string) =>
+  word.length >= 3 ? MONTH_NAMES.findIndex((m) => m.startsWith(word.toLowerCase())) + 1 : 0;
+
 /**
  * A date in the layout's format (separators / - . and a trailing time are accepted), an Excel date cell, or an Excel
- * serial number from an .xlsx. Two-digit years are refused (never guessed). null = blank, "invalid" = unreadable.
+ * serial number from an .xlsx. A day, an English month name and a four-digit year ("05-Jan-2026", "5 January 2026")
+ * are read in any layout, because the month name cannot be confused with the day (bank exports mix both styles).
+ * Two-digit years are refused (never guessed). null = blank, "invalid" = unreadable.
  */
 export function readDate(v: unknown, format: DateFormat): string | null | "invalid" {
   if (blank(v)) return null;
@@ -79,6 +99,11 @@ export function readDate(v: unknown, format: DateFormat): string | null | "inval
   }
   if (typeof v !== "string") return "invalid";
   const s = v.trim();
+  const named = /^(\d{1,2})[-/. ]([A-Za-z]{3,9})[-/. ,]+(\d{4})(?:[ T].*)?$/.exec(s);
+  if (named) {
+    const month = monthOf(named[2]);
+    return month > 0 ? (ymd(Number(named[3]), month, Number(named[1])) ?? "invalid") : "invalid";
+  }
   const m =
     format === "YYYY-MM-DD"
       ? /^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?:[ T].*)?$/.exec(s)

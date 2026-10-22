@@ -41,6 +41,19 @@ payable         = Σ share (+ the provision, booked separately in Tally until re
 
 Lab cost is split between self-pay and insurance by their revenue. The shapes Pulse's 20F rule cannot express yet: a **slab** (one rate on all revenue, chosen by the month's total: 50 / 55 / 60 % at AED 100k and 150k), and a **monthly minimum** of a rate × scheduled hours, pro rata, paid as the higher of the minimum and the share. A licence and malpractice cost shared 50 / 50 from the final payment appears in the terms but not in the sheets. Differences between the sheets and the terms are OQ-193. No pay is calculated by Pulse until Finance approves the basis (docs/finance/contract-rules-alignment.md).
 
-## 4. Tracker
+## 4. Insurance receipts in the bank (received later on 22 Oct)
+
+A workbook of insurer receipts (credits only) into the two insurance accounts, Emirates NBD and Commercial Bank of Dubai, from 3 January 2022 to 29 September 2026: 5,175 rows with transaction date, bank receipt number, bank, amount and narration (plus a balance column filled on 108 rows and a system amount on 7). It is the substance of D21 (the insurance bank statements), compiled rather than the bank's own export, so it has no debits or balances to reconcile against.
+
+What it showed:
+
+- 60 rows write the date as text like "05-Jan-2026" (the rest are Excel dates or "23-09-2026"), and Pulse's import refused the whole file for them. **Changed:** `readDate` (`lib/finance/parse-import.ts`) now also reads a day, an English month name and a four-digit year in any layout; the month name cannot be mistaken for a day, and two-digit years are still refused.
+- The two banks are mixed in one sheet, while Pulse imports one statement per bank account; 140 rows spell the bank "Commerical bank of Dubai" and one row (20 Sep 2024) has no bank. The sheet is not in date order.
+- The bank receipt number is blank on every 2022 to 2024 row and filled from 2025; numbers repeat across years.
+- The narration carries the bank's own reference (about 4,000 rows: "TT REF" on Emirates NBD, the CBD transfer id), not the insurer's payment reference, so the file is a bank statement for Pulse, not a receipt register.
+
+The file was split per bank, sorted by date, with one date format (one CSV per account, 3,291 and 1,883 rows) and checked against Pulse's bank statement parser; it was returned to Finance, not kept.
+
+## 5. Tracker
 
 The tracker was returned with corrected statuses (what actually reached Pulse), a "Pulse check (22 Oct)" column and a "Changes 22 Oct" sheet listing every status change and the owners that differ from the 19 Oct document. It is not kept in the repo.
