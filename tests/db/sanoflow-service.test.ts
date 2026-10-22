@@ -16,8 +16,15 @@ vi.mock("server-only", () => ({}));
 import { ensureConversation } from "@/lib/inbox/conversations";
 import { queueOutbound } from "@/lib/inbox/send";
 import { saveSettings, setEnabled } from "@/lib/integrations/accounts";
-import { SANOFLOW_SEND_TEMPLATE_URL } from "@/lib/integrations/sanoflow/config";
+import {
+  SANOFLOW_CONTACTS_ADD_URL,
+  SANOFLOW_CONTACTS_EDIT_URL,
+  SANOFLOW_CONTACTS_URL,
+  SANOFLOW_SEND_TEMPLATE_URL,
+} from "@/lib/integrations/sanoflow/config";
 import { sanoflowWebhookSpec } from "@/lib/integrations/sanoflow/server";
+import { processSanoflowTagJob } from "@/lib/integrations/sanoflow/tagging";
+import type { OutboundContext } from "@/lib/inbox/send";
 import { receiveIntegrationWebhook } from "@/lib/integrations/webhook-route";
 import { deliverOutbound } from "@/lib/jobs/handlers/outbound";
 import type { JobLogger } from "@/lib/jobs/types";
@@ -80,7 +87,12 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)(
       return rows[0].id as string;
     }
 
-    async function send(contactId: string, templateId: string, values: Record<string, string>) {
+    async function send(
+      contactId: string,
+      templateId: string,
+      values: Record<string, string>,
+      context?: OutboundContext,
+    ) {
       const conv = await ensureConversation(admin, org, contactId, channel);
       const m = await queueOutbound(admin, {
         orgId: org,
@@ -89,6 +101,7 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)(
         body: "x",
         sentByUserId: null,
         priority: false,
+        context,
       });
       return m.id;
     }
@@ -337,6 +350,224 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)(
           expect((await row(id)).error_message).toMatch(/switched off/);
         } finally {
           await setEnabled(admin, { orgId: org, kind: "sanoflow", userId: alice, enabled: true });
+        }
+      });
+    });
+
+    describe("Make parity: invalid channel retry and Sanoflow tags (docs/49 D9, D11)", () => {
+      const INVALID = {
+        error: "Bad Request",
+        message: "Invalid channel details.",
+        documentation_url: "https://developers.sanoflow.io/?api=messaging",
+      };
+      const LIST = {
+        contact_list: {
+          data: [
+            {
+              contact_id: 77,
+              first_name: "Sanoflow",
+              last_name: "Name",
+              tags: [{ tag_id: 12 }],
+            },
+          ],
+        },
+      };
+      const VALUES = { "body.1": "Layla", "body.2": "10:30", "body.3": "the doctor" };
+      const tagJobs = async () =>
+        (await q("select message from pgmq.q_sanoflow_tags order by msg_id")).rows.map(
+          (r) => r.message,
+        );
+
+      it("a reminder refused with invalid channel details: list -> add -> sent once more", async () => {
+        vi.stubGlobal("fetch", fake);
+        const who = await contact("+447700900111");
+        answers = [
+          { status: 400, json: INVALID },
+          { status: 200, json: LIST },
+          { status: 200, json: { status: true, contact_id: 555 } },
+          { status: 200, json: { status: true, message_id: "sf-again" } },
+        ];
+        const id = await send(who, reminder, VALUES, { kind: "appointment_reminder" });
+        await run(id);
+        expect(calls.map((x) => x.url)).toEqual([
+          SANOFLOW_SEND_TEMPLATE_URL,
+          `${SANOFLOW_CONTACTS_URL}?phone=447700900111`,
+          SANOFLOW_CONTACTS_ADD_URL,
+          SANOFLOW_SEND_TEMPLATE_URL,
+        ]);
+        expect(JSON.parse(calls[2]!.body)).toEqual({
+          first_name: "Layla",
+          last_name: "Demo-07",
+          phone: "447700900111",
+        });
+        expect(await row(id)).toMatchObject({ status: "sent", wa_message_id: "sanoflow:sf-again" });
+        const { rows: refs } = await svc(() =>
+          q(
+            "select external_id from public.external_refs where org_id = $1 and source = 'sanoflow' and local_id = $2",
+            [org, who],
+          ),
+        );
+        expect(refs.map((r) => r.external_id)).toEqual(["555"]);
+      });
+
+      it("no Sanoflow contact for the number: nothing is created and the reminder fails", async () => {
+        vi.stubGlobal("fetch", fake);
+        const who = await contact("+447700900112");
+        answers = [
+          { status: 400, json: INVALID },
+          { status: 200, json: { contact_list: { data: [] } } },
+        ];
+        const id = await send(who, reminder, VALUES, { kind: "appointment_reminder" });
+        await run(id);
+        expect(calls).toHaveLength(2);
+        expect(await row(id)).toMatchObject({ status: "failed" });
+      });
+
+      it("an ambiguous contacts/add is never followed by a second send; other messages are not retried", async () => {
+        vi.stubGlobal("fetch", fake);
+        const who = await contact("+447700900113");
+        answers = [{ status: 400, json: INVALID }, { status: 200, json: LIST }, { status: 502 }];
+        const id = await send(who, reminder, VALUES, { kind: "appointment_reminder" });
+        await run(id);
+        expect(calls.map((x) => x.url)).toEqual([
+          SANOFLOW_SEND_TEMPLATE_URL,
+          `${SANOFLOW_CONTACTS_URL}?phone=447700900113`,
+          SANOFLOW_CONTACTS_ADD_URL,
+        ]);
+        expect(await row(id)).toMatchObject({ status: "failed" });
+
+        // A message without the reminder context is not re-created in Sanoflow.
+        calls = [];
+        answers = [{ status: 400, json: INVALID }];
+        const plain = await send(who, reminder, VALUES);
+        await run(plain);
+        expect(calls).toHaveLength(1);
+        expect(await row(plain)).toMatchObject({ status: "failed" });
+      });
+
+      it("a Live recall send queues one tag job (ids only); a Test send queues none", async () => {
+        vi.stubGlobal("fetch", fake);
+        await q("select pgmq.purge_queue('sanoflow_tags')");
+        const who = await contact("+447700900114");
+        // Each send gets its own Sanoflow id (messages.wa_message_id is unique).
+        answers = [
+          { status: 200, json: { status: true, message_id: "sf-test-mode" } },
+          { status: 200, json: { status: true, message_id: "sf-live-mode" } },
+        ];
+        const test = await send(
+          who,
+          promo,
+          { "body.1": "Layla" },
+          {
+            kind: "recall",
+            programme: "birthday",
+            live: false,
+          },
+        );
+        await run(test);
+        expect(await tagJobs()).toEqual([]);
+        const live = await send(
+          who,
+          promo,
+          { "body.1": "Layla" },
+          {
+            kind: "recall",
+            programme: "birthday",
+            live: true,
+          },
+        );
+        await run(live);
+        expect(await row(live)).toMatchObject({ status: "sent" });
+        expect(await tagJobs()).toEqual([{ org_id: org, contact_id: who, programme: "birthday" }]);
+        await q("select pgmq.purge_queue('sanoflow_tags')");
+      });
+
+      it("birthday tag: by Sanoflow contact id, tags + 3590 and Pulse's names", async () => {
+        vi.stubGlobal("fetch", fake);
+        const who = await contact("+447700900115");
+        await svc(() =>
+          q(
+            "insert into public.external_refs (org_id, source, entity, external_id, local_table, local_id) values ($1, 'sanoflow', 'contact', '77', 'contacts', $2)",
+            [org, who],
+          ),
+        );
+        answers = [
+          { status: 200, json: LIST },
+          { status: 200, json: { status: true } },
+        ];
+        expect(
+          await processSanoflowTagJob(admin, { orgId: org, contactId: who, programme: "birthday" }),
+        ).toBe("tagged");
+        expect(calls.map((x) => x.url)).toEqual([
+          `${SANOFLOW_CONTACTS_URL}?contact_id=77`,
+          SANOFLOW_CONTACTS_EDIT_URL,
+        ]);
+        expect(JSON.parse(calls[1]!.body)).toEqual({
+          contact_id: 77,
+          first_name: "Layla",
+          last_name: "Demo-07",
+          tags: [12, 3590],
+        });
+      });
+
+      it("birthday tag without a Sanoflow contact id is skipped, like Make", async () => {
+        vi.stubGlobal("fetch", fake);
+        const who = await contact("+447700900116");
+        expect(
+          await processSanoflowTagJob(admin, { orgId: org, contactId: who, programme: "birthday" }),
+        ).toBe("no_sanoflow_contact");
+        expect(calls).toHaveLength(0);
+      });
+
+      it("chronic tag: by phone, tags + 4654 and label 1800, Sanoflow's names unchanged", async () => {
+        vi.stubGlobal("fetch", fake);
+        const who = await contact("+447700900117");
+        answers = [
+          { status: 200, json: LIST },
+          { status: 200, json: { status: true } },
+        ];
+        expect(
+          await processSanoflowTagJob(admin, {
+            orgId: org,
+            contactId: who,
+            programme: "chronic_90d",
+          }),
+        ).toBe("tagged");
+        expect(calls[0]!.url).toBe(`${SANOFLOW_CONTACTS_URL}?phone=447700900117`);
+        expect(JSON.parse(calls[1]!.body)).toEqual({
+          contact_id: 77,
+          first_name: "Sanoflow",
+          last_name: "Name",
+          label: 1800,
+          tags: [12, 4654],
+        });
+      });
+
+      it("tagging switched off writes nothing", async () => {
+        vi.stubGlobal("fetch", fake);
+        await svc(() =>
+          q(
+            'update public.integration_accounts set config = config || \'{"tag_contacts":"off"}\'::jsonb where id = $1',
+            [accountId],
+          ),
+        );
+        try {
+          const who = await contact("+447700900118");
+          expect(
+            await processSanoflowTagJob(admin, {
+              orgId: org,
+              contactId: who,
+              programme: "chronic_90d",
+            }),
+          ).toBe("tagging_off");
+          expect(calls).toHaveLength(0);
+        } finally {
+          await svc(() =>
+            q(
+              "update public.integration_accounts set config = config - 'tag_contacts' where id = $1",
+              [accountId],
+            ),
+          );
         }
       });
     });

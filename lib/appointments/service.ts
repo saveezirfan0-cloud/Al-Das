@@ -299,6 +299,8 @@ export async function sendAppointmentTemplate(
     sentByUserId: input.sentByUserId,
     priority: false, // automations ride the bulk lane; live chat keeps outbound_priority
     flowStepKey: input.flowStepKey,
+    // A reminder refused by Sanoflow with "Invalid channel details." is retried like Make's error path (docs/49 D9).
+    context: input.key === "reminder" ? { kind: "appointment_reminder" } : undefined,
   });
   return { ok: true, messageId: message.id };
 }

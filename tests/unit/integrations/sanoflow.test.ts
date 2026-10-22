@@ -321,6 +321,10 @@ describe("catalogue entry", () => {
     expect(good.ok).toBe(true);
     if (good.ok) {
       expect(good.config.phone_format).toBe("digits");
+      expect(good.config.tag_contacts).toBe("on");
+      expect(good.config.birthday_tag_id).toBe(3590);
+      expect(good.config.chronic_tag_id).toBe(4654);
+      expect(good.config.chronic_label_id).toBe(1800);
       expect(Object.values(good.config)).not.toContain(KEY);
     }
   });
@@ -359,6 +363,8 @@ describe("guards in the source", () => {
       "config.ts",
       "params.ts",
       "setup.ts",
+      "contacts.ts",
+      "tagging.ts",
     ]) {
       expect(read(`lib/integrations/sanoflow/${f}`)).not.toMatch(/\bfetch\(/);
     }
