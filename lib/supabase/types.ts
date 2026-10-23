@@ -13456,6 +13456,7 @@ export type Database = {
           evidence_start_date: string | null;
           flash_share_basis: string;
           flash_top_doctors: number;
+          followup_age_basis: string;
           followup_stage_days: number[];
           followup_start_date: string | null;
           followup_task_due_days: number;
@@ -13567,6 +13568,7 @@ export type Database = {
           evidence_start_date?: string | null;
           flash_share_basis?: string;
           flash_top_doctors?: number;
+          followup_age_basis?: string;
           followup_stage_days?: number[];
           followup_start_date?: string | null;
           followup_task_due_days?: number;
@@ -13677,6 +13679,7 @@ export type Database = {
           evidence_start_date?: string | null;
           flash_share_basis?: string;
           flash_top_doctors?: number;
+          followup_age_basis?: string;
           followup_stage_days?: number[];
           followup_start_date?: string | null;
           followup_task_due_days?: number;

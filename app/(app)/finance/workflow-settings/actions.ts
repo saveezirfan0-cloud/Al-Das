@@ -165,6 +165,7 @@ export async function saveBlueprintSettings(raw: Record<string, string>): Promis
 const followupSchema = z.object({
   ageing_bucket_days: z.string().max(100),
   followup_stage_days: z.string().max(100),
+  followup_age_basis: z.enum(["submission", "visit"]).default("submission"),
   followup_start_date: optionalDate,
   followup_task_enabled: checkbox,
   followup_task_role: z.string().trim().min(1, "Name the role that gets the tasks.").max(60),
@@ -185,7 +186,7 @@ export async function saveFollowupSettings(raw: Record<string, string>): Promise
   const stages = parseDaySteps(d.followup_stage_days, 6);
   if (!stages)
     return fail(
-      "Follow-up stages: 1 to 6 whole days in increasing order, for example 60, 90, 120.",
+      "Follow-up stages: 1 to 6 whole days in increasing order, for example 120 or 90, 120.",
     );
   const admin = createAdminClient(member.userId); // service role AFTER the permission check
   const { error } = await admin
@@ -193,6 +194,7 @@ export async function saveFollowupSettings(raw: Record<string, string>): Promise
     .update({
       ageing_bucket_days: buckets,
       followup_stage_days: stages,
+      followup_age_basis: d.followup_age_basis,
       followup_start_date: d.followup_start_date,
       followup_task_enabled: d.followup_task_enabled,
       followup_task_role: d.followup_task_role,
@@ -209,6 +211,7 @@ export async function saveFollowupSettings(raw: Record<string, string>): Promise
     diff: {
       buckets,
       stages,
+      age_basis: d.followup_age_basis,
       tasks_on: d.followup_start_date !== null && d.followup_task_enabled,
       start_date: d.followup_start_date,
       due_days: d.followup_task_due_days,

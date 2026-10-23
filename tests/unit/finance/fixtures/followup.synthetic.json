@@ -4,7 +4,20 @@
   "settings": {
     "bucketDays": [30, 60, 90, 120],
     "stageDays": [60, 90, 120],
-    "acceptedStatuses": ["Approved", "Partially paid"]
+    "acceptedStatuses": ["Approved", "Partially paid"],
+    "ageBasis": "visit"
+  },
+  "submissionBasis": {
+    "_note": "The same claims counted from submission (Insurance, 23 Oct 2026): a resubmitted claim counts from its last resubmission date; the others from the visit date.",
+    "changed": {
+      "CA-SYN-003": { "followupFrom": "2026-09-16", "followupAgeDays": 40, "stage": null }
+    },
+    "expectedStages": {
+      "CA-SYN-002": [60],
+      "CA-SYN-004": [90, 120],
+      "CA-SYN-008": [60],
+      "CA-SYN-011": [120]
+    }
   },
   "payers": [
     {

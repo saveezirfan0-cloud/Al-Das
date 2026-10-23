@@ -10,14 +10,29 @@ import { toCsv } from "@/lib/csv";
  *  - A claim is OPEN when its outstanding amount is above zero: net less remitted less an APPROVED write-off (the same
  *    formula as fin_insurance_overview). "Evidenced" (accepted) is a remitted amount or a status listed in
  *    fin_ref_finance_settings.accepted_claim_statuses, as everywhere else.
- *  - Age is days from the claim's transaction date to "today" in the clinic's time zone. A claim without a date has no age:
- *    it is shown in its own "No date" column and never reaches a follow-up stage (fails closed rather than guessing).
+ *  - Age (the receivables buckets) is days from the claim's transaction date to "today" in the clinic's time zone. A claim
+ *    without a date has no age: it is shown in its own "No date" column and never reaches a follow-up stage (fails closed).
+ *  - The follow-up stage counts from followupFrom(): the submission date by default (Insurance, 23 Oct 2026: the last
+ *    resubmission date when there is one, else the visit date, since Diligence has no first-submission date), or the
+ *    visit date when fin_ref_finance_settings.followup_age_basis is 'visit'. SQL twin: app.fin_followup_from.
  *  - Ageing buckets come from fin_ref_finance_settings.ageing_bucket_days (default 30, 60, 90, 120 giving 0-30, 31-60,
- *    61-90, 91-120 and 120+). Follow-up stages come from followup_stage_days (default 60, 90, 120). Nothing is hardcoded.
+ *    61-90, 91-120 and 120+). Follow-up stages come from followup_stage_days (default 120: the red flag). Nothing is
+ *    hardcoded.
  */
 
 export const DEFAULT_BUCKET_DAYS = [30, 60, 90, 120] as const;
-export const DEFAULT_STAGE_DAYS = [60, 90, 120] as const;
+export const DEFAULT_STAGE_DAYS = [120] as const;
+
+export type FollowupAgeBasis = "submission" | "visit";
+export const DEFAULT_AGE_BASIS: FollowupAgeBasis = "submission";
+
+/** Where follow-up counts from (mirror of app.fin_followup_from): the visit date, or the last submission. */
+export function followupFrom(
+  c: { transactionDate: string | null; lastResubmissionDate: string | null },
+  basis: FollowupAgeBasis,
+): string | null {
+  return basis === "visit" ? c.transactionDate : (c.lastResubmissionDate ?? c.transactionDate);
+}
 
 /** Strictly increasing whole days between 1 and 3650, at most `max` of them (the SQL check app.fin_valid_day_steps). */
 export function validDaySteps(days: readonly number[], max: number): boolean {
@@ -83,9 +98,9 @@ export function daysBetween(from: string | null | undefined, to: string): number
   return a === null || b === null ? null : b - a;
 }
 
-/** The day a claim dated `transactionDate` reaches `stage` days. */
-export function crossingDate(transactionDate: string, stage: number): string | null {
-  const n = dayNo(transactionDate);
+/** The day a claim whose follow-up counts from `fromDate` (followupFrom) reaches `stage` days. */
+export function crossingDate(fromDate: string, stage: number): string | null {
+  const n = dayNo(fromDate);
   return n === null ? null : isoOf(n + stage);
 }
 
@@ -94,18 +109,18 @@ export function crossingDate(transactionDate: string, stage: number): string | n
  * the switch-on date. With no switch-on date nothing is due (the job is off), so go-live never floods historic claims.
  */
 export function stagesDue(
-  transactionDate: string | null,
+  fromDate: string | null,
   stages: readonly number[],
   startDate: string | null,
   today: string,
 ): Array<{ stage: number; crossedOn: string }> {
-  if (!transactionDate || !startDate) return [];
+  if (!fromDate || !startDate) return [];
   const t = dayNo(today);
   const s = dayNo(startDate);
   if (t === null || s === null) return [];
   const out: Array<{ stage: number; crossedOn: string }> = [];
   for (const stage of stages) {
-    const on = crossingDate(transactionDate, stage);
+    const on = crossingDate(fromDate, stage);
     const n = on ? dayNo(on) : null;
     if (on && n !== null && n <= t && n >= s) out.push({ stage, crossedOn: on });
   }
@@ -160,6 +175,9 @@ export type FollowupRow = {
   branch: string | null;
   transactionDate: string | null;
   ageDays: number | null;
+  /** The date follow-up counts from and the days since it (followupFrom). */
+  followupFrom: string | null;
+  followupAgeDays: number | null;
   bucket: number | null;
   stage: number | null;
   net: number;
@@ -177,11 +195,15 @@ export function followupRows(
     bucketDays: readonly number[];
     stageDays: readonly number[];
     acceptedStatuses: readonly string[];
+    /** Default "submission" (fin_ref_finance_settings.followup_age_basis). */
+    ageBasis?: FollowupAgeBasis;
   },
 ): FollowupRow[] {
   return claims
     .map((c) => {
       const ageDays = daysBetween(c.transactionDate, opts.today);
+      const from = followupFrom(c, opts.ageBasis ?? DEFAULT_AGE_BASIS);
+      const followupAgeDays = daysBetween(from, opts.today);
       return {
         id: c.id,
         claimActivityNumber: c.claimActivityNumber,
@@ -189,8 +211,10 @@ export function followupRows(
         branch: c.branch,
         transactionDate: c.transactionDate,
         ageDays,
+        followupFrom: from,
+        followupAgeDays,
         bucket: bucketIndex(ageDays, opts.bucketDays),
-        stage: stageReached(ageDays, opts.stageDays),
+        stage: stageReached(followupAgeDays, opts.stageDays),
         net: round2(num(c.net)),
         remitted: round2(num(c.remitted)),
         outstanding: outstandingOf(c),
@@ -344,8 +368,11 @@ export const OUTCOME_LABELS: Record<FollowupOutcome, string> = {
 export const FOLLOWUP_NOTE_MAX = 1000;
 
 /** The fixed task subject: the stage only. No claim number, payer, amount or patient detail. */
-export function followupTaskSubject(stage: number): string {
-  return `Insurance claim follow-up: ${stage} days unpaid`;
+export function followupTaskSubject(
+  stage: number,
+  basis: FollowupAgeBasis = DEFAULT_AGE_BASIS,
+): string {
+  return `Insurance claim follow-up: ${stage} ${basis === "visit" ? "days unpaid" : "days since submission"}`;
 }
 
 // ------------------------------------------------------------------------------------------------------------------
@@ -378,6 +405,7 @@ export type Worklist = {
   today: string;
   bucketDays: number[];
   stageDays: number[];
+  ageBasis: FollowupAgeBasis;
   tasksFrom: string | null;
   tasksEnabled: boolean;
   total: number;
@@ -395,6 +423,7 @@ export function parseWorklist(raw: unknown): Worklist {
     today: String(r.today ?? ""),
     bucketDays: intList(r.bucket_days, DEFAULT_BUCKET_DAYS),
     stageDays: intList(r.stage_days, DEFAULT_STAGE_DAYS),
+    ageBasis: r.age_basis === "visit" ? "visit" : "submission",
     tasksFrom: str(r.tasks_from),
     tasksEnabled: r.tasks_enabled === true,
     total: num(r.total),
@@ -421,6 +450,8 @@ export function parseWorklist(raw: unknown): Worklist {
         branch: str(x.branch_code),
         transactionDate: str(x.transaction_date),
         ageDays: int(x.age_days),
+        followupFrom: str(x.followup_from) ?? str(x.transaction_date),
+        followupAgeDays: int(x.followup_age_days) ?? int(x.age_days),
         bucket: int(x.bucket),
         stage: int(x.stage),
         net: num(x.net),

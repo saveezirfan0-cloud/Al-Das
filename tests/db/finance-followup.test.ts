@@ -20,6 +20,7 @@ import {
   parseWorklist,
   receivablesMatrix,
   type ClaimInput,
+  type FollowupAgeBasis,
 } from "@/lib/finance/followup";
 
 import fixture from "../unit/finance/fixtures/followup.synthetic.json";
@@ -54,6 +55,7 @@ describe.skipIf(!TEST_DATABASE_URL)("Insurance follow-up (Phase 20I)", () => {
     bucketDays: fixture.settings.bucketDays,
     stageDays: fixture.settings.stageDays,
     acceptedStatuses: fixture.settings.acceptedStatuses,
+    ageBasis: fixture.settings.ageBasis as FollowupAgeBasis,
   };
 
   const insertClaims = async (org: string, prefix: string) => {
@@ -130,8 +132,13 @@ describe.skipIf(!TEST_DATABASE_URL)("Insurance follow-up (Phase 20I)", () => {
       await member("billing", "Billing");
       for (const org of [orgA, orgB]) {
         await q(
-          "update public.fin_ref_finance_settings set accepted_claim_statuses = $2 where org_id = $1",
-          [org, fixture.settings.acceptedStatuses],
+          "update public.fin_ref_finance_settings set accepted_claim_statuses = $2, followup_stage_days = $3, followup_age_basis = $4 where org_id = $1",
+          [
+            org,
+            fixture.settings.acceptedStatuses,
+            fixture.settings.stageDays,
+            fixture.settings.ageBasis,
+          ],
         );
         for (const p of fixture.payers)
           await q(
@@ -303,6 +310,82 @@ describe.skipIf(!TEST_DATABASE_URL)("Insurance follow-up (Phase 20I)", () => {
     it("filters the report by branch (only claims matched to an invoice have one)", async () => {
       const r = await receivables("M");
       expect(r.aggregates.reduce((n, a) => n + a.claims, 0)).toBe(3);
+    });
+
+    it("counts follow-up from the submission date when the setting says so, like followupFrom (Insurance, 23 Oct 2026)", async () => {
+      const from = async (basis: string, visit: string | null, resub: string | null) =>
+        (
+          await svc(() =>
+            q("select app.fin_followup_from($1, $2::date, $3::date)::text as d", [
+              basis,
+              visit,
+              resub,
+            ]),
+          )
+        ).rows[0].d;
+      expect(await from("submission", "2026-07-28", "2026-09-16")).toBe("2026-09-16");
+      expect(await from("submission", "2026-07-28", null)).toBe("2026-07-28");
+      expect(await from("visit", "2026-07-28", "2026-09-16")).toBe("2026-07-28");
+
+      await svc(() =>
+        q(
+          "update public.fin_ref_finance_settings set followup_age_basis = 'submission' where org_id = $1",
+          [orgA],
+        ),
+      );
+      try {
+        const w = await worklist();
+        expect(w.ageBasis).toBe("submission");
+        const pure = followupRows(claims, { ...opts, ageBasis: "submission" });
+        for (const r of w.rows) {
+          const p = pure.find((x) => x.claimActivityNumber === strip(r.claimActivityNumber))!;
+          expect(
+            {
+              from: r.followupFrom,
+              age: r.followupAgeDays,
+              stage: r.stage,
+              visitAge: r.ageDays,
+              bucket: r.bucket,
+            },
+            r.claimActivityNumber,
+          ).toEqual({
+            from: p.followupFrom,
+            age: p.followupAgeDays,
+            stage: p.stage,
+            visitAge: p.ageDays,
+            bucket: p.bucket,
+          });
+        }
+        const r3 = w.rows.find((r) => strip(r.claimActivityNumber) === "CA-SYN-003")!;
+        expect(r3).toMatchObject({ followupFrom: "2026-09-16", followupAgeDays: 40, stage: null });
+      } finally {
+        await svc(() =>
+          q(
+            "update public.fin_ref_finance_settings set followup_age_basis = $2 where org_id = $1",
+            [orgA, fixture.settings.ageBasis],
+          ),
+        );
+      }
+      await expect(
+        svc(() =>
+          q(
+            "update public.fin_ref_finance_settings set followup_age_basis = 'payment' where org_id = $1",
+            [orgA],
+          ),
+        ),
+      ).rejects.toMatchObject({ code: "23514" });
+    });
+
+    it("a new organisation counts from submission with one red flag at 120 days", async () => {
+      const cols = (
+        await q(
+          "select column_name, column_default from information_schema.columns where table_schema = 'public' and table_name = 'fin_ref_finance_settings' and column_name in ('followup_stage_days', 'followup_age_basis') order by column_name",
+        )
+      ).rows.map((r) => `${r.column_name}=${r.column_default}`);
+      expect(cols).toEqual([
+        "followup_age_basis='submission'::text",
+        "followup_stage_days='{120}'::integer[]",
+      ]);
     });
   });
 
@@ -518,7 +601,7 @@ describe.skipIf(!TEST_DATABASE_URL)("Insurance follow-up (Phase 20I)", () => {
         const top = (fixture.tasks.expectedTopStage as Record<string, number>)[strip(x.num)];
         if (x.stage === top) {
           expect(x.superseded, x.num).toBe(false);
-          expect(x.subject).toBe(followupTaskSubject(x.stage));
+          expect(x.subject).toBe(followupTaskSubject(x.stage, "visit"));
           expect(x.notes).toContain(ids[strip(x.num)]);
           // ids and the stage only: no payer, amount or patient detail in the task
           expect(`${x.subject} ${x.notes}`).not.toMatch(/PAY-|PIN|Synthetic Payer|\d+\.\d\d/);

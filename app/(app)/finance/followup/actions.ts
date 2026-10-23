@@ -18,6 +18,7 @@ import {
 } from "@/lib/finance/action-support";
 import {
   daysBetween,
+  followupFrom,
   FOLLOWUP_NOTE_MAX,
   FOLLOWUP_OUTCOMES,
   stageReached,
@@ -67,13 +68,20 @@ export async function addFollowup(raw: Record<string, string>): Promise<ActionRe
   const admin = createAdminClient(member.userId);
   const { data: claim } = await admin
     .from("ins_claim_activities")
-    .select("id, transaction_date")
+    .select("id, transaction_date, last_resubmission_date")
     .eq("id", d.claim_id)
     .eq("org_id", member.orgId)
     .maybeSingle();
   if (!claim) return fail("That claim was not found.");
   const settings = await loadFollowupSettings(admin, member.orgId);
-  const stage = stageReached(daysBetween(claim.transaction_date, today), settings.stageDays);
+  const from = followupFrom(
+    {
+      transactionDate: claim.transaction_date,
+      lastResubmissionDate: claim.last_resubmission_date,
+    },
+    settings.ageBasis,
+  );
+  const stage = stageReached(daysBetween(from, today), settings.stageDays);
   const note = d.note ? redactText(d.note, FOLLOWUP_NOTE_MAX).trim() : "";
 
   const { error } = await admin.from("ins_claim_followups").insert({

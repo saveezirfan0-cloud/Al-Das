@@ -1,14 +1,22 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { DEFAULT_BUCKET_DAYS, DEFAULT_STAGE_DAYS, validDaySteps } from "@/lib/finance/followup";
+import {
+  DEFAULT_AGE_BASIS,
+  DEFAULT_BUCKET_DAYS,
+  DEFAULT_STAGE_DAYS,
+  validDaySteps,
+  type FollowupAgeBasis,
+} from "@/lib/finance/followup";
 import type { AdminClient } from "@/lib/supabase/admin";
 import type { Database, Tables } from "@/lib/supabase/types";
 
-/** The Phase 20I settings on fin_ref_finance_settings: ageing buckets and the 60 / 90 / 120-day follow-up. */
+/** The Phase 20I settings on fin_ref_finance_settings: ageing buckets and the follow-up stages (default 120 days). */
 
 export type FollowupSettings = {
   bucketDays: number[];
   stageDays: number[];
+  /** What follow-up counts from: the submission date (default) or the visit date. */
+  ageBasis: FollowupAgeBasis;
   /** null = the daily job raises no follow-up tasks */
   startDate: string | null;
   taskEnabled: boolean;
@@ -19,6 +27,7 @@ export type FollowupSettings = {
 export const DEFAULT_FOLLOWUP_SETTINGS: FollowupSettings = {
   bucketDays: [...DEFAULT_BUCKET_DAYS],
   stageDays: [...DEFAULT_STAGE_DAYS],
+  ageBasis: DEFAULT_AGE_BASIS,
   startDate: null,
   taskEnabled: true,
   taskRole: "Insurance",
@@ -31,6 +40,7 @@ export function followupFromRow(r: Tables<"fin_ref_finance_settings"> | null): F
   return {
     bucketDays: validDaySteps(r.ageing_bucket_days ?? [], 8) ? r.ageing_bucket_days : d.bucketDays,
     stageDays: validDaySteps(r.followup_stage_days ?? [], 6) ? r.followup_stage_days : d.stageDays,
+    ageBasis: r.followup_age_basis === "visit" ? "visit" : "submission",
     startDate: r.followup_start_date,
     taskEnabled: r.followup_task_enabled,
     taskRole: r.followup_task_role || d.taskRole,
