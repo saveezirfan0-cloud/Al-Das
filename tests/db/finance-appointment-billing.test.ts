@@ -121,11 +121,26 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance appointment import (W2)", () => {
       imp(orgA, 5, "2026-09-05", "2026-09-01", [row(1, "2026-09-02", null)]),
     ).rejects.toThrow(/appt_bad_input/);
     await expect(imp(orgA, 6, "2026-09-01", "2026-09-05", [])).rejects.toThrow(/appt_bad_input/);
+    // the source is 'file' (default) or 'unite_api', nothing else
+    await expect(
+      svc(() =>
+        q("select public.fin_appt_import($1, null, $2, $3)", [
+          orgA,
+          JSON.stringify({
+            file_sha256: SHA(7),
+            from_date: "2026-09-02",
+            to_date: "2026-09-02",
+            source: "email",
+          }),
+          JSON.stringify([row(1, "2026-09-02", null)]),
+        ]),
+      ),
+    ).rejects.toThrow(/appt_bad_input/);
     // a failed import leaves nothing behind
     const { rows } = await svc(() =>
       q(
         "select count(*)::int as n from public.fin_appt_uploads where org_id = $1 and file_sha256 = any($2)",
-        [orgA, [SHA(3), SHA(4), SHA(5), SHA(6)]],
+        [orgA, [SHA(3), SHA(4), SHA(5), SHA(6), SHA(7)]],
       ),
     );
     expect(rows[0].n).toBe(0);
@@ -172,5 +187,42 @@ describe.skipIf(!TEST_DATABASE_URL)("Finance appointment import (W2)", () => {
       { relname: "fin_appt_rows", rls: true, policies: 0 },
       { relname: "fin_appt_uploads", rls: true, policies: 0 },
     ]);
+  });
+
+  it("takes a day from the Unite connection with no person behind it; the newest upload for a day and clinic wins", async () => {
+    const { rows: r } = await svc(() =>
+      q("select public.fin_appt_import($1, null, $2, $3) as j", [
+        orgA,
+        JSON.stringify({
+          file_sha256: SHA(20),
+          from_date: "2026-09-01",
+          to_date: "2026-09-01",
+          source: "unite_api",
+        }),
+        JSON.stringify([row(1, "2026-09-01", "Clinic One", { appointment_id: "U1" })]),
+      ]),
+    );
+    expect(r[0].j).toMatchObject({ existing: false, rows: 1, superseded: 1 });
+    const { rows: up } = await svc(() =>
+      q(
+        "select source, created_by from public.fin_appt_uploads where org_id = $1 and file_sha256 = $2",
+        [orgA, SHA(20)],
+      ),
+    );
+    expect(up[0]).toEqual({ source: "unite_api", created_by: null });
+    // A1 (1 Sep, Clinic One, from a file) was replaced by the Unite day
+    expect(await current(orgA)).toEqual(["A3", "B1", "U1"]);
+    // and a later file for that day and clinic replaces the Unite day in turn
+    await imp(orgA, 21, "2026-09-01", "2026-09-01", [
+      row(1, "2026-09-01", "Clinic One", { appointment_id: "F1" }),
+    ]);
+    expect(await current(orgA)).toEqual(["A3", "B1", "F1"]);
+    const { rows: files } = await svc(() =>
+      q("select source from public.fin_appt_uploads where org_id = $1 and file_sha256 = $2", [
+        orgA,
+        SHA(21),
+      ]),
+    );
+    expect(files[0].source).toBe("file");
   });
 });

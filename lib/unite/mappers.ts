@@ -94,6 +94,8 @@ export type MappedAppointment = {
   clinicId: string | null;
   startsAt: Date;
   endsAt: Date;
+  /** False when Unite sent no end time and the default length was used (never read as a real length). */
+  endGiven: boolean;
   doctorId: string | null;
   doctorName: string | null;
   statusCode: string | null;
@@ -137,6 +139,7 @@ export function mapAppointment(
       clinicId: pick(raw, "clinic_id", "clinicid") ?? opts.clinicId ?? null,
       startsAt,
       endsAt,
+      endGiven: endRaw !== null,
       doctorId: pick(raw, "doctor_id", "doctorid"),
       doctorName: pick(raw, "doctorname", "doctor_name"),
       statusCode: pick(raw, "status")?.toUpperCase() ?? null,

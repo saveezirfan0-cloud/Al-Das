@@ -549,7 +549,8 @@ export const GUIDES: readonly Guide[] = [
     purpose:
       "Sets the Unite appointment export for a month against the Unite invoices: appointments that were seen but not billed, invoices on appointments that were not seen, and how much of each doctor's and room's time was booked.",
     steps: [
-      "Export the month's appointments from Unite (.xlsx or .csv) and drop the file in the upload box (Revenue upload permission). Check the preview, then Import. The file is not kept.",
+      "With the Unite appointment sync on (Settings, Unite EMR), each finished day arrives on its own overnight, once every clinic has been read for that day. Nothing to upload.",
+      "For days before that, or to correct a day: export the appointments from Unite (.xlsx or .csv) and drop the file in the upload box (Revenue upload permission). Check the preview, then Import. The file is not kept.",
       "Pick a month and, if you work in more than one, a branch.",
       "Work the Seen, not billed list: honoured appointments with no invoice. Look the appointment id up in Unite.",
       "Check the Billed, not seen list, then the Needs review list (ids that appear twice, appointments that share a PIN, doctor and day, and invoices naming an appointment the files do not hold).",
@@ -562,6 +563,8 @@ export const GUIDES: readonly Guide[] = [
       "Days the Unite invoices in Pulse do not cover are not judged. Nothing is listed as not billed while Pulse holds no invoices for the month.",
       "Hours need the appointment length in the file; percentages need the doctor linked to a Pulse doctor (Doctors page) and a room listed under Settings, Rooms.",
       "These are review prompts, never proof of an error.",
+      "A day from Unite waits while any of its appointments carries a Unite status code whose meaning is not set under Settings, Unite EMR. Nothing is guessed.",
+      "The newest rows for a day and clinic win, whether they came from a file or from Unite.",
       "The same upload fills Booked against available on Finance, Capacity once it covers the whole month.",
     ],
   },

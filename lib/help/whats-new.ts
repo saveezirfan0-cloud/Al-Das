@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-12-31-appointments-from-unite",
+    date: "2026-10-23",
+    title: "Appointments and invoices fill from Unite overnight",
+    body: "Finance, Appointments and invoices no longer needs an appointment export file once the Unite appointment sync is on: each night Pulse re-reads the finished days once and adds every day all clinics have been read for. A day waits while one of its Unite status codes has no meaning set under Settings, Unite EMR. Uploading a file still works for earlier days or to correct one; the newest rows for a day and clinic win.",
+  },
+  {
     id: "2026-12-30-followup-from-submission",
     date: "2026-10-23",
     title: "Insurance follow-up counts from the submission date",
