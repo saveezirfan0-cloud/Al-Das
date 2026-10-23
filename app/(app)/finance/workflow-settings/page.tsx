@@ -112,10 +112,10 @@ export default async function WorkflowSettingsPage({
         <CardHeader>
           <CardTitle className="text-base">Insurance follow-up and ageing</CardTitle>
           <CardDescription>
-            Unpaid claims are followed up at each stage (by default 60, 90 and 120 days after the
-            transaction date). Tasks are off until you set a start date, so switching on never
-            floods old claims. The 0-30 / 31-60 / 61-90 / 90+ ageing of the monthly summary and of
-            closed month packs does not change.
+            Unpaid claims are followed up at each stage (by default one red flag at 120 days after
+            submission: the last resubmission date, else the visit date). Tasks are off until you
+            set a start date, so switching on never floods old claims. The 0-30 / 31-60 / 61-90 /
+            90+ ageing of the monthly summary and of closed month packs does not change.
           </CardDescription>
         </CardHeader>
         <CardContent>
