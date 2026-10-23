@@ -108,3 +108,13 @@ Sharaf (Insurance) went through the open insurance items by phone. What he said 
 | Payers | AXA puts its payment reference on the bank line and matches easily; NextCare, Neuron and some others are harder | Expected: the reference rule covers AXA; the others need the payer and amount rules |
 
 **Follow-up from the submission date (migration `20261229000100`).** `fin_ref_finance_settings.followup_age_basis` is `submission` by default (or `visit`, the old behaviour). Diligence has no first-submission date, so "submission" is the last resubmission date when the claim was resubmitted (the insurer's clock restarts) and the visit date otherwise (a first submission goes out about 15 days after the visit, so a claim is never flagged late). The stage and the day a stage is crossed follow it; the receivables ageing buckets still count from the visit. `followup_stage_days` defaults to one stage, 120 days, and an organisation still on 60, 90, 120 moves to 120. `app.fin_followup_from` and `followupFrom()` are the one rule (shared fixture `followup.synthetic.json`, `submissionBasis`). Task subjects say "N days since submission". Finance can change both under Finance workflow settings.
+
+## 8. Unite Patient Register Report (sent as D16, 23 Oct 2026)
+
+Sent as "the Unite appointment export, 1 to 22 Sep", but it is Unite's **Patient Register Report** for **1 to 22 October 2026**: one row per visit (1,613 visits, 1,110 patients, 25 doctors), 44 columns, most of them patient identity (name, date of birth, phone, e-mail, Emirates ID, emergency contact). Read in the scratchpad only, counts kept; nothing is in the repo.
+
+- **Not the appointment export.** It has no appointment number, appointment status or time, so the W2 import (`lib/finance/appointment-mapping.ts`) refuses it, as it should. D16 stays open: Unite's appointment list report for one week, with the fewest columns.
+- **Branch per visit (OQ-161, Q22, Q23).** Unite already names each visit's clinic: Shoreline 1,389, Meadows 123, Golden Mile 101. Seven of the 25 doctors work in more than one clinic, so a visit's branch cannot come from the doctor alone; the clinic column (already read from the Unite collection report) is the right source.
+- **Insurance at Shoreline only** (confirms Sharaf, §7): all 627 visits with an insurance invoice amount are at Shoreline.
+- **Visit types (OQ-140, OQ-190, Q9).** NEW 303 and REVISIT 1,310 only: Unite has no follow-up visit type.
+- **Booked or walk-in.** 1,529 visits carry an "Appointment Created By", 84 do not (walk-ins).
