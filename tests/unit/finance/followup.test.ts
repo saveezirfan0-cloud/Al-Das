@@ -24,7 +24,9 @@ import {
   stageReached,
   stagesDue,
   validDaySteps,
+  followupFrom,
   type ClaimInput,
+  type FollowupAgeBasis,
 } from "@/lib/finance/followup";
 import { AGEING_BUCKETS } from "@/lib/finance/summary-extras";
 import { parseInsuranceOverview } from "@/lib/finance/insurance-overview";
@@ -37,6 +39,7 @@ const opts = {
   bucketDays: fixture.settings.bucketDays,
   stageDays: fixture.settings.stageDays,
   acceptedStatuses: fixture.settings.acceptedStatuses,
+  ageBasis: fixture.settings.ageBasis as FollowupAgeBasis,
 };
 
 describe("ageing buckets", () => {
@@ -131,14 +134,20 @@ describe("follow-up stages", () => {
     const due: Record<string, number[]> = {};
     for (const c of claims) {
       if (outstandingOf(c) <= 0) continue;
-      const s = stagesDue(c.transactionDate, opts.stageDays, fixture.tasks.startDate, opts.today);
+      const s = stagesDue(
+        followupFrom(c, opts.ageBasis),
+        opts.stageDays,
+        fixture.tasks.startDate,
+        opts.today,
+      );
       if (s.length) due[c.claimActivityNumber] = s.map((x) => x.stage);
     }
     expect(due).toEqual(fixture.tasks.expectedStages);
   });
 
   it("the task subject carries the stage only", () => {
-    expect(followupTaskSubject(90)).toBe("Insurance claim follow-up: 90 days unpaid");
+    expect(followupTaskSubject(90, "visit")).toBe("Insurance claim follow-up: 90 days unpaid");
+    expect(followupTaskSubject(120)).toBe("Insurance claim follow-up: 120 days since submission");
   });
 });
 
@@ -264,7 +273,8 @@ describe("parsing the SQL results", () => {
     const w = parseWorklist(null);
     expect(w.rows).toEqual([]);
     expect(w.bucketDays).toEqual([30, 60, 90, 120]);
-    expect(w.stageDays).toEqual([60, 90, 120]);
+    expect(w.stageDays).toEqual([120]);
+    expect(w.ageBasis).toBe("submission");
     expect(w.tasksEnabled).toBe(false);
     expect(parseReceivables(undefined).aggregates).toEqual([]);
   });
@@ -298,5 +308,74 @@ describe("parsing the SQL results", () => {
     expect(w.tasksEnabled).toBe(true);
     expect(w.rows[0].lastFollowup?.outcome).toBe("other"); // an unknown outcome is never shown as a real one
     expect(w.rows[0].task).toEqual({ stage: 60, taskId: "t", done: false, assigneeId: null });
+  });
+});
+
+describe("follow-up from the submission date (Insurance, 23 Oct 2026)", () => {
+  const sub = { ...opts, ageBasis: "submission" as FollowupAgeBasis };
+
+  it("counts a resubmitted claim from its last resubmission, the others from the visit", () => {
+    expect(
+      followupFrom(
+        { transactionDate: "2026-07-28", lastResubmissionDate: "2026-09-16" },
+        "submission",
+      ),
+    ).toBe("2026-09-16");
+    expect(
+      followupFrom({ transactionDate: "2026-07-28", lastResubmissionDate: null }, "submission"),
+    ).toBe("2026-07-28");
+    expect(
+      followupFrom({ transactionDate: "2026-07-28", lastResubmissionDate: "2026-09-16" }, "visit"),
+    ).toBe("2026-07-28");
+    expect(
+      followupFrom({ transactionDate: null, lastResubmissionDate: null }, "submission"),
+    ).toBeNull();
+  });
+
+  it("changes only the stage of the resubmitted claim; ageing buckets still count from the visit", () => {
+    const visitRows = followupRows(claims, opts);
+    const subRows = followupRows(claims, sub);
+    const changed = fixture.submissionBasis.changed as Record<
+      string,
+      { followupFrom: string; followupAgeDays: number; stage: number | null }
+    >;
+    for (const r of subRows) {
+      const v = visitRows.find((x) => x.id === r.id)!;
+      expect(r.ageDays, r.claimActivityNumber).toBe(v.ageDays);
+      expect(r.bucket, r.claimActivityNumber).toBe(v.bucket);
+      const want = changed[r.claimActivityNumber];
+      if (want)
+        expect({ from: r.followupFrom, age: r.followupAgeDays, stage: r.stage }).toEqual({
+          from: want.followupFrom,
+          age: want.followupAgeDays,
+          stage: want.stage,
+        });
+      else expect(r.stage, r.claimActivityNumber).toBe(v.stage);
+    }
+  });
+
+  it("raises the job's stages from the submission date", () => {
+    const due: Record<string, number[]> = {};
+    for (const c of claims) {
+      if (outstandingOf(c) <= 0) continue;
+      const s = stagesDue(
+        followupFrom(c, "submission"),
+        opts.stageDays,
+        fixture.tasks.startDate,
+        opts.today,
+      );
+      if (s.length) due[c.claimActivityNumber] = s.map((x) => x.stage);
+    }
+    expect(due).toEqual(fixture.submissionBasis.expectedStages);
+  });
+
+  it("flags only at 120 days with the new default", () => {
+    const rows = followupRows(claims, { ...sub, stageDays: [120] });
+    expect(
+      rows
+        .filter((r) => r.stage === 120)
+        .map((r) => r.claimActivityNumber)
+        .sort(),
+    ).toEqual(["CA-SYN-004", "CA-SYN-005", "CA-SYN-011"]);
   });
 });

@@ -20,10 +20,12 @@ import { money } from "@/lib/finance/format";
 import {
   ageingBuckets,
   daysBetween,
+  followupFrom,
   OUTCOME_LABELS,
   parseWorklist,
   stageLabel,
   stageReached,
+  type FollowupAgeBasis,
   type FollowupOutcome,
 } from "@/lib/finance/followup";
 import {
@@ -93,7 +95,7 @@ export default async function FollowupPage({ searchParams }: { searchParams: Pro
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Insurance follow-up"
-        description={`Unpaid insurance claims as of ${w.today || today}, oldest first, with the follow-up stage each has reached (${w.stageDays.join(", ")} days after the claim date). Amounts in AED.`}
+        description={`Unpaid insurance claims as of ${w.today || today}, oldest first, with the follow-up stage each has reached (${w.stageDays.join(", ")} days after ${w.ageBasis === "visit" ? "the visit" : "submission"}). Amounts in AED.`}
       >
         <Button asChild size="sm" variant="outline">
           <Link href="/finance/receivables">Receivables by age</Link>
@@ -213,6 +215,13 @@ export default async function FollowupPage({ searchParams }: { searchParams: Pro
                         {r.bucket !== null && (
                           <div className="text-muted-foreground">{buckets[r.bucket]?.label}</div>
                         )}
+                        {w.ageBasis === "submission" &&
+                          r.followupAgeDays !== null &&
+                          r.followupAgeDays !== r.ageDays && (
+                            <div className="text-muted-foreground">
+                              {r.followupAgeDays} since resubmission
+                            </div>
+                          )}
                       </TableCell>
                       <TableCell>
                         <Badge
@@ -285,6 +294,7 @@ export default async function FollowupPage({ searchParams }: { searchParams: Pro
           claimId={claimId}
           today={today}
           stageDays={w.stageDays}
+          ageBasis={w.ageBasis}
           canWrite={canWrite}
           closeHref={qs({ claim: null })}
           member={member}
@@ -298,6 +308,7 @@ async function ClaimPanel({
   claimId,
   today,
   stageDays,
+  ageBasis,
   canWrite,
   closeHref,
   member,
@@ -305,6 +316,7 @@ async function ClaimPanel({
   claimId: string;
   today: string;
   stageDays: number[];
+  ageBasis: FollowupAgeBasis;
   canWrite: boolean;
   closeHref: string;
   member: Awaited<ReturnType<typeof requirePerm>>;
@@ -360,7 +372,19 @@ async function ClaimPanel({
     })),
   );
   const age = daysBetween(claim.transaction_date, today);
-  const stage = stageReached(age, stageDays);
+  const stage = stageReached(
+    daysBetween(
+      followupFrom(
+        {
+          transactionDate: claim.transaction_date,
+          lastResubmissionDate: claim.last_resubmission_date,
+        },
+        ageBasis,
+      ),
+      today,
+    ),
+    stageDays,
+  );
 
   return (
     <ClaimDrawer

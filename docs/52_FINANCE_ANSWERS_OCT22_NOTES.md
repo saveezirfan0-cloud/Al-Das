@@ -85,3 +85,36 @@ The full Diligence Remittance Receipt Report (facility DHA-F-0000419), with the 
 Every credit Finance linked got a proposal. The 7 disagreements are not engine errors: in 3, Finance linked two or three advices to one receipt while the credit equals the single advice Pulse proposed; in 4, the bank narrative carries the reference of the advice Pulse proposed while Finance's link names another advice of the same amount on another date. The payer rule proposed nothing because no payer name is approved yet (`finance.matching.approve`).
 
 **For Finance to check** (OQ-197): the 7 disagreements; 15 receipts where the register total differs from the bank credit (14 with the register higher) and 5 with no credit of that number on that date; 9 rows with a number in BankName ("16", "11") and one misspelt; 6 rows whose bank amount differs from the paid amount (one about 16 times it); one payment reference listed twice (once pending, once received, different amounts); 179 insurer-account credits (AED 103,525.65, Jan to Aug 2026) with no register row (E15 candidates once the bank statements are in Pulse). The receipts workbook is still a compiled list of credits, not the bank's own statement (D21).
+
+## 7. Insurance answers (call with Sharaf, 23 Oct 2026)
+
+Sharaf (Insurance) went through the open insurance items by phone. What he said and what it changes:
+
+| Item | Answer | In Pulse |
+| --- | --- | --- |
+| D20, Q26 How insurer money is reconciled | In Diligence: from the bank statement, find the remittance advice by its payment reference, match its amount to the bank receipt, record the receipt. The Remittance Receipt Report is the result: Received = reconciled, Pending = not yet. There is no separate workbook | D20 is the receipt register (D17); its links were already checked against the bank (§6) |
+| D21 | Book3 is the consolidated insurance bank statement (2022 to Sep 2026); Finance adds each month on the 5th | Received; monthly |
+| D22 | Diligence data comes monthly after each month's submission (September now, October next month); the full activity report is being sent by e-mail | Partial; monthly, not weekly |
+| D9 | A separate resubmission report exists; Sharaf will see how to share it | Partial |
+| Q13 Patient share | Not in Diligence (insurer share only); it is in Unite's daily or insurance sales report | Pulse already reads PATIENT SHARE from the Unite collection report |
+| Q23 Branch | Insurance is handled at Shoreline only; Unite's appointments are all at Shoreline | Every insurance claim is Shoreline until the 10 Nov split |
+| Q28, Q29 Take-backs | Remove: a take-back is a correction (resubmission as correction or internal complaint) that reverses the RA, while the bank amount is not touched | Never treated as cash leaving the bank; `diligence_remitted_nets_takebacks` stays unconfirmed |
+| Q30, Q31 Rejections | The denial codes in the full activity report identify the reasons | Pulse already reads LastDenialCode, DenialCategory and DenialType; the origin/avoidable proposal stays for Finance |
+| Q32 Agreed prices | Not needed for these reports | Closed; short-payment checks against a payer price list stay unused |
+| Q33 Follow-up | From the submission date; most RAs arrive about 90 days after submission, red flag at 120 days | **Changed** (below) |
+| Q34 Accepted, write-off | Diligence is an accounts application: nothing is marked approved or written off there. A partly paid claim that will not be resubmitted is a write-off decided outside the system | Closed; the `approved` write-off assumption never applies |
+| Q36 One transfer | Each insurer pays separately | 7 of 729 register receipts list two insurer codes (third-party administrators or entry slips): in the checks file |
+| Q37 Submission history | One RA row can hold several payment references and Diligence consolidates them, sometimes doubling a payment | Deferred to a final cleansing step |
+| Payers | AXA puts its payment reference on the bank line and matches easily; NextCare, Neuron and some others are harder | Expected: the reference rule covers AXA; the others need the payer and amount rules |
+
+**Follow-up from the submission date (migration `20261229000100`).** `fin_ref_finance_settings.followup_age_basis` is `submission` by default (or `visit`, the old behaviour). Diligence has no first-submission date, so "submission" is the last resubmission date when the claim was resubmitted (the insurer's clock restarts) and the visit date otherwise (a first submission goes out about 15 days after the visit, so a claim is never flagged late). The stage and the day a stage is crossed follow it; the receivables ageing buckets still count from the visit. `followup_stage_days` defaults to one stage, 120 days, and an organisation still on 60, 90, 120 moves to 120. `app.fin_followup_from` and `followupFrom()` are the one rule (shared fixture `followup.synthetic.json`, `submissionBasis`). Task subjects say "N days since submission". Finance can change both under Finance workflow settings.
+
+## 8. Unite Patient Register Report (sent as D16, 23 Oct 2026)
+
+Sent as "the Unite appointment export, 1 to 22 Sep", but it is Unite's **Patient Register Report** for **1 to 22 October 2026**: one row per visit (1,613 visits, 1,110 patients, 25 doctors), 44 columns, most of them patient identity (name, date of birth, phone, e-mail, Emirates ID, emergency contact). Read in the scratchpad only, counts kept; nothing is in the repo.
+
+- **Not the appointment export.** It has no appointment number, appointment status or time, so the W2 import (`lib/finance/appointment-mapping.ts`) refuses it, as it should. D16 stays open: Unite's appointment list report for one week, with the fewest columns.
+- **Branch per visit (OQ-161, Q22, Q23).** Unite already names each visit's clinic: Shoreline 1,389, Meadows 123, Golden Mile 101. Seven of the 25 doctors work in more than one clinic, so a visit's branch cannot come from the doctor alone; the clinic column (already read from the Unite collection report) is the right source.
+- **Insurance at Shoreline only** (confirms Sharaf, §7): all 627 visits with an insurance invoice amount are at Shoreline.
+- **Visit types (OQ-140, OQ-190, Q9).** NEW 303 and REVISIT 1,310 only: Unite has no follow-up visit type.
+- **Booked or walk-in.** 1,529 visits carry an "Appointment Created By", 84 do not (walk-ins).

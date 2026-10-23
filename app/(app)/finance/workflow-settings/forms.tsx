@@ -440,8 +440,20 @@ export function FollowupSettingsForm({
       </fieldset>
       <fieldset className="grid gap-3 sm:grid-cols-3">
         <legend className="mb-1 text-sm font-semibold">Follow-up of unpaid claims</legend>
-        <Field label="Follow-up stages (days unpaid)" hint="For example 60, 90, 120.">
+        <Field
+          label="Follow-up stages (days)"
+          hint="Insurance: a red flag at 120 days. Several stages are allowed, for example 90, 120."
+        >
           <Input name="followup_stage_days" defaultValue={s.stageDays.join(", ")} />
+        </Field>
+        <Field
+          label="Count the days from"
+          hint="Submission: the last resubmission date, else the visit date (Diligence has no first-submission date)."
+        >
+          <select name="followup_age_basis" className={selectClass} defaultValue={s.ageBasis}>
+            <option value="submission">Submission date</option>
+            <option value="visit">Visit date</option>
+          </select>
         </Field>
         <Field
           label="Create follow-up tasks from"

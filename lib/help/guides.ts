@@ -589,7 +589,7 @@ export const GUIDES: readonly Guide[] = [
     title: "Insurance follow-up and receivables",
     pages: ["/finance/followup", "/finance/receivables"],
     purpose:
-      "Chase unpaid insurance claims at 60, 90 and 120 days, see each claim's submissions and resubmissions, and see what each payer owes by age.",
+      "Chase unpaid insurance claims once they reach 120 days after submission (stages and the start point are settings), see each claim's submissions and resubmissions, and see what each payer owes by age.",
     steps: [
       "Insurance follow-up lists every unpaid claim, oldest first, with the stage it has reached. Filter by stage, payer or branch.",
       "Open a claim to see its submissions (first, second, third) with the amounts claimed and remitted, then record what you did and the next action date.",

@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-12-30-followup-from-submission",
+    date: "2026-10-23",
+    title: "Insurance follow-up counts from the submission date",
+    body: "As the Insurance team works: an unpaid claim is flagged for follow-up 120 days after it was submitted (or last resubmitted), not 60, 90 and 120 days after the visit. Most remittances arrive about 90 days after submission, so earlier reminders were noise. Receivables by age still count from the visit date. Both the stages and the start point can be changed under Finance workflow settings.",
+  },
+  {
     id: "2026-12-29-diligence-receipt-register",
     date: "2026-10-23",
     title: "The Diligence receipt register imports as it comes",
