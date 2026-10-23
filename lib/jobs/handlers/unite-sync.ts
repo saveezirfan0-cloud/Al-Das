@@ -11,7 +11,19 @@ import { fromZonedTime } from "date-fns-tz";
 import { UniteApiError, UniteBreakerOpen, UniteNotConfigured } from "@/lib/unite/sync-client";
 import { UniteAuthError } from "@/lib/unite/sync-auth";
 import { loadUniteAccount, buildUniteClient } from "@/lib/unite/store";
-import { syncAppointments, syncDoctors, syncPatients } from "@/lib/unite/sync";
+import {
+  readCursor,
+  syncAppointments,
+  syncDoctors,
+  syncPatients,
+  touchCursor,
+} from "@/lib/unite/sync";
+import type { UniteConfig } from "@/lib/unite/config";
+import { daysToSettle, finishedDays, mergeSettled, settledOf } from "@/lib/finance/appointment-api";
+import { handOverUniteDays, SETTLED_ENTITY } from "@/lib/finance/appointment-api-server";
+
+/** sync_cursors entity of the settle pull's own run log (kept apart from the forward pull's cursor). */
+const SETTLE_RUN_ENTITY = "appointments_settle_run";
 
 /**
  * `unite_sync` queue. Messages:
@@ -82,7 +94,9 @@ export async function runUniteSync(
           now,
         });
         log.info("unite appointments synced", { ...counters });
-        return counters;
+        if (msg.mode !== "nightly") return counters;
+        const settled = await settleFinishedDays(admin, msg, client, account.config, log, now);
+        return { ...counters, settled };
       }
       case "doctors": {
         const counters = await syncDoctors({ admin, orgId: msg.org_id, source: client, log });
@@ -119,6 +133,57 @@ export async function runUniteSync(
     }
     throw e;
   }
+}
+
+/**
+ * Nightly settle pull (W2, docs/47): re-reads, in ONE quiet call, the finished days of the last week this clinic has
+ * not settled yet (the first night: the week before it), so each day's final statuses reach Finance's appointments vs
+ * invoices page. A pull that skipped or failed any record settles nothing. Then every day all clinics have settled is
+ * handed to W2. Never reaches further back than a week by itself.
+ */
+async function settleFinishedDays(
+  admin: AdminClient,
+  msg: Extract<UniteSyncMessage, { entity: "appointments" }>,
+  client: Parameters<typeof syncAppointments>[0]["source"],
+  config: UniteConfig,
+  log: Parameters<typeof runUniteSync>[2],
+  now: Date,
+) {
+  const settled = settledOf(await readCursor(admin, msg.org_id, SETTLED_ENTITY, msg.clinic_id));
+  const days = daysToSettle(now, config.timezone, settled);
+  let added: string[] = [];
+  if (days.length > 0) {
+    const today = formatInTimeZone(now, config.timezone, "yyyy-MM-dd");
+    const counters = await syncAppointments({
+      admin,
+      orgId: msg.org_id,
+      source: client,
+      config,
+      clinicId: msg.clinic_id,
+      from: fromZonedTime(`${days[0]}T00:00:00`, config.timezone),
+      to: fromZonedTime(`${today}T00:00:00`, config.timezone),
+      mode: "settle",
+      quiet: true,
+      cursorEntity: SETTLE_RUN_ENTITY,
+      log,
+      now,
+    });
+    const clean = counters.skipped === 0 && Object.keys(counters.errors).length === 0;
+    if (clean) added = days;
+    else log.warn("unite settle pull incomplete; days stay unsettled", { days: days.length });
+    await touchCursor(admin, msg.org_id, SETTLED_ENTITY, msg.clinic_id, {
+      ok: clean,
+      cursor: { settled: mergeSettled(settled, added) },
+    });
+  }
+  const handed = await handOverUniteDays(
+    admin,
+    msg.org_id,
+    config.timezone,
+    finishedDays(now, config.timezone),
+    log,
+  );
+  return { settled: added.length, handed: handed.imported.length };
 }
 
 registerHandler({

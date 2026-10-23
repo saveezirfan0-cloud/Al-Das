@@ -64,7 +64,7 @@ function bump(c: SyncCounters, reason: string) {
 // Cursors
 // ---------------------------------------------------------------------------
 
-async function touchCursor(
+export async function touchCursor(
   admin: AdminClient,
   orgId: string,
   entity: string,
@@ -335,9 +335,16 @@ export type AppointmentSyncDeps = {
   clinicId: string;
   from: Date;
   to: Date;
-  mode: "incremental" | "nightly";
+  mode: "incremental" | "nightly" | "settle";
   log: JobLogger;
   now?: Date;
+  /**
+   * Settle pull of finished days (W2, docs/47): rows are written as usual but no reminders, events or freed-slot
+   * offers follow, because those days are over. The run is recorded under its own cursor entity.
+   */
+  quiet?: boolean;
+  /** sync_cursors entity for this run; defaults to 'appointments'. */
+  cursorEntity?: string;
 };
 
 type ApptRow = {
@@ -369,6 +376,7 @@ export async function syncAppointments(deps: AppointmentSyncDeps): Promise<SyncC
   const counters = emptyCounters();
   const now = deps.now ?? new Date();
   const scope = clinicId;
+  const cursorEntity = deps.cursorEntity ?? "appointments";
 
   try {
     const { data: location } = await admin
@@ -469,6 +477,7 @@ export async function syncAppointments(deps: AppointmentSyncDeps): Promise<SyncC
           unite_patient_pin: m.patient.pin,
           unite_patient_key: patientKey(m.patient),
           unite_doctor_name: m.doctorName,
+          unite_end_given: m.endGiven,
           unite_created_by: m.createdBy,
           // The name is kept only while there is no contact to hold it.
           ...(contactId
@@ -511,7 +520,7 @@ export async function syncAppointments(deps: AppointmentSyncDeps): Promise<SyncC
             localId: row.id,
           });
           counters.created++;
-          await afterWrite(admin, row, null, now, "created");
+          if (!deps.quiet) await afterWrite(admin, row, null, now, "created");
           continue;
         }
 
@@ -536,7 +545,7 @@ export async function syncAppointments(deps: AppointmentSyncDeps): Promise<SyncC
           .single();
         if (error) throw new Error(`update failed (${error.code})`);
         counters.updated++;
-        await afterWrite(admin, row, prev, now, "updated");
+        if (!deps.quiet) await afterWrite(admin, row, prev, now, "updated");
       } catch (e) {
         // Never log the record: it is patient data.
         bump(counters, "record_failed");
@@ -546,7 +555,7 @@ export async function syncAppointments(deps: AppointmentSyncDeps): Promise<SyncC
       }
     }
 
-    await touchCursor(admin, orgId, "appointments", scope, {
+    await touchCursor(admin, orgId, cursorEntity, scope, {
       ok: true,
       cursor: {
         mode: deps.mode,
@@ -557,7 +566,7 @@ export async function syncAppointments(deps: AppointmentSyncDeps): Promise<SyncC
     });
     return counters;
   } catch (e) {
-    await touchCursor(admin, orgId, "appointments", scope, {
+    await touchCursor(admin, orgId, cursorEntity, scope, {
       ok: false,
       error: e instanceof Error ? e.message.slice(0, 300) : "failed",
     });

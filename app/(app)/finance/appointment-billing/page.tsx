@@ -137,9 +137,10 @@ export default async function AppointmentBillingPage({
           <CardHeader>
             <CardTitle className="text-base">Upload the Unite appointment export</CardTitle>
             <CardDescription>
-              Export the month&apos;s appointments from Unite and drop the file here. A new file
-              replaces the earlier rows for the same dates and clinics; nothing is deleted. Needs
-              the Unite invoices to be in Pulse to tell what was billed.
+              When the Unite appointment sync is on, each finished day arrives on its own overnight
+              and no file is needed. Use a file for days before that, or to correct a day. The
+              newest rows for a day and clinic win, from a file or from Unite; nothing is deleted.
+              Needs the Unite invoices to be in Pulse to tell what was billed.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -163,8 +164,8 @@ export default async function AppointmentBillingPage({
           title={`No Unite appointments for ${title} yet`}
           description={
             canImport
-              ? "Upload the Unite appointment export above; once it is imported the figures appear here."
-              : "Finance uploads the Unite appointment export on this page; once a file is imported the figures appear here."
+              ? "Finished days arrive overnight once the Unite appointment sync is on, or upload the Unite appointment export above. The figures appear here once a day is in."
+              : "Finished days arrive overnight once the Unite appointment sync is on, or Finance uploads the Unite appointment export on this page."
           }
         />
       )}

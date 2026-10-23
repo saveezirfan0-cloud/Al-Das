@@ -17,6 +17,7 @@ import type { UniteCredentials } from "@/lib/unite/auth";
 import { parseUniteConfig } from "@/lib/unite/config";
 import { resolveSyncReview } from "@/lib/unite/review";
 import { syncAppointments, syncDoctors, syncPatients } from "@/lib/unite/sync";
+import { uniteDate } from "@/lib/unite/sync-client";
 
 import {
   asServiceRole,
@@ -236,7 +237,10 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)("unite syn
   });
 
   it("is idempotent: replaying the same payload changes nothing", async () => {
-    const timeline = await count(c, "select 1 from public.timeline_events");
+    const timeline = await count(
+      c,
+      "select 1 from public.timeline_events where type like 'appointment.%'",
+    );
     const jobs = await count(c, "select 1 from public.scheduled_jobs");
     const counters = await sync([
       raw({}),
@@ -258,7 +262,9 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)("unite syn
       }),
     ]);
     expect(counters).toMatchObject({ created: 0, updated: 0, unchanged: 3 });
-    expect(await count(c, "select 1 from public.timeline_events")).toBe(timeline);
+    expect(
+      await count(c, "select 1 from public.timeline_events where type like 'appointment.%'"),
+    ).toBe(timeline);
     expect(await count(c, "select 1 from public.scheduled_jobs")).toBe(jobs);
     expect(await count(c, "select 1 from public.appointments")).toBe(3);
     expect(await count(c, "select 1 from public.sync_reviews")).toBe(1);
@@ -664,12 +670,155 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)("unite syn
         "select endpoint, unite_status from public.unite_api_calls where org_id = $1 order by id",
         [org],
       );
+      // forward pull, the first night's settle pull of the past week, forward pull (that week is settled now)
       expect(calls.map((x) => x.endpoint)).toEqual([
         "authorize",
         "getallappointments",
         "getallappointments",
+        "getallappointments",
       ]);
       expect(calls.every((x) => x.unite_status === "ok")).toBe(true);
+    });
+
+    it("W2: the nightly settle pull hands each finished day to Finance quietly, once, and holds unknown codes", async () => {
+      await c.query("set role service_role");
+      await c.query(
+        "update public.unite_appointment_status_map set status = case code when 'ACF' then 'confirmed' when 'APH' then 'completed' end where org_id = $1 and code in ('ACF','APH')",
+        [org],
+      );
+      await c.query(
+        "delete from public.sync_cursors where org_id = $1 and entity = 'appointments_settled'",
+        [org],
+      );
+      await c.query("reset role");
+      const rows = [
+        raw({
+          appointmentid: "Y1",
+          patientpin: "PIN-Y1",
+          patientfullname: "Yesterday One",
+          patientmobilephone: "971-500000071",
+          appointmentstarttime: slot(-1, "10:00"),
+          appointmentendtime: slot(-1, "10:30"),
+          status: "APH",
+        }),
+        raw({
+          appointmentid: "Y2",
+          patientpin: "PIN-Y2",
+          patientfullname: "Yesterday Two",
+          patientmobilephone: "971-500000072",
+          appointmentstarttime: slot(-1, "11:00"),
+          appointmentendtime: undefined,
+          status: "ACF",
+        }),
+      ];
+      // Unite answers by date range: the forward pull (from today) has nothing, the settle pull has yesterday
+      const today = uniteDate(new Date(), "Asia/Dubai");
+      const base = fakeUnite(rows);
+      const f = {
+        seen: base.seen,
+        fn: (async (url: string, init?: RequestInit) => {
+          const u = new URL(String(url));
+          if (
+            u.pathname.endsWith("/getallappointments") &&
+            u.searchParams.get("from_date") === today
+          ) {
+            base.seen.push({ method: init?.method ?? "GET", path: u.pathname });
+            return new Response(JSON.stringify({ Status: "Success", Message: "", Data: [] }));
+          }
+          return base.fn(url, init);
+        }) as unknown as typeof fetch,
+      };
+      const msg = {
+        org_id: org,
+        entity: "appointments" as const,
+        clinic_id: "DHA-TEST",
+        mode: "nightly" as const,
+      };
+      const timelineBefore = await count(
+        c,
+        "select 1 from public.timeline_events where type like 'appointment.%'",
+      );
+
+      const r1 = (await runUniteSync(admin, msg, log, new Date(), f.fn)) as {
+        settled: { settled: number; handed: number };
+      };
+      expect(r1.settled.settled).toBe(7);
+      expect(r1.settled.handed).toBe(1);
+      // quiet: the past day's appointments raise no timeline entries (nor events or reminders)
+      expect(
+        await count(c, "select 1 from public.timeline_events where type like 'appointment.%'"),
+      ).toBe(timelineBefore);
+
+      const yesterday = (
+        await q("select ((now() at time zone 'Asia/Dubai')::date - 1)::text as d")
+      )[0].d as string;
+      const ups = await q(
+        "select id, source, from_date::text, to_date::text, created_by, row_count from public.fin_appt_uploads where org_id = $1",
+        [org],
+      );
+      expect(ups).toHaveLength(1);
+      expect(ups[0]).toMatchObject({
+        source: "unite_api",
+        from_date: yesterday,
+        to_date: yesterday,
+        created_by: null,
+        row_count: 2,
+      });
+      const apptRows = await q(
+        "select appointment_id, status, duration_min, patient_pin, start_min, is_current from public.fin_appt_rows where upload_id = $1 order by appointment_id",
+        [ups[0].id],
+      );
+      expect(apptRows).toEqual([
+        {
+          appointment_id: "Y1",
+          status: "honoured",
+          duration_min: 30,
+          patient_pin: "PIN-Y1",
+          start_min: 600,
+          is_current: true,
+        },
+        // no end time from Unite: the length is unknown, never the default
+        {
+          appointment_id: "Y2",
+          status: "confirmed",
+          duration_min: null,
+          patient_pin: "PIN-Y2",
+          start_min: 660,
+          is_current: true,
+        },
+      ]);
+
+      // the next night: the week is settled, so no extra Unite call; the same day again changes nothing
+      const callsBefore = f.seen.length;
+      const r2 = (await runUniteSync(admin, msg, log, new Date(), f.fn)) as {
+        settled: { settled: number; handed: number };
+      };
+      expect(r2.settled.settled).toBe(0);
+      expect(f.seen.length - callsBefore).toBe(1); // the forward pull only
+      expect(
+        await q("select id from public.fin_appt_uploads where org_id = $1", [org]),
+      ).toHaveLength(1);
+
+      // a code with no meaning yet holds the whole day, and nothing is guessed
+      await c.query("set role service_role");
+      await c.query(
+        "update public.unite_appointment_status_map set status = null where org_id = $1 and code = 'ACF'",
+        [org],
+      );
+      await c.query("delete from public.fin_appt_uploads where org_id = $1", [org]);
+      await c.query(
+        "delete from public.sync_cursors where org_id = $1 and entity = 'appointments_settled'",
+        [org],
+      );
+      await c.query("reset role");
+      const r3 = (await runUniteSync(admin, msg, log, new Date(), f.fn)) as {
+        settled: { settled: number; handed: number };
+      };
+      expect(r3.settled.settled).toBe(7);
+      expect(r3.settled.handed).toBe(0);
+      expect(
+        await q("select id from public.fin_appt_uploads where org_id = $1", [org]),
+      ).toHaveLength(0);
     });
   });
 

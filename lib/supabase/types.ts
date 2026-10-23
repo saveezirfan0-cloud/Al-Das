@@ -9028,6 +9028,7 @@ export type Database = {
           id: string;
           org_id: string;
           row_count: number;
+          source: string;
           to_date: string;
         };
         ComputedFields: never;
@@ -9039,6 +9040,7 @@ export type Database = {
           id?: string;
           org_id: string;
           row_count: number;
+          source?: string;
           to_date: string;
         };
         Update: {
@@ -9049,6 +9051,7 @@ export type Database = {
           id?: string;
           org_id?: string;
           row_count?: number;
+          source?: string;
           to_date?: string;
         };
         Relationships: [

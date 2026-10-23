@@ -21,6 +21,18 @@ Permissions: the page and the download need `finance.revenue.view` (it is a Capa
 
 The original file is read once and never kept; only its sha256 and the sanitised rows are stored (`fin_appt_uploads`, `fin_appt_rows`, service role only). A new file replaces (`is_current = false`, nothing deleted) the earlier rows for the same dates and clinics. The same file twice changes nothing.
 
+## From the Unite connection (23 Oct 2026)
+
+Al Das confirmed the appointment list comes from the Unite API (the same `getallappointments` Make uses for reminders), so W2 no longer waits for an export file (data request D16). Migration `20261230000100_finance_appointments_from_unite.sql` (paste 115).
+
+- **Settle pull.** The nightly Unite appointment run (`unite_nightly`, per clinic, only when `enabled.appointments`) also re-reads, in **one** call, the finished days of the last week the clinic has not settled (the first night: the whole week before it). It is **quiet**: rows are written as usual, but no reminders, events, timeline entries or freed-slot offers follow, because those days are over. A pull that skipped or failed any record settles nothing. Settled days per clinic are kept in `sync_cursors` (`entity = 'appointments_settled'`, `{ settled: [...] }`, newest 31 days); the run log is `appointments_settle_run`. It never reaches further back than a week by itself, and it never calls the Finance API.
+- **Hand-over** (`handOverUniteDays`, `lib/finance/appointment-api-server.ts`). A day goes to W2 only when **every** active clinic with a Unite id has settled it, so a day never looks covered with a clinic missing. The day's rows go through the same `fin_appt_import` as a file, with `p_meta.source = 'unite_api'`, no person (`created_by` null) and a sha256 over the sanitised rows, so the same day twice changes nothing and a changed day replaces the earlier rows for its clinics.
+- **Rows** (`uniteDayRows`, `lib/finance/appointment-api.ts`, pure): appointment id = Unite's; date and start in the clinic's time zone; length only when Unite sent an end time (`custom.unite_end_given`; the sync's default length is never read as real); the Unite PIN from the sync (`custom.unite_patient_pin`); the doctor is the linked Pulse doctor's name, else the name Unite sent; the clinic is the Unite long name of the location's finance branch (`locations.branch_code`), else none.
+- **Status.** Through Settings, Unite EMR's code table (`unite_appointment_status_map`): completed → honoured, cancelled → cancelled, confirmed → confirmed, awaiting → awaiting, no-show → confirmed (booked and not seen). **A code with no meaning set (OQ-23) holds the whole day** and is logged by code only; nothing is guessed. Today every seeded code is unset, so nothing arrives until Finance or Unite confirm the codes.
+- **Files still work** for days before the sync was on, or to correct a day. The newest upload for a day and clinic wins, whichever its source (`fin_appt_uploads.source`: `file` or `unite_api`).
+
+Needs before it runs: the Unite API credentials for Pulse (OQ-26, Settings, Unite EMR), the clinics' Unite ids on their locations, and the meaning of the appointment status codes (OQ-23), above all which code is Honoured.
+
 ## The status rule
 
 | Unite status | Meaning here | No invoice | With an invoice |
