@@ -353,7 +353,14 @@ describe.skipIf(!TEST_DATABASE_URL || !POSTGREST_URL || !SERVICE_JWT)(
           await contact("Nonumber", "PIN-R4", { phone: null });
           await invoice("PIN-R4", "R-4", 200, day(-40));
           await contact("Recent", "PIN-R5");
-          await invoice("PIN-R5", "R-5", 200, day(-3)); // not overdue yet
+          // not overdue yet: fin_selfpay_balances counts days from the database's current_date, not NOW, so this one is
+          // dated from the real clock (a fixed date stops being "recent" once the calendar passes it)
+          await invoice(
+            "PIN-R5",
+            "R-5",
+            200,
+            new Date(Date.now() - 3 * 86_400_000).toISOString().slice(0, 10),
+          );
           await contact("Tiny", "PIN-R6");
           await invoice("PIN-R6", "R-6", 20, day(-40)); // below the minimum balance
           await invoice("PIN-R7", "R-7", 200, day(-40)); // no patient record
