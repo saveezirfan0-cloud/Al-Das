@@ -29,6 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import type { MenuChoiceOption } from "@/components/shell/menu-choices";
 import { initials, PresenceDot } from "@/components/shell/user-menu";
 import type { BranchScope } from "@/lib/branches/access";
 import { ENQUIRY_VIEW_SCOPE_LABELS, type EnquiryViewScope } from "@/lib/enquiries/scope";
@@ -36,6 +37,7 @@ import { ENQUIRY_VIEW_SCOPE_LABELS, type EnquiryViewScope } from "@/lib/enquirie
 import { changeMemberRole, removeMember, setMemberStatus } from "./actions";
 import { BranchAccessDialog } from "./branch-access-dialog";
 import { MemberRoutingDialog } from "./member-routing-dialog";
+import { MenuAccessDialog } from "./menu-access-dialog";
 import { OffboardDialog } from "./offboard-dialog";
 
 export type MemberRow = {
@@ -55,22 +57,31 @@ export type MemberRow = {
   branchScope: BranchScope;
   branchIds: string[];
   homeLocationId: string | null;
+  /** Menu entries hidden for this person only (Menu access). */
+  menuHidden: string[];
 };
 
 export function MembersTable({
   rows,
   roles,
   locations,
+  workspaceHidden,
 }: {
   rows: MemberRow[];
-  roles: Array<{ id: string; name: string }>;
+  roles: Array<{ id: string; name: string; menu: MenuChoiceOption[] }>;
   locations: Array<{ id: string; name: string }>;
+  workspaceHidden: string[];
 }) {
   const [ask, askDialog] = useConfirm();
   const [pending, startTransition] = useTransition();
   const [offboarding, setOffboarding] = useState<MemberRow | null>(null);
   const [routing, setRouting] = useState<MemberRow | null>(null);
   const [branches, setBranches] = useState<MemberRow | null>(null);
+  const [menu, setMenu] = useState<MemberRow | null>(null);
+  const roleMenu = (roleId: string) => roles.find((x) => x.id === roleId)?.menu ?? [];
+  /** Hidden entries the person's current role could otherwise see (a role change can make some moot). */
+  const ownHidden = (r: MemberRow) =>
+    r.menuHidden.filter((h) => roleMenu(r.roleId).some((c) => c.href === h));
   const locationName = (id: string | null) => locations.find((l) => l.id === id)?.name ?? null;
   const branchLabel = (r: MemberRow) => {
     const names =
@@ -127,7 +138,14 @@ export function MembersTable({
                 </div>
               </div>
             </TableCell>
-            <TableCell>{r.roleName}</TableCell>
+            <TableCell>
+              {r.roleName}
+              {ownHidden(r).length > 0 && (
+                <div className="text-muted-foreground text-xs">
+                  Own menu · {ownHidden(r).length} hidden
+                </div>
+              )}
+            </TableCell>
             <TableCell className="text-muted-foreground">
               {r.teams.length ? r.teams.join(", ") : "—"}
               {(r.maxOpen !== null || r.enquiryScope !== "all") && (
@@ -185,6 +203,7 @@ export function MembersTable({
                   <DropdownMenuItem onSelect={() => setBranches(r)}>
                     Branch access…
                   </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => setMenu(r)}>Menu access…</DropdownMenuItem>
                   <DropdownMenuItem onSelect={() => setRouting(r)}>
                     Routing and enquiry view…
                   </DropdownMenuItem>
@@ -237,6 +256,19 @@ export function MembersTable({
           homeLocationId={branches.homeLocationId}
           open
           onOpenChange={(o) => !o && setBranches(null)}
+        />
+      )}
+      {menu && (
+        <MenuAccessDialog
+          key={menu.id}
+          membershipId={menu.id}
+          displayName={menu.name || menu.email}
+          roleName={menu.roleName}
+          choices={roleMenu(menu.roleId)}
+          hidden={menu.menuHidden}
+          workspaceHidden={workspaceHidden}
+          open
+          onOpenChange={(o) => !o && setMenu(null)}
         />
       )}
       {routing && (

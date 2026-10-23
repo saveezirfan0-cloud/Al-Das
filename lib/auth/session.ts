@@ -9,6 +9,7 @@ import type { User } from "@supabase/supabase-js";
 import { assertCan, can, ForbiddenError, type MemberLike } from "@/lib/auth/can";
 import { parseBranchScope, type BranchScope } from "@/lib/branches/access";
 import { parseEnquiryScope } from "@/lib/enquiries/scope";
+import { combinedMenuHidden, hiddenEntryFor, PAGE_HIDDEN_PATH } from "@/lib/nav/menu-visibility";
 import { requestClientIp, type ParsedIp } from "@/lib/security/client-ip";
 import {
   financeAccessDecision,
@@ -49,6 +50,11 @@ export type CurrentMember = MemberLike & {
   branchIds?: string[];
   homeLocationId?: string | null;
   roleName: string;
+  /**
+   * Top-level menu entries hidden for this person: the workspace's (Settings, Menu) plus their own (Settings, Users,
+   * Menu access). lib/nav/menu-visibility.ts; requireMember() sends a page under one of them to /page-hidden.
+   */
+  menuHidden: string[];
   /**
    * The finance access window for this request (lib/security/finance-access.ts). When it denies, `restrictedAreas`
    * holds "finance" and "accounting", so every can() for those keys is false; everything else is unchanged.
@@ -188,7 +194,7 @@ export const getCurrentMember = cache(async (): Promise<CurrentMember | null> =>
   const { data: memberships, error } = await supabase
     .from("memberships")
     .select(
-      "id, org_id, role_id, status, presence, enquiry_scope, branch_scope, home_location_id, membership_locations(location_id), roles(name, permissions), orgs(*)",
+      "id, org_id, role_id, status, presence, enquiry_scope, branch_scope, home_location_id, menu_hidden, membership_locations(location_id), roles(name, permissions), orgs(*)",
     )
     .eq("user_id", user.id)
     .eq("status", "active")
@@ -241,6 +247,7 @@ export const getCurrentMember = cache(async (): Promise<CurrentMember | null> =>
     branchScope: parseBranchScope(membership.branch_scope),
     branchIds: (membership.membership_locations ?? []).map((l) => l.location_id),
     homeLocationId: membership.home_location_id,
+    menuHidden: combinedMenuHidden(org.settings, membership.menu_hidden),
     permissions,
     restrictedAreas: restrictedAreasFor(financeAccess),
     financeAccess,
@@ -270,12 +277,19 @@ export async function getCurrentMemberIfAvailable(): Promise<CurrentMember | nul
   }
 }
 
-/** Redirects to /login (signed out) or /onboarding (no workspace). */
+/**
+ * Redirects to /login (signed out) or /onboarding (no workspace). A page under a menu entry hidden for this person
+ * (Settings, Menu or their Menu access) goes to /page-hidden; server actions are left to their permission checks.
+ */
 export async function requireMember(): Promise<CurrentMember> {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const member = await getCurrentMember();
   if (!member) redirect("/onboarding");
+  if (member.menuHidden.length > 0 && !(await isServerAction())) {
+    const hidden = hiddenEntryFor(await requestPath(), member.menuHidden);
+    if (hidden) redirect(PAGE_HIDDEN_PATH);
+  }
   return member;
 }
 
