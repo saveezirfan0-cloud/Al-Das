@@ -1,7 +1,8 @@
 /**
  * Insurer receipt register import (matching v2). Synthetic data only. The kind has no name or ID-number field, only the
  * mapped columns are read, a reference that redaction would change refuses the row, a repeated reference with other
- * figures refuses the file, and errors never echo cell values.
+ * figures refuses the file, and errors never echo cell values. The real Diligence Remittance Receipt Report (23 Oct 2026,
+ * docs/52 §6) lists pending advices with bank amount 0 and no date, and long numeric insurer references: both import.
  */
 import { describe, expect, it } from "vitest";
 
@@ -12,6 +13,7 @@ import {
   type ImportFormat,
 } from "@/lib/finance/import-kinds";
 import { MAX_IMPORT_ROWS, parseReceiptRegister } from "@/lib/finance/parse-import";
+import { redactReferenceText } from "@/lib/redact";
 import { parseCsv } from "@/lib/finance/parse-remittance";
 
 const FORMAT: ImportFormat = {
@@ -110,7 +112,7 @@ describe("parseReceiptRegister", () => {
     expect(r.ok).toBe(false);
     if (r.ok) return;
     expect(r.errors.join(" ")).toContain(
-      "Row 2: payment reference looks like a card or account number",
+      "Row 2: payment reference looks like a card number, IBAN, phone number or e-mail address.",
     );
     expect(r.errors.join(" ")).not.toContain("4111");
   });
@@ -208,5 +210,71 @@ describe("parseReceiptRegister", () => {
     ]);
     const big = parseReceiptRegister([HEAD.split(","), ...rows], FORMAT);
     expect(big.ok).toBe(false);
+  });
+});
+
+describe("the Diligence Remittance Receipt Report (synthetic rows in its shape)", () => {
+  it("skips an advice that has not reached the bank (amount 0, no receipt date) and keeps the received ones", () => {
+    const r = parseReceiptRegister(
+      table("1234567-12345,x,0,,,,,", "1234567-12346,x,250.5,13/01/2026,INS01,101,Bank A,"),
+      FORMAT,
+    );
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.rows.map((x) => x.payment_ref)).toEqual(["1234567-12346"]);
+    expect(r.stats.skipped).toBe(1);
+  });
+
+  it("still refuses a received amount without a bank receipt date", () => {
+    const r = parseReceiptRegister(table("1234567-12345,x,250.5,,,,,"), FORMAT);
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.errors.join(" ")).toContain("Row 2: Bank receipt date is missing.");
+  });
+
+  it("keeps long insurer references whole, so they still meet the remittance advice", () => {
+    const refs = [
+      "1234567-12345",
+      "123456789012",
+      "AB12_34-123456789012-1-01",
+      "12-123456789012-3-18", // 17 digits that happen to pass the Luhn check, but not written like a card
+      "INS:1234567890123456",
+      "AB12_XY012345678Z", // a run starting with 0 inside a letter code is not a phone number
+    ];
+    const r = parseReceiptRegister(
+      table(...refs.map((ref, i) => `${ref},x,${10 + i},01/10/2026,,,,`)),
+      FORMAT,
+    );
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.rows.map((x) => x.payment_ref)).toEqual(refs);
+  });
+
+  it("still refuses a card number, an IBAN, a phone number or an e-mail address, without echoing it", () => {
+    for (const ref of [
+      "4111111111111111",
+      "4111 1111 1111 1111",
+      "4111-1111-1111-1111",
+      "AE070331234567890123456",
+      "0501234567",
+      "971501234567",
+      "+971 50 123 4567",
+      "someone@example.com",
+    ]) {
+      const r = parseReceiptRegister(table(`${ref},x,10,01/10/2026,,,,`), FORMAT);
+      expect(r.ok, ref).toBe(false);
+      if (r.ok) continue;
+      expect(r.errors.join(" ")).toContain("Row 2: payment reference looks like a card number");
+      expect(r.errors.join(" ")).not.toContain(ref.slice(0, 6));
+    }
+  });
+
+  it("masks only what it must (redactReferenceText)", () => {
+    expect(redactReferenceText("1234567-12345")).toBe("1234567-12345");
+    expect(redactReferenceText("4111111111111111")).toBe("•••• 1111");
+    expect(redactReferenceText("4111111111111112")).toBe("4111111111111112"); // fails the Luhn check
+    expect(redactReferenceText("REF 0501234567")).toBe("REF •••••••567");
+    expect(redactReferenceText("  ")).toBeNull();
+    expect(redactReferenceText(null)).toBeNull();
   });
 });

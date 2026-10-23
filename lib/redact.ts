@@ -66,6 +66,50 @@ export function redactStatementText(input: string | null | undefined, maxLength 
   return out === "" ? null : out;
 }
 
+/** Luhn check digit test, used to tell a card number from a long reference number. */
+function passesLuhn(digits: string): boolean {
+  let sum = 0;
+  for (let i = 0; i < digits.length; i++) {
+    let n = Number(digits[digits.length - 1 - i]);
+    if (i % 2 === 1) {
+      n *= 2;
+      if (n > 9) n -= 9;
+    }
+    sum += n;
+  }
+  return sum % 10 === 0;
+}
+
+/** A card number as people write it: 13 to 19 digits run together, or in groups of four (Amex 4-6-5). */
+const CARD_SHAPED = /^(?:\d{13,19}|\d{4}(?:[ -]\d{4}){2,3}(?:[ -]\d{1,3})?|\d{4}[ -]\d{6}[ -]\d{5})$/;
+
+const REFERENCE_PATTERNS: Array<[RegExp, string | ((m: string) => string)]> = [
+  STATEMENT_PATTERNS[0], // IBAN
+  STATEMENT_PATTERNS[1], // card numbers already masked by the bank
+  // phone numbers only when they stand on their own: a run of digits inside a letter code ("AB12_XY012345678Z") is
+  // part of the reference
+  [/(?<![A-Za-z0-9])(?:00)?971[ -]?\d(?:[ -]?\d){7,8}(?![A-Za-z0-9])/g, (m) => redactPhone(m)],
+  [/(?<![A-Za-z0-9])0\d(?:[ -]?\d){7,9}(?![A-Za-z0-9])/g, (m) => redactPhone(m)],
+  [/\+\d[\d\s().-]{7,}\d/g, (m) => redactPhone(m)],
+  [/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[email]"],
+];
+
+/**
+ * A payment reference from an insurer's remittance (Diligence `PaymentReference`, such as "1234567-12345" or
+ * "AB12_34-123456789012-1-01"). Long numbers are part of the reference and are kept, because the same reference must
+ * still meet itself on the remittance advice, which Pulse stores as written. Still masked: IBANs, cards the bank already
+ * masked, phone numbers standing on their own, e-mail addresses, and a value that is itself a card number (card-shaped,
+ * see CARD_SHAPED, and passing the Luhn check).
+ */
+export function redactReferenceText(input: string | null | undefined, maxLength = 80): string | null {
+  if (input == null) return null;
+  let out = String(input).replace(/\s+/g, " ").trim();
+  if (CARD_SHAPED.test(out) && passesLuhn(out.replace(/\D/g, ""))) out = lastFour(out);
+  for (const [re, rep] of REFERENCE_PATTERNS) out = out.replace(re, rep as string);
+  out = out.slice(0, maxLength).trim();
+  return out === "" ? null : out;
+}
+
 /** Redacts the string values of a flat log-metadata object; other values pass through. */
 export function redactMeta<T extends Record<string, unknown> | undefined>(meta: T): T {
   if (!meta) return meta;
