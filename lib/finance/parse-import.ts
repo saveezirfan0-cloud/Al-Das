@@ -7,7 +7,7 @@ import {
 import { readXlsxTable } from "@/lib/finance/parse-diligence";
 import { looksLikeXlsx, parseCsv } from "@/lib/finance/parse-remittance";
 import { blank, num, str } from "@/lib/finance/scalars";
-import { redactStatementText } from "@/lib/redact";
+import { redactReferenceText, redactStatementText } from "@/lib/redact";
 
 /**
  * Bank statements and processor settlement reports -> sanitised rows (pure, apart from reading the file). The layout
@@ -82,8 +82,9 @@ const monthOf = (word: string) =>
 
 /**
  * A date in the layout's format (separators / - . and a trailing time are accepted), an Excel date cell, or an Excel
- * serial number from an .xlsx. A day, an English month name and a four-digit year ("05-Jan-2026", "5 January 2026")
- * are read in any layout, because the month name cannot be confused with the day (bank exports mix both styles).
+ * serial number from an .xlsx. A day, an English month name and a four-digit year ("05-Jan-2026", "5 January 2026",
+ * and month first as Diligence writes it, "Jan 13 2026 12:00AM" or "January 5, 2026") are read in any layout, because
+ * the month name cannot be confused with the day (bank exports mix both styles).
  * Two-digit years are refused (never guessed). null = blank, "invalid" = unreadable.
  */
 export function readDate(v: unknown, format: DateFormat): string | null | "invalid" {
@@ -103,6 +104,11 @@ export function readDate(v: unknown, format: DateFormat): string | null | "inval
   if (named) {
     const month = monthOf(named[2]);
     return month > 0 ? (ymd(Number(named[3]), month, Number(named[1])) ?? "invalid") : "invalid";
+  }
+  const monthFirst = /^([A-Za-z]{3,9})\.?[-/. ]+(\d{1,2})(?:st|nd|rd|th)?[-/. ,]+(\d{4})(?:[ T].*)?$/.exec(s);
+  if (monthFirst) {
+    const month = monthOf(monthFirst[1]);
+    return month > 0 ? (ymd(Number(monthFirst[3]), month, Number(monthFirst[2])) ?? "invalid") : "invalid";
   }
   const m =
     format === "YYYY-MM-DD"
@@ -470,9 +476,10 @@ const alnum = (s: string) => s.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
 
 /**
  * Insurer receipt register rows. ONLY the mapped columns are read and the kind has no name or ID-number field. The
- * payment reference is the match key, so it must survive redaction untouched: a reference that redactStatementText would
- * change (it looks like a card, account or phone number) refuses the file. A leading = + - @ (spreadsheet formula) is
- * dropped. A row with no date and no amount (a total line) and a row with a zero or negative amount are skipped. The same
+ * payment reference is the match key, so it must survive redaction untouched: a reference that redactReferenceText would
+ * change (a card number, an IBAN, a phone number or an e-mail address) refuses the file; long insurer reference numbers
+ * are kept. A leading = + - @ (spreadsheet formula) is dropped. A row with no date and no amount (a total line) and a row
+ * with a zero or negative amount (an advice not yet in the bank) are skipped, whatever its date. The same
  * reference twice with the same figures is collapsed (counted as skipped); with different figures it refuses the file,
  * naming the row numbers. Errors carry row numbers and field names, never cell values.
  */
@@ -494,18 +501,19 @@ export function parseReceiptRegister(
       if (amount === "invalid") return bad(fail, `Row ${rowNo}: ${label(format, "amount")} is not a number.`);
       if (date === "invalid")
         return bad(fail, `Row ${rowNo}: ${label(format, "receipt_date")} is not a date in ${format.dateFormat}.`);
+      // nothing has reached the bank yet (Diligence lists a Pending advice with bank amount 0 and no receipt date)
+      if (amount !== null && amount <= 0) return "skip";
       if (rawRef === null) return bad(fail, `Row ${rowNo}: ${label(format, "payment_ref")} is missing.`);
       const cleaned = rawRef.replace(/^[=+\-@\t\r\s]+/, "").slice(0, 80);
-      const ref = redactStatementText(cleaned, 80);
+      const ref = redactReferenceText(cleaned, 80);
       if (ref === null || alnum(cleaned) === "")
         return bad(fail, `Row ${rowNo}: ${label(format, "payment_ref")} is missing.`);
       if (alnum(ref) !== alnum(cleaned))
-        return bad(fail, `Row ${rowNo}: payment reference looks like a card or account number`);
+        return bad(fail, `Row ${rowNo}: payment reference looks like a card number, IBAN, phone number or e-mail address.`);
       if (/^0*$/.test(alnum(ref)))
         return bad(fail, `Row ${rowNo}: ${label(format, "payment_ref")} is not usable as a reference.`);
       if (amount === null) return bad(fail, `Row ${rowNo}: ${label(format, "amount")} is missing.`);
       if (date === null) return bad(fail, `Row ${rowNo}: ${label(format, "receipt_date")} is missing.`);
-      if (amount <= 0) return "skip";
       const key = alnum(ref).replace(/^0+/, "");
       const prior = seen.get(key);
       if (prior) {

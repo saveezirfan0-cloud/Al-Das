@@ -150,12 +150,42 @@ export const IMPORT_KINDS = {
     label: "Insurer receipt register",
     usesAmountStyle: false,
     fields: {
-      payment_ref: { label: "Payment reference", type: "text", requirement: "always" },
-      amount: { label: "Amount received", type: "amount", requirement: "always" },
-      receipt_date: { label: "Bank receipt date", type: "date", requirement: "always" },
-      payer: { label: "Insurer or payer", type: "text", requirement: "optional" },
-      receipt_no: { label: "Bank receipt number", type: "text", requirement: "optional" },
-      bank_name: { label: "Bank", type: "text", requirement: "optional" },
+      payment_ref: {
+        label: "Payment reference",
+        type: "text",
+        requirement: "always",
+        hint: "Diligence Remittance Receipt Report: PaymentReference.",
+      },
+      amount: {
+        label: "Amount received",
+        type: "amount",
+        requirement: "always",
+        hint: "Diligence: BankAmount (0 until the money reaches the bank, so pending advices are skipped).",
+      },
+      receipt_date: {
+        label: "Bank receipt date",
+        type: "date",
+        requirement: "always",
+        hint: "Diligence: BankReceiptDate (any date layout reads it).",
+      },
+      payer: {
+        label: "Insurer or payer",
+        type: "text",
+        requirement: "optional",
+        hint: "Diligence: ReceiverID.",
+      },
+      receipt_no: {
+        label: "Bank receipt number",
+        type: "text",
+        requirement: "optional",
+        hint: "Diligence: BankReceiptNo.",
+      },
+      bank_name: {
+        label: "Bank",
+        type: "text",
+        requirement: "optional",
+        hint: "Diligence: BankName.",
+      },
     },
   },
 } as const satisfies Record<

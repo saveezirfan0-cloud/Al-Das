@@ -57,3 +57,31 @@ The file was split per bank, sorted by date, with one date format (one CSV per a
 ## 5. Tracker
 
 The tracker was returned with corrected statuses (what actually reached Pulse), a "Pulse check (22 Oct)" column and a "Changes 22 Oct" sheet listing every status change and the owners that differ from the 19 Oct document. It is not kept in the repo.
+
+## 6. The Remittance Receipt Report (D17), received 23 Oct 2026
+
+The full Diligence Remittance Receipt Report (facility DHA-F-0000419), with the insurance receipts workbook again (the same 5,175 credits as §4; only the date cells are stored differently) and a "report formats" zip (ACTIVTY, Claim Summary, the 3-row register sample and Book3: the same files and totals as 15–16 Oct and 22 Oct). Read in the scratchpad only; nothing from the files is in the repo.
+
+| | Count | AED |
+| --- | ---: | ---: |
+| Payment advices (one row each, `Downloaded RA`) | 967 | |
+| Received: a bank receipt date, number and bank (22 May 2024 to 11 Sep 2026, mostly Dec 2025 to Aug 2026) | 750 | bank 3,472,907.38 (paid 3,461,954.11) |
+| Pending: bank amount 0, no bank receipt yet | 217 | paid 231,781.84 (claim net 330,174.94) |
+| Insurers (receivers) | 14 | |
+
+**Pulse refused the real file; three changes make it import** (750 rows, 217 pending skipped):
+
+- **Dates.** Diligence writes "Jan 13 2026 12:00AM". `readDate` now also reads a month name first ("Jan 13 2026", "January 5, 2026", with or without a time) in any layout.
+- **Pending advices.** A row whose amount is 0 (nothing in the bank yet) is skipped whatever its date, before the date is required. The layout maps **Amount received = `BankAmount`**; mapped to `PaymentAmount`, a pending advice has an amount and no date and is still refused, as before. The receipt register's field hints now name the Diligence column for each field.
+- **Payment references.** 241 of the 967 references are long insurer numbers ("1234567-12345", "12-123456789012-3-45", a 16-digit number after an insurer prefix), which the statement redaction masks as card or account numbers, so the file was refused. The same `PaymentReference` already reaches Pulse unmasked through the remittance advice and Diligence imports, and a masked reference could never meet its own advice. New `redactReferenceText` (`lib/redact.ts`) keeps long reference numbers and still masks IBANs, cards the bank already masked, phone numbers standing on their own, e-mail addresses and a value that is itself a card number (card-shaped: 13 to 19 digits together or in groups of four, and passing the Luhn check); any of those still refuses the row. Bank narratives keep the stricter `redactStatementText`.
+
+**How the register meets the bank (Jan to Aug 2026).** Joined on Finance's bank receipt number and date, 685 of the 714 receipts agree with the bank credits to the fils; 28 receipts carry 2 to 7 advices (one transfer, several payments: Q36). Pulse's matching engine v2 run on the parsed register and the 867 insurer-account credits, with no payer names approved yet, using those receipt-number links as the answer key:
+
+| Rule | Single proposals | Agree with Finance's link | Disagree | No link to check | Several options (right one among them) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Reference written on the bank line | 172 | 163 | 7 | 2 | 0 |
+| Amount and date (never automatic) | 461 | 432 | 0 | 29 | 117 (73) |
+
+Every credit Finance linked got a proposal. The 7 disagreements are not engine errors: in 3, Finance linked two or three advices to one receipt while the credit equals the single advice Pulse proposed; in 4, the bank narrative carries the reference of the advice Pulse proposed while Finance's link names another advice of the same amount on another date. The payer rule proposed nothing because no payer name is approved yet (`finance.matching.approve`).
+
+**For Finance to check** (OQ-197): the 7 disagreements; 27 receipts where the register total differs from the bank credit (mostly the register is higher); 9 rows with a number in BankName ("16", "11") and 9 whose bank differs from the bank list; one row with bank amount about 16 times its paid amount; one payment reference listed twice (once pending, once received, different amounts); 179 insurer-account credits (AED 103,525.65, Jan to Aug 2026) with no register row (E15 candidates once the bank statements are in Pulse). The receipts workbook is still a compiled list of credits, not the bank's own statement (D21).

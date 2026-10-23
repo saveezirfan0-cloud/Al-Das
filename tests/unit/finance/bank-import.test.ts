@@ -116,6 +116,16 @@ describe("scalars", () => {
     expect(readDate("05-Jan-26", "DD/MM/YYYY")).toBe("invalid");
   });
 
+  it("reads Diligence's month-first dates with a time (Jan 13 2026 12:00AM) in any layout", () => {
+    expect(readDate("Jan 13 2026 12:00AM", "DD/MM/YYYY")).toBe("2026-01-13");
+    expect(readDate("Sep  1 2026 12:00AM", "MM/DD/YYYY")).toBe("2026-09-01");
+    expect(readDate("January 5, 2026", "YYYY-MM-DD")).toBe("2026-01-05");
+    expect(readDate("Sept. 30 2026", "DD/MM/YYYY")).toBe("2026-09-30");
+    expect(readDate("Feb 30 2026 12:00AM", "DD/MM/YYYY")).toBe("invalid");
+    expect(readDate("Foo 13 2026", "DD/MM/YYYY")).toBe("invalid");
+    expect(readDate("Jan 13 26", "DD/MM/YYYY")).toBe("invalid");
+  });
+
   it("reads amounts with thousands separators, a currency prefix and accounting brackets", () => {
     expect(readAmount("1,234.50")).toBe(1234.5);
     expect(readAmount("AED 975.00")).toBe(975);

@@ -27,7 +27,7 @@ drawer (both need `finance.invoices.view`; no hint without it).
 - Open items leave the register only by full allocation, write-off (exactly the remainder, with a reason) or cancellation.
 - The monthly bank run (20C) is unchanged except that it ignores lines and remittances that v2 already allocated or closed.
 - Permissions: `finance.matching.view` / `.manage` (Finance, Finance Manager, Revenue & Collections; CEO view), `.approve` (Finance Manager only).
-- Receipt register import: kind `receipt_register` in the generic import engine (layout under Bank settings), file not kept.
+- Receipt register import: kind `receipt_register` in the generic import engine (layout under Bank settings), file not kept. For the Diligence Remittance Receipt Report map Amount received to `BankAmount` (pending advices are 0 and skipped); payment references pass through `redactReferenceText`, which keeps long insurer reference numbers (docs/52 §6).
 
 ## Not built (needs input that does not exist yet)
 - **E-claim XML import** (needs sample submission and remittance advice files).

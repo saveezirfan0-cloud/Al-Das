@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-12-29-diligence-receipt-register",
+    date: "2026-10-23",
+    title: "The Diligence receipt register imports as it comes",
+    body: "Bank, Matching now takes Diligence's Remittance Receipt Report without editing: its dates (Jan 13 2026 12:00AM) are read, advices that have not reached the bank yet are skipped, and long insurer payment references are kept whole so they meet their remittance advice. The layout form names the Diligence column for each field; map Amount received to BankAmount.",
+  },
+  {
     id: "2026-12-28-voucher-split-route",
     date: "2026-10-22",
     title: "Vouchers can be approved in Tally or Pulse by amount",
