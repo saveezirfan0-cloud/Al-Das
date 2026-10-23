@@ -4,6 +4,7 @@ import { requirePerm } from "@/lib/auth/session";
 import { parseBranchScope } from "@/lib/branches/access";
 import { parseEnquiryScope } from "@/lib/enquiries/scope";
 import { inviteState } from "@/lib/invites/token";
+import { cleanMenuHidden, menuChoicesFor, readOrgMenuHidden } from "@/lib/nav/menu-visibility";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import { InviteDialog } from "./invite-dialog";
@@ -27,11 +28,15 @@ export default async function UsersPage() {
     admin
       .from("memberships")
       .select(
-        "id, user_id, status, presence, presence_at, created_at, role_id, max_open_conversations, enquiry_scope, branch_scope, home_location_id, membership_locations(location_id), roles(name), profiles:profiles!memberships_user_id_fkey(first_name, last_name, email, designation)",
+        "id, user_id, status, presence, presence_at, created_at, role_id, max_open_conversations, enquiry_scope, branch_scope, home_location_id, menu_hidden, membership_locations(location_id), roles(name), profiles:profiles!memberships_user_id_fkey(first_name, last_name, email, designation)",
       )
       .eq("org_id", member.orgId)
       .order("created_at"),
-    admin.from("roles").select("id, name, is_system").eq("org_id", member.orgId).order("name"),
+    admin
+      .from("roles")
+      .select("id, name, is_system, permissions")
+      .eq("org_id", member.orgId)
+      .order("name"),
     admin.from("teams").select("id, name").eq("org_id", member.orgId).order("name"),
     admin
       .from("invites")
@@ -48,6 +53,23 @@ export default async function UsersPage() {
       .eq("active", true)
       .order("name"),
   ]);
+
+  // Per role, the menu entries it can see at all: what the invite and Menu access dialogs offer.
+  const roleOptions = (roles ?? []).map((r) => ({
+    id: r.id,
+    name: r.name,
+    menu: menuChoicesFor({
+      userId: "",
+      orgId: member.orgId,
+      roleId: r.id,
+      roleName: r.name,
+      status: "active",
+      permissions: Array.isArray(r.permissions)
+        ? (r.permissions as unknown[]).filter((p): p is string => typeof p === "string")
+        : [],
+    }),
+  }));
+  const workspaceHidden = readOrgMenuHidden(member.org.settings);
 
   const teamsByUser = new Map<string, string[]>();
   for (const tm of teamMembers ?? []) {
@@ -73,6 +95,7 @@ export default async function UsersPage() {
     branchScope: parseBranchScope(m.branch_scope),
     branchIds: (m.membership_locations ?? []).map((l) => l.location_id),
     homeLocationId: m.home_location_id,
+    menuHidden: cleanMenuHidden(m.menu_hidden),
   }));
 
   const pending = (invites ?? []).map((i) => ({
@@ -88,9 +111,9 @@ export default async function UsersPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Users"
-        description="Who can sign in, with which role, in which teams and branches."
+        description="Who can sign in, with which role, in which teams and branches, and what their menu shows."
       >
-        <InviteDialog roles={roles ?? []} teams={teams ?? []} />
+        <InviteDialog roles={roleOptions} teams={teams ?? []} workspaceHidden={workspaceHidden} />
       </PageHeader>
       <Card>
         <CardHeader>
@@ -100,7 +123,12 @@ export default async function UsersPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <MembersTable rows={rows} roles={roles ?? []} locations={locations ?? []} />
+          <MembersTable
+            rows={rows}
+            roles={roleOptions}
+            locations={locations ?? []}
+            workspaceHidden={workspaceHidden}
+          />
         </CardContent>
       </Card>
       <Card>

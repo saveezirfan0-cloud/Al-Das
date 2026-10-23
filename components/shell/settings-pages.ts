@@ -94,7 +94,7 @@ export const SETTINGS_PAGES: readonly SettingsPage[] = [
     href: "/settings/users",
     label: "Users",
     section: "Workspace",
-    keywords: ["invite", "staff", "members", "open conversation limit", "enquiry view"],
+    keywords: ["invite", "staff", "members", "open conversation limit", "enquiry view", "menu access"],
     allow: admin,
   },
   {
@@ -102,6 +102,13 @@ export const SETTINGS_PAGES: readonly SettingsPage[] = [
     label: "Roles",
     section: "Workspace",
     keywords: ["permissions", "access"],
+    allow: admin,
+  },
+  {
+    href: "/settings/menu",
+    label: "Menu",
+    section: "Workspace",
+    keywords: ["hide", "show", "modules", "sidebar", "navigation", "customise menu", "customize menu"],
     allow: admin,
   },
   { href: "/settings/custom-fields", label: "Custom fields", section: "Workspace", allow: admin },

@@ -3,6 +3,12 @@ export type WhatsNewEntry = { id: string; date: string; title: string; body: str
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: "2026-12-31-menu-visibility",
+    date: "2026-10-23",
+    title: "Choose what the menu shows",
+    body: "Administrators can hide modules the clinic does not use under Settings, Menu: they leave the menu, the phone tabs and quick search for everyone. When inviting someone you can now choose which menu entries they see, and change it later under Settings, Users, Menu access. Each person is only offered what their role allows, and the role still decides what they can do.",
+  },
+  {
     id: "2026-12-31-appointments-from-unite",
     date: "2026-10-23",
     title: "Appointments and invoices fill from Unite overnight",

@@ -14,6 +14,7 @@ import { can } from "@/lib/auth/can";
 import { readHelpSettings } from "@/lib/help/clips";
 import { requireMember } from "@/lib/auth/session";
 import { BRANCH_COOKIE, readBranchAccess } from "@/lib/branches/access";
+import { linkIsHidden, withoutHiddenEntries } from "@/lib/nav/menu-visibility";
 import { NAV_MODULES } from "@/lib/nav/modules";
 import { NAV_STATE_COOKIE, parseNavState } from "@/lib/nav/state";
 import { buildNavTree } from "@/lib/nav/tree";
@@ -39,8 +40,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   // The overdue-task badge and the notification list are fetched in the browser and kept fresh by Realtime
   // (components/shell/shell-data.tsx), so this layout no longer runs two queries on every page render. The tree is
-  // pure: module pages come from lib/nav/modules.ts and are filtered by the member's permissions, no query.
-  const items = buildNavTree(NAV_ITEMS, NAV_MODULES, member);
+  // pure: module pages come from lib/nav/modules.ts and are filtered by the member's permissions, no query. Entries
+  // hidden under Settings, Menu or the person's Menu access are dropped (lib/nav/menu-visibility.ts).
+  const items = withoutHiddenEntries(
+    buildNavTree(NAV_ITEMS, NAV_MODULES, member),
+    member.menuHidden,
+  );
 
   const quickLinks: QuickLink[] = [
     {
@@ -75,7 +80,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       ),
     ]),
     // pages reached from inside another page (in-page tabs, buttons), each behind its page's own key
-    ...subPageLinksFor(member),
+    ...subPageLinksFor(member).filter((l) => !linkIsHidden(l.href, member.menuHidden)),
   ];
 
   const name = `${member.profile.first_name} ${member.profile.last_name}`.trim();

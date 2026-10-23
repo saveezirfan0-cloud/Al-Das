@@ -89,12 +89,16 @@ export async function acceptInvite(_prev: AcceptState, formData: FormData): Prom
   // Profile name (the auth trigger created the row; this sets the name for both paths).
   await admin.from("profiles").update({ first_name, last_name }).eq("id", userId);
 
-  const { error: memErr } = await admin
-    .from("memberships")
-    .upsert(
-      { org_id: invite.org_id, user_id: userId, role_id: invite.role_id, status: "active" },
-      { onConflict: "org_id,user_id" },
-    );
+  const { error: memErr } = await admin.from("memberships").upsert(
+    {
+      org_id: invite.org_id,
+      user_id: userId,
+      role_id: invite.role_id,
+      status: "active",
+      menu_hidden: invite.menu_hidden ?? [],
+    },
+    { onConflict: "org_id,user_id" },
+  );
   if (memErr)
     return {
       error: "Could not add you to the workspace. Ask your administrator to resend the invite.",
@@ -117,7 +121,7 @@ export async function acceptInvite(_prev: AcceptState, formData: FormData): Prom
     action: "invite.accepted",
     entity: "invite",
     entityId: invite.id,
-    diff: { role_id: invite.role_id, team_ids: invite.team_ids },
+    diff: { role_id: invite.role_id, team_ids: invite.team_ids, menu_hidden: invite.menu_hidden },
   });
 
   if (!current) {

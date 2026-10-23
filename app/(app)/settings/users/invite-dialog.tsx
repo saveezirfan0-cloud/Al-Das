@@ -5,6 +5,7 @@ import { Copy, Loader2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { MenuChoices, type MenuChoiceOption } from "@/components/shell/menu-choices";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -30,9 +31,13 @@ import { inviteUser } from "./actions";
 export function InviteDialog({
   roles,
   teams,
+  workspaceHidden,
 }: {
-  roles: Array<{ id: string; name: string }>;
+  /** `menu`: the menu entries the role can see at all (lib/nav/menu-visibility.ts menuChoicesFor). */
+  roles: Array<{ id: string; name: string; menu: MenuChoiceOption[] }>;
   teams: Array<{ id: string; name: string }>;
+  /** Hidden for everyone under Settings, Menu: shown greyed out, never offered. */
+  workspaceHidden: string[];
 }) {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
@@ -40,6 +45,9 @@ export function InviteDialog({
     roles.find((r) => r.name === "Agent")?.id ?? roles[0]?.id ?? "",
   );
   const [teamIds, setTeamIds] = useState<string[]>([]);
+  const [ownMenu, setOwnMenu] = useState(false);
+  const [menuHidden, setMenuHidden] = useState<string[]>([]);
+  const roleMenu = roles.find((r) => r.id === roleId)?.menu ?? [];
   const [link, setLink] = useState<string | null>(null);
   const [linkNote, setLinkNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +56,8 @@ export function InviteDialog({
   function reset() {
     setEmail("");
     setTeamIds([]);
+    setOwnMenu(false);
+    setMenuHidden([]);
     setLink(null);
     setLinkNote(null);
     setError(null);
@@ -57,7 +67,13 @@ export function InviteDialog({
     e.preventDefault();
     setError(null);
     startTransition(async () => {
-      const res = await inviteUser({ email, role_id: roleId, team_ids: teamIds });
+      const res = await inviteUser({
+        email,
+        role_id: roleId,
+        team_ids: teamIds,
+        // only entries this role can see; the rest are hidden by the role already
+        menu_hidden: ownMenu ? menuHidden.filter((h) => roleMenu.some((c) => c.href === h)) : [],
+      });
       if (!res.ok) {
         setError(res.error);
         return;
@@ -66,8 +82,7 @@ export function InviteDialog({
       if (res.link) {
         setLink(res.link);
         setLinkNote(res.message ?? null);
-      }
-      else {
+      } else {
         setOpen(false);
         reset();
       }
@@ -174,6 +189,32 @@ export function InviteDialog({
                 </div>
               </div>
             )}
+            <div className="grid gap-2">
+              <Label htmlFor="invite-own-menu">Menu</Label>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  id="invite-own-menu"
+                  checked={ownMenu}
+                  onCheckedChange={(c) => setOwnMenu(c === true)}
+                />
+                Choose which menu entries they see
+              </label>
+              <p className="text-muted-foreground text-xs">
+                Otherwise they see everything their role allows. The role still decides what they
+                can do.
+              </p>
+              {ownMenu && (
+                <div className="max-h-64 overflow-y-auto rounded-md border p-3">
+                  <MenuChoices
+                    choices={roleMenu}
+                    hidden={menuHidden}
+                    onChange={setMenuHidden}
+                    lockedHidden={workspaceHidden}
+                    idPrefix="invite-menu"
+                  />
+                </div>
+              )}
+            </div>
             {error && (
               <p className="text-destructive text-sm" role="alert">
                 {error}

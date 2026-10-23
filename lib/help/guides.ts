@@ -1097,6 +1097,22 @@ export const GUIDES: readonly Guide[] = [
     ],
   },
   {
+    id: "menu-visibility",
+    title: "Menu: show and hide",
+    pages: ["/settings/menu", "/page-hidden"],
+    purpose:
+      "Keep the menu to what people use: hide modules the clinic does not use for everyone, or hide more for one person.",
+    steps: [
+      "Under Settings, Menu, untick the modules nobody uses and save. They leave the menu, the phone tabs and quick search for everyone.",
+      "To choose one person's menu, tick 'Choose which menu entries they see' when you invite them, or open their row under Settings, Users, Menu access.",
+      "Each person is only offered the entries their role allows. Show everything puts their full menu back.",
+    ],
+    watchOut: [
+      "Dashboard and Settings are always shown.",
+      "Hiding is not a permission: the role decides what a person can do. A hidden page tells them it is hidden; links to it from other pages lead there too.",
+    ],
+  },
+  {
     id: "routing",
     title: "Teams and routing",
     pages: ["/settings/teams", "/settings/users", "/settings/roles"],

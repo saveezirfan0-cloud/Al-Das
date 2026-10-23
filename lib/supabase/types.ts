@@ -17543,6 +17543,7 @@ export type Database = {
           expires_at: string;
           id: string;
           invited_by: string | null;
+          menu_hidden: string[];
           org_id: string;
           revoked_at: string | null;
           role_id: string;
@@ -17558,6 +17559,7 @@ export type Database = {
           expires_at: string;
           id?: string;
           invited_by?: string | null;
+          menu_hidden?: string[];
           org_id: string;
           revoked_at?: string | null;
           role_id: string;
@@ -17572,6 +17574,7 @@ export type Database = {
           expires_at?: string;
           id?: string;
           invited_by?: string | null;
+          menu_hidden?: string[];
           org_id?: string;
           revoked_at?: string | null;
           role_id?: string;
@@ -18171,6 +18174,7 @@ export type Database = {
           id: string;
           last_seen_at: string | null;
           max_open_conversations: number | null;
+          menu_hidden: string[];
           org_id: string;
           presence: string;
           presence_at: string | null;
@@ -18189,6 +18193,7 @@ export type Database = {
           id?: string;
           last_seen_at?: string | null;
           max_open_conversations?: number | null;
+          menu_hidden?: string[];
           org_id: string;
           presence?: string;
           presence_at?: string | null;
@@ -18206,6 +18211,7 @@ export type Database = {
           id?: string;
           last_seen_at?: string | null;
           max_open_conversations?: number | null;
+          menu_hidden?: string[];
           org_id?: string;
           presence?: string;
           presence_at?: string | null;

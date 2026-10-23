@@ -11,6 +11,7 @@ import { sendEmail } from "@/lib/email";
 import { serverEnv } from "@/lib/env";
 import { generateInviteToken, inviteExpiry, inviteUrl } from "@/lib/invites/token";
 import { enquiryViewScopeSchema } from "@/lib/enquiries/scope";
+import { cleanMenuHidden } from "@/lib/nav/menu-visibility";
 import { createNotification } from "@/lib/notifications";
 import { raiseAlert } from "@/lib/security/alerts";
 import { roleChangeAlert } from "@/lib/security/anomaly";
@@ -24,6 +25,8 @@ const inviteSchema = z.object({
   email: z.string().trim().toLowerCase().email("Enter a valid email address"),
   role_id: z.string().uuid("Pick a role"),
   team_ids: z.array(z.string().uuid()).default([]),
+  /** Menu entries hidden for this person (lib/nav/menu-visibility.ts); unknown values are dropped. */
+  menu_hidden: z.array(z.string().max(200)).max(64).default([]),
 });
 
 /** Why an invite email didn't go out, in words an admin can act on. */
@@ -54,12 +57,14 @@ export async function inviteUser(input: {
   email: string;
   role_id: string;
   team_ids: string[];
+  menu_hidden?: string[];
 }): Promise<ActionResult> {
   const member = await requirePerm("settings.manage");
   const parsed = inviteSchema.safeParse(input);
   if (!parsed.success)
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   const { email, role_id, team_ids } = parsed.data;
+  const menu_hidden = cleanMenuHidden(parsed.data.menu_hidden);
   const admin = createAdminClient();
 
   const { data: role } = await admin
@@ -113,6 +118,7 @@ export async function inviteUser(input: {
       email,
       role_id,
       team_ids,
+      menu_hidden,
       token_hash: hash,
       invited_by: member.userId,
       expires_at: inviteExpiry().toISOString(),
@@ -140,7 +146,7 @@ export async function inviteUser(input: {
     action: "invite.created",
     entity: "invite",
     entityId: invite.id,
-    diff: { role_id, team_ids, delivered: delivery.delivered },
+    diff: { role_id, team_ids, menu_hidden, delivered: delivery.delivered },
   });
   revalidatePath("/settings/users");
   return delivery.delivered
@@ -173,6 +179,7 @@ export async function resendInvite(inviteId: string): Promise<ActionResult> {
       email: old.email,
       role_id: old.role_id,
       team_ids: old.team_ids,
+      menu_hidden: old.menu_hidden,
       token_hash: hash,
       invited_by: member.userId,
       expires_at: inviteExpiry().toISOString(),
@@ -484,6 +491,49 @@ export async function setMemberBranches(
   });
   revalidatePath("/settings/users");
   return { ok: true, message: "Branch access saved." };
+}
+
+const memberMenuSchema = z.object({
+  membershipId: z.string().uuid(),
+  hidden: z.array(z.string().max(200)).max(64),
+});
+
+/**
+ * Settings, Users, Menu access: the menu entries hidden for one person, on top of what their role and Settings, Menu
+ * already hide. Their pages send them to /page-hidden (lib/auth/session.ts); their role's permissions are unchanged.
+ */
+export async function setMemberMenu(membershipId: string, hidden: string[]): Promise<ActionResult> {
+  const member = await requirePerm("settings.manage");
+  const parsed = memberMenuSchema.safeParse({ membershipId, hidden });
+  if (!parsed.success) return { ok: false, error: "That menu choice is not valid." };
+  const next = cleanMenuHidden(parsed.data.hidden);
+  const admin = createAdminClient(member.userId);
+  const { data: target } = await admin
+    .from("memberships")
+    .select("id, user_id, menu_hidden")
+    .eq("id", parsed.data.membershipId)
+    .eq("org_id", member.orgId)
+    .maybeSingle();
+  if (!target) return { ok: false, error: "Member not found." };
+  const { error } = await admin
+    .from("memberships")
+    .update({ menu_hidden: next })
+    .eq("id", target.id)
+    .eq("org_id", member.orgId);
+  if (error) return { ok: false, error: "Could not save the member's menu." };
+  await recordAudit(admin, {
+    orgId: member.orgId,
+    userId: member.userId,
+    action: "membership.menu_updated",
+    entity: "membership",
+    entityId: target.id,
+    diff: { user_id: target.user_id, menu_hidden: { from: target.menu_hidden, to: next } },
+  });
+  revalidatePath("/settings/users");
+  return {
+    ok: true,
+    message: next.length ? "Menu access saved." : "They now see their full menu.",
+  };
 }
 
 export async function removeMember(membershipId: string): Promise<ActionResult> {
